@@ -4,11 +4,10 @@
 import type { Option, S } from "effect-app"
 import { Data, flow, Pipeable } from "effect-app"
 import type { NonNegativeInt } from "effect-app/Schema"
-import type { IsUnion } from "effect-app/utils"
 import type { Covariant } from "effect/Types"
 import type { Ops } from "../filter/filterApi.js"
 import type { FieldValues } from "../filter/types.js"
-import type { FieldPath, FieldPathValue } from "../filter/types/path/eager.js"
+import type { FieldPath, FieldPathValue, RefineFieldPathValue } from "../filter/types/path/eager.js"
 
 export type QAll<
   TFieldValues extends FieldValues,
@@ -417,6 +416,19 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     : QueryWhere<TFieldValues, TFieldValuesRefined>
 }
 
+/* dprint-ignore-start */
+export type RefineWithLiteral<
+  TFieldValues extends FieldValues,
+  TFieldName extends FieldPath<TFieldValues>,
+  V,
+  Exclde extends boolean = false
+> =
+// refine only if the value is a literal
+  V extends string | number | boolean | null | bigint
+    ? RefineFieldPathValue<TFieldValues, TFieldName, V, Exclde>
+    : TFieldValues
+/* dprint-ignore-end */
+
 export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
   <
     TFieldValues extends FieldValues,
@@ -431,21 +443,13 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
       : QueryWhere<TFieldValues, TFieldValuesRefined>
   ) => IsCurrentInitial extends true ? QueryWhere<
       TFieldValues,
-      // TFieldValues[TFieldName] must be a union of string literals to let the refinement work
-      // and TFieldValues must not be a union
-      IsUnion<TFieldValues> extends false ? TFieldValues
-        : string extends TFieldValues[TFieldName] ? TFieldValues
-        : TFieldValues[TFieldName] extends string ? Extract<TFieldValues, { [K in TFieldName]: V }>
-        : TFieldValues
+      // @ts-expect-error it's TS
+      RefineWithLiteral<TFieldValues, TFieldName, V>
     >
     : QueryWhere<
       TFieldValues,
-      // TFieldValues[TFieldName] must be a union of string literals to let the refinement work
-      // and TFieldValuesRefined must not be a union
-      IsUnion<TFieldValuesRefined> extends false ? TFieldValues
-        : string extends TFieldValuesRefined[TFieldName] ? TFieldValuesRefined
-        : TFieldValuesRefined[TFieldName] extends string ? Extract<TFieldValuesRefined, { [K in TFieldName]: V }>
-        : TFieldValuesRefined
+      // @ts-expect-error it's TS
+      RefineWithLiteral<TFieldValuesRefined, TFieldName, V>
     >
   <
     TFieldValues extends FieldValues,
@@ -461,21 +465,13 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
       : QueryWhere<TFieldValues, TFieldValuesRefined>
   ) => IsCurrentInitial extends true ? QueryWhere<
       TFieldValues,
-      // TFieldValues[TFieldName] must be a union of string literals to let the refinement work
-      // and TFieldValues must not be a union
-      IsUnion<TFieldValues> extends false ? TFieldValues
-        : string extends TFieldValues[TFieldName] ? TFieldValues
-        : TFieldValues[TFieldName] extends string ? Exclude<TFieldValues, { [K in TFieldName]: V }>
-        : TFieldValues
+      // @ts-expect-error it's TS
+      RefineWithLiteral<TFieldValues, TFieldName, V, true>
     >
     : QueryWhere<
       TFieldValues,
-      // TFieldValues[TFieldName] must be a union of string literals to let the refinement work
-      // and TFieldValuesRefined must not be a union
-      IsUnion<TFieldValuesRefined> extends false ? TFieldValuesRefined
-        : string extends TFieldValuesRefined[TFieldName] ? TFieldValuesRefined
-        : TFieldValuesRefined[TFieldName] extends string ? Exclude<TFieldValuesRefined, { [K in TFieldName]: V }>
-        : TFieldValuesRefined
+      // @ts-expect-error it's TS
+      RefineWithLiteral<TFieldValuesRefined, TFieldName, V, true>
     >
 }
 

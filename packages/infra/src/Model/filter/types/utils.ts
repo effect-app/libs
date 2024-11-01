@@ -104,3 +104,15 @@ export type Merge<A, B> = {
     : K extends keyof B ? B[K]
     : never
 }
+
+export type Resolve<T> =
+  & {
+    [K in keyof T]: Resolve<T[K]>
+  }
+  & unknown
+
+export type Cast<T, U> = T extends U ? T : U
+
+export type IsLiteral<T, True, False> = string extends T ? False : number extends T ? False : True
+
+export type Extends<T, U, True, False> = T extends U ? True : False

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.8.2
+
+### Patch Changes
+
+- c2fa0ed: fix error schema
+
 ## 2.8.1
 
 ### Patch Changes

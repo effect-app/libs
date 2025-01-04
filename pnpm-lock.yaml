@@ -205,9 +205,24 @@ importers:
       '@babel/cli':
         specifier: ^7.26.4
         version: 7.26.4(@babel/core@7.26.0)
+      '@babel/core':
+        specifier: ^7.26.0
+        version: 7.26.0
+      '@babel/plugin-proposal-export-namespace-from':
+        specifier: ^7.18.9
+        version: 7.18.9(@babel/core@7.26.0)
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.26.0
+        version: 7.26.0(@babel/core@7.26.0)
+      '@babel/plugin-transform-modules-commonjs':
+        specifier: ^7.26.3
+        version: 7.26.3(@babel/core@7.26.0)
       '@types/node':
         specifier: ~22.10.2
         version: 22.10.2
+      babel-plugin-replace-import-extension:
+        specifier: ^1.1.4
+        version: 1.1.4
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -263,6 +278,18 @@ importers:
       '@babel/cli':
         specifier: ^7.26.4
         version: 7.26.4(@babel/core@7.26.0)
+      '@babel/core':
+        specifier: ^7.26.0
+        version: 7.26.0
+      '@babel/plugin-proposal-export-namespace-from':
+        specifier: ^7.18.9
+        version: 7.18.9(@babel/core@7.26.0)
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.26.0
+        version: 7.26.0(@babel/core@7.26.0)
+      '@babel/plugin-transform-modules-commonjs':
+        specifier: ^7.26.3
+        version: 7.26.3(@babel/core@7.26.0)
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -275,6 +302,9 @@ importers:
       '@types/validator':
         specifier: ^13.12.2
         version: 13.12.2
+      babel-plugin-replace-import-extension:
+        specifier: ^1.1.4
+        version: 1.1.4
       fast-check:
         specifier: ^3.23.2
         version: 3.23.2
@@ -315,6 +345,21 @@ importers:
         specifier: 4.17.21
         version: 4.17.21
     devDependencies:
+      '@babel/cli':
+        specifier: ^7.26.4
+        version: 7.26.4(@babel/core@7.26.0)
+      '@babel/core':
+        specifier: ^7.26.0
+        version: 7.26.0
+      '@babel/plugin-proposal-export-namespace-from':
+        specifier: ^7.18.9
+        version: 7.18.9(@babel/core@7.26.0)
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.26.0
+        version: 7.26.0(@babel/core@7.26.0)
+      '@babel/plugin-transform-modules-commonjs':
+        specifier: ^7.26.3
+        version: 7.26.3(@babel/core@7.26.0)
       '@babel/types':
         specifier: 7.26.3
         version: 7.26.3
@@ -330,6 +375,9 @@ importers:
       '@types/lodash':
         specifier: 4.17.13
         version: 4.17.13
+      babel-plugin-replace-import-extension:
+        specifier: ^1.1.4
+        version: 1.1.4
       effect:
         specifier: ^3.11.8
         version: 3.11.8(patch_hash=fzxzfjzaan7phmfy4msdo4p3rq)
@@ -409,6 +457,18 @@ importers:
       '@babel/cli':
         specifier: ^7.26.4
         version: 7.26.4(@babel/core@7.26.0)
+      '@babel/core':
+        specifier: ^7.26.0
+        version: 7.26.0
+      '@babel/plugin-proposal-export-namespace-from':
+        specifier: ^7.18.9
+        version: 7.18.9(@babel/core@7.26.0)
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.26.0
+        version: 7.26.0(@babel/core@7.26.0)
+      '@babel/plugin-transform-modules-commonjs':
+        specifier: ^7.26.3
+        version: 7.26.3(@babel/core@7.26.0)
       '@sentry/node':
         specifier: ^8.45.1
         version: 8.45.1
@@ -427,6 +487,9 @@ importers:
       '@types/redlock':
         specifier: ^4.0.7
         version: 4.0.7
+      babel-plugin-replace-import-extension:
+        specifier: ^1.1.4
+        version: 1.1.4
       express:
         specifier: ^4.21.2
         version: 4.21.2
@@ -457,9 +520,27 @@ importers:
 
   packages/pnpm-singleton:
     devDependencies:
+      '@babel/cli':
+        specifier: ^7.26.4
+        version: 7.26.4(@babel/core@7.26.0)
+      '@babel/core':
+        specifier: ^7.26.0
+        version: 7.26.0
+      '@babel/plugin-proposal-export-namespace-from':
+        specifier: ^7.18.9
+        version: 7.18.9(@babel/core@7.26.0)
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.26.0
+        version: 7.26.0(@babel/core@7.26.0)
+      '@babel/plugin-transform-modules-commonjs':
+        specifier: ^7.26.3
+        version: 7.26.3(@babel/core@7.26.0)
       '@types/node':
         specifier: ~22.10.2
         version: 22.10.2
+      babel-plugin-replace-import-extension:
+        specifier: ^1.1.4
+        version: 1.1.4
       typescript:
         specifier: ^5.7.2
         version: 5.7.2(patch_hash=i2s6pnnksgwmnqxtmioljcvjfq)
@@ -509,12 +590,27 @@ importers:
       '@babel/cli':
         specifier: ^7.26.4
         version: 7.26.4(@babel/core@7.26.0)
+      '@babel/core':
+        specifier: ^7.26.0
+        version: 7.26.0
+      '@babel/plugin-proposal-export-namespace-from':
+        specifier: ^7.18.9
+        version: 7.18.9(@babel/core@7.26.0)
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.26.0
+        version: 7.26.0(@babel/core@7.26.0)
+      '@babel/plugin-transform-modules-commonjs':
+        specifier: ^7.26.3
+        version: 7.26.3(@babel/core@7.26.0)
       '@rollup/pluginutils':
         specifier: ^5.1.4
         version: 5.1.4(rollup@4.24.0)
       '@types/node':
         specifier: ~22.10.2
         version: 22.10.2
+      babel-plugin-replace-import-extension:
+        specifier: ^1.1.4
+        version: 1.1.4
       intl-messageformat:
         specifier: ^10.7.10
         version: 10.7.10

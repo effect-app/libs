@@ -22,6 +22,11 @@
   },
   "devDependencies": {
     "@babel/cli": "^7.26.4",
+    "@babel/core": "^7.26.0",
+    "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
+    "@babel/plugin-syntax-import-attributes": "^7.26.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.26.3",
+    "babel-plugin-replace-import-extension": "^1.1.4",
     "@rollup/pluginutils": "^5.1.4",
     "@types/node": "~22.10.2",
     "intl-messageformat": "^10.7.10",

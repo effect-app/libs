@@ -177,5 +177,5 @@ export class ApiClientFactory
     (requestLevelLayers: Layer.Layer<never, never, never>) => <M extends Requests>(resource: M) =>
       this
         .use((apiClientFactory) => apiClientFactory(requestLevelLayers))
-        .pipe(Effect.map((clientFor) => clientFor(resource)))
+        .pipe(Effect.map((f) => f(resource))) // don't rename f to clientFor or integration in vue project linked fucks up
 }

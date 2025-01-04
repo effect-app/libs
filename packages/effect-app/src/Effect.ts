@@ -2,13 +2,13 @@
 /* eslint-disable prefer-destructuring */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-import { Effect, Option, Ref } from "effect"
+import type { Context } from "effect"
+import { Effect, HashMap, Option, Ref } from "effect"
 import * as Def from "effect/Deferred"
 import type { Semaphore } from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as FiberRef from "effect/FiberRef"
 import { curry } from "./Function.js"
-import { type Context, HashMap } from "./index.js"
 import { typedKeysOf } from "./utils.js"
 
 export { ServiceStrict as Service } from "effect/Effect"

@@ -6,7 +6,7 @@ import type { NonEmptyReadonlyArray } from "effect/Array"
 import type { Tag } from "effect/Context"
 import type { Schema } from "effect/Schema"
 import * as S from "effect/Schema"
-import { Context } from "../internal/lib.js"
+import * as Context from "../Context.js"
 import { extendM, typedKeysOf } from "../utils.js"
 
 export const withDefaultConstructor: <A, I, R>(

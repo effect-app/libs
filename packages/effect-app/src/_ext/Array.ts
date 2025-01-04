@@ -1,5 +1,5 @@
 import { Chunk, Effect, Equal } from "effect-app"
-import { NotFoundError } from "../client.js"
+import { NotFoundError } from "../client/errors.js"
 
 export function makeGetFirstBy<A>() {
   return <const Id extends keyof A, Type extends string>(idKey: Id, type: Type) =>

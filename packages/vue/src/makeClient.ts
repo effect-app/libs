@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Sentry from "@sentry/browser"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
-import { CauseException, type SupportedErrors } from "effect-app/client"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import { CauseException, type SupportedErrors } from "effect-app/client/errors"
 import { constant, pipe, tuple } from "effect-app/Function"
 import type { OperationFailure } from "effect-app/Operations"
 import { OperationSuccess } from "effect-app/Operations"

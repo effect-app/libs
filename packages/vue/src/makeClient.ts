@@ -196,9 +196,10 @@ export const makeClient = <Locale extends string, R>(
   runtime: ShallowRef<Runtime.Runtime<R> | undefined>,
   messages: Record<string, string | undefined> = {}
 ) => {
-  const useSafeMutation = makeMutation()
-  const useSafeQuery = makeQuery(runtime)
-  const useHandleRequestWithToast = () => {
+  // making sure names do not collide with auto exports in nuxt apps, please do not rename..
+  const _useSafeMutation = makeMutation()
+  const _useSafeQuery = makeQuery(runtime)
+  const _useHandleRequestWithToast = () => {
     const toast = useToast()
     const { intl } = useIntl()
 
@@ -345,7 +346,7 @@ export const makeClient = <Locale extends string, R>(
    * Pass a function that returns an Effect, e.g from a client action, give it a name.
    * Returns a tuple with state ref and execution function which reports success and errors as Toast.
    */
-  const useAndHandleMutation: {
+  const _useAndHandleMutation: {
     <
       I,
       E extends ResponseErrors,
@@ -390,8 +391,8 @@ export const makeClient = <Locale extends string, R>(
     action: any,
     options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
   ): any => {
-    const handleRequestWithToast = useHandleRequestWithToast()
-    const [a, b] = useSafeMutation({
+    const handleRequestWithToast = _useHandleRequestWithToast()
+    const [a, b] = _useSafeMutation({
       ...self,
       handler: Effect.isEffect(self.handler)
         ? (pipe(
@@ -415,7 +416,7 @@ export const makeClient = <Locale extends string, R>(
    * The same as @see useAndHandleMutation, but does not display any toasts by default.
    * Messages for success, error and defect toasts can be provided in the Options.
    */
-  const useAndHandleMutationSilently: {
+  const _useAndHandleMutationSilently: {
     <
       I,
       E extends ResponseErrors,
@@ -455,7 +456,7 @@ export const makeClient = <Locale extends string, R>(
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): ActResp<void, never, R>
-  } = makeUseAndHandleMutation({
+  } = _makeUseAndHandleMutation({
     successMessage: suppressToast,
     failMessage: suppressToast,
     defectMessage: suppressToast
@@ -465,7 +466,7 @@ export const makeClient = <Locale extends string, R>(
    * The same as @see useAndHandleMutation, but does not act on success, error or defect by default.
    * Actions for success, error and defect can be provided in the Options.
    */
-  const useAndHandleMutationCustom: {
+  const _useAndHandleMutationCustom: {
     <
       I,
       E extends ResponseErrors,
@@ -506,7 +507,7 @@ export const makeClient = <Locale extends string, R>(
       options?: LowOptsOptional<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): ActResp<A2, E2, R2>
   } = (self: any, action: string, options: any) => {
-    const [a, b] = useSafeMutation({
+    const [a, b] = _useSafeMutation({
       ...self,
       handler: Effect.isEffect(self.handler)
         ? (pipe(
@@ -531,11 +532,11 @@ export const makeClient = <Locale extends string, R>(
     ) as any
   }
 
-  function makeUseAndHandleMutation(
+  function _makeUseAndHandleMutation(
     defaultOptions?: Opts<any, any, any, any, any, any, any, any, any>
   ) {
     return ((self: any, action: any, options: any) => {
-      return useAndHandleMutation(
+      return _useAndHandleMutation(
         self,
         action,
         { ...defaultOptions, ...options }
@@ -582,10 +583,10 @@ export const makeClient = <Locale extends string, R>(
     }
   }
 
-  const useSafeMutationWithState = <I, E, A, Request extends TaggedRequestClassAny>(
+  const _useSafeMutationWithState = <I, E, A, Request extends TaggedRequestClassAny>(
     self: RequestHandlerWithInput<I, A, E, R, Request>
   ) => {
-    const [a, b] = useSafeMutation(self)
+    const [a, b] = _useSafeMutation(self)
 
     return tuple(
       computed(() => mutationResultToVue(a.value)),
@@ -593,7 +594,7 @@ export const makeClient = <Locale extends string, R>(
     )
   }
 
-  const buildFormFromSchema = <
+  const _buildFormFromSchema = <
     From extends Record<PropertyKey, any>,
     To extends Record<PropertyKey, any>,
     C extends Record<PropertyKey, any>,
@@ -650,14 +651,14 @@ export const makeClient = <Locale extends string, R>(
   }
 
   return {
-    useSafeMutationWithState,
-    useAndHandleMutation,
-    useAndHandleMutationSilently,
-    useAndHandleMutationCustom,
-    makeUseAndHandleMutation,
-    useHandleRequestWithToast,
-    buildFormFromSchema,
-    useSafeQuery,
-    useSafeMutation
+    useSafeMutationWithState: _useSafeMutationWithState,
+    useAndHandleMutation: _useAndHandleMutation,
+    useAndHandleMutationSilently: _useAndHandleMutationSilently,
+    useAndHandleMutationCustom: _useAndHandleMutationCustom,
+    makeUseAndHandleMutation: _makeUseAndHandleMutation,
+    useHandleRequestWithToast: _useHandleRequestWithToast,
+    buildFormFromSchema: _buildFormFromSchema,
+    useSafeQuery: _useSafeQuery,
+    useSafeMutation: _useSafeMutation
   }
 }

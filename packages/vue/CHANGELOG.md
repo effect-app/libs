@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.19.3
+
+### Patch Changes
+
+- fix missing exports
+
 ## 2.19.2
 
 ### Patch Changes

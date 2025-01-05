@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.23.1
+
+### Patch Changes
+
+- 93e88c2: fix: export
+
 ## 2.23.0
 
 ### Minor Changes

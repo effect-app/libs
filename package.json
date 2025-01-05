@@ -13,7 +13,7 @@
     "pnpm": ">= 9.0.4"
   },
   "scripts": {
-    "all": "pnpm -r --filter=!./packages/pnpm-singleton",
+    "all": "pnpm -r",
     "pub": "pnpm ci:version && git commit -am 'chore: update versions' && pnpm ci:publish",
     "ci:version": "pnpm changeset version",
     "ci:publish": "pnpm all publish --access=public",
@@ -59,7 +59,6 @@
     "@effect-app/cli": "^1.12.0",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
-    "@effect-app/pnpm-singleton": "workspace:*",
     "@effect/language-service": "0.2.0",
     "@effect/platform": "^0.72.1",
     "@effect/platform-node": "^0.68.1",

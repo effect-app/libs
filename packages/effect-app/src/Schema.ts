@@ -27,7 +27,7 @@ export {
   Struct,
   Tuple
 } from "./Schema/ext.js"
-export { Int } from "./Schema/numbers.js"
+export { Int, NonNegativeInt } from "./Schema/numbers.js"
 
 export * from "./Schema/email.js"
 export * from "./Schema/ext.js"

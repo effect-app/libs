@@ -1,5 +1,11 @@
 # @effect-app/pnpm-singleton
 
+## 0.93.0
+
+### Minor Changes
+
+- 67023f8: kill \_cjs
+
 ## 0.92.2
 
 ### Patch Changes

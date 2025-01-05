@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.12.0
+
+### Minor Changes
+
+- 67023f8: kill \_cjs
+
 ## 1.11.4
 
 ### Patch Changes

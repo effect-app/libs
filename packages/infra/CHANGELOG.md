@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.33.0
+
+### Minor Changes
+
+- 67023f8: kill \_cjs
+
+### Patch Changes
+
+- Updated dependencies [67023f8]
+  - effect-app@2.22.0
+
 ## 2.32.2
 
 ### Patch Changes

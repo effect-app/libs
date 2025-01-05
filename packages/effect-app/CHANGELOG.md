@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.22.0
+
+### Minor Changes
+
+- 67023f8: kill \_cjs
+
 ## 2.21.0
 
 ### Minor Changes

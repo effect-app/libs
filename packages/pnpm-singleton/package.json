@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
+    "build:tsc": "pnpm clean-dist && tsc --build",
     "build": "pnpm build:tsc && pnpm build2:cjs",
     "build2:cjs": "rm -rf _cjs && babel dist --config-file ../../.babel.cjs.json --out-dir _cjs --out-file-extension .cjs --source-maps",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",

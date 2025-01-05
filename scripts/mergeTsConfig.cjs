@@ -13,7 +13,10 @@ let currentConfig = rootConfig;
 let relativeRoot = _path.default.dirname(_path.default.resolve(configPath));
 while (currentConfig) {
   if (currentConfig.extends) {
-    const extendsPath = _path.default.resolve(relativeRoot, currentConfig.extends);
+    let extendsPath = _path.default.resolve(relativeRoot, currentConfig.extends);
+    if (!_fs.default.existsSync(extendsPath)) {
+      extendsPath = _path.default.resolve(relativeRoot, "node_modules", currentConfig.extends);
+    }
     const c = _json.default.parse(_fs.default.readFileSync(extendsPath, "utf-8").toString());
     configs.push(c);
     currentConfig = c;

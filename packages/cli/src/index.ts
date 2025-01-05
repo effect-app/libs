@@ -146,14 +146,8 @@ function packagejson(p: string, levels = 0) {
     ...(fs.existsSync(p + "/src/index.ts")
       ? {
         ".": {
-          "import": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
-          },
-          "require": {
-            "types": "./dist/index.d.ts",
-            "default": "./_cjs/index.cjs"
-          }
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
         }
       }
       : undefined),

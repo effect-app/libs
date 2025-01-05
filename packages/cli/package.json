@@ -12,12 +12,6 @@
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
-    "@babel/cli": "^7.26.4",
-    "@babel/core": "^7.26.0",
-    "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
-    "@babel/plugin-syntax-import-attributes": "^7.26.0",
-    "@babel/plugin-transform-modules-commonjs": "^7.26.3",
-    "babel-plugin-replace-import-extension": "^1.1.4",
     "@types/node": "~22.10.2",
     "json5": "^2.2.3",
     "typescript": "^5.7.2",
@@ -32,63 +26,32 @@
   },
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./_cjs/index.cjs"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./link": {
-      "import": {
-        "types": "./dist/link.d.ts",
-        "default": "./dist/link.js"
-      },
-      "require": {
-        "types": "./dist/link.d.ts",
-        "default": "./_cjs/link.cjs"
-      }
+      "types": "./dist/link.d.ts",
+      "default": "./dist/link.js"
     },
     "./shared": {
-      "import": {
-        "types": "./dist/shared.d.ts",
-        "default": "./dist/shared.js"
-      },
-      "require": {
-        "types": "./dist/shared.d.ts",
-        "default": "./_cjs/shared.cjs"
-      }
+      "types": "./dist/shared.d.ts",
+      "default": "./dist/shared.js"
     },
     "./sync": {
-      "import": {
-        "types": "./dist/sync.d.ts",
-        "default": "./dist/sync.js"
-      },
-      "require": {
-        "types": "./dist/sync.d.ts",
-        "default": "./_cjs/sync.cjs"
-      }
+      "types": "./dist/sync.d.ts",
+      "default": "./dist/sync.js"
     },
     "./unlink": {
-      "import": {
-        "types": "./dist/unlink.d.ts",
-        "default": "./dist/unlink.js"
-      },
-      "require": {
-        "types": "./dist/unlink.d.ts",
-        "default": "./_cjs/unlink.cjs"
-      }
+      "types": "./dist/unlink.d.ts",
+      "default": "./dist/unlink.js"
     }
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && tsc --build",
-    "build": "pnpm build:tsc && pnpm build2:cjs",
-    "build2:cjs": "rm -rf _cjs && babel dist --config-file ../../.babel.cjs.json --out-dir _cjs --out-file-extension .cjs --source-maps",
+    "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
-    "clean": "rm -rf dist && rm -rf _cjs",
+    "clean": "rm -rf dist",
     "clean-dist": "sh ../../scripts/clean-dist.sh",
     "circular": "pnpm circular:src && pnpm circular:dist",
     "circular:src": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",

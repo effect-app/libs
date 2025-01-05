@@ -44,123 +44,56 @@
   },
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./_cjs/index.cjs"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./errorReporter": {
-      "import": {
-        "types": "./dist/errorReporter.d.ts",
-        "default": "./dist/errorReporter.js"
-      },
-      "require": {
-        "types": "./dist/errorReporter.d.ts",
-        "default": "./_cjs/errorReporter.cjs"
-      }
+      "types": "./dist/errorReporter.d.ts",
+      "default": "./dist/errorReporter.js"
     },
     "./form": {
-      "import": {
-        "types": "./dist/form.d.ts",
-        "default": "./dist/form.js"
-      },
-      "require": {
-        "types": "./dist/form.d.ts",
-        "default": "./_cjs/form.cjs"
-      }
+      "types": "./dist/form.d.ts",
+      "default": "./dist/form.js"
     },
     "./lib": {
-      "import": {
-        "types": "./dist/lib.d.ts",
-        "default": "./dist/lib.js"
-      },
-      "require": {
-        "types": "./dist/lib.d.ts",
-        "default": "./_cjs/lib.cjs"
-      }
+      "types": "./dist/lib.d.ts",
+      "default": "./dist/lib.js"
     },
     "./makeClient": {
-      "import": {
-        "types": "./dist/makeClient.d.ts",
-        "default": "./dist/makeClient.js"
-      },
-      "require": {
-        "types": "./dist/makeClient.d.ts",
-        "default": "./_cjs/makeClient.cjs"
-      }
+      "types": "./dist/makeClient.d.ts",
+      "default": "./dist/makeClient.js"
     },
     "./makeContext": {
-      "import": {
-        "types": "./dist/makeContext.d.ts",
-        "default": "./dist/makeContext.js"
-      },
-      "require": {
-        "types": "./dist/makeContext.d.ts",
-        "default": "./_cjs/makeContext.cjs"
-      }
+      "types": "./dist/makeContext.d.ts",
+      "default": "./dist/makeContext.js"
     },
     "./makeIntl": {
-      "import": {
-        "types": "./dist/makeIntl.d.ts",
-        "default": "./dist/makeIntl.js"
-      },
-      "require": {
-        "types": "./dist/makeIntl.d.ts",
-        "default": "./_cjs/makeIntl.cjs"
-      }
+      "types": "./dist/makeIntl.d.ts",
+      "default": "./dist/makeIntl.js"
     },
     "./mutate": {
-      "import": {
-        "types": "./dist/mutate.d.ts",
-        "default": "./dist/mutate.js"
-      },
-      "require": {
-        "types": "./dist/mutate.d.ts",
-        "default": "./_cjs/mutate.cjs"
-      }
+      "types": "./dist/mutate.d.ts",
+      "default": "./dist/mutate.js"
     },
     "./query": {
-      "import": {
-        "types": "./dist/query.d.ts",
-        "default": "./dist/query.js"
-      },
-      "require": {
-        "types": "./dist/query.d.ts",
-        "default": "./_cjs/query.cjs"
-      }
+      "types": "./dist/query.d.ts",
+      "default": "./dist/query.js"
     },
     "./routeParams": {
-      "import": {
-        "types": "./dist/routeParams.d.ts",
-        "default": "./dist/routeParams.js"
-      },
-      "require": {
-        "types": "./dist/routeParams.d.ts",
-        "default": "./_cjs/routeParams.cjs"
-      }
+      "types": "./dist/routeParams.d.ts",
+      "default": "./dist/routeParams.js"
     },
     "./runtime": {
-      "import": {
-        "types": "./dist/runtime.d.ts",
-        "default": "./dist/runtime.js"
-      },
-      "require": {
-        "types": "./dist/runtime.d.ts",
-        "default": "./_cjs/runtime.cjs"
-      }
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
     }
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
-    "build": "pnpm build:tsc && pnpm build2:cjs",
-    "build2:cjs": "rm -rf _cjs && babel dist --config-file ../../.babel.cjs.json --out-dir _cjs --out-file-extension .cjs --source-maps",
+    "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
-    "clean": "rm -rf dist && rm -rf _cjs",
+    "clean": "rm -rf dist",
     "clean-dist": "sh ../../scripts/clean-dist.sh",
     "circular": "pnpm circular:src && pnpm circular:dist",
     "circular:src": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",

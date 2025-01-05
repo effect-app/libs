@@ -22,11 +22,6 @@ tsconfig.tsbuildinfo
 .env.local
 .env
 
-_cjs/
-_mjs/
-_esm/
-
-
 # CMake
 cmake-build-*/
 

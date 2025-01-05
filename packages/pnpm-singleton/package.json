@@ -57,14 +57,8 @@
       }
     },
     "./plugin": {
-      "import": {
-        "types": "./dist/plugin.d.ts",
-        "default": "./dist/plugin.js"
-      },
-      "require": {
-        "types": "./dist/plugin.d.ts",
-        "default": "./_cjs/plugin.cjs"
-      }
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
     }
   },
   "gitHead": "bd8e27eea3eff97db8739d577d67e7336c078d28",

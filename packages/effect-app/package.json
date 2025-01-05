@@ -44,554 +44,228 @@
   },
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./_cjs/index.cjs"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./Array": {
-      "import": {
-        "types": "./dist/Array.d.ts",
-        "default": "./dist/Array.js"
-      },
-      "require": {
-        "types": "./dist/Array.d.ts",
-        "default": "./_cjs/Array.cjs"
-      }
+      "types": "./dist/Array.d.ts",
+      "default": "./dist/Array.js"
     },
     "./Chunk": {
-      "import": {
-        "types": "./dist/Chunk.d.ts",
-        "default": "./dist/Chunk.js"
-      },
-      "require": {
-        "types": "./dist/Chunk.d.ts",
-        "default": "./_cjs/Chunk.cjs"
-      }
+      "types": "./dist/Chunk.d.ts",
+      "default": "./dist/Chunk.js"
     },
     "./Config/SecretURL": {
-      "import": {
-        "types": "./dist/Config/SecretURL.d.ts",
-        "default": "./dist/Config/SecretURL.js"
-      },
-      "require": {
-        "types": "./dist/Config/SecretURL.d.ts",
-        "default": "./_cjs/Config/SecretURL.cjs"
-      }
+      "types": "./dist/Config/SecretURL.d.ts",
+      "default": "./dist/Config/SecretURL.js"
     },
     "./Context": {
-      "import": {
-        "types": "./dist/Context.d.ts",
-        "default": "./dist/Context.js"
-      },
-      "require": {
-        "types": "./dist/Context.d.ts",
-        "default": "./_cjs/Context.cjs"
-      }
+      "types": "./dist/Context.d.ts",
+      "default": "./dist/Context.js"
     },
     "./Effect": {
-      "import": {
-        "types": "./dist/Effect.d.ts",
-        "default": "./dist/Effect.js"
-      },
-      "require": {
-        "types": "./dist/Effect.d.ts",
-        "default": "./_cjs/Effect.cjs"
-      }
+      "types": "./dist/Effect.d.ts",
+      "default": "./dist/Effect.js"
     },
     "./Function": {
-      "import": {
-        "types": "./dist/Function.d.ts",
-        "default": "./dist/Function.js"
-      },
-      "require": {
-        "types": "./dist/Function.d.ts",
-        "default": "./_cjs/Function.cjs"
-      }
+      "types": "./dist/Function.d.ts",
+      "default": "./dist/Function.js"
     },
     "./Inputify.type": {
-      "import": {
-        "types": "./dist/Inputify.type.d.ts",
-        "default": "./dist/Inputify.type.js"
-      },
-      "require": {
-        "types": "./dist/Inputify.type.d.ts",
-        "default": "./_cjs/Inputify.type.cjs"
-      }
+      "types": "./dist/Inputify.type.d.ts",
+      "default": "./dist/Inputify.type.js"
     },
     "./NonEmptySet": {
-      "import": {
-        "types": "./dist/NonEmptySet.d.ts",
-        "default": "./dist/NonEmptySet.js"
-      },
-      "require": {
-        "types": "./dist/NonEmptySet.d.ts",
-        "default": "./_cjs/NonEmptySet.cjs"
-      }
+      "types": "./dist/NonEmptySet.d.ts",
+      "default": "./dist/NonEmptySet.js"
     },
     "./NonEmptySetAspects": {
-      "import": {
-        "types": "./dist/NonEmptySetAspects.d.ts",
-        "default": "./dist/NonEmptySetAspects.js"
-      },
-      "require": {
-        "types": "./dist/NonEmptySetAspects.d.ts",
-        "default": "./_cjs/NonEmptySetAspects.cjs"
-      }
+      "types": "./dist/NonEmptySetAspects.d.ts",
+      "default": "./dist/NonEmptySetAspects.js"
     },
     "./NonEmptySetBase": {
-      "import": {
-        "types": "./dist/NonEmptySetBase.d.ts",
-        "default": "./dist/NonEmptySetBase.js"
-      },
-      "require": {
-        "types": "./dist/NonEmptySetBase.d.ts",
-        "default": "./_cjs/NonEmptySetBase.cjs"
-      }
+      "types": "./dist/NonEmptySetBase.d.ts",
+      "default": "./dist/NonEmptySetBase.js"
     },
     "./Operations": {
-      "import": {
-        "types": "./dist/Operations.d.ts",
-        "default": "./dist/Operations.js"
-      },
-      "require": {
-        "types": "./dist/Operations.d.ts",
-        "default": "./_cjs/Operations.cjs"
-      }
+      "types": "./dist/Operations.d.ts",
+      "default": "./dist/Operations.js"
     },
     "./Option": {
-      "import": {
-        "types": "./dist/Option.d.ts",
-        "default": "./dist/Option.js"
-      },
-      "require": {
-        "types": "./dist/Option.d.ts",
-        "default": "./_cjs/Option.cjs"
-      }
+      "types": "./dist/Option.d.ts",
+      "default": "./dist/Option.js"
     },
     "./Pure": {
-      "import": {
-        "types": "./dist/Pure.d.ts",
-        "default": "./dist/Pure.js"
-      },
-      "require": {
-        "types": "./dist/Pure.d.ts",
-        "default": "./_cjs/Pure.cjs"
-      }
+      "types": "./dist/Pure.d.ts",
+      "default": "./dist/Pure.js"
     },
     "./Schema": {
-      "import": {
-        "types": "./dist/Schema.d.ts",
-        "default": "./dist/Schema.js"
-      },
-      "require": {
-        "types": "./dist/Schema.d.ts",
-        "default": "./_cjs/Schema.cjs"
-      }
+      "types": "./dist/Schema.d.ts",
+      "default": "./dist/Schema.js"
     },
     "./Schema/Class": {
-      "import": {
-        "types": "./dist/Schema/Class.d.ts",
-        "default": "./dist/Schema/Class.js"
-      },
-      "require": {
-        "types": "./dist/Schema/Class.d.ts",
-        "default": "./_cjs/Schema/Class.cjs"
-      }
+      "types": "./dist/Schema/Class.d.ts",
+      "default": "./dist/Schema/Class.js"
     },
     "./Schema/FastCheck": {
-      "import": {
-        "types": "./dist/Schema/FastCheck.d.ts",
-        "default": "./dist/Schema/FastCheck.js"
-      },
-      "require": {
-        "types": "./dist/Schema/FastCheck.d.ts",
-        "default": "./_cjs/Schema/FastCheck.cjs"
-      }
+      "types": "./dist/Schema/FastCheck.d.ts",
+      "default": "./dist/Schema/FastCheck.js"
     },
     "./Schema/Methods": {
-      "import": {
-        "types": "./dist/Schema/Methods.d.ts",
-        "default": "./dist/Schema/Methods.js"
-      },
-      "require": {
-        "types": "./dist/Schema/Methods.d.ts",
-        "default": "./_cjs/Schema/Methods.cjs"
-      }
+      "types": "./dist/Schema/Methods.d.ts",
+      "default": "./dist/Schema/Methods.js"
     },
     "./Schema/brand": {
-      "import": {
-        "types": "./dist/Schema/brand.d.ts",
-        "default": "./dist/Schema/brand.js"
-      },
-      "require": {
-        "types": "./dist/Schema/brand.d.ts",
-        "default": "./_cjs/Schema/brand.cjs"
-      }
+      "types": "./dist/Schema/brand.d.ts",
+      "default": "./dist/Schema/brand.js"
     },
     "./Schema/email": {
-      "import": {
-        "types": "./dist/Schema/email.d.ts",
-        "default": "./dist/Schema/email.js"
-      },
-      "require": {
-        "types": "./dist/Schema/email.d.ts",
-        "default": "./_cjs/Schema/email.cjs"
-      }
+      "types": "./dist/Schema/email.d.ts",
+      "default": "./dist/Schema/email.js"
     },
     "./Schema/ext": {
-      "import": {
-        "types": "./dist/Schema/ext.d.ts",
-        "default": "./dist/Schema/ext.js"
-      },
-      "require": {
-        "types": "./dist/Schema/ext.d.ts",
-        "default": "./_cjs/Schema/ext.cjs"
-      }
+      "types": "./dist/Schema/ext.d.ts",
+      "default": "./dist/Schema/ext.js"
     },
     "./Schema/moreStrings": {
-      "import": {
-        "types": "./dist/Schema/moreStrings.d.ts",
-        "default": "./dist/Schema/moreStrings.js"
-      },
-      "require": {
-        "types": "./dist/Schema/moreStrings.d.ts",
-        "default": "./_cjs/Schema/moreStrings.cjs"
-      }
+      "types": "./dist/Schema/moreStrings.d.ts",
+      "default": "./dist/Schema/moreStrings.js"
     },
     "./Schema/numbers": {
-      "import": {
-        "types": "./dist/Schema/numbers.d.ts",
-        "default": "./dist/Schema/numbers.js"
-      },
-      "require": {
-        "types": "./dist/Schema/numbers.d.ts",
-        "default": "./_cjs/Schema/numbers.cjs"
-      }
+      "types": "./dist/Schema/numbers.d.ts",
+      "default": "./dist/Schema/numbers.js"
     },
     "./Schema/phoneNumber": {
-      "import": {
-        "types": "./dist/Schema/phoneNumber.d.ts",
-        "default": "./dist/Schema/phoneNumber.js"
-      },
-      "require": {
-        "types": "./dist/Schema/phoneNumber.d.ts",
-        "default": "./_cjs/Schema/phoneNumber.cjs"
-      }
+      "types": "./dist/Schema/phoneNumber.d.ts",
+      "default": "./dist/Schema/phoneNumber.js"
     },
     "./Schema/schema": {
-      "import": {
-        "types": "./dist/Schema/schema.d.ts",
-        "default": "./dist/Schema/schema.js"
-      },
-      "require": {
-        "types": "./dist/Schema/schema.d.ts",
-        "default": "./_cjs/Schema/schema.cjs"
-      }
+      "types": "./dist/Schema/schema.d.ts",
+      "default": "./dist/Schema/schema.js"
     },
     "./Schema/strings": {
-      "import": {
-        "types": "./dist/Schema/strings.d.ts",
-        "default": "./dist/Schema/strings.js"
-      },
-      "require": {
-        "types": "./dist/Schema/strings.d.ts",
-        "default": "./_cjs/Schema/strings.cjs"
-      }
+      "types": "./dist/Schema/strings.d.ts",
+      "default": "./dist/Schema/strings.js"
     },
     "./Set": {
-      "import": {
-        "types": "./dist/Set.d.ts",
-        "default": "./dist/Set.js"
-      },
-      "require": {
-        "types": "./dist/Set.d.ts",
-        "default": "./_cjs/Set.cjs"
-      }
+      "types": "./dist/Set.d.ts",
+      "default": "./dist/Set.js"
     },
     "./Struct": {
-      "import": {
-        "types": "./dist/Struct.d.ts",
-        "default": "./dist/Struct.js"
-      },
-      "require": {
-        "types": "./dist/Struct.d.ts",
-        "default": "./_cjs/Struct.cjs"
-      }
+      "types": "./dist/Struct.d.ts",
+      "default": "./dist/Struct.js"
     },
     "./Tag": {
-      "import": {
-        "types": "./dist/Tag.d.ts",
-        "default": "./dist/Tag.js"
-      },
-      "require": {
-        "types": "./dist/Tag.d.ts",
-        "default": "./_cjs/Tag.cjs"
-      }
+      "types": "./dist/Tag.d.ts",
+      "default": "./dist/Tag.js"
     },
     "./Unify": {
-      "import": {
-        "types": "./dist/Unify.d.ts",
-        "default": "./dist/Unify.js"
-      },
-      "require": {
-        "types": "./dist/Unify.d.ts",
-        "default": "./_cjs/Unify.cjs"
-      }
+      "types": "./dist/Unify.d.ts",
+      "default": "./dist/Unify.js"
     },
     "./Widen.type": {
-      "import": {
-        "types": "./dist/Widen.type.d.ts",
-        "default": "./dist/Widen.type.js"
-      },
-      "require": {
-        "types": "./dist/Widen.type.d.ts",
-        "default": "./_cjs/Widen.type.cjs"
-      }
+      "types": "./dist/Widen.type.d.ts",
+      "default": "./dist/Widen.type.js"
     },
     "./_ext/Array": {
-      "import": {
-        "types": "./dist/_ext/Array.d.ts",
-        "default": "./dist/_ext/Array.js"
-      },
-      "require": {
-        "types": "./dist/_ext/Array.d.ts",
-        "default": "./_cjs/_ext/Array.cjs"
-      }
+      "types": "./dist/_ext/Array.d.ts",
+      "default": "./dist/_ext/Array.js"
     },
     "./_ext/date": {
-      "import": {
-        "types": "./dist/_ext/date.d.ts",
-        "default": "./dist/_ext/date.js"
-      },
-      "require": {
-        "types": "./dist/_ext/date.d.ts",
-        "default": "./_cjs/_ext/date.cjs"
-      }
+      "types": "./dist/_ext/date.d.ts",
+      "default": "./dist/_ext/date.js"
     },
     "./_ext/misc": {
-      "import": {
-        "types": "./dist/_ext/misc.d.ts",
-        "default": "./dist/_ext/misc.js"
-      },
-      "require": {
-        "types": "./dist/_ext/misc.d.ts",
-        "default": "./_cjs/_ext/misc.cjs"
-      }
+      "types": "./dist/_ext/misc.d.ts",
+      "default": "./dist/_ext/misc.js"
     },
     "./_ext/ord.ext": {
-      "import": {
-        "types": "./dist/_ext/ord.ext.d.ts",
-        "default": "./dist/_ext/ord.ext.js"
-      },
-      "require": {
-        "types": "./dist/_ext/ord.ext.d.ts",
-        "default": "./_cjs/_ext/ord.ext.cjs"
-      }
+      "types": "./dist/_ext/ord.ext.d.ts",
+      "default": "./dist/_ext/ord.ext.js"
     },
     "./builtin": {
-      "import": {
-        "types": "./dist/builtin.d.ts",
-        "default": "./dist/builtin.js"
-      },
-      "require": {
-        "types": "./dist/builtin.d.ts",
-        "default": "./_cjs/builtin.cjs"
-      }
+      "types": "./dist/builtin.d.ts",
+      "default": "./dist/builtin.js"
     },
     "./client": {
-      "import": {
-        "types": "./dist/client.d.ts",
-        "default": "./dist/client.js"
-      },
-      "require": {
-        "types": "./dist/client.d.ts",
-        "default": "./_cjs/client.cjs"
-      }
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
     },
     "./client/apiClientFactory": {
-      "import": {
-        "types": "./dist/client/apiClientFactory.d.ts",
-        "default": "./dist/client/apiClientFactory.js"
-      },
-      "require": {
-        "types": "./dist/client/apiClientFactory.d.ts",
-        "default": "./_cjs/client/apiClientFactory.cjs"
-      }
+      "types": "./dist/client/apiClientFactory.d.ts",
+      "default": "./dist/client/apiClientFactory.js"
     },
     "./client/clientFor": {
-      "import": {
-        "types": "./dist/client/clientFor.d.ts",
-        "default": "./dist/client/clientFor.js"
-      },
-      "require": {
-        "types": "./dist/client/clientFor.d.ts",
-        "default": "./_cjs/client/clientFor.cjs"
-      }
+      "types": "./dist/client/clientFor.d.ts",
+      "default": "./dist/client/clientFor.js"
     },
     "./client/errors": {
-      "import": {
-        "types": "./dist/client/errors.d.ts",
-        "default": "./dist/client/errors.js"
-      },
-      "require": {
-        "types": "./dist/client/errors.d.ts",
-        "default": "./_cjs/client/errors.cjs"
-      }
+      "types": "./dist/client/errors.d.ts",
+      "default": "./dist/client/errors.js"
     },
     "./client/req": {
-      "import": {
-        "types": "./dist/client/req.d.ts",
-        "default": "./dist/client/req.js"
-      },
-      "require": {
-        "types": "./dist/client/req.d.ts",
-        "default": "./_cjs/client/req.cjs"
-      }
+      "types": "./dist/client/req.d.ts",
+      "default": "./dist/client/req.js"
     },
     "./faker": {
-      "import": {
-        "types": "./dist/faker.d.ts",
-        "default": "./dist/faker.js"
-      },
-      "require": {
-        "types": "./dist/faker.d.ts",
-        "default": "./_cjs/faker.cjs"
-      }
+      "types": "./dist/faker.d.ts",
+      "default": "./dist/faker.js"
     },
     "./http": {
-      "import": {
-        "types": "./dist/http.d.ts",
-        "default": "./dist/http.js"
-      },
-      "require": {
-        "types": "./dist/http.d.ts",
-        "default": "./_cjs/http.cjs"
-      }
+      "types": "./dist/http.d.ts",
+      "default": "./dist/http.js"
     },
     "./http/Request": {
-      "import": {
-        "types": "./dist/http/Request.d.ts",
-        "default": "./dist/http/Request.js"
-      },
-      "require": {
-        "types": "./dist/http/Request.d.ts",
-        "default": "./_cjs/http/Request.cjs"
-      }
+      "types": "./dist/http/Request.d.ts",
+      "default": "./dist/http/Request.js"
     },
     "./http/http-client": {
-      "import": {
-        "types": "./dist/http/http-client.d.ts",
-        "default": "./dist/http/http-client.js"
-      },
-      "require": {
-        "types": "./dist/http/http-client.d.ts",
-        "default": "./_cjs/http/http-client.cjs"
-      }
+      "types": "./dist/http/http-client.d.ts",
+      "default": "./dist/http/http-client.js"
     },
     "./ids": {
-      "import": {
-        "types": "./dist/ids.d.ts",
-        "default": "./dist/ids.js"
-      },
-      "require": {
-        "types": "./dist/ids.d.ts",
-        "default": "./_cjs/ids.cjs"
-      }
+      "types": "./dist/ids.d.ts",
+      "default": "./dist/ids.js"
     },
     "./logger": {
-      "import": {
-        "types": "./dist/logger.d.ts",
-        "default": "./dist/logger.js"
-      },
-      "require": {
-        "types": "./dist/logger.d.ts",
-        "default": "./_cjs/logger.cjs"
-      }
+      "types": "./dist/logger.d.ts",
+      "default": "./dist/logger.js"
     },
     "./transform": {
-      "import": {
-        "types": "./dist/transform.d.ts",
-        "default": "./dist/transform.js"
-      },
-      "require": {
-        "types": "./dist/transform.d.ts",
-        "default": "./_cjs/transform.cjs"
-      }
+      "types": "./dist/transform.d.ts",
+      "default": "./dist/transform.js"
     },
     "./utils": {
-      "import": {
-        "types": "./dist/utils.d.ts",
-        "default": "./dist/utils.js"
-      },
-      "require": {
-        "types": "./dist/utils.d.ts",
-        "default": "./_cjs/utils.cjs"
-      }
+      "types": "./dist/utils.d.ts",
+      "default": "./dist/utils.js"
     },
     "./utils/effectify": {
-      "import": {
-        "types": "./dist/utils/effectify.d.ts",
-        "default": "./dist/utils/effectify.js"
-      },
-      "require": {
-        "types": "./dist/utils/effectify.d.ts",
-        "default": "./_cjs/utils/effectify.cjs"
-      }
+      "types": "./dist/utils/effectify.d.ts",
+      "default": "./dist/utils/effectify.js"
     },
     "./utils/extend": {
-      "import": {
-        "types": "./dist/utils/extend.d.ts",
-        "default": "./dist/utils/extend.js"
-      },
-      "require": {
-        "types": "./dist/utils/extend.d.ts",
-        "default": "./_cjs/utils/extend.cjs"
-      }
+      "types": "./dist/utils/extend.d.ts",
+      "default": "./dist/utils/extend.js"
     },
     "./utils/logger": {
-      "import": {
-        "types": "./dist/utils/logger.d.ts",
-        "default": "./dist/utils/logger.js"
-      },
-      "require": {
-        "types": "./dist/utils/logger.d.ts",
-        "default": "./_cjs/utils/logger.cjs"
-      }
+      "types": "./dist/utils/logger.d.ts",
+      "default": "./dist/utils/logger.js"
     },
     "./validation": {
-      "import": {
-        "types": "./dist/validation.d.ts",
-        "default": "./dist/validation.js"
-      },
-      "require": {
-        "types": "./dist/validation.d.ts",
-        "default": "./_cjs/validation.cjs"
-      }
+      "types": "./dist/validation.d.ts",
+      "default": "./dist/validation.js"
     },
     "./validation/validators": {
-      "import": {
-        "types": "./dist/validation/validators.d.ts",
-        "default": "./dist/validation/validators.js"
-      },
-      "require": {
-        "types": "./dist/validation/validators.d.ts",
-        "default": "./_cjs/validation/validators.cjs"
-      }
+      "types": "./dist/validation/validators.d.ts",
+      "default": "./dist/validation/validators.js"
     }
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
-    "build": "pnpm build:tsc && pnpm build2:cjs && cp -f ./src/internal/Prelude.* ./dist/internal",
-    "build2:cjs": "rm -rf _cjs && babel dist --config-file ../../.babel.cjs.json --out-dir _cjs --out-file-extension .cjs --source-maps",
-    "build2:mjs": "babel dist --config-file ../../.babel.mjs.json --out-dir _mjs --out-file-extension .mjs --source-maps",
+    "build": "pnpm build:tsc && cp -f ./src/internal/Prelude.* ./dist/internal",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
-    "clean": "rm -rf dist && rm -rf _cjs",
+    "clean": "rm -rf dist",
     "clean-dist": "sh ../../scripts/clean-dist.sh",
     "circular": "pnpm circular:src && pnpm circular:dist",
     "circular:src": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",

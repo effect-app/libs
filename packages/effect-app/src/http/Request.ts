@@ -19,7 +19,7 @@ export const responseWithJsonBody = (
     remoteAddress: response.remoteAddress
   }))
 
-export const demandJson = <E, R>(client: HttpClient.HttpClient<E, R>) =>
+export const demandJson = (client: HttpClient.HttpClient) =>
   HttpClient
     .mapRequest(client, (_) => HttpClientRequest.acceptJson(_))
     .pipe(HttpClient.transform((r, request) =>

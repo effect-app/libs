@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.23.2
+
+### Patch Changes
+
+- 1c3af52: fix HttpClient type
+
 ## 2.23.1
 
 ### Patch Changes

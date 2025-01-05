@@ -262,7 +262,7 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && tsc --build",
+    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
     "build": "pnpm build:tsc && cp -f ./src/internal/Prelude.* ./dist/internal",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",

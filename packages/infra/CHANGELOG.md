@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.35.0
+
+### Minor Changes
+
+- 3fa0eda: fix: stream error, change to nostream
+
+### Patch Changes
+
+- Updated dependencies [3fa0eda]
+  - effect-app@2.24.0
+
 ## 2.34.2
 
 ### Patch Changes

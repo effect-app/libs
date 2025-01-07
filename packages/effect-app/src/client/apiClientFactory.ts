@@ -4,7 +4,7 @@ import { Config, Context, Effect, flow, HashMap, Layer, Option, Predicate, S, St
 
 import type { Rpc } from "@effect/rpc"
 import { RpcResolver } from "@effect/rpc"
-import { HttpRpcResolver } from "@effect/rpc-http"
+import { HttpRpcResolverNoStream } from "@effect/rpc-http"
 import type { RpcRouter } from "@effect/rpc/RpcRouter"
 import { HttpClient, HttpClientRequest } from "../http.js"
 import { typedKeysOf } from "../utils.js"
@@ -63,7 +63,7 @@ const makeApiClientFactory = (config: ApiConfig) =>
       if (!meta) throw new Error("No meta defined in Resource!")
 
       const resolver = flow(
-        HttpRpcResolver.make<RpcRouter<any, any>>,
+        HttpRpcResolverNoStream.make<RpcRouter<any, any>>,
         (_) => RpcResolver.toClient(_ as any)
       )
 

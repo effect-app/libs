@@ -8,8 +8,6 @@ import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect-app"
 import {
   Array,
   Cause,
-  Chunk,
-  Context,
   Duration,
   Effect,
   FiberRef,
@@ -19,13 +17,13 @@ import {
   Request,
   S,
   Schedule,
-  Schema,
-  Stream
+  Schema
 } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import type { HttpServerError } from "effect-app/http"
 import { HttpHeaders, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
+import type { ParseError } from "effect/ParseResult"
 import type { Contravariant } from "effect/Types"
 import { logError, reportError } from "../errorReporter.js"
 import { InfraLogger } from "../logger.js"
@@ -54,47 +52,30 @@ export type EffectDeps<A> = {
   [K in keyof A as A[K] extends Effect<any, any, any> ? K : never]: A[K] extends Effect<any, any, any> ? A[K] : never
 }
 /**
- *   Plain jane JSON version
- * @deprecated use HttpRpcRouterNoStream.toHttpApp once support options
+ *   Plain jane JSON version, with custom status codes just for fun
  */
 export const toHttpApp = <R extends RpcRouter.RpcRouter<any, any>>(self: R, options?: {
   readonly spanPrefix?: string
 }): HttpApp.Default<
-  HttpServerError.RequestError,
+  HttpServerError.RequestError | ParseError,
   RpcRouter.RpcRouter.Context<R>
 > => {
-  const handler = RpcRouter.toHandler(self, options)
-  return Effect.withFiberRuntime((fiber) => {
-    const context = fiber.getFiberRef(FiberRef.currentContext)
-    const request = Context.unsafeGet(context, HttpServerRequest.HttpServerRequest)
-    return Effect.flatMap(
-      request.json,
-      (_) =>
-        handler(_).pipe(
-          Stream.provideContext(context),
-          Stream.runCollect,
-          Effect.map((_) => Chunk.toReadonlyArray(_)),
-          Effect.andThen((_) => {
-            let status = 200
-            for (const r of _.flat()) {
-              if (typeof r === "number") continue
-              const results = Array.isArray(r) ? r : [r]
-              if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Die")) {
-                status = 500
-                break
-              }
-              if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Fail")) {
-                status = 422 // 418
-                break
-              }
-            }
-            return HttpServerResponse.json(_, { status })
-          }),
-          Effect.orDie,
-          Effect.tapDefect(reportError("RPCHttpApp"))
-        )
-    )
-  })
+  const handler = RpcRouter.toHandlerNoStream(self, options)
+  return HttpServerRequest.HttpServerRequest.pipe(
+    Effect.flatMap((_) => _.json),
+    Effect.flatMap(handler),
+    Effect.flatMap((r) => {
+      let status = 200
+      const results = Array.isArray(r) ? r : [r]
+      if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Die")) {
+        status = 500
+      } else if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Fail")) {
+        status = 422 // 418
+      }
+      return HttpServerResponse.json(r, { status }).pipe(Effect.orDie)
+    }),
+    Effect.tapDefect(reportError("RPCHttpApp"))
+  )
 }
 
 export interface Hint<Err extends string> {

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.24.0
+
+### Minor Changes
+
+- 3fa0eda: fix: stream error, change to nostream
+
 ## 2.23.2
 
 ### Patch Changes

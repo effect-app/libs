@@ -370,7 +370,6 @@ function buildFieldInfo(
 export const buildFormFromSchema = <
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  C extends Record<PropertyKey, any>,
   OnSubmitA
 >(
   s:

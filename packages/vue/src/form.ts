@@ -370,6 +370,7 @@ function buildFieldInfo(
 export const buildFormFromSchema = <
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
+  C extends Record<PropertyKey, any>,
   OnSubmitA
 >(
   s:
@@ -378,7 +379,7 @@ export const buildFormFromSchema = <
       From,
       never
     >
-    & { extend: any; fields: S.Struct.Fields },
+    & { new(c: C): any; extend: any; fields: S.Struct.Fields },
   state: Ref<Omit<From, "_tag">>,
   onSubmit: (a: To) => Promise<OnSubmitA>
 ) => {

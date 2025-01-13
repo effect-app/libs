@@ -379,7 +379,7 @@ export const buildFormFromSchema = <
       From,
       never
     >
-    & { new(c: C): any; fields: S.Struct.Fields },
+    & { new(c: C): any; extend: any; fields: S.Struct.Fields },
   state: Ref<Omit<From, "_tag">>,
   onSubmit: (a: To) => Promise<OnSubmitA>
 ) => {

@@ -615,13 +615,19 @@ export const makeClient = <Locale extends string, R>(
     const parse = S.decodeUnknown<any, any, R>(schema)
     const isDirty = ref(false)
     const isValid = ref(true)
+    const isLoading = ref(false)
     const runPromise = Runtime.runPromise(getRuntime(runtime))
 
     const submit1 =
       (onSubmit: (a: To) => Effect<OnSubmitA, never, R>) => async <T extends Promise<{ valid: boolean }>>(e: T) => {
-        const r = await e
-        if (!r.valid) return
-        return runPromise(onSubmit(new s(await runPromise(parse(state.value)))))
+        isLoading.value = true
+        try {
+          const r = await e
+          if (!r.valid) return
+          return await runPromise(onSubmit(new s(await runPromise(parse(state.value)))))
+        } finally {
+          isLoading.value = false
+        }
       }
     const submit = submit1(onSubmit)
 
@@ -635,9 +641,8 @@ export const makeClient = <Locale extends string, R>(
     )
 
     const submitFromState = Effect.gen(function*() {
-      if (!isValid.value) return
       return yield* onSubmit(yield* parse(state.value))
-    }) // () => submit(Promise.resolve({ valid: isValid.value }))
+    })
 
     return {
       fields,
@@ -646,7 +651,8 @@ export const makeClient = <Locale extends string, R>(
       /** optimized for Native form submit callback or general use */
       submitFromState,
       isDirty,
-      isValid
+      isValid,
+      isLoading
     }
   }
 

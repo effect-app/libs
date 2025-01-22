@@ -387,11 +387,17 @@ export const buildFormFromSchema = <
   const parse = S.decodeUnknownSync<any, any>(S.Struct(Struct.omit(s.fields, "_tag")) as any)
   const isDirty = ref(false)
   const isValid = ref(true)
+  const isLoading = ref(false)
 
   const submit1 = <A>(onSubmit: (a: To) => Promise<A>) => async <T extends Promise<{ valid: boolean }>>(e: T) => {
-    const r = await e
-    if (!r.valid) return
-    return onSubmit(new s(parse(state.value)))
+    isLoading.value = true
+    try {
+      const r = await e
+      if (!r.valid) return
+      return onSubmit(new s(parse(state.value)))
+    } finally {
+      isLoading.value = false
+    }
   }
   const submit = submit1(onSubmit)
 
@@ -413,7 +419,9 @@ export const buildFormFromSchema = <
     /** optimized for Native form submit callback or general use */
     submitFromState,
     isDirty,
-    isValid
+    isValid,
+    /** includes whole submit, including potential asynchronous validation steps */
+    isLoading
   }
 }
 

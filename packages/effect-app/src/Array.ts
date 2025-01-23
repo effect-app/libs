@@ -34,11 +34,9 @@ export const groupByT = dual<
   as: ReadonlyArray<A>,
   f: (a: A) => Key
 ): Array<readonly [Key, NonEmptyArray<A>]> => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const r: Map<Key, NonEmptyArray<A> & { 0: A }> = {} as any
+  const r = new Map<Key, NonEmptyArray<A>>()
   for (const a of as) {
     const k = f(a)
-    // eslint-disable-next-line no-prototype-builtins
     if (r.has(k)) {
       r.get(k)!.push(a)
     } else {

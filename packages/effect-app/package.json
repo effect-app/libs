@@ -4,16 +4,16 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@effect/rpc": "^0.47.1",
-    "@effect/rpc-http": "^0.45.1",
+    "@effect/rpc": "^0.50.1",
+    "@effect/rpc-http": "^0.48.1",
     "@tsconfig/strictest": "^2.0.5",
     "date-fns": "^4.1.0",
     "nanoid": "^5.0.9",
     "path-parser": "^6.1.0",
     "query-string": "^9.1.1",
-    "ts-pattern": "^5.6.0",
+    "ts-pattern": "^5.6.2",
     "ts-toolbelt": "^9.6.0",
-    "uuid": "^11.0.3",
+    "uuid": "^11.0.5",
     "validator": "^13.12.0"
   },
   "devDependencies": {
@@ -24,16 +24,16 @@
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "babel-plugin-replace-import-extension": "^1.1.4",
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "~22.10.5",
+    "@types/node": "~22.10.9",
     "@types/uuid": "^10.0.0",
     "@types/validator": "^13.12.2",
     "fast-check": "~3.23.2",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.4"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.72.1",
-    "effect": "^3.12.1"
+    "@effect/platform": "^0.75.1",
+    "effect": "^3.12.7"
   },
   "typesVersions": {
     "*": {

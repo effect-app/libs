@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 2.24.1
+
+### Patch Changes
+
+- 469f28d: fix: groupByT should support any key type
+- ab9d1ea: housekeeping: update packages
+
 ## 2.24.0
 
 ### Minor Changes

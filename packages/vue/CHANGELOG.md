@@ -1,5 +1,18 @@
 # @effect-app/vue
 
+## 2.20.0
+
+### Minor Changes
+
+- 936b25e: fix: missing isLoading state for form, to block while validating, and submitting.
+
+### Patch Changes
+
+- ab9d1ea: housekeeping: update packages
+- Updated dependencies [469f28d]
+- Updated dependencies [ab9d1ea]
+  - effect-app@2.24.1
+
 ## 2.19.4
 
 ### Patch Changes

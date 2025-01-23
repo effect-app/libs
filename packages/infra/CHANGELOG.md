@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 2.35.1
+
+### Patch Changes
+
+- ab9d1ea: housekeeping: update packages
+- Updated dependencies [469f28d]
+- Updated dependencies [ab9d1ea]
+  - effect-app@2.24.1
+
 ## 2.35.0
 
 ### Minor Changes

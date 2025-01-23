@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.24.2
+
+### Patch Changes
+
+- 42e6776: fix Map error
+
 ## 2.24.1
 
 ### Patch Changes

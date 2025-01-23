@@ -3,7 +3,7 @@ import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect/Array"
 import * as Array from "effect/Array"
 import * as T from "effect/Effect"
 import type { Predicate } from "./Function.js"
-import { dual, tuple } from "./Function.js"
+import { dual } from "./Function.js"
 import * as Option from "./Option.js"
 
 export const toNonEmptyArray = Option.liftPredicate(Array.isNonEmptyReadonlyArray)
@@ -23,28 +23,29 @@ export function NEROArrayFromArray<T>(ar: ReadonlyArray<T>) {
 }
 
 export const groupByT = dual<
-  <A, Key extends PropertyKey>(
+  <A, Key>(
     f: (a: NoInfer<A>) => Key
   ) => (as: ReadonlyArray<A>) => Array<readonly [Key, NonEmptyArray<A>]>,
-  <A, Key extends PropertyKey>(
+  <A, Key>(
     as: ReadonlyArray<A>,
     f: (a: A) => Key
   ) => Array<readonly [Key, NonEmptyArray<A>]>
->(2, <A, Key extends PropertyKey>(
+>(2, <A, Key>(
   as: ReadonlyArray<A>,
   f: (a: A) => Key
 ): Array<readonly [Key, NonEmptyArray<A>]> => {
-  const r: Record<Key, Array<A> & { 0: A }> = {} as any
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const r: Map<Key, NonEmptyArray<A> & { 0: A }> = {} as any
   for (const a of as) {
     const k = f(a)
     // eslint-disable-next-line no-prototype-builtins
-    if (r.hasOwnProperty(k)) {
-      r[k].push(a)
+    if (r.has(k)) {
+      r.get(k)!.push(a)
     } else {
-      r[k] = [a]
+      r.set(k, [a])
     }
   }
-  return Object.entries(r).map(([k, items]) => tuple(k as unknown as Key, items as NonEmptyArray<A>))
+  return [...r.entries()]
 })
 
 export function randomElement<A>(a: NonEmptyReadonlyArray<A>): A

@@ -24,7 +24,7 @@ export function mutationResultToVue<A, E>(
 ): Res<A, E> {
   switch (mutationResult._tag) {
     case "Initial": {
-      return { loading: true, data: undefined, error: undefined }
+      return { loading: mutationResult.waiting, data: undefined, error: undefined }
     }
     case "Success": {
       return {
@@ -39,9 +39,6 @@ export function mutationResultToVue<A, E>(
         data: undefined,
         error: mutationResult.cause
       }
-    }
-    case "Initial": {
-      return { loading: false, data: undefined, error: undefined }
     }
   }
 }

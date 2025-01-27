@@ -20,24 +20,24 @@ export const getQueryKey = (h: { name: string }) => {
 }
 
 export function mutationResultToVue<A, E>(
-  mutationResult: MutationResult<A, E>
+  mutationResult: Result.Result<A, E>
 ): Res<A, E> {
   switch (mutationResult._tag) {
-    case "Loading": {
+    case "Initial": {
       return { loading: true, data: undefined, error: undefined }
     }
     case "Success": {
       return {
         loading: false,
-        data: mutationResult.data,
+        data: mutationResult.value,
         error: undefined
       }
     }
-    case "Error": {
+    case "Failure": {
       return {
         loading: false,
         data: undefined,
-        error: mutationResult.error
+        error: mutationResult.cause
       }
     }
     case "Initial": {
@@ -49,7 +49,7 @@ export function mutationResultToVue<A, E>(
 export interface Res<A, E> {
   readonly loading: boolean
   readonly data: A | undefined
-  readonly error: E | undefined
+  readonly error: Cause<E> | undefined
 }
 
 export type WatchSource<T = any> = Ref<T> | ComputedRef<T> | (() => T)
@@ -72,25 +72,7 @@ export function make<A, E, R>(self: Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
-export interface MutationInitial {
-  readonly _tag: "Initial"
-}
 
-export interface MutationLoading {
-  readonly _tag: "Loading"
-}
-
-export interface MutationSuccess<A> {
-  readonly _tag: "Success"
-  readonly data: A
-}
-
-export interface MutationError<E> {
-  readonly _tag: "Error"
-  readonly error: E
-}
-
-export type MutationResult<A, E> = MutationInitial | MutationLoading | MutationSuccess<A> | MutationError<E>
 
 export type MaybeRef<T> = Ref<T> | ComputedRef<T> | T
 type MaybeRefDeep<T> = MaybeRef<
@@ -139,14 +121,14 @@ export const makeMutation = () => {
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
-      Readonly<Ref<MutationResult<A2, E2>>>,
+      Readonly<Ref<Result.Result<A2, E2>>>,
       (i: I) => Effect<A2, E2, R2>
     ]
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
-      Readonly<Ref<MutationResult<A2, E2>>>,
+      Readonly<Ref<Result.Result<A2, E2>>>,
       Effect<A2, E2, R2>
     ]
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
@@ -154,7 +136,7 @@ export const makeMutation = () => {
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) => {
     const queryClient = useQueryClient()
-    const state: Ref<MutationResult<A2, E2>> = ref<MutationResult<A2, E2>>({ _tag: "Initial" }) as any
+    const state: Ref<Result.Result<A2, E2>> = ref<Result.Result<A2, E2>>(Result.initial()) as any
 
     const invalidateQueries = (
       filters?: MaybeRefDeep<InvalidateQueryFilters>,
@@ -164,15 +146,11 @@ export const makeMutation = () => {
     function handleExit(exit: Exit.Exit<A2, E2>) {
       return Effect.sync(() => {
         if (Exit.isSuccess(exit)) {
-          state.value = { _tag: "Success", data: exit.value }
+          state.value = Result.success(exit.value)
           return
         }
 
-        const err = Cause.failureOption(exit.cause)
-        if (Option.isSome(err)) {
-          state.value = { _tag: "Error", error: err.value }
-          return
-        }
+        state.value = Result.failure(exit.cause)
       })
     }
 
@@ -207,7 +185,7 @@ export const makeMutation = () => {
     const handle = (self: Effect<A, E, R>, name: string, i: I | void = void 0) =>
       Effect
         .sync(() => {
-          state.value = { _tag: "Loading" }
+          state.value = Result.initial(true)
         })
         .pipe(
           Effect.zipRight(

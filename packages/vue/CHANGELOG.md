@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.21.0
+
+### Minor Changes
+
+- e4153cd: replace "MutationResult" with "Result"
+
 ## 2.20.1
 
 ### Patch Changes

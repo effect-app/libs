@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.21.1
+
+### Patch Changes
+
+- 709203d: fix: initial mutation state
+
 ## 2.21.0
 
 ### Minor Changes

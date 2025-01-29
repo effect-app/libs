@@ -92,12 +92,12 @@ type WithAction<A> = A & {
 
 // computed() takes a getter function and returns a readonly reactive ref
 // object for the returned value from the getter.
-type RespRaw<I, A, E, R> = readonly [
+type RespResult<I, A, E, R> = readonly [
   Readonly<Ref<Result<A, E>, Result<A, E>>>,
   WithAction<(I: I) => Effect<Exit<A, E>, never, R>>
 ]
 
-type ActRespRaw<A, E, R> = readonly [
+type ActRespResult<A, E, R> = readonly [
   Readonly<Ref<Result<A, E>, Result<A, E>>>,
   WithAction<Effect<Exit<A, E>, never, R>>
 ]
@@ -353,7 +353,7 @@ export const makeClient = <Locale extends string, R>(
     }
   }
 
-  const _useAndHandleMutationRaw: {
+  const _useAndHandleMutationResult: {
     <
       I,
       E extends ResponseErrors,
@@ -373,7 +373,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): RespRaw<I, A2, E2, R2>
+    ): RespResult<I, A2, E2, R2>
     <
       E extends ResponseErrors,
       A,
@@ -392,7 +392,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandler<A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActRespRaw<A2, E2, R2>
+    ): ActRespResult<A2, E2, R2>
   } = (
     self: any,
     action: any,
@@ -468,24 +468,11 @@ export const makeClient = <Locale extends string, R>(
     action: any,
     options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
   ): any => {
-    const handleRequestWithToast = _useHandleRequestWithToast()
-    const [a, b] = _useSafeMutation({
-      ...self,
-      handler: Effect.isEffect(self.handler)
-        ? (pipe(
-          Effect.annotateCurrentSpan({ action }),
-          Effect.andThen(self.handler)
-        ) as any)
-        : (...args: any[]) =>
-          pipe(
-            Effect.annotateCurrentSpan({ action }),
-            Effect.andThen(self.handler(...args))
-          )
-    }, options ? dropUndefinedT(options) : undefined)
+    const [a, b] = _useAndHandleMutationResult(self, action, options)
 
     return tuple(
       computed(() => mutationResultToVue(a.value)),
-      handleRequestWithToast(b as any, action, options)
+      b
     )
   }
 
@@ -736,7 +723,7 @@ export const makeClient = <Locale extends string, R>(
   return {
     useSafeMutationWithState: _useSafeMutationWithState,
     useAndHandleMutation: _useAndHandleMutation,
-    useAndHandleMutationRaw: _useAndHandleMutationRaw,
+    useAndHandleMutationResult: _useAndHandleMutationResult,
     useAndHandleMutationSilently: _useAndHandleMutationSilently,
     useAndHandleMutationCustom: _useAndHandleMutationCustom,
     makeUseAndHandleMutation: _makeUseAndHandleMutation,

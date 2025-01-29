@@ -851,7 +851,11 @@ export const makeRouter = <
           }
         })
       )
-      .pipe(Layer.provide(routers.map((r) => r.routes).flat() as unknown as NonEmptyArray<Layer.Layer.Any>))
+      .pipe(
+        routers.length
+          ? Layer.provide(routers.map((r) => r.routes).flat() as unknown as NonEmptyArray<Layer.Layer.Any>)
+          : (_) => _
+      )
 
     return {
       layer: r as Layer.Layer<

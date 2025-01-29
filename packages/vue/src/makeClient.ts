@@ -92,23 +92,14 @@ type WithAction<A> = A & {
 
 // computed() takes a getter function and returns a readonly reactive ref
 // object for the returned value from the getter.
-type RespResult<I, A, E, R> = readonly [
-  Readonly<Ref<Result<A, E>, Result<A, E>>>,
+
+type Resp<I, A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
+  V,
   WithAction<(I: I) => Effect<Exit<A, E>, never, R>>
 ]
 
-type ActRespResult<A, E, R> = readonly [
-  Readonly<Ref<Result<A, E>, Result<A, E>>>,
-  WithAction<Effect<Exit<A, E>, never, R>>
-]
-
-type Resp<I, A, E, R> = readonly [
-  ComputedRef<Res<A, E>>,
-  WithAction<(I: I) => Effect<Exit<A, E>, never, R>>
-]
-
-type ActResp<A, E, R> = readonly [
-  ComputedRef<Res<A, E>>,
+type ActResp<A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
+  V,
   WithAction<Effect<Exit<A, E>, never, R>>
 ]
 
@@ -353,6 +344,10 @@ export const makeClient = <Locale extends string, R>(
     }
   }
 
+  /**
+   * Pass a function that returns an Effect, e.g from a client action, give it a name.
+   * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
+   */
   const _useAndHandleMutationResult: {
     <
       I,
@@ -373,7 +368,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): RespResult<I, A2, E2, R2>
+    ): Resp<I, A2, E2, R2, Readonly<Ref<Result<A2, E2>, Result<A2, E2>>>>
     <
       E extends ResponseErrors,
       A,
@@ -392,7 +387,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandler<A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActRespResult<A2, E2, R2>
+    ): ActResp<A2, E2, R2, Readonly<Ref<Result<A2, E2>, Result<A2, E2>>>>
   } = (
     self: any,
     action: any,

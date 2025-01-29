@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Result } from "@effect-rx/rx/Result"
 import * as Sentry from "@sentry/browser"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
@@ -6,7 +7,7 @@ import { CauseException, type SupportedErrors } from "effect-app/client/errors"
 import { constant, pipe, tuple } from "effect-app/Function"
 import type { OperationFailure } from "effect-app/Operations"
 import { OperationSuccess } from "effect-app/Operations"
-import type { Schema } from "effect-app/Schema"
+import { type Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
 import type { ComputedRef, Ref, ShallowRef } from "vue"
 import { computed, ref, watch } from "vue"
@@ -91,6 +92,16 @@ type WithAction<A> = A & {
 
 // computed() takes a getter function and returns a readonly reactive ref
 // object for the returned value from the getter.
+type RespRaw<I, A, E, R> = readonly [
+  Readonly<Ref<Result<A, E>, Result<A, E>>>,
+  WithAction<(I: I) => Effect<Exit<A, E>, never, R>>
+]
+
+type ActRespRaw<A, E, R> = readonly [
+  Readonly<Ref<Result<A, E>, Result<A, E>>>,
+  WithAction<Effect<Exit<A, E>, never, R>>
+]
+
 type Resp<I, A, E, R> = readonly [
   ComputedRef<Res<A, E>>,
   WithAction<(I: I) => Effect<Exit<A, E>, never, R>>
@@ -340,6 +351,72 @@ export const makeClient = <Locale extends string, R>(
         )
       )
     }
+  }
+
+  const _useAndHandleMutationRaw: {
+    <
+      I,
+      E extends ResponseErrors,
+      A,
+      R,
+      Request extends TaggedRequestClassAny,
+      A2 = A,
+      E2 extends ResponseErrors = E,
+      R2 = R,
+      ESuccess = never,
+      RSuccess = never,
+      EError = never,
+      RError = never,
+      EDefect = never,
+      RDefect = never
+    >(
+      self: RequestHandlerWithInput<I, A, E, R, Request>,
+      action: string,
+      options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
+    ): RespRaw<I, A2, E2, R2>
+    <
+      E extends ResponseErrors,
+      A,
+      R,
+      Request extends TaggedRequestClassAny,
+      A2 = A,
+      E2 extends ResponseErrors = E,
+      R2 = R,
+      ESuccess = never,
+      RSuccess = never,
+      EError = never,
+      RError = never,
+      EDefect = never,
+      RDefect = never
+    >(
+      self: RequestHandler<A, E, R, Request>,
+      action: string,
+      options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
+    ): ActRespRaw<A2, E2, R2>
+  } = (
+    self: any,
+    action: any,
+    options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
+  ): any => {
+    const handleRequestWithToast = _useHandleRequestWithToast()
+    const [a, b] = _useSafeMutation({
+      ...self,
+      handler: Effect.isEffect(self.handler)
+        ? (pipe(
+          Effect.annotateCurrentSpan({ action }),
+          Effect.andThen(self.handler)
+        ) as any)
+        : (...args: any[]) =>
+          pipe(
+            Effect.annotateCurrentSpan({ action }),
+            Effect.andThen(self.handler(...args))
+          )
+    }, options ? dropUndefinedT(options) : undefined)
+
+    return tuple(
+      a,
+      handleRequestWithToast(b as any, action, options)
+    )
   }
 
   /**
@@ -659,6 +736,7 @@ export const makeClient = <Locale extends string, R>(
   return {
     useSafeMutationWithState: _useSafeMutationWithState,
     useAndHandleMutation: _useAndHandleMutation,
+    useAndHandleMutationRaw: _useAndHandleMutationRaw,
     useAndHandleMutationSilently: _useAndHandleMutationSilently,
     useAndHandleMutationCustom: _useAndHandleMutationCustom,
     makeUseAndHandleMutation: _makeUseAndHandleMutation,

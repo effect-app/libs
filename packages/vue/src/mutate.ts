@@ -2,11 +2,12 @@
 import * as Result from "@effect-rx/rx/Result"
 import type { InvalidateOptions, InvalidateQueryFilters } from "@tanstack/vue-query"
 import { useQueryClient } from "@tanstack/vue-query"
-import { Cause, Effect, Exit, Option } from "effect-app"
+import type { Cause } from "effect-app"
+import { Effect, Option } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
 import type { ComputedRef, Ref } from "vue"
-import { computed, ref, shallowRef } from "vue"
+import { computed, shallowRef } from "vue"
 import { makeQueryKey, reportRuntimeError } from "./lib.js"
 
 export const getQueryKey = (h: { name: string }) => {
@@ -69,8 +70,6 @@ export function make<A, E, R>(self: Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
-
-
 export type MaybeRef<T> = Ref<T> | ComputedRef<T> | T
 type MaybeRefDeep<T> = MaybeRef<
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
@@ -108,6 +107,24 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
                 // }
                 */
 
+export const asResult = <Args extends readonly any[], A, E, R>(
+  handler: (...args: Args) => Effect<A, E, R>
+) => {
+  const state = shallowRef<Result.Result<A, E>>(Result.initial())
+
+  const act = (...args: Args) =>
+    Effect
+      .sync(() => {
+        state.value = Result.initial(true)
+      })
+      .pipe(
+        Effect.zipRight(Effect.suspend(() => handler(...args))),
+        Effect.onExit((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
+      )
+
+  return tuple(state, act)
+}
+
 export const makeMutation = () => {
   /**
    * Pass a function that returns an Effect, e.g from a client action, or an Effect
@@ -133,23 +150,11 @@ export const makeMutation = () => {
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) => {
     const queryClient = useQueryClient()
-    const state: Ref<Result.Result<A2, E2>> = ref<Result.Result<A2, E2>>(Result.initial()) as any
 
     const invalidateQueries = (
       filters?: MaybeRefDeep<InvalidateQueryFilters>,
       options?: MaybeRefDeep<InvalidateOptions>
     ) => Effect.promise(() => queryClient.invalidateQueries(filters, options))
-
-    function handleExit(exit: Exit.Exit<A2, E2>) {
-      return Effect.sync(() => {
-        if (Exit.isSuccess(exit)) {
-          state.value = Result.success(exit.value)
-          return
-        }
-
-        state.value = Result.failure(exit.cause)
-      })
-    }
 
     const invalidateCache = Effect.suspend(() => {
       const queryKey = getQueryKey(self)
@@ -179,22 +184,16 @@ export const makeMutation = () => {
 
     const mapHandler = options?.mapHandler ?? ((_) => _)
 
+    const [state, handle_] = asResult((self: Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
+      Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),
+      i as I
+    ) as Effect<A2, E2, R2>))
+
     const handle = (self: Effect<A, E, R>, name: string, i: I | void = void 0) =>
-      Effect
-        .sync(() => {
-          state.value = Result.initial(true)
-        })
-        .pipe(
-          Effect.zipRight(
-            mapHandler(
-              Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),
-              i as I
-            ) as Effect<A2, E2, R2>
-          ),
-          Effect.tapDefect(reportRuntimeError),
-          Effect.onExit(handleExit),
-          Effect.withSpan(`mutation ${name}`, { captureStackTrace: false })
-        )
+      handle_(self, i).pipe(
+        Effect.tapDefect(reportRuntimeError),
+        Effect.withSpan(`mutation ${name}`, { captureStackTrace: false })
+      )
 
     const handler = self.handler
     const r = tuple(

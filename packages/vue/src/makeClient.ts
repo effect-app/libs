@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Result } from "@effect-rx/rx/Result"
 import * as Sentry from "@sentry/browser"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
@@ -91,13 +92,14 @@ type WithAction<A> = A & {
 
 // computed() takes a getter function and returns a readonly reactive ref
 // object for the returned value from the getter.
-type Resp<I, A, E, R> = readonly [
-  ComputedRef<Res<A, E>>,
+
+type Resp<I, A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
+  V,
   WithAction<(I: I) => Effect<Exit<A, E>, never, R>>
 ]
 
-type ActResp<A, E, R> = readonly [
-  ComputedRef<Res<A, E>>,
+type ActResp<A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
+  V,
   WithAction<Effect<Exit<A, E>, never, R>>
 ]
 
@@ -344,6 +346,76 @@ export const makeClient = <Locale extends string, R>(
 
   /**
    * Pass a function that returns an Effect, e.g from a client action, give it a name.
+   * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
+   */
+  const _useAndHandleMutationResult: {
+    <
+      I,
+      E extends ResponseErrors,
+      A,
+      R,
+      Request extends TaggedRequestClassAny,
+      A2 = A,
+      E2 extends ResponseErrors = E,
+      R2 = R,
+      ESuccess = never,
+      RSuccess = never,
+      EError = never,
+      RError = never,
+      EDefect = never,
+      RDefect = never
+    >(
+      self: RequestHandlerWithInput<I, A, E, R, Request>,
+      action: string,
+      options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
+    ): Resp<I, A2, E2, R2, Readonly<Ref<Result<A2, E2>, Result<A2, E2>>>>
+    <
+      E extends ResponseErrors,
+      A,
+      R,
+      Request extends TaggedRequestClassAny,
+      A2 = A,
+      E2 extends ResponseErrors = E,
+      R2 = R,
+      ESuccess = never,
+      RSuccess = never,
+      EError = never,
+      RError = never,
+      EDefect = never,
+      RDefect = never
+    >(
+      self: RequestHandler<A, E, R, Request>,
+      action: string,
+      options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
+    ): ActResp<A2, E2, R2, Readonly<Ref<Result<A2, E2>, Result<A2, E2>>>>
+  } = (
+    self: any,
+    action: any,
+    options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
+  ): any => {
+    const handleRequestWithToast = _useHandleRequestWithToast()
+    const [a, b] = _useSafeMutation({
+      ...self,
+      handler: Effect.isEffect(self.handler)
+        ? (pipe(
+          Effect.annotateCurrentSpan({ action }),
+          Effect.andThen(self.handler)
+        ) as any)
+        : (...args: any[]) =>
+          pipe(
+            Effect.annotateCurrentSpan({ action }),
+            Effect.andThen(self.handler(...args))
+          )
+    }, options ? dropUndefinedT(options) : undefined)
+
+    return tuple(
+      a,
+      handleRequestWithToast(b as any, action, options)
+    )
+  }
+
+  /**
+   * Pass a function that returns an Effect, e.g from a client action, give it a name.
    * Returns a tuple with state ref and execution function which reports success and errors as Toast.
    */
   const _useAndHandleMutation: {
@@ -391,24 +463,11 @@ export const makeClient = <Locale extends string, R>(
     action: any,
     options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
   ): any => {
-    const handleRequestWithToast = _useHandleRequestWithToast()
-    const [a, b] = _useSafeMutation({
-      ...self,
-      handler: Effect.isEffect(self.handler)
-        ? (pipe(
-          Effect.annotateCurrentSpan({ action }),
-          Effect.andThen(self.handler)
-        ) as any)
-        : (...args: any[]) =>
-          pipe(
-            Effect.annotateCurrentSpan({ action }),
-            Effect.andThen(self.handler(...args))
-          )
-    }, options ? dropUndefinedT(options) : undefined)
+    const [a, b] = _useAndHandleMutationResult(self, action, options)
 
     return tuple(
       computed(() => mutationResultToVue(a.value)),
-      handleRequestWithToast(b as any, action, options)
+      b
     )
   }
 
@@ -659,6 +718,7 @@ export const makeClient = <Locale extends string, R>(
   return {
     useSafeMutationWithState: _useSafeMutationWithState,
     useAndHandleMutation: _useAndHandleMutation,
+    useAndHandleMutationResult: _useAndHandleMutationResult,
     useAndHandleMutationSilently: _useAndHandleMutationSilently,
     useAndHandleMutationCustom: _useAndHandleMutationCustom,
     makeUseAndHandleMutation: _makeUseAndHandleMutation,

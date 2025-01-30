@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.22.0
+
+### Minor Changes
+
+- e0855e9: Added `useAndHandleMutationResult` that returns the Result unwrapped instead of `useAndHandleMutation` simplified version
+
 ## 2.21.1
 
 ### Patch Changes

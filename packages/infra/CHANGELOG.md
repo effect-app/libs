@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.35.3
+
+### Patch Changes
+
+- 28c81ff: fix: don't break on empty routes
+
 ## 2.35.2
 
 ### Patch Changes

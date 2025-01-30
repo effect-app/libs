@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.23.0
+
+### Minor Changes
+
+- 9185c11: add "asResult"
+
 ## 2.22.0
 
 ### Minor Changes

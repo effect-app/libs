@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.24.3
+
+### Patch Changes
+
+- 9d11dfb: housekeeping: update packages
+
 ## 2.24.2
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.23.1
+
+### Patch Changes
+
+- 9d11dfb: housekeeping: update packages
+- Updated dependencies [9d11dfb]
+  - effect-app@2.24.3
+
 ## 2.23.0
 
 ### Minor Changes

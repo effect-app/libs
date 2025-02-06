@@ -296,18 +296,6 @@
       "types": "./dist/api/routing.d.ts",
       "default": "./dist/api/routing.js"
     },
-    "./api/routing.legacy": {
-      "types": "./dist/api/routing.legacy.d.ts",
-      "default": "./dist/api/routing.legacy.js"
-    },
-    "./api/routing.legacy2": {
-      "types": "./dist/api/routing.legacy2.d.ts",
-      "default": "./dist/api/routing.legacy2.js"
-    },
-    "./api/routing.legacy3": {
-      "types": "./dist/api/routing.legacy3.d.ts",
-      "default": "./dist/api/routing.legacy3.js"
-    },
     "./api/routing/DynamicMiddleware": {
       "types": "./dist/api/routing/DynamicMiddleware.d.ts",
       "default": "./dist/api/routing/DynamicMiddleware.js"

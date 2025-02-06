@@ -237,7 +237,6 @@ Router(Something)({
 
     return matchFor(Something)({
       GetSomething: Effect.succeed("12"),
-      // @ts-expect-error Returning non-void for void
       DoSomething: Effect.succeed(2),
       GetSomething2: Effect.succeed(12)
     })
@@ -281,7 +280,6 @@ Router(Something)({
     return matchFor(Something)({
       GetSomething: SomethingService2.use(() => Effect.succeed("12")),
       DoSomething: {
-        // @ts-expect-error Returning non-void for void
         raw: Effect.succeed(2)
       },
       GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }

@@ -79,6 +79,11 @@ const merge = (a: any, b: Array<any>) =>
 
 type SchemaOrFields<T> = T extends S.Struct.Fields ? S.TypeLiteral<T, []> : T extends S.Schema.Any ? T : never
 
+/**
+ * Whatever the input, we will only decode or encode to void
+ */
+const ForceVoid: S.Schema<void> = S.transform(S.Any, S.Void, { decode: () => void 0, encode: () => void 0 })
+
 export const makeRpcClient = <
   RequestConfig extends object,
   CTXMap extends Record<string, RPCContextMap.Any>,
@@ -179,7 +184,11 @@ export const makeRpcClient = <
           config?.failure ? S.isSchema(config.failure) ? config.failure : S.Struct(config.failure) : undefined,
           [...errorSchemas, generalErrors].filter(Boolean)
         ),
-        success: config?.success ? S.isSchema(config.success) ? config.success : S.Struct(config.success) : S.Void
+        success: config?.success
+          ? S.isSchema(config.success)
+            ? S.AST.isVoidKeyword(config.success.ast) ? ForceVoid : config.success
+            : S.Struct(config.success)
+          : ForceVoid
       })
       return class extends (Object.assign(req, { config }) as any) {
         constructor(a: any, b: any = true) {

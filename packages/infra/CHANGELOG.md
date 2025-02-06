@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 2.36.0
+
+### Minor Changes
+
+- f597755: feat: remove void check and force void conversion at runtime.
+- 31642f7: drop deprecated router.legacy
+
+### Patch Changes
+
+- Updated dependencies [f597755]
+  - effect-app@2.25.0
+
 ## 2.35.4
 
 ### Patch Changes

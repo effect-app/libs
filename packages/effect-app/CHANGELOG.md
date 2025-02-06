@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.25.0
+
+### Minor Changes
+
+- f597755: feat: remove void check and force void conversion at runtime.
+
 ## 2.24.3
 
 ### Patch Changes

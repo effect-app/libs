@@ -301,7 +301,7 @@ export const makeRouter = <
                   static request = rsc[cur]
                   static stack = stack
                   static _tag = "raw"
-                  static handler = (req: any, ctx: any) => fnOrEffect(req, { ...ctx, Response: rsc[cur].success })
+                  static handler = (req: any) => fnOrEffect(req)
                 }
             }
         })

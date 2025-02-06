@@ -201,7 +201,7 @@ it("router", () => {
   console.log({ routes })
 })
 
-export default Router(Something)({
+Router(Something)({
   dependencies: [
     SomethingRepo.Default,
     SomethingService.Default,
@@ -216,13 +216,35 @@ export default Router(Something)({
 
     return matchFor(Something)({
       GetSomething: Effect.succeed("12"),
-      DoSomething: Effect.void, // Effect.succeed(2) should fail
+      DoSomething: Effect.void,
       GetSomething2: Effect.succeed(12)
     })
   })
 })
 
-export const RawTest = Router(Something)({
+Router(Something)({
+  dependencies: [
+    SomethingRepo.Default,
+    SomethingService.Default,
+    SomethingService2.Default
+  ],
+  effect: Effect.gen(function*() {
+    const repo = yield* SomethingRepo
+    const smth = yield* SomethingService
+    const smth2 = yield* SomethingService2
+
+    console.log({ repo, smth, smth2 })
+
+    return matchFor(Something)({
+      GetSomething: Effect.succeed("12"),
+      // @ts-expect-error Returning non-void for void
+      DoSomething: Effect.succeed(2),
+      GetSomething2: Effect.succeed(12)
+    })
+  })
+})
+
+Router(Something)({
   dependencies: [
     SomethingRepo.Default,
     SomethingService.Default,
@@ -237,7 +259,31 @@ export const RawTest = Router(Something)({
 
     return matchFor(Something)({
       GetSomething: SomethingService2.use(() => Effect.succeed("12")),
-      DoSomething: { raw: Effect.void }, // Effect.succeed(2) should fail
+      DoSomething: { raw: Effect.void },
+      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
+    })
+  })
+})
+
+Router(Something)({
+  dependencies: [
+    SomethingRepo.Default,
+    SomethingService.Default,
+    SomethingService2.Default
+  ],
+  effect: Effect.gen(function*() {
+    const repo = yield* SomethingRepo
+    const smth = yield* SomethingService
+    const smth2 = yield* SomethingService2
+
+    console.log({ repo, smth, smth2 })
+
+    return matchFor(Something)({
+      GetSomething: SomethingService2.use(() => Effect.succeed("12")),
+      DoSomething: {
+        // @ts-expect-error Returning non-void for void
+        raw: Effect.succeed(2)
+      },
       GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
     })
   })

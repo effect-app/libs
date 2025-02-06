@@ -78,14 +78,6 @@ export const toHttpApp = <R extends RpcRouter.RpcRouter<any, any>>(self: R, opti
   )
 }
 
-export interface Hint<Err extends string> {
-  Err: Err
-}
-
-type HandleVoid<Expected, Actual, Result> = [Expected] extends [void]
-  ? [Actual] extends [void] ? Result : Hint<"You're returning non void for a void Response, please fix">
-  : Result
-
 export type AnyRequestModule = S.Schema.Any & {
   _tag: string
   config: any
@@ -172,38 +164,26 @@ type Match<
   Key extends keyof Rsc,
   Context
 > = {
-  // TODO: deal with HandleVoid and ability to extends from GetSuccessShape...
-  // aka we want to make sure that the return type is void if the success is void,
-  // and make sure A is the actual expected type
-
   // note: the defaults of = never prevent the whole router to error
   <A extends GetSuccessShape<Rsc[Key], RT>, R2 = never, E = never>(
     f: Effect<A, E, R2>
-  ): HandleVoid<
-    GetSuccessShape<Rsc[Key], RT>,
-    A,
-    Handler<
-      Rsc[Key],
-      RT,
-      Exclude<
-        Context | Exclude<R2, GetEffectContext<CTXMap, Rsc[Key]["config"]>>,
-        HttpRouter.HttpRouter.Provided
-      >
+  ): Handler<
+    Rsc[Key],
+    RT,
+    Exclude<
+      Context | Exclude<R2, GetEffectContext<CTXMap, Rsc[Key]["config"]>>,
+      HttpRouter.HttpRouter.Provided
     >
   >
 
   <A extends GetSuccessShape<Rsc[Key], RT>, R2 = never, E = never>(
     f: (req: S.Schema.Type<Rsc[Key]>) => Effect<A, E, R2>
-  ): HandleVoid<
-    GetSuccessShape<Rsc[Key], RT>,
-    A,
-    Handler<
-      Rsc[Key],
-      RT,
-      Exclude<
-        Context | Exclude<R2, GetEffectContext<CTXMap, Rsc[Key]["config"]>>,
-        HttpRouter.HttpRouter.Provided
-      >
+  ): Handler<
+    Rsc[Key],
+    RT,
+    Exclude<
+      Context | Exclude<R2, GetEffectContext<CTXMap, Rsc[Key]["config"]>>,
+      HttpRouter.HttpRouter.Provided
     >
   >
 }
@@ -758,33 +738,9 @@ export const makeRouter = <
 
     type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
 
-    type CheckAction<Action extends AnyRequestModule, Impl, Mode extends "raw" | "d", Default> = Impl extends
-      (...args: any[]) => any ? [Effect.Success<ReturnType<Impl>>] extends [void] ? HndlrWithInput<Action, Mode>
-      : Hint<"You're returning non void for a void Response, please fix">
-      // this is insane this works...
-      : Impl extends Effect.Effect<any, any, any> ? [Effect.Success<Impl>] extends [void] ? Hndlr<Action, Mode>
-        : Effect<
-          Hint<"You're returning non void for a void Response, please fix">,
-          S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
-          any
-        >
-      : Default
-
     const router3: <
       const Impl extends {
-        [K in keyof Filter<Rsc>]:
-          // incase we expect a void return, we want to make sure the return really is only void
-          // the problem is that anything is assignable to void. This helps catch accidental return of e.g Errors instead of yielding them
-          // Note: the alternative branches must always include AnyHndlrs, or inference will not work in certain cases
-          // but somehow especially when released (as opposed to local tests)
-          Impl[K] extends { raw: any } ? [GetSuccessShape<Rsc[K], "raw">] extends [void]
-              // this is insane this works...
-              ? { raw: CheckAction<Rsc[K], Impl[K]["raw"], "raw", AnyHndlrs<Rsc[K]>> }
-            : AnyHndlrs<Rsc[K]>
-            : [GetSuccessShape<Rsc[K], "d">] extends [void]
-            // this is insane this works...
-              ? CheckAction<Rsc[K], Impl[K], "d", AnyHndlrs<Rsc[K]>>
-            : AnyHndlrs<Rsc[K]>
+        [K in keyof Filter<Rsc>]: AnyHndlrs<Rsc[K]>
       }
     >(
       impl: Impl

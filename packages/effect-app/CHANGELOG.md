@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.26.1
+
+### Patch Changes
+
+- 709c9cc: fix missing \_tag on TaggedClass
+
 ## 2.26.0
 
 ### Minor Changes

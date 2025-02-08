@@ -679,7 +679,17 @@ export const copy = dual<
     <A extends object>(self: A, f: (a: A) => Partial<A>): A
     <A extends object>(self: A, f: Partial<A>): A
   }
->(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
+>(
+  2,
+  <A extends object>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) =>
+    clone(self, {
+      ...self,
+      // TODO: make this configurable instead via Schema field metadata, or trait...
+      // could be even the cloneTrait itself
+      ...("updatedAt" in self ? { updatedAt: new Date() } : undefined),
+      ...(isFunction(f) ? f(self) : f)
+    })
+)
 
 export function debug<A>(a: AnyOps<A>, name: string) {
   let r: string | A = a.subject

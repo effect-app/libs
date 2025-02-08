@@ -216,14 +216,14 @@ export const ExtendedClass: <Self, SelfFrom>(identifier?: string) => <Fields ext
   {}
 > = Class as any
 
-export interface EnhancedExtendedClass<Self, Tag extends string, Fields extends Struct.Fields, SelfFrom>
+export interface EnhancedTaggedClass<Self, Tag extends string, Fields extends Struct.Fields, SelfFrom>
   extends
     EnhancedClass<
       Self,
-      Fields,
+      { readonly _tag: S.tag<Tag> } & Fields,
       SelfFrom,
       Struct.Context<Fields>,
-      Struct.Constructor<Omit<Fields, "_tag">>,
+      Struct.Constructor<Fields>,
       {},
       {}
     >
@@ -237,9 +237,9 @@ export const ExtendedTaggedClass: <Self, SelfFrom>(
   tag: Tag,
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self, Struct.Type<Fields>>
-) => EnhancedExtendedClass<
+) => EnhancedTaggedClass<
   Self,
   Tag,
-  { readonly _tag: S.tag<Tag> } & Fields,
+  Fields,
   SelfFrom
 > = TaggedClass as any

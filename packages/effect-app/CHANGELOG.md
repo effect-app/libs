@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.26.3
+
+### Patch Changes
+
+- 02c4141: fix type
+
 ## 2.26.2
 
 ### Patch Changes

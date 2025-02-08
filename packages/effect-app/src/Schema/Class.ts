@@ -6,13 +6,6 @@ import type { ParseOptions } from "effect/SchemaAST"
 import type { Simplify } from "effect/Types"
 import type { AST } from "./schema.js"
 
-type _OptionalKeys<O> = {
-  [K in keyof O]-?: {} extends Pick<O, K> ? K
-    : never
-}[keyof O]
-
-type FilterOptionalKeys<A> = Omit<A, _OptionalKeys<A>>
-
 type ClassAnnotations<Self, A> =
   | S.Annotations.Schema<Self>
   | readonly [

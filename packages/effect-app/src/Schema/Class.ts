@@ -21,13 +21,15 @@ type ClassAnnotations<Self, A> =
     S.Annotations.Schema<A>?
   ]
 
+type RequiredKeys<T> = {
+  [K in keyof T]-?: {} extends Pick<T, K> ? never : K
+}[keyof T]
+
 export interface EnhancedClass<Self, Fields extends Struct.Fields, I, R, C, Inherited, Proto>
   extends Schema<Self, I, R>, PropsExtensions<Fields>
 {
   new(
-    props: Types.Equals<C, {}> extends true ? void | {}
-      : Types.Equals<FilterOptionalKeys<C>, {}> extends true ? void | C
-      : C,
+    props: RequiredKeys<C> extends never ? void | Simplify<C> : Simplify<C>,
     disableValidation?: boolean
   ): Struct.Type<Fields> & Omit<Inherited, keyof Fields> & Proto
 
@@ -162,7 +164,7 @@ export const Class: <Self = never>(identifier?: string) => <Fields extends S.Str
     Self,
     Fields,
     Simplify<Struct.Encoded<Fields>>,
-    Schema.Context<Fields[keyof Fields]>,
+    Struct.Context<Fields>,
     Simplify<S.Struct.Constructor<Fields>>,
     {},
     {}
@@ -220,10 +222,10 @@ export interface EnhancedTaggedClass<Self, Tag extends string, Fields extends St
   extends
     EnhancedClass<
       Self,
-      { readonly _tag: S.tag<Tag> } & Fields,
+      Fields,
       SelfFrom,
       Struct.Context<Fields>,
-      Struct.Constructor<Fields>,
+      Struct.Constructor<Omit<Fields, "_tag">>,
       {},
       {}
     >
@@ -240,6 +242,6 @@ export const ExtendedTaggedClass: <Self, SelfFrom>(
 ) => EnhancedTaggedClass<
   Self,
   Tag,
-  Fields,
+  { readonly _tag: S.tag<Tag> } & Fields,
   SelfFrom
 > = TaggedClass as any

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.40.0
+
+### Minor Changes
+
+- bs
+
 ## 2.39.0
 
 ### Minor Changes

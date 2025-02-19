@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.27.0
+
+### Minor Changes
+
+- bs
+
 ## 2.26.0
 
 ### Minor Changes

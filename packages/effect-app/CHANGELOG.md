@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.27.0
+
+### Minor Changes
+
+- 9b2e385: update packages
+
 ## 2.26.3
 
 ### Patch Changes

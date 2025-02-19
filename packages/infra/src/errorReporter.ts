@@ -39,6 +39,10 @@ export function reportError(
               __error_name__: name
             }))
           )
+          .pipe(
+            Effect.catchAllCause((cause) => InfraLogger.logWarning("Failed to log error", cause)),
+            Effect.catchAllCause(() => InfraLogger.logFatal("Failed to log error cause"))
+          )
 
         error[ErrorReported] = true
         return error

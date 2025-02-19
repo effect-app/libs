@@ -28,12 +28,16 @@ export function reportError(
         yield* reportSentry(error, extras)
         yield* Effect
           .logError("Reporting error", cause)
-          .pipe(Effect.annotateLogs(dropUndefined({
-            extras,
-            error: tryToReport(error),
-            cause: tryToJson(cause),
-            __error_name__: name
-          })))
+          .pipe(
+            Effect.annotateLogs(dropUndefined({
+              extras,
+              error: tryToReport(error),
+              cause: tryToJson(cause),
+              __error_name__: name
+            })),
+            Effect.catchAllCause((cause) => Effect.logWarning("Failed to log error", cause)),
+            Effect.catchAllCause(() => Effect.logFatal("Failed to log error cause"))
+          )
 
         error[ErrorReported] = true
         return error

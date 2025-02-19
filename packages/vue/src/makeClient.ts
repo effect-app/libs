@@ -3,7 +3,7 @@ import type { Result } from "@effect-rx/rx/Result"
 import * as Sentry from "@sentry/browser"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
-import { CauseException, type SupportedErrors } from "effect-app/client/errors"
+import { type SupportedErrors } from "effect-app/client/errors"
 import { constant, pipe, tuple } from "effect-app/Function"
 import type { OperationFailure } from "effect-app/Operations"
 import { OperationSuccess } from "effect-app/Operations"
@@ -11,6 +11,7 @@ import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
 import type { ComputedRef, Ref, ShallowRef } from "vue"
 import { computed, ref, watch } from "vue"
+import { tryCauseException } from "./errorReporter.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { getRuntime } from "./lib.js"
 import type { MakeIntlReturn } from "./makeIntl.js"
@@ -156,7 +157,7 @@ export function handleRequest<
                 message: `Unexpected Error trying to ${action}`
               }
               console.error(extra.message, cause)
-              Sentry.captureException(new CauseException(cause, "defect"), { extra })
+              Sentry.captureException(tryCauseException(cause, "defect"), { extra })
 
               yield* options.onDefect(cause, i)
             })
@@ -168,7 +169,7 @@ export function handleRequest<
             action,
             message: `Unexpected Error trying to handle errors for ${action}`
           }
-          Sentry.captureException(new CauseException(cause, "unhandled"), { extra })
+          Sentry.captureException(tryCauseException(cause, "unhandled"), { extra })
           console.error(Cause.pretty(cause), extra)
         })
       )

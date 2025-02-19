@@ -5,30 +5,46 @@ import { Cause, Effect } from "effect-app"
 import { CauseException, ErrorReported, tryToJson, tryToReport } from "effect-app/client/errors"
 import { dropUndefined } from "effect-app/utils"
 
+export const tryCauseException = <E>(cause: Cause<E>, name: string): CauseException<E> => {
+  try {
+    return new CauseException(cause, name)
+  } catch {
+    return new CauseException(Cause.die(new Error("Failed to create CauseException")), name)
+  }
+}
+
 export function reportError(
   name: string
 ) {
-  return (cause: Cause.Cause<unknown>, extras?: Record<string, unknown>) =>
-    Effect.gen(function*() {
-      if (Cause.isInterruptedOnly(cause)) {
-        yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
-        return Cause.squash(cause)
-      }
+  return (cause: Cause.Cause<unknown>, extras?: Record<string, unknown>): Effect.Effect<unknown, never, never> =>
+    Effect
+      .gen(function*() {
+        if (Cause.isInterruptedOnly(cause)) {
+          yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
+          return Cause.squash(cause)
+        }
 
-      const error = new CauseException(cause, name)
-      yield* reportSentry(error, extras)
-      yield* Effect
-        .logError("Reporting error", cause)
-        .pipe(Effect.annotateLogs(dropUndefined({
-          extras,
-          error: tryToReport(error),
-          cause: tryToJson(cause),
-          __error_name__: name
-        })))
+        const error = tryCauseException(cause, name)
+        yield* reportSentry(error, extras)
+        yield* Effect
+          .logError("Reporting error", cause)
+          .pipe(Effect.annotateLogs(dropUndefined({
+            extras,
+            error: tryToReport(error),
+            cause: tryToJson(cause),
+            __error_name__: name
+          })))
 
-      error[ErrorReported] = true
-      return error
-    })
+        error[ErrorReported] = true
+        return error
+      })
+      .pipe(
+        Effect.tapErrorCause((cause) =>
+          Effect.logError("Failed to report error", cause).pipe(
+            Effect.tapErrorCause(() => Effect.logFatal("Failed to log error cause"))
+          )
+        )
+      )
 }
 
 function reportSentry(
@@ -48,21 +64,29 @@ export function logError<E>(
   name: string
 ) {
   return (cause: Cause.Cause<E>, extras?: Record<string, unknown>) =>
-    Effect.gen(function*() {
-      if (Cause.isInterruptedOnly(cause)) {
-        yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
-        return
-      }
-      yield* Effect
-        .logWarning("Logging error", cause)
-        .pipe(
-          Effect.annotateLogs(dropUndefined({
-            extras,
-            cause: tryToJson(cause),
-            __error_name__: name
-          }))
+    Effect
+      .gen(function*() {
+        if (Cause.isInterruptedOnly(cause)) {
+          yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
+          return
+        }
+        yield* Effect
+          .logWarning("Logging error", cause)
+          .pipe(
+            Effect.annotateLogs(dropUndefined({
+              extras,
+              cause: tryToJson(cause),
+              __error_name__: name
+            }))
+          )
+      })
+      .pipe(
+        Effect.tapErrorCause((cause) =>
+          Effect.logError("Failed to log error", cause).pipe(
+            Effect.tapErrorCause(() => Effect.logFatal("Failed to log error cause"))
+          )
         )
-    })
+      )
 }
 
 export function captureException(error: unknown) {

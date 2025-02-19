@@ -5,34 +5,51 @@ import { getRC } from "./api/setupRequest.js"
 import { CauseException, ErrorReported, tryToJson, tryToReport } from "./errors.js"
 import { InfraLogger } from "./logger.js"
 
+const tryCauseException = <E>(cause: Cause<E>, name: string): CauseException<E> => {
+  try {
+    return new CauseException(cause, name)
+  } catch {
+    return new CauseException(Cause.die(new Error("Failed to create CauseException")), name)
+  }
+}
+
 export function reportError(
   name: string
 ) {
-  return (cause: Cause<unknown>, extras?: Record<string, unknown>) =>
-    Effect.gen(function*() {
-      if (Cause.isInterruptedOnly(cause)) {
-        yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
-        return
-      }
-      const error = new CauseException(cause, name)
+  return (
+    cause: Cause<unknown>,
+    extras?: Record<string, unknown>
+  ) =>
+    Effect
+      .gen(function*() {
+        if (Cause.isInterruptedOnly(cause)) {
+          yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
+          return
+        }
+        const error = tryCauseException(cause, name)
 
-      yield* reportSentry(error, extras)
-      yield* InfraLogger
-        .logError("Reporting error", cause)
-        .pipe(
-          Effect.annotateLogs(dropUndefined({
-            extras,
-            error: tryToReport(error),
-            cause: tryToJson(cause),
-            __error_name__: name
-          })),
-          Effect.catchAllCause((cause) => InfraLogger.logError("Failed to log error", cause)),
-          Effect.catchAllCause(() => InfraLogger.logError("Failed to log error cause"))
+        yield* reportSentry(error, extras)
+        yield* InfraLogger
+          .logError("Reporting error", cause)
+          .pipe(
+            Effect.annotateLogs(dropUndefined({
+              extras,
+              error: tryToReport(error),
+              cause: tryToJson(cause),
+              __error_name__: name
+            }))
+          )
+
+        error[ErrorReported] = true
+        return error
+      })
+      .pipe(
+        Effect.tapErrorCause((cause) =>
+          InfraLogger.logError("Failed to report error", cause).pipe(
+            Effect.tapErrorCause(() => InfraLogger.logFatal("Failed to log error cause"))
+          )
         )
-
-      error[ErrorReported] = true
-      return error
-    })
+      )
 }
 
 function reportSentry(
@@ -53,23 +70,25 @@ export function logError<E>(
   name: string
 ) {
   return (cause: Cause<E>, extras?: Record<string, unknown>) =>
-    Effect.gen(function*() {
-      if (Cause.isInterruptedOnly(cause)) {
-        yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
-        return
-      }
-      yield* InfraLogger
-        .logWarning("Logging error", cause)
-        .pipe(
-          Effect.annotateLogs(dropUndefined({
-            extras,
-            cause: tryToJson(cause),
-            __error_name__: name
-          })),
-          Effect.catchAllCause((cause) => InfraLogger.logError("Failed to log error", cause)),
-          Effect.catchAllCause(() => InfraLogger.logError("Failed to log error cause"))
-        )
-    })
+    Effect
+      .gen(function*() {
+        if (Cause.isInterruptedOnly(cause)) {
+          yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
+          return
+        }
+        yield* InfraLogger
+          .logWarning("Logging error", cause)
+          .pipe(
+            Effect.annotateLogs(dropUndefined({
+              extras,
+              cause: tryToJson(cause),
+              __error_name__: name
+            }))
+          )
+      })
+      .pipe(
+        Effect.tapErrorCause(() => InfraLogger.logFatal("Failed to log error cause"))
+      )
 }
 
 export function captureException(error: unknown) {

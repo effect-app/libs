@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.39.0
+
+### Minor Changes
+
+- a661857: who catches the error catcher?
+
 ## 2.38.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.26.0
+
+### Minor Changes
+
+- a661857: who catches the error catcher?
+
 ## 2.25.0
 
 ### Minor Changes

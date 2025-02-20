@@ -420,6 +420,8 @@ export const makeRouter = <
                           }))
                         ])
                     ),
+                    // NOTE: this does not catch errors from the middlewares..
+                    // we should re-evalute this in any case..
                     devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error")),
                     Effect.withSpan("Request." + meta.moduleName + "." + req._tag, {
                       captureStackTrace: () => handler.stack

@@ -54,9 +54,9 @@
     "vue": "^3.5.13"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.28.0",
+    "@changesets/cli": "^2.28.1",
     "@dprint/typescript": "^0.93.4",
-    "@effect-app/cli": "^1.13.2",
+    "@effect-app/cli": "^1.14.0",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.2.0",
@@ -75,7 +75,7 @@
     "effect-app": "workspace:*",
     "enhanced-resolve": "^5.18.1",
     "eslint": "^8.57.1",
-    "eslint-import-resolver-typescript": "^3.8.2",
+    "eslint-import-resolver-typescript": "^3.8.3",
     "eslint-import-resolver-webpack": "^0.13.10",
     "eslint-plugin-codegen": "0.17.0",
     "eslint-plugin-import": "^2.31.0",

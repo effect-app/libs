@@ -95,18 +95,14 @@ export function logError<E>(
       )
 }
 
-export function captureException(error: unknown) {
-  Sentry.captureException(error)
-  console.error(error)
-}
-
 export function reportMessage(message: string, extras?: Record<string, unknown>) {
-  return getRC.pipe(Effect.map((context) => {
+  return Effect.gen(function*() {
+    const context = yield* getRC
     const scope = new Sentry.Scope()
     if (context) scope.setContext("context", context as unknown as Record<string, unknown>)
     if (extras) scope.setContext("extras", extras)
     Sentry.captureMessage(message, scope)
 
-    console.warn(message)
-  }))
+    console.warn(message, extras)
+  })
 }

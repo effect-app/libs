@@ -219,10 +219,6 @@
       "types": "./dist/http/Request.d.ts",
       "default": "./dist/http/Request.js"
     },
-    "./http/http-client": {
-      "types": "./dist/http/http-client.d.ts",
-      "default": "./dist/http/http-client.js"
-    },
     "./ids": {
       "types": "./dist/ids.d.ts",
       "default": "./dist/ids.js"

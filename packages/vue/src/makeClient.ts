@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Result } from "@effect-rx/rx/Result"
-import * as Sentry from "@sentry/browser"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { type SupportedErrors } from "effect-app/client/errors"
@@ -11,9 +10,9 @@ import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
 import type { ComputedRef, Ref, ShallowRef } from "vue"
 import { computed, ref, watch } from "vue"
-import { tryCauseException } from "./errorReporter.js"
+import { reportMessage } from "./errorReporter.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
-import { getRuntime } from "./lib.js"
+import { getRuntime, reportRuntimeError } from "./lib.js"
 import type { MakeIntlReturn } from "./makeIntl.js"
 import { makeMutation, mutationResultToVue } from "./mutate.js"
 import type { MutationOptions, Res } from "./mutate.js"
@@ -146,8 +145,7 @@ export function handleRequest<
                   return
                 }
                 const message = `Failure trying to ${action}`
-                console.warn(message, fail.value)
-                Sentry.captureMessage(message, { extra: { action, error: fail.value } })
+                yield* reportMessage(message, { action, error: fail.value })
                 yield* options.onFail(fail.value, i)
                 return
               }
@@ -156,21 +154,19 @@ export function handleRequest<
                 action,
                 message: `Unexpected Error trying to ${action}`
               }
-              console.error(extra.message, cause)
-              Sentry.captureException(tryCauseException(cause, "defect"), { extra })
+              yield* reportRuntimeError(cause, extra)
 
               yield* options.onDefect(cause, i)
             })
         })
       ),
       Effect.tapErrorCause((cause) =>
-        Effect.sync(() => {
+        Effect.gen(function*() {
           const extra = {
             action,
             message: `Unexpected Error trying to handle errors for ${action}`
           }
-          Sentry.captureException(tryCauseException(cause, "unhandled"), { extra })
-          console.error(Cause.pretty(cause), extra)
+          yield* reportRuntimeError(cause, extra)
         })
       )
     )

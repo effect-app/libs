@@ -93,17 +93,19 @@ export function logError<E>(
       )
 }
 
-export function captureException(error: unknown) {
-  Sentry.captureException(error)
-  console.error(error)
+export function captureException(error: unknown, extras?: Record<string, unknown>) {
+  const scope = new Sentry.Scope()
+  if (extras) scope.setContext("extras", extras)
+  Sentry.captureException(error, extras)
+  console.error(error, extras)
 }
 
 export function reportMessage(message: string, extras?: Record<string, unknown>) {
-  return Effect.sync(() => {
+  return Effect.gen(function*() {
     const scope = new Sentry.Scope()
     if (extras) scope.setContext("extras", extras)
     Sentry.captureMessage(message, scope)
 
-    console.warn(message)
+    console.warn(message, extras)
   })
 }

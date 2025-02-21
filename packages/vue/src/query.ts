@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-rx/rx/Result"
+import { isHttpClientError } from "@effect/platform/HttpClientError"
 import type {
   InitialDataFunction,
   QueryKey,
@@ -15,7 +16,6 @@ import { useQuery } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
-import { isHttpRequestError, isHttpResponseError } from "effect-app/http/http-client"
 import { computed, ref, shallowRef, watch } from "vue"
 import type { ComputedRef, ShallowRef, WatchSource } from "vue"
 import { getRuntime, makeQueryKey, reportRuntimeError } from "./lib.js"
@@ -69,7 +69,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
             if (Runtime.isFiberFailure(error)) {
               const cause = error[Runtime.FiberFailureCauseId]
               const sq = Cause.squash(cause)
-              if (!isHttpRequestError(sq) && !isHttpResponseError(sq) && !S.is(ServiceUnavailableError)(sq)) {
+              if (!isHttpClientError(sq) && !S.is(ServiceUnavailableError)(sq)) {
                 return false
               }
             }
@@ -93,7 +93,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
             if (Runtime.isFiberFailure(error)) {
               const cause = error[Runtime.FiberFailureCauseId]
               const sq = Cause.squash(cause)
-              if (!isHttpRequestError(sq) && !isHttpResponseError(sq) && !S.is(ServiceUnavailableError)(sq)) {
+              if (!isHttpClientError(sq) && !S.is(ServiceUnavailableError)(sq)) {
                 return false
               }
             }

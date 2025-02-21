@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as Sentry from "@sentry/browser"
-import { Cause, Effect } from "effect-app"
+import { Cause, Effect, LogLevel } from "effect-app"
 import { CauseException, ErrorReported, tryToJson, tryToReport } from "effect-app/client/errors"
-import { dropUndefined } from "effect-app/utils"
+import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 
 export const tryCauseException = <E>(cause: Cause<E>, name: string): CauseException<E> => {
   try {
@@ -16,7 +16,11 @@ export const tryCauseException = <E>(cause: Cause<E>, name: string): CauseExcept
 export function reportError(
   name: string
 ) {
-  return (cause: Cause.Cause<unknown>, extras?: Record<string, unknown>): Effect.Effect<unknown, never, never> =>
+  return (
+    cause: Cause.Cause<unknown>,
+    extras?: Record<string, unknown>,
+    level: LogLevel.LogLevel = LogLevel.Error
+  ): Effect.Effect<unknown, never, never> =>
     Effect
       .gen(function*() {
         if (Cause.isInterruptedOnly(cause)) {
@@ -25,9 +29,9 @@ export function reportError(
         }
 
         const error = tryCauseException(cause, name)
-        yield* reportSentry(error, extras)
+        yield* reportSentry(error, extras, LogLevelToSentry(level))
         yield* Effect
-          .logError("Reporting error", cause)
+          .logWithLevel(level, "Reporting error", cause)
           .pipe(
             Effect.annotateLogs(dropUndefined({
               extras,
@@ -53,10 +57,12 @@ export function reportError(
 
 function reportSentry(
   error: CauseException<unknown>,
-  extras: Record<string, unknown> | undefined
+  extras: Record<string, unknown> | undefined,
+  level: Sentry.SeverityLevel = "error"
 ) {
   return Effect.sync(() => {
     const scope = new Sentry.Scope()
+    scope.setLevel(level)
     if (extras) scope.setContext("extras", extras)
     scope.setContext("error", tryToReport(error) as any)
     scope.setContext("cause", tryToJson(error.originalCause) as any)

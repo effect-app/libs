@@ -1,10 +1,10 @@
 import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
 import type { Runtime } from "effect-app"
-import { Cause, Effect, pipe } from "effect-app"
+import { Cause, Effect, LogLevel, pipe } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import type { MaybeRefOrGetter, ShallowRef } from "vue"
-import { reportError, reportMessage } from "./errorReporter.js"
+import { reportError } from "./errorReporter.js"
 
 export * as Result from "@effect-rx/rx/Result"
 
@@ -19,21 +19,21 @@ export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string
           "@effect/rpc: handler must return an array of responses with the same length as the requests."
         )
       ) {
-        yield* reportMessage("RPC error", { ...extras, cause })
+        yield* reportRuntimeError_(cause, extras, LogLevel.Warning)
         return
       }
       return yield* reportRuntimeError_(cause, extras)
     }
     if (sq._tag === "RequestError") {
       if (sq.reason === "Transport") {
-        yield* reportMessage("Transport error", { ...extras, cause })
+        yield* reportRuntimeError_(cause, extras, LogLevel.Info)
         return
       }
     } else if (sq._tag === "ResponseError") {
       if (sq.reason === "Decode") {
         // we get this incase of Magento Proxy error :/
         // TODO: we should only skip this on Configurator/Magento...
-        yield* reportMessage("Decode error", { ...extras, cause })
+        yield* reportRuntimeError_(cause, extras, LogLevel.Warning)
         return
       }
     }

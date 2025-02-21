@@ -9,6 +9,7 @@ import { identity, pipe } from "./Function.js"
 export * from "./utils/effectify.js"
 export * from "./utils/extend.js"
 export * from "./utils/logger.js"
+export * from "./utils/logLevel.js"
 // codegen:end
 
 export const cloneTrait = Symbol.for("clone-trait")
@@ -127,6 +128,7 @@ function get(obj: any, path: any, defaultValue = undefined) {
 export * from "./utils/effectify.js"
 export * from "./utils/extend.js"
 export * from "./utils/logger.js"
+export * from "./utils/logLevel.js"
 // codegen:end
 
 export const unsafeRight = <E, A>(ei: Either.Either<A, E>) => {

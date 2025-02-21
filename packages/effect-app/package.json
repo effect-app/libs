@@ -243,6 +243,10 @@
       "types": "./dist/utils/extend.d.ts",
       "default": "./dist/utils/extend.js"
     },
+    "./utils/logLevel": {
+      "types": "./dist/utils/logLevel.d.ts",
+      "default": "./dist/utils/logLevel.js"
+    },
     "./utils/logger": {
       "types": "./dist/utils/logger.d.ts",
       "default": "./dist/utils/logger.js"

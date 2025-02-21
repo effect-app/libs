@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node"
-import { Cause, Effect } from "effect-app"
-import { dropUndefined } from "effect-app/utils"
+import { Cause, Effect, LogLevel } from "effect-app"
+import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 import { getRC } from "./api/setupRequest.js"
 import { CauseException, ErrorReported, tryToJson, tryToReport } from "./errors.js"
 import { InfraLogger } from "./logger.js"
@@ -18,7 +18,8 @@ export function reportError(
 ) {
   return (
     cause: Cause<unknown>,
-    extras?: Record<string, unknown>
+    extras?: Record<string, unknown>,
+    level: LogLevel.LogLevel = LogLevel.Error
   ) =>
     Effect
       .gen(function*() {
@@ -28,9 +29,9 @@ export function reportError(
         }
         const error = tryCauseException(cause, name)
 
-        yield* reportSentry(error, extras)
+        yield* reportSentry(error, extras, LogLevelToSentry(level))
         yield* InfraLogger
-          .logError("Reporting error", cause)
+          .logWithLevel(level, "Reporting error", cause)
           .pipe(
             Effect.annotateLogs(dropUndefined({
               extras,
@@ -58,10 +59,12 @@ export function reportError(
 
 function reportSentry(
   error: CauseException<unknown>,
-  extras: Record<string, unknown> | undefined
+  extras: Record<string, unknown> | undefined,
+  level: Sentry.SeverityLevel = "error"
 ) {
   return getRC.pipe(Effect.map((context) => {
     const scope = new Sentry.Scope()
+    scope.setLevel(level)
     if (context) scope.setContext("context", context as unknown as Record<string, unknown>)
     if (extras) scope.setContext("extras", extras)
     scope.setContext("error", tryToReport(error) as any)

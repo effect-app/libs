@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.42.0
+
+### Minor Changes
+
+- 7a4d393: report errors anyway to Sentry but with lower severity. add log namespace annotations.
+
+### Patch Changes
+
+- Updated dependencies [7a4d393]
+  - effect-app@2.29.0
+
 ## 2.41.0
 
 ### Minor Changes

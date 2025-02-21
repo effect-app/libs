@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.29.0
+
+### Minor Changes
+
+- 7a4d393: report errors anyway to Sentry but with lower severity. add log namespace annotations.
+
 ## 2.28.0
 
 ### Minor Changes

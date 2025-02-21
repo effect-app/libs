@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.41.0
+
+### Minor Changes
+
+- 32730a4: improve error reporting
+
+### Patch Changes
+
+- Updated dependencies [32730a4]
+  - effect-app@2.28.0
+
 ## 2.40.1
 
 ### Patch Changes

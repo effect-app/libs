@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.28.0
+
+### Minor Changes
+
+- 32730a4: improve error reporting
+
+### Patch Changes
+
+- Updated dependencies [32730a4]
+  - effect-app@2.28.0
+
 ## 2.27.1
 
 ### Patch Changes

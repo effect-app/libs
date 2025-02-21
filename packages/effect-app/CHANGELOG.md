@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.28.0
+
+### Minor Changes
+
+- 32730a4: improve error reporting
+
 ## 2.27.0
 
 ### Minor Changes

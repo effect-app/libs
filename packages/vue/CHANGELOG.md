@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.28.1
+
+### Patch Changes
+
+- 3220637: cleanup
+
 ## 2.28.0
 
 ### Minor Changes

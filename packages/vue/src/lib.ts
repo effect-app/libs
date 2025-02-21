@@ -13,26 +13,27 @@ export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string
   Effect.gen(function*() {
     const sq = Cause.squash(cause)
     if (!isHttpClientError(sq)) {
+      // TODO: we should only skip this on Configurator/Magento...
       if (
         String(sq).includes(
           "@effect/rpc: handler must return an array of responses with the same length as the requests."
         )
       ) {
-        yield* Effect.logWarning("RPC response error", cause)
+        yield* reportMessage("RPC error", { ...extras, cause })
         return
       }
       return yield* reportRuntimeError_(cause, extras)
     }
     if (sq._tag === "RequestError") {
       if (sq.reason === "Transport") {
-        yield* reportMessage("Transport error", { cause })
+        yield* reportMessage("Transport error", { ...extras, cause })
         return
       }
     } else if (sq._tag === "ResponseError") {
       if (sq.reason === "Decode") {
         // we get this incase of Magento Proxy error :/
         // TODO: we should only skip this on Configurator/Magento...
-        yield* reportMessage("Decode error", { cause })
+        yield* reportMessage("Decode error", { ...extras, cause })
         return
       }
     }

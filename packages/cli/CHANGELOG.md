@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.15.0
+
+### Minor Changes
+
+- 1721761: improve: only update nearest controllers/routes.ts
+
 ## 1.14.0
 
 ### Minor Changes

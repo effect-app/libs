@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import cp from "child_process"
-import { Array, Equivalence } from "effect"
 import fs from "fs"
 import w from "node-watch"
 import path from "path"
@@ -64,43 +63,24 @@ function monitorIndexes(path: string) {
 function monitorChildIndexes(path: string) {
   return w.default(path, { recursive: true }, (evt, path) => {
     const pathParts = path.split("/")
-    const oneButLast = pathParts.slice(0, -1).join("/")
-    const twoButLast = pathParts.slice(0, -2).join("/")
+    const isController = pathParts[pathParts.length - 1]?.toLowerCase().includes(".controllers.")
+    if (!isController) return
 
-    const indexFiles = pathParts.length < 3
-      ? pathParts[pathParts.length - 1]?.toLowerCase().includes(".controllers.")
-        ? [
-          oneButLast + "/routes.ts",
-          oneButLast + "/controllers.ts",
-          oneButLast + "/Controllers.ts"
-        ]
-        : []
-      : [
-        oneButLast + ".ts",
-        ...pathParts[pathParts.length - 1]?.toLowerCase().includes(".controllers.")
-          ? [
-            oneButLast + ".controllers.ts",
-            oneButLast + ".Controllers.ts",
-            oneButLast + ".index.Controllers.ts",
-            oneButLast + ".index.controllers.ts",
-            oneButLast + "/routes.ts",
-            oneButLast + "/controllers.ts",
-            oneButLast + "/Controllers.ts",
-            twoButLast + "/controllers.ts",
-            twoButLast + "/Controllers.ts",
-            twoButLast + "controllers.ts"
-          ]
-          : []
-      ]
-
-    const foundIndexFiles = Array.dedupeWith(
-      indexFiles.filter((_) => fs.existsSync(_)),
-      Equivalence.mapInput(Equivalence.string, (_) => _.toLowerCase())
-    )
-    if (debug) console.log("change!", evt, path, indexFiles, foundIndexFiles)
-
-    if (!foundIndexFiles.length) return
-    cp.execSync(`pnpm eslint --fix ${foundIndexFiles.map((_) => `"${_}"`).join(" ")}`)
+    let i = 1
+    const r = pathParts.toReversed()
+    while (i < r.length) {
+      const files = ["controllers.ts", "routes.ts"]
+        .map((f) => [...pathParts.slice(0, pathParts.length - i), f].join("/"))
+        .filter((f) => fs.existsSync(f))
+      if (files.length) {
+        if (debug) {
+          console.log("change!", evt, path, files)
+        }
+        cp.execSync(`cd api && pnpm eslint --fix ${files.map((_) => `"../${_}"`).join(" ")}`)
+        break
+      }
+      i++
+    }
   })
 }
 

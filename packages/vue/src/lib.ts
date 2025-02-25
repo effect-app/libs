@@ -1,7 +1,7 @@
 import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
-import type { Runtime } from "effect-app"
-import { Cause, Effect, LogLevel, pipe } from "effect-app"
+import type { Effect, Runtime } from "effect-app"
+import { Cause, LogLevel, pipe } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import type { MaybeRefOrGetter, ShallowRef } from "vue"
 import { reportError } from "./errorReporter.js"
@@ -9,36 +9,31 @@ import { reportError } from "./errorReporter.js"
 export * as Result from "@effect-rx/rx/Result"
 
 const reportRuntimeError_ = reportError("Runtime")
-export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string, unknown>) =>
-  Effect.gen(function*() {
-    const sq = Cause.squash(cause)
-    if (!isHttpClientError(sq)) {
-      // TODO: we should only skip this on Configurator/Magento...
-      if (
-        String(sq).includes(
-          "@effect/rpc: handler must return an array of responses with the same length as the requests."
-        )
-      ) {
-        yield* reportRuntimeError_(cause, extras, LogLevel.Warning)
-        return
-      }
-      return yield* reportRuntimeError_(cause, extras)
-    }
-    if (sq._tag === "RequestError") {
-      if (sq.reason === "Transport") {
-        yield* reportRuntimeError_(cause, extras, LogLevel.Info)
-        return
-      }
-    } else if (sq._tag === "ResponseError") {
-      if (sq.reason === "Decode") {
-        // we get this incase of Magento Proxy error :/
+
+const determineLevel = (cause: Cause<unknown>) => {
+  const sq = Cause.squash(cause)
+  if (!isHttpClientError(sq)) {
+    // TODO: we should only skip this on Configurator/Magento...
+    return String(sq).includes(
+        "@effect/rpc: handler must return an array of responses with the same length as the requests."
+      )
+      ? LogLevel.Warning
+      : undefined
+  }
+  switch (sq._tag) {
+    case "RequestError":
+      return sq.reason === "Transport" ? LogLevel.Info : undefined
+    case "ResponseError":
+      return sq.reason === "Decode"
+        // we get this incase of Magento Proxy error (e.g returning 500 with html)
         // TODO: we should only skip this on Configurator/Magento...
-        yield* reportRuntimeError_(cause, extras, LogLevel.Warning)
-        return
-      }
-    }
-    return yield* reportRuntimeError_(cause, extras)
-  })
+        ? LogLevel.Warning
+        : undefined
+  }
+}
+
+export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string, unknown>) =>
+  reportRuntimeError_(cause, extras, determineLevel(cause))
 
 // $Project/$Configuration.Index
 // -> "$Project", "$Configuration", "Index"

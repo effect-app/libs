@@ -13,23 +13,13 @@ const reportRuntimeError_ = reportError("Runtime")
 const determineLevel = (cause: Cause<unknown>) => {
   const sq = Cause.squash(cause)
   if (!isHttpClientError(sq)) {
-    // TODO: we should only skip this on Configurator/Magento...
-    return String(sq).includes(
-        "@effect/rpc: handler must return an array of responses with the same length as the requests."
-      )
-      ? LogLevel.Warning
-      : undefined
+    return undefined
   }
   switch (sq._tag) {
     case "RequestError":
       return sq.reason === "Transport" ? LogLevel.Info : undefined
-    case "ResponseError":
-      return sq.reason === "Decode"
-        // we get this incase of Magento Proxy error (e.g returning 500 with html)
-        // TODO: we should only skip this on Configurator/Magento...
-        ? LogLevel.Warning
-        : undefined
   }
+  return undefined
 }
 
 export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string, unknown>) =>

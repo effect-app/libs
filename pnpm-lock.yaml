@@ -14,7 +14,7 @@ patchedDependencies:
     hash: eea28b10680421b1694a2c076da66f23967496e57bd21d30294877e30a9a455f
     path: patches/@phaphoso__eslint-plugin-dprint@0.5.2.patch
   effect:
-    hash: 9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d
+    hash: 2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14
     path: patches/effect.patch
   eslint-plugin-codegen@0.17.0:
     hash: 976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7
@@ -47,8 +47,8 @@ importers:
         specifier: ^0.94.0
         version: 0.94.0
       '@effect-app/cli':
-        specifier: ^1.15.0
-        version: 1.15.0
+        specifier: ^1.16.0
+        version: 1.16.0
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -59,11 +59,11 @@ importers:
         specifier: 0.2.0
         version: 0.2.0
       '@effect/platform':
-        specifier: ^0.77.3
-        version: 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.77.4
+        version: 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/platform-node':
-        specifier: ^0.73.3
-        version: 0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.73.4
+        version: 0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@phaphoso/eslint-plugin-dprint':
         specifier: ^0.5.2
         version: 0.5.2(patch_hash=eea28b10680421b1694a2c076da66f23967496e57bd21d30294877e30a9a455f)(eslint@8.57.1)
@@ -92,8 +92,8 @@ importers:
         specifier: ^0.49.0
         version: 0.49.0
       effect:
-        specifier: ^3.13.3
-        version: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+        specifier: ^3.13.4
+        version: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -195,14 +195,14 @@ importers:
   packages/effect-app:
     dependencies:
       '@effect/platform':
-        specifier: ^0.77.3
-        version: 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.77.4
+        version: 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/rpc':
-        specifier: ^0.52.3
-        version: 0.52.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.52.4
+        version: 0.52.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/rpc-http':
-        specifier: ^0.50.3
-        version: 0.50.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.50.4
+        version: 0.50.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@tsconfig/strictest':
         specifier: ^2.0.5
         version: 2.0.5
@@ -210,8 +210,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^3.13.3
-        version: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+        specifier: ^3.13.4
+        version: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       nanoid:
         specifier: ^5.1.2
         version: 5.1.2
@@ -338,8 +338,8 @@ importers:
         specifier: ^1.1.5
         version: 1.1.5
       effect:
-        specifier: ^3.13.3
-        version: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+        specifier: ^3.13.4
+        version: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       madge:
         specifier: 8.0.0
         version: 8.0.0(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc))
@@ -350,23 +350,23 @@ importers:
   packages/infra:
     dependencies:
       '@effect/experimental':
-        specifier: ^0.41.3
-        version: 0.41.3(@effect/platform-node@0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(ws@8.18.0)
+        specifier: ^0.41.4
+        version: 0.41.4(@effect/platform-node@0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(ws@8.18.0)
       '@effect/platform':
-        specifier: ^0.77.3
-        version: 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.77.4
+        version: 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/rpc':
-        specifier: ^0.52.3
-        version: 0.52.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.52.4
+        version: 0.52.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/rpc-http':
-        specifier: ^0.50.3
-        version: 0.50.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.50.4
+        version: 0.50.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/sql':
-        specifier: ^0.30.3
-        version: 0.30.3(@effect/experimental@0.41.3(@effect/platform-node@0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(ws@8.18.0))(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.30.4
+        version: 0.30.4(@effect/experimental@0.41.4(@effect/platform-node@0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(ws@8.18.0))(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/vitest':
-        specifier: ^0.19.1
-        version: 0.19.1(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(vitest@3.0.7(@types/node@22.13.5)(terser@5.36.0)(tsx@4.19.3))
+        specifier: ^0.19.2
+        version: 0.19.2(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vitest@3.0.7(@types/node@22.13.5)(terser@5.36.0)(tsx@4.19.3))
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -383,8 +383,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(encoding@0.1.13)
       effect:
-        specifier: ^3.13.3
-        version: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+        specifier: ^3.13.4
+        version: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -481,16 +481,16 @@ importers:
     dependencies:
       '@effect-rx/rx':
         specifier: ^0.34.7
-        version: 0.34.7(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        version: 0.34.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect-rx/rx-vue':
         specifier: ^0.11.7
-        version: 0.11.7(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(vue@3.5.13(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc)))
+        version: 0.11.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vue@3.5.13(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc)))
       '@effect/platform':
-        specifier: ^0.77.3
-        version: 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.77.4
+        version: 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect/platform-browser':
-        specifier: ^0.56.3
-        version: 0.56.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+        specifier: ^0.56.4
+        version: 0.56.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@formatjs/intl':
         specifier: ^3.1.4
         version: 3.1.4(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc))
@@ -504,8 +504,8 @@ importers:
         specifier: ^12.7.0
         version: 12.7.0(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc))
       effect:
-        specifier: ^3.13.3
-        version: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+        specifier: ^3.13.4
+        version: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -826,8 +826,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.15.0':
-    resolution: {integrity: sha512-xltLpXQKd6AiGqm6+NVOPXPRgSOYl27/a2nEhf/qW4MU6BJh4sGaWWeLhlOPA7qTcXzNPnsvpWxZ/Hz/0U8R9Q==}
+  '@effect-app/cli@1.16.0':
+    resolution: {integrity: sha512-SIMTvArLBfAiCixUzaoUIFToJJSSdMlnXRcBWjPIJ4gxMZAs2wmNmMR7mfNVEbc1SgEtWEAURypvOLPdsFEkhA==}
     hasBin: true
 
   '@effect-rx/rx-vue@0.11.7':
@@ -841,12 +841,12 @@ packages:
     peerDependencies:
       effect: ^3.8.0
 
-  '@effect/experimental@0.41.3':
-    resolution: {integrity: sha512-OVV3IVZ0BMji8j/ks1Rb1aB8uZqB0Riw1bv6HeyL++ojnGUiddwoeq45mEx/rDORhxbHVZCuGxfdOgfD0FPB7Q==}
+  '@effect/experimental@0.41.4':
+    resolution: {integrity: sha512-celrEhl/K2Eis906d3/oOv/3/w+M1jcONvrChG5qQgWYo6CJjSJm4xXopcTbiBhxAhvkd06zABkB3tr/lptUCA==}
     peerDependencies:
-      '@effect/platform': ^0.77.3
-      '@effect/platform-node': ^0.73.3
-      effect: ^3.13.3
+      '@effect/platform': ^0.77.4
+      '@effect/platform-node': ^0.73.4
+      effect: ^3.13.4
       ioredis: ^5
       lmdb: ^3
       ws: ^8
@@ -863,52 +863,52 @@ packages:
   '@effect/language-service@0.2.0':
     resolution: {integrity: sha512-DoK41yKGyQv79o0ca8gxEogMlt+IphXkdCXwgenbQjH1BXKD7tJAr0+VsDhblycQcvQ39f1l9NZN9CBqjM9ALA==}
 
-  '@effect/platform-browser@0.56.3':
-    resolution: {integrity: sha512-k8sSowqeWBU1QPGQdXZfIwVgP9mphYiRfVVuVUNON1zH8t5MVXJYUGQYSK+FX62JdNHO2TuQ3xPvnWDnhbSRSg==}
+  '@effect/platform-browser@0.56.4':
+    resolution: {integrity: sha512-tovZoOh1DPaH3T1Y9EXbNDs4UBrWeuF0DtLG8d7gcV/6HcaCLpr7c50Dgxwr5w4N3S5/y5UlYPjSR/iwtEmclQ==}
     peerDependencies:
-      '@effect/platform': ^0.77.3
-      effect: ^3.13.3
+      '@effect/platform': ^0.77.4
+      effect: ^3.13.4
 
-  '@effect/platform-node-shared@0.27.3':
-    resolution: {integrity: sha512-o+tdYm33uahcgkeNmvZ6pDlEEE4dIZd+vlBVqxjbr4opJGSLJFpUqWeZYawYnNLOAJQm4KJgnmcP9E4Ve7IXTg==}
+  '@effect/platform-node-shared@0.27.4':
+    resolution: {integrity: sha512-j1Rk9BQt32c//tG6yRggbrLVYS7cFno/xpKsD7e+uYNYAjLNiSOKDi2Cl8+C4g4zpeMO81+iWQJ8giOQc8Mqpw==}
     peerDependencies:
-      '@effect/platform': ^0.77.3
-      effect: ^3.13.3
+      '@effect/platform': ^0.77.4
+      effect: ^3.13.4
 
-  '@effect/platform-node@0.73.3':
-    resolution: {integrity: sha512-VY2RcydvKqZhZhzTYMjrXljdRhVkOw7bNkl9FizM9UBI9REpcUeIRUVPk3pwYfaOJlfAIjYtB5+xgKS5RhegRA==}
+  '@effect/platform-node@0.73.4':
+    resolution: {integrity: sha512-mIsOxD3mmbwDjSrsRbxYYCzmSztQSRk4Bu/wej2E3c3pKQq5nwBtob8+H+idC1ugtTyuzJs7lJGSSuACiDjTnA==}
     peerDependencies:
-      '@effect/platform': ^0.77.3
-      effect: ^3.13.3
+      '@effect/platform': ^0.77.4
+      effect: ^3.13.4
 
-  '@effect/platform@0.77.3':
-    resolution: {integrity: sha512-ToFBKSlH+HYHeV3b95uTgeB5QPdBayd+WGpcYlXN75XonoDNrzVQW278t0oatUhtLG5+g+hiPdtPqrcHHoJ09A==}
+  '@effect/platform@0.77.4':
+    resolution: {integrity: sha512-3jBDn4bAWqRSKARmoMY2NmMxIMM5Py5BqJdUuYJqPyI6jbz7qkOMwgeaF62rWqiqhQLHLTgU4QL/cPwyZl7mVg==}
     peerDependencies:
-      effect: ^3.13.3
+      effect: ^3.13.4
 
-  '@effect/rpc-http@0.50.3':
-    resolution: {integrity: sha512-opxkZr87pm1ZmegyIRbB6YoV6GrUBWF5YZcnpbQMcb0Y7pn8T+RfRznBwdKILmBI0SiZC1PUa5yQC8z0mBhVzQ==}
+  '@effect/rpc-http@0.50.4':
+    resolution: {integrity: sha512-f1HQYPF1wvjXZDvy+dqfty0R4s7RJYAyRiaZFIIwWzs8Ruh4VDUCdSFrNKB8vvLCwzng+LiFl1ocOrocSxR2PQ==}
     peerDependencies:
-      '@effect/platform': ^0.77.3
-      effect: ^3.13.3
+      '@effect/platform': ^0.77.4
+      effect: ^3.13.4
 
-  '@effect/rpc@0.52.3':
-    resolution: {integrity: sha512-0orYrPKC1TDP+bTA2Ndj6tRHDRA2Affe91Z3gAq34U64nzW5M9l+skwmv5ZfBtqZuEMaAdWJdC9vvZSmIx1MVA==}
+  '@effect/rpc@0.52.4':
+    resolution: {integrity: sha512-ii0LSoNIZis7Ejymynmfoh9Ykfz7QK+e5kK8Ud9CIyb6fKNDLxfbveXPRNpb1p4GqIsNBPbFxw+XZo2O4m/Vvg==}
     peerDependencies:
-      '@effect/platform': ^0.77.3
-      effect: ^3.13.3
+      '@effect/platform': ^0.77.4
+      effect: ^3.13.4
 
-  '@effect/sql@0.30.3':
-    resolution: {integrity: sha512-nRQ+xLTRpF21b+6o7KJ3kMy39PCil5McvWFkmYV4ebmfCDLtdqAQCatRJiIrS6ycsnlxsNirWl2mr1sCBNfNbA==}
+  '@effect/sql@0.30.4':
+    resolution: {integrity: sha512-hyGOZsNRlw09yqBcXCTr1o2+vVIVxEnBMNZzi0ZX5JbS8JBT05O7xAu3OYEzSU6bC5i+uVpJJUgdx2zDlOLkeA==}
     peerDependencies:
-      '@effect/experimental': ^0.41.3
-      '@effect/platform': ^0.77.3
-      effect: ^3.13.3
+      '@effect/experimental': ^0.41.4
+      '@effect/platform': ^0.77.4
+      effect: ^3.13.4
 
-  '@effect/vitest@0.19.1':
-    resolution: {integrity: sha512-MqaA6k6FMWrukM8Wo8Ddj1eKJ23/uyIKEwAutqn+p9JjkrhgkwJakJ1yxMqcbrRCIqS3h50g0FfOX5iYnAuxyw==}
+  '@effect/vitest@0.19.2':
+    resolution: {integrity: sha512-PNCVLlgORQSYHlWBzspnJFSEFFr5My3d9OXjzaPzbVf/iVZkLhcF5zuARq+iXhBDfwcpYp+u2Wg0Totl2BjEUw==}
     peerDependencies:
-      effect: ^3.13.3
+      effect: ^3.13.4
       vitest: ^3.0.0
 
   '@esbuild/aix-ppc64@0.25.0':
@@ -2546,8 +2546,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  effect@3.13.3:
-    resolution: {integrity: sha512-r58d/ky/NC22/sQJWssKkRB5DSJ+cKZHAMDe+ANhbatkIDgUfxsOdeXsrERR+ng2pVZJ6s7GLneAs44Wa60HUw==}
+  effect@3.13.4:
+    resolution: {integrity: sha512-XZgCImyBpONuKdsBRk37JfV7242yxTu8r/TcL5ZELIyqRbMYa+Prr86cz1INxXi7iFXfU0havZkCJGyYp1BsiA==}
 
   electron-to-chromium@1.5.64:
     resolution: {integrity: sha512-IXEuxU+5ClW2IGEYFC2T7szbyVgehupCWQe5GNh+H065CD6U6IFN0s4KeAMFGNmQolRU4IV7zGBWSYMmZ8uuqQ==}
@@ -5308,50 +5308,50 @@ snapshots:
   '@dprint/win32-x64@0.49.0':
     optional: true
 
-  '@effect-app/cli@1.15.0':
+  '@effect-app/cli@1.16.0':
     dependencies:
       node-watch: 0.7.4
 
-  '@effect-rx/rx-vue@0.11.7(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(vue@3.5.13(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc)))':
+  '@effect-rx/rx-vue@0.11.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vue@3.5.13(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc)))':
     dependencies:
-      '@effect-rx/rx': 0.34.7(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      '@effect-rx/rx': 0.34.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       vue: 3.5.13(typescript@5.7.3(patch_hash=6b9a64b6d1c3de95c2b224825459563ede882b2e5bc1a321d38328bbc9969bcc))
 
-  '@effect-rx/rx@0.34.7(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect-rx/rx@0.34.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
 
-  '@effect/experimental@0.41.3(@effect/platform-node@0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(ws@8.18.0)':
+  '@effect/experimental@0.41.4(@effect/platform-node@0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(ws@8.18.0)':
     dependencies:
-      '@effect/platform': 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      '@effect/platform': 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       msgpackr: 1.11.0
       uuid: 11.1.0
     optionalDependencies:
-      '@effect/platform-node': 0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+      '@effect/platform-node': 0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       ws: 8.18.0
 
   '@effect/language-service@0.2.0': {}
 
-  '@effect/platform-browser@0.56.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect/platform-browser@0.56.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      '@effect/platform': 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      '@effect/platform': 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       multipasta: 0.2.5
 
-  '@effect/platform-node-shared@0.27.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect/platform-node-shared@0.27.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      '@effect/platform': 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+      '@effect/platform': 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@parcel/watcher': 2.5.0
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       multipasta: 0.2.5
 
-  '@effect/platform-node@0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect/platform-node@0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      '@effect/platform': 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      '@effect/platform-node-shared': 0.27.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      '@effect/platform': 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      '@effect/platform-node-shared': 0.27.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       mime: 3.0.0
       undici: 7.1.1
       ws: 8.18.0
@@ -5359,34 +5359,34 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       find-my-way-ts: 0.1.5
       multipasta: 0.2.5
 
-  '@effect/rpc-http@0.50.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect/rpc-http@0.50.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      '@effect/platform': 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      '@effect/rpc': 0.52.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      '@effect/platform': 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      '@effect/rpc': 0.52.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
 
-  '@effect/rpc@0.52.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect/rpc@0.52.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      '@effect/platform': 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      '@effect/platform': 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
 
-  '@effect/sql@0.30.3(@effect/experimental@0.41.3(@effect/platform-node@0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(ws@8.18.0))(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))':
+  '@effect/sql@0.30.4(@effect/experimental@0.41.4(@effect/platform-node@0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(ws@8.18.0))(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
-      '@effect/experimental': 0.41.3(@effect/platform-node@0.73.3(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(@effect/platform@0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)))(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(ws@8.18.0)
-      '@effect/platform': 0.77.3(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))
+      '@effect/experimental': 0.41.4(@effect/platform-node@0.73.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(ws@8.18.0)
+      '@effect/platform': 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@opentelemetry/semantic-conventions': 1.28.0
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       uuid: 11.1.0
 
-  '@effect/vitest@0.19.1(effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d))(vitest@3.0.7(@types/node@22.13.5)(terser@5.36.0)(tsx@4.19.3))':
+  '@effect/vitest@0.19.2(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vitest@3.0.7(@types/node@22.13.5)(terser@5.36.0)(tsx@4.19.3))':
     dependencies:
-      effect: 3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d)
+      effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       vitest: 3.0.7(@types/node@22.13.5)(terser@5.36.0)(tsx@4.19.3)
 
   '@esbuild/aix-ppc64@0.25.0':
@@ -7157,7 +7157,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effect@3.13.3(patch_hash=9d876a6cd7058b341d3e1230844efdce7663479d1cba834342f1de1bfba6997d):
+  effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14):
     dependencies:
       '@standard-schema/spec': 1.0.0
       fast-check: 3.23.2

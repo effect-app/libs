@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.30.2
+
+### Patch Changes
+
+- 5824b33: move error level handling to app
+
 ## 2.30.1
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @effect-app/infra
 
+## 2.43.0
+
+### Minor Changes
+
+- 10a8adf: improve: lock rpc responses to 418/422/200, report otherwise as response error! helping with bad proxies in between.
+- 8be2984: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [10a8adf]
+- Updated dependencies [8be2984]
+  - effect-app@2.30.0
+
 ## 2.42.0
 
 ### Minor Changes

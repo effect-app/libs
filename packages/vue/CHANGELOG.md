@@ -1,5 +1,17 @@
 # @effect-app/vue
 
+## 2.30.0
+
+### Minor Changes
+
+- 8be2984: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [10a8adf]
+- Updated dependencies [8be2984]
+  - effect-app@2.30.0
+
 ## 2.29.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.31.0
+
+### Minor Changes
+
+- 9ebae95: improve: rpc error reporting
+
 ## 2.30.0
 
 ### Minor Changes

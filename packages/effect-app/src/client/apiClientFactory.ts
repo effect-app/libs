@@ -1,14 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Schema } from "../internal/lib.js"
-import { Config, Context, Effect, flow, HashMap, Layer, Option, Predicate, S, Struct } from "../internal/lib.js"
-
 import type { Rpc } from "@effect/rpc"
-import { RpcResolver } from "@effect/rpc"
-import { HttpRpcResolverNoStream } from "@effect/rpc-http"
+import { RpcResolver, RpcResolverNoStream } from "@effect/rpc"
 import type { RpcRouter } from "@effect/rpc/RpcRouter"
-import { HttpClient, HttpClientRequest } from "../http.js"
+import { HttpBody, HttpClient, HttpClientRequest, HttpClientResponse } from "../http.js"
+import type { RequestResolver, Schema } from "../internal/lib.js"
+import { Config, Context, Effect, flow, HashMap, Layer, Option, Predicate, S, Struct } from "../internal/lib.js"
 import { typedKeysOf } from "../utils.js"
 import type { Client, Requests } from "./clientFor.js"
+
+export const make = <R extends RpcRouter<any, any>>(
+  client: HttpClient.HttpClient
+): RequestResolver.RequestResolver<
+  Rpc.Request<RpcRouter.Request<R>>,
+  Schema.SerializableWithResult.Context<RpcRouter.Request<R>>
+> =>
+  RpcResolverNoStream.make((requests) =>
+    client
+      .post("", {
+        body: HttpBody.unsafeJson(requests)
+      })
+      .pipe(
+        Effect.flatMap(HttpClientResponse.filterStatus((_) => _ === 200 || _ === 418 || _ === 422)),
+        Effect.flatMap((_) => _.json),
+        Effect.scoped
+      )
+  )<R>()
 
 export interface ApiConfig {
   url: string
@@ -63,7 +79,7 @@ const makeApiClientFactory = (config: ApiConfig) =>
       if (!meta) throw new Error("No meta defined in Resource!")
 
       const resolver = flow(
-        HttpRpcResolverNoStream.make<RpcRouter<any, any>>,
+        make<RpcRouter<any, any>>,
         (_) => RpcResolver.toClient(_ as any)
       )
 

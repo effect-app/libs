@@ -65,10 +65,11 @@ export const toHttpApp = <R extends RpcRouter.RpcRouter<any, any>>(self: R, opti
     Effect.flatMap((_) => _.json),
     Effect.flatMap(handler),
     Effect.flatMap((r) => {
+      // currently only 200, 418, 422 are allowed, see apiClientFactory
       let status = 200
       const results = Array.isArray(r) ? r : [r]
       if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Die")) {
-        status = 500
+        status = 418
       } else if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Fail")) {
         status = 422 // 418
       }

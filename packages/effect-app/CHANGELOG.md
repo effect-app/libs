@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.31.1
+
+### Patch Changes
+
+- 24417c7: lol
+
 ## 2.31.0
 
 ### Minor Changes

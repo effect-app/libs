@@ -12,12 +12,12 @@
     "query-string": "^9.1.1"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.77.2",
-    "@effect/platform-browser": "^0.56.2",
+    "@effect/platform": "^0.77.3",
+    "@effect/platform-browser": "^0.56.3",
     "@effect-rx/rx": "^0.34.7",
     "@effect-rx/rx-vue": "^0.11.7",
     "@sentry/browser": "^9.2.0",
-    "effect": "^3.13.2",
+    "effect": "^3.13.3",
     "vue": "^3.5.13"
   },
   "devDependencies": {
@@ -26,7 +26,7 @@
     "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
     "@babel/plugin-syntax-import-attributes": "^7.26.0",
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
-    "babel-plugin-replace-import-extension": "^1.1.4",
+    "babel-plugin-replace-import-extension": "^1.1.5",
     "@rollup/pluginutils": "^5.1.4",
     "@types/node": "~22.13.5",
     "intl-messageformat": "^10.7.15",

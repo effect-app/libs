@@ -4,6 +4,7 @@ import * as Either from "effect/Either"
 import { dual, isFunction } from "effect/Function"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
+import type { DeepMutable, Mutable } from "./Types.js"
 
 // codegen:start {preset: barrel, include: ./utils/*.ts, nodir: false }
 export * from "./utils/effectify.js"
@@ -774,16 +775,9 @@ export function setMoveElDropUndefined<T>(el: T, newIndex: number) {
 
 export { get }
 
-export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K>
-  : never
-
 type RemoveNonArray<T> = T extends readonly any[] ? T : never
 export function isNativeTuple<A>(a: A): a is RemoveNonArray<A> {
   return Array.isArray(a)
 }
 
-export type Writable<T> = { -readonly [P in keyof T]: T[P] }
-
-export type DeepWritable<T> = { -readonly [P in keyof T]: DeepWritable<T[P]> }
-
-export const writable: { <A>(a: A, deep: true): DeepWritable<A>; <A>(a: A): Writable<A> } = identity
+export const mutable: { <A>(a: A, deep: true): DeepMutable<A>; <A>(a: A): Mutable<A> } = identity

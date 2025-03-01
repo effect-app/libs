@@ -29,6 +29,7 @@ export {
 } from "./Prelude.js"
 
 export * as Struct from "../Struct.js"
+export type * as Types from "../Types.js"
 
 export * as SecretURL from "../Config/SecretURL.js"
 export * as S from "../Schema.js"

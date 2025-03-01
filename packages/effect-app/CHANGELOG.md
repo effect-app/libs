@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.32.1
+
+### Patch Changes
+
+- a42d5a6: mark also number for brand
+
 ## 2.32.0
 
 ### Minor Changes

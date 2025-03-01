@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.32.0
+
+### Minor Changes
+
+- bca03c7: feat: enhance Types module
+
 ## 2.31.1
 
 ### Patch Changes

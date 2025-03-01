@@ -1,8 +1,8 @@
 diff --git a/lib/_tsc.js b/lib/_tsc.js
-index 3bcdbf7ae59ec00ee5be22ab3219093e691833d7..bfd6734adb8300358522d055dedebb9be8d44df4 100644
+index 586d0514b6842000c0869c18f737802b85bef13d..7346151ed8f828f4f97023b93ed4bfb5c2e8ef90 100644
 --- a/lib/_tsc.js
 +++ b/lib/_tsc.js
-@@ -12539,7 +12539,7 @@ function isInternalDeclaration(node, sourceFile) {
+@@ -12630,7 +12630,7 @@ function isInternalDeclaration(node, sourceFile) {
  // src/compiler/utilities.ts
  var resolvingEmptyArray = [];
  var externalHelpersModuleNameText = "tslib";
@@ -12,10 +12,10 @@ index 3bcdbf7ae59ec00ee5be22ab3219093e691833d7..bfd6734adb8300358522d055dedebb9b
  function getDeclarationOfKind(symbol, kind) {
    const declarations = symbol.declarations;
 diff --git a/lib/typescript.js b/lib/typescript.js
-index 33387eadeb8471d4a59907e145c675898c3b9cbf..e10c7590fcabb98f9b15dec7daa8dff48eca9ef0 100644
+index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..c60af051266ebd4944d017b021500eadbc36f251 100644
 --- a/lib/typescript.js
 +++ b/lib/typescript.js
-@@ -16114,7 +16114,7 @@ function isInternalDeclaration(node, sourceFile) {
+@@ -16213,7 +16213,7 @@ function isInternalDeclaration(node, sourceFile) {
  // src/compiler/utilities.ts
  var resolvingEmptyArray = [];
  var externalHelpersModuleNameText = "tslib";

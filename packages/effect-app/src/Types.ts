@@ -5,6 +5,7 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
   : [keyof T] extends [never] ? T
   // keep brands alive
   : T extends string ? T
+  : T extends number ? T
   : { -readonly [K in keyof T]: DeepMutable<T[K]> }
 
 export type Mutable<T> = {

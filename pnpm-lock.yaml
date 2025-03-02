@@ -20,7 +20,7 @@ patchedDependencies:
     hash: 976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7
     path: patches/eslint-plugin-codegen@0.17.0.patch
   typescript:
-    hash: 8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3
+    hash: fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb
     path: patches/typescript.patch
 
 importers:
@@ -38,7 +38,7 @@ importers:
         version: 3.23.2
       vue:
         specifier: ^3.5.13
-        version: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
     devDependencies:
       '@changesets/cli':
         specifier: ^2.28.1
@@ -78,10 +78,10 @@ importers:
         version: 22.13.8
       '@typescript-eslint/eslint-plugin':
         specifier: 8.25.0
-        version: 8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       '@typescript-eslint/parser':
         specifier: 8.25.0
-        version: 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       '@typescript-eslint/scope-manager':
         specifier: 8.25.0
         version: 8.25.0
@@ -114,7 +114,7 @@ importers:
         version: 0.17.0(patch_hash=976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7)
       eslint-plugin-import:
         specifier: ^2.31.0
-        version: 2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
+        version: 2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
       eslint-plugin-prettier-vue:
         specifier: ^5.0.0
         version: 5.0.0
@@ -126,7 +126,7 @@ importers:
         version: 2.0.0(eslint@8.57.1)
       eslint-plugin-unused-imports:
         specifier: ^4.1.4
-        version: 4.1.4(@typescript-eslint/eslint-plugin@8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint@8.57.1)
+        version: 4.1.4(@typescript-eslint/eslint-plugin@8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint@8.57.1)
       eslint-watch:
         specifier: ^8.0.0
         version: 8.0.0(eslint@8.57.1)
@@ -138,7 +138,7 @@ importers:
         version: 2.2.3
       madge:
         specifier: ^8.0.0
-        version: 8.0.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 8.0.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       module-alias:
         specifier: ^2.2.3
         version: 2.2.3
@@ -153,7 +153,7 @@ importers:
         version: 3.0.0
       tsc-watch:
         specifier: ^6.2.1
-        version: 6.2.1(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 6.2.1(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       tsconfig-paths:
         specifier: ^4.2.0
         version: 4.2.0
@@ -162,10 +162,10 @@ importers:
         version: 4.19.3
       typescript:
         specifier: ^5.8.2
-        version: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+        version: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
       unplugin-auto-import:
         specifier: ^19.1.1
-        version: 19.1.1(@vueuse/core@12.7.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))
+        version: 19.1.1(@vueuse/core@12.7.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))
       vite:
         specifier: ^6.2.0
         version: 6.2.0(@types/node@22.13.8)(terser@5.36.0)(tsx@4.19.3)
@@ -187,7 +187,7 @@ importers:
         version: 2.2.3
       typescript:
         specifier: ^5.8.2
-        version: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+        version: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
       vitest:
         specifier: ^3.0.7
         version: 3.0.7(@types/node@22.13.8)(terser@5.36.0)(tsx@4.19.3)
@@ -269,7 +269,7 @@ importers:
         version: 3.23.2
       typescript:
         specifier: ^5.8.2
-        version: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+        version: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
       vitest:
         specifier: ^3.0.7
         version: 3.0.7(@types/node@22.13.8)(terser@5.36.0)(tsx@4.19.3)
@@ -284,7 +284,7 @@ importers:
         version: 7.26.9
       '@typescript-eslint/utils':
         specifier: 8.25.0
-        version: 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       eslint-plugin-codegen:
         specifier: 0.17.0
         version: 0.17.0(patch_hash=976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7)
@@ -342,10 +342,10 @@ importers:
         version: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
       madge:
         specifier: 8.0.0
-        version: 8.0.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 8.0.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       typescript:
         specifier: ^5.8.2
-        version: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+        version: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
 
   packages/infra:
     dependencies:
@@ -472,7 +472,7 @@ importers:
         version: 7.1.0
       typescript:
         specifier: ^5.8.2
-        version: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+        version: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
       vitest:
         specifier: ^3.0.7
         version: 3.0.7(@types/node@22.13.8)(terser@5.36.0)(tsx@4.19.3)
@@ -484,7 +484,7 @@ importers:
         version: 0.34.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@effect-rx/rx-vue':
         specifier: ^0.11.7
-        version: 0.11.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))
+        version: 0.11.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))
       '@effect/platform':
         specifier: ^0.77.4
         version: 0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
@@ -493,16 +493,16 @@ importers:
         version: 0.56.4(@effect/platform@0.77.4(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)))(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       '@formatjs/intl':
         specifier: ^3.1.4
-        version: 3.1.4(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 3.1.4(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       '@sentry/browser':
         specifier: ^9.3.0
         version: 9.3.0
       '@tanstack/vue-query':
         specifier: ^5.66.11
-        version: 5.66.11(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))
+        version: 5.66.11(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))
       '@vueuse/core':
         specifier: ^12.7.0
-        version: 12.7.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 12.7.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       effect:
         specifier: ^3.13.4
         version: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
@@ -514,7 +514,7 @@ importers:
         version: 9.1.1
       vue:
         specifier: ^3.5.13
-        version: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+        version: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
     devDependencies:
       '@babel/cli':
         specifier: ^7.26.4
@@ -548,7 +548,7 @@ importers:
         version: 2.2.3
       typescript:
         specifier: ^5.8.2
-        version: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+        version: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
       vite:
         specifier: ^6.2.0
         version: 6.2.0(@types/node@22.13.8)(terser@5.36.0)(tsx@4.19.3)
@@ -5303,11 +5303,11 @@ snapshots:
     dependencies:
       node-watch: 0.7.4
 
-  '@effect-rx/rx-vue@0.11.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))':
+  '@effect-rx/rx-vue@0.11.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))':
     dependencies:
       '@effect-rx/rx': 0.34.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))
       effect: 3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14)
-      vue: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      vue: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
 
   '@effect-rx/rx@0.34.7(effect@3.13.4(patch_hash=2ea0e9282217d0ee7e34abb0469407e10ef47443dbcb7389682f5521cb7cfd14))':
     dependencies:
@@ -5506,7 +5506,7 @@ snapshots:
     dependencies:
       tslib: 2.7.0
 
-  '@formatjs/intl@3.1.4(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@formatjs/intl@3.1.4(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
       '@formatjs/ecma402-abstract': 2.3.3
       '@formatjs/fast-memoize': 2.2.6
@@ -5514,7 +5514,7 @@ snapshots:
       intl-messageformat: 10.7.15
       tslib: 2.7.0
     optionalDependencies:
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -6113,13 +6113,13 @@ snapshots:
 
   '@tanstack/query-core@5.66.11': {}
 
-  '@tanstack/vue-query@5.66.11(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))':
+  '@tanstack/vue-query@5.66.11(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))':
     dependencies:
       '@tanstack/match-sorter-utils': 8.19.4
       '@tanstack/query-core': 5.66.11
       '@vue/devtools-api': 6.6.3
-      vue: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      vue-demi: 0.14.10(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))
+      vue: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      vue-demi: 0.14.10(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))
 
   '@ts-graphviz/adapter@2.0.5':
     dependencies:
@@ -6315,32 +6315,32 @@ snapshots:
     dependencies:
       '@types/yargs-parser': 21.0.3
 
-  '@typescript-eslint/eslint-plugin@8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@typescript-eslint/eslint-plugin@8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
-      '@typescript-eslint/parser': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/parser': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       '@typescript-eslint/scope-manager': 8.25.0
-      '@typescript-eslint/type-utils': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      '@typescript-eslint/utils': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/type-utils': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      '@typescript-eslint/utils': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       '@typescript-eslint/visitor-keys': 8.25.0
       eslint: 8.57.1
       graphemer: 1.4.0
       ignore: 5.3.2
       natural-compare: 1.4.0
-      ts-api-utils: 2.0.1(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      ts-api-utils: 2.0.1(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
       '@typescript-eslint/scope-manager': 8.25.0
       '@typescript-eslint/types': 8.25.0
-      '@typescript-eslint/typescript-estree': 8.25.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/typescript-estree': 8.25.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       '@typescript-eslint/visitor-keys': 8.25.0
       debug: 4.4.0(supports-color@5.5.0)
       eslint: 8.57.1
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
@@ -6349,14 +6349,14 @@ snapshots:
       '@typescript-eslint/types': 8.25.0
       '@typescript-eslint/visitor-keys': 8.25.0
 
-  '@typescript-eslint/type-utils@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@typescript-eslint/type-utils@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
-      '@typescript-eslint/typescript-estree': 8.25.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      '@typescript-eslint/utils': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/typescript-estree': 8.25.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      '@typescript-eslint/utils': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       debug: 4.4.0(supports-color@5.5.0)
       eslint: 8.57.1
-      ts-api-utils: 2.0.1(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      ts-api-utils: 2.0.1(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
@@ -6364,7 +6364,7 @@ snapshots:
 
   '@typescript-eslint/types@8.25.0': {}
 
-  '@typescript-eslint/typescript-estree@7.18.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@typescript-eslint/typescript-estree@7.18.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
       '@typescript-eslint/types': 7.18.0
       '@typescript-eslint/visitor-keys': 7.18.0
@@ -6373,13 +6373,13 @@ snapshots:
       is-glob: 4.0.3
       minimatch: 9.0.5
       semver: 7.6.3
-      ts-api-utils: 1.4.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      ts-api-utils: 1.4.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
     optionalDependencies:
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/typescript-estree@8.25.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@typescript-eslint/typescript-estree@8.25.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
       '@typescript-eslint/types': 8.25.0
       '@typescript-eslint/visitor-keys': 8.25.0
@@ -6388,19 +6388,19 @@ snapshots:
       is-glob: 4.0.3
       minimatch: 9.0.5
       semver: 7.6.3
-      ts-api-utils: 2.0.1(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      ts-api-utils: 2.0.1(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/utils@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@typescript-eslint/utils@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
       '@eslint-community/eslint-utils': 4.4.1(eslint@8.57.1)
       '@typescript-eslint/scope-manager': 8.25.0
       '@typescript-eslint/types': 8.25.0
-      '@typescript-eslint/typescript-estree': 8.25.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/typescript-estree': 8.25.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       eslint: 8.57.1
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
@@ -6504,28 +6504,28 @@ snapshots:
       '@vue/shared': 3.5.13
       csstype: 3.1.3
 
-  '@vue/server-renderer@3.5.13(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))':
+  '@vue/server-renderer@3.5.13(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))':
     dependencies:
       '@vue/compiler-ssr': 3.5.13
       '@vue/shared': 3.5.13
-      vue: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      vue: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
 
   '@vue/shared@3.5.13': {}
 
-  '@vueuse/core@12.7.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@vueuse/core@12.7.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
       '@types/web-bluetooth': 0.0.20
       '@vueuse/metadata': 12.7.0
-      '@vueuse/shared': 12.7.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      vue: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@vueuse/shared': 12.7.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      vue: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
     transitivePeerDependencies:
       - typescript
 
   '@vueuse/metadata@12.7.0': {}
 
-  '@vueuse/shared@12.7.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))':
+  '@vueuse/shared@12.7.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))':
     dependencies:
-      vue: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      vue: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
     transitivePeerDependencies:
       - typescript
 
@@ -7024,7 +7024,7 @@ snapshots:
       commander: 12.1.0
       filing-cabinet: 5.0.2
       precinct: 12.1.2
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
@@ -7071,24 +7071,24 @@ snapshots:
 
   detective-stylus@5.0.0: {}
 
-  detective-typescript@13.0.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)):
+  detective-typescript@13.0.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)):
     dependencies:
-      '@typescript-eslint/typescript-estree': 7.18.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/typescript-estree': 7.18.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       ast-module-types: 6.0.0
       node-source-walk: 7.0.0
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
-  detective-vue2@2.0.3(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)):
+  detective-vue2@2.0.3(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)):
     dependencies:
       '@vue/compiler-sfc': 3.5.13
       detective-es6: 5.0.0
       detective-sass: 6.0.0
       detective-scss: 5.0.0
       detective-stylus: 5.0.0
-      detective-typescript: 13.0.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      detective-typescript: 13.0.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
@@ -7312,7 +7312,7 @@ snapshots:
       stable-hash: 0.0.4
       tinyglobby: 0.2.12
     optionalDependencies:
-      eslint-plugin-import: 2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
+      eslint-plugin-import: 2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -7320,7 +7320,7 @@ snapshots:
     dependencies:
       debug: 3.2.7
       enhanced-resolve: 0.9.1
-      eslint-plugin-import: 2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
+      eslint-plugin-import: 2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
       find-root: 1.1.0
       hasown: 2.0.2
       interpret: 1.4.0
@@ -7333,11 +7333,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1):
+  eslint-module-utils@2.12.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
-      '@typescript-eslint/parser': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/parser': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.8.3(eslint-plugin-import@2.31.0)(eslint@8.57.1)
@@ -7363,7 +7363,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1):
+  eslint-plugin-import@2.31.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.8
@@ -7374,7 +7374,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
+      eslint-module-utils: 2.12.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.3)(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.15.1
       is-glob: 4.0.3
@@ -7386,7 +7386,7 @@ snapshots:
       string.prototype.trimend: 1.0.8
       tsconfig-paths: 3.15.0
     optionalDependencies:
-      '@typescript-eslint/parser': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/parser': 8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
     transitivePeerDependencies:
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack
@@ -7409,11 +7409,11 @@ snapshots:
       eslint: 8.57.1
       natural-compare-lite: 1.4.0
 
-  eslint-plugin-unused-imports@4.1.4(@typescript-eslint/eslint-plugin@8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint@8.57.1):
+  eslint-plugin-unused-imports@4.1.4(@typescript-eslint/eslint-plugin@8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint@8.57.1):
     dependencies:
       eslint: 8.57.1
     optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@typescript-eslint/eslint-plugin': 8.25.0(@typescript-eslint/parser@8.25.0(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))(eslint@8.57.1)(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
 
   eslint-scope@5.1.1:
     dependencies:
@@ -7649,7 +7649,7 @@ snapshots:
       sass-lookup: 6.0.1
       stylus-lookup: 6.0.0
       tsconfig-paths: 4.2.0
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
 
   fill-range@7.1.1:
     dependencies:
@@ -8240,7 +8240,7 @@ snapshots:
       lodash.clonedeep: 4.5.0
       lru-cache: 4.0.2
 
-  madge@8.0.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)):
+  madge@8.0.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)):
     dependencies:
       chalk: 4.1.2
       commander: 7.2.0
@@ -8255,7 +8255,7 @@ snapshots:
       ts-graphviz: 2.1.4
       walkdir: 0.4.1
     optionalDependencies:
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
@@ -8637,12 +8637,12 @@ snapshots:
       detective-sass: 6.0.0
       detective-scss: 5.0.0
       detective-stylus: 5.0.0
-      detective-typescript: 13.0.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
-      detective-vue2: 2.0.3(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      detective-typescript: 13.0.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
+      detective-vue2: 2.0.3(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
       module-definition: 6.0.0
       node-source-walk: 7.0.0
       postcss: 8.5.3
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
     transitivePeerDependencies:
       - supports-color
 
@@ -9239,13 +9239,13 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  ts-api-utils@1.4.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)):
+  ts-api-utils@1.4.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)):
     dependencies:
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
 
-  ts-api-utils@2.0.1(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)):
+  ts-api-utils@2.0.1(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)):
     dependencies:
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
 
   ts-graphviz@2.1.4:
     dependencies:
@@ -9260,13 +9260,13 @@ snapshots:
 
   ts-transform-paths@3.0.0: {}
 
-  tsc-watch@6.2.1(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)):
+  tsc-watch@6.2.1(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)):
     dependencies:
       cross-spawn: 7.0.6
       node-cleanup: 2.1.2
       ps-tree: 1.2.0
       string-argv: 0.3.2
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
 
   tsconfig-paths@3.15.0:
     dependencies:
@@ -9339,7 +9339,7 @@ snapshots:
       is-typed-array: 1.1.13
       possible-typed-array-names: 1.0.0
 
-  typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3): {}
+  typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb): {}
 
   ufo@1.5.4: {}
 
@@ -9377,7 +9377,7 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-auto-import@19.1.1(@vueuse/core@12.7.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))):
+  unplugin-auto-import@19.1.1(@vueuse/core@12.7.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))):
     dependencies:
       local-pkg: 1.0.0
       magic-string: 0.30.17
@@ -9386,7 +9386,7 @@ snapshots:
       unplugin: 2.2.0
       unplugin-utils: 0.2.4
     optionalDependencies:
-      '@vueuse/core': 12.7.0(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      '@vueuse/core': 12.7.0(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
 
   unplugin-utils@0.2.4:
     dependencies:
@@ -9501,19 +9501,19 @@ snapshots:
       - tsx
       - yaml
 
-  vue-demi@0.14.10(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))):
+  vue-demi@0.14.10(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))):
     dependencies:
-      vue: 3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3))
+      vue: 3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb))
 
-  vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)):
+  vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)):
     dependencies:
       '@vue/compiler-dom': 3.5.13
       '@vue/compiler-sfc': 3.5.13
       '@vue/runtime-dom': 3.5.13
-      '@vue/server-renderer': 3.5.13(vue@3.5.13(typescript@5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)))
+      '@vue/server-renderer': 3.5.13(vue@3.5.13(typescript@5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)))
       '@vue/shared': 3.5.13
     optionalDependencies:
-      typescript: 5.8.2(patch_hash=8aadc0730e812b06d13c14f11e86389a734450730f4b3244551b4685b72afca3)
+      typescript: 5.8.2(patch_hash=fe4a099d81bd61a9e6527083f3b0760c386580895e809e904b27201c050c2cbb)
 
   walkdir@0.4.1: {}
 

@@ -12,7 +12,7 @@ index 586d0514b6842000c0869c18f737802b85bef13d..7346151ed8f828f4f97023b93ed4bfb5
  function getDeclarationOfKind(symbol, kind) {
    const declarations = symbol.declarations;
 diff --git a/lib/typescript.js b/lib/typescript.js
-index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..c60af051266ebd4944d017b021500eadbc36f251 100644
+index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..6752a27b43bde723ce3fa2da4202332df5016edd 100644
 --- a/lib/typescript.js
 +++ b/lib/typescript.js
 @@ -16213,7 +16213,7 @@ function isInternalDeclaration(node, sourceFile) {
@@ -24,3 +24,166 @@ index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..c60af051266ebd4944d017b021500ead
  var noTruncationMaximumTruncationLength = 1e6;
  function getDeclarationOfKind(symbol, kind) {
    const declarations = symbol.declarations;
+@@ -158232,9 +158232,126 @@ function getFixInfos(context, errorCode, pos, useAutoImportProvider) {
+   const packageJsonImportFilter = createPackageJsonImportFilter(context.sourceFile, context.preferences, context.host);
+   return info && sortFixInfo(info, context.sourceFile, context.program, packageJsonImportFilter, context.host, context.preferences);
+ }
++const autoImportOrderModule = (() => {
++
++  const fs = require("fs");
++  const path = require("path");
++
++  let pluginConfig = null;
++  let moveUpRegexes = [];
++  let moveDownRegexes = [];
++  const overrides = new Map()
++
++  function getProjectRoot(startDir = __dirname) {
++    let currentDir = startDir;
++    while (!fs.existsSync(path.join(currentDir, "package.json"))) {
++      const parentDir = path.dirname(currentDir);
++      if (parentDir === currentDir) {
++        return null; // Unable to find the project root (package.json not found)
++      }
++      currentDir = parentDir;
++    }
++    return currentDir.split(path.sep + "node_modules")[0];
++  }
++
++  function log(message, overwrite = false) {
++    const _message = (typeof message === "string" ? message : JSON.stringify(message, null, 2)) + "\n"
++    if(overwrite) {
++      fs.writeFileSync(path.resolve(__dirname, './import-order-plugin.log'), _message, 'utf8');
++    } else {
++      fs.appendFileSync(
++        path.resolve(__dirname, './import-order-plugin.log'),
++        _message,
++        'utf8'
++      );
++    }
++  }
++
++  function compare(a, b) {
++    if(pluginConfig) {
++
++      // always tries to match with regexes that have higher prio first (moveUpRegexes > moveDownRegexes; moveXRegexes[n+1] > moveXRegexes[n])
++      // moveDownRegexes.length is the default value for when no regex matches the moduleSpecifier
++      // no match has higher prio over moveDownRegexes match
++
++      const def = moveDownRegexes.length
++      let aSort = moveUpRegexes.findLastIndex((re) => re.test(a.moduleSpecifier)) + def + 1
++      let bSort = moveUpRegexes.findLastIndex((re) => re.test(b.moduleSpecifier)) + def + 1
++
++      aSort = aSort === def ? moveDownRegexes.findLastIndex((re) => re.test(a.moduleSpecifier)) : aSort
++      bSort = bSort === def ? moveDownRegexes.findLastIndex((re) => re.test(b.moduleSpecifier)) : bSort
++
++      aSort = ~aSort ? aSort : def
++      bSort = ~bSort ? bSort : def
++
++      return bSort - aSort;
++    } else {
++      return 0
++    }
++  }
++
++  function getOverridenModule(symbol) {
++    return overrides.get(symbol)
++  }
++
++  const pr = getProjectRoot();
++
++  if(!pr) {
++    log("Cannot read import-order-plugin root");
++  } else {
++    log("starting import plugin with root " + getProjectRoot(), true)
++
++    try {
++      const filePath = path.resolve(pr, 'tsconfig.import-order-plugin.json');
++      const content = fs.readFileSync(filePath, 'utf8');
++      pluginConfig = JSON.parse(content).compilerOptions.plugins[0];
++      // reverse arrays so that the position is the right prio (higher index means higher prio)
++      moveUpRegexes = pluginConfig.moveUpPatterns.map((_) => new RegExp(_)).toReversed();
++      moveDownRegexes = pluginConfig.moveDownPatterns.map((_) => new RegExp(_)).toReversed();
++
++      if(pluginConfig.overrides) {
++        Object.entries(pluginConfig.overrides).forEach(([module, symbols]) => {
++          for (const symbol of symbols) {
++            overrides.set(symbol, module)
++          }
++        })
++      }
++
++      log("Successfully read import-order-plugin configuration:");
++      log(pluginConfig)
++
++
++    } catch(e) {
++      log("Cannot read import-order-plugin configuration: " + e.message);
++    }
++  }
++
++  return {
++    log,
++    compare,
++    inverseCompare: (a, b) => compare(b, a),
++    getOverridenModule,
++  }
++})();
+ function sortFixInfo(fixes, sourceFile, program, packageJsonImportFilter, host, preferences) {
+   const _toPath = (fileName) => toPath(fileName, host.getCurrentDirectory(), hostGetCanonicalFileName(host));
+-  return toSorted(fixes, (a, b) => compareBooleans(!!a.isJsxNamespaceFix, !!b.isJsxNamespaceFix) || compareValues(a.fix.kind, b.fix.kind) || compareModuleSpecifiers(a.fix, b.fix, sourceFile, program, preferences, packageJsonImportFilter.allowsImportingSpecifier, _toPath));
++  const sortedFixes = toSorted(fixes, (a, b) => compareBooleans(!!a.isJsxNamespaceFix, !!b.isJsxNamespaceFix) || compareValues(a.fix.kind, b.fix.kind) || compareModuleSpecifiers(a.fix, b.fix, sourceFile, program, preferences, packageJsonImportFilter.allowsImportingSpecifier, _toPath));
++
++  if(sortedFixes.length !== 0) {
++    const symbolName = sortedFixes[0].symbolName;
++    const override = autoImportOrderModule.getOverridenModule(symbolName);
++
++    if(override) {
++      const idx = sortedFixes.findIndex(f => f.fix.moduleSpecifier === override)
++      if(idx !== -1 && idx !== 0) {
++        const temp = sortedFixes[0]
++        sortedFixes[0] = sortedFixes[idx]
++        sortedFixes[idx] = temp
++      }
++    }
++  }
++
++  return sortedFixes;
+ }
+ function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvider) {
+   const info = getFixesInfoForNonUMDImport(context, symbolToken, useAutoImportProvider);
+@@ -158243,9 +158360,11 @@ function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvide
+ }
+ function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, preferences) {
+   if (!some(fixes)) return;
++  // These will always be placed first if available, and are better than other kinds
+   if (fixes[0].kind === 0 /* UseNamespace */ || fixes[0].kind === 2 /* AddToExisting */) {
+     return fixes[0];
+   }
++
+   return fixes.reduce(
+     (best, fix) => (
+       // Takes true branch of conditional if `fix` is better than `best`
+@@ -158263,13 +158382,19 @@ function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, p
+ }
+ function compareModuleSpecifiers(a, b, importingFile, program, preferences, allowsImportingSpecifier, toPath3) {
+   if (a.kind !== 0 /* UseNamespace */ && b.kind !== 0 /* UseNamespace */) {
+-    return compareBooleans(
++    return false
++    || compareBooleans(
+       b.moduleSpecifierKind !== "node_modules" || allowsImportingSpecifier(b.moduleSpecifier),
+       a.moduleSpecifierKind !== "node_modules" || allowsImportingSpecifier(a.moduleSpecifier)
+-    ) || compareModuleSpecifierRelativity(a, b, preferences) || compareNodeCoreModuleSpecifiers(a.moduleSpecifier, b.moduleSpecifier, importingFile, program) || compareBooleans(
++    )
++    || compareModuleSpecifierRelativity(a, b, preferences)
++    || compareNodeCoreModuleSpecifiers(a.moduleSpecifier, b.moduleSpecifier, importingFile, program)
++    || compareBooleans(
+       isFixPossiblyReExportingImportingFile(a, importingFile.path, toPath3),
+       isFixPossiblyReExportingImportingFile(b, importingFile.path, toPath3)
+-    ) || compareNumberOfDirectorySeparators(a.moduleSpecifier, b.moduleSpecifier);
++    )
++    || autoImportOrderModule.compare(a, b)
++    || compareNumberOfDirectorySeparators(a.moduleSpecifier, b.moduleSpecifier);
+   }
+   return 0 /* EqualTo */;
+ }

@@ -32,9 +32,21 @@ export function convertIn(v: string | null, type?: "text" | "float" | "int") {
   return v === null ? "" : type === "text" ? v : `${v}`
 }
 
+/**
+ * Makes sure our international number format is converted to js int/float format.
+ * Right now assumes . for thousands and , for decimal.
+ */
+const prepareNumberForLocale = (v: string) => v.replace(/\./g, "").replace(/,/g, ".")
+
 export function convertOutInt(v: string, type?: "text" | "float" | "int") {
   v = v == null ? v : v.trim()
-  const c = v === "" ? null : type === "float" ? parseFloat(v) : type === "int" ? parseInt(v) : v
+  const c = v === ""
+    ? null
+    : type === "float"
+    ? parseFloat(prepareNumberForLocale(v))
+    : type === "int"
+    ? parseInt(prepareNumberForLocale(v))
+    : v
   return c
 }
 

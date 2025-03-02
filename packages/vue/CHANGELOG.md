@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.31.0
+
+### Minor Changes
+
+- e1d35ed: improve: prepare number strings from german locale for parse as int/float
+
 ## 2.30.6
 
 ### Patch Changes

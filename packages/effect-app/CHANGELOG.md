@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.32.2
+
+### Patch Changes
+
+- 96158a1: remove manual error headers/body gathering.
+
 ## 2.32.1
 
 ### Patch Changes

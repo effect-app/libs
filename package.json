@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.28.1",
-    "@dprint/typescript": "^0.94.0",
+    "@dprint/typescript": "^0.93.4",
     "@effect-app/cli": "^1.16.0",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",

@@ -2,17 +2,11 @@
 import type { Rpc } from "@effect/rpc"
 import { RpcResolver, RpcResolverNoStream } from "@effect/rpc"
 import type { RpcRouter } from "@effect/rpc/RpcRouter"
-import { redact } from "effect/Inspectable"
 import { HttpBody, HttpClient, HttpClientRequest, HttpClientResponse } from "../http.js"
 import type { RequestResolver, Schema } from "../internal/lib.js"
-import { Config, Context, Effect, flow, HashMap, Layer, Option, pipe, Predicate, Redacted, S, Struct } from "../internal/lib.js"
+import { Config, Context, Effect, flow, HashMap, Layer, Option, pipe, Predicate, S, Struct } from "../internal/lib.js"
 import { typedKeysOf } from "../utils.js"
 import type { Client, Requests } from "./clientFor.js"
-
-const redactUnwrap = (x: any) => Object.entries(redact(x) as any).reduce((acc, [k, v]) => {
-  acc[k] = Redacted.isRedacted(v) ? "**redacted**" : v
-  return acc
-}, {} as Record<string, unknown>)
 
 export const make = <R extends RpcRouter<any, any>>(
   client: HttpClient.HttpClient
@@ -29,19 +23,19 @@ export const make = <R extends RpcRouter<any, any>>(
         Effect.flatMap((_) =>
           pipe(
             _,
-            HttpClientResponse.filterStatus((_) => _ === 200 || _ === 418 || _ === 422),
-            Effect.tapErrorCause(() =>
-              _.text.pipe(
-                Effect.orElseSucceed(() => undefined),
-                Effect.flatMap((body) =>
-                  Effect.annotateCurrentSpan({ "response.headers": redactUnwrap(_.headers), "response.body": body }).pipe(
-                    Effect.andThen(
-                      Effect.logError("RPC error", { responseHeaders: redactUnwrap(_.headers), responseBody: body })
-                    )
-                  )
-                )
-              )
-            )
+            HttpClientResponse.filterStatus((_) => _ === 200 || _ === 418 || _ === 422)
+            // Effect.tapErrorCause(() =>
+            //   _.text.pipe(
+            //     Effect.orElseSucceed(() => undefined),
+            //     Effect.flatMap((body) =>
+            //       Effect.annotateCurrentSpan({ "response.headers": redactUnwrap(_.headers), "response.body": body }).pipe(
+            //         Effect.andThen(
+            //           Effect.logError("RPC error", { responseHeaders: redactUnwrap(_.headers), responseBody: body })
+            //         )
+            //       )
+            //     )
+            //   )
+            // )
           )
         ),
         Effect.flatMap((_) => _.json),

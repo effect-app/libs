@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.32.0
+
+### Minor Changes
+
+- revert number locale change
+
 ## 2.31.0
 
 ### Minor Changes

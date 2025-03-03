@@ -36,16 +36,16 @@ export function convertIn(v: string | null, type?: "text" | "float" | "int") {
  * Makes sure our international number format is converted to js int/float format.
  * Right now assumes . for thousands and , for decimal.
  */
-const prepareNumberForLocale = (v: string) => v.replace(/\./g, "").replace(/,/g, ".")
+export const prepareNumberForLocale = (v: string) => v.replace(/\./g, "").replace(/,/g, ".")
 
 export function convertOutInt(v: string, type?: "text" | "float" | "int") {
   v = v == null ? v : v.trim()
   const c = v === ""
     ? null
     : type === "float"
-    ? parseFloat(prepareNumberForLocale(v))
+    ? parseFloat(v)
     : type === "int"
-    ? parseInt(prepareNumberForLocale(v))
+    ? parseInt(v)
     : v
   return c
 }

@@ -70,15 +70,6 @@ export function make<A, E, R>(self: Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
-export type MaybeRef<T> = Ref<T> | ComputedRef<T> | T
-type MaybeRefDeep<T> = MaybeRef<
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  T extends Function ? T
-    : T extends object ? {
-        [Property in keyof T]: MaybeRefDeep<T[Property]>
-      }
-    : T
->
 
 export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
   /**
@@ -91,8 +82,8 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
    * This can be overridden by providing a function that returns an array of filters and options.
    */
   queryInvalidation?: (defaultKey: string[], name: string) => {
-    filters?: MaybeRefDeep<InvalidateQueryFilters> | undefined
-    options?: MaybeRefDeep<InvalidateOptions> | undefined
+    filters?: InvalidateQueryFilters | undefined
+    options?: InvalidateOptions | undefined
   }[]
 }
 
@@ -152,8 +143,8 @@ export const makeMutation = () => {
     const queryClient = useQueryClient()
 
     const invalidateQueries = (
-      filters?: MaybeRefDeep<InvalidateQueryFilters>,
-      options?: MaybeRefDeep<InvalidateOptions>
+      filters?: InvalidateQueryFilters,
+      options?: InvalidateOptions
     ) => Effect.promise(() => queryClient.invalidateQueries(filters, options))
 
     const invalidateCache = Effect.suspend(() => {

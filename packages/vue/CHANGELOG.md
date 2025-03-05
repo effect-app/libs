@@ -1,5 +1,17 @@
 # @effect-app/vue
 
+## 2.33.0
+
+### Minor Changes
+
+- e6f75b6: cleanup mutation helpers
+
+### Patch Changes
+
+- 63e966a: update packages
+- Updated dependencies [63e966a]
+  - effect-app@2.32.3
+
 ## 2.32.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.32.3
+
+### Patch Changes
+
+- 63e966a: update packages
+
 ## 2.32.2
 
 ### Patch Changes

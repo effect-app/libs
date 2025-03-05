@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.16.1
+
+### Patch Changes
+
+- 63e966a: update packages
+
 ## 1.16.0
 
 ### Minor Changes

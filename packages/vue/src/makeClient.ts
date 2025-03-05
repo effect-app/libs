@@ -14,7 +14,7 @@ import { reportMessage } from "./errorReporter.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { getRuntime, reportRuntimeError } from "./lib.js"
 import type { MakeIntlReturn } from "./makeIntl.js"
-import { makeMutation, mutationResultToVue } from "./mutate.js"
+import { asResult, makeMutation, mutationResultToVue } from "./mutate.js"
 import type { MutationOptions, Res } from "./mutate.js"
 import { makeQuery } from "./query.js"
 
@@ -117,7 +117,7 @@ export function handleRequest<
   EDefect = never,
   RDefect = never
 >(
-  f: Effect<A, E, R> | ((i: I) => Effect<A, E, R>),
+  f: Effect<Exit<A, E>, never, R> | ((i: I) => Effect<Exit<A, E>, never, R>),
   action: string,
   options: {
     onSuccess: (a: A, i: I) => Effect<void, ESuccess, RSuccess>
@@ -125,8 +125,9 @@ export function handleRequest<
     onDefect: (e: Cause.Cause<E>, i: I) => Effect<void, EDefect, RDefect>
   }
 ) {
-  const handleEffect = (i: any) => (self: Effect<A, E, R>) =>
+  const handleEffect = (i: any) => (self: Effect<Exit<A, E>, never, R>) =>
     self.pipe(
+      Effect.flatten,
       Effect.exit,
       Effect.tap(
         Exit.matchEffect({
@@ -225,7 +226,7 @@ export const makeClient = <Locale extends string, R>(
       EDefect = never,
       RDefect = never
     >(
-      f: Effect<A2, E2, R2> | ((i: I) => Effect<A2, E2, R2>),
+      f: Effect<Exit<A2, E2>, never, R2> | ((i: I) => Effect<Exit<A2, E2>, never, R2>),
       action: string,
       options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
     ) {
@@ -368,7 +369,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R2, Readonly<Ref<Result<A2, E2>, Result<A2, E2>>>>
+    ): Resp<I, A2, E2, R2, ComputedRef<Result<A2, E2>>>
     <
       E extends ResponseErrors,
       A,
@@ -387,7 +388,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandler<A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<A2, E2, R2, Readonly<Ref<Result<A2, E2>, Result<A2, E2>>>>
+    ): ActResp<A2, E2, R2, ComputedRef<Result<A2, E2>>>
   } = (
     self: any,
     action: any,
@@ -566,7 +567,7 @@ export const makeClient = <Locale extends string, R>(
       options?: LowOptsOptional<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): ActResp<A2, E2, R2>
   } = (self: any, action: string, options: any) => {
-    const [a, b] = _useUnsafeMutation({
+    const unsafe = _useUnsafeMutation({
       ...self,
       handler: Effect.isEffect(self.handler)
         ? (pipe(
@@ -579,6 +580,8 @@ export const makeClient = <Locale extends string, R>(
             Effect.andThen(self.handler(...args))
           )
     }, options ? dropUndefinedT(options) : undefined)
+
+    const [a, b] = asResult(Effect.isEffect(unsafe) ? () => unsafe : unsafe)
 
     return tuple(
       computed(() => mutationResultToVue(a.value)),
@@ -651,56 +654,23 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
-      Readonly<Ref<Result<A2, E2>>>,
+      ComputedRef<Result<A2, E2>>,
       (i: I) => Effect<Exit<A2, E2>, never, R2>
     ]
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
-      Readonly<Ref<Result<A2, E2>>>,
+      ComputedRef<Result<A2, E2>>,
       Effect<Exit<A2, E2>, never, R2>
     ]
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) => {
-    const [a, b] = _useUnsafeMutation(self as any, options)
+    const unsafe = _useUnsafeMutation(self as any, options)
 
-    return tuple(
-      a,
-      Effect.isEffect(b) ? Effect.exit(b) : (i: I) => Effect.exit(b(i))
-    ) as any
-  }
-
-  /**
-   * Effect results are passed to the caller, including errors.
-   */
-  const _useUnsafeMutationWithState: {
-    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandlerWithInput<I, A, E, R, Request>,
-      options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): readonly [
-      ComputedRef<Res<A, E>>,
-      (i: I) => Effect<A2, never, R2>
-    ]
-    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandler<A, E, R, Request>,
-      options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): readonly [
-      ComputedRef<Res<A, E>>,
-      Effect<A2, never, R2>
-    ]
-  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
-    options?: MutationOptions<A, E, R, A2, E2, R2, I>
-  ) => {
-    const [a, b] = _useUnsafeMutation(self as any, options)
-
-    return tuple(
-      computed(() => mutationResultToVue(a.value)),
-      b
-    ) as any
+    return asResult(unsafe) as any
   }
 
   /**
@@ -726,11 +696,11 @@ export const makeClient = <Locale extends string, R>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) => {
-    const [a, b] = _useUnsafeMutationWithState(self as any, options)
+    const [a, b] = _useSafeMutation(self as any, options)
 
     return tuple(
-      a,
-      Effect.isEffect(b) ? Effect.exit(b) : (i: I) => Effect.exit(b(i))
+      computed(() => mutationResultToVue(a.value)),
+      b
     ) as any
   }
 
@@ -807,7 +777,6 @@ export const makeClient = <Locale extends string, R>(
     buildFormFromSchema: _buildFormFromSchema,
     useSafeQuery: _useSafeQuery,
     useSafeMutation: _useSafeMutation,
-    useUnsafeMutation: _useUnsafeMutation,
-    useUnsafeMutationWithState: _useUnsafeMutationWithState
+    useUnsafeMutation: _useUnsafeMutation
   }
 }

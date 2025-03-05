@@ -2,7 +2,7 @@
 import * as Result from "@effect-rx/rx/Result"
 import type { InvalidateOptions, InvalidateQueryFilters } from "@tanstack/vue-query"
 import { useQueryClient } from "@tanstack/vue-query"
-import type { Cause } from "effect-app"
+import type { Cause, Exit } from "effect-app"
 import { Effect, Option } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
@@ -98,22 +98,46 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
                 // }
                 */
 
-export const asResult = <Args extends readonly any[], A, E, R>(
-  handler: (...args: Args) => Effect<A, E, R>
+export const asResult: {
+  <A, E, R>(
+    handler: Effect<A, E, R>
+  ): readonly [ComputedRef<Result.Result<A, E>>, Effect<Exit<A, E>, never, void>]
+  <Args extends readonly any[], A, E, R>(
+    handler: (...args: Args) => Effect<A, E, R>
+  ): readonly [ComputedRef<Result.Result<A, E>>, (...args: Args) => Effect<Exit<A, E>, never, void>]
+} = <Args extends readonly any[], A, E, R>(
+  handler: Effect<A, E, R> | ((...args: Args) => Effect<A, E, R>)
 ) => {
   const state = shallowRef<Result.Result<A, E>>(Result.initial())
 
-  const act = (...args: Args) =>
-    Effect
+  const act = Effect.isEffect(handler)
+    ? Effect
       .sync(() => {
         state.value = Result.initial(true)
       })
       .pipe(
-        Effect.zipRight(Effect.suspend(() => handler(...args))),
-        Effect.onExit((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
+        Effect.zipRight(Effect.suspend(() =>
+          handler.pipe(
+            Effect.exit,
+            Effect.tap((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
+          )
+        ))
       )
+    : (...args: Args) =>
+      Effect
+        .sync(() => {
+          state.value = Result.initial(true)
+        })
+        .pipe(
+          Effect.zipRight(Effect.suspend(() =>
+            handler(...args).pipe(
+              Effect.exit,
+              Effect.tap((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
+            )
+          ))
+        )
 
-  return tuple(state, act)
+  return tuple(computed(() => state.value), act) as any
 }
 
 export const makeMutation = () => {
@@ -121,21 +145,15 @@ export const makeMutation = () => {
    * Pass a function that returns an Effect, e.g from a client action, or an Effect
    * Returns a tuple with state ref and execution function which reports errors as Toast.
    */
-  const useSafeMutation: {
+  const useMutation: {
     <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): readonly [
-      Readonly<Ref<Result.Result<A2, E2>>>,
-      (i: I) => Effect<A2, E2, R2>
-    ]
+    ): Effect<A2, E2, R2>
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): readonly [
-      Readonly<Ref<Result.Result<A2, E2>>>,
-      Effect<A2, E2, R2>
-    ]
+    ): Effect<A2, E2, R2>
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
@@ -175,10 +193,10 @@ export const makeMutation = () => {
 
     const mapHandler = options?.mapHandler ?? ((_) => _)
 
-    const [state, handle_] = asResult((self: Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
+    const handle_ = (self: Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
       Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),
       i as I
-    ) as Effect<A2, E2, R2>))
+    ) as Effect<A2, E2, R2>)
 
     const handle = (self: Effect<A, E, R>, name: string, i: I | void = void 0) =>
       handle_(self, i).pipe(
@@ -187,14 +205,11 @@ export const makeMutation = () => {
       )
 
     const handler = self.handler
-    const r = tuple(
-      state,
-      Effect.isEffect(handler) ? handle(handler, self.name) : (i: I) => handle(handler(i), self.name, i)
-    )
+    const r = Effect.isEffect(handler) ? handle(handler, self.name) : (i: I) => handle(handler(i), self.name, i)
 
     return r as any
   }
-  return useSafeMutation
+  return useMutation
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

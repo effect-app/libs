@@ -5,6 +5,7 @@
   "typescript.preferences.includePackageJsonAutoImports": "on",
   "typescript.preferences.autoImportFileExcludePatterns": [
     "node_modules/@sentry/node",
+    "node_modules/vitest/dist",
     "node_modules/@azure/cosmos",
     "node_modules/effect-app/Schema",
     "node_modules/lodash",

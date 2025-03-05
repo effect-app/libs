@@ -2,7 +2,7 @@
 import type { Result } from "@effect-rx/rx/Result"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
-import { type SupportedErrors } from "effect-app/client/errors"
+import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
 import { constant, pipe, tuple } from "effect-app/Function"
 import type { OperationFailure } from "effect-app/Operations"
 import { OperationSuccess } from "effect-app/Operations"
@@ -28,6 +28,7 @@ const tapHandler = <A, E, R, I>(
  */
 export class SuppressErrors extends Cause.YieldableError {
   readonly _tag = "SuppressErrors"
+  readonly [ErrorSilenced] = true
 }
 
 export type ResponseErrors = S.ParseResult.ParseError | SupportedErrors | SuppressErrors | OperationFailure

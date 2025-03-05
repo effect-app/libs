@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as Sentry from "@sentry/browser"
 import { Cause, Effect, LogLevel } from "effect-app"
-import { CauseException, ErrorReported, tryToJson, tryToReport } from "effect-app/client/errors"
+import { CauseException, tryToJson, tryToReport } from "effect-app/client/errors"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 
 export const tryCauseException = <E>(cause: Cause<E>, name: string): CauseException<E> => {
@@ -43,7 +43,6 @@ export function reportError(
             Effect.catchAllCause(() => Effect.logFatal("Failed to log error cause"))
           )
 
-        error[ErrorReported] = true
         return error
       })
       .pipe(

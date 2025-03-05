@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/node"
 import { Cause, Effect, LogLevel } from "effect-app"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 import { getRC } from "./api/setupRequest.js"
-import { CauseException, ErrorReported, tryToJson, tryToReport } from "./errors.js"
+import { CauseException, tryToJson, tryToReport } from "./errors.js"
 import { InfraLogger } from "./logger.js"
 
 const tryCauseException = <E>(cause: Cause<E>, name: string): CauseException<E> => {
@@ -45,7 +45,6 @@ export function reportError(
             Effect.catchAllCause(() => InfraLogger.logFatal("Failed to log error cause"))
           )
 
-        error[ErrorReported] = true
         return error
       })
       .pipe(

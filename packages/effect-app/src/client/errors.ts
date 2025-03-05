@@ -159,9 +159,12 @@ export const QueryErrors = SupportedErrors
 export type MutationErrors = S.Schema.Type<typeof MutationErrors>
 export type QueryErrors = S.Schema.Type<typeof QueryErrors>
 
-export const ErrorReported = Symbol.for("effect-app/error-reported")
-export const isErrorReported = (e: unknown): boolean =>
-  typeof e === "object" && e !== null && ErrorReported in e ? !!e[ErrorReported] : false
+export const ErrorSilenced = Symbol.for("effect-app/error-silenced")
+export const isErrorSilenced = (e: unknown): boolean =>
+  typeof e === "object" && e !== null && ErrorSilenced in e ? !!e[ErrorSilenced] : false
+export const silenceError = (e: Record<PropertyKey, any>) => {
+  e[ErrorSilenced] = true
+}
 
 export class CauseException<E> extends Error {
   constructor(readonly originalCause: Cause<E>, readonly _tag: string) {
@@ -199,8 +202,6 @@ export class CauseException<E> extends Error {
   override toString() {
     return `[${this._tag}] ` + Cause.pretty(this.originalCause, { renderErrorCause: true })
   }
-
-  [ErrorReported] = false
 }
 
 export const tryToReport = (error: { toReport(): unknown; toString(): string }) => {

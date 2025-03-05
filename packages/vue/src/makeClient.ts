@@ -196,7 +196,10 @@ export const makeClient = <Locale extends string, R>(
   messages: Record<string, string | undefined> = {}
 ) => {
   // making sure names do not collide with auto exports in nuxt apps, please do not rename..
-  const _useSafeMutation = makeMutation()
+  /**
+   * Effect results are passed to the caller, including errors.
+   */
+  const _useUnsafeMutation = makeMutation()
   const _useSafeQuery = makeQuery(runtime)
   const _useHandleRequestWithToast = () => {
     const toast = useToast()
@@ -391,7 +394,7 @@ export const makeClient = <Locale extends string, R>(
     options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
   ): any => {
     const handleRequestWithToast = _useHandleRequestWithToast()
-    const [a, b] = _useSafeMutation({
+    const [a, b] = _useUnsafeMutation({
       ...self,
       handler: Effect.isEffect(self.handler)
         ? (pipe(
@@ -563,7 +566,7 @@ export const makeClient = <Locale extends string, R>(
       options?: LowOptsOptional<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): ActResp<A2, E2, R2>
   } = (self: any, action: string, options: any) => {
-    const [a, b] = _useSafeMutation({
+    const [a, b] = _useUnsafeMutation({
       ...self,
       handler: Effect.isEffect(self.handler)
         ? (pipe(
@@ -639,15 +642,96 @@ export const makeClient = <Locale extends string, R>(
     }
   }
 
-  const _useSafeMutationWithState = <I, E, A, Request extends TaggedRequestClassAny>(
-    self: RequestHandlerWithInput<I, A, E, R, Request>
+  /**
+   * Effect results are converted to Exit, so errors are ignored by default.
+   * you should use the result ref to render errors!
+   */
+  const _useSafeMutation: {
+    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandlerWithInput<I, A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2, I>
+    ): readonly [
+      Readonly<Ref<Result<A2, E2>>>,
+      (i: I) => Effect<Exit<A2, E2>, never, R2>
+    ]
+    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandler<A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2>
+    ): readonly [
+      Readonly<Ref<Result<A2, E2>>>,
+      Effect<Exit<A2, E2>, never, R2>
+    ]
+  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+    options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) => {
-    const [a, b] = _useSafeMutation(self)
+    const [a, b] = _useUnsafeMutation(self as any, options)
+
+    return tuple(
+      a,
+      Effect.isEffect(b) ? Effect.exit(b) : (i: I) => Effect.exit(b(i))
+    ) as any
+  }
+
+  /**
+   * Effect results are passed to the caller, including errors.
+   */
+  const _useUnsafeMutationWithState: {
+    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandlerWithInput<I, A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2, I>
+    ): readonly [
+      ComputedRef<Res<A, E>>,
+      (i: I) => Effect<A2, never, R2>
+    ]
+    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandler<A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2>
+    ): readonly [
+      ComputedRef<Res<A, E>>,
+      Effect<A2, never, R2>
+    ]
+  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+    options?: MutationOptions<A, E, R, A2, E2, R2, I>
+  ) => {
+    const [a, b] = _useUnsafeMutation(self as any, options)
 
     return tuple(
       computed(() => mutationResultToVue(a.value)),
       b
-    )
+    ) as any
+  }
+
+  /**
+   * Effect results are converted to Exit, so errors are ignored by default.
+   * you should use the result ref to render errors!
+   */
+  const _useSafeMutationWithState: {
+    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandlerWithInput<I, A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2, I>
+    ): readonly [
+      ComputedRef<Res<A, E>>,
+      (i: I) => Effect<Exit<A2, E2>, never, R2>
+    ]
+    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandler<A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2>
+    ): readonly [
+      ComputedRef<Res<A, E>>,
+      Effect<Exit<A2, E2>, never, R2>
+    ]
+  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+    options?: MutationOptions<A, E, R, A2, E2, R2, I>
+  ) => {
+    const [a, b] = _useUnsafeMutationWithState(self as any, options)
+
+    return tuple(
+      a,
+      Effect.isEffect(b) ? Effect.exit(b) : (i: I) => Effect.exit(b(i))
+    ) as any
   }
 
   const _buildFormFromSchema = <
@@ -722,6 +806,8 @@ export const makeClient = <Locale extends string, R>(
     useHandleRequestWithToast: _useHandleRequestWithToast,
     buildFormFromSchema: _buildFormFromSchema,
     useSafeQuery: _useSafeQuery,
-    useSafeMutation: _useSafeMutation
+    useSafeMutation: _useSafeMutation,
+    useUnsafeMutation: _useUnsafeMutation,
+    useUnsafeMutationWithState: _useUnsafeMutationWithState
   }
 }

@@ -12,7 +12,7 @@ index 586d0514b6842000c0869c18f737802b85bef13d..7346151ed8f828f4f97023b93ed4bfb5
  function getDeclarationOfKind(symbol, kind) {
    const declarations = symbol.declarations;
 diff --git a/lib/typescript.js b/lib/typescript.js
-index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..6752a27b43bde723ce3fa2da4202332df5016edd 100644
+index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..21f310639c1efc4f59ed7b7872db8b2feef90694 100644
 --- a/lib/typescript.js
 +++ b/lib/typescript.js
 @@ -16213,7 +16213,7 @@ function isInternalDeclaration(node, sourceFile) {
@@ -24,7 +24,7 @@ index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..6752a27b43bde723ce3fa2da4202332d
  var noTruncationMaximumTruncationLength = 1e6;
  function getDeclarationOfKind(symbol, kind) {
    const declarations = symbol.declarations;
-@@ -158232,9 +158232,126 @@ function getFixInfos(context, errorCode, pos, useAutoImportProvider) {
+@@ -158232,9 +158232,128 @@ function getFixInfos(context, errorCode, pos, useAutoImportProvider) {
    const packageJsonImportFilter = createPackageJsonImportFilter(context.sourceFile, context.preferences, context.host);
    return info && sortFixInfo(info, context.sourceFile, context.program, packageJsonImportFilter, context.host, context.preferences);
  }
@@ -98,24 +98,26 @@ index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..6752a27b43bde723ce3fa2da4202332d
 +    log("starting import plugin with root " + getProjectRoot(), true)
 +
 +    try {
-+      const filePath = path.resolve(pr, 'tsconfig.import-order-plugin.json');
++      const filePath = path.resolve(pr, 'tsconfig.plugins.json');
 +      const content = fs.readFileSync(filePath, 'utf8');
-+      pluginConfig = JSON.parse(content).compilerOptions.plugins[0];
-+      // reverse arrays so that the position is the right prio (higher index means higher prio)
-+      moveUpRegexes = pluginConfig.moveUpPatterns.map((_) => new RegExp(_)).toReversed();
-+      moveDownRegexes = pluginConfig.moveDownPatterns.map((_) => new RegExp(_)).toReversed();
++      pluginConfig = JSON.parse(content).compilerOptions?.plugins?.find(p => p.name === "ts-plugin-sort-import-suggestions");
 +
-+      if(pluginConfig.overrides) {
-+        Object.entries(pluginConfig.overrides).forEach(([module, symbols]) => {
-+          for (const symbol of symbols) {
-+            overrides.set(symbol, module)
-+          }
-+        })
++      if(pluginConfig) {
++        // reverse arrays so that the position is the right prio (higher index means higher prio)
++        moveUpRegexes = pluginConfig.moveUpPatterns.map((_) => new RegExp(_)).toReversed();
++        moveDownRegexes = pluginConfig.moveDownPatterns.map((_) => new RegExp(_)).toReversed();
++
++        if(pluginConfig.overrides) {
++          Object.entries(pluginConfig.overrides).forEach(([module, symbols]) => {
++            for (const symbol of symbols) {
++              overrides.set(symbol, module)
++            }
++          })
++        }
 +      }
 +
 +      log("Successfully read import-order-plugin configuration:");
 +      log(pluginConfig)
-+
 +
 +    } catch(e) {
 +      log("Cannot read import-order-plugin configuration: " + e.message);
@@ -152,7 +154,7 @@ index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..6752a27b43bde723ce3fa2da4202332d
  }
  function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvider) {
    const info = getFixesInfoForNonUMDImport(context, symbolToken, useAutoImportProvider);
-@@ -158243,9 +158360,11 @@ function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvide
+@@ -158243,9 +158362,11 @@ function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvide
  }
  function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, preferences) {
    if (!some(fixes)) return;
@@ -164,7 +166,7 @@ index dc0fe9a56bb4d9b08efe8b5948a60a74a4e9997b..6752a27b43bde723ce3fa2da4202332d
    return fixes.reduce(
      (best, fix) => (
        // Takes true branch of conditional if `fix` is better than `best`
-@@ -158263,13 +158382,19 @@ function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, p
+@@ -158263,13 +158384,19 @@ function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, p
  }
  function compareModuleSpecifiers(a, b, importingFile, program, preferences, allowsImportingSpecifier, toPath3) {
    if (a.kind !== 0 /* UseNamespace */ && b.kind !== 0 /* UseNamespace */) {

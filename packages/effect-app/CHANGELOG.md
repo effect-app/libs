@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.33.0
+
+### Minor Changes
+
+- 1e88a86: improve error handled marking
+
 ## 2.32.3
 
 ### Patch Changes

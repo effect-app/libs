@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.44.0
+
+### Minor Changes
+
+- 1e88a86: improve error handled marking
+
+### Patch Changes
+
+- Updated dependencies [1e88a86]
+  - effect-app@2.33.0
+
 ## 2.43.6
 
 ### Patch Changes

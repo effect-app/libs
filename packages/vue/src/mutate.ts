@@ -8,7 +8,7 @@ import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } f
 import { tuple } from "effect-app/Function"
 import type { ComputedRef, Ref } from "vue"
 import { computed, shallowRef } from "vue"
-import { makeQueryKey, reportRuntimeError } from "./lib.js"
+import { makeQueryKey } from "./lib.js"
 
 export const getQueryKey = (h: { name: string }) => {
   const key = makeQueryKey(h)
@@ -193,19 +193,13 @@ export const makeMutation = () => {
 
     const mapHandler = options?.mapHandler ?? ((_) => _)
 
-    const handle_ = (self: Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
+    const handle = (self: Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
       Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),
       i as I
     ) as Effect<A2, E2, R2>)
 
-    const handle = (self: Effect<A, E, R>, name: string, i: I | void = void 0) =>
-      handle_(self, i).pipe(
-        Effect.tapDefect(reportRuntimeError),
-        Effect.withSpan(`mutation ${name}`, { captureStackTrace: false })
-      )
-
     const handler = self.handler
-    const r = Effect.isEffect(handler) ? handle(handler, self.name) : (i: I) => handle(handler(i), self.name, i)
+    const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
 
     return r as any
   }

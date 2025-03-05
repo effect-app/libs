@@ -18,6 +18,11 @@ import { asResult, makeMutation, mutationResultToVue } from "./mutate.js"
 import type { MutationOptions, Res } from "./mutate.js"
 import { makeQuery } from "./query.js"
 
+const tapHandler = <A, E, R, I>(
+  handler: Effect<A, E, R> | ((i: I) => Effect<A, E, R>),
+  map: (self: Effect<A, E, R>) => Effect<A, E, R>
+) => Effect.isEffect(handler) ? map(handler) : (i: I) => map(handler(i))
+
 /**
  * Use this after handling an error yourself, still continueing on the Error track, but the error will not be reported.
  */
@@ -118,6 +123,7 @@ export function handleRequest<
   RDefect = never
 >(
   f: Effect<Exit<A, E>, never, R> | ((i: I) => Effect<Exit<A, E>, never, R>),
+  name: string,
   action: string,
   options: {
     onSuccess: (a: A, i: I) => Effect<void, ESuccess, RSuccess>
@@ -127,8 +133,6 @@ export function handleRequest<
 ) {
   const handleEffect = (i: any) => (self: Effect<Exit<A, E>, never, R>) =>
     self.pipe(
-      Effect.flatten,
-      Effect.exit,
       Effect.tap(
         Exit.matchEffect({
           onSuccess: (r) => options.onSuccess(r, i),
@@ -161,15 +165,7 @@ export function handleRequest<
             })
         })
       ),
-      Effect.tapErrorCause((cause) =>
-        Effect.gen(function*() {
-          const extra = {
-            action,
-            message: `Unexpected Error trying to handle errors for ${action}`
-          }
-          yield* reportRuntimeError(cause, extra)
-        })
-      )
+      Effect.withSpan(`mutation ${name}`, { captureStackTrace: false })
     )
   return Object.assign(
     Effect.isEffect(f)
@@ -228,7 +224,14 @@ export const makeClient = <Locale extends string, R>(
   ) => {
     const unsafe = _useUnsafeMutation(self as any, options)
 
-    return asResult(unsafe) as any
+    const [a, b] = asResult(tapHandler(unsafe, Effect.tapDefect(reportRuntimeError)) as any)
+    return [
+      a,
+      tapHandler(
+        b,
+        Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
+      )
+    ] as const as any
   }
 
   const _useHandleRequestWithToast = () => {
@@ -256,6 +259,7 @@ export const makeClient = <Locale extends string, R>(
       RDefect = never
     >(
       f: Effect<Exit<A2, E2>, never, R2> | ((i: I) => Effect<Exit<A2, E2>, never, R2>),
+      name: string,
       action: string,
       options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
     ) {
@@ -273,7 +277,7 @@ export const makeClient = <Locale extends string, R>(
         { action: actionMessage }
       )
 
-      return handleRequest<E2, A2, R2, any, ESuccess, RSuccess, EError, RError, EDefect, RDefect>(f, action, {
+      return handleRequest<E2, A2, R2, any, ESuccess, RSuccess, EError, RError, EDefect, RDefect>(f, name, action, {
         onSuccess: (a, i) =>
           Effect.gen(function*() {
             const message = options.successMessage ? yield* options.successMessage(a, i) : defaultSuccessMessage
@@ -418,31 +422,33 @@ export const makeClient = <Locale extends string, R>(
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): ActResp<A2, E2, R2, ComputedRef<Result<A2, E2>>>
-  } = (
-    self: any,
+  } = <E extends ResponseErrors, A, R, Request extends TaggedRequestClassAny, I>(
+    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
     action: any,
     options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
   ): any => {
     const handleRequestWithToast = _useHandleRequestWithToast()
-    const [a, b] = _useSafeMutation({
+    const handler = self.handler
+    const [a, b] = asResult(_useUnsafeMutation({
       ...self,
-      handler: Effect.isEffect(self.handler)
+      handler: Effect.isEffect(handler)
         ? (pipe(
           Effect.annotateCurrentSpan({ action }),
-          Effect.andThen(self.handler)
+          Effect.zipRight(handler)
         ) as any)
-        : (...args: any[]) =>
+        : (...args: [any]) =>
           pipe(
             Effect.annotateCurrentSpan({ action }),
-            Effect.andThen(self.handler(...args))
+            Effect.zipRight(handler(...args))
           )
-    }, options ? dropUndefinedT(options) : undefined)
+    }, options ? dropUndefinedT(options) : undefined))
 
     return tuple(
       a,
-      handleRequestWithToast(b as any, action, options)
+      handleRequestWithToast(b as any, self.name, action, options)
     )
   }
+  //
 
   /**
    * Pass a function that returns an Effect, e.g from a client action, give it a name.
@@ -647,7 +653,7 @@ export const makeClient = <Locale extends string, R>(
       options?: LowOptsOptional<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): ActResp<A2, E2, R2>
   } = (self: any, action: string, options: any) => {
-    const [a, b] = _useSafeMutation({
+    const [a, b] = asResult(_useUnsafeMutation({
       ...self,
       handler: Effect.isEffect(self.handler)
         ? (pipe(
@@ -659,11 +665,11 @@ export const makeClient = <Locale extends string, R>(
             Effect.annotateCurrentSpan({ action }),
             Effect.andThen(self.handler(...args))
           )
-    }, options ? dropUndefinedT(options) : undefined)
+    }, options ? dropUndefinedT(options) : undefined))
 
     return tuple(
       computed(() => mutationResultToVue(a.value)),
-      handleRequest(b as any, action, {
+      handleRequest(b as any, self.name, action, {
         onSuccess: suppressToast,
         onDefect: suppressToast,
         onFail: suppressToast,

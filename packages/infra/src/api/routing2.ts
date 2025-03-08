@@ -2,8 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type * as HttpApp from "@effect/platform/HttpApp"
-import { Rpc, RpcGroup, RpcServer } from "effect-app/canary/Rpc"
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect-app"
 import {
   Array,
@@ -19,19 +17,16 @@ import {
   Schedule,
   Schema
 } from "effect-app"
+import { Rpc, RpcGroup, RpcServer } from "effect-app/canary/Rpc"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import type { HttpServerError } from "effect-app/http"
-import { HttpHeaders, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect-app/http"
+import { HttpHeaders, HttpRouter, HttpServerRequest } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
-import type { ParseError } from "effect/ParseResult"
 import type { Contravariant } from "effect/Types"
 import { logError, reportError } from "../errorReporter.js"
 import { InfraLogger } from "../logger.js"
 import type { Middleware } from "./routing/DynamicMiddleware2.js"
 import { makeRpc } from "./routing/DynamicMiddleware2.js"
 import { determineMethod } from "./routing/utils.js"
-import { toHttpApp } from "./routing.js"
-import { RpcRouter } from "@effect/rpc"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
@@ -53,7 +48,6 @@ export type _E<T extends Effect<any, any, any>> = [T] extends [
 export type EffectDeps<A> = {
   [K in keyof A as A[K] extends Effect<any, any, any> ? K : never]: A[K] extends Effect<any, any, any> ? A[K] : never
 }
-
 
 export type AnyRequestModule = S.Schema.Any & {
   _tag: string
@@ -125,7 +119,8 @@ export interface RouterShape<Rsc> {
 }
 
 type RPCRouteR<T extends [any, (requestLayers: any) => (req: any, headers: any) => Effect<any, any, any>]> = T extends [
-  any, (requestLayers: any) => (...args: any[]) => Effect<any, any, infer R>
+  any,
+  (requestLayers: any) => (...args: any[]) => Effect<any, any, infer R>
 ] ? R
   : never
 
@@ -302,70 +297,72 @@ export const makeRouter = <
         | { [k in keyof TLayers]: Layer.Layer.Success<TLayers[k]> }[number]
       type Router = RouterShape<Rsc>
 
-      const layer = (requestLayers: any) => Effect.gen(function*() {
-          const controllers = yield* make
-          const rpc = yield* makeRpc(middleware)
+      const layer = (requestLayers: any) =>
+        Effect
+          .gen(function*() {
+            const controllers = yield* make
+            const rpc = yield* makeRpc(middleware)
 
-          // return make.pipe(Effect.map((c) => controllers(c, layers)))
-          const mapped = typedKeysOf(filtered).reduce((acc, cur) => {
-            const handler = controllers[cur as keyof typeof controllers]
-            const req = rsc[cur]
+            // return make.pipe(Effect.map((c) => controllers(c, layers)))
+            const mapped = typedKeysOf(filtered).reduce((acc, cur) => {
+              const handler = controllers[cur as keyof typeof controllers]
+              const req = rsc[cur]
 
-            const method = determineMethod(String(cur), req)
-            const isCommand = method._tag === "command"
+              const method = determineMethod(String(cur), req)
+              const isCommand = method._tag === "command"
 
-            const handle = isCommand
-              ? (req: any) => Effect.retry(handler.handler(req) as any, optimisticConcurrencySchedule)
-              : (req: any) => Effect.interruptible(handler.handler(req) as any)
+              const handle = isCommand
+                ? (req: any) => Effect.retry(handler.handler(req) as any, optimisticConcurrencySchedule)
+                : (req: any) => Effect.interruptible(handler.handler(req) as any)
 
-            acc[cur] = [
-              handler._tag === "raw"
-                ? class extends (req as any) {
-                  static success = S.encodedSchema(req.success)
-                  get [Schema.symbolSerializable]() {
-                    return this.constructor
-                  }
-                  get [Schema.symbolWithResult]() {
-                    return {
-                      failure: req.failure,
-                      success: S.encodedSchema(req.success)
+              acc[cur] = [
+                handler._tag === "raw"
+                  ? class extends (req as any) {
+                    static success = S.encodedSchema(req.success)
+                    get [Schema.symbolSerializable]() {
+                      return this.constructor
                     }
-                  }
-                } as any
-                : req,
-              (requestLayers: any) => (req: any, headers: any) =>
-                // TODO: render more data... similar to console?
-                Effect
-                  .annotateCurrentSpan(
-                    "requestInput",
-                    Object.entries(req).reduce((prev, [key, value]: [string, unknown]) => {
-                      prev[key] = key === "password"
-                        ? "<redacted>"
-                        : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-                        ? typeof value === "string" && value.length > 256
-                          ? (value.substring(0, 253) + "...")
-                          : value
-                        : Array.isArray(value)
-                        ? `Array[${value.length}]`
-                        : value === null || value === undefined
-                        ? `${value}`
-                        : typeof value === "object" && value
-                        ? `Object[${Object.keys(value).length}]`
-                        : typeof value
-                      return prev
-                    }, {} as Record<string, string | number | boolean>)
-                  )
-                  .pipe(
-                    // can't use andThen due to some being a function and effect
-                    Effect.zipRight(handle(req)),
-                    Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
-                    Effect.tapDefect((cause) =>
-                      Effect
-                        .all([
-                          reportRequestError(cause, {
-                            action: `${meta.moduleName}.${req._tag}`
-                          }),
-                          InfraLogger
+                    get [Schema.symbolWithResult]() {
+                      return {
+                        failure: req.failure,
+                        success: S.encodedSchema(req.success)
+                      }
+                    }
+                  } as any
+                  : req,
+                (requestLayers: any) => (req: any, headers: any) =>
+                  // TODO: render more data... similar to console?
+                  Effect
+                    .annotateCurrentSpan(
+                      "requestInput",
+                      Object.entries(req).reduce((prev, [key, value]: [string, unknown]) => {
+                        prev[key] = key === "password"
+                          ? "<redacted>"
+                          : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+                          ? typeof value === "string" && value.length > 256
+                            ? (value.substring(0, 253) + "...")
+                            : value
+                          : Array.isArray(value)
+                          ? `Array[${value.length}]`
+                          : value === null || value === undefined
+                          ? `${value}`
+                          : typeof value === "object" && value
+                          ? `Object[${Object.keys(value).length}]`
+                          : typeof value
+                        return prev
+                      }, {} as Record<string, string | number | boolean>)
+                    )
+                    .pipe(
+                      // can't use andThen due to some being a function and effect
+                      Effect.zipRight(handle(req)),
+                      Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
+                      Effect.tapDefect((cause) =>
+                        Effect
+                          .all([
+                            reportRequestError(cause, {
+                              action: `${meta.moduleName}.${req._tag}`
+                            }),
+                            InfraLogger
                               .logError("Finished request", cause)
                               .pipe(Effect.annotateLogs({
                                 action: `${meta.moduleName}.${req._tag}`,
@@ -380,52 +377,70 @@ export const makeRouter = <
                                 //     }, {} as Record<string, any>)
                                 // )
                               }))
-                        ])
+                          ])
+                      ),
+                      // NOTE: this does not catch errors from the middlewares..
+                      // we should re-evalute this in any case..
+                      devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error")),
+                      Effect.withSpan("Request." + meta.moduleName + "." + req._tag, {
+                        captureStackTrace: () => handler.stack
+                      }),
+                      Effect.provide(requestLayers)
                     ),
-                    // NOTE: this does not catch errors from the middlewares..
-                    // we should re-evalute this in any case..
-                    devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error")),
-                    Effect.withSpan("Request." + meta.moduleName + "." + req._tag, {
-                      captureStackTrace: () => handler.stack
-                    }),
-                    Effect.provide(requestLayers)
-                  ),
-              meta.moduleName] as const
-            return acc
-          }, {} as any) as {
-            [K in Keys]: [
-              Rsc[K],
-            (requestLayers: any) => (req: any, headers: any) => Effect.Effect<any, _E<ReturnType<THandlers[K]["handler"]>>, Context | _R<ReturnType<THandlers[K]["handler"]>>>, // Context | _R<ReturnType<THandlers[K]["handler"]>>
-            ]
-          }
-
-          const rpcs = RpcGroup.make(...typedValuesOf(mapped).map(_ => Rpc.fromTaggedRequest(_[0])))
-          const rpcLayer = (requestLayers) => rpcs.toLayer(Effect.gen(function*() {
-            return typedValuesOf(mapped).reduce((acc, [req,handler]) => {
-              acc[req._tag] = handler(requestLayers)
+                meta.moduleName
+              ] as const
               return acc
-            }, {} as Record<string, any>)
-          })) as unknown as Layer<{ [K in keyof Filtered]: Rpc.Handler<K> }, never, RPCRouteR<typeof mapped[keyof typeof mapped]>>
+            }, {} as any) as {
+              [K in Keys]: [
+                Rsc[K],
+                (
+                  requestLayers: any
+                ) => (
+                  req: any,
+                  headers: any
+                ) => Effect.Effect<
+                  any,
+                  _E<ReturnType<THandlers[K]["handler"]>>,
+                  Context | _R<ReturnType<THandlers[K]["handler"]>>
+                > // Context | _R<ReturnType<THandlers[K]["handler"]>>
+              ]
+            }
 
-          return rpcLayer(requestLayers).pipe(Layer.provideMerge(RpcServer.layerProtocolHttp({ path: ("/rpc/" + meta.moduleName) as `/rpc/${typeof meta.moduleName}` })))
+            const rpcs = RpcGroup.make(...typedValuesOf(mapped).map((_) => Rpc.fromTaggedRequest(_[0])))
+            const rpcLayer = (requestLayers) =>
+              rpcs.toLayer(Effect.gen(function*() {
+                return typedValuesOf(mapped).reduce((acc, [req, handler]) => {
+                  acc[req._tag] = handler(requestLayers)
+                  return acc
+                }, {} as Record<string, any>)
+              })) as unknown as Layer<
+                { [K in keyof Filtered]: Rpc.Handler<K> },
+                never,
+                RPCRouteR<typeof mapped[keyof typeof mapped]>
+              >
 
-          // const rpcRouter = RpcRouter.make(...typedValuesOf(mapped).map(_ => _[0]) as any) as RpcRouter.RpcRouter<
-          //   RPCRouteReq<typeof mapped[keyof typeof mapped]>,
-          //   RPCRouteR<typeof mapped[keyof typeof mapped]>
-          // >
-          // const httpApp = toHttpApp(rpcRouter, {
-          //   spanPrefix: rsc
-          //     .meta
-          //     .moduleName + "."
-          // })
-          // yield* router
-          //   .post(
-          //     "/",
-          //     httpApp as any,
-          //     { uninterruptible: true }
-          //   )
-        }).pipe(Layer.unwrapEffect)
-      
+            return rpcLayer(requestLayers).pipe(
+              Layer.provideMerge(RpcServer
+                .layerProtocolHttp({ path: ("/rpc/" + meta.moduleName) as `/rpc/${typeof meta.moduleName}` }))
+            )
+
+            // const rpcRouter = RpcRouter.make(...typedValuesOf(mapped).map(_ => _[0]) as any) as RpcRouter.RpcRouter<
+            //   RPCRouteReq<typeof mapped[keyof typeof mapped]>,
+            //   RPCRouteR<typeof mapped[keyof typeof mapped]>
+            // >
+            // const httpApp = toHttpApp(rpcRouter, {
+            //   spanPrefix: rsc
+            //     .meta
+            //     .moduleName + "."
+            // })
+            // yield* router
+            //   .post(
+            //     "/",
+            //     httpApp as any,
+            //     { uninterruptible: true }
+            //   )
+          })
+          .pipe(Layer.unwrapEffect)
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       const routes = layer.pipe(

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import type { Effect, Option, ParseResult, S } from "effect-app"
-import type { OptimisticConcurrencyException } from "effect-app/client"
+import type { OptimisticConcurrencyException } from "effect-app/client/errors"
 
 export interface Mapped1<A, IdKey extends keyof A, R> {
   all: Effect<A[], ParseResult.ParseError, R>

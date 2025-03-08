@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc } from "@effect/rpc"
 import type { Array, Layer, Request, S } from "effect-app"
 import { Effect } from "effect-app"
-import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
+import type { RPCContextMap } from "effect-app/client/req"
 import type * as EffectRequest from "effect/Request"
 
 export interface Middleware<
@@ -26,11 +25,13 @@ export interface Middleware<
     >(
       schema: T & S.Schema<Req, any, never>,
       handler: (
-        request: Req
+        request: Req,
+        headers: any
       ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
       moduleName?: string
     ) => (
-      req: Req
+      req: Req,
+      headers: any
     ) => Effect.Effect<
       Request.Request.Success<Req>,
       Request.Request.Error<Req>,
@@ -53,7 +54,8 @@ export const makeRpc = <
     effect: <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, R>(
       schema: T & S.Schema<Req, any, never>,
       handler: (
-        request: Req
+        request: Req,
+        headers: any
       ) => Effect.Effect<
         EffectRequest.Request.Success<Req>,
         EffectRequest.Request.Error<Req>,
@@ -61,9 +63,6 @@ export const makeRpc = <
       >,
       moduleName?: string
     ) => {
-      return Rpc.effect<Req, Context | Exclude<R, GetEffectContext<CTXMap, T["config"]>>>(
-        schema,
-        execute(schema, handler, moduleName)
-      )
+      return execute(schema, handler, moduleName)
     }
   })))

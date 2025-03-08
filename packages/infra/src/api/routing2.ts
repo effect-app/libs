@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as HttpApp from "@effect/platform/HttpApp"
-import { Rpc, RpcRouter } from "@effect/rpc"
+import { Rpc, RpcGroup, RpcServer } from "effect-app/canary/Rpc"
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect-app"
 import {
   Array,
@@ -30,6 +30,8 @@ import { InfraLogger } from "../logger.js"
 import type { Middleware } from "./routing/DynamicMiddleware2.js"
 import { makeRpc } from "./routing/DynamicMiddleware2.js"
 import { determineMethod } from "./routing/utils.js"
+import { toHttpApp } from "./routing.js"
+import { RpcRouter } from "@effect/rpc"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
@@ -51,33 +53,7 @@ export type _E<T extends Effect<any, any, any>> = [T] extends [
 export type EffectDeps<A> = {
   [K in keyof A as A[K] extends Effect<any, any, any> ? K : never]: A[K] extends Effect<any, any, any> ? A[K] : never
 }
-/**
- *   Plain jane JSON version, with custom status codes just for fun
- */
-export const toHttpApp = <R extends RpcRouter.RpcRouter<any, any>>(self: R, options?: {
-  readonly spanPrefix?: string
-}): HttpApp.Default<
-  HttpServerError.RequestError | ParseError,
-  RpcRouter.RpcRouter.Context<R>
-> => {
-  const handler = RpcRouter.toHandlerNoStream(self, options)
-  return HttpServerRequest.HttpServerRequest.pipe(
-    Effect.flatMap((_) => _.json),
-    Effect.flatMap(handler),
-    Effect.flatMap((r) => {
-      // currently only 200, 418, 422 are allowed, see apiClientFactory
-      let status = 200
-      const results = Array.isArray(r) ? r : [r]
-      if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Die")) {
-        status = 418
-      } else if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Fail")) {
-        status = 422 // 418
-      }
-      return HttpServerResponse.json(r, { status }).pipe(Effect.orDie)
-    }),
-    Effect.tapDefect(reportError("RPCHttpApp"))
-  )
-}
+
 
 export type AnyRequestModule = S.Schema.Any & {
   _tag: string
@@ -148,8 +124,8 @@ export interface RouterShape<Rsc> {
   [RouterSymbol]: Rsc
 }
 
-type RPCRouteR<T extends Rpc.Rpc<any, any>> = [T] extends [
-  Rpc.Rpc<any, infer R>
+type RPCRouteR<T extends [any, (requestLayers: any) => (req: any, headers: any) => Effect<any, any, any>]> = T extends [
+  any, (requestLayers: any) => (...args: any[]) => Effect<any, any, infer R>
 ] ? R
   : never
 
@@ -325,21 +301,8 @@ export const makeRouter = <
         | { [k in keyof Layers]: Layer.Layer.Success<Layers[k]> }[number]
         | { [k in keyof TLayers]: Layer.Layer.Success<TLayers[k]> }[number]
       type Router = RouterShape<Rsc>
-      const r: HttpRouter.HttpRouter.TagClass<
-        Router,
-        `${typeof meta.moduleName}Router`,
-        never,
-        Exclude<
-          | Context
-          | RPCRouteR<
-            { [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Rsc>]
-          >,
-          HttpRouter.HttpRouter.Provided
-        >
-      > = (class Router extends HttpRouter.Tag(`${meta.moduleName}Router`)<Router>() {}) as any
 
-      const layer = r.use((router) =>
-        Effect.gen(function*() {
+      const layer = (requestLayers: any) => Effect.gen(function*() {
           const controllers = yield* make
           const rpc = yield* makeRpc(middleware)
 
@@ -355,7 +318,7 @@ export const makeRouter = <
               ? (req: any) => Effect.retry(handler.handler(req) as any, optimisticConcurrencySchedule)
               : (req: any) => Effect.interruptible(handler.handler(req) as any)
 
-            acc[cur] = rpc.effect(
+            acc[cur] = [
               handler._tag === "raw"
                 ? class extends (req as any) {
                   static success = S.encodedSchema(req.success)
@@ -370,7 +333,7 @@ export const makeRouter = <
                   }
                 } as any
                 : req,
-              (req) =>
+              (requestLayers: any) => (req: any, headers: any) =>
                 // TODO: render more data... similar to console?
                 Effect
                   .annotateCurrentSpan(
@@ -402,8 +365,7 @@ export const makeRouter = <
                           reportRequestError(cause, {
                             action: `${meta.moduleName}.${req._tag}`
                           }),
-                          Rpc.currentHeaders.pipe(Effect.andThen((headers) => {
-                            return InfraLogger
+                          InfraLogger
                               .logError("Finished request", cause)
                               .pipe(Effect.annotateLogs({
                                 action: `${meta.moduleName}.${req._tag}`,
@@ -418,7 +380,6 @@ export const makeRouter = <
                                 //     }, {} as Record<string, any>)
                                 // )
                               }))
-                          }))
                         ])
                     ),
                     // NOTE: this does not catch errors from the middlewares..
@@ -426,39 +387,48 @@ export const makeRouter = <
                     devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error")),
                     Effect.withSpan("Request." + meta.moduleName + "." + req._tag, {
                       captureStackTrace: () => handler.stack
-                    })
+                    }),
+                    Effect.provide(requestLayers)
                   ),
-              meta.moduleName
-            ) // TODO
+              meta.moduleName] as const
             return acc
           }, {} as any) as {
-            [K in Keys]: Rpc.Rpc<
+            [K in Keys]: [
               Rsc[K],
-              Context | _R<ReturnType<THandlers[K]["handler"]>>
-            >
+            (requestLayers: any) => (req: any, headers: any) => Effect.Effect<any, _E<ReturnType<THandlers[K]["handler"]>>, Context | _R<ReturnType<THandlers[K]["handler"]>>>, // Context | _R<ReturnType<THandlers[K]["handler"]>>
+            ]
           }
 
-          const rpcRouter = RpcRouter.make(...Object.values(mapped) as any) as RpcRouter.RpcRouter<
-            RPCRouteReq<typeof mapped[keyof typeof mapped]>,
-            RPCRouteR<typeof mapped[keyof typeof mapped]>
-          >
-          const httpApp = toHttpApp(rpcRouter, {
-            spanPrefix: rsc
-              .meta
-              .moduleName + "."
-          })
-          yield* router
-            .post(
-              "/",
-              httpApp as any,
-              { uninterruptible: true }
-            )
-        })
-      )
+          const rpcs = RpcGroup.make(...typedValuesOf(mapped).map(_ => Rpc.fromTaggedRequest(_[0])))
+          const rpcLayer = (requestLayers) => rpcs.toLayer(Effect.gen(function*() {
+            return typedValuesOf(mapped).reduce((acc, [req,handler]) => {
+              acc[req._tag] = handler(requestLayers)
+              return acc
+            }, {} as Record<string, any>)
+          })) as unknown as Layer<{ [K in keyof Filtered]: Rpc.Handler<K> }, never, RPCRouteR<typeof mapped[keyof typeof mapped]>>
+
+          return rpcLayer(requestLayers).pipe(Layer.provideMerge(RpcServer.layerProtocolHttp({ path: ("/rpc/" + meta.moduleName) as `/rpc/${typeof meta.moduleName}` })))
+
+          // const rpcRouter = RpcRouter.make(...typedValuesOf(mapped).map(_ => _[0]) as any) as RpcRouter.RpcRouter<
+          //   RPCRouteReq<typeof mapped[keyof typeof mapped]>,
+          //   RPCRouteR<typeof mapped[keyof typeof mapped]>
+          // >
+          // const httpApp = toHttpApp(rpcRouter, {
+          //   spanPrefix: rsc
+          //     .meta
+          //     .moduleName + "."
+          // })
+          // yield* router
+          //   .post(
+          //     "/",
+          //     httpApp as any,
+          //     { uninterruptible: true }
+          //   )
+        }).pipe(Layer.unwrapEffect)
+      
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       const routes = layer.pipe(
-        Layer.provideMerge(r.Live),
         layers && Array.isNonEmptyReadonlyArray(layers) ? Layer.provide(layers as any) as any : (_) => _,
         // TODO: only provide to the middleware?
         middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _
@@ -476,7 +446,6 @@ export const makeRouter = <
 
       return {
         moduleName: meta.moduleName,
-        Router: r,
         routes
       }
     }

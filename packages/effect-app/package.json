@@ -191,6 +191,50 @@
       "types": "./dist/builtin.d.ts",
       "default": "./dist/builtin.js"
     },
+    "./canary/Rpc": {
+      "types": "./dist/canary/Rpc.d.ts",
+      "default": "./dist/canary/Rpc.js"
+    },
+    "./canary/Rpc/Rpc": {
+      "types": "./dist/canary/Rpc/Rpc.d.ts",
+      "default": "./dist/canary/Rpc/Rpc.js"
+    },
+    "./canary/Rpc/RpcClient": {
+      "types": "./dist/canary/Rpc/RpcClient.d.ts",
+      "default": "./dist/canary/Rpc/RpcClient.js"
+    },
+    "./canary/Rpc/RpcGroup": {
+      "types": "./dist/canary/Rpc/RpcGroup.d.ts",
+      "default": "./dist/canary/Rpc/RpcGroup.js"
+    },
+    "./canary/Rpc/RpcMessage": {
+      "types": "./dist/canary/Rpc/RpcMessage.d.ts",
+      "default": "./dist/canary/Rpc/RpcMessage.js"
+    },
+    "./canary/Rpc/RpcMiddleware": {
+      "types": "./dist/canary/Rpc/RpcMiddleware.d.ts",
+      "default": "./dist/canary/Rpc/RpcMiddleware.js"
+    },
+    "./canary/Rpc/RpcSchema": {
+      "types": "./dist/canary/Rpc/RpcSchema.d.ts",
+      "default": "./dist/canary/Rpc/RpcSchema.js"
+    },
+    "./canary/Rpc/RpcSerialization": {
+      "types": "./dist/canary/Rpc/RpcSerialization.d.ts",
+      "default": "./dist/canary/Rpc/RpcSerialization.js"
+    },
+    "./canary/Rpc/RpcServer": {
+      "types": "./dist/canary/Rpc/RpcServer.d.ts",
+      "default": "./dist/canary/Rpc/RpcServer.js"
+    },
+    "./canary/Rpc/RpcTest": {
+      "types": "./dist/canary/Rpc/RpcTest.d.ts",
+      "default": "./dist/canary/Rpc/RpcTest.js"
+    },
+    "./canary/Rpc/RpcWorker": {
+      "types": "./dist/canary/Rpc/RpcWorker.d.ts",
+      "default": "./dist/canary/Rpc/RpcWorker.js"
+    },
     "./client": {
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
@@ -198,6 +242,10 @@
     "./client/apiClientFactory": {
       "types": "./dist/client/apiClientFactory.d.ts",
       "default": "./dist/client/apiClientFactory.js"
+    },
+    "./client/apiClientFactory2": {
+      "types": "./dist/client/apiClientFactory2.d.ts",
+      "default": "./dist/client/apiClientFactory2.js"
     },
     "./client/clientFor": {
       "types": "./dist/client/clientFor.d.ts",

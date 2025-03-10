@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.35.0
+
+### Minor Changes
+
+- 72b92d9: form: add Refinement support
+
 ## 2.34.2
 
 ### Patch Changes

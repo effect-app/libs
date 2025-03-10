@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.34.2
+
+### Patch Changes
+
+- a4a73e3: change typeerror failed to fetch level to info
+
 ## 2.34.1
 
 ### Patch Changes

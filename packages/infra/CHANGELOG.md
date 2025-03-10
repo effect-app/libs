@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 2.44.2
+
+### Patch Changes
+
+- 36996ed: housekeeping: update packages
+- Updated dependencies [36996ed]
+  - effect-app@2.33.1
+
 ## 2.44.1
 
 ### Patch Changes

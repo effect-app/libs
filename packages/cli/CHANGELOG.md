@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.16.2
+
+### Patch Changes
+
+- 36996ed: housekeeping: update packages
+
 ## 1.16.1
 
 ### Patch Changes

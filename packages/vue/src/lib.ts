@@ -10,6 +10,8 @@ export * as Result from "@effect-rx/rx/Result"
 
 const reportRuntimeError_ = reportError("Runtime")
 
+const filters = ["TypeError: failed to fetch", "AbortError"]
+
 const determineLevel = (cause: Cause<unknown>) => {
   const sq = Cause.squash(cause)
   if (!isHttpClientError(sq)) {
@@ -19,7 +21,7 @@ const determineLevel = (cause: Cause<unknown>) => {
     case "RequestError":
       return sq.reason === "Transport" ? LogLevel.Info : undefined
       case "ResponseError":
-        return sq.reason === "Decode" && sq.cause?.toString().includes("AbortError") ? LogLevel.Info : undefined
+        return sq.reason === "Decode" && filters.some(_ => sq.cause?.toString().includes(_)) ? LogLevel.Info : undefined
   }
 }
 

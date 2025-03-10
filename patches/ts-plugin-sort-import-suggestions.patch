@@ -1,0 +1,45 @@
+diff --git a/index.js b/index.js
+index 2ae5c7f6e1066e198c73c72791569e62953fcb84..58104dc542df9b29c2a5bd3811e0498b6705067e 100644
+--- a/index.js
++++ b/index.js
+@@ -44,22 +44,24 @@ function init(modules) {
+       });
+       return prior;
+     };
+-    proxy.getCodeFixesAtPosition = (fileName, start, end, errorCodes, formatOptions, preferences) => {
+-      const prior = info.languageService.getCodeFixesAtPosition(
+-        fileName,
+-        start,
+-        end,
+-        errorCodes,
+-        formatOptions,
+-        preferences
+-      );
+-      const newFixes = [...prior].sort((a, b) => {
+-        const aSort = moveUpRegexes.some((re) => re.test(a.description)) ? -1 : moveDownRegexes.some((re) => re.test(a.description)) ? 1 : 0;
+-        const bSort = moveUpRegexes.some((re) => re.test(b.description)) ? -1 : moveDownRegexes.some((re) => re.test(b.description)) ? 1 : 0;
+-        return aSort - bSort;
+-      });
+-      return newFixes;
+-    };
++    // We patched TS itself to do the following, so we had more control over what is going on
++    //
++    // proxy.getCodeFixesAtPosition = (fileName, start, end, errorCodes, formatOptions, preferences) => {
++    //   const prior = info.languageService.getCodeFixesAtPosition(
++    //     fileName,
++    //     start,
++    //     end,
++    //     errorCodes,
++    //     formatOptions,
++    //     preferences
++    //   );
++    //   const newFixes = [...prior].sort((a, b) => {
++    //     const aSort = moveUpRegexes.some((re) => re.test(a.description)) ? -1 : moveDownRegexes.some((re) => re.test(a.description)) ? 1 : 0;
++    //     const bSort = moveUpRegexes.some((re) => re.test(b.description)) ? -1 : moveDownRegexes.some((re) => re.test(b.description)) ? 1 : 0;
++    //     return aSort - bSort;
++    //   });
++    //   return newFixes;
++    // };
+     return proxy;
+   }
+   return { create };

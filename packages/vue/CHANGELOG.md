@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.36.0
+
+### Minor Changes
+
+- f5eeccb: feat: add useSafeSuspenseQuery
+
 ## 2.35.0
 
 ### Minor Changes

@@ -22,6 +22,9 @@ function getTypeLiteralAST(ast: S.AST.AST): S.AST.TypeLiteral | null {
       // that is not a type literal nor a class because we would prefer the from AST
       return getTypeLiteralAST(ast.to) ?? getTypeLiteralAST(ast.from)
     }
+    case "Refinement": {
+      return getTypeLiteralAST(ast.from)
+    }
     default: {
       return null
     }

@@ -18,8 +18,9 @@ const determineLevel = (cause: Cause<unknown>) => {
   switch (sq._tag) {
     case "RequestError":
       return sq.reason === "Transport" ? LogLevel.Info : undefined
+      case "ResponseError":
+        return sq.reason === "Decode" && sq.cause?.toString().includes("AbortError") ? LogLevel.Info : undefined
   }
-  return undefined
 }
 
 export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string, unknown>) =>

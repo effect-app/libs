@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "2.44.0",
+  "version": "2.44.2",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -24,9 +24,9 @@
     "@babel/plugin-syntax-import-attributes": "^7.26.0",
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "babel-plugin-replace-import-extension": "^1.1.5",
-    "@sentry/node": "^9.4.0",
+    "@sentry/node": "^9.5.0",
     "@types/express": "^5.0.0",
-    "@types/node": "~22.13.9",
+    "@types/node": "~22.13.10",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.7",
@@ -38,22 +38,22 @@
     "redlock": "^4.2.0",
     "strip-ansi": "^7.1.0",
     "typescript": "^5.8.2",
-    "vitest": "^3.0.7"
+    "vitest": "^3.0.8"
   },
   "peerDependencies": {
     "@azure/cosmos": "^4.2.0",
     "@azure/service-bus": "^7.9.5",
-    "@effect/experimental": "^0.41.6",
-    "@effect/platform": "^0.77.6",
-    "@effect/rpc-http": "^0.50.6",
-    "@effect/rpc": "^0.52.6",
-    "@effect/sql": "^0.30.6",
-    "@effect/vitest": "^0.19.4",
+    "@effect/experimental": "^0.42.1",
+    "@effect/platform": "^0.78.1",
+    "@effect/rpc-http": "^0.51.1",
+    "@effect/rpc": "^0.53.1",
+    "@effect/sql": "^0.31.1",
+    "@effect/vitest": "^0.19.6",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.4",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^3.13.6",
+    "effect": "^3.13.8",
     "express": "^4.21.2"
   },
   "typesVersions": {

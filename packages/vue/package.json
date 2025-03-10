@@ -1,23 +1,23 @@
 {
   "name": "@effect-app/vue",
-  "version": "2.34.0",
+  "version": "2.36.0",
   "license": "MIT",
   "type": "module",
   "homepage": "https://github.com/effect-ts-app/libs/tree/main/packages/vue",
   "dependencies": {
     "@formatjs/intl": "^3.1.4",
-    "@tanstack/vue-query": "^5.67.1",
-    "@vueuse/core": "^12.8.2",
+    "@tanstack/vue-query": "^5.67.2",
+    "@vueuse/core": "^13.0.0",
     "effect-app": "workspace:*",
     "query-string": "^9.1.1"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.77.6",
-    "@effect/platform-browser": "^0.56.6",
+    "@effect/platform": "^0.78.1",
+    "@effect/platform-browser": "^0.57.1",
     "@effect-rx/rx": "^0.34.7",
     "@effect-rx/rx-vue": "^0.11.7",
-    "@sentry/browser": "^9.4.0",
-    "effect": "^3.13.6",
+    "@sentry/browser": "^9.5.0",
+    "effect": "^3.13.8",
     "vue": "^3.5.13"
   },
   "devDependencies": {
@@ -28,12 +28,12 @@
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "babel-plugin-replace-import-extension": "^1.1.5",
     "@rollup/pluginutils": "^5.1.4",
-    "@types/node": "~22.13.9",
+    "@types/node": "~22.13.10",
     "intl-messageformat": "^10.7.15",
     "json5": "^2.2.3",
     "typescript": "^5.8.2",
-    "vite": "^6.2.0",
-    "vitest": "^3.0.7"
+    "vite": "^6.2.1",
+    "vitest": "^3.0.8"
   },
   "typesVersions": {
     "*": {

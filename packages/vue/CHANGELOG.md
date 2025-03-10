@@ -1,5 +1,32 @@
 # @effect-app/vue
 
+## 2.36.0
+
+### Minor Changes
+
+- f5eeccb: feat: add useSafeSuspenseQuery
+
+## 2.35.0
+
+### Minor Changes
+
+- 72b92d9: form: add Refinement support
+
+## 2.34.2
+
+### Patch Changes
+
+- a4a73e3: change typeerror failed to fetch level to info
+
+## 2.34.1
+
+### Patch Changes
+
+- 0e27176: Change AbortError level to info
+- 36996ed: housekeeping: update packages
+- Updated dependencies [36996ed]
+  - effect-app@2.33.1
+
 ## 2.34.0
 
 ### Minor Changes

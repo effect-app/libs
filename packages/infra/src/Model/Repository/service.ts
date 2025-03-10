@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Effect, Option, PubSub, S } from "effect-app"
-import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "effect-app/client"
+import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "effect-app/client/errors"
 import type { NonNegativeInt } from "effect-app/Schema/numbers"
 import type { FieldValues, ResolveFirstLevel } from "../filter/types.js"
 import type { QAll, Query, QueryProjection } from "../query.js"

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Result } from "@effect-rx/rx/Result"
+import * as Result from "@effect-rx/rx/Result"
+import type { InitialDataFunction, QueryObserverResult, RefetchOptions, UseQueryReturnType } from "@tanstack/vue-query"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
@@ -8,7 +9,7 @@ import type { OperationFailure } from "effect-app/Operations"
 import { OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
-import type { ComputedRef, Ref, ShallowRef } from "vue"
+import type { ComputedRef, Ref, ShallowRef, WatchSource } from "vue"
 import { computed, ref, watch } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
@@ -16,6 +17,7 @@ import { getRuntime, reportRuntimeError } from "./lib.js"
 import type { MakeIntlReturn } from "./makeIntl.js"
 import { asResult, makeMutation, mutationResultToVue } from "./mutate.js"
 import type { MutationOptions, Res } from "./mutate.js"
+import type { KnownFiberFailure, QueryObserverOptionsCustom } from "./query.js"
 import { makeQuery } from "./query.js"
 
 const tapHandler = <A, E, R, I>(
@@ -111,7 +113,7 @@ type ActResp<A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
 
 export const suppressToast = constant(Effect.succeed(undefined))
 
-export function handleRequest<
+function handleRequest<
   E extends ResponseErrors,
   A,
   R,
@@ -209,14 +211,14 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
-      ComputedRef<Result<A2, E2>>,
+      ComputedRef<Result.Result<A2, E2>>,
       (i: I) => Effect<Exit<A2, E2>, never, R2>
     ]
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
-      ComputedRef<Result<A2, E2>>,
+      ComputedRef<Result.Result<A2, E2>>,
       Effect<Exit<A2, E2>, never, R2>
     ]
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
@@ -403,7 +405,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R2, ComputedRef<Result<A2, E2>>>
+    ): Resp<I, A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
     <
       E extends ResponseErrors,
       A,
@@ -422,7 +424,7 @@ export const makeClient = <Locale extends string, R>(
       self: RequestHandler<A, E, R, Request>,
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<A2, E2, R2, ComputedRef<Result<A2, E2>>>
+    ): ActResp<A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
   } = <E extends ResponseErrors, A, R, Request extends TaggedRequestClassAny, I>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
     action: any,
@@ -772,6 +774,123 @@ export const makeClient = <Locale extends string, R>(
     }
   }
 
+  /**
+   * The difference with useSafeQuery is that this function will return a Promise you can await in the Setup,
+   * which ensures that either there always is a latest value, or an error occurs on load.
+   * So that Suspense and error boundaries can be used.
+   */
+  function useSafeSuspenseQuery<
+    E,
+    A,
+    Request extends TaggedRequestClassAny
+  >(
+    self: RequestHandler<A, E, R, Request>,
+    options?: QueryObserverOptionsCustom<A, E> & {
+      initialData: A | InitialDataFunction<A>
+    }
+  ): Effect<
+    readonly [
+      ComputedRef<Result.Result<A, E>>,
+      ComputedRef<A>,
+      (
+        options?: RefetchOptions
+      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      UseQueryReturnType<any, any>
+    ]
+  >
+  function useSafeSuspenseQuery<
+    Arg,
+    E,
+    A,
+    Request extends TaggedRequestClassAny
+  >(
+    self: RequestHandlerWithInput<Arg, A, E, R, Request>,
+    arg: Arg | WatchSource<Arg>,
+    options?: QueryObserverOptionsCustom<A, E> & {
+      initialData: A | InitialDataFunction<A>
+    }
+  ): Effect<
+    readonly [
+      ComputedRef<Result.Result<A, E>>,
+      ComputedRef<A>,
+      (
+        options?: RefetchOptions
+      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      UseQueryReturnType<any, any>
+    ]
+  >
+  function useSafeSuspenseQuery<
+    E,
+    A,
+    Request extends TaggedRequestClassAny
+  >(
+    self: RequestHandler<A, E, R, Request>,
+    options?: QueryObserverOptionsCustom<A, E>
+  ): Effect<
+    readonly [
+      ComputedRef<Result.Result<A, E>>,
+      ComputedRef<A>,
+      (
+        options?: RefetchOptions
+      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      UseQueryReturnType<any, any>
+    ]
+  >
+  function useSafeSuspenseQuery<
+    Arg,
+    E,
+    A,
+    Request extends TaggedRequestClassAny
+  >(
+    self: RequestHandlerWithInput<Arg, A, E, R, Request>,
+    arg: Arg | WatchSource<Arg>,
+    options?: QueryObserverOptionsCustom<A, E>
+  ): Effect<
+    readonly [
+      ComputedRef<Result.Result<A, E>>,
+      ComputedRef<A>,
+      (
+        options?: RefetchOptions
+      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      UseQueryReturnType<any, any>
+    ]
+  >
+  function useSafeSuspenseQuery(
+    self: any,
+    argOrOptions?: any,
+    options?: any
+  ) {
+    const [resultRef, latestRef, fetch, uqrt] = _useSafeQuery(
+      self,
+      argOrOptions,
+      options
+    )
+    return Effect.gen(function*() {
+      // we want to throw on error so that we can catch cancelled error and skip handling it
+      const r = yield* fetch()
+      if (
+        r
+        && r.error // unwrap the FiberFailure, as we are going through runPromise
+        && Runtime.isFiberFailure(r.error)
+      ) {
+        return yield* Exit.failCause(r.error[Runtime.FiberFailureCauseId])
+      }
+      // Effect.promise(() => uqrt.suspense()) // what's the difference with just calling `fetch` ?
+
+      const result = resultRef.value
+      if (Result.isInitial(result)) {
+        return yield* Effect.die(
+          "Internal Error: Promise should be resolved already"
+        )
+      }
+      if (Result.isFailure(result)) {
+        return yield* Exit.failCause(result.cause)
+      }
+
+      return [resultRef, latestRef, fetch, uqrt] as const
+    })
+  }
+
   return {
     useSafeMutationWithState: _useSafeMutationWithState,
     useAndHandleMutation: _useAndHandleMutation,
@@ -783,6 +902,7 @@ export const makeClient = <Locale extends string, R>(
     buildFormFromSchema: _buildFormFromSchema,
     useSafeQuery: _useSafeQuery,
     useSafeMutation: _useSafeMutation,
-    useUnsafeMutation: _useUnsafeMutation
+    useUnsafeMutation: _useUnsafeMutation,
+    useSafeSuspenseQuery
   }
 }

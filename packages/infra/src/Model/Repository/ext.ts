@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect-app"
 import { Array, Effect, Exit, Option, Request, RequestResolver } from "effect-app"
-import type { InvalidStateError, OptimisticConcurrencyException } from "effect-app/client"
-import { NotFoundError } from "effect-app/client"
+import { NotFoundError } from "effect-app/client/errors"
+import type { InvalidStateError, OptimisticConcurrencyException } from "effect-app/client/errors"
 import type { FixEnv, PureEnv } from "effect-app/Pure"
 import { runTerm } from "effect-app/Pure"
 import { AnyPureDSL } from "../dsl.js"

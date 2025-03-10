@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.33.1
+
+### Patch Changes
+
+- 36996ed: housekeeping: update packages
+
 ## 2.33.0
 
 ### Minor Changes

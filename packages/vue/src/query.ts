@@ -4,20 +4,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-rx/rx/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import type {
-  InitialDataFunction,
-  QueryKey,
-  QueryObserverOptions,
-  QueryObserverResult,
-  RefetchOptions,
-  UseQueryReturnType
-} from "@tanstack/vue-query"
-import { useQuery } from "@tanstack/vue-query"
+import { type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
-import { computed, ref, shallowRef, watch } from "vue"
-import type { ComputedRef, ShallowRef, WatchSource } from "vue"
+import { computed, type ComputedRef, ref, type ShallowRef, shallowRef, watch, type WatchSource } from "vue"
 import { getRuntime, makeQueryKey, reportRuntimeError } from "./lib.js"
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

@@ -6,8 +6,7 @@ import { Either, Option, pipe, S, Struct } from "effect-app"
 import type { Schema } from "effect-app/Schema"
 import type { Unbranded } from "effect-app/Schema/brand"
 import type { IsUnion } from "effect-app/utils"
-import type { Ref } from "vue"
-import { capitalize, ref, watch } from "vue"
+import { capitalize, type Ref, ref, watch } from "vue"
 
 // type GetSchemaFromProp<T> = T extends Field<infer S, any, any, any> ? S
 //   : never
@@ -53,7 +52,7 @@ export function convertOutInt(v: string, type?: "text" | "float" | "int") {
   return c
 }
 
-export function convertOut(v: string, set: (v: unknown | null) => void, type?: "text" | "float" | "int") {
+export function convertOut(v: string, set: (v: {} | null) => void, type?: "text" | "float" | "int") {
   return set(convertOutInt(v, type))
 }
 

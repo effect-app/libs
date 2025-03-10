@@ -2,8 +2,7 @@
 /* eslint-disable prefer-destructuring */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-import type { Context } from "effect"
-import { Effect, HashMap, Option, Ref } from "effect"
+import { type Context, Effect, HashMap, Option, Ref } from "effect"
 import * as Def from "effect/Deferred"
 import type { Semaphore } from "effect/Effect"
 import * as Fiber from "effect/Fiber"

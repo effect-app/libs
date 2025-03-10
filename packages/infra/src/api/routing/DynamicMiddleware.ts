@@ -2,8 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc } from "@effect/rpc"
-import type { Array, Layer, Request, S } from "effect-app"
-import { Effect } from "effect-app"
+import { type Array, Effect, type Layer, type Request, type S } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import type * as EffectRequest from "effect/Request"
 

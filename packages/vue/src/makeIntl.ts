@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
-import type { Formatters, IntlFormatters, ResolvedIntlConfig } from "@formatjs/intl"
-import { createIntl, createIntlCache } from "@formatjs/intl"
+import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type ResolvedIntlConfig } from "@formatjs/intl"
 import { typedKeysOf } from "effect-app/utils"
 import type { FormatXMLElementFn, PrimitiveType } from "intl-messageformat"
-import type { Ref } from "vue"
-import { computed, ref, watch } from "vue"
+import { computed, type Ref, ref, watch } from "vue"
 import { translate } from "./form.js"
 import { makeContext } from "./makeContext.js"
 

@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Rpc } from "@effect/rpc"
-import { RpcResolver, RpcResolverNoStream } from "@effect/rpc"
+import { type Rpc, RpcResolver, RpcResolverNoStream } from "@effect/rpc"
 import type { RpcRouter } from "@effect/rpc/RpcRouter"
 import { HttpBody, HttpClient, HttpClientRequest, HttpClientResponse } from "../http.js"
-import type { RequestResolver, Schema } from "../internal/lib.js"
-import { Config, Context, Effect, flow, HashMap, Layer, Option, pipe, Predicate, S, Struct } from "../internal/lib.js"
+import { Config, Context, Effect, flow, HashMap, Layer, Option, pipe, Predicate, type RequestResolver, S, type Schema, Struct } from "../internal/lib.js"
 import { typedKeysOf } from "../utils.js"
 import type { Client, Requests } from "./clientFor.js"
 

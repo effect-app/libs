@@ -1,7 +1,6 @@
 import { getRequestContext, setupRequestContext } from "@effect-app/infra/api/setupRequest"
 import { reportNonInterruptedFailure } from "@effect-app/infra/QueueMaker/errors"
-import type { QueueBase } from "@effect-app/infra/QueueMaker/service"
-import { QueueMeta } from "@effect-app/infra/QueueMaker/service"
+import { type QueueBase, QueueMeta } from "@effect-app/infra/QueueMaker/service"
 import { SqlClient } from "@effect/sql"
 import { subMinutes } from "date-fns"
 import { Effect, Fiber, Option, S, Tracer } from "effect-app"

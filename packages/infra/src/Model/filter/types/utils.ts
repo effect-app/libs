@@ -109,13 +109,13 @@ export type Resolve<T> =
   & {
     [K in keyof T]: Resolve<T[K]>
   }
-  & unknown
+  & {}
 
 export type ResolveFirstLevel<T> =
   & {
     [K in keyof T]: T[K]
   }
-  & unknown
+  & {}
 
 export type Cast<T, U> = T extends U ? T : U
 

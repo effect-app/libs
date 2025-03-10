@@ -1,14 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Effect, FiberRef, flow, Option, Order, pipe, Ref, Struct } from "effect-app"
-import type { NonEmptyReadonlyArray } from "effect-app"
+import { Array, Effect, FiberRef, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { get } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import { codeFilter } from "./codeFilter.js"
-import type { FilterArgs, PersistenceModelType, Store, StoreConfig } from "./service.js"
-import { StoreMaker } from "./service.js"
+import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { makeUpdateETag } from "./utils.js"
 
 export function memFilter<T extends FieldValues, U extends keyof T = never>(f: FilterArgs<T, U>) {

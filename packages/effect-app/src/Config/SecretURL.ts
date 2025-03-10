@@ -1,8 +1,7 @@
 /**
  * @since 1.0.0
  */
-import type { Equal, Redacted } from "effect"
-import { Config } from "effect"
+import { Config, type Equal, type Redacted } from "effect"
 import type * as Chunk from "effect/Chunk"
 import * as Either from "effect/Either"
 import type { SecretTypeId } from "effect/Secret"

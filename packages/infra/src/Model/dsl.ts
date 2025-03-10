@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { NonEmptyReadonlyArray } from "effect-app"
-import { Effect } from "effect-app"
+import { Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
-import { get, logMany, set } from "effect-app/Pure"
-import type { FixEnv, Pure, PureEnvEnv, PureLogT } from "effect-app/Pure"
+import { type FixEnv, get, logMany, type Pure, type PureEnvEnv, type PureLogT, set } from "effect-app/Pure"
 
 export interface PureDSL<S, S2, W> {
   get: Pure<never, S, S, never, never, S>

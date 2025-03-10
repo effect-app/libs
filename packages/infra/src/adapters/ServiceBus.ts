@@ -1,15 +1,6 @@
-import type {
-  OperationOptionsBase,
-  ProcessErrorArgs,
-  ServiceBusMessage,
-  ServiceBusMessageBatch,
-  ServiceBusReceivedMessage,
-  ServiceBusReceiver,
-  ServiceBusSender
-} from "@azure/service-bus"
-import { ServiceBusClient } from "@azure/service-bus"
-import type { Scope } from "effect-app"
-import { Cause, Context, Effect, Exit, FiberSet, Layer } from "effect-app"
+/* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
+import { type OperationOptionsBase, type ProcessErrorArgs, ServiceBusClient, type ServiceBusMessage, type ServiceBusMessageBatch, type ServiceBusReceivedMessage, type ServiceBusReceiver, type ServiceBusSender } from "@azure/service-bus"
+import { Cause, Context, Effect, Exit, FiberSet, Layer, type Scope } from "effect-app"
 import { InfraLogger } from "./logger.js"
 
 function makeClient(url: string) {
@@ -102,6 +93,7 @@ export function subscribe<RMsg, RErr>(hndlr: MessageHandlers<RMsg, RErr>, sessio
             if (Exit.isSuccess(exit)) {
               resolve(exit.value)
             } else {
+              // disable @typescript-eslint/prefer-promise-reject-errors
               reject(Cause.pretty(exit.cause, { renderErrorCause: true }))
             }
           })

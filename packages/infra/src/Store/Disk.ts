@@ -6,8 +6,7 @@ import fs from "fs"
 import { Console, Effect, FiberRef, flow } from "effect-app"
 import type { FieldValues } from "../Model/filter/types.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
-import type { PersistenceModelType, StorageConfig, Store, StoreConfig } from "./service.js"
-import { StoreMaker } from "./service.js"
+import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 
 function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
   prefix: string,

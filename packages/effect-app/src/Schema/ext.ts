@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import type { SchemaAST } from "effect"
-import { Effect, ParseResult, pipe } from "effect"
+import { Effect, ParseResult, pipe, type SchemaAST } from "effect"
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import type { Tag } from "effect/Context"
 import type { Schema } from "effect/Schema"

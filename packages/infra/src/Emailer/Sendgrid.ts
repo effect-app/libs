@@ -5,8 +5,7 @@ import { Array, Effect, Equivalence, Redacted } from "effect-app"
 import { dropUndefinedT } from "effect-app/utils"
 import { inspect } from "util"
 import { InfraLogger } from "../logger.js"
-import { Emailer, SendMailError } from "./service.js"
-import type { EmailMsg, EmailMsgOptionalFrom, SendgridConfig } from "./service.js"
+import { Emailer, type EmailMsg, type EmailMsgOptionalFrom, type SendgridConfig, SendMailError } from "./service.js"
 
 const makeSendgrid = ({ apiKey, defaultFrom, defaultReplyTo, realMail, subjectPrefix }: SendgridConfig) =>
   Effect.sync(() => {

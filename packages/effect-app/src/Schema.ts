@@ -1,5 +1,4 @@
-import type { Tracer } from "effect"
-import { Array, Option, pipe, SchemaAST } from "effect"
+import { Array, Option, pipe, SchemaAST, type Tracer } from "effect"
 import * as S from "effect/Schema"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import { fakerArb } from "./faker.js"
@@ -15,18 +14,7 @@ export * from "./Schema/Class.js"
 export { Class, TaggedClass } from "./Schema/Class.js"
 
 export { fromBrand, nominal } from "./Schema/brand.js"
-export {
-  Array,
-  Boolean,
-  Date,
-  NonEmptyArray,
-  NullOr,
-  Number,
-  ReadonlyMap,
-  ReadonlySet,
-  Struct,
-  Tuple
-} from "./Schema/ext.js"
+export { Array, Boolean, Date, NonEmptyArray, NullOr, Number, ReadonlyMap, ReadonlySet, Struct, Tuple } from "./Schema/ext.js"
 export { Int, NonNegativeInt } from "./Schema/numbers.js"
 
 export * from "./Schema/email.js"

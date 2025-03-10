@@ -15,9 +15,10 @@ export default [
       "node_modules/"
     ]
   },
-  // {
-  //   rules: {
-  //     "@typescript-eslint/no-empty-interface": "off"
-  //   }
-  // }
+  {
+    rules: {
+      "@typescript-eslint/no-empty-interface": "off",
+      "@typescript-eslint/no-explicit-any": "warn",
+    }
+  }
 ]

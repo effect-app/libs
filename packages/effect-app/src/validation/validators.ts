@@ -1,6 +1,5 @@
 // Not importing from /es/lib because they are .js files and bundlers probably assume they're cjs :(
-import type { IsEmailOptions } from "validator/lib/isEmail.js"
-import isEmail from "validator/lib/isEmail.js"
+import isEmail, { type IsEmailOptions } from "validator/lib/isEmail.js"
 
 // Source https://emailregex.com/
 // eslint-disable-next-line no-control-regex

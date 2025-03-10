@@ -19,6 +19,9 @@ patchedDependencies:
   eslint-plugin-codegen@0.17.0:
     hash: 976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7
     path: patches/eslint-plugin-codegen@0.17.0.patch
+  ts-plugin-sort-import-suggestions:
+    hash: 4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561
+    path: patches/ts-plugin-sort-import-suggestions.patch
   typescript:
     hash: 7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98
     path: patches/typescript.patch
@@ -163,6 +166,9 @@ importers:
       npm-check-updates:
         specifier: ^17.1.15
         version: 17.1.15
+      ts-plugin-sort-import-suggestions:
+        specifier: ^1.0.4
+        version: 1.0.4(patch_hash=4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561)
       ts-transform-paths:
         specifier: ^3.0.0
         version: 3.0.0
@@ -4662,6 +4668,9 @@ packages:
 
   ts-pattern@5.6.2:
     resolution: {integrity: sha512-d4IxJUXROL5NCa3amvMg6VQW2HVtZYmUTPfvVtO7zJWGYLJ+mry9v2OmYm+z67aniQoQ8/yFNadiEwtNS9qQiw==}
+
+  ts-plugin-sort-import-suggestions@1.0.4:
+    resolution: {integrity: sha512-85n5lm2OQQ+b7aRNK9omU1gmjMNXRsgeLwojm5u4OSY5sVBkAHTcgMQPEeHMNlyyfFW0uXnwgqAU0pNfhD96Bw==}
 
   ts-toolbelt@9.6.0:
     resolution: {integrity: sha512-nsZd8ZeNUzukXPlJmTBwUAuABDe/9qtVDelJeT/qW0ow3ZS3BsQJtNkan1802aM9Uf68/Y8ljw86Hu0h5IUW3w==}
@@ -9604,6 +9613,8 @@ snapshots:
       '@ts-graphviz/core': 2.0.5
 
   ts-pattern@5.6.2: {}
+
+  ts-plugin-sort-import-suggestions@1.0.4(patch_hash=4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561): {}
 
   ts-toolbelt@9.6.0: {}
 

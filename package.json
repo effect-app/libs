@@ -6,7 +6,8 @@
       "eslint-plugin-codegen@0.17.0": "patches/eslint-plugin-codegen@0.17.0.patch",
       "@phaphoso/eslint-plugin-dprint@0.5.2": "patches/@phaphoso__eslint-plugin-dprint@0.5.2.patch",
       "typescript": "patches/typescript.patch",
-      "effect": "patches/effect.patch"
+      "effect": "patches/effect.patch",
+      "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch"
     }
   },
   "engines": {
@@ -101,6 +102,7 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
+    "ts-plugin-sort-import-suggestions": "^1.0.4",
     "unplugin-auto-import": "^19.1.1",
     "vite": "^6.2.1",
     "vitest": "^3.0.8"

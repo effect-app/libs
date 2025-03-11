@@ -1,4 +1,4 @@
-import { Data, Effect, FiberRef } from "effect-app"
+import { Context, Data, Effect, Layer } from "effect-app"
 import { ContextMap } from "./service.js"
 
 // TODO: we have to create a new contextmap on every request.
@@ -7,12 +7,14 @@ import { ContextMap } from "./service.js"
 // we can call another start after startup. but it would be even better if we could Die on accessing rootmap
 // we could also make the ContextMap optional, and when missing, issue a warning instead?
 
-const ContextMapContainer = FiberRef.unsafeMake<ContextMap | "root">("root")
+export class ContextMapContainer extends Context.Reference<ContextMapContainer>()("ContextMapContainer", {
+  defaultValue: (): ContextMap | "root" => "root"
+}) {
+  static readonly layer = Layer.effect(this, ContextMap.make)
+}
 
 export class ContextMapNotStartedError extends Data.TaggedError("ContextMapNotStartedError") {}
 
-export const getContextMap = FiberRef.get(ContextMapContainer).pipe(
+export const getContextMap = ContextMapContainer.pipe(
   Effect.filterOrFail((_) => _ !== "root", () => new ContextMapNotStartedError())
 )
-
-export const startContextMap = Effect.flatMap(ContextMap.make, (_) => FiberRef.set(ContextMapContainer, _))

@@ -1,6 +1,6 @@
 // FILE HAS SIDE EFFECTS!
 import type { Faker } from "@faker-js/faker"
-import type * as FC from "fast-check"
+import * as FC from "fast-check"
 
 // TODO: inject faker differently, so we dont care about multiple instances of library.
 
@@ -17,14 +17,14 @@ export function getFaker() {
 }
 
 export const fakerToArb = <T>(fakerGen: () => T) => (fc: typeof FC) => {
-  return fc
-    .integer()
-    .noBias() // same probability to generate each of the allowed integers
-    .noShrink() // shrink on a seed makes no sense
-    .map((seed) => {
-      faker.seed(seed) // seed the generator
-      return fakerGen() // call it
-    })
+  return FC.noBias(FC.noShrink(
+    fc
+      .integer()
+      .map((seed) => {
+        faker.seed(seed) // seed the generator
+        return fakerGen() // call it
+      })
+  ))
 }
 
 export const fakerArb = <T>(

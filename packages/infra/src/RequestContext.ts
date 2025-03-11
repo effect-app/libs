@@ -1,11 +1,11 @@
-import { FiberRef, S } from "effect-app"
+import { Context, S } from "effect-app"
 import { UserProfileId } from "effect-app/ids"
 import { NonEmptyString255 } from "effect-app/Schema"
 
 export const Locale = S.Literal("en", "de")
 export type Locale = typeof Locale.Type
 
-export const LocaleRef = FiberRef.unsafeMake<Locale>("en")
+export class LocaleRef extends Context.Reference<LocaleRef>()("Locale", { defaultValue: (): Locale => "en" }) {}
 
 export class RequestContext extends S.ExtendedClass<
   RequestContext,

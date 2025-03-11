@@ -3,7 +3,7 @@ import * as fu from "../fileUtil.js"
 
 import fs from "fs"
 
-import { Console, Effect, FiberRef, flow } from "effect-app"
+import { Console, Effect, flow } from "effect-app"
 import type { FieldValues } from "../Model/filter/types.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
 import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -136,7 +136,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
           const ctx = yield* Effect.context<R>()
           const getStore = !config?.allowNamespace
             ? Effect.succeed(primary)
-            : FiberRef.get(storeId).pipe(Effect.flatMap((namespace) => {
+            : storeId.pipe(Effect.flatMap((namespace) => {
               const store = stores.get(namespace)
               if (store) {
                 return Effect.succeed(store)

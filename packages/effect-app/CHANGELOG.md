@@ -1,5 +1,25 @@
 # @effect-app/prelude
 
+## 2.35.0
+
+### Minor Changes
+
+- f38e31f: make LogLevels readonly
+
+### Patch Changes
+
+- f30b57e: fix faker and rebuild dts
+
+## 2.34.0
+
+### Minor Changes
+
+- 64d3a54: refactor: replace custom FiberRefs with Context.Reference in preparation of Effect v4
+
+### Patch Changes
+
+- 771ac45: update packages
+
 ## 2.33.1
 
 ### Patch Changes

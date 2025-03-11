@@ -4,8 +4,7 @@
 import type * as Request from "effect/Request"
 import type { Path } from "path-parser"
 import qs from "query-string"
-import type { Effect, Schema } from "../internal/lib.js"
-import { Record } from "../internal/lib.js"
+import { type Effect, Record, type Schema } from "../internal/lib.js"
 import type * as S from "../Schema.js"
 
 export function makePathWithQuery(

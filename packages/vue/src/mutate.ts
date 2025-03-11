@@ -1,13 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Result from "@effect-rx/rx/Result"
-import type { InvalidateOptions, InvalidateQueryFilters } from "@tanstack/vue-query"
-import { useQueryClient } from "@tanstack/vue-query"
-import type { Cause, Exit } from "effect-app"
-import { Effect, Option } from "effect-app"
+import { type InvalidateOptions, type InvalidateQueryFilters, useQueryClient } from "@tanstack/vue-query"
+import { type Cause, Effect, type Exit, Option } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
-import type { ComputedRef, Ref } from "vue"
-import { computed, shallowRef } from "vue"
+import { computed, type ComputedRef, type Ref, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
 
 export const getQueryKey = (h: { name: string }) => {
@@ -69,7 +66,6 @@ export function make<A, E, R>(self: Effect<A, E, R>) {
 
   return tuple(result, latestSuccess, execute)
 }
-
 
 export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
   /**

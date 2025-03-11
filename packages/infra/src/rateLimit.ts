@@ -20,8 +20,7 @@
 //   }
 // }
 
-import type { Duration, NonEmptyArray } from "effect-app"
-import { Array, Effect } from "effect-app"
+import { Array, type Duration, Effect, type NonEmptyArray } from "effect-app"
 import type { Semaphore } from "effect-app/Effect"
 
 /**

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Tracer } from "effect-app"
-import { Context, Effect, Fiber, FiberSet, Option } from "effect-app"
+import { Context, Effect, Fiber, FiberSet, Option, type Tracer } from "effect-app"
 import { reportRequestError, reportUnknownRequestError } from "./api/reportError.js"
 import { InfraLogger } from "./logger.js"
 

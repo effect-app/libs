@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Option, S } from "effect-app"
-import { Data, flow, Pipeable } from "effect-app"
+import { Data, flow, type Option, Pipeable, type S } from "effect-app"
 import type { NonNegativeInt } from "effect-app/Schema"
 import type { Covariant } from "effect/Types"
 import type { Ops } from "../filter/filterApi.js"

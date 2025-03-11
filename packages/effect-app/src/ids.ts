@@ -1,5 +1,4 @@
-import { brandedStringId, NonEmptyString255, StringId, withDefaultMake } from "effect-app/Schema"
-import type { Schema, StringIdBrand } from "effect-app/Schema"
+import { brandedStringId, NonEmptyString255, type Schema, StringId, type StringIdBrand, withDefaultMake } from "effect-app/Schema"
 import type { B } from "effect-app/Schema/schema"
 import type { Simplify } from "effect/Types"
 import { S } from "./index.js"
@@ -13,7 +12,6 @@ export type RequestId = NonEmptyString255
 // a request id may be made from a span id, which does not comply with StringId schema.
 export const RequestId = extendM(
   Object
-    // eslint-disable-next-line @typescript-eslint/ban-types
     .assign(Object.create(NonEmptyString255) as {}, NonEmptyString255 as Schema<NonEmptyString255, string>),
   (s) => {
     const make = StringId.make as () => NonEmptyString255

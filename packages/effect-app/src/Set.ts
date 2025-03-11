@@ -1,10 +1,8 @@
 // ets_tracing: off
 
-import { Array, Option } from "effect"
-import type { Either, Equivalence, Order } from "effect"
+import { Array, type Either, type Equivalence, Option, type Order } from "effect"
 import { not } from "effect/Predicate"
-import type { Predicate, Refinement } from "./Function.js"
-import { identity, pipe, tuple } from "./Function.js"
+import { identity, pipe, type Predicate, type Refinement, tuple } from "./Function.js"
 
 export function find_<A, B extends A>(
   as: ReadonlySet<A>,

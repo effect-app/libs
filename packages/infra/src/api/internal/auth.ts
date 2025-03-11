@@ -2,13 +2,7 @@
 /* eslint-disable unused-imports/no-unused-vars */
 import { Data, Effect } from "effect-app"
 import { HttpHeaders, HttpMiddleware, HttpServerRequest, HttpServerResponse } from "effect-app/http"
-import {
-  auth,
-  InsufficientScopeError,
-  InvalidRequestError,
-  InvalidTokenError,
-  UnauthorizedError
-} from "express-oauth2-jwt-bearer"
+import { auth, InsufficientScopeError, InvalidRequestError, InvalidTokenError, UnauthorizedError } from "express-oauth2-jwt-bearer"
 
 // // Authorization middleware. When used, the Access Token must
 // // exist and be verified against the Auth0 JSON Web Key Set.

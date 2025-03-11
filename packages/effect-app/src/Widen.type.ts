@@ -3,8 +3,7 @@ import type { BuiltInObject } from "effect-app/utils"
 
 type AllKeys<T> = T extends any ? keyof T : never
 
-type OptionalKeys<T> = T extends any // eslint-disable-next-line @typescript-eslint/ban-types
-  ? { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T]
+type OptionalKeys<T> = T extends any ? { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T]
   : never
 
 type Idx<T, K extends PropertyKey, D = never> = T extends any ? K extends keyof T ? T[K]
@@ -20,7 +19,6 @@ export type Primitive = boolean | string | number | bigint | symbol | undefined 
 export type Widen<T> = [T] extends [BuiltInObject] | [Primitive] ? T
   : [T] extends [Array<unknown>] ? { [K in keyof T]: Widen<T[K]> }
   : [T] extends [ReadonlyArray<unknown>] ? { [K in keyof T]: Widen<T[K]> }
-  // eslint-disable-next-line @typescript-eslint/ban-types
   : [T] extends [object] ? PartialKeys<
       { [K in AllKeys<T>]: Widen<Idx<T, K>> },
       Exclude<AllKeys<T>, keyof T> | OptionalKeys<T>

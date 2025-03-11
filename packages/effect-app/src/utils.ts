@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Effect, Option, Record } from "effect"
 import * as Either from "effect/Either"
 import { dual, isFunction } from "effect/Function"

@@ -1,23 +1,7 @@
-import type { Equivalence, Order } from "effect"
-import { Option } from "effect"
+import { type Equivalence, Option, type Order } from "effect"
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import { flow, pipe } from "./Function.js"
-import {
-  filter_,
-  filterMap,
-  filterMap_,
-  fromArray as fromArrayOriginal,
-  insert as insertOriginal,
-  insert_ as insert_Original,
-  map,
-  map_,
-  reduce,
-  reduce_,
-  remove,
-  remove_,
-  type Set,
-  toArray as toArrayOriginal
-} from "./Set.js"
+import { filter_, filterMap, filterMap_, fromArray as fromArrayOriginal, insert as insertOriginal, insert_ as insert_Original, map, map_, reduce, reduce_, remove, remove_, type Set, toArray as toArrayOriginal } from "./Set.js"
 
 export interface NonEmptyBrand {
   readonly NonEmpty: unique symbol

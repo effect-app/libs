@@ -1,5 +1,4 @@
-import type { FileOptions } from "@effect-app/infra/fileUtil"
-import { tempFile } from "@effect-app/infra/fileUtil"
+import { type FileOptions, tempFile } from "@effect-app/infra/fileUtil"
 import cp from "child_process"
 import { Config, Effect, Layer, Predicate, S } from "effect-app"
 import { pretty } from "effect-app/utils"

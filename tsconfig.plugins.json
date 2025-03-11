@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "ts-plugin-sort-import-suggestions",
+        "moveUpPatterns": [
+          "\\.{1,2}/",
+          "^(?:\\.\\./)+",
+          "^#",
+          "^@/",
+          "effect",
+          "^@effect/"
+        ],
+        "moveDownPatterns": [
+          "^node_modules/"
+        ],
+        "overrides": {
+          "effect-app": []
+        }
+      },
+      {
+        "name": "@effect/language-service"
+      }
+    ]
+  }
+}

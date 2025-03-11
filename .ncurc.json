@@ -9,7 +9,6 @@
     "@types/redis",
     "react-hook-form",
     "eslint-plugin-codegen",
-    "eslint",
     "@dprint/typescript"
   ],
   "dep": [

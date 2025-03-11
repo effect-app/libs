@@ -4,31 +4,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as HttpApp from "@effect/platform/HttpApp"
 import { Rpc, RpcRouter } from "@effect/rpc"
-import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect-app"
-import {
-  Array,
-  Cause,
-  Duration,
-  Effect,
-  FiberRef,
-  flow,
-  Layer,
-  Predicate,
-  Request,
-  S,
-  Schedule,
-  Schema
-} from "effect-app"
+import { Array, Cause, Duration, Effect, FiberRef, flow, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import type { HttpServerError } from "effect-app/http"
-import { HttpHeaders, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect-app/http"
+import { HttpHeaders, HttpRouter, type HttpServerError, HttpServerRequest, HttpServerResponse } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { ParseError } from "effect/ParseResult"
 import type { Contravariant } from "effect/Types"
 import { logError, reportError } from "../errorReporter.js"
 import { InfraLogger } from "../logger.js"
-import type { Middleware } from "./routing/DynamicMiddleware.js"
-import { makeRpc } from "./routing/DynamicMiddleware.js"
+import { makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
 import { determineMethod } from "./routing/utils.js"
 
 const logRequestError = logError("Request")

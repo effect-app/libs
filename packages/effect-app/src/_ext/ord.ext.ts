@@ -1,5 +1,4 @@
-import { Chunk } from "effect"
-import type { Equivalence } from "effect"
+import { Chunk, type Equivalence } from "effect"
 
 export function toArray<A>(
   gen: Generator<A, void, unknown>

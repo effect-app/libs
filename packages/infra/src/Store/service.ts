@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { UniqueKey } from "@azure/cosmos"
-import { Context, Effect } from "effect-app"
-import type { NonEmptyReadonlyArray, Option, Redacted } from "effect-app"
+import { Context, Effect, type NonEmptyReadonlyArray, type Option, type Redacted } from "effect-app"
 import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
@@ -105,7 +104,11 @@ export const makeContextMap = () => {
   const etags = new Map<string, string>()
   const getEtag = (id: string) => etags.get(id)
   const setEtag = (id: string, eTag: string | undefined) => {
-    eTag === undefined ? etags.delete(id) : etags.set(id, eTag)
+    if (eTag === undefined) {
+      etags.delete(id)
+    } else {
+      etags.set(id, eTag)
+    }
   }
 
   // const parsedCache = new Map<

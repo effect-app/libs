@@ -20,8 +20,8 @@ const determineLevel = (cause: Cause<unknown>) => {
   switch (sq._tag) {
     case "RequestError":
       return sq.reason === "Transport" ? LogLevel.Info : undefined
-      case "ResponseError":
-        return sq.reason === "Decode" && filters.some(_ => sq.cause?.toString().includes(_)) ? LogLevel.Info : undefined
+    case "ResponseError":
+      return sq.reason === "Decode" && filters.some((_) => sq.cause?.toString().includes(_)) ? LogLevel.Info : undefined
   }
 }
 

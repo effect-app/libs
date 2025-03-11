@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Effect, FiberRef, flow, Option, Order, pipe, Ref, Struct } from "effect-app"
+import { Array, Context, Effect, flow, Option, Order, pipe, Ref, Struct } from "effect-app"
 import type { NonEmptyReadonlyArray } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { get } from "effect-app/utils"
@@ -58,7 +58,9 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
 }
 
 const defaultNs = NonEmptyString255("primary")
-export const storeId = FiberRef.unsafeMake<NonEmptyString255>(defaultNs)
+export class storeId
+  extends Context.Reference<storeId>()("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
+{}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
   return InfraLogger
@@ -232,7 +234,7 @@ export const makeMemoryStore = () => ({
       const stores = new Map([["primary", primary]])
       const getStore = !config?.allowNamespace
         ? Effect.succeed(primary)
-        : FiberRef.get(storeId).pipe(Effect.flatMap((namespace) => {
+        : storeId.pipe(Effect.flatMap((namespace) => {
           const store = stores.get(namespace)
           if (store) {
             return Effect.succeed(store)

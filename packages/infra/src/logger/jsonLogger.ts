@@ -1,13 +1,13 @@
 import { Cause, FiberId, HashMap, List, Logger } from "effect-app"
 import { spanAttributes } from "../RequestContext.js"
-import { getRequestContextFromFiberRefs } from "./shared.js"
+import { getRequestContextFromCurrentContext } from "./shared.js"
 
 export const jsonLogger = Logger.make<unknown, void>(
   ({ annotations, cause, context, fiberId, logLevel, message, spans }) => {
     const now = new Date()
     const nowMillis = now.getTime()
 
-    const request = getRequestContextFromFiberRefs(context)
+    const request = getRequestContextFromCurrentContext(context)
 
     const data = {
       timestamp: now,

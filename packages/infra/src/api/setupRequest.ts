@@ -1,14 +1,14 @@
-import { Effect, FiberRef, Layer, Tracer } from "effect-app"
+import { Effect, Layer, Tracer } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { LocaleRef, RequestContext, spanAttributes } from "../RequestContext.js"
-import { startContextMap } from "../Store/ContextMapContainer.js"
+import { ContextMapContainer } from "../Store/ContextMapContainer.js"
 import { storeId } from "../Store/Memory.js"
 
 export const getRequestContext = Effect
   .all({
     span: Effect.currentSpan.pipe(Effect.orDie),
-    locale: FiberRef.get(LocaleRef),
-    namespace: FiberRef.get(storeId)
+    locale: LocaleRef,
+    namespace: storeId
   })
   .pipe(
     Effect.map(({ locale, namespace, span }) =>
@@ -23,8 +23,8 @@ export const getRequestContext = Effect
   )
 
 export const getRC = Effect.all({
-  locale: FiberRef.get(LocaleRef),
-  namespace: FiberRef.get(storeId)
+  locale: LocaleRef,
+  namespace: storeId
 })
 
 const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(f: Effect<A, E, R>) =>
@@ -43,26 +43,25 @@ const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, 
       )
   )
 
-const setupContextMap = startContextMap.pipe(Layer.effectDiscard)
-
 export const setupRequestContextFromCurrent =
   (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(self: Effect<A, E, R>) =>
     self
       .pipe(
         withRequestSpan(name, options),
-        Effect.provide(setupContextMap)
+        Effect.provide(ContextMapContainer.layer)
       )
 
 // TODO: consider integrating Effect.withParentSpan
 export function setupRequestContext<R, E, A>(self: Effect<A, E, R>, requestContext: RequestContext) {
-  return Effect.gen(function*() {
-    yield* FiberRef.set(LocaleRef, requestContext.locale)
-    yield* FiberRef.set(storeId, requestContext.namespace)
-
-    return yield* self
-      .pipe(
-        withRequestSpan(requestContext.name),
-        Effect.provide(setupContextMap)
-      )
-  })
+  const layer = ContextMapContainer.layer.pipe(
+    Layer.provide([
+      Layer.succeed(LocaleRef, requestContext.locale),
+      Layer.succeed(storeId, requestContext.namespace)
+    ])
+  )
+  return self
+    .pipe(
+      withRequestSpan(requestContext.name),
+      Effect.provide(layer)
+    )
 }

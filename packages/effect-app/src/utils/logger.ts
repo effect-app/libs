@@ -2,10 +2,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { LogLevel } from "effect"
-import { Effect, FiberRef } from "effect"
+import { Context, Effect } from "effect"
 
 type Levels = "info" | "debug" | "warn" | "error"
-export const LogLevels = FiberRef.unsafeMake(new Map<string, Levels>())
+
+export class LogLevels
+  extends Context.Reference<LogLevels>()("LogLevels", { defaultValue: () => new Map<string, Levels>() })
+{}
+
 export const makeLog = (namespace: string, defaultLevel: Levels = "warn") => {
   const level = LogLevels.pipe(Effect.andThen((levels) => levels.get(namespace) ?? defaultLevel))
   const withLogNamespace = Effect.annotateLogs({ logNamespace: namespace })

@@ -1,5 +1,18 @@
 # @effect-app/infra
 
+## 2.45.0
+
+### Minor Changes
+
+- 64d3a54: refactor: replace custom FiberRefs with Context.Reference in preparation of Effect v4
+
+### Patch Changes
+
+- 771ac45: update packages
+- Updated dependencies [771ac45]
+- Updated dependencies [64d3a54]
+  - effect-app@2.34.0
+
 ## 2.44.2
 
 ### Patch Changes

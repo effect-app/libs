@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Context, Effect, type LogLevel } from "effect"
 
 type Levels = "info" | "debug" | "warn" | "error"

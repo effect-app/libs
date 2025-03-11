@@ -1,5 +1,15 @@
 # @effect-app/prelude
 
+## 2.35.0
+
+### Minor Changes
+
+- f38e31f: make LogLevels readonly
+
+### Patch Changes
+
+- f30b57e: fix faker and rebuild dts
+
 ## 2.34.0
 
 ### Minor Changes

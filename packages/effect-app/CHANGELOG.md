@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.35.0
+
+### Minor Changes
+
+- f38e31f: make LogLevels readonly
+
 ## 2.34.0
 
 ### Minor Changes

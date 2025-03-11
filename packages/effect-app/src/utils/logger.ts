@@ -6,9 +6,9 @@ import { Context, Effect } from "effect"
 
 type Levels = "info" | "debug" | "warn" | "error"
 
-export class LogLevels
-  extends Context.Reference<LogLevels>()("LogLevels", { defaultValue: () => new Map<string, Levels>() })
-{}
+export class LogLevels extends Context.Reference<LogLevels>()("LogLevels", {
+  defaultValue: (): ReadonlyMap<string, Levels> => new Map<string, Levels>()
+}) {}
 
 export const makeLog = (namespace: string, defaultLevel: Levels = "warn") => {
   const level = LogLevels.pipe(Effect.andThen((levels) => levels.get(namespace) ?? defaultLevel))

@@ -10,9 +10,6 @@ overrides:
   vue: ^3.5.13
 
 patchedDependencies:
-  '@phaphoso/eslint-plugin-dprint@0.5.2':
-    hash: eea28b10680421b1694a2c076da66f23967496e57bd21d30294877e30a9a455f
-    path: patches/@phaphoso__eslint-plugin-dprint@0.5.2.patch
   effect:
     hash: 781897251bb1d851db3728b66ffc7521a2ba3b3eaef40559b959d6f2428bb0c9
     path: patches/effect.patch
@@ -43,6 +40,9 @@ importers:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.8.2(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
     devDependencies:
+      '@ben_12/eslint-plugin-dprint':
+        specifier: ^1.1.0
+        version: 1.1.0(@dprint/typescript@0.93.4)(eslint@9.21.0)
       '@changesets/cli':
         specifier: ^2.28.1
         version: 2.28.1
@@ -76,9 +76,6 @@ importers:
       '@eslint/js':
         specifier: 9.21.0
         version: 9.21.0
-      '@phaphoso/eslint-plugin-dprint':
-        specifier: ^0.5.2
-        version: 0.5.2(patch_hash=eea28b10680421b1694a2c076da66f23967496e57bd21d30294877e30a9a455f)(eslint@9.21.0)
       '@tsconfig/strictest':
         specifier: ^2.0.5
         version: 2.0.5
@@ -743,6 +740,34 @@ packages:
     resolution: {integrity: sha512-Y3IR1cRnOxOCDvMmNiym7XpXQ93iGDDPHx+Zj+NM+rg0fBaShfQLkg+hKPaZCEvg5N/LeCo4+Rj/i3FuJsIQaw==}
     engines: {node: '>=6.9.0'}
 
+  '@ben_12/eslint-plugin-dprint@1.1.0':
+    resolution: {integrity: sha512-V85HgF3yVozupn27W6H4S0OZcu+oY/YwEGDzWhEwyi+qtxxzzyjqiRpy4gtf2iB6eMnZawluzoY8n4IzS60UPA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@dprint/dockerfile': ^0.3.2
+      '@dprint/json': ^0.20.0
+      '@dprint/markdown': ^0.18.0
+      '@dprint/toml': ^0.7.0
+      '@dprint/typescript': ^0.94.0
+      dprint-plugin-malva: ^0.11.2
+      dprint-plugin-markup: ^0.19.0
+      eslint: '>=7.0.0'
+    peerDependenciesMeta:
+      '@dprint/dockerfile':
+        optional: true
+      '@dprint/json':
+        optional: true
+      '@dprint/markdown':
+        optional: true
+      '@dprint/toml':
+        optional: true
+      '@dprint/typescript':
+        optional: true
+      dprint-plugin-malva:
+        optional: true
+      dprint-plugin-markup:
+        optional: true
+
   '@changesets/apply-release-plan@7.0.10':
     resolution: {integrity: sha512-wNyeIJ3yDsVspYvHnEz1xQDq18D9ifed3lI+wxRQRK4pArUcuHgCTrHv0QRnnwjhVCQACxZ+CBih3wgOct6UXw==}
 
@@ -811,6 +836,9 @@ packages:
     resolution: {integrity: sha512-cA/DIPlHClkufLufuIfcXHtZdlyP9U05RuJLvvAfHwJAxyeEC/chKYVc5BVz86RxMIq6czFGpJHoFtTjrfM3YA==}
     cpu: [x64]
     os: [darwin]
+
+  '@dprint/formatter@0.4.1':
+    resolution: {integrity: sha512-IB/GXdlMOvi0UhQQ9mcY15Fxcrc2JPadmo6tqefCNV0bptFq7YBpggzpqYXldBXDa04CbKJ+rDwO2eNRPE2+/g==}
 
   '@dprint/linux-arm64-glibc@0.49.0':
     resolution: {integrity: sha512-UBo3lDJhotT+qza2S48DOPI64MirkJMoFDidh/TJBjokio2TcGd+QUzuB9O7J1+R3AlbwyObcTECjJryCNohHQ==}
@@ -1537,12 +1565,6 @@ packages:
   '@parcel/watcher@2.5.0':
     resolution: {integrity: sha512-i0GV1yJnm2n3Yq1qw6QrUrd/LI9bE8WEBOTtOkpCXHHdyN3TAGgqAK/DAT05z4fq2x04cARXt2pDmjWjL92iTQ==}
     engines: {node: '>= 10.0.0'}
-
-  '@phaphoso/eslint-plugin-dprint@0.5.2':
-    resolution: {integrity: sha512-I86DIjCIAIKzdEf0vu0Ctqbp0cm2u1toc94ngm09PuGty58P8w+5WPpR8hm+lQm7+yxLadk/nFhiGEY2eavfYg==}
-    engines: {node: ^10.12.0 || >=12.0.0}
-    peerDependencies:
-      eslint: '>=5.16.0'
 
   '@pkgr/core@0.1.1':
     resolution: {integrity: sha512-cq8o4cWH0ibXh9VGi5P20Tu9XF/0fFXl9EUinr9QfTM7a7p0oTA4iJRCQWppXR1Pg8dSM0UCItCkPwsk9qWWYA==}
@@ -2661,8 +2683,8 @@ packages:
     resolution: {integrity: sha512-Mv/TDa3nZ9sbc5soK+OoA74BsS3mL37yixCvUAQkiuA4Wz6YtwP/K47n2rv2ovzHZvoiQeA5FTQOschKkEwB0Q==}
     engines: {node: '>= 10.14.2'}
 
-  diff@4.0.2:
-    resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==}
+  diff@5.2.0:
+    resolution: {integrity: sha512-uIFDxqpRZGZ6ThOk84hEfqWoHx2devRFvpTZcTHur85vImfaxUbTW9Ryh4CpCuDnToOP1CEtXKIgytHBPVff5A==}
     engines: {node: '>=0.3.1'}
 
   dir-glob@3.0.1:
@@ -3573,6 +3595,9 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  jsonc-parser@3.3.1:
+    resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
@@ -5335,6 +5360,18 @@ snapshots:
       '@babel/helper-string-parser': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
 
+  '@ben_12/eslint-plugin-dprint@1.1.0(@dprint/typescript@0.93.4)(eslint@9.21.0)':
+    dependencies:
+      '@dprint/formatter': 0.4.1
+      debug: 4.4.0(supports-color@5.5.0)
+      diff: 5.2.0
+      eslint: 9.21.0
+      jsonc-parser: 3.3.1
+    optionalDependencies:
+      '@dprint/typescript': 0.93.4
+    transitivePeerDependencies:
+      - supports-color
+
   '@changesets/apply-release-plan@7.0.10':
     dependencies:
       '@changesets/config': 3.1.1
@@ -5487,6 +5524,8 @@ snapshots:
 
   '@dprint/darwin-x64@0.49.0':
     optional: true
+
+  '@dprint/formatter@0.4.1': {}
 
   '@dprint/linux-arm64-glibc@0.49.0':
     optional: true
@@ -6161,14 +6200,6 @@ snapshots:
       '@parcel/watcher-win32-arm64': 2.5.0
       '@parcel/watcher-win32-ia32': 2.5.0
       '@parcel/watcher-win32-x64': 2.5.0
-
-  '@phaphoso/eslint-plugin-dprint@0.5.2(patch_hash=eea28b10680421b1694a2c076da66f23967496e57bd21d30294877e30a9a455f)(eslint@9.21.0)':
-    dependencies:
-      debug: 4.4.0(supports-color@5.5.0)
-      diff: 4.0.2
-      eslint: 9.21.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@pkgr/core@0.1.1': {}
 
@@ -7464,7 +7495,7 @@ snapshots:
 
   diff-sequences@26.6.2: {}
 
-  diff@4.0.2: {}
+  diff@5.2.0: {}
 
   dir-glob@3.0.1:
     dependencies:
@@ -8558,6 +8589,8 @@ snapshots:
       minimist: 1.2.8
 
   json5@2.2.3: {}
+
+  jsonc-parser@3.3.1: {}
 
   jsonfile@4.0.0:
     optionalDependencies:

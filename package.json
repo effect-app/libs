@@ -4,7 +4,6 @@
   "pnpm": {
     "patchedDependencies": {
       "eslint-plugin-codegen@0.17.0": "patches/eslint-plugin-codegen@0.17.0.patch",
-      "@phaphoso/eslint-plugin-dprint@0.5.2": "patches/@phaphoso__eslint-plugin-dprint@0.5.2.patch",
       "typescript": "patches/typescript.patch",
       "effect": "patches/effect.patch",
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch"
@@ -55,6 +54,7 @@
     "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@ben_12/eslint-plugin-dprint": "^1.1.0",
     "@changesets/cli": "^2.28.1",
     "@dprint/typescript": "^0.93.4",
     "@effect-app/cli": "^1.16.2",
@@ -63,7 +63,6 @@
     "@effect/language-service": "0.4.0",
     "@effect/platform": "^0.79.1",
     "@effect/platform-node": "^0.75.1",
-    "@phaphoso/eslint-plugin-dprint": "^0.5.2",
     "@tsconfig/strictest": "^2.0.5",
     "@types/lodash": "^4.17.16",
     "@types/node": "~22.13.10",

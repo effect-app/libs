@@ -12,8 +12,11 @@ import _import from "eslint-plugin-import"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
 import unusedImports from "eslint-plugin-unused-imports"
 
+
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import dprint from "@ben_12/eslint-plugin-dprint";
+
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -166,29 +169,36 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
 export function augmentedConfig(dirName, forceTS = false, project = undefined) {
   return [
     ...baseConfig(dirName, forceTS, project),
-    ...compat.extends(
-      "plugin:@phaphoso/dprint/recommended"
-    ),
     {
       name: "augmented",
+      plugins: {
+        "@ben_12/dprint": dprint
+      },
       rules: {
-        "@phaphoso/dprint/dprint": [
+        ...dprint.configs["typescript-recommended"].rules,
+        "@ben_12/dprint/typescript": [
           "error",
           {
-            config: {
+            // Use dprint JSON configuration file (default: "dprint.json")
+            // It may be created using `dprint init` command
+            // See also https://dprint.dev/config/
+            //configFile: "dprint.json",
               // The TypeScript configuration of dprint
-              // See also https://dprint.dev/plugins/typescript/config/,
-              "indentWidth": 2,
-              "semiColons": "asi",
-              "quoteStyle": "alwaysDouble",
-              "trailingCommas": "never",
-              "arrowFunction.useParentheses": "force",
-              "memberExpression.linePerExpression": true,
-              "binaryExpression.linePerExpression": true,
-              "importDeclaration.forceSingleLine": true,
-              "exportDeclaration.forceSingleLine": true
-            }
-          }
+              // See also https://dprint.dev/plugins/typescript/config/
+              config: {
+                // The TypeScript configuration of dprint
+                // See also https://dprint.dev/plugins/typescript/config/,
+                "indentWidth": 2,
+                "semiColons": "asi",
+                "quoteStyle": "alwaysDouble",
+                "trailingCommas": "never",
+                "arrowFunction.useParentheses": "force",
+                "memberExpression.linePerExpression": true,
+                "binaryExpression.linePerExpression": true,
+                "importDeclaration.forceSingleLine": true,
+                "exportDeclaration.forceSingleLine": true
+              }
+          },
         ],
         "codegen/codegen": [
           "error",

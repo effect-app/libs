@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.45.2
+
+### Patch Changes
+
+- 5269eda: fix missing locale and storeId services
+
 ## 2.45.1
 
 ### Patch Changes

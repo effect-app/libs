@@ -53,11 +53,10 @@ export const setupRequestContextFromCurrent =
 
 // TODO: consider integrating Effect.withParentSpan
 export function setupRequestContext<R, E, A>(self: Effect<A, E, R>, requestContext: RequestContext) {
-  const layer = ContextMapContainer.layer.pipe(
-    Layer.provide([
-      Layer.succeed(LocaleRef, requestContext.locale),
-      Layer.succeed(storeId, requestContext.namespace)
-    ])
+  const layer = Layer.mergeAll(
+    ContextMapContainer.layer,
+    Layer.succeed(LocaleRef, requestContext.locale),
+    Layer.succeed(storeId, requestContext.namespace)
   )
   return self
     .pipe(

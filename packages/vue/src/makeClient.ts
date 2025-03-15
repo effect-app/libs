@@ -859,11 +859,13 @@ export const makeClient = <Locale extends string, R>(
     const [resultRef, latestRef, fetch, uqrt] = _useSafeQuery(
       self,
       argOrOptions,
-      options
+      { ...options, suspense: true } // experimental_prefetchInRender: true }
     )
     return Effect.gen(function*() {
       // we want to throw on error so that we can catch cancelled error and skip handling it
-      const r = yield* fetch()
+      // what's the difference with just calling `fetch` ?
+      // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
+      const r = yield* Effect.promise(() => uqrt.suspense())
       if (
         r
         && r.error // unwrap the FiberFailure, as we are going through runPromise
@@ -871,7 +873,6 @@ export const makeClient = <Locale extends string, R>(
       ) {
         return yield* Exit.failCause(r.error[Runtime.FiberFailureCauseId])
       }
-      // Effect.promise(() => uqrt.suspense()) // what's the difference with just calling `fetch` ?
 
       const result = resultRef.value
       if (Result.isInitial(result)) {

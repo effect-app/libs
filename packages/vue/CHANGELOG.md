@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.36.3
+
+### Patch Changes
+
+- 0918da6: fix suspense
+
 ## 2.36.2
 
 ### Patch Changes

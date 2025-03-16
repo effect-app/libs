@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.36.5
+
+### Patch Changes
+
+- fc94f82: fix: catch FiberFailure and unwrap.
+
 ## 2.36.4
 
 ### Patch Changes

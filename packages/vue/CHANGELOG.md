@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.36.4
+
+### Patch Changes
+
+- 92e02a0: improve: add error logging details
+
 ## 2.36.3
 
 ### Patch Changes

@@ -876,6 +876,13 @@ export const makeClient = <Locale extends string, R>(
 
       const result = resultRef.value
       if (Result.isInitial(result)) {
+        console.error("Internal Error: Promise should be resolved already", {
+          self,
+          argOrOptions,
+          options,
+          r,
+          resultRef
+        })
         return yield* Effect.die(
           "Internal Error: Promise should be resolved already"
         )

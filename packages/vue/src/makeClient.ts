@@ -865,15 +865,15 @@ export const makeClient = <Locale extends string, R>(
       // we want to throw on error so that we can catch cancelled error and skip handling it
       // what's the difference with just calling `fetch` ?
       // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
-      const r = yield* Effect.promise(() => uqrt.suspense())
-      if (
-        r
-        && r.error // unwrap the FiberFailure, as we are going through runPromise
-        && Runtime.isFiberFailure(r.error)
-      ) {
-        return yield* Exit.failCause(r.error[Runtime.FiberFailureCauseId])
-      }
-
+      const r = yield* Effect.tryPromise(() => uqrt.suspense()).pipe(
+        Effect.catchTag("UnknownException", (err) =>
+          Runtime
+              .isFiberFailure(
+                err.error
+              )
+            ? Effect.failCause(err.error[Runtime.FiberFailureCauseId])
+            : Effect.die(err.error))
+      )
       const result = resultRef.value
       if (Result.isInitial(result)) {
         console.error("Internal Error: Promise should be resolved already", {

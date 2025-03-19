@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.45.3
+
+### Patch Changes
+
+- 4f67f34: improve: do not attach requestfiberset to the root span of the current fiber.
+
 ## 2.45.2
 
 ### Patch Changes

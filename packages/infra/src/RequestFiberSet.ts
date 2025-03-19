@@ -49,13 +49,11 @@ const make = Effect.gen(function*() {
    * returned effect terminates, the forked fiber will continue running.
    * The fiber will be interrupted when the RequestFiberSet scope is closed.
    *
-   * The parent span is set to the root span of the current fiber.
    * Reports errors.
    */
   function forkDaemonReport<R, E, A>(self: Effect<A, E, R>) {
     return self.pipe(
       reportRequestError,
-      setRootParentSpan,
       Effect.uninterruptible,
       run
     )
@@ -67,14 +65,12 @@ const make = Effect.gen(function*() {
    * returned effect terminates, the forked fiber will continue running.
    * The fiber will be interrupted when the RequestFiberSet scope is closed.
    *
-   * The parent span is set to the root span of the current fiber.
    * Reports unexpected errors.
    */
   function forkDaemonReportUnexpected<R, E, A>(self: Effect<A, E, R>) {
     return self
       .pipe(
         reportUnknownRequestError,
-        setRootParentSpan,
         Effect.uninterruptible,
         run
       )

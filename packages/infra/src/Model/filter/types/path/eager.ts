@@ -23,9 +23,9 @@ type PathImpl<K extends string | number, V> = V extends
  * ```
  */
 export type Path<T> = T extends ReadonlyArray<infer V> ? IsTuple<T> extends true ? {
-      [K in TupleKeys<T>]-?: PathImpl<K & string, T[K]>
+      [K in TupleKeys<T>]-?: PathImpl<K & string, T[K]> | "length"
     }[TupleKeys<T>]
-  : PathImpl<ArrayKey, V>
+  : PathImpl<ArrayKey, V> | "length"
   : {
     [K in keyof T]-?: PathImpl<K & string, T[K]>
   }[keyof T]

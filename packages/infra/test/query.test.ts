@@ -5,8 +5,7 @@ import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-ap
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import type { QueryEnd, QueryProjection, QueryWhere } from "../src/Model/query.js"
-import { and, count, make, one, or, order, page, project, toFilter, where } from "../src/Model/query.js"
+import { and, count, make, one, or, order, page, project, type QueryEnd, type QueryProjection, type QueryWhere, toFilter, where } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 
@@ -861,5 +860,46 @@ it("does not allow string queries on arrays", () =>
       expectTypeOf(good2).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good3).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good4).toEqualTypeOf<QueryWhere<Some, Some>>()
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("test array.length", () =>
+  Effect
+    .gen(function*() {
+      type Something = {
+        readonly id: string
+        readonly items: string[]
+        readonly tuple: [string, string]
+      }
+      const base = make<Something>()
+
+      const query1 = base.pipe(
+        where("items.length", 0)
+      )
+
+      const query2 = base.pipe(
+        where("items.length", "gt", 2)
+      )
+
+      const query3 = base.pipe(
+        where("tuple.length", 2)
+      )
+
+      const query4 = base.pipe(
+        // @ts-expect-error tuple.length is not valid
+        where("tuple.length", 3)
+      )
+
+      expectTypeOf(query1).toEqualTypeOf<
+        QueryWhere<Something, Something>
+      >()
+
+      expectTypeOf(query2).toEqualTypeOf<
+        QueryWhere<Something, Something>
+      >()
+
+      expectTypeOf(query3).toEqualTypeOf<
+        QueryWhere<Something, Something>
+      >()
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))

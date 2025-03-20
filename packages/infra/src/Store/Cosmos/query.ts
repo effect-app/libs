@@ -45,6 +45,8 @@ export function buildWhereCosmosQuery3(
     }
     let k = x.path.includes(".-1.")
       ? `${x.path.split(".-1.")[0]}.${x.path.split(".-1.")[1]!}`
+      : x.path.endsWith(".length")
+      ? `ARRAY_LENGTH(${x.path.split(".length")[0]})`
       : `f.${x.path}`
 
     // would have to map id, but shouldnt allow id in defaultValues anyway..

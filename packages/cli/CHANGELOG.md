@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.17.0
+
+### Minor Changes
+
+- e42d5fb: update to effect 3.14 with native rpc2
+
 ## 1.16.2
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.37.0
+
+### Minor Changes
+
+- e42d5fb: update to effect 3.14 with native rpc2
+
+### Patch Changes
+
+- Updated dependencies [e42d5fb]
+  - effect-app@2.36.0
+
 ## 2.36.5
 
 ### Patch Changes

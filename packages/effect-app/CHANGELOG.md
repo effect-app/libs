@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.36.0
+
+### Minor Changes
+
+- e42d5fb: update to effect 3.14 with native rpc2
+
 ## 2.35.0
 
 ### Minor Changes

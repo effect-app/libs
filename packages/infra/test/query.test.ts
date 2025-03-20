@@ -885,7 +885,7 @@ it("test array.length", () =>
         where("tuple.length", 2)
       )
 
-      const query4 = base.pipe(
+      base.pipe(
         // @ts-expect-error tuple.length is not valid
         where("tuple.length", 3)
       )

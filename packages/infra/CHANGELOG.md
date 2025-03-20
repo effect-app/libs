@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.47.0
+
+### Minor Changes
+
+- e25091f: add support for list.length in queries
+
 ## 2.46.0
 
 ### Minor Changes

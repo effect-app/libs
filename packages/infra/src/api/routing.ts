@@ -2,18 +2,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type * as HttpApp from "@effect/platform/HttpApp"
-import { Rpc, RpcRouter } from "@effect/rpc"
-import { Array, Cause, Duration, Effect, FiberRef, flow, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { determineMethod } from "@effect-app/infra/api/routing/utils"
+import { logError, reportError } from "@effect-app/infra/errorReporter"
+import { InfraLogger } from "@effect-app/infra/logger"
+import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
+import { Array, Cause, Duration, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import { HttpHeaders, HttpRouter, type HttpServerError, HttpServerRequest, HttpServerResponse } from "effect-app/http"
+import { type HttpHeaders, type HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
-import type { ParseError } from "effect/ParseResult"
 import type { Contravariant } from "effect/Types"
-import { logError, reportError } from "../errorReporter.js"
-import { InfraLogger } from "../logger.js"
 import { makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
-import { determineMethod } from "./routing/utils.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
@@ -34,33 +32,6 @@ export type _E<T extends Effect<any, any, any>> = [T] extends [
 
 export type EffectDeps<A> = {
   [K in keyof A as A[K] extends Effect<any, any, any> ? K : never]: A[K] extends Effect<any, any, any> ? A[K] : never
-}
-/**
- *   Plain jane JSON version, with custom status codes just for fun
- */
-export const toHttpApp = <R extends RpcRouter.RpcRouter<any, any>>(self: R, options?: {
-  readonly spanPrefix?: string
-}): HttpApp.Default<
-  HttpServerError.RequestError | ParseError,
-  RpcRouter.RpcRouter.Context<R>
-> => {
-  const handler = RpcRouter.toHandlerNoStream(self, options)
-  return HttpServerRequest.HttpServerRequest.pipe(
-    Effect.flatMap((_) => _.json),
-    Effect.flatMap(handler),
-    Effect.flatMap((r) => {
-      // currently only 200, 418, 422 are allowed, see apiClientFactory
-      let status = 200
-      const results = Array.isArray(r) ? r : [r]
-      if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Die")) {
-        status = 418
-      } else if (results.some((_: S.ExitEncoded<any, any, any>) => _._tag === "Failure" && _.cause._tag === "Fail")) {
-        status = 422 // 418
-      }
-      return HttpServerResponse.json(r, { status }).pipe(Effect.orDie)
-    }),
-    Effect.tapDefect(reportError("RPCHttpApp"))
-  )
 }
 
 export type AnyRequestModule = S.Schema.Any & {
@@ -98,7 +69,8 @@ type HandlerFull<Action extends AnyRequestModule, RT extends "raw" | "d", A, E, 
   _tag: RT
   stack: string
   handler: (
-    req: S.Schema.Type<Action>
+    req: S.Schema.Type<Action>,
+    headers: HttpHeaders.Headers
   ) => Effect<
     A,
     E,
@@ -132,14 +104,12 @@ export interface RouterShape<Rsc> {
   [RouterSymbol]: Rsc
 }
 
-type RPCRouteR<T extends Rpc.Rpc<any, any>> = [T] extends [
-  Rpc.Rpc<any, infer R>
+type RPCRouteR<
+  T extends [any, (requestLayers: any) => (req: any, headers: HttpHeaders.Headers) => Effect<any, any, any>]
+> = T extends [
+  any,
+  (requestLayers: any) => (...args: any[]) => Effect<any, any, infer R>
 ] ? R
-  : never
-
-type RPCRouteReq<T extends Rpc.Rpc<any, any>> = [T] extends [
-  Rpc.Rpc<infer Req, any>
-] ? Req
   : never
 
 type Match<
@@ -309,158 +279,182 @@ export const makeRouter = <
         | { [k in keyof Layers]: Layer.Layer.Success<Layers[k]> }[number]
         | { [k in keyof TLayers]: Layer.Layer.Success<TLayers[k]> }[number]
       type Router = RouterShape<Rsc>
-      const r: HttpRouter.HttpRouter.TagClass<
-        Router,
-        `${typeof meta.moduleName}Router`,
-        never,
-        Exclude<
-          | Context
-          | RPCRouteR<
-            { [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Rsc>]
-          >,
-          HttpRouter.HttpRouter.Provided
-        >
-      > = (class Router extends HttpRouter.Tag(`${meta.moduleName}Router`)<Router>() {}) as any
 
-      const layer = r.use((router) =>
-        Effect.gen(function*() {
-          const controllers = yield* make
-          const rpc = yield* makeRpc(middleware)
+      const layer = (requestLayers: any) =>
+        Effect
+          .gen(function*() {
+            const controllers = yield* make
+            const rpc = yield* makeRpc(middleware)
 
-          // return make.pipe(Effect.map((c) => controllers(c, layers)))
-          const mapped = typedKeysOf(filtered).reduce((acc, cur) => {
-            const handler = controllers[cur as keyof typeof controllers]
-            const req = rsc[cur]
+            // return make.pipe(Effect.map((c) => controllers(c, layers)))
+            const mapped = typedKeysOf(filtered).reduce((acc, cur) => {
+              const handler = controllers[cur as keyof typeof controllers]
+              const req = rsc[cur]
 
-            const method = determineMethod(String(cur), req)
-            const isCommand = method._tag === "command"
+              const method = determineMethod(String(cur), req)
+              const isCommand = method._tag === "command"
 
-            const handle = isCommand
-              ? (req: any) => Effect.retry(handler.handler(req) as any, optimisticConcurrencySchedule)
-              : (req: any) => Effect.interruptible(handler.handler(req) as any)
+              const handle = isCommand
+                ? (req: any, headers: HttpHeaders.Headers) =>
+                  Effect.retry(handler.handler(req, headers) as any, optimisticConcurrencySchedule)
+                : (req: any, headers: HttpHeaders.Headers) => Effect.interruptible(handler.handler(req, headers) as any)
 
-            acc[cur] = rpc.effect(
-              handler._tag === "raw"
-                ? class extends (req as any) {
-                  static success = S.encodedSchema(req.success)
-                  get [Schema.symbolSerializable]() {
-                    return this.constructor
-                  }
-                  get [Schema.symbolWithResult]() {
-                    return {
-                      failure: req.failure,
-                      success: S.encodedSchema(req.success)
+              acc[cur] = [
+                handler._tag === "raw"
+                  ? class extends (req as any) {
+                    static success = S.encodedSchema(req.success)
+                    get [Schema.symbolSerializable]() {
+                      return this.constructor
                     }
-                  }
-                } as any
-                : req,
-              (req) =>
-                // TODO: render more data... similar to console?
-                Effect
-                  .annotateCurrentSpan(
-                    "requestInput",
-                    Object.entries(req).reduce((prev, [key, value]: [string, unknown]) => {
-                      prev[key] = key === "password"
-                        ? "<redacted>"
-                        : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-                        ? typeof value === "string" && value.length > 256
-                          ? (value.substring(0, 253) + "...")
-                          : value
-                        : Array.isArray(value)
-                        ? `Array[${value.length}]`
-                        : value === null || value === undefined
-                        ? `${value}`
-                        : typeof value === "object" && value
-                        ? `Object[${Object.keys(value).length}]`
-                        : typeof value
-                      return prev
-                    }, {} as Record<string, string | number | boolean>)
-                  )
-                  .pipe(
-                    // can't use andThen due to some being a function and effect
-                    Effect.zipRight(handle(req)),
-                    Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
-                    Effect.tapDefect((cause) =>
-                      Effect
-                        .all([
-                          reportRequestError(cause, {
-                            action: `${meta.moduleName}.${req._tag}`
-                          }),
-                          Rpc.currentHeaders.pipe(Effect.andThen((headers) => {
-                            return InfraLogger
-                              .logError("Finished request", cause)
-                              .pipe(Effect.annotateLogs({
-                                action: `${meta.moduleName}.${req._tag}`,
-                                req: pretty(req),
-                                headers: pretty(headers)
-                                // resHeaders: pretty(
-                                //   Object
-                                //     .entries(headers)
-                                //     .reduce((prev, [key, value]) => {
-                                //       prev[key] = value && typeof value === "string" ? snipString(value) : value
-                                //       return prev
-                                //     }, {} as Record<string, any>)
-                                // )
-                              }))
-                          }))
-                        ])
-                    ),
-                    // NOTE: this does not catch errors from the middlewares..
-                    // we should re-evalute this in any case..
-                    devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error")),
-                    Effect.withSpan("Request." + meta.moduleName + "." + req._tag, {
-                      captureStackTrace: () => handler.stack
-                    })
-                  ),
-              meta.moduleName
-            ) // TODO
-            return acc
-          }, {} as any) as {
-            [K in Keys]: Rpc.Rpc<
-              Rsc[K],
-              Context | _R<ReturnType<THandlers[K]["handler"]>>
-            >
-          }
+                    get [Schema.symbolWithResult]() {
+                      return {
+                        failure: req.failure,
+                        success: S.encodedSchema(req.success)
+                      }
+                    }
+                  } as any
+                  : req,
+                (requestLayers: any) =>
+                  rpc.effect(req, (input: any, headers: HttpHeaders.Headers) =>
+                    // TODO: render more data... similar to console?
+                    Effect
+                      .annotateCurrentSpan(
+                        "requestInput",
+                        Object.entries(input).reduce((prev, [key, value]: [string, unknown]) => {
+                          prev[key] = key === "password"
+                            ? "<redacted>"
+                            : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+                            ? typeof value === "string" && value.length > 256
+                              ? (value.substring(0, 253) + "...")
+                              : value
+                            : Array.isArray(value)
+                            ? `Array[${value.length}]`
+                            : value === null || value === undefined
+                            ? `${value}`
+                            : typeof value === "object" && value
+                            ? `Object[${Object.keys(value).length}]`
+                            : typeof value
+                          return prev
+                        }, {} as Record<string, string | number | boolean>)
+                      )
+                      .pipe(
+                        // can't use andThen due to some being a function and effect
+                        Effect.zipRight(handle(input, headers)),
+                        Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
+                        Effect.tapDefect((cause) =>
+                          Effect
+                            .all([
+                              reportRequestError(cause, {
+                                action: `${meta.moduleName}.${req._tag}`
+                              }),
+                              InfraLogger
+                                .logError("Finished request", cause)
+                                .pipe(Effect.annotateLogs({
+                                  action: `${meta.moduleName}.${req._tag}`,
+                                  req: pretty(req),
+                                  headers: pretty(headers)
+                                  // resHeaders: pretty(
+                                  //   Object
+                                  //     .entries(headers)
+                                  //     .reduce((prev, [key, value]) => {
+                                  //       prev[key] = value && typeof value === "string" ? snipString(value) : value
+                                  //       return prev
+                                  //     }, {} as Record<string, any>)
+                                  // )
+                                }))
+                            ])
+                        ),
+                        // NOTE: this does not catch errors from the middlewares..
+                        // we should re-evalute this in any case..
+                        devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error")),
+                        Effect.withSpan("Request." + meta.moduleName + "." + req._tag, {
+                          captureStackTrace: () => handler.stack
+                        }),
+                        Effect.provide(requestLayers)
+                      ), meta.moduleName),
+                meta.moduleName
+              ] as const
+              return acc
+            }, {} as any) as {
+              [K in Keys]: [
+                Rsc[K],
+                (
+                  requestLayers: any
+                ) => (
+                  req: any,
+                  headers: HttpHeaders.Headers
+                ) => Effect.Effect<
+                  any,
+                  _E<ReturnType<THandlers[K]["handler"]>>,
+                  Context | _R<ReturnType<THandlers[K]["handler"]>>
+                > // Context | _R<ReturnType<THandlers[K]["handler"]>>
+              ]
+            }
 
-          const rpcRouter = RpcRouter.make(...Object.values(mapped) as any) as RpcRouter.RpcRouter<
-            RPCRouteReq<typeof mapped[keyof typeof mapped]>,
-            RPCRouteR<typeof mapped[keyof typeof mapped]>
-          >
-          const httpApp = toHttpApp(rpcRouter, {
-            spanPrefix: rsc
-              .meta
-              .moduleName + "."
-          })
-          yield* router
-            .post(
-              "/",
-              httpApp as any,
-              { uninterruptible: true }
+            const rpcs = RpcGroup.make(
+              ...typedValuesOf(mapped).map((_) => {
+                return Rpc.fromTaggedRequest(_[0])
+              })
             )
-        })
-      )
+            const rpcLayer = (requestLayers: any) =>
+              rpcs.toLayer(Effect.gen(function*() {
+                return typedValuesOf(mapped).reduce((acc, [req, handler]) => {
+                  acc[req._tag] = handler(requestLayers)
+                  return acc
+                }, {} as Record<string, any>)
+              })) as unknown as Layer<
+                { [K in keyof Filtered]: Rpc.Handler<K> },
+                never,
+                RPCRouteR<typeof mapped[keyof typeof mapped]>
+              >
+
+            const impl = rpcLayer(requestLayers)
+            const l = RpcServer.layer(rpcs).pipe(Layer.provide(impl))
+            // TODO: also takes optional a RouterTag..
+            return l.pipe(
+              Layer.provideMerge(
+                RpcServer.layerProtocolHttp({ path: ("/rpc/" + meta.moduleName) as `/rpc/${typeof meta.moduleName}` })
+              )
+            )
+
+            // const rpcRouter = RpcRouter.make(...typedValuesOf(mapped).map(_ => _[0]) as any) as RpcRouter.RpcRouter<
+            //   RPCRouteReq<typeof mapped[keyof typeof mapped]>,
+            //   RPCRouteR<typeof mapped[keyof typeof mapped]>
+            // >
+            // const httpApp = toHttpApp(rpcRouter, {
+            //   spanPrefix: rsc
+            //     .meta
+            //     .moduleName + "."
+            // })
+            // yield* router
+            //   .post(
+            //     "/",
+            //     httpApp as any,
+            //     { uninterruptible: true }
+            //   )
+          })
+          .pipe(Layer.unwrapEffect)
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      const routes = layer.pipe(
-        Layer.provideMerge(r.Live),
-        layers && Array.isNonEmptyReadonlyArray(layers) ? Layer.provide(layers as any) as any : (_) => _,
-        // TODO: only provide to the middleware?
-        middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _
-      ) as Layer.Layer<
-        Router,
-        GetError<TLayers> | E,
-        | GetContext<TLayers>
-        | Exclude<
-          RMW | R,
-          ProvidedLayers
-        >
-      >
+      const routes = ((requestLayer: any) =>
+        layer(requestLayer).pipe(
+          layers && Array.isNonEmptyReadonlyArray(layers) ? Layer.provide(layers as any) as any : (_) => _,
+          // TODO: only provide to the middleware?
+          middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _
+        )) as ((requestLayer: any) => Layer.Layer<
+          Router,
+          GetError<TLayers> | E,
+          | GetContext<TLayers>
+          | Exclude<
+            RMW | R,
+            ProvidedLayers
+          >
+        >)
 
       // Effect.Effect<HttpRouter.HttpRouter<unknown, HttpRouter.HttpRouter.DefaultServices>, never, UserRouter>
 
       return {
         moduleName: meta.moduleName,
-        Router: r,
         routes
       }
     }
@@ -483,21 +477,8 @@ export const makeRouter = <
         make: Make
       ): {
         moduleName: ModuleName
-        Router: HttpRouter.HttpRouter.TagClass<
-          RouterShape<Rsc>,
-          `${ModuleName}Router`,
-          never,
-          | Exclude<Context, HttpRouter.HttpRouter.Provided>
-          | Exclude<
-            RPCRouteR<
-              {
-                [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<MakeHandlers<Make, Filter<Rsc>>[K]["handler"]>>>
-              }[keyof Filter<Rsc>]
-            >,
-            HttpRouter.HttpRouter.Provided
-          >
-        >
-        routes: Layer.Layer<
+
+        routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Rsc>,
           MakeErrors<Make> | GetError<Make["dependencies"]>,
           | GetContext<Make["dependencies"]>
@@ -521,21 +502,8 @@ export const makeRouter = <
         make: Make
       ): {
         moduleName: ModuleName
-        Router: HttpRouter.HttpRouter.TagClass<
-          RouterShape<Rsc>,
-          `${ModuleName}Router`,
-          never,
-          | Exclude<Context, HttpRouter.HttpRouter.Provided>
-          | Exclude<
-            RPCRouteR<
-              {
-                [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<MakeHandlers<Make, Filter<Rsc>>[K]["handler"]>>>
-              }[keyof Filter<Rsc>]
-            >,
-            HttpRouter.HttpRouter.Provided
-          >
-        >
-        routes: Layer.Layer<
+
+        routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Rsc>,
           MakeErrors<Make> | GetError<Make["dependencies"]>,
           | GetContext<Make["dependencies"]>
@@ -559,21 +527,8 @@ export const makeRouter = <
         make: Make
       ): {
         moduleName: ModuleName
-        Router: HttpRouter.HttpRouter.TagClass<
-          RouterShape<Rsc>,
-          `${ModuleName}Router`,
-          never,
-          | Exclude<Context, HttpRouter.HttpRouter.Provided>
-          | Exclude<
-            RPCRouteR<
-              {
-                [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<MakeHandlers<Make, Filter<Rsc>>[K]["handler"]>>>
-              }[keyof Filter<Rsc>]
-            >,
-            HttpRouter.HttpRouter.Provided
-          >
-        >
-        routes: Layer.Layer<
+
+        routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Rsc>,
           MakeErrors<Make> | GetError<Make["dependencies"]>,
           | GetContext<Make["dependencies"]>
@@ -597,21 +552,8 @@ export const makeRouter = <
         make: Make
       ): {
         moduleName: ModuleName
-        Router: HttpRouter.HttpRouter.TagClass<
-          RouterShape<Rsc>,
-          `${ModuleName}Router`,
-          never,
-          | Exclude<Context, HttpRouter.HttpRouter.Provided>
-          | Exclude<
-            RPCRouteR<
-              {
-                [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<MakeHandlers<Make, Filter<Rsc>>[K]["handler"]>>>
-              }[keyof Filter<Rsc>]
-            >,
-            HttpRouter.HttpRouter.Provided
-          >
-        >
-        routes: Layer.Layer<
+
+        routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Rsc>,
           MakeErrors<Make> | GetError<Make["dependencies"]>,
           | GetContext<Make["dependencies"]>
@@ -633,21 +575,8 @@ export const makeRouter = <
         make: Make
       ): {
         moduleName: ModuleName
-        Router: HttpRouter.HttpRouter.TagClass<
-          RouterShape<Rsc>,
-          `${ModuleName}Router`,
-          never,
-          | Exclude<Context, HttpRouter.HttpRouter.Provided>
-          | Exclude<
-            RPCRouteR<
-              {
-                [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<MakeHandlers<Make, Filter<Rsc>>[K]["handler"]>>>
-              }[keyof Filter<Rsc>]
-            >,
-            HttpRouter.HttpRouter.Provided
-          >
-        >
-        routes: Layer.Layer<
+
+        routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Rsc>,
           MakeErrors<Make> | GetError<Make["dependencies"]>,
           | GetContext<Make["dependencies"]>
@@ -758,13 +687,10 @@ export const makeRouter = <
     return Object.assign(effect, items, { router, router3 })
   }
 
-  type HR<T> = T extends HttpRouter.HttpRouter<any, infer R> ? R : never
-  type HE<T> = T extends HttpRouter.HttpRouter<infer E, any> ? E : never
-
   type RequestHandlersTest = {
     [key: string]: {
-      Router: { router: Effect<HttpRouter.HttpRouter<any, any>, any, any> }
-      routes: Layer.Layer<any, any, any>
+      //      Router: { router: Effect<HttpRouter.HttpRouter<any, any>, any, any> }
+      routes: (requestLayers: any) => Layer.Layer<any, any, any>
       moduleName: string
     }
   }
@@ -774,45 +700,11 @@ export const makeRouter = <
   ) {
     const routers = typedValuesOf(handlers)
 
-    const rootRouter = class extends HttpRouter.Tag("RootRouter")<
-      "RootRouter",
-      HR<Effect.Success<typeof handlers[keyof typeof handlers]["Router"]["router"]>>,
-      HE<Effect.Success<typeof handlers[keyof typeof handlers]["Router"]["router"]>>
-    >() {}
-
-    const r = rootRouter
-      .use((router) =>
-        Effect.gen(function*() {
-          for (const route of routers) {
-            yield* router.mount(
-              ("/rpc/" + route.moduleName) as any,
-              yield* route
-                .Router
-                .router
-                .pipe(Effect.map(HttpRouter.use(flow(Effect.provide(requestLayer))))) as any
-            )
-          }
-        })
-      )
-      .pipe(
-        routers.length
-          ? Layer.provide(routers.map((r) => r.routes).flat() as unknown as NonEmptyArray<Layer.Layer.Any>)
-          : (_) => _
-      )
-
-    return {
-      layer: r as Layer.Layer<
-        never,
-        Layer.Layer.Error<typeof handlers[keyof typeof handlers]["routes"]>,
-        Layer.Layer.Context<typeof handlers[keyof typeof handlers]["routes"]>
-      >,
-      Router: rootRouter as any as HttpRouter.HttpRouter.TagClass<
-        "RootRouter",
-        "RootRouter",
-        HE<Effect.Success<typeof handlers[keyof typeof handlers]["Router"]["router"]>>,
-        R | Exclude<HR<Effect.Success<typeof handlers[keyof typeof handlers]["Router"]["router"]>>, A>
-      >
-    }
+    return Layer.mergeAll(...routers.map((_) => _.routes(requestLayer)) as [any]) as unknown as Layer.Layer<
+      never,
+      Layer.Layer.Error<ReturnType<typeof handlers[keyof typeof handlers]["routes"]>>,
+      Layer.Layer.Context<ReturnType<typeof handlers[keyof typeof handlers]["routes"]>>
+    > // TODO
   }
 
   return {
@@ -854,14 +746,3 @@ export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestCaching(true),
   Layer.setRequestBatching(true)
 )
-
-export const RpcHeadersFromHttpHeaders = Effect
-  .gen(function*() {
-    const httpReq = yield* HttpServerRequest.HttpServerRequest
-    // TODO: only pass Authentication etc, or move headers to actual Rpc Headers
-    yield* FiberRef.update(
-      Rpc.currentHeaders,
-      (headers) => HttpHeaders.merge(httpReq.headers, headers)
-    )
-  })
-  .pipe(Layer.effectDiscard)

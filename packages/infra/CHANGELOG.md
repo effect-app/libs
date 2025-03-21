@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.48.0
+
+### Minor Changes
+
+- f76ff02: update packages
+
 ## 2.47.0
 
 ### Minor Changes

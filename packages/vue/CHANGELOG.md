@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 2.38.0
+
+### Minor Changes
+
+- 7fa3182: feat: enable passing of span through meta for queries. use it to set parentspan for invalidate and refetch queries.
+- f76ff02: update packages
+
 ## 2.37.0
 
 ### Minor Changes

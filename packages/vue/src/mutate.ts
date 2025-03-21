@@ -159,7 +159,13 @@ export const makeMutation = () => {
     const invalidateQueries = (
       filters?: InvalidateQueryFilters,
       options?: InvalidateOptions
-    ) => Effect.promise(() => queryClient.invalidateQueries(filters, options))
+    ) =>
+      Effect.currentSpan.pipe(
+        Effect.orElseSucceed(() => null),
+        Effect.flatMap((span) =>
+          Effect.promise(() => queryClient.invalidateQueries(filters, { ...options, updateMeta: { span } } as any))
+        )
+      )
 
     const invalidateCache = Effect.suspend(() => {
       const queryKey = getQueryKey(self)

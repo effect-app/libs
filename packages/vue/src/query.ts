@@ -68,12 +68,13 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
             return retryCount < 5
           },
           queryKey,
-          queryFn: ({ signal }) =>
+          queryFn: ({ meta, signal }) =>
             runPromise(
               handler
                 .pipe(
                   Effect.tapDefect(reportRuntimeError),
-                  Effect.withSpan(`query ${q.name}`, { captureStackTrace: false })
+                  Effect.withSpan(`query ${q.name}`, { captureStackTrace: false }),
+                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as any) : (_) => _
                 ),
               { signal }
             )
@@ -92,12 +93,13 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
             return retryCount < 5
           },
           queryKey: [...queryKey, req],
-          queryFn: ({ signal }) =>
+          queryFn: ({ meta, signal }) =>
             runPromise(
               handler(req.value)
                 .pipe(
                   Effect.tapDefect(reportRuntimeError),
-                  Effect.withSpan(`query ${q.name}`, { captureStackTrace: false })
+                  Effect.withSpan(`query ${q.name}`, { captureStackTrace: false }),
+                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as any) : (_) => _
                 ),
               { signal }
             )
@@ -121,7 +123,11 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       // one thing to keep in mind is that span will be disconnected as Context does not pass from outside.
       // TODO: consider how we should handle the Result here which is `QueryObserverResult<A, KnownFiberFailure<E>>`
       // and always ends up in the success channel, even when error..
-      (options?: RefetchOptions) => Effect.promise(() => r.refetch(options)),
+      (options?: RefetchOptions) =>
+        Effect.currentSpan.pipe(
+          Effect.orElseSucceed(() => null),
+          Effect.flatMap((span) => Effect.promise(() => r.refetch({ ...options, updateMeta: { span } })))
+        ),
       r
     ] as const
   }

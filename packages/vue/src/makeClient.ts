@@ -182,8 +182,9 @@ function handleRequest<
 }
 
 export const makeClient = <Locale extends string, R>(
-  useIntl: MakeIntlReturn<Locale>["useIntl"],
-  useToast: () => {
+  // NOTE: underscores to not collide with auto exports in nuxt apps
+  _useIntl: MakeIntlReturn<Locale>["useIntl"],
+  _useToast: () => {
     error: (message: string) => void
     warning: (message: string) => void
     success: (message: string) => void
@@ -234,8 +235,8 @@ export const makeClient = <Locale extends string, R>(
   }
 
   const _useHandleRequestWithToast = () => {
-    const toast = useToast()
-    const { intl } = useIntl()
+    const toast = _useToast()
+    const { intl } = _useIntl()
 
     return handleRequestWithToast
     /**

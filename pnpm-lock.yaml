@@ -10,6 +10,9 @@ overrides:
   vue: ^3.5.13
 
 patchedDependencies:
+  '@tanstack/query-core':
+    hash: 4e444949096d949f2bc7f491328cb401b1bfa65db76810ff4adc262d993fbb08
+    path: patches/@tanstack__query-core.patch
   effect:
     hash: f7a7f6b963d43dbfe81fc770a01cc89cbcd18845615b69113f6fe8b33d876091
     path: patches/effect.patch
@@ -50,8 +53,8 @@ importers:
         specifier: ^0.94.0
         version: 0.94.0
       '@effect-app/cli':
-        specifier: ^1.16.2
-        version: 1.16.2
+        specifier: ^1.17.0
+        version: 1.17.0
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -450,8 +453,8 @@ importers:
         specifier: ^7.26.3
         version: 7.26.3(@babel/core@7.26.10)
       '@sentry/node':
-        specifier: ^9.6.1
-        version: 9.6.1
+        specifier: ^9.7.0
+        version: 9.7.0
       '@types/express':
         specifier: ^5.0.1
         version: 5.0.1
@@ -516,8 +519,8 @@ importers:
         specifier: ^3.1.4
         version: 3.1.4(typescript@5.8.2(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
       '@sentry/browser':
-        specifier: ^9.6.1
-        version: 9.6.1
+        specifier: ^9.7.0
+        version: 9.7.0
       '@tanstack/vue-query':
         specifier: ^5.69.0
         version: 5.69.0(vue@3.5.13(typescript@5.8.2(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
@@ -894,8 +897,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.16.2':
-    resolution: {integrity: sha512-wtH5OdRGf++9c4ErgmxnDuKpXWTP7+W7ssY7Ey6PyKPp/0U7LVn4IiULeLkckTyGmjVTT6OWqUXZfD9pvyJRHA==}
+  '@effect-app/cli@1.17.0':
+    resolution: {integrity: sha512-arjvvOpxaJp3sBB9XOAtFS18aIirIQPwmVdcZBa47P1wnxtBjufZAOEWsVJ9oGl6e0MMwyTxU04T7Q94K31qzQ==}
     hasBin: true
 
   '@effect-rx/rx-vue@0.11.8':
@@ -1736,36 +1739,36 @@ packages:
     resolution: {integrity: sha512-MUpIZykD9ARie8LElYCqbcBhGGMaA/E6I7fEcG7Hc2An26QJyLtwOaKQ3taGp8xO8BICPJrSKuYV4bDeAJKFGQ==}
     engines: {node: '>=12.*'}
 
-  '@sentry-internal/browser-utils@9.6.1':
-    resolution: {integrity: sha512-3bQDHc/extRnjzPaq8SjNxwPLHeWa5jT8O99kYq2MHg+xZr5wb5PkbaBIPZNHZp4CChNkzzSEQI9p1aBIfy0rQ==}
+  '@sentry-internal/browser-utils@9.7.0':
+    resolution: {integrity: sha512-1wVd8mCvbeGs3wSDZFYQ9RE8I8Ii8iQ2wnHKbONk645RIT6FwSCPHlnFKWYSFVxo85Wm6SFbKcv1zvTNXUVhfQ==}
     engines: {node: '>=18'}
 
-  '@sentry-internal/feedback@9.6.1':
-    resolution: {integrity: sha512-mjvEYzBFnV3RmpGsqGeKCIvyYBoHoapevEYgNS2Q+kcFXfSYvA1EozzlhlTVaflWzI2kfLN0Uh/OBcjwCRvCkQ==}
+  '@sentry-internal/feedback@9.7.0':
+    resolution: {integrity: sha512-Ld51wOfXYO90++ZGBuVF/5PAMBnVWFfvvleXRgA9VaL2hq296+tLXYVccHTgH+dZmwjJgsybDAxHdj+k1FFnmw==}
     engines: {node: '>=18'}
 
-  '@sentry-internal/replay-canvas@9.6.1':
-    resolution: {integrity: sha512-3enNu2YwG4SycodMyenR6Q6MfFwbvatD6ms1gupxB0HGui2xxfgb2ySYZI2iuvMPO2VL544kFkIfwNyqax2YyA==}
+  '@sentry-internal/replay-canvas@9.7.0':
+    resolution: {integrity: sha512-E/XESnVLV+CUyrucrxK2kHpEKTDrz7LTBwjnt3FDHA8MfwMRX+np0sYjvcIRWAG4xxBOYBGlWD2+n0Y2pqYa2Q==}
     engines: {node: '>=18'}
 
-  '@sentry-internal/replay@9.6.1':
-    resolution: {integrity: sha512-iV5E48fI+IQzyI2hJ+KKOullWMbv/SWDFtyQoRN6drimScDP9Tn1rJ5uNsAiVF3m8Vsj+w3UQwPBzcd+WDeQmw==}
+  '@sentry-internal/replay@9.7.0':
+    resolution: {integrity: sha512-JOwwqe3JtcbkvC/hM7qr1x40lk3K5zm8r2HHVKVLzrf6cAuLF9x17R7h+0cDOHcilacbtIQQ9Fjjb63a1/iDLQ==}
     engines: {node: '>=18'}
 
-  '@sentry/browser@9.6.1':
-    resolution: {integrity: sha512-m6rCoR+dafZkHTJdQhPrIq4vdTrfRhmP3FVEPlBCVClnNeo6TShVJwtEu3kfBsmnYfGWaac2tn1oczMD2wjmZQ==}
+  '@sentry/browser@9.7.0':
+    resolution: {integrity: sha512-G2AZuWAfatv30rFWYcbAZNnty9826ld8k+EucYLtDGN0uBdHXX9XT/x7/C8dprtV16jGWzrfvMza8C7Z4uj8BA==}
     engines: {node: '>=18'}
 
-  '@sentry/core@9.6.1':
-    resolution: {integrity: sha512-BHaRxyFF3sNlKP6lNcB5cxFogvfMOtWw0Est6mK/Mbewnim0qEbmqKyuMj67ebfgo+pmUJJc2wgugdxkxvqGRQ==}
+  '@sentry/core@9.7.0':
+    resolution: {integrity: sha512-EprjtU7F6eltB4Nx8fzWFXsfAC/6yNGuKo2bHKeIAmNufjD0X4ifz+iB3d0pKuwsn9jQbLrQTIGwKdTO3dstFw==}
     engines: {node: '>=18'}
 
-  '@sentry/node@9.6.1':
-    resolution: {integrity: sha512-cS05ROvBvAFbooqIdyw+yvPyVJqJ89bcirf/QwtFJm+4REtbI7+UAn3D9l17Zd41G1FtpQynpebkCyMc22jO/Q==}
+  '@sentry/node@9.7.0':
+    resolution: {integrity: sha512-akV3tUaByurPT2OY2W6AmHKxNrFZjf5WlN6eL/HhU+AV1Nox/cbZWIt6nr2PuaVd+e4xVyaXUkNtjo0UZUvQEQ==}
     engines: {node: '>=18'}
 
-  '@sentry/opentelemetry@9.6.1':
-    resolution: {integrity: sha512-KjWOcYEoRiwlHxfWTnEQKErpa4c1BubsJFCezqV64BOTV2vX09AjdJo33PrPjstGopDloLdkqJS60KBhVl49JQ==}
+  '@sentry/opentelemetry@9.7.0':
+    resolution: {integrity: sha512-WsHiGLhm6RIdOwzKAujn7+iR/PCUV//X8AC1ZjuLnqv68z698piyOOxpHLBdaha57E1qxWe1uZ/tjM9/lE2gLA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
@@ -5632,7 +5635,7 @@ snapshots:
   '@dprint/win32-x64@0.49.1':
     optional: true
 
-  '@effect-app/cli@1.16.2':
+  '@effect-app/cli@1.17.0':
     dependencies:
       node-watch: 0.7.4
 
@@ -6419,35 +6422,35 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@sentry-internal/browser-utils@9.6.1':
+  '@sentry-internal/browser-utils@9.7.0':
     dependencies:
-      '@sentry/core': 9.6.1
+      '@sentry/core': 9.7.0
 
-  '@sentry-internal/feedback@9.6.1':
+  '@sentry-internal/feedback@9.7.0':
     dependencies:
-      '@sentry/core': 9.6.1
+      '@sentry/core': 9.7.0
 
-  '@sentry-internal/replay-canvas@9.6.1':
+  '@sentry-internal/replay-canvas@9.7.0':
     dependencies:
-      '@sentry-internal/replay': 9.6.1
-      '@sentry/core': 9.6.1
+      '@sentry-internal/replay': 9.7.0
+      '@sentry/core': 9.7.0
 
-  '@sentry-internal/replay@9.6.1':
+  '@sentry-internal/replay@9.7.0':
     dependencies:
-      '@sentry-internal/browser-utils': 9.6.1
-      '@sentry/core': 9.6.1
+      '@sentry-internal/browser-utils': 9.7.0
+      '@sentry/core': 9.7.0
 
-  '@sentry/browser@9.6.1':
+  '@sentry/browser@9.7.0':
     dependencies:
-      '@sentry-internal/browser-utils': 9.6.1
-      '@sentry-internal/feedback': 9.6.1
-      '@sentry-internal/replay': 9.6.1
-      '@sentry-internal/replay-canvas': 9.6.1
-      '@sentry/core': 9.6.1
+      '@sentry-internal/browser-utils': 9.7.0
+      '@sentry-internal/feedback': 9.7.0
+      '@sentry-internal/replay': 9.7.0
+      '@sentry-internal/replay-canvas': 9.7.0
+      '@sentry/core': 9.7.0
 
-  '@sentry/core@9.6.1': {}
+  '@sentry/core@9.7.0': {}
 
-  '@sentry/node@9.6.1':
+  '@sentry/node@9.7.0':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/context-async-hooks': 1.30.1(@opentelemetry/api@1.9.0)
@@ -6480,13 +6483,13 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.30.0
       '@prisma/instrumentation': 6.5.0(@opentelemetry/api@1.9.0)
-      '@sentry/core': 9.6.1
-      '@sentry/opentelemetry': 9.6.1(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.30.0)
+      '@sentry/core': 9.7.0
+      '@sentry/opentelemetry': 9.7.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.30.0)
       import-in-the-middle: 1.13.0
     transitivePeerDependencies:
       - supports-color
 
-  '@sentry/opentelemetry@9.6.1(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.30.0)':
+  '@sentry/opentelemetry@9.7.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.30.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/context-async-hooks': 1.30.1(@opentelemetry/api@1.9.0)
@@ -6494,7 +6497,7 @@ snapshots:
       '@opentelemetry/instrumentation': 0.57.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.30.0
-      '@sentry/core': 9.6.1
+      '@sentry/core': 9.7.0
 
   '@standard-schema/spec@1.0.0': {}
 
@@ -6502,12 +6505,12 @@ snapshots:
     dependencies:
       remove-accents: 0.5.0
 
-  '@tanstack/query-core@5.69.0': {}
+  '@tanstack/query-core@5.69.0(patch_hash=4e444949096d949f2bc7f491328cb401b1bfa65db76810ff4adc262d993fbb08)': {}
 
   '@tanstack/vue-query@5.69.0(vue@3.5.13(typescript@5.8.2(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
     dependencies:
       '@tanstack/match-sorter-utils': 8.19.4
-      '@tanstack/query-core': 5.69.0
+      '@tanstack/query-core': 5.69.0(patch_hash=4e444949096d949f2bc7f491328cb401b1bfa65db76810ff4adc262d993fbb08)
       '@vue/devtools-api': 6.6.3
       vue: 3.5.13(typescript@5.8.2(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
       vue-demi: 0.14.10(vue@3.5.13(typescript@5.8.2(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))

@@ -16,7 +16,7 @@
     "@effect/platform-browser": "^0.59.0",
     "@effect-rx/rx": "^0.34.8",
     "@effect-rx/rx-vue": "^0.11.8",
-    "@sentry/browser": "^9.6.1",
+    "@sentry/browser": "^9.7.0",
     "effect": "^3.14.0",
     "vue": "^3.5.13"
   },

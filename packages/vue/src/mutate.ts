@@ -163,7 +163,7 @@ export const makeMutation = () => {
       Effect.currentSpan.pipe(
         Effect.orElseSucceed(() => null),
         Effect.flatMap((span) =>
-          Effect.promise(() => queryClient.invalidateQueries(filters, { ...options, updateMeta: { span } } as any))
+          Effect.promise(() => queryClient.invalidateQueries(filters, { ...options, updateMeta: { span } }))
         )
       )
 

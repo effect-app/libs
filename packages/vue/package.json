@@ -12,12 +12,12 @@
     "query-string": "^9.1.1"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.80.0",
-    "@effect/platform-browser": "^0.59.0",
+    "@effect/platform": "^0.80.1",
+    "@effect/platform-browser": "^0.59.1",
     "@effect-rx/rx": "^0.34.8",
     "@effect-rx/rx-vue": "^0.11.8",
     "@sentry/browser": "^9.7.0",
-    "effect": "^3.14.0",
+    "effect": "^3.14.1",
     "vue": "^3.5.13"
   },
   "devDependencies": {
@@ -28,7 +28,7 @@
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "babel-plugin-replace-import-extension": "^1.1.5",
     "@rollup/pluginutils": "^5.1.4",
-    "@types/node": "~22.13.10",
+    "@types/node": "~22.13.11",
     "intl-messageformat": "^10.7.15",
     "json5": "^2.2.3",
     "typescript": "^5.8.2",

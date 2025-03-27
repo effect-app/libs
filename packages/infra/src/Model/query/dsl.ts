@@ -226,21 +226,21 @@ export const or: FilterContinuationOr = (...operation: any[]) => (current: any) 
 
 export const order: {
   <
-    Q extends Query<any> | QueryWhere<any, any> | QueryEnd<any>
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>
   >(
     field: FieldPath<ExtractFieldValuesRefined<Q>>,
     direction?: "ASC" | "DESC"
   ): (
     current: Q
-  ) => QueryEnd<ExtractFieldValuesRefined<Q>>
+  ) => QueryEnd<ExtractFieldValuesRefined<Q>, "many", ExtractExclusiveness<Q>>
 } = (field, direction = "ASC") => (current) => new Order({ current, field: field as any, direction })
 
 export const page: {
   (
     page: { skip?: number; take?: number }
-  ): <Q extends Query<any> | QueryWhere<any, any> | QueryEnd<any>>(
+  ): <Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>>(
     current: Q
-  ) => QueryEnd<ExtractFieldValuesRefined<Q>>
+  ) => QueryEnd<ExtractFieldValuesRefined<Q>, "many", ExtractExclusiveness<Q>>
 } = ({ skip, take }) => (current) =>
   new Page({
     current,
@@ -249,9 +249,9 @@ export const page: {
   })
 
 export const one: {
-  <Q extends Query<any> | QueryWhere<any, any> | QueryEnd<any>>(
+  <Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>>(
     current: Q
-  ): QueryEnd<ExtractFieldValuesRefined<Q>, "one">
+  ): QueryEnd<ExtractFieldValuesRefined<Q>, "one", ExtractExclusiveness<Q>>
 } = (current) =>
   new One({
     current
@@ -260,10 +260,10 @@ export const one: {
 // it's better to implement a distinct count so that the implementation can be optimised per adapter
 export const count: {
   <
-    Q extends Query<any> | QueryWhere<any, any> | QueryEnd<any>
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>
   >(
     current: Q
-  ): QueryProjection<ExtractFieldValuesRefined<Q>, NonNegativeInt, never, "count">
+  ): QueryProjection<ExtractFieldValuesRefined<Q>, NonNegativeInt, never, "count", ExtractExclusiveness<Q>>
 } = (current) => new Count({ current })
 
 export const project: {

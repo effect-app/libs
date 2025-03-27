@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.49.1
+
+### Patch Changes
+
+- c03d1ce: exclusiveness support for primitives live count, one, etc.
+
 ## 2.49.0
 
 ### Minor Changes

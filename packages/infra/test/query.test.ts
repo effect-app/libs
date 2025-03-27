@@ -302,13 +302,13 @@ it(
           and("_tag", "AA")
         )
         expectTypeOf(query1).toEqualTypeOf<
-          QueryWhere<Union, AA>
+          QueryWhere<Union, AA, true>
         >()
 
         const query2 = make<Union>().pipe(
           where("_tag", "AA")
         )
-        expectTypeOf(query2).toEqualTypeOf<QueryWhere<Union, AA>>()
+        expectTypeOf(query2).toEqualTypeOf<QueryWhere<Union, AA, true>>()
 
         const query2a = make<Union>().pipe(
           where("c", "something")
@@ -355,7 +355,8 @@ it(
               readonly a: unknown
             },
             never,
-            "many"
+            "many",
+            true
           >
         >()
 
@@ -390,7 +391,7 @@ it(
           where("_tag", "neq", "AA"),
           and("_tag", "AA")
         )
-        expectTypeOf(query8).toEqualTypeOf<QueryWhere<Union, never>>()
+        expectTypeOf(query8).toEqualTypeOf<QueryWhere<Union, never, true>>()
 
         const query9 = make<Union>().pipe(
           where("id", "AA"),
@@ -900,6 +901,33 @@ it("test array.length", () =>
 
       expectTypeOf(query3).toEqualTypeOf<
         QueryWhere<Something, Something>
+      >()
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("distribution over union", () =>
+  Effect
+    .gen(function*() {
+      const repo = yield* makeRepo("test", TestUnion, {})
+
+      const res = yield* repo.query(
+        where("_tag", Math.random() > 0.5 ? "animal" : "person")
+      )
+
+      // to be safe I will enable that just for _tag that is an exclusive field
+      // but how could I know at the end I did a refinement on _tag?
+      // because single applications of where, and work on the single result, not on array
+      expectTypeOf(res).toEqualTypeOf<
+        | readonly ({
+          readonly id: string
+          readonly surname: string
+          readonly _tag: "person"
+        })[]
+        | readonly ({
+          readonly id: string
+          readonly surname: string
+          readonly _tag: "animal"
+        })[]
       >()
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))

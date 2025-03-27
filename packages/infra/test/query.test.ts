@@ -914,9 +914,6 @@ it("distribution over union", () =>
         where("_tag", Math.random() > 0.5 ? "animal" : "person")
       )
 
-      // to be safe I will enable that just for _tag that is an exclusive field
-      // but how could I know at the end I did a refinement on _tag?
-      // because single applications of where, and work on the single result, not on array
       expectTypeOf(res).toEqualTypeOf<
         | readonly ({
           readonly id: string

@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.38.1
+
+### Patch Changes
+
+- 4c8dfb4: update packages
+- Updated dependencies [4c8dfb4]
+  - effect-app@2.36.1
+
 ## 2.38.0
 
 ### Minor Changes

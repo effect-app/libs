@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 2.49.0
+
+### Minor Changes
+
+- c30b89b: add exclusive queries
+
+### Patch Changes
+
+- 4c8dfb4: update packages
+- Updated dependencies [4c8dfb4]
+  - effect-app@2.36.1
+
 ## 2.48.0
 
 ### Minor Changes

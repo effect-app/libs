@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.39.1
+
+### Patch Changes
+
+- 8416042: more error filter
+
 ## 2.39.0
 
 ### Minor Changes

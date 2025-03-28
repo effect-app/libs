@@ -258,21 +258,6 @@ importers:
         specifier: ^13.15.0
         version: 13.15.0
     devDependencies:
-      '@babel/cli':
-        specifier: ^7.27.0
-        version: 7.27.0(@babel/core@7.26.10)
-      '@babel/core':
-        specifier: ^7.26.10
-        version: 7.26.10
-      '@babel/plugin-proposal-export-namespace-from':
-        specifier: ^7.18.9
-        version: 7.18.9(@babel/core@7.26.10)
-      '@babel/plugin-syntax-import-attributes':
-        specifier: ^7.26.0
-        version: 7.26.0(@babel/core@7.26.10)
-      '@babel/plugin-transform-modules-commonjs':
-        specifier: ^7.26.3
-        version: 7.26.3(@babel/core@7.26.10)
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -285,9 +270,6 @@ importers:
       '@types/validator':
         specifier: ^13.12.3
         version: 13.12.3
-      babel-plugin-replace-import-extension:
-        specifier: ^1.1.5
-        version: 1.1.5
       fast-check:
         specifier: ^4.0.0
         version: 4.0.0
@@ -437,21 +419,6 @@ importers:
       '@azure/service-bus':
         specifier: ^7.9.5
         version: 7.9.5
-      '@babel/cli':
-        specifier: ^7.27.0
-        version: 7.27.0(@babel/core@7.26.10)
-      '@babel/core':
-        specifier: ^7.26.10
-        version: 7.26.10
-      '@babel/plugin-proposal-export-namespace-from':
-        specifier: ^7.18.9
-        version: 7.18.9(@babel/core@7.26.10)
-      '@babel/plugin-syntax-import-attributes':
-        specifier: ^7.26.0
-        version: 7.26.0(@babel/core@7.26.10)
-      '@babel/plugin-transform-modules-commonjs':
-        specifier: ^7.26.3
-        version: 7.26.3(@babel/core@7.26.10)
       '@sentry/node':
         specifier: ^9.10.0
         version: 9.10.0
@@ -470,9 +437,6 @@ importers:
       '@types/redlock':
         specifier: ^4.0.7
         version: 4.0.7
-      babel-plugin-replace-import-extension:
-        specifier: ^1.1.5
-        version: 1.1.5
       express:
         specifier: ^4.21.2
         version: 4.21.2
@@ -540,30 +504,9 @@ importers:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.8.2(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
     devDependencies:
-      '@babel/cli':
-        specifier: ^7.27.0
-        version: 7.27.0(@babel/core@7.26.10)
-      '@babel/core':
-        specifier: ^7.26.10
-        version: 7.26.10
-      '@babel/plugin-proposal-export-namespace-from':
-        specifier: ^7.18.9
-        version: 7.18.9(@babel/core@7.26.10)
-      '@babel/plugin-syntax-import-attributes':
-        specifier: ^7.26.0
-        version: 7.26.0(@babel/core@7.26.10)
-      '@babel/plugin-transform-modules-commonjs':
-        specifier: ^7.26.3
-        version: 7.26.3(@babel/core@7.26.10)
-      '@rollup/pluginutils':
-        specifier: ^5.1.4
-        version: 5.1.4(rollup@4.34.4)
       '@types/node':
         specifier: ~22.13.14
         version: 22.13.14
-      babel-plugin-replace-import-extension:
-        specifier: ^1.1.5
-        version: 1.1.5
       intl-messageformat:
         specifier: ^10.7.16
         version: 10.7.16
@@ -1619,15 +1562,6 @@ packages:
     resolution: {integrity: sha512-morJDtFRoAp5d/KENEm+K6Y3PQcn5bCvpJ5a9y3V3DNMrNy/ZSn2zulPGj+ld+Xj2UYVoaMJ8DpBX/o6iF6OiA==}
     peerDependencies:
       '@opentelemetry/api': ^1.8
-
-  '@rollup/pluginutils@5.1.4':
-    resolution: {integrity: sha512-USm05zrsFxYLPdWWq+K3STlWiT/3ELn3RcV5hJMghpeAIhxfsUIg6mt12CBJBInWMV4VneoV7SfGv8xIwo2qNQ==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
 
   '@rollup/rollup-android-arm-eabi@4.34.4':
     resolution: {integrity: sha512-gGi5adZWvjtJU7Axs//CWaQbQd/vGy8KGcnEaCWiyCqxWYDxwIlAHFuSe6Guoxtd0SRvSfVTDMPd5H+4KE2kKA==}
@@ -6365,14 +6299,6 @@ snapshots:
       '@opentelemetry/instrumentation': 0.57.2(@opentelemetry/api@1.9.0)
     transitivePeerDependencies:
       - supports-color
-
-  '@rollup/pluginutils@5.1.4(rollup@4.34.4)':
-    dependencies:
-      '@types/estree': 1.0.6
-      estree-walker: 2.0.2
-      picomatch: 4.0.2
-    optionalDependencies:
-      rollup: 4.34.4
 
   '@rollup/rollup-android-arm-eabi@4.34.4':
     optional: true

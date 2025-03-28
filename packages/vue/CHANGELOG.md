@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.39.0
+
+### Minor Changes
+
+- 14ea804: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [14ea804]
+  - effect-app@2.37.0
+
 ## 2.38.1
 
 ### Patch Changes

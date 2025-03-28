@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.50.0
+
+### Minor Changes
+
+- 14ea804: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [14ea804]
+  - effect-app@2.37.0
+
 ## 2.49.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.37.0
+
+### Minor Changes
+
+- 14ea804: housekeeping: update packages
+
 ## 2.36.1
 
 ### Patch Changes

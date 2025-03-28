@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.18.0
+
+### Minor Changes
+
+- 14ea804: housekeeping: update packages
+
 ## 1.17.1
 
 ### Patch Changes

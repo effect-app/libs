@@ -14,9 +14,9 @@
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "dependencies": {
-    "@babel/generator": "7.26.10",
-    "@babel/parser": "7.26.10",
-    "@typescript-eslint/utils": "8.27.0",
+    "@babel/generator": "7.27.0",
+    "@babel/parser": "7.27.0",
+    "@typescript-eslint/utils": "8.28.0",
     "eslint-plugin-codegen": "0.17.0",
     "glob": "8.1.0",
     "io-ts": "2.2.22",
@@ -25,21 +25,21 @@
     "lodash": "4.17.21"
   },
   "peerDependencies": {
-    "effect": "^3.14.1"
+    "effect": "^3.14.2"
   },
   "devDependencies": {
-    "@babel/cli": "^7.26.4",
+    "@babel/cli": "^7.27.0",
     "@babel/core": "^7.26.10",
     "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
     "@babel/plugin-syntax-import-attributes": "^7.26.0",
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "babel-plugin-replace-import-extension": "^1.1.5",
-    "@babel/types": "7.26.10",
+    "@babel/types": "7.27.0",
     "@types/babel__generator": "7.6.8",
-    "@types/babel__traverse": "7.20.6",
+    "@types/babel__traverse": "7.20.7",
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.16",
-    "effect": "^3.14.1",
+    "effect": "^3.14.2",
     "madge": "8.0.0",
     "typescript": "^5.8.2"
   },

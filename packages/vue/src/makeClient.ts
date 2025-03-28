@@ -366,14 +366,7 @@ export const makeClient = <Locale extends string, R>(
             return intl.value.formatMessage({ id: "validation.failed" })
           }
         }),
-        Match.orElse((e) =>
-          intl.value.formatMessage(
-            { id: "handle.unexpected_error" },
-            {
-              error: `${e.message ?? e._tag ?? e}`
-            }
-          )
-        )
+        Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
       )
     }
   }

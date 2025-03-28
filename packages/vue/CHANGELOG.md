@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.39.2
+
+### Patch Changes
+
+- ccd8b39: improve fail message
+
 ## 2.39.1
 
 ### Patch Changes

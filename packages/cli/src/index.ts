@@ -215,7 +215,10 @@ switch (cmd) {
       .readdirSync(startDir + "/packages")
       .map((_) => startDir + "/packages/" + _)
       .filter((_) =>
-        fs.existsSync(_ + "/package.json") && fs.existsSync(_ + "/src") && !_.endsWith("eslint-codegen-model")
+        fs.existsSync(_ + "/package.json")
+        && fs.existsSync(_ + "/src")
+        && !_.endsWith("eslint-codegen-model")
+        && !_.endsWith("vue-components")
       )
       .forEach((_) => monitorPackagejson(_))
     break

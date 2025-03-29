@@ -47,7 +47,7 @@ export interface RepositoryOptions<
   /**
    * Optional creator for initial data in the table when it's created for the first itme.
    */
-  makeInitial?: Effect<readonly T[], E, RInitial>
+  makeInitial?: Effect<readonly T[], E, RInitial> | undefined
   /**
    * Optional context to be provided to Schema decode/encode.
    * Useful for effectful transformations like XWithItems, where items is a transformation retrieving elements from another database table or other source.

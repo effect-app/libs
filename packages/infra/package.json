@@ -9,7 +9,7 @@
     "cross-fetch": "^4.1.0",
     "effect-app": "workspace:*",
     "express-oauth2-jwt-bearer": "^1.6.1",
-    "fast-check": "~4.0.0",
+    "fast-check": "~4.0.1",
     "path-parser": "^6.1.0",
     "proper-lockfile": "^4.1.2",
     "pure-rand": "7.0.1",
@@ -18,7 +18,7 @@
   "devDependencies": {
     "@azure/cosmos": "^4.3.0",
     "@azure/service-bus": "^7.9.5",
-    "@sentry/node": "^9.10.0",
+    "@sentry/node": "^9.10.1",
     "@types/express": "^5.0.1",
     "@types/node": "~22.13.14",
     "@types/proper-lockfile": "^4.1.4",

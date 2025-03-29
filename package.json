@@ -51,7 +51,7 @@
   "dependencies": {
     "cross-env": "^7.0.3",
     "date-fns": "^4.1.0",
-    "fast-check": "^4.0.0",
+    "fast-check": "^4.0.1",
     "vue": "^3.5.13"
   },
   "devDependencies": {
@@ -79,7 +79,7 @@
     "effect-app": "workspace:*",
     "enhanced-resolve": "^5.18.1",
     "eslint": "^9.23.0",
-    "eslint-import-resolver-typescript": "4.2.5",
+    "eslint-import-resolver-typescript": "4.3.1",
     "eslint-import-resolver-webpack": "^0.13.10",
     "eslint-plugin-codegen": "^0.17.0",
     "eslint-plugin-import": "^2.31.0",

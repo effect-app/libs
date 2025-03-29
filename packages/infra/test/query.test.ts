@@ -958,7 +958,7 @@ it("refine nested union", () =>
       >()
 
       const res = yield* repo.query(
-        where("nested._tag", Math.random() > 0.5 ? "animal" : "person")
+        () => res_query
       )
 
       expectTypeOf(res).toEqualTypeOf<

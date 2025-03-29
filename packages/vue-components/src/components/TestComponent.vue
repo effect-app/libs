@@ -1,7 +1,7 @@
 <template>
   <div class="cool">I'm so <span class="super">{{ cool }}</span> {{ test }}</div>
 </template>
-<style>
+<style scoped>
 .super {
   color: aqua;
 }

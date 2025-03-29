@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.18.1
+
+### Patch Changes
+
+- fdb1107: filter dir
+
 ## 1.18.0
 
 ### Minor Changes

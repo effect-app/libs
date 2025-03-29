@@ -928,3 +928,44 @@ it("distribution over union", () =>
       >()
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("refine nested union", () =>
+  Effect
+    .gen(function*() {
+      class TestNested extends S.Class<TestNested>()({ id: S.String, nested: TestUnion }) {}
+
+      const repo = yield* makeRepo("test", TestNested, {})
+
+      const base = make<TestNested>()
+
+      const res_query = base.pipe(
+        where("nested._tag", Math.random() > 0.5 ? "animal" : "person")
+      )
+
+      expectTypeOf(res_query).toEqualTypeOf<
+        QueryWhere<TestNested, {
+          readonly id: string
+          readonly nested: {
+            readonly _tag: "person"
+            readonly id: string
+            readonly surname: string
+          } | {
+            readonly _tag: "animal"
+            readonly id: string
+            readonly surname: string
+          }
+        }, false>
+      >()
+
+      const res = yield* repo.query(
+        where("nested._tag", Math.random() > 0.5 ? "animal" : "person")
+      )
+
+      expectTypeOf(res).toEqualTypeOf<
+        readonly {
+          readonly id: string
+          readonly nested: Person | Animal
+        }[]
+      >()
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))

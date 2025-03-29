@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue-components",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "build": "rimraf dist && vue-tsc && vite build",
     "docs:dev": "vitepress dev docs",

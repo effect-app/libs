@@ -39,7 +39,7 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/vue-components.es.js"
     },
-    "./dist/style.css": "./dist/style.css"
+    "./dist/vue-components.css": "./dist/vue-components.css"
   },
   "dependencies": {
     "@effect-app/vue": "workspace:*",

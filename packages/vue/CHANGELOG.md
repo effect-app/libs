@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.39.3
+
+### Patch Changes
+
+- 7bedb13: updates
+- Updated dependencies [7bedb13]
+  - effect-app@2.37.1
+
 ## 2.39.2
 
 ### Patch Changes

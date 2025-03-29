@@ -1,5 +1,18 @@
 # @effect-app/infra
 
+## 2.51.0
+
+### Minor Changes
+
+- 7b6ca2f: make StoreMakerLayer effectfuly
+
+### Patch Changes
+
+- 7bedb13: updates
+- da663bc: improve repo def
+- Updated dependencies [7bedb13]
+  - effect-app@2.37.1
+
 ## 2.50.0
 
 ### Minor Changes

@@ -560,8 +560,8 @@ type ExtractTagged<T, EncodedRefined> = EncodedRefined extends { _tag: string }
   : RecursiveExtractTagged<RecusiveExtractIded<T, EncodedRefined>, EncodedRefined>
 
 type RecusiveExtractIded<T, EncodedRefined> = {
-  [k in keyof T]: "_id" extends keyof T[k]
-    ? k extends keyof EncodedRefined ? "_id" extends keyof EncodedRefined[k] ? ExtractIded<T[k], EncodedRefined[k]>
+  [k in keyof T]: "id" extends keyof T[k]
+    ? k extends keyof EncodedRefined ? "id" extends keyof EncodedRefined[k] ? ExtractIded<T[k], EncodedRefined[k]>
       : T[k]
     : T[k]
     : T[k]

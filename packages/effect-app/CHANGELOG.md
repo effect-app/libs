@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.37.1
+
+### Patch Changes
+
+- 7bedb13: updates
+
 ## 2.37.0
 
 ### Minor Changes

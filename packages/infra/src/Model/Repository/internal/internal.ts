@@ -55,7 +55,7 @@ export function makeRepoInternal<
     function make<RInitial = never, E = never, RPublish = never, RCtx = never>(
       args: [Evt] extends [never] ? {
           schemaContext?: Context.Context<RCtx>
-          makeInitial?: Effect<readonly T[], E, RInitial>
+          makeInitial?: Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (a: Encoded) => string
           }
@@ -63,7 +63,7 @@ export function makeRepoInternal<
         : {
           schemaContext?: Context.Context<RCtx>
           publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect<void, never, RPublish>
-          makeInitial?: Effect<readonly T[], E, RInitial>
+          makeInitial?: Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (a: Encoded) => string
           }
@@ -383,7 +383,7 @@ export function makeStore<Encoded extends FieldValues>() {
     idKey: IdKey
   ) => {
     function makeStore<RInitial = never, EInitial = never>(
-      makeInitial?: Effect<readonly T[], EInitial, RInitial>,
+      makeInitial?: Effect<readonly T[], EInitial, RInitial> | undefined,
       config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
         partitionValue?: (a: Encoded) => string
       }
@@ -445,14 +445,14 @@ export interface Repos<
 > {
   make<RInitial = never, E = never, R2 = never>(
     args: [Evt] extends [never] ? {
-        makeInitial?: Effect<readonly T[], E, RInitial>
+        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }
       }
       : {
         publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect<void, never, R2>
-        makeInitial?: Effect<readonly T[], E, RInitial>
+        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }
@@ -460,14 +460,14 @@ export interface Repos<
   ): Effect<Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>, E, StoreMaker | RInitial | R2>
   makeWith<Out, RInitial = never, E = never, R2 = never>(
     args: [Evt] extends [never] ? {
-        makeInitial?: Effect<readonly T[], E, RInitial>
+        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }
       }
       : {
         publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect<void, never, R2>
-        makeInitial?: Effect<readonly T[], E, RInitial>
+        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }

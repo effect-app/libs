@@ -1047,19 +1047,13 @@ it("refine union with nested union", () =>
 
       expectTypeOf(res).toEqualTypeOf<
         readonly ({
-          readonly id: string
-          readonly nested: {
-            readonly _tag: "D"
-            readonly d: string
-          }
           readonly _tag: "Container2"
-        } | {
           readonly id: string
-          readonly nested: {
-            readonly _tag: "D"
-            readonly d: string
-          }
+          readonly nested: D
+        } | {
           readonly _tag: "Container3"
+          readonly id: string
+          readonly nested: D
         })[]
       >()
     })

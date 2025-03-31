@@ -149,12 +149,17 @@ export type RefinePathValue<T, P extends Path<T>, X extends string | number | bo
     : never
 /* dprint-ignore-end */
 
+export type EraseNeverContainingUnionElements<T> = T extends any ? {
+  [K in keyof T]: IsNever<T[K]> extends true ? true : false
+} extends infer $NC ? true extends $NC[keyof $NC] ? never : T
+: never : never
+
 export type RefineFieldPathValue<
   TFieldValues extends FieldValues,
   TFieldPath extends FieldPath<TFieldValues>,
   X extends string | number | boolean | null | bigint,
   Exclde extends boolean = false
-> = RefinePathValue<TFieldValues, TFieldPath, X, Exclde>
+> = EraseNeverContainingUnionElements<RefinePathValue<TFieldValues, TFieldPath, X, Exclde>>
 
 export namespace RefinePathValueTests {
   type test1 = RefineFieldPathValue<{ a: { b: "tag1"; v1: string } | { b: "tag2"; v2: number } }, "a.b", "tag1">
@@ -207,6 +212,22 @@ export namespace RefinePathValueTests {
     true
   >
   expectTypeOf<test6E>().toEqualTypeOf<{ a: { b: "tag1"; v1: string } }>()
+
+  type test10 = RefineFieldPathValue<
+    | { nested: { a: string; _tag: "a" } | { b: number; _tag: "b" }; _tag: "ab" }
+    | { nested: { b: number; _tag: "b" } | { c: boolean; _tag: "c" }; _tag: "bc" },
+    "nested._tag",
+    "a",
+    false
+  >
+
+  expectTypeOf<test10>().toEqualTypeOf<{
+    nested: {
+      a: string
+      _tag: "a"
+    }
+    _tag: "ab"
+  }>()
 }
 
 export namespace SetFieldPathValueTests {

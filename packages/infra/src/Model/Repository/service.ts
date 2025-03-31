@@ -554,10 +554,14 @@ type RecursiveExtractTagged<T, EncodedRefined> = {
     : T[k]
 }
 
-type ExtractTagged<T, EncodedRefined> = EncodedRefined extends { _tag: string }
+type ExtractTagged_<T, EncodedRefined> = EncodedRefined extends { _tag: string }
   ? T extends { _tag: string } ? Extract<T, { _tag: EncodedRefined["_tag"] }>
-  : RecursiveExtractTagged<RecusiveExtractIded<T, EncodedRefined>, EncodedRefined>
-  : RecursiveExtractTagged<RecusiveExtractIded<T, EncodedRefined>, EncodedRefined>
+  : T
+  : T
+
+type ExtractTagged<T, EncodedRefined> = ExtractTagged_<T, EncodedRefined> extends infer R
+  ? ResolveFirstLevel<RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined>>
+  : never
 
 type RecusiveExtractIded<T, EncodedRefined> = {
   [k in keyof T]: "id" extends keyof T[k]
@@ -567,10 +571,14 @@ type RecusiveExtractIded<T, EncodedRefined> = {
     : T[k]
 }
 
-type ExtractIded<T, EncodedRefined> = EncodedRefined extends { id: string }
+type ExtractIded_<T, EncodedRefined> = EncodedRefined extends { id: string }
   ? T extends { id: string } ? Extract<T, { id: EncodedRefined["id"] }>
-  : RecursiveExtractTagged<RecusiveExtractIded<T, EncodedRefined>, EncodedRefined>
-  : RecursiveExtractTagged<RecusiveExtractIded<T, EncodedRefined>, EncodedRefined>
+  : T
+  : T
+
+type ExtractIded<T, EncodedRefined> = ExtractIded_<T, EncodedRefined> extends infer R
+  ? ResolveFirstLevel<RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined>>
+  : never
 
 export type RefineTHelper<T, EncodedRefined> = ResolveFirstLevel<
   NullableRefined<

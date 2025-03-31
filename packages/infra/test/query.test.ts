@@ -969,3 +969,98 @@ it("refine nested union", () =>
       >()
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("refine union with nested union", () =>
+  Effect
+    .gen(function*() {
+      class A extends S.TaggedClass<A>()("A", {
+        a: S.String
+      }) {}
+
+      class B extends S.TaggedClass<B>()("B", {
+        b: S.String
+      }) {}
+
+      class C extends S.TaggedClass<C>()("C", {
+        c: S.String
+      }) {}
+
+      class D extends S.TaggedClass<D>()("D", {
+        d: S.String
+      }) {}
+
+      class E extends S.TaggedClass<E>()("E", {
+        e: S.String
+      }) {}
+
+      class Container1 extends S.TaggedClass<Container1>()("Container1", {
+        id: S.String,
+        nested: S.Union(A, B, C)
+      }) {}
+
+      class Container2 extends S.TaggedClass<Container2>()("Container2", {
+        id: S.String,
+        nested: S.Union(B, C, D)
+      }) {}
+
+      class Container3 extends S.TaggedClass<Container3>()("Container3", {
+        id: S.String,
+        nested: S.Union(C, D, E)
+      }) {}
+
+      const Containers = S.Union(Container1, Container2, Container3)
+      type Containers = typeof Containers.Type
+
+      const repo = yield* makeRepo("containers", Containers, {})
+
+      const base = make<Containers>()
+
+      const res_query = base.pipe(
+        where("nested._tag", "D")
+      )
+
+      expectTypeOf(res_query).toEqualTypeOf<
+        QueryWhere<
+          Containers,
+          {
+            readonly id: string
+            readonly _tag: "Container2"
+            readonly nested: {
+              readonly _tag: "D"
+              readonly d: string
+            }
+          } | {
+            readonly id: string
+            readonly _tag: "Container3"
+            readonly nested: {
+              readonly _tag: "D"
+              readonly d: string
+            }
+          },
+          false
+        >
+      >()
+
+      const res = yield* repo.query(
+        () => res_query
+      )
+
+      expectTypeOf(res).toEqualTypeOf<
+        readonly ({
+          readonly id: string
+          readonly nested: {
+            readonly _tag: "D"
+            readonly d: string
+          }
+          readonly _tag: "Container2"
+        } | {
+          readonly id: string
+          readonly nested: {
+            readonly _tag: "D"
+            readonly d: string
+          }
+          readonly _tag: "Container3"
+        })[]
+      >()
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))

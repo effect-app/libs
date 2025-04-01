@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.52.0
+
+### Minor Changes
+
+- e4e89a2: add support for nested refinements in queries
+
 ## 2.51.0
 
 ### Minor Changes

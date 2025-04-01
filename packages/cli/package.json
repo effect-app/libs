@@ -12,10 +12,10 @@
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
-    "@types/node": "~22.13.14",
+    "@types/node": "~22.13.16",
     "json5": "^2.2.3",
     "typescript": "^5.8.2",
-    "vitest": "^3.0.9"
+    "vitest": "^3.1.1"
   },
   "typesVersions": {
     "*": {

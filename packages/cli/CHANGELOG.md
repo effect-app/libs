@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.18.2
+
+### Patch Changes
+
+- ae71bd9: add missing link for vue-componentsy
+
 ## 1.18.1
 
 ### Patch Changes

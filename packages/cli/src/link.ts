@@ -10,6 +10,7 @@ pj.resolutions = {
   "effect-app": "file:" + EFFECT_APP_LIBS + "/packages/effect-app",
   "@effect-app/infra": "file:" + EFFECT_APP_LIBS + "/packages/infra",
   "@effect-app/vue": "file:" + EFFECT_APP_LIBS + "/packages/vue",
+  "@effect-app/vue-components": "file:" + EFFECT_APP_LIBS + "/packages/vue-components",
   // TODO: with hard links why would this be needed?
   ...packages.reduce((acc, p) => ({ ...acc, [p]: `file:${EFFECT_APP_LIBS}/node_modules/${p}` }), {})
 }

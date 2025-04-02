@@ -686,6 +686,64 @@ export const copy = dual<
   }
 >(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
 
+type CopyOriginU<U, Ctor extends new(...args: any[]) => any> = {
+  [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
+}
+
+type CopyOriginRet<A, U> = {
+  [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
+}
+
+export const copyOrigin = dual<
+  {
+    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
+      ctor: Ctor,
+      f: (a: A) => CopyOriginU<U, Ctor>
+    ): (self: A) => CopyOriginRet<A, U>
+    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
+      ctor: Ctor,
+      updates: CopyOriginU<U, Ctor>
+    ): (self: A) => CopyOriginRet<A, U>
+  },
+  {
+    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
+      self: A,
+      ctor: Ctor,
+      f: (a: A) => CopyOriginU<U, Ctor>
+    ): CopyOriginRet<A, U>
+    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
+      self: A,
+      ctor: Ctor,
+      updates: CopyOriginU<U, Ctor>
+    ): CopyOriginRet<A, U>
+  }
+>(
+  3,
+  <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
+    self: A,
+    ctor: Ctor,
+    f:
+      | CopyOriginU<U, Ctor>
+      | ((a: A) => CopyOriginU<U, Ctor>)
+  ) => new ctor(clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
+)
+
+class Banana {
+  name: string
+  state: { a: string; _tag: "a" } | { b: number; _tag: "b" }
+
+  constructor(name: string, state: { a: string; _tag: "a" } | { b: number; _tag: "b" }) {
+    this.name = name
+    this.state = state
+  }
+}
+
+const res = copyOrigin(
+  new Banana("banana", { a: "a", _tag: "a" }),
+  Banana,
+  (a) => ({ state: { b: 1, _tag: "b" as const } })
+)
+
 export function debug<A>(a: AnyOps<A>, name: string) {
   let r: string | A = a.subject
   try {

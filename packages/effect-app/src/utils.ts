@@ -690,9 +690,11 @@ type CopyOriginU<U, Ctor extends new(...args: any[]) => any> = {
   [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
 }
 
-type CopyOriginRet<A, U> = {
-  [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
-}
+type CopyOriginRet<A, U> =
+  & {
+    [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
+  }
+  & {}
 
 export const copyOrigin = dual<
   {

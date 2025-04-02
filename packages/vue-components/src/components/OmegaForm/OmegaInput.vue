@@ -1,54 +1,37 @@
 <template>
-  <component
-    :is="form.Field"
-    :name="name"
-    :validators="{
-      onChange: schema,
-      ...validators,
-    }"
-  >
-    <template
-      #default="{
-        field,
-      }: {
-        // TODO: exact type
-        field: FieldApi<
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any
-        >
-      }"
-    >
-      <slot
-        :field="field"
-        :label="label"
-        :options="options"
-        :meta="meta"
-        :type="type"
+  <component :is="form.Field" :name="name" :validators="{
+    onChange: schema,
+    ...validators,
+  }">
+    <template #default="{
+      field,
+    }: {
+      // TODO: exact type
+      field: FieldApi<
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
       >
-        <OmegaInternalInput
-          :field="field"
-          :label="label"
-          :options="options"
-          :meta="meta"
-          :type="type"
-        />
+    }">
+      <slot :field="field" :label="label" :options="options" :meta="meta" :type="type">
+        <OmegaInternalInput v-bind="$attrs" :field="field" :label="label" :options="options" :meta="meta"
+          :type="type" />
       </slot>
     </template>
   </component>
@@ -66,6 +49,10 @@ import {
 } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 import type { FieldApi } from "@tanstack/vue-form"
+
+defineOptions({
+  inheritAttrs: false
+})
 
 const props = defineProps<{
   form: FormType<From, To> & {

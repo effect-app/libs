@@ -18,6 +18,7 @@ import { useIntl } from "../../utils"
 
 export type TypeOverride =
   | "string"
+  | "text"
   | "number"
   | "select"
   | "multiple"

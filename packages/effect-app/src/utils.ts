@@ -696,7 +696,9 @@ type CopyOriginRet<A, U> =
   }
   & {}
 
-export const copyOrigin = <Ctor extends new(...args: any[]) => any>(ctor: Ctor) =>
+// just one input param: the convention is that the ctor takes an object
+// containing the properties of the class (I can't put object there as type because of contravariance)
+export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
   dual<
     {
       <A extends InstanceType<Ctor>, U extends Partial<A>>(
@@ -734,23 +736,6 @@ export const copyOrigin = <Ctor extends new(...args: any[]) => any>(ctor: Ctor) 
       return new ctor(o)
     }
   )
-
-class Banana {
-  name: string
-  state: { a: string; _tag: "a" } | { b: number; _tag: "b" }
-
-  constructor(name: string, state: { a: string; _tag: "a" } | { b: number; _tag: "b" }) {
-    this.name = name
-    this.state = state
-  }
-}
-
-const copyBanana = copyOrigin(Banana)
-
-const res = copyBanana(
-  new Banana("banana", { a: "a", _tag: "a" }),
-  (a) => ({ state: { b: 1, _tag: "b" as const } })
-)
 
 export function debug<A>(a: AnyOps<A>, name: string) {
   let r: string | A = a.subject

@@ -686,9 +686,11 @@ export const copy = dual<
   }
 >(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
 
-type CopyOriginU<U, Ctor extends new(...args: any[]) => any> = {
-  [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
-}
+type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
+  & {
+    [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
+  }
+  & {}
 
 type CopyOriginRet<A, U> =
   & {

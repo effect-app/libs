@@ -76,4 +76,28 @@ test("works", () => {
   })
 
   expect(Object.getPrototypeOf(res3)).toEqual(Banana.prototype)
+
+  // @ts-expect-error extraProp is not a valid property of Banana
+  copyBanana(
+    original,
+    { name: "string", extraProp: "whatever" }
+  )
+
+  // @ts-expect-error extraProp is not a valid property of Banana
+  copyBanana(
+    original,
+    { extraProp: "whatever" }
+  )
+
+  // @ts-expect-error can't set name to undefined
+  copyBanana(
+    original,
+    { name: undefined }
+  )
+
+  // @ts-expect-error can't set all props to undefined
+  copyBanana(
+    original,
+    { name: undefined, state: undefined }
+  )
 })

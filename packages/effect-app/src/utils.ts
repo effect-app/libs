@@ -705,30 +705,30 @@ export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
     {
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         f: (a: A) => CopyOriginU<U, Ctor>
-      ): (self: A) => CopyOriginRet<A, U>
+      ): (self: {} extends U ? `updates argument contains only extra properties` : A) => CopyOriginRet<A, U>
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         updates: CopyOriginU<U, Ctor>
-      ): (self: A) => CopyOriginRet<A, U>
+      ): (self: {} extends U ? `updates argument contains only extra properties` : A) => CopyOriginRet<A, U>
     },
     {
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
-        self: A,
+        self: {} extends U ? `updates argument contains only extra properties` : A,
         f: (a: A) => CopyOriginU<U, Ctor>
       ): CopyOriginRet<A, U>
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
-        self: A,
+        self: {} extends U ? `updates argument contains only extra properties` : A,
         updates: CopyOriginU<U, Ctor>
       ): CopyOriginRet<A, U>
     }
   >(
     2,
     <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
-      self: A,
+      self: {} extends U ? `updates argument contains only extra properties` : A,
       f:
         | CopyOriginU<U, Ctor>
         | ((a: A) => CopyOriginU<U, Ctor>)
     ): CopyOriginRet<A, U> => {
-      const o = { ...self, ...(isFunction(f) ? f(self) : f) }
+      const o = { ...self, ...(isFunction(f) ? f(self as any) : f) }
 
       if (cloneTrait in (self as any)) {
         const selfWithClone = self as typeof self & Clone

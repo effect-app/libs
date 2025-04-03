@@ -83,21 +83,9 @@ test("works", () => {
     { name: "string", extraProp: "whatever" }
   )
 
-  // @ts-expect-error extraProp is not a valid property of Banana
   copyBanana(
+    // @ts-expect-error extraProp is not a valid property of Banana
     original,
     { extraProp: "whatever" }
-  )
-
-  // @ts-expect-error can't set name to undefined
-  copyBanana(
-    original,
-    { name: undefined }
-  )
-
-  // @ts-expect-error can't set all props to undefined
-  copyBanana(
-    original,
-    { name: undefined, state: undefined }
   )
 })

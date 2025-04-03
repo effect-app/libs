@@ -696,39 +696,35 @@ type CopyOriginRet<A, U> =
   }
   & {}
 
-export const copyOrigin = dual<
-  {
-    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
-      ctor: Ctor,
-      f: (a: A) => CopyOriginU<U, Ctor>
-    ): (self: A) => CopyOriginRet<A, U>
-    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
-      ctor: Ctor,
-      updates: CopyOriginU<U, Ctor>
-    ): (self: A) => CopyOriginRet<A, U>
-  },
-  {
-    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
+export const copyOrigin = <Ctor extends new(...args: any[]) => any>(ctor: Ctor) =>
+  dual<
+    {
+      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+        f: (a: A) => CopyOriginU<U, Ctor>
+      ): (self: A) => CopyOriginRet<A, U>
+      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+        updates: CopyOriginU<U, Ctor>
+      ): (self: A) => CopyOriginRet<A, U>
+    },
+    {
+      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+        self: A,
+        f: (a: A) => CopyOriginU<U, Ctor>
+      ): CopyOriginRet<A, U>
+      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+        self: A,
+        updates: CopyOriginU<U, Ctor>
+      ): CopyOriginRet<A, U>
+    }
+  >(
+    2,
+    <A extends InstanceType<Ctor>, U extends Partial<A>>(
       self: A,
-      ctor: Ctor,
-      f: (a: A) => CopyOriginU<U, Ctor>
-    ): CopyOriginRet<A, U>
-    <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
-      self: A,
-      ctor: Ctor,
-      updates: CopyOriginU<U, Ctor>
-    ): CopyOriginRet<A, U>
-  }
->(
-  3,
-  <Ctor extends new(...args: any[]) => any, A extends InstanceType<Ctor>, U extends Partial<A>>(
-    self: A,
-    ctor: Ctor,
-    f:
-      | CopyOriginU<U, Ctor>
-      | ((a: A) => CopyOriginU<U, Ctor>)
-  ) => new ctor(clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
-)
+      f:
+        | CopyOriginU<U, Ctor>
+        | ((a: A) => CopyOriginU<U, Ctor>)
+    ) => new ctor(clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
+  )
 
 class Banana {
   name: string
@@ -740,9 +736,10 @@ class Banana {
   }
 }
 
-const res = copyOrigin(
+const copyBanana = copyOrigin(Banana)
+
+const res = copyBanana(
   new Banana("banana", { a: "a", _tag: "a" }),
-  Banana,
   (a) => ({ state: { b: 1, _tag: "b" as const } })
 )
 

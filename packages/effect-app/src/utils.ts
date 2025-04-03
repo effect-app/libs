@@ -723,7 +723,16 @@ export const copyOrigin = <Ctor extends new(...args: any[]) => any>(ctor: Ctor) 
       f:
         | CopyOriginU<U, Ctor>
         | ((a: A) => CopyOriginU<U, Ctor>)
-    ) => new ctor(clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
+    ) => {
+      const o = { ...self, ...(isFunction(f) ? f(self) : f) }
+
+      if (cloneTrait in (self as any)) {
+        const selfWithClone = self as typeof self & Clone
+        return selfWithClone[cloneTrait](o)
+      }
+
+      return new ctor(o)
+    }
   )
 
 class Banana {

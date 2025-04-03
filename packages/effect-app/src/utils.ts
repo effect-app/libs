@@ -701,31 +701,31 @@ type CopyOriginRet<A, U> =
 export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
   dual<
     {
-      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         f: (a: A) => CopyOriginU<U, Ctor>
       ): (self: A) => CopyOriginRet<A, U>
-      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         updates: CopyOriginU<U, Ctor>
       ): (self: A) => CopyOriginRet<A, U>
     },
     {
-      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         self: A,
         f: (a: A) => CopyOriginU<U, Ctor>
       ): CopyOriginRet<A, U>
-      <A extends InstanceType<Ctor>, U extends Partial<A>>(
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         self: A,
         updates: CopyOriginU<U, Ctor>
       ): CopyOriginRet<A, U>
     }
   >(
     2,
-    <A extends InstanceType<Ctor>, U extends Partial<A>>(
+    <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
       self: A,
       f:
         | CopyOriginU<U, Ctor>
         | ((a: A) => CopyOriginU<U, Ctor>)
-    ) => {
+    ): CopyOriginRet<A, U> => {
       const o = { ...self, ...(isFunction(f) ? f(self) : f) }
 
       if (cloneTrait in (self as any)) {

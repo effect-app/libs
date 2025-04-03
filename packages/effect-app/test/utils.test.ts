@@ -20,7 +20,7 @@ test("works", () => {
   const res1 = copyBanana(
     original,
     (_) => ({ state: { b: 1, _tag: "b" as const } })
-  )
+  ) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res1).toEqualTypeOf<{
     name: string
@@ -36,4 +36,44 @@ test("works", () => {
   })
 
   expect(Object.getPrototypeOf(res1)).toEqual(Banana.prototype)
+
+  const res2 = copyBanana(
+    original,
+    { state: { b: 1, _tag: "b" } }
+  ) satisfies Banana // must be assignable to Banana
+
+  expectTypeOf(res2).toEqualTypeOf<{
+    name: string
+    state: {
+      b: number
+      _tag: "b"
+    }
+  }>()
+
+  expect(res2).toEqual({
+    name: "banana",
+    state: { b: 1, _tag: "b" }
+  })
+
+  expect(Object.getPrototypeOf(res2)).toEqual(Banana.prototype)
+
+  const res3 = copyBanana(
+    res2,
+    { state: { a: "a", _tag: "a" } }
+  )
+
+  expectTypeOf(res3).toEqualTypeOf<{
+    name: string
+    state: {
+      a: string
+      _tag: "a"
+    }
+  }>()
+
+  expect(res3).toEqual({
+    name: "banana",
+    state: { a: "a", _tag: "a" }
+  })
+
+  expect(Object.getPrototypeOf(res3)).toEqual(Banana.prototype)
 })

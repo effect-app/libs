@@ -19,7 +19,7 @@ test("works", () => {
 
   const res1 = copyBanana(
     original,
-    (_) => ({ state: { b: 1, _tag: "b" as const } })
+    (_) => ({ state: { b: 1, _tag: "b" } })
   ) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res1).toEqualTypeOf<{

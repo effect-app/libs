@@ -1,0 +1,8 @@
+# Ignore everything
+*
+# But not these files...
+!.prettierrc
+# And not these directories...
+!packages/
+packages/**/*
+!packages/**/*.vue 

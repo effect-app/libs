@@ -12,9 +12,11 @@ import {
   type MetaRecord,
   type OmegaFormApi,
 } from "./OmegaFormStuff"
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export const useOmegaForm = <
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   From extends Record<PropertyKey, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   To extends Record<PropertyKey, any>,
 >(
   schema: S.Schema<From, To, never>,

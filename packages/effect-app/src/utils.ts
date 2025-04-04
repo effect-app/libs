@@ -698,7 +698,9 @@ type CopyOriginRet<A, U> =
   }
   & {}
 
-type CopyOriginSelf<A, U> = Equals<{}, U> extends true ? `updates argument is empty or contains only extra properties`
+type CopyOriginSelf<A, U> = Equals<{}, U> extends true
+  ? Equals<keyof {}, keyof U> extends true ? `updates argument is empty or contains only extra properties`
+  : A
   : A
 
 // just one input param: the convention is that the ctor takes an object

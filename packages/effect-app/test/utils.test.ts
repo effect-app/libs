@@ -83,11 +83,27 @@ test("works with class", () => {
     { name: "string", extraProp: "whatever" }
   )
 
+  // @ts-expect-error extraProp is not a valid property of Banana
   copyBanana(
-    // @ts-expect-error extraProp is not a valid property of Banana
     original,
     { extraProp: "whatever" }
   )
+
+  const res4 = copyBanana(
+    original,
+    (o) => o
+  ) satisfies Banana // must be assignable to Banana
+
+  expectTypeOf(res4).toEqualTypeOf<{
+    name: string
+    state: {
+      a: string
+      _tag: "a"
+    } | {
+      b: number
+      _tag: "b"
+    }
+  }>()
 })
 
 test("works with schema class", () => {
@@ -169,9 +185,25 @@ test("works with schema class", () => {
     { name: "string", extraProp: "whatever" }
   )
 
+  // @ts-expect-error extraProp is not a valid property of Banana
   copyBanana(
-    // @ts-expect-error extraProp is not a valid property of Banana
     original,
     { extraProp: "whatever" }
   )
+
+  const res4 = copyBanana(
+    original,
+    (o) => o
+  ) satisfies Banana // must be assignable to Banana
+
+  expectTypeOf(res4).toEqualTypeOf<{
+    name: string
+    state: {
+      readonly a: string
+      readonly _tag: "a"
+    } | {
+      readonly b: number
+      readonly _tag: "b"
+    }
+  }>()
 })

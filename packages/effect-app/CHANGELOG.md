@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 2.38.2
+
+### Patch Changes
+
+- c0ed28a: preserve readonlyness in the returned type for copyOrigin
+- 0fcab38: update packages
+
 ## 2.38.1
 
 ### Patch Changes

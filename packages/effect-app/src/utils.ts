@@ -692,9 +692,21 @@ type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
   }
   & {}
 
-type CopyOriginRet<A, U> =
+type IsReadonly<T, K extends keyof T> = Equals<
+  { [P in K]: T[P] },
+  { -readonly [P in K]: T[P] }
+> extends false ? true : false
+
+type DeepReadonly<T> =
   & {
-    [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
+    readonly [K in keyof T]: DeepReadonly<T[K]>
+  }
+  & {}
+
+type CopyOriginRet<A, U, ICtor> =
+  & {
+    [K in keyof ICtor]: K extends keyof U ? IsReadonly<ICtor, K> extends true ? DeepReadonly<U[K]> : U[K]
+      : A[K & keyof A]
   }
   & {}
 
@@ -710,20 +722,20 @@ export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
     {
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         f: (a: A) => CopyOriginU<U, Ctor>
-      ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+      ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U, InstanceType<Ctor>>
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         updates: CopyOriginU<U, Ctor>
-      ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+      ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U, InstanceType<Ctor>>
     },
     {
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         self: CopyOriginSelf<A, U>,
         f: (a: A) => CopyOriginU<U, Ctor>
-      ): CopyOriginRet<A, U>
+      ): CopyOriginRet<A, U, InstanceType<Ctor>>
       <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
         self: CopyOriginSelf<A, U>,
         updates: CopyOriginU<U, Ctor>
-      ): CopyOriginRet<A, U>
+      ): CopyOriginRet<A, U, InstanceType<Ctor>>
     }
   >(
     2,
@@ -732,7 +744,7 @@ export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
       f:
         | CopyOriginU<U, Ctor>
         | ((a: A) => CopyOriginU<U, Ctor>)
-    ): CopyOriginRet<A, U> => {
+    ): CopyOriginRet<A, U, InstanceType<Ctor>> => {
       const o = { ...self, ...(isFunction(f) ? f(self as any) : f) }
 
       if (cloneTrait in (self as any)) {

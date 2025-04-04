@@ -125,10 +125,10 @@ test("works with schema class", () => {
   ) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res1).toEqualTypeOf<{
-    name: string
-    state: {
-      b: number
-      _tag: "b"
+    readonly name: string
+    readonly state: {
+      readonly b: number
+      readonly _tag: "b"
     }
   }>()
 
@@ -145,10 +145,10 @@ test("works with schema class", () => {
   ) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res2).toEqualTypeOf<{
-    name: string
-    state: {
-      b: number
-      _tag: "b"
+    readonly name: string
+    readonly state: {
+      readonly b: number
+      readonly _tag: "b"
     }
   }>()
 
@@ -165,10 +165,10 @@ test("works with schema class", () => {
   ) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res3).toEqualTypeOf<{
-    name: string
-    state: {
-      a: string
-      _tag: "a"
+    readonly name: string
+    readonly state: {
+      readonly a: string
+      readonly _tag: "a"
     }
   }>()
 
@@ -197,8 +197,8 @@ test("works with schema class", () => {
   ) satisfies Banana // must be assignable to Banana
 
   expectTypeOf(res4).toEqualTypeOf<{
-    name: string
-    state: {
+    readonly name: string
+    readonly state: {
       readonly a: string
       readonly _tag: "a"
     } | {

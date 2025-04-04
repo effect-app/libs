@@ -1016,7 +1016,7 @@ it("refine union with nested union", () =>
       const base = make<Containers>()
 
       const res_query = base.pipe(
-        where("nested._tag", "D")
+        where("nested._tag", "in", ["D"])
       )
 
       expectTypeOf(res_query).toEqualTypeOf<

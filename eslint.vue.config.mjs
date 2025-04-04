@@ -2,6 +2,7 @@ import formatjs from "eslint-plugin-formatjs"
 import pluginVue from "eslint-plugin-vue"
 import { defineConfigWithVueTs, vueTsConfigs} from '@vue/eslint-config-typescript';
 import vuePrettierConfig from "@vue/eslint-config-prettier"
+import dprint from "@ben_12/eslint-plugin-dprint"
 
 import tseslint from 'typescript-eslint';
 
@@ -21,7 +22,22 @@ export function vueConfig(dirName, forceTS = false) {
     // this should set the vue parser as the parser plus some recommended rules
     ...pluginVue.configs["flat/recommended"],
     ...defineConfigWithVueTs(vueTsConfigs.base),
-    vuePrettierConfig,
+    {
+      ...vuePrettierConfig,
+      rules: {
+        ...vuePrettierConfig.rules,
+        "prettier/prettier": ["error", {
+          "singleAttributePerLine": true,
+          "htmlWhitespaceSensitivity": "strict",
+          "vueIndentScriptAndStyle": true,
+          "printWidth": 80,
+          "semi": false,
+          "singleQuote": true,
+          "trailingComma": "none",
+          "bracketSameLine": false
+        }]
+      }
+    },
     {
       name: "vue",
       files: ["*.vue", "**/*.vue"],
@@ -49,11 +65,45 @@ export function vueConfig(dirName, forceTS = false) {
           {
             allowModifiers: true
           }
-        ]
+        ],
+        "vue/html-closing-bracket-newline": ["error", {
+          "singleline": "never",
+          "multiline": "always"
+        }],
+        "vue/first-attribute-linebreak": ["error", {
+          "singleline": "ignore",
+          "multiline": "below"
+        }],
+        "vue/max-attributes-per-line": ["error", {
+          "singleline": {
+            "max": 3
+          },
+          "multiline": {
+            "max": 1
+          }
+        }],
+        "vue/multiline-html-element-content-newline": ["error", {
+          "allowEmptyLines": false,
+          "ignores": ["pre", "textarea"]
+        }],
+        "vue/html-indent": ["error", 2, {
+          "attribute": 1,
+          "baseIndent": 1,
+          "closeBracket": 0,
+          "alignAttributesVertically": true,
+          "ignores": []
+        }],
+        "@ben_12/dprint/typescript": ["error", {
+          config: {
+            "memberExpression.linePerExpression": false,
+            "binaryExpression.linePerExpression": false
+          }
+        }]
       },
       plugins: {
-        formatjs // this is for ICU messages, so I'd say we need it here
-      },
+        formatjs, // this is for ICU messages, so I'd say we need it here
+        "@ben_12/dprint": dprint
+      }
     }
   ]
 }

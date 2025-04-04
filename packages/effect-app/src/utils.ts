@@ -6,7 +6,7 @@ import * as Either from "effect/Either"
 import { dual, isFunction } from "effect/Function"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
-import type { DeepMutable, Mutable } from "./Types.js"
+import type { DeepMutable, Equals, Mutable } from "./Types.js"
 
 // codegen:start {preset: barrel, include: ./utils/*.ts, nodir: false }
 export * from "./utils/effectify.js"
@@ -685,6 +685,62 @@ export const copy = dual<
     <A extends object>(self: A, f: Partial<A>): A
   }
 >(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
+
+type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
+  & {
+    [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
+  }
+  & {}
+
+type CopyOriginRet<A, U> =
+  & {
+    [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
+  }
+  & {}
+
+type CopyOriginSelf<A, U> = Equals<{}, U> extends true ? `updates argument is empty or contains only extra properties`
+  : A
+
+// just one input param: the convention is that the ctor takes an object
+// containing the properties of the class (I can't put object there as type because of contravariance)
+export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
+  dual<
+    {
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
+        f: (a: A) => CopyOriginU<U, Ctor>
+      ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
+        updates: CopyOriginU<U, Ctor>
+      ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+    },
+    {
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
+        self: CopyOriginSelf<A, U>,
+        f: (a: A) => CopyOriginU<U, Ctor>
+      ): CopyOriginRet<A, U>
+      <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
+        self: CopyOriginSelf<A, U>,
+        updates: CopyOriginU<U, Ctor>
+      ): CopyOriginRet<A, U>
+    }
+  >(
+    2,
+    <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(
+      self: Equals<{}, U> extends true ? `updates argument is empty or contains only extra properties` : A,
+      f:
+        | CopyOriginU<U, Ctor>
+        | ((a: A) => CopyOriginU<U, Ctor>)
+    ): CopyOriginRet<A, U> => {
+      const o = { ...self, ...(isFunction(f) ? f(self as any) : f) }
+
+      if (cloneTrait in (self as any)) {
+        const selfWithClone = self as typeof self & Clone
+        return selfWithClone[cloneTrait](o)
+      }
+
+      return new ctor(o)
+    }
+  )
 
 export function debug<A>(a: AnyOps<A>, name: string) {
   let r: string | A = a.subject

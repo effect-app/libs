@@ -116,18 +116,7 @@ export type PrefixFromDepth<
   _TDepth extends any[],
 > = K
 
-export type PrefixObjectAccessor<
-  T extends object,
-  TDepth extends any[] = [],
-> = {
-  [K in keyof T]-?: K extends string | number
-    ?
-        | PrefixFromDepth<K, TDepth>
-        | `${PrefixFromDepth<K, TDepth>}${DeepKeys<T[K], [TDepth]>}`
-    : never
-}[keyof T]
-
-export type NestedKeyOf<T> = T extends object ? PrefixObjectAccessor<T> : never
+export type NestedKeyOf<T> = DeepKeys<T>
 
 export type FieldValidators<T> = {
   onChangeAsync?: FieldAsyncValidateOrFn<T, any, any>

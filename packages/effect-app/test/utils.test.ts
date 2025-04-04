@@ -207,3 +207,117 @@ test("works with schema class", () => {
     }
   }>()
 })
+
+test("works with schema union", () => {
+  class Banana extends S.TaggedClass<Banana>()("Banana", {
+    name: S.String,
+    state: S.Union(
+      S.Struct({ a: S.String, _tag: S.Literal("a") }),
+      S.Struct({ b: S.Number, _tag: S.Literal("b") })
+    )
+  }) {}
+
+  class Apple extends S.TaggedClass<Apple>()("Apple", {
+    name: S.String,
+    state: S.Union(
+      S.Struct({ a: S.String, _tag: S.Literal("a") }),
+      S.Struct({ b: S.Number, _tag: S.Literal("b") })
+    )
+  }) {}
+
+  const Fruit = S.TaggedUnion(Banana, Apple)
+
+  // probably should use the right class to new up based on the _tag..
+  // not sure if we should support _tag changes too on the update side..
+  const copyFruit = copyOrigin(Fruit)
+
+  const original = new Banana({ name: "banana", state: { a: "a", _tag: "a" } })
+
+  const res1 = copyFruit(
+    original,
+    (_) => ({ state: { b: 1, _tag: "b" } })
+  ) satisfies Banana // must be assignable to Banana
+
+  expectTypeOf(res1).toEqualTypeOf<{
+    readonly name: string
+    readonly state: {
+      readonly b: number
+      readonly _tag: "b"
+    }
+  }>()
+
+  expect(res1).toEqual({
+    name: "banana",
+    state: { b: 1, _tag: "b" }
+  })
+
+  expect(Object.getPrototypeOf(res1)).toEqual(Banana.prototype)
+
+  const res2 = copyFruit(
+    original,
+    { state: { b: 1, _tag: "b" } }
+  ) satisfies Banana // must be assignable to Banana
+
+  expectTypeOf(res2).toEqualTypeOf<{
+    readonly name: string
+    readonly state: {
+      readonly b: number
+      readonly _tag: "b"
+    }
+  }>()
+
+  expect(res2).toEqual({
+    name: "banana",
+    state: { b: 1, _tag: "b" }
+  })
+
+  expect(Object.getPrototypeOf(res2)).toEqual(Banana.prototype)
+
+  const res3 = copyFruit(
+    res2,
+    { state: { a: "a", _tag: "a" } }
+  ) satisfies Banana // must be assignable to Banana
+
+  expectTypeOf(res3).toEqualTypeOf<{
+    readonly name: string
+    readonly state: {
+      readonly a: string
+      readonly _tag: "a"
+    }
+  }>()
+
+  expect(res3).toEqual({
+    name: "banana",
+    state: { a: "a", _tag: "a" }
+  })
+
+  expect(Object.getPrototypeOf(res3)).toEqual(Banana.prototype)
+
+  // @ts-expect-error extraProp is not a valid property of Banana
+  copyFruit(
+    original,
+    { name: "string", extraProp: "whatever" }
+  )
+
+  // @ts-expect-error extraProp is not a valid property of Banana
+  copyFruit(
+    original,
+    { extraProp: "whatever" }
+  )
+
+  const res4 = copyFruit(
+    original,
+    (o) => o
+  ) satisfies Banana // must be assignable to Banana
+
+  expectTypeOf(res4).toEqualTypeOf<{
+    readonly name: string
+    readonly state: {
+      readonly a: string
+      readonly _tag: "a"
+    } | {
+      readonly b: number
+      readonly _tag: "b"
+    }
+  }>()
+})

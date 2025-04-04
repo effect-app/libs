@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.38.1
+
+### Patch Changes
+
+- cd15a8e: some fixes for copyOrigin
+
 ## 2.38.0
 
 ### Minor Changes

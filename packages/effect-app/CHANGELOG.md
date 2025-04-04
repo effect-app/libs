@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.38.0
+
+### Minor Changes
+
+- 81479bf: add specialized copy function wrt a constructor
+
 ## 2.37.1
 
 ### Patch Changes

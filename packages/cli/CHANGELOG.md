@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.18.3
+
+### Patch Changes
+
+- 0fcab38: update packages
+
 ## 1.18.2
 
 ### Patch Changes

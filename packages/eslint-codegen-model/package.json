@@ -2,7 +2,7 @@
   "name": "@effect-app/eslint-codegen-model",
   "description": "Contains eslint helpers",
   "sideEffects": false,
-  "version": "1.36.1",
+  "version": "1.36.2",
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && tsc --build",
@@ -25,16 +25,16 @@
     "lodash": "4.17.21"
   },
   "peerDependencies": {
-    "effect": "^3.14.5"
+    "effect": "^3.14.6"
   },
   "devDependencies": {
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.20.7",
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.16",
-    "effect": "^3.14.5",
+    "effect": "^3.14.6",
     "madge": "8.0.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   },
   "main": "index.js",
   "author": "Wessel van der Veen & Scott vanBommel",

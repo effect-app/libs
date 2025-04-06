@@ -413,7 +413,7 @@ export const makeRouter = <
             // TODO: also takes optional a RouterTag..
             return l.pipe(
               Layer.provideMerge(
-                RpcServer.layerProtocolHttp({ path: ("/rpc/" + meta.moduleName) as `/rpc/${typeof meta.moduleName}` })
+                RpcServer.layerProtocolHttp({ path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}` })
               )
             )
 

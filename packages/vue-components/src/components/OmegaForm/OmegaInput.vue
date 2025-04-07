@@ -7,50 +7,19 @@
       ...validators,
     }"
   >
-    <template
-      #default="{
-        field,
-      }: {
-        // TODO: exact type
-        field: FieldApi<
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any
-        >
-      }"
-    >
-      <slot
+    <template #default="{ field }: { field: FieldApiForAndrea<To> }">
+      <OmegaInternalInput
         :field="field"
         :label="label"
         :options="options"
         :meta="meta"
         :type="type"
+        v-bind="$attrs"
       >
-        <OmegaInternalInput
-          v-bind="$attrs"
-          :field="field"
-          :label="label"
-          :options="options"
-          :meta="meta"
-          :type="type"
-        />
-      </slot>
+        <template #default="inputProps">
+          <slot v-bind="inputProps" />
+        </template>
+      </OmegaInternalInput>
     </template>
   </component>
 </template>
@@ -66,11 +35,7 @@ import {
   type TypeOverride,
 } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
-import type { FieldApi } from "@tanstack/vue-form"
-
-defineOptions({
-  inheritAttrs: false,
-})
+import type { FieldApiForAndrea } from "./InputProps"
 
 const props = defineProps<{
   form: FormType<From, To> & {
@@ -82,6 +47,10 @@ const props = defineProps<{
   options?: { title: string; value: string }[]
   type?: TypeOverride
 }>()
+
+defineOptions({
+  inheritAttrs: false,
+})
 
 const meta = computed(() => {
   return props.form.meta[props.name]

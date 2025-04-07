@@ -7,50 +7,52 @@
       "
       class="error-alert"
     >
-      <v-alert
-        type="error"
-        variant="tonal"
-        role="alert"
-        aria-live="polite"
-        class="mb-4"
-      >
-        <div class="text-h6 mb-3">{{ trans("form.includes_error") }}:</div>
-        <component
-          :is="errors.length > 1 ? 'ul' : 'div'"
-          v-if="errors.length"
-          class="error-list"
+      <slot v-bind="{ errors, showedGeneralErrors }">
+        <v-alert
+          type="error"
+          variant="tonal"
+          role="alert"
+          aria-live="polite"
+          class="mb-4"
         >
+          <div class="text-h6 mb-3">{{ trans("form.includes_error") }}:</div>
           <component
-            :is="errors.length > 1 ? 'li' : 'div'"
-            v-for="error in errors"
-            :key="error.inputId"
-            class="error-item"
+            :is="errors.length > 1 ? 'ul' : 'div'"
+            v-if="errors.length"
+            class="error-list"
           >
-            <div class="font-weight-medium">{{ error.label }}</div>
-            <div class="error-message">
-              <component
-                :is="error.errors.length > 1 ? 'ul' : 'div'"
-                class="error-list"
-              >
+            <component
+              :is="errors.length > 1 ? 'li' : 'div'"
+              v-for="error in errors"
+              :key="error.inputId"
+              class="error-item"
+            >
+              <div class="font-weight-medium">{{ error.label }}</div>
+              <div class="error-message">
                 <component
-                  :is="error.errors.length > 1 ? 'li' : 'span'"
-                  v-for="e in error.errors"
-                  :key="e"
+                  :is="error.errors.length > 1 ? 'ul' : 'div'"
+                  class="error-list"
                 >
-                  {{ e }}
+                  <component
+                    :is="error.errors.length > 1 ? 'li' : 'span'"
+                    v-for="e in error.errors"
+                    :key="e"
+                  >
+                    {{ e }}
+                  </component>
                 </component>
-              </component>
-            </div>
-            <a :href="`#${error.inputId}`" class="error-link">
-              <v-icon :icon="mdiLink" />
-              {{ trans("form.fix_input") }}
-            </a>
+              </div>
+              <a :href="`#${error.inputId}`" class="error-link">
+                <v-icon :icon="mdiLink" />
+                {{ trans("form.fix_input") }}
+              </a>
+            </component>
           </component>
-        </component>
-        <span v-else>
-          {{ showedGeneralErrors[0] }}
-        </span>
-      </v-alert>
+          <span v-else>
+            {{ showedGeneralErrors[0] }}
+          </span>
+        </v-alert>
+      </slot>
     </div>
   </Transition>
 </template>

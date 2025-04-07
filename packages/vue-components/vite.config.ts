@@ -3,7 +3,11 @@ const { defineConfig } = require('vite');
 import vue from '@vitejs/plugin-vue';
 
 module.exports = defineConfig({
-  plugins: [vue()], // to process SFC
+  plugins: [
+    vue({
+      // customElement: true, // Enable web components support
+    }),
+  ],
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),

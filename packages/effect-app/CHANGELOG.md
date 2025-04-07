@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.38.4
+
+### Patch Changes
+
+- revert copyOrigin changes
+
 ## 2.38.3
 
 ### Patch Changes

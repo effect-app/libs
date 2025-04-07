@@ -17,6 +17,22 @@
         @update:model-value="field.handleChange"
         @blur="setRealDirty"
       />
+      <v-textarea
+        v-if="fieldType === 'text'"
+        v-bind="$attrs"
+        :id="id"
+        :required="meta?.required"
+        :min-length="meta?.type === 'string' && meta?.minLength"
+        :max-length="meta?.type === 'string' && meta?.maxLength"
+        :type="fieldType"
+        :name="field.name"
+        :label="`${label}${meta?.required ? ' *' : ''}`"
+        :model-value="field.state.value"
+        :error-messages="showedErrors"
+        :error="!!showedErrors.length"
+        @update:model-value="field.handleChange"
+        @blur="setRealDirty"
+      />
       <v-text-field
         v-if="fieldType === 'number'"
         :id="id"

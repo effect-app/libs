@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.53.0
+
+### Minor Changes
+
+- ff09d8e: change: use custom Router for Rpc.
+
 ## 2.52.4
 
 ### Patch Changes

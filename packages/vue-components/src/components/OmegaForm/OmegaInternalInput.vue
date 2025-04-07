@@ -1,31 +1,84 @@
 <template>
   <div class="omega-input">
-    <v-text-field v-bind="$attrs" v-if="fieldType === 'email' || fieldType === 'string'" :id="id"
-      :required="meta?.required" :min-length="meta?.type === 'string' && meta?.minLength"
-      :max-length="meta?.type === 'string' && meta?.maxLength" :type="fieldType" :name="field.name"
-      :label="`${label}${meta?.required ? ' *' : ''}`" :model-value="field.state.value" :error-messages="showedErrors"
-      :error="!!showedErrors.length" @update:model-value="field.handleChange" @blur="setRealDirty" />
-    <v-textarea v-bind="$attrs" v-if="fieldType === 'text'" :id="id" :required="meta?.required"
-      :min-length="meta?.type === 'string' && meta?.minLength" :max-length="meta?.type === 'string' && meta?.maxLength"
-      :type="fieldType" :name="field.name" :label="`${label}${meta?.required ? ' *' : ''}`"
-      :model-value="field.state.value" :error-messages="showedErrors" :error="!!showedErrors.length"
-      @update:model-value="field.handleChange" @blur="setRealDirty" />
-    <v-text-field v-bind="$attrs" v-if="fieldType === 'number'" :id="id" :required="meta?.required"
-      :min="meta?.type === 'number' && meta.minimum" :max="meta?.type === 'number' && meta.maximum" :type="fieldType"
-      :name="field.name" :label="`${label}${meta?.required ? ' *' : ''}`" :model-value="field.state.value"
-      :error-messages="showedErrors" :error="!!showedErrors.length" @update:model-value="
+    <v-text-field
+      v-if="fieldType === 'email' || fieldType === 'string'"
+      v-bind="$attrs"
+      :id="id"
+      :required="meta?.required"
+      :min-length="meta?.type === 'string' && meta?.minLength"
+      :max-length="meta?.type === 'string' && meta?.maxLength"
+      :type="fieldType"
+      :name="field.name"
+      :label="`${label}${meta?.required ? ' *' : ''}`"
+      :model-value="field.state.value"
+      :error-messages="showedErrors"
+      :error="!!showedErrors.length"
+      @update:model-value="field.handleChange"
+      @blur="setRealDirty"
+    />
+    <v-textarea
+      v-if="fieldType === 'text'"
+      v-bind="$attrs"
+      :id="id"
+      :required="meta?.required"
+      :min-length="meta?.type === 'string' && meta?.minLength"
+      :max-length="meta?.type === 'string' && meta?.maxLength"
+      :type="fieldType"
+      :name="field.name"
+      :label="`${label}${meta?.required ? ' *' : ''}`"
+      :model-value="field.state.value"
+      :error-messages="showedErrors"
+      :error="!!showedErrors.length"
+      @update:model-value="field.handleChange"
+      @blur="setRealDirty"
+    />
+    <v-text-field
+      v-if="fieldType === 'number'"
+      v-bind="$attrs"
+      :id="id"
+      :required="meta?.required"
+      :min="meta?.type === 'number' && meta.minimum"
+      :max="meta?.type === 'number' && meta.maximum"
+      :type="fieldType"
+      :name="field.name"
+      :label="`${label}${meta?.required ? ' *' : ''}`"
+      :model-value="field.state.value"
+      :error-messages="showedErrors"
+      :error="!!showedErrors.length"
+      @update:model-value="
         (e: any) => {
           field.handleChange(Number(e))
         }
-      " @blur="setRealDirty" />
-    <div v-if="fieldType === 'select' || fieldType === 'multiple'"
-      :class="fieldType !== 'multiple' && 'd-flex align-center'">
-      <v-select v-bind="$attrs" :id="id" :required="meta?.required" :multiple="fieldType === 'multiple'"
-        :chips="fieldType === 'multiple'" :name="field.name" :model-value="field.state.value"
-        :label="`${label}${meta?.required ? ' *' : ''}`" :items="options" :error-messages="showedErrors"
-        :error="!!showedErrors.length" @update:model-value="field.handleChange" @blur="setRealDirty" />
-      <v-btn v-if="fieldType !== 'multiple'" variant-btn="secondary" :variant-icon="mdiRefresh" class="mr-2"
-        title="Reset" @click="field.handleChange(undefined)"></v-btn>
+      "
+      @blur="setRealDirty"
+    />
+    <div
+      v-if="fieldType === 'select' || fieldType === 'multiple'"
+      :class="fieldType !== 'multiple' && 'd-flex align-center'"
+    >
+      <v-select
+        v-bind="$attrs"
+        :id="id"
+        :required="meta?.required"
+        :multiple="fieldType === 'multiple'"
+        :chips="fieldType === 'multiple'"
+        :name="field.name"
+        :model-value="field.state.value"
+        :label="`${label}${meta?.required ? ' *' : ''}`"
+        :items="options"
+        :error-messages="showedErrors"
+        :error="!!showedErrors.length"
+        @update:model-value="field.handleChange"
+        @blur="setRealDirty"
+      />
+      <v-btn
+        v-if="fieldType !== 'multiple'"
+        variant-btn="secondary"
+        :variant-icon="mdiRefresh"
+        class="mr-2"
+        title="Reset"
+        @click="field.handleChange(undefined)"
+      ></v-btn>
     </div>
   </div>
 </template>
@@ -74,7 +127,7 @@ const props = defineProps<{
 }>()
 
 defineOptions({
-  inheritAttrs: false
+  inheritAttrs: false,
 })
 
 const id = useId()
@@ -179,7 +232,7 @@ watch(
   & .v-messages {
     transition: all 0.2s;
 
-    >* {
+    > * {
       transition-duration: 0s !important;
     }
   }

@@ -5,7 +5,9 @@
     "build": "rimraf dist && vue-tsc && vite build",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:serve": "vitepress serve docs"
+    "docs:serve": "vitepress serve docs",
+    "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint src",
+    "autofix": "pnpm lint --fix"  
   },
   "peerDependencies": {
     "@mdi/js": "^7.4.47",
@@ -21,7 +23,13 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
+    "@typescript-eslint/eslint-plugin": "8.29.0",
+    "@typescript-eslint/parser": "8.29.0",
     "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.5.0",
+    "eslint-plugin-prettier": "^5.2.6",
+    "eslint-plugin-vue": "^10.0.0",
     "rimraf": "^6.0.1",
     "sass": "^1.86.0",
     "typescript": "^5.8.2",

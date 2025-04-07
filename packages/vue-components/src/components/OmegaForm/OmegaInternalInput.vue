@@ -23,11 +23,11 @@ import type {
   TypeOverride,
 } from "./OmegaFormStuff"
 import { useOmegaErrors } from "./OmegaErrorsContext"
-import type { FieldApiForAndrea, InputProps } from "./InputProps"
+import type { OmegaFieldInternalApi, InputProps } from "./InputProps"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
 
 const props = defineProps<{
-  field: FieldApiForAndrea<To>
+  field: OmegaFieldInternalApi<To>
   meta: MetaRecord<To>[NestedKeyOf<To>]
   label: string
   options?: { title: string; value: string }[]

@@ -27,7 +27,7 @@ type SubmitMeta = any
 // Define a more flexible Updater type that can accept direct values
 type FlexibleUpdater<T> = ((prev: T) => T) | T
 
-export type FieldApiForAndrea<To> = Omit<
+export type OmegaFieldInternalApi<To> = Omit<
   FieldApi<
     To, // TParentData
     NestedKeyOf<To>, // TName
@@ -73,7 +73,7 @@ export type InputProps<T> = {
   modelValue: unknown
   errorMessages: string[]
   error: boolean
-  field: FieldApiForAndrea<T>
+  field: OmegaFieldInternalApi<T>
   setRealDirty: () => void
   type: string
   label: string

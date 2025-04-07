@@ -7,7 +7,7 @@
       ...validators,
     }"
   >
-    <template #default="{ field }: { field: FieldApiForAndrea<To> }">
+    <template #default="{ field }: { field: OmegaFieldInternalApi<To> }">
       <OmegaInternalInput
         :field="field"
         :label="label"
@@ -35,7 +35,7 @@ import {
   type TypeOverride,
 } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
-import type { FieldApiForAndrea } from "./InputProps"
+import type { OmegaFieldInternalApi } from "./InputProps"
 
 const props = defineProps<{
   form: FormType<From, To> & {

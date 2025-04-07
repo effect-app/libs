@@ -1,11 +1,15 @@
 const path = require('path');
 const { defineConfig } = require('vite');
 import vue from '@vitejs/plugin-vue';
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 
 module.exports = defineConfig({
   plugins: [
     vue({
       // customElement: true, // Enable web components support
+    }),
+    cssInjectedByJsPlugin({
+      relativeCSSInjection: true,
     }),
   ],
   build: {

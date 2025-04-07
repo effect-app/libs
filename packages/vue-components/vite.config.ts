@@ -39,7 +39,6 @@ module.exports = defineConfig({
         }
       `
     }),
-    // Enable web components support
     vue(),
   ],
   build: {

@@ -21,9 +21,10 @@
     }
   ],
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
+  "editor.codeActionsOnSave": [
+    "source.fixAll.eslint",
+    "source.addMissingImports"
+  ],
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "[vue]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"

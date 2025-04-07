@@ -36,12 +36,6 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
-      eslint-plugin-formatjs:
-        specifier: ^5.3.1
-        version: 5.3.1(eslint@9.24.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
-      eslint-plugin-vue:
-        specifier: ^10.0.0
-        version: 10.0.0(eslint@9.24.0)(vue-eslint-parser@10.1.1(eslint@9.24.0))
       fast-check:
         specifier: ^4.1.0
         version: 4.1.0
@@ -136,6 +130,9 @@ importers:
       eslint-plugin-codegen:
         specifier: ^0.17.0
         version: 0.17.0(patch_hash=976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7)
+      eslint-plugin-formatjs:
+        specifier: ^5.3.1
+        version: 5.3.1(eslint@9.24.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
       eslint-plugin-import:
         specifier: ^2.31.0
         version: 2.31.0(@typescript-eslint/parser@8.29.0(eslint@9.24.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))(eslint-import-resolver-typescript@4.3.1)(eslint-import-resolver-webpack@0.13.10)(eslint@9.24.0)
@@ -151,6 +148,9 @@ importers:
       eslint-plugin-unused-imports:
         specifier: ^4.1.4
         version: 4.1.4(@typescript-eslint/eslint-plugin@8.29.0(@typescript-eslint/parser@8.29.0(eslint@9.24.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))(eslint@9.24.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))(eslint@9.24.0)
+      eslint-plugin-vue:
+        specifier: ^10.0.0
+        version: 10.0.0(eslint@9.24.0)(vue-eslint-parser@10.1.1(eslint@9.24.0))
       eslint-watch:
         specifier: ^8.0.0
         version: 8.0.0(eslint@9.24.0)
@@ -525,9 +525,6 @@ importers:
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
-      eslint-config-prettier:
-        specifier: ^10.1.1
-        version: 10.1.1(eslint@9.24.0)
       intl-messageformat:
         specifier: ^10.7.16
         version: 10.7.16

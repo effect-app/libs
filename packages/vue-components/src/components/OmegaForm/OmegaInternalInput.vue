@@ -216,6 +216,8 @@ watch(
   },
 )
 
+const otherAttrs = useAttrs()
+
 const inputProps = computed(() => ({
   id,
   required: props.meta?.required,
@@ -231,7 +233,7 @@ const inputProps = computed(() => ({
   setRealDirty,
   type: fieldType.value,
   label: `${props.label}${props.meta?.required ? " *" : ""}`,
-  ...useAttrs(),
+  ...otherAttrs,
 }))
 </script>
 

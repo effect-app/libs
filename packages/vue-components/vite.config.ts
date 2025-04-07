@@ -26,10 +26,6 @@ module.exports = defineConfig({
         globals: {
           vue: 'Vue',
         },
-        format: 'es',
-        generatedCode: {
-          constBindings: true,
-        },
         // Add proper scoping for variables
         hoistTransitiveImports: false,
         preserveModules: true,

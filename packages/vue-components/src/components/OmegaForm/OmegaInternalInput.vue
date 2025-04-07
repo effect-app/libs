@@ -2,7 +2,7 @@
   <slot v-bind="inputProps">
     <div class="omega-input">
       <v-text-field
-        v-if="fieldType === 'email' || fieldType === 'text'"
+        v-if="fieldType === 'email' || fieldType === 'string'"
         :id="id"
         :required="inputProps.required"
         :min-length="inputProps.minLength"
@@ -161,7 +161,7 @@ const fieldType = computed(() => {
   if (props.type) return props.type
   if (props.meta?.type === "string") {
     if (props.meta.format === "email") return "email"
-    return "text"
+    return "string"
   }
   return props.meta?.type || "unknown"
 })

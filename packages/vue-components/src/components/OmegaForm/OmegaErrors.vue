@@ -1,18 +1,42 @@
 <template>
   <Transition>
-    <div v-if="
-      formSubmissionAttempts > 0 &&
-      (errors.length || showedGeneralErrors.length)
-    " class="error-alert">
-      <v-alert type="error" variant="tonal" role="alert" aria-live="polite" class="mb-4">
+    <div
+      v-if="
+        formSubmissionAttempts > 0 &&
+        (errors.length || showedGeneralErrors.length)
+      "
+      class="error-alert"
+    >
+      <v-alert
+        type="error"
+        variant="tonal"
+        role="alert"
+        aria-live="polite"
+        class="mb-4"
+      >
         <div class="text-h6 mb-3">{{ trans("form.includes_error") }}:</div>
-        <component :is="errors.length > 1 ? 'ul' : 'div'" v-if="errors.length" class="error-list">
-          <component :is="errors.length > 1 ? 'li' : 'div'" v-for="error in errors" :key="error.inputId"
-            class="error-item">
+        <component
+          :is="errors.length > 1 ? 'ul' : 'div'"
+          v-if="errors.length"
+          class="error-list"
+        >
+          <component
+            :is="errors.length > 1 ? 'li' : 'div'"
+            v-for="error in errors"
+            :key="error.inputId"
+            class="error-item"
+          >
             <div class="font-weight-medium">{{ error.label }}</div>
             <div class="error-message">
-              <component :is="error.errors.length > 1 ? 'ul' : 'div'" class="error-list">
-                <component :is="error.errors.length > 1 ? 'li' : 'span'" v-for="e in error.errors" :key="e">
+              <component
+                :is="error.errors.length > 1 ? 'ul' : 'div'"
+                class="error-list"
+              >
+                <component
+                  :is="error.errors.length > 1 ? 'li' : 'span'"
+                  v-for="e in error.errors"
+                  :key="e"
+                >
                   {{ e }}
                 </component>
               </component>
@@ -91,7 +115,7 @@ const showedGeneralErrors = computed(() => {
   overflow: hidden;
   min-height: 0;
 
-  >* {
+  > * {
     min-height: 0;
   }
 }

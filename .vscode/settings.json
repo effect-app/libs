@@ -21,9 +21,13 @@
     }
   ],
   "editor.formatOnSave": true,
-  "eslint.format.enable": true,
+  "editor.codeActionsOnSave": [
+    "source.fixAll.eslint",
+    "source.addMissingImports"
+  ],
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "[vue]": {
-    "editor.defaultFormatter": "Vue.volar"
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
   "[javascript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
@@ -37,9 +41,12 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
-  "editor.codeActionsOnSave": [
-    "source.addMissingImports"
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "vue"
   ],
+  "eslint.format.enable": true,
   "csv-preview.separator": ";",
   "cSpell.words": [
     "codegen",

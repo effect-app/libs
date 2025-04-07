@@ -56,14 +56,16 @@
           @update:model-value="field.handleChange"
           @blur="setRealDirty"
         />
-        <button
+        <v-btn
           v-if="fieldType === 'select'"
           variant-btn="secondary"
           :variant-icon="mdiRefresh"
           class="mr-2"
           title="Reset"
           @click="field.handleChange(undefined)"
-        ></button>
+        >
+          <v-icon :icon="mdiRefresh" />
+        </v-btn>
       </div>
 
       <div
@@ -87,14 +89,16 @@
           @update:model-value="field.handleChange"
           @blur="setRealDirty"
         />
-        <AppButton
+        <v-btn
           v-if="fieldType === 'autocomplete'"
           variant-btn="secondary"
           :variant-icon="mdiRefresh"
           class="mr-2"
           title="Reset"
           @click="field.handleChange(undefined)"
-        ></AppButton>
+        >
+          <v-icon :icon="mdiRefresh" />
+        </v-btn>
       </div>
     </div>
   </slot>
@@ -255,6 +259,11 @@ const inputProps = computed(() => ({
     > * {
       transition-duration: 0s !important;
     }
+  }
+
+  v-btn {
+    all: unset;
+    cursor: pointer;
   }
 }
 </style>

@@ -8,7 +8,7 @@ import { InfraLogger } from "@effect-app/infra/logger"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
 import { Array, Cause, Duration, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import { type HttpHeaders, type HttpRouter } from "effect-app/http"
+import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
@@ -174,6 +174,8 @@ export const makeMiddleware = <
   RMW,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
 >(content: Middleware<Context, CTXMap, RMW, Layers>): Middleware<Context, CTXMap, RMW, Layers> => content
+
+export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
 export const makeRouter = <
   Context,
@@ -410,10 +412,11 @@ export const makeRouter = <
 
             const impl = rpcLayer(requestLayers)
             const l = RpcServer.layer(rpcs).pipe(Layer.provide(impl))
-            // TODO: also takes optional a RouterTag..
             return l.pipe(
               Layer.provideMerge(
-                RpcServer.layerProtocolHttp({ path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}` })
+                RpcServer.layerProtocolHttp(
+                  { path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}`, routerTag: Router }
+                )
               )
             )
 

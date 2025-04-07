@@ -5,12 +5,42 @@ import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 
 module.exports = defineConfig({
   plugins: [
-    vue({
-      // customElement: true, // Enable web components support
-    }),
+    // Use the default cssInjectedByJsPlugin configuration with injectCode
     cssInjectedByJsPlugin({
       relativeCSSInjection: true,
+      injectCode: (cssCode, options) => `
+        try {
+          if (typeof document != 'undefined') {
+            // Standard injection for non-web components
+            var elementStyle = document.createElement('style');
+            elementStyle.appendChild(document.createTextNode(${cssCode}));
+            ${options.styleId ? `elementStyle.id = "${options.styleId}";` : ''}
+            document.head.appendChild(elementStyle);
+            
+            // For web components, also inject into shadow DOM if available
+            if (window.customElements) {
+              const originalDefine = window.customElements.define;
+              window.customElements.define = function(name, constructor) {
+                const original = constructor.prototype.connectedCallback;
+                constructor.prototype.connectedCallback = function() {
+                  if (original) original.call(this);
+                  if (this.shadowRoot) {
+                    const shadowStyle = document.createElement('style');
+                    shadowStyle.appendChild(document.createTextNode(${cssCode}));
+                    this.shadowRoot.appendChild(shadowStyle);
+                  }
+                };
+                return originalDefine.call(window.customElements, name, constructor);
+              };
+            }
+          }
+        } catch (e) {
+          console.error('vite-plugin-css-injected-by-js', e);
+        }
+      `
     }),
+    // Enable web components support
+    vue(),
   ],
   build: {
     lib: {

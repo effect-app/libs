@@ -258,6 +258,10 @@ const inputProps = computed(() => ({
   content: "test";
 }
 
+input {
+  border: 10px solid green !important;
+}
+
 .omega-input {
   .v-input__details:has(.v-messages:empty) {
     grid-template-rows: 0fr;

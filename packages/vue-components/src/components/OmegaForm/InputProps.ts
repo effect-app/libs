@@ -61,3 +61,21 @@ export type FieldApiForAndrea<To> = Omit<
     updater: FlexibleUpdater<DeepValue<To, NestedKeyOf<To>>> | any,
   ) => void
 }
+
+export type InputProps<T> = {
+  id: string
+  required?: boolean
+  minLength?: number | false
+  maxLength?: number | false
+  max?: number | false
+  min?: number | false
+  name: string
+  modelValue: unknown
+  errorMessages: string[]
+  error: boolean
+  field: FieldApiForAndrea<T>
+  setRealDirty: () => void
+  type: string
+  label: string
+  options?: { title: string; value: string }[]
+}

@@ -7,50 +7,60 @@
       "
       class="error-alert"
     >
-      <v-alert
-        type="error"
-        variant="tonal"
-        role="alert"
-        aria-live="polite"
-        class="mb-4"
-      >
-        <div class="text-h6 mb-3">{{ trans("form.includes_error") }}:</div>
+      <slot v-bind="{ errors, showedGeneralErrors }">
         <component
-          :is="errors.length > 1 ? 'ul' : 'div'"
-          v-if="errors.length"
-          class="error-list"
+          :is="vuetified ? 'v-alert' : 'div'"
+          :class="vuetified ? 'mb-4' : 'error-alert-content'"
+          type="error"
+          variant="tonal"
+          role="alert"
+          aria-live="polite"
+          class="mb-4"
         >
+          <div class="text-h6 mb-3">{{ trans("form.includes_error") }}:</div>
           <component
-            :is="errors.length > 1 ? 'li' : 'div'"
-            v-for="error in errors"
-            :key="error.inputId"
-            class="error-item"
+            :is="errors.length > 1 ? 'ul' : 'div'"
+            v-if="errors.length"
+            class="error-list"
           >
-            <div class="font-weight-medium">{{ error.label }}</div>
-            <div class="error-message">
-              <component
-                :is="error.errors.length > 1 ? 'ul' : 'div'"
-                class="error-list"
-              >
+            <component
+              :is="errors.length > 1 ? 'li' : 'div'"
+              v-for="error in errors"
+              :key="error.inputId"
+              class="error-item"
+            >
+              <div class="font-weight-medium">{{ error.label }}</div>
+              <div class="error-message">
                 <component
-                  :is="error.errors.length > 1 ? 'li' : 'span'"
-                  v-for="e in error.errors"
-                  :key="e"
+                  :is="error.errors.length > 1 ? 'ul' : 'div'"
+                  class="error-list"
                 >
-                  {{ e }}
+                  <component
+                    :is="error.errors.length > 1 ? 'li' : 'span'"
+                    v-for="e in error.errors"
+                    :key="e"
+                  >
+                    {{ e }}
+                  </component>
                 </component>
-              </component>
-            </div>
-            <a :href="`#${error.inputId}`" class="error-link">
-              <v-icon :icon="mdiLink" />
-              {{ trans("form.fix_input") }}
-            </a>
+              </div>
+              <a :href="`#${error.inputId}`" class="error-link">
+                <component
+                  :is="vuetified ? 'v-icon' : 'i'"
+                  :icon="mdiLink"
+                  aria-hidden="true"
+                >
+                  <i>&#128279;</i>
+                </component>
+                {{ trans("form.fix_input") }}
+              </a>
+            </component>
           </component>
+          <span v-else>
+            {{ showedGeneralErrors[0] }}
+          </span>
         </component>
-        <span v-else>
-          {{ showedGeneralErrors[0] }}
-        </span>
-      </v-alert>
+      </slot>
     </div>
   </Transition>
 </template>
@@ -60,7 +70,10 @@ import { useOmegaErrors } from "./OmegaErrorsContext"
 import { mdiLink } from "@mdi/js"
 import { useIntl } from "../../utils"
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
-import { computed } from "vue"
+import { computed, getCurrentInstance } from "vue"
+
+const instance = getCurrentInstance()
+const vuetified = instance?.appContext.components["VAlert"]
 
 const { errors, formSubmissionAttempts, generalErrors } = useOmegaErrors()
 
@@ -124,7 +137,7 @@ const showedGeneralErrors = computed(() => {
   container-type: inline-size;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 8px;
+  gap: 0.5em;
   align-items: start;
 }
 
@@ -136,7 +149,6 @@ const showedGeneralErrors = computed(() => {
   .error-link {
     grid-column: 1 / -1;
     justify-self: end;
-    padding-bottom: 16px;
   }
 }
 
@@ -159,9 +171,12 @@ a {
 }
 
 .error-link {
-  color: inherit;
-  text-decoration: none;
-  display: inline-flex;
   align-items: center;
+  color: inherit;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+  padding-bottom: 1em;
+  text-decoration: none;
 }
 </style>

@@ -1,93 +1,22 @@
 <template>
-  <div class="omega-input">
-    <v-text-field
-      v-if="fieldType === 'email' || fieldType === 'string'"
-      v-bind="$attrs"
-      :id="id"
-      :required="meta?.required"
-      :min-length="meta?.type === 'string' && meta?.minLength"
-      :max-length="meta?.type === 'string' && meta?.maxLength"
-      :type="fieldType"
-      :name="field.name"
-      :label="`${label}${meta?.required ? ' *' : ''}`"
-      :model-value="field.state.value"
-      :error-messages="showedErrors"
-      :error="!!showedErrors.length"
-      @update:model-value="field.handleChange"
-      @blur="setRealDirty"
-    />
-    <v-textarea
-      v-if="fieldType === 'text'"
-      v-bind="$attrs"
-      :id="id"
-      :required="meta?.required"
-      :min-length="meta?.type === 'string' && meta?.minLength"
-      :max-length="meta?.type === 'string' && meta?.maxLength"
-      :type="fieldType"
-      :name="field.name"
-      :label="`${label}${meta?.required ? ' *' : ''}`"
-      :model-value="field.state.value"
-      :error-messages="showedErrors"
-      :error="!!showedErrors.length"
-      @update:model-value="field.handleChange"
-      @blur="setRealDirty"
-    />
-    <v-text-field
-      v-if="fieldType === 'number'"
-      v-bind="$attrs"
-      :id="id"
-      :required="meta?.required"
-      :min="meta?.type === 'number' && meta.minimum"
-      :max="meta?.type === 'number' && meta.maximum"
-      :type="fieldType"
-      :name="field.name"
-      :label="`${label}${meta?.required ? ' *' : ''}`"
-      :model-value="field.state.value"
-      :error-messages="showedErrors"
-      :error="!!showedErrors.length"
-      @update:model-value="
-        (e: any) => {
-          field.handleChange(Number(e))
-        }
-      "
-      @blur="setRealDirty"
-    />
-    <div
-      v-if="fieldType === 'select' || fieldType === 'multiple'"
-      :class="fieldType !== 'multiple' && 'd-flex align-center'"
-    >
-      <v-select
-        v-bind="$attrs"
-        :id="id"
-        :required="meta?.required"
-        :multiple="fieldType === 'multiple'"
-        :chips="fieldType === 'multiple'"
-        :name="field.name"
-        :model-value="field.state.value"
-        :label="`${label}${meta?.required ? ' *' : ''}`"
-        :items="options"
-        :error-messages="showedErrors"
-        :error="!!showedErrors.length"
-        @update:model-value="field.handleChange"
-        @blur="setRealDirty"
-      />
-      <v-btn
-        v-if="fieldType !== 'multiple'"
-        variant-btn="secondary"
-        :variant-icon="mdiRefresh"
-        class="mr-2"
-        title="Reset"
-        @click="field.handleChange(undefined)"
-      ></v-btn>
-    </div>
-  </div>
+  <slot v-bind="inputProps">
+    <OmegaInputVuetify v-if="vuetified" :input-props="inputProps" />
+  </slot>
 </template>
 
 <script setup lang="ts" generic="To">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { VTextField, VSelect } from "vuetify/components"
-import { mdiRefresh } from "@mdi/js"
-import { useStore, type FieldApi } from "@tanstack/vue-form"
+import { useStore } from "@tanstack/vue-form"
+import {
+  useAttrs,
+  useId,
+  computed,
+  watch,
+  onMounted,
+  ref,
+  watchEffect,
+  type ComputedRef,
+  getCurrentInstance,
+} from "vue"
 import type {
   FieldValidators,
   MetaRecord,
@@ -95,30 +24,11 @@ import type {
   TypeOverride,
 } from "./OmegaFormStuff"
 import { useOmegaErrors } from "./OmegaErrorsContext"
-import { useId, computed, watch, onMounted, ref, watchEffect } from "vue"
+import type { OmegaFieldInternalApi, InputProps } from "./InputProps"
+import OmegaInputVuetify from "./OmegaInputVuetify.vue"
 
 const props = defineProps<{
-  field: FieldApi<
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any
-  >
+  field: OmegaFieldInternalApi<To>
   meta: MetaRecord<To>[NestedKeyOf<To>]
   label: string
   options?: { title: string; value: string }[]
@@ -126,9 +36,8 @@ const props = defineProps<{
   validators?: FieldValidators<To>
 }>()
 
-defineOptions({
-  inheritAttrs: false,
-})
+const instance = getCurrentInstance()
+const vuetified = instance?.appContext.components["VTextField"]
 
 const id = useId()
 
@@ -147,7 +56,8 @@ const fieldType = computed(() => {
 
 const fieldValue = computed(() => fieldState.value.value)
 const errors = computed(() =>
-  fieldState.value.meta.errors.map((e: any) => e.message).filter(Boolean),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fieldState.value.meta.errors.map((e: any) => e?.message).filter(Boolean),
 )
 
 // we remove value and errors when the field is empty and not required
@@ -199,6 +109,7 @@ watch(
       addError({
         inputId: id,
         errors: fieldState.value.meta.errors
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((e: any) => e.message)
           .filter(Boolean),
         label: props.label,
@@ -208,33 +119,24 @@ watch(
     }
   },
 )
+
+const otherAttrs = useAttrs()
+
+const inputProps: ComputedRef<InputProps<To>> = computed(() => ({
+  id,
+  required: props.meta?.required,
+  minLength: props.meta?.type === "string" && props.meta?.minLength,
+  maxLength: props.meta?.type === "string" && props.meta?.maxLength,
+  max: props.meta?.type === "number" && props.meta?.maximum,
+  min: props.meta?.type === "number" && props.meta?.minimum,
+  name: props.field.name,
+  modelValue: props.field.state.value,
+  errorMessages: showedErrors.value,
+  error: !!showedErrors.value.length,
+  field: props.field,
+  setRealDirty,
+  type: fieldType.value,
+  label: `${props.label}${props.meta?.required ? " *" : ""}`,
+  options: props.options,
+}))
 </script>
-
-<style>
-.omega-input {
-  .v-input__details:has(.v-messages:empty) {
-    grid-template-rows: 0fr;
-    transition: all 0.2s;
-  }
-
-  & .v-messages:empty {
-    min-height: 0;
-  }
-
-  & .v-input__details:has(.v-messages) {
-    transition: all 0.2s;
-    overflow: hidden;
-    min-height: 0;
-    display: grid;
-    grid-template-rows: 1fr;
-  }
-
-  & .v-messages {
-    transition: all 0.2s;
-
-    > * {
-      transition-duration: 0s !important;
-    }
-  }
-}
-</style>

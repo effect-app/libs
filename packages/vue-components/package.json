@@ -7,7 +7,7 @@
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs",
     "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint src",
-    "autofix": "pnpm lint --fix"  
+    "autofix": "pnpm lint --fix"
   },
   "peerDependencies": {
     "@mdi/js": "^7.4.47",
@@ -34,6 +34,7 @@
     "sass": "^1.86.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.3",
+    "vite-plugin-css-injected-by-js": "^3.5.2",
     "vitepress": "^1.6.3",
     "vue-tsc": "^2.2.8"
   },

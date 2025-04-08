@@ -1,6 +1,6 @@
 <template>
   <slot v-bind="inputProps">
-    <OmegaInputVuetify :input-props="inputProps" />
+    <OmegaInputVuetify v-if="vuetified" :input-props="inputProps" />
   </slot>
 </template>
 
@@ -15,6 +15,7 @@ import {
   ref,
   watchEffect,
   type ComputedRef,
+  getCurrentInstance,
 } from "vue"
 import type {
   FieldValidators,
@@ -34,6 +35,9 @@ const props = defineProps<{
   type?: TypeOverride
   validators?: FieldValidators<To>
 }>()
+
+const instance = getCurrentInstance()
+const vuetified = instance?.appContext.components["VTextField"]
 
 const id = useId()
 

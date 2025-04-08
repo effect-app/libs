@@ -8,7 +8,9 @@
       class="error-alert"
     >
       <slot v-bind="{ errors, showedGeneralErrors }">
-        <v-alert
+        <component
+          :is="vuetified ? 'v-alert' : 'div'"
+          :class="vuetified ? 'mb-4' : 'error-alert-content'"
           type="error"
           variant="tonal"
           role="alert"
@@ -43,7 +45,13 @@
                 </component>
               </div>
               <a :href="`#${error.inputId}`" class="error-link">
-                <v-icon :icon="mdiLink" />
+                <component
+                  :is="vuetified ? 'v-icon' : 'i'"
+                  :icon="mdiLink"
+                  aria-hidden="true"
+                >
+                  <i>&#128279;</i>
+                </component>
                 {{ trans("form.fix_input") }}
               </a>
             </component>
@@ -51,7 +59,7 @@
           <span v-else>
             {{ showedGeneralErrors[0] }}
           </span>
-        </v-alert>
+        </component>
       </slot>
     </div>
   </Transition>
@@ -62,7 +70,10 @@ import { useOmegaErrors } from "./OmegaErrorsContext"
 import { mdiLink } from "@mdi/js"
 import { useIntl } from "../../utils"
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
-import { computed } from "vue"
+import { computed, getCurrentInstance } from "vue"
+
+const instance = getCurrentInstance()
+const vuetified = instance?.appContext.components["VAlert"]
 
 const { errors, formSubmissionAttempts, generalErrors } = useOmegaErrors()
 
@@ -126,7 +137,7 @@ const showedGeneralErrors = computed(() => {
   container-type: inline-size;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 8px;
+  gap: 0.5em;
   align-items: start;
 }
 
@@ -138,7 +149,6 @@ const showedGeneralErrors = computed(() => {
   .error-link {
     grid-column: 1 / -1;
     justify-self: end;
-    padding-bottom: 16px;
   }
 }
 
@@ -161,9 +171,12 @@ a {
 }
 
 .error-link {
-  color: inherit;
-  text-decoration: none;
-  display: inline-flex;
   align-items: center;
+  color: inherit;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+  padding-bottom: 1em;
+  text-decoration: none;
 }
 </style>

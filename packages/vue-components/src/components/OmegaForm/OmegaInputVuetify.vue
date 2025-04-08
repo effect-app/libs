@@ -122,7 +122,6 @@
 </template>
 
 <script setup lang="ts" generic="T">
-import { VTextField, VSelect } from "vuetify/components"
 import { mdiRefresh } from "@mdi/js"
 import type { InputProps } from "./InputProps"
 

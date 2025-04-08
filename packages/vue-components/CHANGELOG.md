@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.1.1
+
+### Patch Changes
+
+- b7cfa49: Fixes default styling for reset in select and autocomplete
+
 ## 0.1.0
 
 ### Minor Changes

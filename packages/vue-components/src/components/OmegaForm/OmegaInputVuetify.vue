@@ -54,7 +54,7 @@
     />
     <div
       v-if="inputProps.type === 'select' || inputProps.type === 'multiple'"
-      :class="inputProps.type !== 'multiple' && 'd-flex align-center'"
+      :class="inputProps.type !== 'multiple' && 'd-flex'"
     >
       <v-select
         :id="inputProps.id"
@@ -88,9 +88,7 @@
         inputProps.type === 'autocomplete' ||
         inputProps.type === 'autocompletemultiple'
       "
-      :class="
-        inputProps.type !== 'autocompletemultiple' && 'd-flex align-center'
-      "
+      :class="inputProps.type !== 'autocompletemultiple' && 'd-flex'"
     >
       <v-autocomplete
         :id="inputProps.id"
@@ -156,9 +154,20 @@ defineProps<{
     }
   }
 
-  v-btn {
-    all: unset;
+  [role="alert"]:has(.v-messages:empty) {
+    padding: 0;
+  }
+
+  .v-btn {
     cursor: pointer;
+    padding: 0;
+    width: auto;
+    appearance: none;
+    box-shadow: none;
+    display: block;
+    min-width: auto;
+    height: auto;
+    padding: 0.5em 0.5em 0.5em 1em;
   }
 }
 </style>

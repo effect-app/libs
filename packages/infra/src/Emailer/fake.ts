@@ -7,11 +7,11 @@ const makeFake = InfraLogger
   .logInfo("FAKE Emailer Service enabled")
   .pipe(Effect.map(() =>
     Emailer.of({
-      sendMail(msg) {
-        return InfraLogger
+      sendMail: Effect.fn("Fake.sendMail")((msg) =>
+        InfraLogger
           .logDebug(`Fake send mail`)
           .pipe(Effect.annotateLogs("msg", pretty(msg)))
-      }
+      )
     })
   ))
 

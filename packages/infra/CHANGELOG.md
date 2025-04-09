@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 2.53.2
+
+### Patch Changes
+
+- 8b7fdbe: update packages
+- fd226c3: improve email spans
+- Updated dependencies [8b7fdbe]
+  - effect-app@2.38.5
+
 ## 2.53.1
 
 ### Patch Changes

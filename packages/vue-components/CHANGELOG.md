@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.2.1
+
+### Patch Changes
+
+- d01c3e9: Manages focus in OmegaInput
+
 ## 0.2.0
 
 ### Minor Changes

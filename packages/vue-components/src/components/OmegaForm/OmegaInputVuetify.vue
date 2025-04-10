@@ -1,5 +1,9 @@
 <template>
-  <div class="omega-input">
+  <div
+    class="omega-input"
+    @focusout="$emit('blur', $event)"
+    @focusin="$emit('focus', $event)"
+  >
     <v-checkbox
       v-if="inputProps.type === 'boolean'"
       :id="inputProps.id"
@@ -11,7 +15,6 @@
       v-bind="$attrs"
       ripple
       @change="(e: any) => inputProps.field.handleChange(e.target.checked)"
-      @blur="inputProps.setRealDirty"
     />
     <v-text-field
       v-if="inputProps.type === 'email' || inputProps.type === 'string'"
@@ -27,7 +30,6 @@
       :error="inputProps.error"
       v-bind="$attrs"
       @update:model-value="inputProps.field.handleChange"
-      @blur="inputProps.setRealDirty"
     />
     <v-textarea
       v-if="inputProps.type === 'text'"
@@ -43,7 +45,6 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       @update:model-value="inputProps.field.handleChange"
-      @blur="inputProps.setRealDirty"
     />
     <v-text-field
       v-if="inputProps.type === 'number'"
@@ -63,7 +64,6 @@
           inputProps.field.handleChange(Number(e))
         }
       "
-      @blur="inputProps.setRealDirty"
     />
     <div
       v-if="inputProps.type === 'select' || inputProps.type === 'multiple'"
@@ -82,7 +82,6 @@
         :error="inputProps.error"
         v-bind="$attrs"
         @update:model-value="inputProps.field.handleChange"
-        @blur="inputProps.setRealDirty"
       />
       <v-btn
         v-if="inputProps.type === 'select'"
@@ -116,7 +115,6 @@
         :chips="inputProps.type === 'autocompletemultiple'"
         v-bind="$attrs"
         @update:model-value="inputProps.field.handleChange"
-        @blur="inputProps.setRealDirty"
       />
       <v-btn
         v-if="inputProps.type === 'autocomplete'"
@@ -139,6 +137,15 @@ import type { InputProps } from "./InputProps"
 defineProps<{
   inputProps: InputProps<T>
 }>()
+
+defineEmits<{
+  (e: "focus", event: Event): void
+  (e: "blur", event: Event): void
+}>()
+
+defineOptions({
+  inheritAttrs: false,
+})
 </script>
 
 <style>

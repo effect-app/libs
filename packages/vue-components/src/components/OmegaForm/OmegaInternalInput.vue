@@ -1,5 +1,5 @@
 <template>
-  <slot v-bind="inputProps">
+  <slot v-bind="inputProps" @focusout="setRealDirty">
     <OmegaInputVuetify
       v-if="vuetified"
       :input-props="inputProps"
@@ -11,7 +11,6 @@
 <script setup lang="ts" generic="To">
 import { useStore } from "@tanstack/vue-form"
 import {
-  useAttrs,
   useId,
   computed,
   watch,
@@ -127,8 +126,6 @@ watch(
     }
   },
 )
-
-const otherAttrs = useAttrs()
 
 const inputProps: ComputedRef<InputProps<To>> = computed(() => ({
   id,

@@ -1,6 +1,10 @@
 <template>
   <slot v-bind="inputProps">
-    <OmegaInputVuetify v-if="vuetified" :input-props="inputProps" />
+    <OmegaInputVuetify
+      v-if="vuetified"
+      :input-props="inputProps"
+      v-bind="$attrs"
+    />
   </slot>
 </template>
 
@@ -26,6 +30,10 @@ import type {
 import { useOmegaErrors } from "./OmegaErrorsContext"
 import type { OmegaFieldInternalApi, InputProps } from "./InputProps"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
+
+defineOptions({
+  inheritAttrs: false,
+})
 
 const props = defineProps<{
   field: OmegaFieldInternalApi<To>

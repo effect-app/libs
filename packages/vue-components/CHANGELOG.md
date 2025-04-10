@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.2.0
+
+### Minor Changes
+
+- 7ac3d9d: Adds checkbox default to OmegaForm
+
 ## 0.1.3
 
 ### Patch Changes

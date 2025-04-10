@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.1.3
+
+### Patch Changes
+
+- 21b0696: Fix: OmegaInput Attributes spreading
+
 ## 0.1.2
 
 ### Patch Changes

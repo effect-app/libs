@@ -1,5 +1,18 @@
 <template>
   <div class="omega-input">
+    <v-checkbox
+      v-if="inputProps.type === 'boolean'"
+      :id="inputProps.id"
+      :name="inputProps.name"
+      :label="inputProps.label"
+      :model-value="inputProps.modelValue"
+      :error-messages="inputProps.errorMessages"
+      :error="inputProps.error"
+      v-bind="$attrs"
+      ripple
+      @change="(e: any) => inputProps.field.handleChange(e.target.checked)"
+      @blur="inputProps.setRealDirty"
+    />
     <v-text-field
       v-if="inputProps.type === 'email' || inputProps.type === 'string'"
       :id="inputProps.id"

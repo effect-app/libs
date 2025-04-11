@@ -77,19 +77,18 @@ export function makeSQLQueue<
       )
 
     const q = {
-      offer: (body: Evt, meta: typeof QueueMeta.Type) =>
-        Effect.gen(function*() {
-          yield* queueRepo.insertVoid(
-            Queue.insert.make({
-              body,
-              meta,
-              name: queueName,
-              processingAt: Option.none(),
-              finishedAt: Option.none(),
-              etag: crypto.randomUUID()
-            })
-          )
-        }),
+      offer: Effect.fnUntraced(function*(body: Evt, meta: typeof QueueMeta.Type) {
+        yield* queueRepo.insertVoid(
+          Queue.insert.make({
+            body,
+            meta,
+            name: queueName,
+            processingAt: Option.none(),
+            finishedAt: Option.none(),
+            etag: crypto.randomUUID()
+          })
+        )
+      }),
       take: Effect.gen(function*() {
         while (true) {
           const [first] = yield* drain.pipe(Effect.withTracerEnabled(false)) // disable sql tracer otherwise we spam it..

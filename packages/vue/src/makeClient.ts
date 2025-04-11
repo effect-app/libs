@@ -278,49 +278,46 @@ export const makeClient = <Locale extends string, R>(
       )
 
       return handleRequest<E2, A2, R2, any, ESuccess, RSuccess, EError, RError, EDefect, RDefect>(f, name, action, {
-        onSuccess: (a, i) =>
-          Effect.gen(function*() {
-            const message = options.successMessage ? yield* options.successMessage(a, i) : defaultSuccessMessage
-              + (S.is(OperationSuccess)(a) && a.message
-                ? "\n" + a.message
-                : "")
-            if (message) {
-              toast.success(message)
-            }
-          }),
-        onFail: (e, i) =>
-          Effect.gen(function*() {
-            if (!options.failMessage && e._tag === "OperationFailure") {
-              toast.warning(
-                defaultWarnMessage + e.message
-                  ? "\n" + e.message
-                  : ""
-              )
-              return
-            }
+        onSuccess: Effect.fnUntraced(function*(a, i) {
+          const message = options.successMessage ? yield* options.successMessage(a, i) : defaultSuccessMessage
+            + (S.is(OperationSuccess)(a) && a.message
+              ? "\n" + a.message
+              : "")
+          if (message) {
+            toast.success(message)
+          }
+        }),
+        onFail: Effect.fnUntraced(function*(e, i) {
+          if (!options.failMessage && e._tag === "OperationFailure") {
+            toast.warning(
+              defaultWarnMessage + e.message
+                ? "\n" + e.message
+                : ""
+            )
+            return
+          }
 
-            const message = options.failMessage
-              ? yield* options.failMessage(e, i)
-              : `${defaultErrorMessage}:\n` + renderError(e)
-            if (message) {
-              toast.error(message)
-            }
-          }),
-        onDefect: (cause, i) =>
-          Effect.gen(function*() {
-            const message = options.defectMessage
-              ? yield* options.defectMessage(cause, i)
-              : intl.value.formatMessage(
-                { id: "handle.unexpected_error" },
-                {
-                  action: actionMessage,
-                  error: Cause.pretty(cause)
-                }
-              )
-            if (message) {
-              toast.error(message)
-            }
-          })
+          const message = options.failMessage
+            ? yield* options.failMessage(e, i)
+            : `${defaultErrorMessage}:\n` + renderError(e)
+          if (message) {
+            toast.error(message)
+          }
+        }),
+        onDefect: Effect.fnUntraced(function*(cause, i) {
+          const message = options.defectMessage
+            ? yield* options.defectMessage(cause, i)
+            : intl.value.formatMessage(
+              { id: "handle.unexpected_error" },
+              {
+                action: actionMessage,
+                error: Cause.pretty(cause)
+              }
+            )
+          if (message) {
+            toast.error(message)
+          }
+        })
       })
     }
 

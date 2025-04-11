@@ -176,29 +176,27 @@ function makeCosmosStore({ prefix }: StorageConfig) {
 
                 return Effect
                   .promise(() => execBatch(ex, ex[0]?.resourceBody._partitionKey))
-                  .pipe(Effect.flatMap((x) =>
-                    Effect.gen(function*() {
-                      const result = x.result ?? []
-                      const firstFailed = result.find(
-                        (x: any) => x.statusCode > 299 || x.statusCode < 200
-                      )
-                      if (firstFailed) {
-                        const code = firstFailed.statusCode ?? 0
-                        if (code === 412 || code === 404 || code === 409) {
-                          return yield* new OptimisticConcurrencyException({ type: name, id: "batch", code })
-                        }
-
-                        return yield* Effect.die(
-                          new CosmosDbOperationError("not able to update record: " + code)
-                        )
+                  .pipe(Effect.flatMap(Effect.fnUntraced(function*(x) {
+                    const result = x.result ?? []
+                    const firstFailed = result.find(
+                      (x: any) => x.statusCode > 299 || x.statusCode < 200
+                    )
+                    if (firstFailed) {
+                      const code = firstFailed.statusCode ?? 0
+                      if (code === 412 || code === 404 || code === 409) {
+                        return yield* new OptimisticConcurrencyException({ type: name, id: "batch", code })
                       }
 
-                      return batch.map(([e], i) => ({
-                        ...e,
-                        _etag: result[i]?.eTag
-                      })) as unknown as NonEmptyReadonlyArray<Encoded>
-                    })
-                  ))
+                      return yield* Effect.die(
+                        new CosmosDbOperationError("not able to update record: " + code)
+                      )
+                    }
+
+                    return batch.map(([e], i) => ({
+                      ...e,
+                      _etag: result[i]?.eTag
+                    })) as unknown as NonEmptyReadonlyArray<Encoded>
+                  })))
               })
               .pipe(Effect
                 .withSpan("Cosmos.batchSet [effect-app/infra/Store]", {

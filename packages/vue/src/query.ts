@@ -8,6 +8,7 @@ import { type InitialDataFunction, type QueryKey, type QueryObserverOptions, typ
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
+import { type Span } from "effect/Tracer"
 import { computed, type ComputedRef, ref, type ShallowRef, shallowRef, watch, type WatchSource } from "vue"
 import { getRuntime, makeQueryKey, reportRuntimeError } from "./lib.js"
 
@@ -74,7 +75,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
                 .pipe(
                   Effect.tapDefect(reportRuntimeError),
                   Effect.withSpan(`query ${q.name}`, { captureStackTrace: false }),
-                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as any) : (_) => _
+                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
                 ),
               { signal }
             )
@@ -99,7 +100,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
                 .pipe(
                   Effect.tapDefect(reportRuntimeError),
                   Effect.withSpan(`query ${q.name}`, { captureStackTrace: false }),
-                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as any) : (_) => _
+                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
                 ),
               { signal }
             )

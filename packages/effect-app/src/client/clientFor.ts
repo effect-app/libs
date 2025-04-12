@@ -75,15 +75,23 @@ export type TaggedRequestClassAny = S.Schema.Any & {
   readonly failure: any
 }
 
+
+
+export interface ClientForOptions {
+  readonly skipQueryKey?: readonly string[]
+}
+
 export interface RequestHandler<A, E, R, Request extends TaggedRequestClassAny> {
   handler: Effect<A, E, R>
   name: string
+  options?: ClientForOptions
   Request: Request
 }
 
 export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedRequestClassAny> {
   handler: (i: I) => Effect<A, E, R>
   name: string
+  options?: ClientForOptions
   Request: Request
 }
 

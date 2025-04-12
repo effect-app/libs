@@ -3,7 +3,7 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "@effect/rpc"
 import { HttpClient, HttpClientRequest } from "../http.js"
 import { Config, Context, Effect, flow, HashMap, Layer, ManagedRuntime, Option, Predicate, S, Struct } from "../internal/lib.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
-import type { Client, Requests } from "./clientFor.js"
+import type { Client, ClientForOptions, Requests } from "./clientFor.js"
 
 export interface ApiConfig {
   url: string
@@ -116,7 +116,7 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
 const makeApiClientFactory = Effect
   .gen(function*() {
     const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
-    const makeClientFor = <M extends Requests>(resource: M, requestLevelLayers = Layer.empty) =>
+    const makeClientFor = <M extends Requests>(resource: M, requestLevelLayers = Layer.empty, options?: ClientForOptions) =>
       Effect.gen(function*() {
         const TheClient = makeRpcTag(resource)
 
@@ -155,7 +155,8 @@ const makeApiClientFactory = Effect
 
               const requestMeta = {
                 Request,
-                name: requestName
+                name: requestName,
+                options
               }
 
               const requestNameLayer = Layer.succeed(RequestName, {
@@ -243,7 +244,7 @@ const makeApiClientFactory = Effect
 
     const cacheL = new Map<any, Map<any, Client<any>>>()
 
-    function makeClientForCached(requestLevelLayers: Layer.Layer<never, never, never>) {
+    function makeClientForCached(requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) {
       let cache = cacheL.get(requestLevelLayers)
       if (!cache) {
         cache = new Map<any, Client<any>>()
@@ -258,7 +259,7 @@ const makeApiClientFactory = Effect
           if (found) {
             return found
           }
-          const m = yield* makeClientFor(models, requestLevelLayers)
+          const m = yield* makeClientFor(models, requestLevelLayers, options)
           cache.set(models, m.client)
           register.push(m.mr)
           return m.client
@@ -267,6 +268,7 @@ const makeApiClientFactory = Effect
 
     return makeClientForCached
   })
+
 
 /**
  * Used to create clients for resource modules.
@@ -279,8 +281,8 @@ export class ApiClientFactory
   static readonly layerFromConfig = DefaultApiConfig.pipe(Effect.map(this.layer), Layer.unwrapEffect)
 
   static readonly makeFor =
-    (requestLevelLayers: Layer.Layer<never, never, never>) => <M extends Requests>(resource: M) =>
+    (requestLevelLayers: Layer.Layer<never, never, never>,  options?: ClientForOptions) => <M extends Requests>(resource: M) =>
       this
-        .use((apiClientFactory) => apiClientFactory(requestLevelLayers))
+        .use((apiClientFactory) => apiClientFactory(requestLevelLayers, options))
         .pipe(Effect.flatMap((f) => f(resource))) // don't rename f to clientFor or integration in vue project linked fucks up
 }

@@ -1,7 +1,7 @@
 import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
 import { Cause, type Effect, LogLevel, pipe, type Runtime } from "effect-app"
-import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import type { ClientForOptions, RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import type { MaybeRefOrGetter, ShallowRef } from "vue"
 import { reportError } from "./errorReporter.js"
 
@@ -30,8 +30,11 @@ export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string
 
 // $Project/$Configuration.Index
 // -> "$Project", "$Configuration", "Index"
-export const makeQueryKey = ({ name }: { name: string }) =>
-  pipe(name.split("/"), (split) => split.map((_) => "$" + _))
+export const makeQueryKey = ({ name, options }: { name: string; options?: ClientForOptions }) =>
+  pipe(
+    name.split("/"),
+    (split) => split.filter((_) => !options || !options?.skipQueryKey?.includes(_)).map((_) => "$" + _)
+  )
     .join(".")
     .split(".")
 

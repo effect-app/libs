@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.40.0
+
+### Minor Changes
+
+- bdc9d5c: feat: add support for skippable namespaces in query keys
+
+### Patch Changes
+
+- Updated dependencies [bdc9d5c]
+  - effect-app@2.39.0
+
 ## 2.39.9
 
 ### Patch Changes

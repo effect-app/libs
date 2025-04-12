@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.39.0
+
+### Minor Changes
+
+- bdc9d5c: feat: add support for skippable namespaces in query keys
+
 ## 2.38.5
 
 ### Patch Changes

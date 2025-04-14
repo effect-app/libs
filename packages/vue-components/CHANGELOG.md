@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.2.6
+
+### Patch Changes
+
+- 34abab7: Changes spread order in OmegaFormVuetify
+
 ## 0.2.5
 
 ### Patch Changes

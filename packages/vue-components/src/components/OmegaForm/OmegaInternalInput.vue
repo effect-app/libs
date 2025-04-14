@@ -4,6 +4,7 @@
       v-if="vuetified"
       :input-props="inputProps"
       v-bind="$attrs"
+      :vuetify-value="inputProps.field.state.value"
     />
   </slot>
 </template>

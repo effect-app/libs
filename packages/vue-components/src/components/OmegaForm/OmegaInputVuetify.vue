@@ -13,7 +13,7 @@
       :error="inputProps.error"
       ripple
       v-bind="$attrs"
-      :model-value="inputProps.field.state.value"
+      :model-value="vuetifyValue"
       @change="(e: any) => inputProps.field.handleChange(e.target.checked)"
     />
     <v-text-field
@@ -28,7 +28,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="inputProps.field.state.value"
+      :model-value="vuetifyValue"
       @update:model-value="inputProps.field.handleChange"
     />
     <v-textarea
@@ -43,7 +43,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="inputProps.field.state.value"
+      :model-value="vuetifyValue"
       @update:model-value="inputProps.field.handleChange"
     />
     <v-text-field
@@ -58,7 +58,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="inputProps.field.state.value"
+      :model-value="vuetifyValue"
       @update:model-value="
         (e: any) => {
           inputProps.field.handleChange(Number(e))
@@ -78,7 +78,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="inputProps.field.state.value"
+      :model-value="vuetifyValue"
       @clear="inputProps.field.handleChange(undefined)"
       @update:model-value="inputProps.field.handleChange"
     />
@@ -99,7 +99,7 @@
       :error="inputProps.error"
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
-      :model-value="inputProps.field.state.value"
+      :model-value="vuetifyValue"
       @clear="inputProps.field.handleChange(undefined)"
       @update:model-value="inputProps.field.handleChange"
     />
@@ -111,6 +111,7 @@ import type { InputProps } from "./InputProps"
 
 defineProps<{
   inputProps: InputProps<T>
+  vuetifyValue: unknown
 }>()
 
 defineEmits<{

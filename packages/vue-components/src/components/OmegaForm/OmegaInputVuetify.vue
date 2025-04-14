@@ -79,6 +79,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
+      @clear="inputProps.field.handleChange(undefined)"
       @update:model-value="inputProps.field.handleChange"
     />
 
@@ -99,6 +100,7 @@
       :error="inputProps.error"
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
+      @clear="inputProps.field.handleChange(undefined)"
       @update:model-value="inputProps.field.handleChange"
     />
   </div>

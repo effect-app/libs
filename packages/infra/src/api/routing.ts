@@ -6,7 +6,7 @@ import { determineMethod } from "@effect-app/infra/api/routing/utils"
 import { logError, reportError } from "@effect-app/infra/errorReporter"
 import { InfraLogger } from "@effect-app/infra/logger"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { Array, Cause, Duration, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { Array, Cause, Duration, Effect, Layer, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -342,6 +342,8 @@ export const makeRouter = <
                       .pipe(
                         // can't use andThen due to some being a function and effect
                         Effect.zipRight(handle(input, headers)),
+                        // TODO: support ParseResult if the error channel of the request allows it.. but who would want that?
+                        Effect.catchAll((_) => ParseResult.isParseError(_) ? Effect.die(_) : Effect.fail(_)),
                         Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
                         Effect.tapDefect((cause) =>
                           Effect

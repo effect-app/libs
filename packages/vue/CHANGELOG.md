@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.40.1
+
+### Patch Changes
+
+- d3b05cb: update packages
+- 1e1f32b: housekeeping: update packages
+- Updated dependencies [d3b05cb]
+- Updated dependencies [4627c7b]
+- Updated dependencies [1e1f32b]
+  - effect-app@2.39.1
+
 ## 2.40.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @effect-app/prelude
 
+## 2.39.1
+
+### Patch Changes
+
+- d3b05cb: update packages
+- 4627c7b: improve: optimise getFirstById.
+- 1e1f32b: housekeeping: update packages
+
 ## 2.39.0
 
 ### Minor Changes

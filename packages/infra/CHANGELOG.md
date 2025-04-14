@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.53.4
+
+### Patch Changes
+
+- d3b05cb: update packages
+- 1e1f32b: housekeeping: update packages
+- Updated dependencies [d3b05cb]
+- Updated dependencies [4627c7b]
+- Updated dependencies [1e1f32b]
+  - effect-app@2.39.1
+
 ## 2.53.3
 
 ### Patch Changes

@@ -65,73 +65,46 @@
         }
       "
     />
-    <div
+    <v-select
       v-if="inputProps.type === 'select' || inputProps.type === 'multiple'"
-      :class="inputProps.type !== 'multiple' && 'd-flex'"
-    >
-      <v-select
-        :id="inputProps.id"
-        :required="inputProps.required"
-        :multiple="inputProps.type === 'multiple'"
-        :chips="inputProps.type === 'multiple'"
-        :name="inputProps.name"
-        :model-value="inputProps.modelValue"
-        :label="inputProps.label"
-        :items="inputProps.options"
-        :error-messages="inputProps.errorMessages"
-        :error="inputProps.error"
-        v-bind="$attrs"
-        @update:model-value="inputProps.field.handleChange"
-      />
-      <v-btn
-        v-if="inputProps.type === 'select'"
-        variant-btn="secondary"
-        :variant-icon="mdiRefresh"
-        class="mr-2"
-        title="Reset"
-        @click="inputProps.field.handleChange(undefined)"
-      >
-        <v-icon :icon="mdiRefresh" />
-      </v-btn>
-    </div>
+      :id="inputProps.id"
+      :clearable="inputProps.type === 'select'"
+      :required="inputProps.required"
+      :multiple="inputProps.type === 'multiple'"
+      :chips="inputProps.type === 'multiple'"
+      :name="inputProps.name"
+      :model-value="inputProps.modelValue"
+      :label="inputProps.label"
+      :items="inputProps.options"
+      :error-messages="inputProps.errorMessages"
+      :error="inputProps.error"
+      v-bind="$attrs"
+      @update:model-value="inputProps.field.handleChange"
+    />
 
-    <div
+    <v-autocomplete
       v-if="
         inputProps.type === 'autocomplete' ||
         inputProps.type === 'autocompletemultiple'
       "
-      :class="inputProps.type !== 'autocompletemultiple' && 'd-flex'"
-    >
-      <v-autocomplete
-        :id="inputProps.id"
-        :multiple="inputProps.type === 'autocompletemultiple'"
-        :required="inputProps.required"
-        :name="inputProps.name"
-        :model-value="inputProps.modelValue"
-        :label="inputProps.label"
-        :items="inputProps.options"
-        :error-messages="inputProps.errorMessages"
-        :error="inputProps.error"
-        :chips="inputProps.type === 'autocompletemultiple'"
-        v-bind="$attrs"
-        @update:model-value="inputProps.field.handleChange"
-      />
-      <v-btn
-        v-if="inputProps.type === 'autocomplete'"
-        variant-btn="secondary"
-        :variant-icon="mdiRefresh"
-        class="mr-2"
-        title="Reset"
-        @click="inputProps.field.handleChange(undefined)"
-      >
-        <v-icon :icon="mdiRefresh" />
-      </v-btn>
-    </div>
+      :id="inputProps.id"
+      :clearable="inputProps.type === 'autocomplete'"
+      :multiple="inputProps.type === 'autocompletemultiple'"
+      :required="inputProps.required"
+      :name="inputProps.name"
+      :model-value="inputProps.modelValue"
+      :label="inputProps.label"
+      :items="inputProps.options"
+      :error-messages="inputProps.errorMessages"
+      :error="inputProps.error"
+      :chips="inputProps.type === 'autocompletemultiple'"
+      v-bind="$attrs"
+      @update:model-value="inputProps.field.handleChange"
+    />
   </div>
 </template>
 
 <script setup lang="ts" generic="T">
-import { mdiRefresh } from "@mdi/js"
 import type { InputProps } from "./InputProps"
 
 defineProps<{

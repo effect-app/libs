@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.2.5
+
+### Patch Changes
+
+- f6043f4: manually pass clear function
+
 ## 0.2.4
 
 ### Patch Changes

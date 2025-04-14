@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.53.5
+
+### Patch Changes
+
+- ce235cb: fix: ParseError should Die
+
 ## 2.53.4
 
 ### Patch Changes

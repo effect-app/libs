@@ -9,11 +9,11 @@
       :id="inputProps.id"
       :name="inputProps.name"
       :label="inputProps.label"
-      :model-value="inputProps.field.state.value"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
-      v-bind="$attrs"
       ripple
+      v-bind="$attrs"
+      :model-value="inputProps.field.state.value"
       @change="(e: any) => inputProps.field.handleChange(e.target.checked)"
     />
     <v-text-field
@@ -25,15 +25,14 @@
       :type="inputProps.type"
       :name="inputProps.name"
       :label="inputProps.label"
-      :model-value="inputProps.field.state.value"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
+      :model-value="inputProps.field.state.value"
       @update:model-value="inputProps.field.handleChange"
     />
     <v-textarea
       v-if="inputProps.type === 'text'"
-      v-bind="$attrs"
       :id="inputProps.id"
       :required="inputProps.required"
       :min-length="inputProps.minLength"
@@ -41,9 +40,10 @@
       :type="inputProps.type"
       :name="inputProps.name"
       :label="inputProps.label"
-      :model-value="inputProps.field.state.value"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
+      v-bind="$attrs"
+      :model-value="inputProps.field.state.value"
       @update:model-value="inputProps.field.handleChange"
     />
     <v-text-field
@@ -55,10 +55,10 @@
       :type="inputProps.type"
       :name="inputProps.name"
       :label="inputProps.label"
-      :model-value="inputProps.field.state.value"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
+      :model-value="inputProps.field.state.value"
       @update:model-value="
         (e: any) => {
           inputProps.field.handleChange(Number(e))
@@ -73,12 +73,12 @@
       :multiple="inputProps.type === 'multiple'"
       :chips="inputProps.type === 'multiple'"
       :name="inputProps.name"
-      :model-value="inputProps.field.state.value"
       :label="inputProps.label"
       :items="inputProps.options"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
+      :model-value="inputProps.field.state.value"
       @clear="inputProps.field.handleChange(undefined)"
       @update:model-value="inputProps.field.handleChange"
     />
@@ -93,13 +93,13 @@
       :multiple="inputProps.type === 'autocompletemultiple'"
       :required="inputProps.required"
       :name="inputProps.name"
-      :model-value="inputProps.field.state.value"
       :label="inputProps.label"
       :items="inputProps.options"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
+      :model-value="inputProps.field.state.value"
       @clear="inputProps.field.handleChange(undefined)"
       @update:model-value="inputProps.field.handleChange"
     />

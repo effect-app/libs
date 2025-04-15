@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 2.53.8
+
+### Patch Changes
+
+- 5cbf67c: fix in query refinement
+- 5cbf67c: support in refinements with literals
+
 ## 2.53.7
 
 ### Patch Changes

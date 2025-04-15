@@ -106,7 +106,7 @@ export type SetFieldPathValue<
 > = SetPathValue<TFieldValues, TFieldPath, X>
 
 /* dprint-ignore-start */
-export type RefinePathValue<T, P extends Path<T>, X extends string | number | boolean | null | bigint, Exclde extends boolean = false> =
+export type RefinePathValue<T, P extends Path<T>, X extends string | number | boolean | null | bigint | undefined, Exclde extends boolean = false> =
   T extends any
     // recursive cases
     ? P extends `${infer K}.${infer R}`
@@ -157,7 +157,7 @@ export type EraseNeverContainingUnionElements<T> = T extends any ? {
 export type RefineFieldPathValue<
   TFieldValues extends FieldValues,
   TFieldPath extends FieldPath<TFieldValues>,
-  X extends string | number | boolean | null | bigint,
+  X extends string | number | boolean | null | bigint | undefined,
   Exclde extends boolean = false
 > = EraseNeverContainingUnionElements<RefinePathValue<TFieldValues, TFieldPath, X, Exclde>>
 

@@ -1041,6 +1041,32 @@ it("refine union with nested union", () =>
         >
       >()
 
+      const res_query2 = base.pipe(
+        where("nested._tag", "in", ["D"])
+      )
+
+      expectTypeOf(res_query2).toEqualTypeOf<
+        QueryWhere<
+          Containers,
+          {
+            readonly id: string
+            readonly _tag: "Container2"
+            readonly nested: {
+              readonly _tag: "D"
+              readonly d: string
+            }
+          } | {
+            readonly id: string
+            readonly _tag: "Container3"
+            readonly nested: {
+              readonly _tag: "D"
+              readonly d: string
+            }
+          },
+          false
+        >
+      >()
+
       const res = yield* repo.query(
         () => res_query
       )

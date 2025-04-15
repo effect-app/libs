@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.2.7
+
+### Patch Changes
+
+- f7909fc: Explicitly pass down model-value
+
 ## 0.2.6
 
 ### Patch Changes

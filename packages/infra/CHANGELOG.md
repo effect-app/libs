@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.53.9
+
+### Patch Changes
+
+- d8014f5: support undefined in queries refinement for pointed values
+
 ## 2.53.8
 
 ### Patch Changes

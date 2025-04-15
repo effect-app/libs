@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.53.6
+
+### Patch Changes
+
+- 57717ce: support in refinements with literals
+
 ## 2.53.5
 
 ### Patch Changes

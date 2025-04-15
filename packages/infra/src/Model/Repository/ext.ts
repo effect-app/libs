@@ -210,7 +210,10 @@ export const extendRepo = <
     .makeBatched((
       requests: NonEmptyReadonlyArray<Req>
     ) =>
-      (repo.query(Q.where(repo.idKey as any, "in", requests.map((_) => _.id)) as any) as Effect<readonly T[], never>)
+      (repo.query(Q.where(repo.idKey as any, "in" as any, requests.map((_) => _.id)) as any) as Effect<
+        readonly T[],
+        never
+      >)
         // TODO
         .pipe(
           Effect.andThen((items) =>

@@ -16,6 +16,8 @@ import {
 import type { Component } from "vue"
 import { useIntl } from "../../utils"
 
+export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
+
 export type TypeOverride =
   | "string"
   | "text"

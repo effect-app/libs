@@ -54,6 +54,7 @@ import {
   type MetaRecord,
   type OmegaFormApi,
   type OmegaFormState,
+  type ShowErrorsOn,
 } from "./OmegaFormStuff"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
@@ -63,6 +64,7 @@ import { watch } from "vue"
 const props = defineProps<
   {
     subscribe?: K[]
+    showErrorsOn?: ShowErrorsOn
   } & (
     | {
         form: OmegaFormApi<To, From> & {
@@ -127,7 +129,7 @@ watch(
   },
 )
 
-provideOmegaErrors(formSubmissionAttempts, errors)
+provideOmegaErrors(formSubmissionAttempts, errors, props.showErrorsOn)
 </script>
 
 <style scoped>

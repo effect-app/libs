@@ -373,15 +373,32 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
-    V extends FieldPathValue<TFieldValues, TFieldName>,
+    const V extends FieldPathValue<TFieldValues, TFieldName>[],
     TFieldValuesRefined extends TFieldValues = TFieldValues,
     E extends boolean = false
   >(
     path: TFieldName,
-    op:
-      | "in"
-      | "notIn",
-    value: readonly V[]
+    op: "in",
+    value: V
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => QueryWhere<
+    TFieldValues,
+    // @ts-expect-error it's TS
+    RefineWithLiteral<TFieldValuesRefined, TFieldName, NonNullable<V[number]>>,
+    E
+  >
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    const V extends FieldPathValue<TFieldValues, TFieldName>[],
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "notIn",
+    value: V
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
@@ -466,13 +483,7 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<
-      TFieldValues,
-      // @ts-expect-error it's TS
-      RefineWithLiteral<TFieldValues, TFieldName, V>,
-      TFieldName extends "_tag" ? true : false // consider only _tag as an exclusive field and only in the positive case
-    >
-    : QueryWhere<
+  ) => QueryWhere<
       TFieldValues,
       // @ts-expect-error it's TS
       RefineWithLiteral<TFieldValuesRefined, TFieldName, V>,
@@ -491,13 +502,7 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => IsCurrentInitial extends true ? QueryWhere<
-      TFieldValues,
-      // @ts-expect-error it's TS
-      RefineWithLiteral<TFieldValues, TFieldName, V, true>,
-      E
-    >
-    : QueryWhere<
+  ) => QueryWhere<
       TFieldValues,
       // @ts-expect-error it's TS
       RefineWithLiteral<TFieldValuesRefined, TFieldName, V, true>,

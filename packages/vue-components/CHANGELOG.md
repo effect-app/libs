@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.2.8
+
+### Patch Changes
+
+- 7fcd006: feat: add showErrorOn props in OmegaForm Wrapper components, to manage when to show the errors
+
 ## 0.2.7
 
 ### Patch Changes

@@ -1,11 +1,13 @@
 <template>
-  <slot v-bind="inputProps" @focusout="setRealDirty">
-    <OmegaInputVuetify
-      v-if="vuetified"
-      :input-props="inputProps"
-      v-bind="$attrs"
-      :vuetify-value="inputProps.field.state.value"
-    />
+  <slot v-bind="inputProps">
+    <div @focusout="setRealDirty">
+      <OmegaInputVuetify
+        v-if="vuetified"
+        :input-props="inputProps"
+        v-bind="$attrs"
+        :vuetify-value="inputProps.field.state.value"
+      />
+    </div>
   </slot>
 </template>
 
@@ -90,19 +92,19 @@ onMounted(() => {
     fieldApi.setValue(null)
   }
 })
+const { addError, removeError, showErrors, showErrorsOn } = useOmegaErrors()
 
 const realDirty = ref(false)
-const setRealDirty = () => {
-  realDirty.value = true
-}
-
-const { addError, formSubmissionAttempts, removeError } = useOmegaErrors()
 
 watchEffect(() => {
-  if (formSubmissionAttempts.value > 0) {
+  if (showErrors.value || showErrorsOn === "onChange") {
     realDirty.value = true
   }
 })
+
+const setRealDirty = () => {
+  realDirty.value = true
+}
 
 const showedErrors = computed(() => {
   // single select field can be validated on change

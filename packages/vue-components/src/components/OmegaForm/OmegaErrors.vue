@@ -1,10 +1,7 @@
 <template>
   <Transition>
     <div
-      v-if="
-        formSubmissionAttempts > 0 &&
-        (errors.length || showedGeneralErrors.length)
-      "
+      v-if="showErrors && (errors.length || showedGeneralErrors.length)"
       class="error-alert"
     >
       <slot v-bind="{ errors, showedGeneralErrors }">
@@ -75,7 +72,7 @@ import { computed, getCurrentInstance } from "vue"
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VAlert"]
 
-const { errors, formSubmissionAttempts, generalErrors } = useOmegaErrors()
+const { errors, generalErrors, showErrors } = useOmegaErrors()
 
 const { trans } = useIntl()
 

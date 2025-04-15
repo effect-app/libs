@@ -373,7 +373,7 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
-    const V extends FieldPathValue<TFieldValues, TFieldName>[],
+    const V extends readonly FieldPathValue<TFieldValues, TFieldName>[],
     TFieldValuesRefined extends TFieldValues = TFieldValues,
     E extends boolean = false
   >(
@@ -392,13 +392,13 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
   <
     TFieldValues extends FieldValues,
     TFieldName extends FieldPath<TFieldValues>,
-    const V extends FieldPathValue<TFieldValues, TFieldName>[],
+    V extends FieldPathValue<TFieldValues, TFieldName>,
     TFieldValuesRefined extends TFieldValues = TFieldValues,
     E extends boolean = false
   >(
     path: TFieldName,
     op: "notIn",
-    value: V
+    value: readonly V[]
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>

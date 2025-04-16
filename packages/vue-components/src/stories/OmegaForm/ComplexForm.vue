@@ -1,5 +1,5 @@
 <template>
-  <OmegaForm v-bind="args">
+  <OmegaForm :form="form">
     <template #default="{ form }">
       <OmegaInput label="aString" :form="form" name="aString" />
       <OmegaInput label="aStringMin2" :form="form" name="aStringMin2" />
@@ -28,16 +28,18 @@
         ]"
       />
       <button>Submit</button>
+      <button type="reset" @click.prevent="form.clear()">Clear</button>
+      <button type="button" @click="form.reset()">Reset</button>
     </template>
   </OmegaForm>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput } from "../../components/OmegaForm"
+import { OmegaForm, OmegaInput, useOmegaForm } from "../../components/OmegaForm"
 
-const args = {
-  schema: S.Struct({
+const form = useOmegaForm(
+  S.Struct({
     aString: S.String,
     aStringMin2: S.String.pipe(S.minLength(2)),
     aStringMin2Max4: S.String.pipe(S.minLength(2)).pipe(S.maxLength(4)),
@@ -50,22 +52,30 @@ const args = {
     aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.between(2, 4))),
     aSelect: S.Union(S.Literal("a"), S.Literal("b"), S.Literal("c")),
   }),
-  onSubmit: ({
-    value,
-  }: {
-    value: {
-      aString: string
-      aStringMin2: string
-      aStringMin2Max4: string
-      aStringMin2Max3Nullable?: string
-      aNumber: number
-      aNumberMin2: number
-      aNumberMin2Max: number
-      aNumberMin2Max4Nullable: number | null
-      aSelect: "a" | "b" | "c"
-    }
-  }) => {
-    console.log(value)
+  {
+    onSubmit: ({
+      value,
+    }: {
+      value: {
+        aString: string
+        aStringMin2: string
+        aStringMin2Max4: string
+        aStringMin2Max3Nullable?: string
+        aNumber: number
+        aNumberMin2: number
+        aNumberMin2Max: number
+        aNumberMin2Max4Nullable: number | null
+        aSelect: "a" | "b" | "c"
+      }
+    }) => {
+      console.log(value)
+    },
   },
-}
+  {
+    persistency: {
+      method: "local",
+      overrideDefaultValues: true,
+    },
+  },
+)
 </script>

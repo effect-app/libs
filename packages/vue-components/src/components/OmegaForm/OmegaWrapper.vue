@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent.stop="form.handleSubmit()">
+  <form novalidate @submit.prevent.stop="form.handleSubmit()">
     <fieldset :disabled="formIsSubmitting">
       <slot :form="form" :subscribed-values="subscribedValues" />
     </fieldset>
@@ -51,14 +51,17 @@ import { type S } from "effect-app"
 import {
   type FilterItems,
   type FormProps,
-  type MetaRecord,
   type OmegaFormApi,
   type OmegaFormState,
   type ShowErrorsOn,
 } from "./OmegaFormStuff"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
-import { type OmegaConfig, useOmegaForm } from "./useOmegaForm"
+import {
+  type OmegaConfig,
+  type OmegaFormReturn,
+  useOmegaForm,
+} from "./useOmegaForm"
 import { watch } from "vue"
 
 const props = defineProps<
@@ -68,10 +71,7 @@ const props = defineProps<
     showErrorsOn?: ShowErrorsOn
   } & (
     | {
-        form: OmegaFormApi<To, From> & {
-          meta: MetaRecord<To>
-          filterItems?: FilterItems
-        }
+        form: OmegaFormReturn<To, From>
         schema?: undefined
       }
     | (FormProps<To, From> & {

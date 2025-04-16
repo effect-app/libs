@@ -10,6 +10,11 @@
       <OmegaInput label="first" :form="form" name="first" />
       <div>+</div>
       <OmegaInput label="second" :form="form" name="second" />
+      <br />
+      <hr />
+      <br />
+      <OmegaInput label="third.fourth" :form="form" name="third.fourth" />
+      <OmegaInput label="third.fifth" :form="form" name="third.fifth" />
     </template>
   </OmegaForm>
 
@@ -28,24 +33,24 @@ const sum = ref(0)
 const AddSchema = S.Struct({
   first: S.Number,
   second: S.Number.pipe(S.greaterThan(3)),
+  third: S.Struct({
+    fourth: S.Number,
+    fifth: S.Number,
+  }),
 })
 
 const addForm = useOmegaForm(
   AddSchema,
-  { defaultValues: { first: 1, second: 2 } },
+  {},
   {
     persistency: {
       method: "session",
-      keys: ["first", "second"],
-      banKeys: ["second"],
+      keys: ["first", "third.fourth"],
     },
   },
 )
 
 const values = addForm.useStore(({ values }) => values)
-const errors = addForm.useStore(({ errors }) => errors)
-
-console.log({ errors })
 
 watch(values, ({ first, second }) => {
   sum.value = first + second

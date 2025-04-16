@@ -106,6 +106,12 @@ const setRealDirty = () => {
   realDirty.value = true
 }
 
+onMounted(() => {
+  if (fieldValue.value) {
+    setRealDirty()
+  }
+})
+
 const showedErrors = computed(() => {
   // single select field can be validated on change
   if (!realDirty.value && fieldType.value !== "select") return []

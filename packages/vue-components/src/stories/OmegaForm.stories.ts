@@ -8,6 +8,7 @@ import EmailForm from "./OmegaForm/EmailForm.vue"
 import ComplexForm from "./OmegaForm/ComplexForm.vue"
 import SimpleFormVuetifyDefault from "./OmegaForm/SimpleFormVuetifyDefault.vue"
 import SumExample from "./OmegaForm/SumExample.vue"
+import PersistencyForm from "./OmegaForm/PersistencyForm.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -71,5 +72,12 @@ export const SumExampleStory: Story = {
   render: () => ({
     components: { SumExample },
     template: "<SumExample />",
+  }),
+}
+
+export const PersistencyFormStory: Story = {
+  render: () => ({
+    components: { PersistencyForm },
+    template: "<PersistencyForm />",
   }),
 }

@@ -10,7 +10,7 @@ export function getOmegaStore<
   form: OmegaFormApi<To, From>,
   subscribe?: K[],
 ): Ref<
-  K[] extends undefined
+  K[] extends undefined[]
     ? Record<string, never>
     : Pick<OmegaFormState<To, From>, K>
 > {

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.3.0
+
+### Minor Changes
+
+- 6f33b83: Enhance OmegaForm functionality with persistency support and improved input handling. Added clear and reset methods to the form API, updated internal input state management, and refined form stories for better demonstration of features.
+
 ## 0.2.8
 
 ### Patch Changes

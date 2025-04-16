@@ -29,7 +29,7 @@ type keysRule<T> =
 
 export type OmegaConfig<T> = {
   persistency?: {
-    method?: "session" | "local" | "none"
+    method?: "session" | "local" | "querystring" | "none"
     overrideDefaultValues?: boolean
     id?: string
   } & keysRule<T>
@@ -65,6 +65,14 @@ export const useOmegaForm = <
     return `${path}-${keys.join("-")}`
   })
 
+  const clearUrlParams = () => {
+    const params = new URLSearchParams(window.location.search)
+    params.delete(persistencyKey.value)
+    const url = new URL(window.location.href)
+    url.search = params.toString()
+    window.history.replaceState({}, "", url.toString())
+  }
+
   const defaultValues = computed(() => {
     if (
       tanstackFormOptions?.defaultValues &&
@@ -93,6 +101,20 @@ export const useOmegaForm = <
           return {}
         },
       ),
+      Match.when({ method: "querystring" }, () => {
+        try {
+          const params = new URLSearchParams(window.location.search)
+          const value = params.get(persistencyKey.value)
+          clearUrlParams()
+          if (value) {
+            return JSON.parse(value)
+          }
+          return {}
+        } catch (error) {
+          console.error(error)
+          return {}
+        }
+      }),
       Match.orElse(() => ({})),
     )
   })
@@ -131,14 +153,38 @@ export const useOmegaForm = <
     })
   }
 
-  const exposed = Object.assign(form, { meta, filterItems, clear })
+  function createNestedObjectFromPaths(paths: string[]) {
+    return paths.reduce(
+      (result, path) => {
+        const parts = path.split(".")
+        parts.reduce((acc, part, i) => {
+          if (i === parts.length - 1) {
+            acc[part] = form.getFieldValue(path as any)
+          } else {
+            acc[part] = acc[part] || {}
+          }
+          return acc[part]
+        }, result)
+        return result
+      },
+      {} as Record<string, any>,
+    )
+  }
 
-  // This is fragile as fuck. It's an experiment, it's only used because
-  // it's not a core feature of our products, so even if the this is not consistent
-  // it's not a big deal. So not take this code as a good example of how to do things.
-  // This is done only because this function is called before the component is destroyed,
-  // so the state would be lost anyway. So in this case we can play with the state, without
-  // worrying about the side effects.
+  const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
+    if (!persistency) return
+    if (Array.isArray(persistency.keys)) {
+      return createNestedObjectFromPaths(persistency.keys)
+    }
+    if (Array.isArray(persistency.banKeys)) {
+      const subs = Object.keys(meta).filter(metakey =>
+        persistency.banKeys?.includes(metakey as any),
+      )
+      return createNestedObjectFromPaths(subs)
+    }
+    return {}
+  }
+
   const persistData = () => {
     const persistency = omegaConfig?.persistency
     Match.value(persistency).pipe(
@@ -147,27 +193,26 @@ export const useOmegaForm = <
         persistency => {
           const method = persistency.method
           const storage = method === "local" ? localStorage : sessionStorage
-          if (storage) {
-            if (Array.isArray(persistency.keys)) {
-              const subs = Object.keys(meta).filter(
-                metakey => !persistency.keys?.includes(metakey as any),
-              )
-              subs.forEach(key => {
-                form.setFieldValue(key as any, undefined)
-              })
-            }
-            if (Array.isArray(persistency.banKeys)) {
-              persistency.banKeys.forEach(key => {
-                form.setFieldValue(key as any, undefined)
-              })
-            }
-            return storage.setItem(
-              persistencyKey.value,
-              JSON.stringify(form.store.state.values),
-            )
-          }
+          if (!storage) return
+          const values = persistFilter(persistency)
+          return storage.setItem(persistencyKey.value, JSON.stringify(values))
         },
       ),
+      Match.orElse(constVoid),
+    )
+  }
+
+  const saveDataInUrl = () => {
+    Match.value(omegaConfig?.persistency).pipe(
+      Match.when({ method: "querystring" }, persistency => {
+        const values = persistFilter(persistency)
+        console.log("values", values)
+        const searchParams = new URLSearchParams(window.location.search)
+        searchParams.set(persistencyKey.value, JSON.stringify(values))
+        const url = new URL(window.location.href)
+        url.search = searchParams.toString()
+        window.history.replaceState({}, "", url.toString())
+      }),
       Match.orElse(constVoid),
     )
   }
@@ -176,10 +221,14 @@ export const useOmegaForm = <
 
   onMounted(() => {
     window.addEventListener("beforeunload", persistData)
+    window.addEventListener("blur", saveDataInUrl)
   })
   onBeforeUnmount(() => {
     window.removeEventListener("beforeunload", persistData)
+    window.removeEventListener("blur", saveDataInUrl)
   })
+
+  const exposed = Object.assign(form, { meta, filterItems, clear })
 
   return exposed
 }

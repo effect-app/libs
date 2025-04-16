@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.53.10
+
+### Patch Changes
+
+- fd8446e: recursively apply nonnullable for nested refinements
+
 ## 2.53.9
 
 ### Patch Changes

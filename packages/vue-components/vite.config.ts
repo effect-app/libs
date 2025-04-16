@@ -50,7 +50,20 @@ module.exports = defineConfig({
     },
     rollupOptions: {
       // external modules won't be bundled into your library
-      external: ['effect', /@effect/, 'effect-app', /@effect-app/, 'vue', /primevue\/.+/, /@tanstack/, /@mdi/, /vuetify/, /intl/], // not every external has a global
+      external: [
+        'effect',
+        /@effect/,
+        'effect-app',
+        /@effect-app/,
+        'vue',
+        /primevue\/.+/,
+        /@tanstack/,
+        /@mdi/,
+        /vuetify/,
+        /intl/,
+        /\.stories\./,
+      ],
+      // not every external has a global
       output: {
         // disable warning on src/index.ts using both default and named export
         exports: 'named',

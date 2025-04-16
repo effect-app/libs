@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.53.11
+
+### Patch Changes
+
+- 955a38b: fix dx
+
 ## 2.53.10
 
 ### Patch Changes

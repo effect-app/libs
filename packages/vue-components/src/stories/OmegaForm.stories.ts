@@ -4,45 +4,12 @@ import { OmegaForm, OmegaInput, OmegaErrors } from "../components/OmegaForm"
 import { provideIntl } from "../utils"
 import { type makeIntl } from "@effect-app/vue"
 import { ref } from "vue"
-import { createIntl, createIntlCache } from "@formatjs/intl"
 
 // Create a mock intl provider for Storybook
-const messages = {
-  en: {
-    "form.submit": "Submit",
-    "form.email": "Email",
-    "form.confirm": "Confirm Email",
-    "form.errors.emailMatch": "Email and confirmation must match",
-    "validation.empty": "The field cannot be empty",
-    "validation.not_a_valid":
-      "The entered value is not a valid {type}: {message}",
-    "validation.failed": "Validation failed",
-    "handle.with_warnings": "Warning: {action}",
-    "handle.success": "Success: {action}",
-    "handle.with_errors": "Error: {action}",
-    "handle.unexpected_error":
-      "An unexpected error occurred while {action}: {error}",
-    "handle.request_error": "Request error: {error}",
-    "fieldNames.email": "Email",
-    "fieldNames.confirm": "Confirm Email",
-  },
-}
-
-const intlCache = createIntlCache()
-const intl = createIntl(
-  {
-    locale: "en",
-    defaultLocale: "en",
-    messages: messages.en,
-  },
-  intlCache,
-)
-
 const mockIntl = {
   locale: ref("en"),
-  trans: (id: string, values?: Record<string, any>) =>
-    intl.formatMessage({ id }, values),
-  intl: ref(intl),
+  trans: (id: string, values?: Record<string, any>) => id,
+  intl: ref({ formatMessage: (msg: { id: string }, values?: any) => msg.id }),
 } as unknown as ReturnType<ReturnType<typeof makeIntl<string>>["useIntl"]>
 
 const meta: Meta<typeof OmegaForm> = {
@@ -127,8 +94,8 @@ export const EmailForm: Story = {
       ),
     ),
     defaultValues: {
-      email: "test@example.com",
-      confirm: "test@example.com",
+      email: "mimmo@asd.it",
+      confirm: "amerelli@asd.it",
     },
     onSubmit: ({ value }: { value: { email: string; confirm: string } }) => {
       console.log(value)
@@ -212,6 +179,27 @@ export const ComplexForm: Story = {
             ]"
           />
           <button>Submit</button>
+        </template>
+      </OmegaForm>
+    `,
+  }),
+}
+
+export const UndefinedStringForm: Story = {
+  args: {
+    schema: S.Struct({ aString: S.UndefinedOr(S.String) }),
+    subscribe: ["values"],
+  },
+  render: args => ({
+    components: { OmegaForm, OmegaInput },
+    setup() {
+      return { args }
+    },
+    template: `
+      <OmegaForm v-bind="args">
+        <template #default="{ form, subscribedValues: { values } }">
+          <OmegaInput label="aString" :form="form" name="aString" />
+          <pre>{{ values }}</pre>
         </template>
       </OmegaForm>
     `,

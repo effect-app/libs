@@ -58,11 +58,12 @@ import {
 } from "./OmegaFormStuff"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
-import { useOmegaForm } from "./useOmegaForm"
+import { type OmegaConfig, useOmegaForm } from "./useOmegaForm"
 import { watch } from "vue"
 
 const props = defineProps<
   {
+    omegaConfig?: OmegaConfig<From>
     subscribe?: K[]
     showErrorsOn?: ShowErrorsOn
   } & (
@@ -80,7 +81,8 @@ const props = defineProps<
   )
 >()
 
-const form = props.form ?? useOmegaForm<From, To>(props.schema, props)
+const form =
+  props.form ?? useOmegaForm<From, To>(props.schema, props, props.omegaConfig)
 
 const formIsSubmitting = useStore(form.store, state => state.isSubmitting)
 

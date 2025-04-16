@@ -7,11 +7,20 @@ import {
 import { S } from "effect-app"
 import {
   generateMetaFromSchema,
+  type NestedKeyOf,
   type FilterItems,
   type FormProps,
   type MetaRecord,
   type OmegaFormApi,
 } from "./OmegaFormStuff"
+
+export interface OmegaConfig<T> {
+  persistency?: {
+    method?: "session" | "local" | "none"
+    keys?: NestedKeyOf<T>[]
+    banKeys?: NestedKeyOf<T>[]
+  }
+}
 
 export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +29,8 @@ export const useOmegaForm = <
   To extends Record<PropertyKey, any>,
 >(
   schema: S.Schema<From, To, never>,
-  options?: NoInfer<FormProps<To, From>>,
+  tanstackFormOptions?: NoInfer<FormProps<To, From>>,
+  omegaConfig?: OmegaConfig<From>,
 ): OmegaFormApi<To, From> & {
   meta: MetaRecord<To>
   filterItems?: FilterItems
@@ -42,14 +52,14 @@ export const useOmegaForm = <
     FormAsyncValidateOrFn<To> | undefined,
     FormAsyncValidateOrFn<To> | undefined
   >({
-    ...options,
+    ...tanstackFormOptions,
     validators: {
       onSubmit: standardSchema,
-      ...(options?.validators || {}),
+      ...(tanstackFormOptions?.validators || {}),
     },
-    onSubmit: options?.onSubmit
+    onSubmit: tanstackFormOptions?.onSubmit
       ? ({ formApi, meta, value }) =>
-          options.onSubmit?.({
+          tanstackFormOptions.onSubmit?.({
             formApi: formApi as OmegaFormApi<To, From>,
             meta,
             value: value as unknown as From,

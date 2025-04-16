@@ -19,5 +19,5 @@
       "vite/client"
     ]
   },
-  "include": ["src/stories/**/*.ts", "src/stories/**/*.d.ts", "src/stories/**/*.tsx", "src/stories/**/*.vue"]
+  "include": ["stories/**/*.ts", "stories/**/*.d.ts", "stories/**/*.tsx", "stories/**/*.vue"]
 }

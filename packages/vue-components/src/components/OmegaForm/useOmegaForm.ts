@@ -156,11 +156,11 @@ export const useOmegaForm = <
     })
   }
 
-  function createNestedObjectFromPaths(paths: string[]) {
-    return paths.reduce(
+  const createNestedObjectFromPaths = (paths: string[]) =>
+    paths.reduce(
       (result, path) => {
         const parts = path.split(".")
-        parts.reduce((acc, part, i) => {
+        return parts.reduce((acc, part, i) => {
           if (i === parts.length - 1) {
             acc[part] = form.getFieldValue(path as any)
           } else {
@@ -168,11 +168,9 @@ export const useOmegaForm = <
           }
           return acc[part]
         }, result)
-        return result
       },
       {} as Record<string, any>,
     )
-  }
 
   const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
     if (!persistency) return

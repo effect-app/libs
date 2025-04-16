@@ -6,13 +6,13 @@ import { ref } from "vue"
 import SimpleForm from "./OmegaForm/SimpleForm.vue"
 import EmailForm from "./OmegaForm/EmailForm.vue"
 import ComplexForm from "./OmegaForm/ComplexForm.vue"
-import UndefinedStringForm from "./OmegaForm/UndefinedStringForm.vue"
+import SimpleFormVuetifyDefault from "./OmegaForm/SimpleFormVuetifyDefault.vue"
+import SumExample from "./OmegaForm/SumExample.vue"
 
-// Create a mock intl provider for Storybook
 const mockIntl = {
   locale: ref("en"),
-  trans: (id: string, values?: Record<string, any>) => id,
-  intl: ref({ formatMessage: (msg: { id: string }, values?: any) => msg.id }),
+  trans: (id: string) => id,
+  intl: ref({ formatMessage: (msg: { id: string }) => msg.id }),
 } as unknown as ReturnType<ReturnType<typeof makeIntl<string>>["useIntl"]>
 
 const meta: Meta<typeof OmegaForm> = {
@@ -60,9 +60,16 @@ export const ComplexFormStory: Story = {
   }),
 }
 
-export const UndefinedStringFormStory: Story = {
+export const SimpleFormVuetifyDefaultStory: Story = {
   render: () => ({
-    components: { UndefinedStringForm },
-    template: "<UndefinedStringForm />",
+    components: { SimpleFormVuetifyDefault },
+    template: "<SimpleFormVuetifyDefault />",
+  }),
+}
+
+export const SumExampleStory: Story = {
+  render: () => ({
+    components: { SumExample },
+    template: "<SumExample />",
   }),
 }

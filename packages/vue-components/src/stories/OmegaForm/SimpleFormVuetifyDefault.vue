@@ -1,5 +1,5 @@
 <template>
-  <OmegaForm v-bind="args">
+  <OmegaForm :schema="schema" :subscribe="['values']">
     <template #default="{ form, subscribedValues: { values } }">
       <OmegaInput label="aString" :form="form" name="aString" />
       <pre>{{ values }}</pre>
@@ -11,8 +11,5 @@
 import { S } from "effect-app"
 import { OmegaForm, OmegaInput } from "../../components/OmegaForm"
 
-const args = {
-  schema: S.Struct({ aString: S.UndefinedOr(S.String) }),
-  subscribe: ["values"],
-}
+const schema = S.Struct({ aString: S.UndefinedOr(S.String) })
 </script>

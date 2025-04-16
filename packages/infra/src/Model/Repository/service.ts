@@ -2,6 +2,7 @@
 import type { Effect, Option, PubSub, S } from "effect-app"
 import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "effect-app/client/errors"
 import type { NonNegativeInt } from "effect-app/Schema/numbers"
+import { type Equals } from "effect-app/Types"
 import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
 import type { QAll, Query, QueryProjection } from "../query.js"
 import type { Mapped } from "./legacy.js"
@@ -570,9 +571,17 @@ type ExtractTagged_<T, EncodedRefined> = EncodedRefined extends { _tag: string }
   : T
   : T
 
-type ExtractTagged<T, EncodedRefined> = ExtractTagged_<T, EncodedRefined> extends infer R ? ResolveFirstLevel<
-    NullableRefined<RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined>, EncodedRefined>
-  >
+type ExtractTagged<T, EncodedRefined> = ExtractTagged_<T, EncodedRefined> extends infer R
+  ? RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined> extends infer R2 ? NullableRefined<
+      R2,
+      EncodedRefined
+    > extends infer R3 ? Equals<
+        R2,
+        R3
+      > extends true ? R2
+      : ResolveFirstLevel<R3>
+    : never
+  : never
   : never
 
 type ShouldRecursiveExtractIded<T, EncodedRefined> = true extends {
@@ -597,12 +606,15 @@ type ExtractIded_<T, EncodedRefined> = EncodedRefined extends { id: string }
   : T
   : T
 
-type ExtractIded<T, EncodedRefined> = ExtractIded_<T, EncodedRefined> extends infer R ? ResolveFirstLevel<
-    NullableRefined<
-      RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined>,
-      EncodedRefined
-    >
-  >
+type ExtractIded<T, EncodedRefined> = ExtractIded_<T, EncodedRefined> extends infer R
+  ? RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined> extends infer R2
+    ? NullableRefined<R2, EncodedRefined> extends infer R3 ? Equals<
+        R2,
+        R3
+      > extends true ? R2
+      : ResolveFirstLevel<R3>
+    : never
+  : never
   : never
 
 export type RefineTHelper<T, EncodedRefined> = ResolveFirstLevel<

@@ -44,7 +44,7 @@ const addForm = useOmegaForm(
   {},
   {
     persistency: {
-      method: "session",
+      policies: ["session", "querystring"],
       keys: ["first", "third.fourth"],
     },
   },

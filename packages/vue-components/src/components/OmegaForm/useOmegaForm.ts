@@ -79,14 +79,14 @@ export const useOmegaForm = <
 
   const defaultValues = computed(() => {
     if (
-      !omegaConfig?.persistency?.overrideDefaultValues ||
+      (tanstackFormOptions?.defaultValues &&
+        !omegaConfig?.persistency?.overrideDefaultValues) ||
       omegaConfig?.persistency?.policies?.includes("none")
     ) {
       return tanstackFormOptions?.defaultValues
     }
     const persistency = omegaConfig?.persistency
     if (!persistency?.policies) return {}
-
     if (persistency.policies.includes("querystring")) {
       try {
         const params = new URLSearchParams(window.location.search)
@@ -185,7 +185,7 @@ export const useOmegaForm = <
       )
       return createNestedObjectFromPaths(subs)
     }
-    return {}
+    return form.store.state.values
   }
 
   const persistData = () => {

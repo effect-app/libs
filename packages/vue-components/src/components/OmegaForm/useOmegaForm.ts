@@ -29,11 +29,10 @@ type keysRule<T> =
 export type OmegaConfig<T> = {
   persistency?: {
     /** Order of importance:
-     * - "none": No persistency applied (takes precedence, never persists)
      * - "querystring": Highest priority when persisting
      * - "local" and then "session": Lower priority storage options
      */
-    policies?: ("session" | "local" | "querystring" | "none")[]
+    policies?: ("local" | "session" | "querystring")[]
     overrideDefaultValues?: boolean
     id?: string
   } & keysRule<T>
@@ -79,14 +78,13 @@ export const useOmegaForm = <
 
   const defaultValues = computed(() => {
     if (
-      (tanstackFormOptions?.defaultValues &&
-        !omegaConfig?.persistency?.overrideDefaultValues) ||
-      omegaConfig?.persistency?.policies?.includes("none")
+      tanstackFormOptions?.defaultValues &&
+      !omegaConfig?.persistency?.overrideDefaultValues
     ) {
       return tanstackFormOptions?.defaultValues
     }
     const persistency = omegaConfig?.persistency
-    if (!persistency?.policies) return {}
+    if (!persistency?.policies || persistency.policies.length === 0) return {}
     if (persistency.policies.includes("querystring")) {
       try {
         const params = new URLSearchParams(window.location.search)
@@ -188,10 +186,7 @@ export const useOmegaForm = <
 
   const persistData = () => {
     const persistency = omegaConfig?.persistency
-    if (
-      !persistency?.policies ||
-      omegaConfig?.persistency?.policies?.includes("none")
-    ) {
+    if (!persistency?.policies || persistency.policies.length === 0) {
       return
     }
     if (
@@ -209,10 +204,7 @@ export const useOmegaForm = <
 
   const saveDataInUrl = () => {
     const persistency = omegaConfig?.persistency
-    if (
-      !persistency?.policies ||
-      omegaConfig?.persistency?.policies?.includes("none")
-    ) {
+    if (!persistency?.policies || persistency.policies.length === 0) {
       return
     }
     if (persistency.policies.includes("querystring")) {

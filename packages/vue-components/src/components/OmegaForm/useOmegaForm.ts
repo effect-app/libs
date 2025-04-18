@@ -5,7 +5,7 @@ import {
   type FormAsyncValidateOrFn,
   type StandardSchemaV1,
 } from "@tanstack/vue-form"
-import { S } from "effect-app"
+import { type Record, S } from "effect-app"
 import {
   generateMetaFromSchema,
   type NestedKeyOf,
@@ -15,6 +15,7 @@ import {
   type OmegaFormApi,
 } from "./OmegaFormStuff"
 import { computed, onBeforeUnmount, onMounted, onUnmounted } from "vue"
+import { isObject } from "effect/Predicate"
 
 type keysRule<T> =
   | {
@@ -76,13 +77,36 @@ export const useOmegaForm = <
     window.history.replaceState({}, "", url.toString())
   }
 
+  function deepMerge(target: any, source: any) {
+    for (const key in source) {
+      if (source[key] && isObject(source[key])) {
+        if (!target[key]) {
+          target[key] = {}
+        }
+        deepMerge(target[key], source[key])
+      } else {
+        target[key] = source[key]
+      }
+    }
+    return target
+  }
+
   const defaultValues = computed(() => {
     if (
       tanstackFormOptions?.defaultValues &&
       !omegaConfig?.persistency?.overrideDefaultValues
     ) {
+      // defaultValues from tanstack are not partial,
+      // so if ovverrideDefaultValues is false we simply return them
       return tanstackFormOptions?.defaultValues
     }
+
+    // we are here because there are no default values from tankstack
+    // or because omegaConfig?.persistency?.overrideDefaultValues is true
+
+    // will contain what we get from querystring or local/session storage
+    let defValuesPatch
+
     const persistency = omegaConfig?.persistency
     if (!persistency?.policies || persistency.policies.length === 0) return {}
     if (persistency.policies.includes("querystring")) {
@@ -91,7 +115,7 @@ export const useOmegaForm = <
         const value = params.get(persistencyKey.value)
         clearUrlParams()
         if (value) {
-          return JSON.parse(value)
+          defValuesPatch = JSON.parse(value)
         }
       } catch (error) {
         console.error(error)
@@ -99,8 +123,10 @@ export const useOmegaForm = <
     }
 
     if (
-      persistency.policies.includes("local") ||
-      persistency.policies.includes("session")
+      // query string has higher priority than local/session storage
+      !defValuesPatch &&
+      (persistency.policies.includes("local") ||
+        persistency.policies.includes("session"))
     ) {
       const storage = persistency.policies.includes("local")
         ? localStorage
@@ -111,13 +137,23 @@ export const useOmegaForm = <
             storage.getItem(persistencyKey.value) || "{}",
           )
           storage.removeItem(persistencyKey.value)
-          return value
+          defValuesPatch = value
         } catch (error) {
           console.error(error)
         }
       }
     }
-    return {}
+
+    // to be sure we have a valid object at the end of the gathering process
+    defValuesPatch ??= {}
+
+    if (tanstackFormOptions?.defaultValues == undefined) {
+      // we just return what we gathered from the query/storage
+      return defValuesPatch
+    } else {
+      const startingDefValues = tanstackFormOptions?.defaultValues
+      return deepMerge(startingDefValues, defValuesPatch)
+    }
   })
 
   const form = useForm<
@@ -158,14 +194,15 @@ export const useOmegaForm = <
     paths.reduce(
       (result, path) => {
         const parts = path.split(".")
-        return parts.reduce((acc, part, i) => {
+        parts.reduce((acc, part, i) => {
           if (i === parts.length - 1) {
             acc[part] = form.getFieldValue(path as any)
           } else {
-            acc[part] = acc[part] || {}
+            acc[part] = acc[part] ?? {}
           }
           return acc[part]
         }, result)
+        return result
       },
       {} as Record<string, any>,
     )

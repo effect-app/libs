@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.3.1
+
+### Patch Changes
+
+- c8e5220: update OmegaForm persistency configuration to use policies array and add query params option
+
 ## 0.3.0
 
 ### Minor Changes

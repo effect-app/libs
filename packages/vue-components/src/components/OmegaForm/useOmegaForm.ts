@@ -5,7 +5,7 @@ import {
   type FormAsyncValidateOrFn,
   type StandardSchemaV1,
 } from "@tanstack/vue-form"
-import { Match, S } from "effect-app"
+import { S } from "effect-app"
 import {
   generateMetaFromSchema,
   type NestedKeyOf,
@@ -15,7 +15,6 @@ import {
   type OmegaFormApi,
 } from "./OmegaFormStuff"
 import { computed, onBeforeUnmount, onMounted, onUnmounted } from "vue"
-import { constVoid } from "effect/Function"
 
 type keysRule<T> =
   | {
@@ -29,7 +28,11 @@ type keysRule<T> =
 
 export type OmegaConfig<T> = {
   persistency?: {
-    method?: "session" | "local" | "none"
+    /** Order of importance:
+     * - "querystring": Highest priority when persisting
+     * - "local" and then "session": Lower priority storage options
+     */
+    policies?: ("local" | "session" | "querystring")[]
     overrideDefaultValues?: boolean
     id?: string
   } & keysRule<T>
@@ -65,36 +68,56 @@ export const useOmegaForm = <
     return `${path}-${keys.join("-")}`
   })
 
+  const clearUrlParams = () => {
+    const params = new URLSearchParams(window.location.search)
+    params.delete(persistencyKey.value)
+    const url = new URL(window.location.href)
+    url.search = params.toString()
+    window.history.replaceState({}, "", url.toString())
+  }
+
   const defaultValues = computed(() => {
     if (
       tanstackFormOptions?.defaultValues &&
       !omegaConfig?.persistency?.overrideDefaultValues
-    )
-      return tanstackFormOptions.defaultValues
+    ) {
+      return tanstackFormOptions?.defaultValues
+    }
     const persistency = omegaConfig?.persistency
-    return Match.value(persistency).pipe(
-      Match.when(
-        { method: method => ["local", "session"].includes(method) },
-        persistency => {
-          const method = persistency.method
-          const storage = method === "local" ? localStorage : sessionStorage
-          if (storage) {
-            try {
-              const value = JSON.parse(
-                storage.getItem(persistencyKey.value) || "{}",
-              )
-              storage.removeItem(persistencyKey.value)
-              return value
-            } catch (error) {
-              console.error(error)
-              return {}
-            }
-          }
-          return {}
-        },
-      ),
-      Match.orElse(() => ({})),
-    )
+    if (!persistency?.policies || persistency.policies.length === 0) return {}
+    if (persistency.policies.includes("querystring")) {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const value = params.get(persistencyKey.value)
+        clearUrlParams()
+        if (value) {
+          return JSON.parse(value)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    if (
+      persistency.policies.includes("local") ||
+      persistency.policies.includes("session")
+    ) {
+      const storage = persistency.policies.includes("local")
+        ? localStorage
+        : sessionStorage
+      if (storage) {
+        try {
+          const value = JSON.parse(
+            storage.getItem(persistencyKey.value) || "{}",
+          )
+          storage.removeItem(persistencyKey.value)
+          return value
+        } catch (error) {
+          console.error(error)
+        }
+      }
+    }
+    return {}
   })
 
   const form = useForm<
@@ -131,55 +154,81 @@ export const useOmegaForm = <
     })
   }
 
-  const exposed = Object.assign(form, { meta, filterItems, clear })
+  const createNestedObjectFromPaths = (paths: string[]) =>
+    paths.reduce(
+      (result, path) => {
+        const parts = path.split(".")
+        return parts.reduce((acc, part, i) => {
+          if (i === parts.length - 1) {
+            acc[part] = form.getFieldValue(path as any)
+          } else {
+            acc[part] = acc[part] || {}
+          }
+          return acc[part]
+        }, result)
+      },
+      {} as Record<string, any>,
+    )
 
-  // This is fragile as fuck. It's an experiment, it's only used because
-  // it's not a core feature of our products, so even if the this is not consistent
-  // it's not a big deal. So not take this code as a good example of how to do things.
-  // This is done only because this function is called before the component is destroyed,
-  // so the state would be lost anyway. So in this case we can play with the state, without
-  // worrying about the side effects.
+  const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
+    if (!persistency) return
+    if (Array.isArray(persistency.keys)) {
+      return createNestedObjectFromPaths(persistency.keys)
+    }
+    if (Array.isArray(persistency.banKeys)) {
+      const subs = Object.keys(meta).filter(metakey =>
+        persistency.banKeys?.includes(metakey as any),
+      )
+      return createNestedObjectFromPaths(subs)
+    }
+    return form.store.state.values
+  }
+
   const persistData = () => {
     const persistency = omegaConfig?.persistency
-    Match.value(persistency).pipe(
-      Match.when(
-        { method: method => ["local", "session"].includes(method) },
-        persistency => {
-          const method = persistency.method
-          const storage = method === "local" ? localStorage : sessionStorage
-          if (storage) {
-            if (Array.isArray(persistency.keys)) {
-              const subs = Object.keys(meta).filter(
-                metakey => !persistency.keys?.includes(metakey as any),
-              )
-              subs.forEach(key => {
-                form.setFieldValue(key as any, undefined)
-              })
-            }
-            if (Array.isArray(persistency.banKeys)) {
-              persistency.banKeys.forEach(key => {
-                form.setFieldValue(key as any, undefined)
-              })
-            }
-            return storage.setItem(
-              persistencyKey.value,
-              JSON.stringify(form.store.state.values),
-            )
-          }
-        },
-      ),
-      Match.orElse(constVoid),
-    )
+    if (!persistency?.policies || persistency.policies.length === 0) {
+      return
+    }
+    if (
+      persistency.policies.includes("local") ||
+      persistency.policies.includes("session")
+    ) {
+      const storage = persistency.policies.includes("local")
+        ? localStorage
+        : sessionStorage
+      if (!storage) return
+      const values = persistFilter(persistency)
+      return storage.setItem(persistencyKey.value, JSON.stringify(values))
+    }
+  }
+
+  const saveDataInUrl = () => {
+    const persistency = omegaConfig?.persistency
+    if (!persistency?.policies || persistency.policies.length === 0) {
+      return
+    }
+    if (persistency.policies.includes("querystring")) {
+      const values = persistFilter(persistency)
+      const searchParams = new URLSearchParams(window.location.search)
+      searchParams.set(persistencyKey.value, JSON.stringify(values))
+      const url = new URL(window.location.href)
+      url.search = searchParams.toString()
+      window.history.replaceState({}, "", url.toString())
+    }
   }
 
   onUnmounted(persistData)
 
   onMounted(() => {
     window.addEventListener("beforeunload", persistData)
+    window.addEventListener("blur", saveDataInUrl)
   })
   onBeforeUnmount(() => {
     window.removeEventListener("beforeunload", persistData)
+    window.removeEventListener("blur", saveDataInUrl)
   })
+
+  const exposed = Object.assign(form, { meta, filterItems, clear })
 
   return exposed
 }

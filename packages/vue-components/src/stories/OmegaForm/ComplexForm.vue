@@ -73,7 +73,7 @@ const form = useOmegaForm(
   },
   {
     persistency: {
-      method: "local",
+      policies: ["local"],
       overrideDefaultValues: true,
     },
   },

@@ -44,7 +44,7 @@ const addForm = useOmegaForm(
   {},
   {
     persistency: {
-      method: "session",
+      policies: ["session", "querystring"],
       keys: ["first", "third.fourth"],
     },
   },
@@ -55,11 +55,4 @@ const values = addForm.useStore(({ values }) => values)
 watch(values, ({ first, second }) => {
   sum.value = first + second
 })
-
-// TODO: Implement this when we have a way to persist the form values
-// {
-//   persist: "session",
-//   persistKeys: ["riskCategoryPeriod"],
-//   persistBanKeys: ["riskCategory"],
-// }
 </script>

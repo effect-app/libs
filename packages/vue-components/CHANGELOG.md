@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.3.2
+
+### Patch Changes
+
+- e7c3aff: deep merge default values which comes from persistency wrt tanstack def values
+
 ## 0.3.1
 
 ### Patch Changes

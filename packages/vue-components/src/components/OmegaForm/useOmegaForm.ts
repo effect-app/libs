@@ -5,7 +5,7 @@ import {
   type FormAsyncValidateOrFn,
   type StandardSchemaV1,
 } from "@tanstack/vue-form"
-import { S } from "effect-app"
+import { type Record, S } from "effect-app"
 import {
   generateMetaFromSchema,
   type NestedKeyOf,
@@ -194,14 +194,15 @@ export const useOmegaForm = <
     paths.reduce(
       (result, path) => {
         const parts = path.split(".")
-        return parts.reduce((acc, part, i) => {
+        parts.reduce((acc, part, i) => {
           if (i === parts.length - 1) {
             acc[part] = form.getFieldValue(path as any)
           } else {
-            acc[part] = acc[part] || {}
+            acc[part] = acc[part] ?? {}
           }
           return acc[part]
         }, result)
+        return result
       },
       {} as Record<string, any>,
     )

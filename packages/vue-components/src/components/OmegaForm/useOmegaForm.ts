@@ -145,15 +145,18 @@ export const useOmegaForm = <
     }
 
     // to be sure we have a valid object at the end of the gathering process
-    defValuesPatch ||= {}
+    defValuesPatch ??= {}
+
+    return {}
+
+    console.log("ciao")
 
     if (tanstackFormOptions?.defaultValues == undefined) {
       // we just return what we gathered from the query/storage
       return defValuesPatch
     } else {
       const startingDefValues = tanstackFormOptions?.defaultValues
-      deepMerge(startingDefValues, defValuesPatch)
-      return startingDefValues
+      return deepMerge(startingDefValues, defValuesPatch)
     }
   })
 

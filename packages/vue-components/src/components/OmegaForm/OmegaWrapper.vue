@@ -81,12 +81,10 @@ const props = defineProps<
   )
 >()
 
-const form =
-  props.form ?? useOmegaForm<From, To>(props.schema, props, props.omegaConfig)
+const form: Omit<OmegaFormReturn<To, From>, "Input"> = props.form ??
+useOmegaForm<From, To>(props.schema, props, props.omegaConfig)
 
 const formIsSubmitting = useStore(form.store, state => state.isSubmitting)
-
-defineExpose(form)
 
 const subscribedValues = getOmegaStore(
   form as OmegaFormApi<To, From>,

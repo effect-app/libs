@@ -1,5 +1,5 @@
 <template>
-  <OmegaForm :form="form">
+  <OmegaForm :form="exampleForm">
     <template #default="{ form }">
       <OmegaInput label="aString" :form="form" name="aString" />
       <OmegaInput label="aStringMin2" :form="form" name="aStringMin2" />
@@ -38,7 +38,7 @@
 import { S } from "effect-app"
 import { OmegaForm, OmegaInput, useOmegaForm } from "../../components/OmegaForm"
 
-const form = useOmegaForm(
+const exampleForm = useOmegaForm(
   S.Struct({
     aString: S.String,
     aStringMin2: S.String.pipe(S.minLength(2)),

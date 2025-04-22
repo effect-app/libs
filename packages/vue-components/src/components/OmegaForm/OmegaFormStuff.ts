@@ -218,16 +218,6 @@ const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
   return false
 }
 
-const isRequiredFromNullableOrUndefined = (
-  property: false | S.AST.AST | undefined,
-) => {
-  if (!property || !S.AST.isUnion(property)) return false
-  if (property.types.find(_ => _._tag === "UndefinedKeyword"))
-    return "undefined"
-  if (property.types.find(_ => _ === S.Null.ast)) return "null"
-  return false
-}
-
 const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
   acc: Partial<MetaRecord<T>> = {},
@@ -285,8 +275,7 @@ const createMeta = <T = any>(
     const nullableOrUndefined = getNullableOrUndefined(property)
 
     if (!Object.hasOwnProperty.call(meta, "required")) {
-      meta["required"] =
-        typeof nullableOrUndefined !== "string" && !nullableOrUndefined
+      meta["required"] = !nullableOrUndefined
     }
 
     if (S.AST.isUnion(property)) {

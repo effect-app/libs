@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.3.3
+
+### Patch Changes
+
+- df2e948: Fixes meta.required wrong inheritance and adds at least storybook story, waiting for unit tests
+
 ## 0.3.2
 
 ### Patch Changes

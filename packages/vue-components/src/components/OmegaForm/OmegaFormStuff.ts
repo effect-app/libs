@@ -241,7 +241,7 @@ const createMeta = <T = any>(
     for (const p of propertySignatures) {
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
-      const isRequired = meta["required"] ?? !nullableOrUndefined
+      const isRequired = !nullableOrUndefined
 
       let typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {

@@ -9,6 +9,7 @@ import ComplexForm from "./OmegaForm/ComplexForm.vue"
 import SimpleFormVuetifyDefault from "./OmegaForm/SimpleFormVuetifyDefault.vue"
 import SumExample from "./OmegaForm/SumExample.vue"
 import PersistencyForm from "./OmegaForm/PersistencyForm.vue"
+import AutoGeneration from "./OmegaForm/AutoGeneration.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -79,5 +80,12 @@ export const PersistencyFormStory: Story = {
   render: () => ({
     components: { PersistencyForm },
     template: "<PersistencyForm />",
+  }),
+}
+
+export const AutoGenerationStory: Story = {
+  render: () => ({
+    components: { AutoGeneration },
+    template: "<AutoGeneration />",
   }),
 }

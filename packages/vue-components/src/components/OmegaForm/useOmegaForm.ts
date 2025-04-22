@@ -13,9 +13,19 @@ import {
   type FormProps,
   type MetaRecord,
   type OmegaFormApi,
+  type OmegaInputProps,
 } from "./OmegaFormStuff"
-import { computed, onBeforeUnmount, onMounted, onUnmounted } from "vue"
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  onUnmounted,
+  defineComponent,
+  h,
+  type DefineComponent,
+} from "vue"
 import { isObject } from "effect/Predicate"
+import OmegaInput from "./OmegaInput.vue"
 
 type keysRule<T> =
   | {
@@ -43,6 +53,7 @@ export interface OmegaFormReturn<To, From> extends OmegaFormApi<To, From> {
   meta: MetaRecord<To>
   filterItems?: FilterItems
   clear: () => void
+  Input: DefineComponent<Omit<OmegaInputProps<From, To>, "form">, {}, {}>
 }
 
 export const useOmegaForm = <
@@ -265,7 +276,31 @@ export const useOmegaForm = <
     window.removeEventListener("blur", saveDataInUrl)
   })
 
-  const exposed = Object.assign(form, { meta, filterItems, clear })
+  const formWithExtras = Object.assign(form, {
+    meta,
+    filterItems,
+    clear,
+  })
 
-  return exposed
+  return Object.assign(formWithExtras, {
+    Input: defineComponent({
+      name: "FormInput",
+      inheritAttrs: true,
+      setup(_, { attrs, slots }) {
+        return () =>
+          h(
+            OmegaInput,
+            {
+              ...attrs,
+              form: formWithExtras,
+            },
+            slots,
+          )
+      },
+    }) as any as DefineComponent<
+      Omit<OmegaInputProps<From, To>, "form">,
+      {},
+      {}
+    >,
+  })
 }

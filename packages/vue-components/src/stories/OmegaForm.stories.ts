@@ -10,6 +10,7 @@ import SimpleFormVuetifyDefault from "./OmegaForm/SimpleFormVuetifyDefault.vue"
 import SumExample from "./OmegaForm/SumExample.vue"
 import PersistencyForm from "./OmegaForm/PersistencyForm.vue"
 import MetaForm from "./OmegaForm/Meta.vue"
+import FormInput from "./OmegaForm/form.Input.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -87,5 +88,12 @@ export const MetaStory: Story = {
   render: () => ({
     components: { MetaForm },
     template: "<MetaForm />",
+  }),
+}
+
+export const FormInputStory: Story = {
+  render: () => ({
+    components: { FormInput },
+    template: "<FormInput />",
   }),
 }

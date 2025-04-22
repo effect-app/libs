@@ -18,6 +18,17 @@ import { useIntl } from "../../utils"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
+export type OmegaInputProps<From, To> = {
+  form: FormType<From, To> & {
+    meta: MetaRecord<To>
+  }
+  name: NestedKeyOf<To>
+  validators?: FieldValidators<From>
+  label: string
+  options?: { title: string; value: string }[]
+  type?: TypeOverride
+}
+
 export type TypeOverride =
   | "string"
   | "text"

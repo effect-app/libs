@@ -1,6 +1,6 @@
 <template>
   <slot v-bind="inputProps">
-    <div @focusout="setRealDirty">
+    <div :class="$attrs.class" @focusout="setRealDirty">
       <OmegaInputVuetify
         v-if="vuetified"
         :input-props="inputProps"

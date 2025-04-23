@@ -1,20 +1,28 @@
 <template>
-  <OmegaForm :form="form">
-    <form.Input label="aString" name="aString" />
-    <form.Input label="aStringMin2" name="aStringMin2" />
-    <form.Input label="aStringMin2Max4" name="aStringMin2Max4" />
-    <form.Input
+  <OmegaForm
+    :schema="S.Struct({ myString: S.String })"
+    :on-submit="console.log"
+  >
+    <template #internalForm="{ form }">
+      <component :is="form.Input" label="myString" name="myString" />
+    </template>
+  </OmegaForm>
+  <OmegaForm :form="exampleForm">
+    <exampleForm.Input label="aString" name="aString" />
+    <exampleForm.Input label="aStringMin2" name="aStringMin2" />
+    <exampleForm.Input label="aStringMin2Max4" name="aStringMin2Max4" />
+    <exampleForm.Input
       label="aStringMin2Max3Nullable"
       name="aStringMin2Max3Nullable"
     />
-    <form.Input label="aNumber" name="aNumber" />
-    <form.Input label="aNumberMin2" name="aNumberMin2" />
-    <form.Input label="aNumberMin2Max" name="aNumberMin2Max" />
-    <form.Input
+    <exampleForm.Input label="aNumber" name="aNumber" />
+    <exampleForm.Input label="aNumberMin2" name="aNumberMin2" />
+    <exampleForm.Input label="aNumberMin2Max" name="aNumberMin2Max" />
+    <exampleForm.Input
       label="aNumberMin2Max4Nullable"
       name="aNumberMin2Max4Nullable"
     />
-    <form.Input
+    <exampleForm.Input
       label="aSelect"
       name="aSelect"
       :options="[
@@ -24,8 +32,8 @@
       ]"
     />
     <button>Submit</button>
-    <button type="reset" @click.prevent="form.clear()">Clear</button>
-    <button type="button" @click="form.reset()">Reset</button>
+    <button type="reset" @click.prevent="exampleForm.clear()">Clear</button>
+    <button type="button" @click="exampleForm.reset()">Reset</button>
   </OmegaForm>
 </template>
 
@@ -47,7 +55,7 @@ const schema = S.Struct({
   aSelect: S.Union(S.Literal("a"), S.Literal("b"), S.Literal("c")),
 })
 
-const form = useOmegaForm(
+const exampleForm = useOmegaForm(
   schema,
   {
     onSubmit: ({

@@ -10,6 +10,8 @@ import SimpleFormVuetifyDefault from "./OmegaForm/SimpleFormVuetifyDefault.vue"
 import SumExample from "./OmegaForm/SumExample.vue"
 import PersistencyForm from "./OmegaForm/PersistencyForm.vue"
 import MetaForm from "./OmegaForm/Meta.vue"
+import FormInput from "./OmegaForm/form.Input.vue"
+import OneHundredWaysToWriteAForm from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -20,7 +22,6 @@ const mockIntl = {
 const meta: Meta<typeof OmegaForm> = {
   title: "Components/OmegaForm",
   component: OmegaForm,
-  tags: ["autodocs"],
   argTypes: {
     schema: { control: "object" },
     onSubmit: { action: "submitted" },
@@ -40,6 +41,13 @@ const meta: Meta<typeof OmegaForm> = {
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+export const AnHundredWayToWriteAFormStory: Story = {
+  render: () => ({
+    components: { OneHundredWaysToWriteAForm },
+    template: "<OneHundredWaysToWriteAForm />",
+  }),
+}
 
 export const SimpleFormStory: Story = {
   render: () => ({
@@ -87,5 +95,12 @@ export const MetaStory: Story = {
   render: () => ({
     components: { MetaForm },
     template: "<MetaForm />",
+  }),
+}
+
+export const FormInputStory: Story = {
+  render: () => ({
+    components: { FormInput },
+    template: "<FormInput />",
   }),
 }

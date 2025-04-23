@@ -4,7 +4,7 @@
     :on-submit="onSubmit"
     :default-values="defaultValues"
   >
-    <template #default="{ form }">
+    <template #internalForm="{ form }">
       <OmegaInput label="email" name="email" :form="form" />
       <OmegaInput label="confirm" name="confirm" :form="form" />
       <button>submit</button>

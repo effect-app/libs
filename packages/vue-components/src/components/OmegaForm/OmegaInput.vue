@@ -28,25 +28,12 @@
 import { computed } from "vue"
 import {
   generateInputStandardSchemaFromFieldMeta,
-  type FieldValidators,
-  type FormType,
-  type MetaRecord,
-  type NestedKeyOf,
-  type TypeOverride,
+  type OmegaInputProps,
 } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 import type { OmegaFieldInternalApi } from "./InputProps"
 
-const props = defineProps<{
-  form: FormType<From, To> & {
-    meta: MetaRecord<To>
-  }
-  name: NestedKeyOf<To>
-  validators?: FieldValidators<From>
-  label: string
-  options?: { title: string; value: string }[]
-  type?: TypeOverride
-}>()
+const props = defineProps<OmegaInputProps<From, To>>()
 
 defineOptions({
   inheritAttrs: false,

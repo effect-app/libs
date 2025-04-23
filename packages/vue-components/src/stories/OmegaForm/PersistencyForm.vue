@@ -4,17 +4,17 @@
     :subscribe="['errors', 'values']"
     show-errors-on="onChange"
   >
-    <template #default="{ form, subscribedValues: { errors, values } }">
+    <template #externalForm="{ subscribedValues: { errors, values: vvv } }">
       <div>Errors: {{ errors }}</div>
-      <div>Values: {{ values }}</div>
-      <OmegaInput label="first" :form="form" name="first" />
+      <div>Values: {{ vvv }}</div>
+      <OmegaInput label="first" :form="addForm" name="first" />
       <div>+</div>
-      <OmegaInput label="second" :form="form" name="second" />
+      <OmegaInput label="second" :form="addForm" name="second" />
       <br />
       <hr />
       <br />
-      <OmegaInput label="third.fourth" :form="form" name="third.fourth" />
-      <OmegaInput label="third.fifth" :form="form" name="third.fifth" />
+      <OmegaInput label="third.fourth" :form="addForm" name="third.fourth" />
+      <OmegaInput label="third.fifth" :form="addForm" name="third.fifth" />
     </template>
   </OmegaForm>
 

@@ -19,7 +19,7 @@
       })
     "
   >
-    <template #default="{ form }">
+    <template #internalForm="{ form }">
       <ul>
         <li v-for="key in Object.keys(form.meta)" :key="key">
           {{ key }}: {{ (form.meta as any)[key] }}

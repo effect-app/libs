@@ -1,7 +1,19 @@
 <template>
-  <form novalidate @submit.prevent.stop="form.handleSubmit()">
+  <form novalidate @submit.prevent.stop="formToUse.handleSubmit()">
     <fieldset :disabled="formIsSubmitting">
-      <slot :form="form" :subscribed-values="subscribedValues" />
+      <!-- Render externalForm + default slots if props.form is provided -->
+      <template v-if="props.form">
+        <slot name="externalForm" :subscribed-values="subscribedValues" />
+        <slot />
+        <!-- default slot -->
+      </template>
+      <!-- Render internalForm slot if form was created locally -->
+      <slot
+        v-else-if="localForm"
+        name="internalForm"
+        :form="localForm"
+        :subscribed-values="subscribedValues"
+      />
     </fieldset>
   </form>
 </template>
@@ -62,7 +74,7 @@ import {
   type OmegaFormReturn,
   useOmegaForm,
 } from "./useOmegaForm"
-import { watch } from "vue"
+import { computed, watch, defineSlots } from "vue"
 
 const props = defineProps<
   {
@@ -81,32 +93,40 @@ const props = defineProps<
   )
 >()
 
-const form =
-  props.form ?? useOmegaForm<From, To>(props.schema, props, props.omegaConfig)
+const localForm = computed(() => {
+  if (props.form || !props.schema) {
+    return undefined
+  }
+  return useOmegaForm<From, To>(props.schema, props, props.omegaConfig)
+})
 
-const formIsSubmitting = useStore(form.store, state => state.isSubmitting)
+const formToUse = computed(() => props.form ?? localForm.value!)
 
-defineExpose(form)
+const formIsSubmitting = useStore(
+  formToUse.value.store,
+  state => state.isSubmitting,
+)
 
 const subscribedValues = getOmegaStore(
-  form as OmegaFormApi<To, From>,
+  formToUse.value as OmegaFormApi<To, From>,
   props.subscribe,
 )
 
 const formSubmissionAttempts = useStore(
-  form.store,
+  formToUse.value.store,
   state => state.submissionAttempts,
 )
 
-const errors = form.useStore(state => state.errors)
+const errors = computed(() => formToUse.value.useStore(state => state.errors))
 
 watch(
-  () => [form.filterItems, errors.value],
+  () => [formToUse.value.filterItems, errors.value.value],
   () => {
-    const filterItems: FilterItems | undefined = form.filterItems
+    const filterItems: FilterItems | undefined = formToUse.value.filterItems
+    const currentErrors = errors.value.value
     if (!filterItems) return {}
-    if (!errors.value) return {}
-    const errorList = Object.values(errors.value)
+    if (!currentErrors) return {}
+    const errorList = Object.values(currentErrors)
       .filter(
         (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> =>
           Boolean(fieldErrors),
@@ -116,22 +136,40 @@ watch(
           .flat()
           .map((issue: StandardSchemaV1Issue) => issue.message),
       )
+
     if (errorList.some(e => e === filterItems.message)) {
-      filterItems.items.forEach((item: any) => {
-        const m: any = form.getFieldMeta(item)
-        form.setFieldMeta(item, {
-          ...m,
-          errorMap: {
-            onSubmit: [{ path: [item], message: filterItems.message }],
-          },
-        })
+      // TODO: Investigate if filterItems.items should be typed based on DeepKeys<To>.
+      filterItems.items.forEach((item: keyof From) => {
+        const m = formToUse.value.getFieldMeta(item as any)
+        if (m) {
+          formToUse.value.setFieldMeta(item as any, {
+            ...m,
+            errorMap: {
+              onSubmit: [
+                { path: [item as string], message: filterItems.message },
+              ],
+            },
+          })
+        }
       })
     }
     return {}
   },
 )
 
-provideOmegaErrors(formSubmissionAttempts, errors, props.showErrorsOn)
+provideOmegaErrors(formSubmissionAttempts, errors.value, props.showErrorsOn)
+
+defineSlots<{
+  // Default slot (no props)
+  default(): void
+  // Named slot when form is created internally via schema
+  internalForm(props: {
+    form: OmegaFormReturn<To, From>
+    subscribedValues: typeof subscribedValues.value
+  }): void
+  // Named slot when form is passed via props (provides subscribedValues)
+  externalForm(props: { subscribedValues: typeof subscribedValues.value }): void
+}>()
 </script>
 
 <style scoped>

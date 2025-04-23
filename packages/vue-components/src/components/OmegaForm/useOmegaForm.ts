@@ -23,6 +23,7 @@ import {
   defineComponent,
   h,
   type DefineComponent,
+  type Component,
 } from "vue"
 import { isObject } from "effect/Predicate"
 import OmegaInput from "./OmegaInput.vue"
@@ -49,10 +50,12 @@ export type OmegaConfig<T> = {
   } & keysRule<T>
 }
 
-export interface OmegaFormReturn<To, From> extends OmegaFormApi<To, From> {
+interface OF<To, From> extends OmegaFormApi<To, From> {
   meta: MetaRecord<To>
   filterItems?: FilterItems
   clear: () => void
+}
+export interface OmegaFormReturn<To, From> extends OF<To, From> {
   Input: DefineComponent<Omit<OmegaInputProps<From, To>, "form">, {}, {}>
 }
 
@@ -276,7 +279,7 @@ export const useOmegaForm = <
     window.removeEventListener("blur", saveDataInUrl)
   })
 
-  const formWithExtras = Object.assign(form, {
+  const formWithExtras: OF<To, From> = Object.assign(form, {
     meta,
     filterItems,
     clear,
@@ -287,11 +290,19 @@ export const useOmegaForm = <
       name: "FormInput",
       inheritAttrs: true,
       setup(_, { attrs, slots }) {
+        const name = attrs.name as NestedKeyOf<To>
+        const label = attrs.label as string
+        if (!name || !label) {
+          throw new Error("OmegaForm.Input requires name and label props")
+        }
+
         return () =>
           h(
-            OmegaInput,
+            OmegaInput as Component,
             {
               ...attrs,
+              name,
+              label,
               form: formWithExtras,
             },
             slots,

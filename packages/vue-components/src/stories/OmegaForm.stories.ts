@@ -11,7 +11,7 @@ import SumExample from "./OmegaForm/SumExample.vue"
 import PersistencyForm from "./OmegaForm/PersistencyForm.vue"
 import MetaForm from "./OmegaForm/Meta.vue"
 import FormInput from "./OmegaForm/form.Input.vue"
-import AnHundredWayToWriteAForm from "./OmegaForm/AnHundredWayToWriteAForm.vue"
+import OneHundredWaysToWriteAForm from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -44,8 +44,8 @@ type Story = StoryObj<typeof meta>
 
 export const AnHundredWayToWriteAFormStory: Story = {
   render: () => ({
-    components: { AnHundredWayToWriteAForm },
-    template: "<AnHundredWayToWriteAForm />",
+    components: { OneHundredWaysToWriteAForm },
+    template: "<OneHundredWaysToWriteAForm />",
   }),
 }
 

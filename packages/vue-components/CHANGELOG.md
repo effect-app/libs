@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.4.1
+
+### Patch Changes
+
+- 3d63b4d: fixes wrong ts implementation
+
 ## 0.4.0
 
 ### Minor Changes

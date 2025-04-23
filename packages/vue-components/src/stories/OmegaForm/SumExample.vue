@@ -1,10 +1,8 @@
 <template>
   <OmegaForm :form="addForm">
-    <template #default="{ form }">
-      <OmegaInput label="first" :form="form" name="first" />
-      <div>+</div>
-      <OmegaInput label="second" :form="form" name="second" />
-    </template>
+    <OmegaInput label="first" :form="addForm" name="first" />
+    <div>+</div>
+    <OmegaInput label="second" :form="addForm" name="second" />
   </OmegaForm>
 
   <!-- Technically you can do this only with a subscribe but only inside OmegaForm Context -->

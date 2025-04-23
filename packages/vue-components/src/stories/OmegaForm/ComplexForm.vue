@@ -1,36 +1,42 @@
 <template>
   <OmegaForm :form="exampleForm">
-    <template #default="{ form }">
-      <OmegaInput label="aString" :form="form" name="aString" />
-      <OmegaInput label="aStringMin2" :form="form" name="aStringMin2" />
-      <OmegaInput label="aStringMin2Max4" :form="form" name="aStringMin2Max4" />
-      <OmegaInput
-        label="aStringMin2Max3Nullable"
-        :form="form"
-        name="aStringMin2Max3Nullable"
-      />
-      <OmegaInput label="aNumber" :form="form" name="aNumber" />
-      <OmegaInput label="aNumberMin2" :form="form" name="aNumberMin2" />
-      <OmegaInput label="aNumberMin2Max" :form="form" name="aNumberMin2Max" />
-      <OmegaInput
-        label="aNumberMin2Max4Nullable"
-        :form="form"
-        name="aNumberMin2Max4Nullable"
-      />
-      <OmegaInput
-        label="aSelect"
-        :form="form"
-        name="aSelect"
-        :options="[
-          { title: 'a', value: 'a' },
-          { title: 'b', value: 'b' },
-          { title: 'c', value: 'c' },
-        ]"
-      />
-      <button>Submit</button>
-      <button type="reset" @click.prevent="form.clear()">Clear</button>
-      <button type="button" @click="form.reset()">Reset</button>
-    </template>
+    <OmegaInput label="aString" :form="exampleForm" name="aString" />
+    <OmegaInput label="aStringMin2" :form="exampleForm" name="aStringMin2" />
+    <OmegaInput
+      label="aStringMin2Max4"
+      :form="exampleForm"
+      name="aStringMin2Max4"
+    />
+    <OmegaInput
+      label="aStringMin2Max3Nullable"
+      :form="exampleForm"
+      name="aStringMin2Max3Nullable"
+    />
+    <OmegaInput label="aNumber" :form="exampleForm" name="aNumber" />
+    <OmegaInput label="aNumberMin2" :form="exampleForm" name="aNumberMin2" />
+    <OmegaInput
+      label="aNumberMin2Max"
+      :form="exampleForm"
+      name="aNumberMin2Max"
+    />
+    <OmegaInput
+      label="aNumberMin2Max4Nullable"
+      :form="exampleForm"
+      name="aNumberMin2Max4Nullable"
+    />
+    <OmegaInput
+      label="aSelect"
+      :form="exampleForm"
+      name="aSelect"
+      :options="[
+        { title: 'a', value: 'a' },
+        { title: 'b', value: 'b' },
+        { title: 'c', value: 'c' },
+      ]"
+    />
+    <button>Submit</button>
+    <button type="reset" @click.prevent="exampleForm.clear()">Clear</button>
+    <button type="button" @click="exampleForm.reset()">Reset</button>
   </OmegaForm>
 </template>
 

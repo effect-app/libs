@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.4.2
+
+### Patch Changes
+
+- 3797aa0: add class prop for custom styling
+
 ## 0.4.1
 
 ### Patch Changes

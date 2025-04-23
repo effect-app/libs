@@ -47,6 +47,7 @@ Additionally, when using the `#externalForm` slot (passing an external `form` pr
 
   <!-- Case 2: External form prop -->
   <OmegaForm :schema="schema" :form="myForm">
+    <!-- You can also remove the template if you don't use :subscribe prop -->
     <template #externalForm>
       <!-- Use myForm directly -->
     </template>

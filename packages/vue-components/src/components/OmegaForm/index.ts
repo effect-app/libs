@@ -10,9 +10,9 @@ export { default } from "./OmegaWrapper.vue"
 
 export { OmegaForm, OmegaInput, OmegaErrors }
 
-const OmegaFormCE = defineCustomElement(OmegaForm)
-const OmegaInputCE = defineCustomElement(OmegaInput)
-const OmegaErrorsCE = defineCustomElement(OmegaErrors)
+const OmegaFormCE = defineCustomElement(OmegaForm as any)
+const OmegaInputCE = defineCustomElement(OmegaInput as any)
+const OmegaErrorsCE = defineCustomElement(OmegaErrors as any)
 
 export { OmegaFormCE, OmegaInputCE, OmegaErrorsCE }
 

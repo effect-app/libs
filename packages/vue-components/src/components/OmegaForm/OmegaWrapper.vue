@@ -117,15 +117,16 @@ const formSubmissionAttempts = useStore(
   state => state.submissionAttempts,
 )
 
-const errors = formToUse.value.useStore(state => state.errors)
+const errors = computed(() => formToUse.value.useStore(state => state.errors))
 
 watch(
-  () => [formToUse.value.filterItems, errors.value],
+  () => [formToUse.value.filterItems, errors.value.value],
   () => {
     const filterItems: FilterItems | undefined = formToUse.value.filterItems
+    const currentErrors = errors.value.value
     if (!filterItems) return {}
-    if (!errors.value) return {}
-    const errorList = Object.values(errors.value)
+    if (!currentErrors) return {}
+    const errorList = Object.values(currentErrors)
       .filter(
         (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> =>
           Boolean(fieldErrors),
@@ -156,7 +157,7 @@ watch(
   },
 )
 
-provideOmegaErrors(formSubmissionAttempts, errors, props.showErrorsOn)
+provideOmegaErrors(formSubmissionAttempts, errors.value, props.showErrorsOn)
 
 defineSlots<{
   // Default slot (no props)

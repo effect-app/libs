@@ -4,11 +4,23 @@
     :on-submit="console.log"
   >
     <template #internalForm="{ form }">
-      <component :is="form.Input" label="myString" name="myString" />
+      <component :is="form.Input" label="myString" name="myString">
+        <template #default="{ field }">
+          <div>
+            <input v-model="field.state.value" />
+          </div>
+        </template>
+      </component>
     </template>
   </OmegaForm>
   <OmegaForm :form="exampleForm">
-    <exampleForm.Input label="aString" name="aString" />
+    <exampleForm.Input label="aString" name="aString">
+      <template #default="{ field }">
+        <div>
+          <input v-model="field.state.value" />
+        </div>
+      </template>
+    </exampleForm.Input>
     <exampleForm.Input label="aStringMin2" name="aStringMin2" />
     <exampleForm.Input label="aStringMin2Max4" name="aStringMin2Max4" />
     <exampleForm.Input

@@ -1,4 +1,4 @@
-import { getRequestContext, setupRequestContext } from "@effect-app/infra/api/setupRequest"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "@effect-app/infra/api/setupRequest"
 import { reportNonInterruptedFailure } from "@effect-app/infra/QueueMaker/errors"
 import { type QueueBase, QueueMeta } from "@effect-app/infra/QueueMaker/service"
 import { SqlClient } from "@effect/sql"
@@ -145,20 +145,20 @@ export function makeSQLQueue<
                       Effect.zipRight(handleEvent(body)),
                       silenceAndReportError,
                       (_) =>
-                        setupRequestContext(
+                        setupRequestContextWithCustomSpan(
                           _,
-                          meta
-                        ),
-                      Effect
-                        .withSpan(`queue.drain: ${queueDrainName}.${body._tag}`, {
-                          captureStackTrace: false,
-                          kind: "consumer",
-                          attributes: {
-                            "queue.name": queueDrainName,
-                            "queue.sessionId": sessionId,
-                            "queue.input": body
+                          meta,
+                          `queue.drain: ${queueDrainName}.${body._tag}`,
+                          {
+                            captureStackTrace: false,
+                            kind: "consumer",
+                            attributes: {
+                              "queue.name": queueDrainName,
+                              "queue.sessionId": sessionId,
+                              "queue.input": body
+                            }
                           }
-                        })
+                        )
                     )
                   if (meta.span) {
                     effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))

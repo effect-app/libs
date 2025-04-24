@@ -2,7 +2,7 @@ import { Tracer } from "effect"
 import { Effect, Fiber, flow, S } from "effect-app"
 import { pretty } from "effect-app/utils"
 import { MemQueue } from "../adapters/memQueue.js"
-import { getRequestContext, setupRequestContext } from "../api/setupRequest.js"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure } from "./errors.js"
 import { type QueueBase, QueueMeta } from "./service.js"
@@ -72,20 +72,20 @@ export function makeMemQueue<
                         Effect.zipRight(handleEvent(body)),
                         silenceAndReportError,
                         (_) =>
-                          setupRequestContext(
+                          setupRequestContextWithCustomSpan(
                             _,
-                            meta
-                          ),
-                        Effect
-                          .withSpan(`queue.drain: ${queueDrainName}.${body._tag}`, {
-                            captureStackTrace: false,
-                            kind: "consumer",
-                            attributes: {
-                              "queue.name": queueDrainName,
-                              "queue.sessionId": sessionId,
-                              "queue.input": body
+                            meta,
+                            `queue.drain: ${queueDrainName}.${body._tag}`,
+                            {
+                              captureStackTrace: false,
+                              kind: "consumer",
+                              attributes: {
+                                "queue.name": queueDrainName,
+                                "queue.sessionId": sessionId,
+                                "queue.input": body
+                              }
                             }
-                          })
+                          )
                       )
                     if (meta.span) {
                       effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))

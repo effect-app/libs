@@ -16,8 +16,7 @@ export const getRequestContext = Effect
         span: Tracer.externalSpan(span),
         locale,
         namespace,
-        // TODO: get through span context, or don't care at all.
-        name: NonEmptyString255("_root_")
+        name: NonEmptyString255(span.name)
       })
     )
   )
@@ -61,6 +60,24 @@ export function setupRequestContext<R, E, A>(self: Effect<A, E, R>, requestConte
   return self
     .pipe(
       withRequestSpan(requestContext.name),
+      Effect.provide(layer)
+    )
+}
+
+export function setupRequestContextWithCustomSpan<R, E, A>(
+  self: Effect<A, E, R>,
+  requestContext: RequestContext,
+  name: string,
+  options?: Tracer.SpanOptions
+) {
+  const layer = Layer.mergeAll(
+    ContextMapContainer.layer,
+    Layer.succeed(LocaleRef, requestContext.locale),
+    Layer.succeed(storeId, requestContext.namespace)
+  )
+  return self
+    .pipe(
+      withRequestSpan(name, options),
       Effect.provide(layer)
     )
 }

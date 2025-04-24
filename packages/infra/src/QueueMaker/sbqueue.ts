@@ -4,7 +4,7 @@ import { Cause, Effect, flow, Layer, S } from "effect-app"
 import type { StringId } from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
 import { LiveSender, LiveServiceBusClient, Sender, ServiceBusReceiverFactory, subscribe } from "../adapters/ServiceBus.js"
-import { getRequestContext, setupRequestContext } from "../api/setupRequest.js"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
 import { type QueueBase, QueueMeta } from "./service.js"
@@ -67,12 +67,9 @@ export function makeServiceBusQueue<
                         .pipe(
                           silenceAndReportError,
                           (_) =>
-                            setupRequestContext(
+                            setupRequestContextWithCustomSpan(
                               _,
-                              meta
-                            ),
-                          Effect
-                            .withSpan(
+                              meta,
                               `queue.drain: ${queueDrainName}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
                               {
                                 captureStackTrace: false,

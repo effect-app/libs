@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.4.4
+
+### Patch Changes
+
+- 3677a8e: Fix: correctly type slots inside form.Input component
+
 ## 0.4.3
 
 ### Patch Changes

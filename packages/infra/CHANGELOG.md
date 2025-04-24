@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.54.1
+
+### Patch Changes
+
+- 4fd0b08: fix: error processing queue messages should return message to the queue
+
 ## 2.54.0
 
 ### Minor Changes

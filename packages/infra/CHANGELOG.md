@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.53.12
+
+### Patch Changes
+
+- 52c5fb4: improve queue span handling
+
 ## 2.53.11
 
 ### Patch Changes

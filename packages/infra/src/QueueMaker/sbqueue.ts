@@ -89,7 +89,9 @@ export function makeServiceBusQueue<
                     }),
                   Effect
                     // we reportError here, so that we report the error only, and keep flowing
-                    .tapErrorCause(reportError)
+                    .tapErrorCause(reportError),
+                  // we still need to flatten the Exit.
+                  Effect.flatMap((_) => _)
                 )
             }
 

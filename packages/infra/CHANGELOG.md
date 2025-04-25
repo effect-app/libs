@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 2.54.2
+
+### Patch Changes
+
+- 0230385: improve: rpc spans
+
+  - fewer duplicate spans
+  - improve name
+
+- Updated dependencies [0230385]
+  - effect-app@2.40.1
+
 ## 2.54.1
 
 ### Patch Changes

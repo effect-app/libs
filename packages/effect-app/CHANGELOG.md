@@ -1,5 +1,14 @@
 # @effect-app/prelude
 
+## 2.40.1
+
+### Patch Changes
+
+- 0230385: improve: rpc spans
+
+  - fewer duplicate spans
+  - improve name
+
 ## 2.40.0
 
 ### Minor Changes

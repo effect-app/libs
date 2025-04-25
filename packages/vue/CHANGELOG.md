@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 2.41.1
+
+### Patch Changes
+
+- Updated dependencies [0230385]
+  - effect-app@2.40.1
+
 ## 2.41.0
 
 ### Minor Changes

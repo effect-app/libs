@@ -53,8 +53,8 @@ importers:
         specifier: ^0.94.0
         version: 0.94.0
       '@effect-app/cli':
-        specifier: ^1.18.5
-        version: 1.18.5
+        specifier: ^1.19.0
+        version: 1.19.0
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -86,8 +86,8 @@ importers:
         specifier: ^4.17.16
         version: 4.17.16
       '@types/node':
-        specifier: ~22.14.1
-        version: 22.14.1
+        specifier: ~22.15.2
+        version: 22.15.2
       '@typescript-eslint/eslint-plugin':
         specifier: 8.31.0
         version: 8.31.0(@typescript-eslint/parser@8.31.0(eslint@9.25.1)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))(eslint@9.25.1)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
@@ -198,10 +198,10 @@ importers:
         version: 19.1.2(@vueuse/core@13.1.0(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))))
       vite:
         specifier: ^6.3.3
-        version: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
       vitest:
         specifier: ^3.1.2
-        version: 3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   packages/cli:
     dependencies:
@@ -210,8 +210,8 @@ importers:
         version: 0.7.4
     devDependencies:
       '@types/node':
-        specifier: ~22.14.1
-        version: 22.14.1
+        specifier: ~22.15.2
+        version: 22.15.2
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -220,7 +220,7 @@ importers:
         version: 5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)
       vitest:
         specifier: ^3.1.2
-        version: 3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   packages/effect-app:
     dependencies:
@@ -268,8 +268,8 @@ importers:
         specifier: ^8.4.1
         version: 8.4.1
       '@types/node':
-        specifier: ~22.14.1
-        version: 22.14.1
+        specifier: ~22.15.2
+        version: 22.15.2
       '@types/uuid':
         specifier: ^10.0.0
         version: 10.0.0
@@ -284,7 +284,7 @@ importers:
         version: 5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)
       vitest:
         specifier: ^3.1.2
-        version: 3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   packages/eslint-codegen-model:
     dependencies:
@@ -357,7 +357,7 @@ importers:
         version: 0.33.14(@effect/experimental@0.44.14(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))
       '@effect/vitest':
         specifier: ^0.20.14
-        version: 0.20.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vitest@3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
+        version: 0.20.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vitest@3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -411,8 +411,8 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1
       '@types/node':
-        specifier: ~22.14.1
-        version: 22.14.1
+        specifier: ~22.15.2
+        version: 22.15.2
       '@types/proper-lockfile':
         specifier: ^4.1.4
         version: 4.1.4
@@ -448,16 +448,16 @@ importers:
         version: 5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)
       vitest:
         specifier: ^3.1.2
-        version: 3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   packages/vue:
     dependencies:
       '@effect-rx/rx':
-        specifier: ^0.36.0
-        version: 0.36.0(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))
+        specifier: ^0.36.1
+        version: 0.36.1(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))
       '@effect-rx/rx-vue':
-        specifier: ^0.11.23
-        version: 0.11.23(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
+        specifier: ^0.11.24
+        version: 0.11.24(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
       '@effect/platform':
         specifier: ^0.80.14
         version: 0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))
@@ -490,8 +490,8 @@ importers:
         version: 3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
     devDependencies:
       '@types/node':
-        specifier: ~22.14.1
-        version: 22.14.1
+        specifier: ~22.15.2
+        version: 22.15.2
       intl-messageformat:
         specifier: ^10.7.16
         version: 10.7.16
@@ -503,10 +503,10 @@ importers:
         version: 5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)
       vite:
         specifier: ^6.3.3
-        version: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
       vitest:
         specifier: ^3.1.2
-        version: 3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   packages/vue-components:
     dependencies:
@@ -570,10 +570,10 @@ importers:
         version: 8.6.12(storybook@8.6.12(prettier@3.3.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
       '@storybook/vue3-vite':
         specifier: ^8.6.12
-        version: 8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
+        version: 8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
       '@types/node':
         specifier: ^22.13.14
-        version: 22.14.1
+        version: 22.15.2
       '@typescript-eslint/eslint-plugin':
         specifier: 8.29.0
         version: 8.29.0(@typescript-eslint/parser@8.29.0(eslint@9.25.1)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))(eslint@9.25.1)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
@@ -582,7 +582,7 @@ importers:
         version: 8.29.0(eslint@9.25.1)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
       '@vitejs/plugin-vue':
         specifier: ^5.2.3
-        version: 5.2.3(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
+        version: 5.2.3(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
       '@vue/eslint-config-prettier':
         specifier: ^10.2.0
         version: 10.2.0(@types/eslint@9.6.1)(eslint@9.25.1)(prettier@3.3.3)
@@ -609,13 +609,13 @@ importers:
         version: 5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)
       vite:
         specifier: ^6.2.3
-        version: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+        version: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
       vite-plugin-css-injected-by-js:
         specifier: ^3.5.2
-        version: 3.5.2(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
+        version: 3.5.2(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
       vitepress:
         specifier: ^1.6.3
-        version: 1.6.3(@algolia/client-search@5.23.0)(@types/node@22.14.1)(@types/react@18.3.20)(axios@1.8.4)(change-case@5.4.4)(jwt-decode@4.0.0)(postcss@8.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.86.0)(search-insights@2.17.3)(terser@5.39.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
+        version: 1.6.3(@algolia/client-search@5.23.0)(@types/node@22.15.2)(@types/react@18.3.20)(axios@1.8.4)(change-case@5.4.4)(jwt-decode@4.0.0)(postcss@8.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.86.0)(search-insights@2.17.3)(terser@5.39.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
       vue-tsc:
         specifier: ^2.2.8
         version: 2.2.8(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
@@ -1000,18 +1000,18 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.18.5':
-    resolution: {integrity: sha512-Q3ifd3b23BxBshmMRxbp9tIa6ydTZvKKbtdwgYjs1R0V6JEuTTfdOTRMXmWXLuG1PF+nld6Ki3P7YFB/7RuKTQ==}
+  '@effect-app/cli@1.19.0':
+    resolution: {integrity: sha512-bSDGwtTkTdvCYPhrphJ5owXNRrDfO86yBQZF6zfC/KUbswRJCelgCsGT8rlA43e3y4zEpTLu1d7vYaeYUDaRVQ==}
     hasBin: true
 
-  '@effect-rx/rx-vue@0.11.23':
-    resolution: {integrity: sha512-QfAYjrlhKDbxoHumBqhsZb2BROIQ5UjteF8pkjkOWTS/CjyfTNuiIldI9dcJIn4+ynZf2DskQYBEANwVewmi2Q==}
+  '@effect-rx/rx-vue@0.11.24':
+    resolution: {integrity: sha512-X6yCLb3udMrsxRL/miaAZHbiQuPokAByQX4yYhEKOLxY2psYHYWRqgc/51afZVpJ/yeAFW1q+1xLv6D2S2LSeQ==}
     peerDependencies:
       effect: ^3.8.0
       vue: ^3.5.13
 
-  '@effect-rx/rx@0.36.0':
-    resolution: {integrity: sha512-UKoZKOrWe4Z2uHadW474nOLhCP9Wp8z8SdA4aD73tfAQMZvTYT15EEpaJLHTgq1u4vNW6/o9CPm/h3oEqpK7ow==}
+  '@effect-rx/rx@0.36.1':
+    resolution: {integrity: sha512-PbBDXExkIxaQUTEfpChr1HkpWgn4lqd7Mn0zSYrJF/hvsmNCxR6gzulcp48Ji8/iEoD0gnf4XCE9NvlAJcF8Ow==}
     peerDependencies:
       '@effect/platform': ^0.80.12
       effect: ^3.14.12
@@ -2434,8 +2434,8 @@ packages:
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
-  '@types/node@22.14.1':
-    resolution: {integrity: sha512-u0HuPQwe/dHrItgHHpmw3N2fYCR6x4ivMNbPHRkBVP4CvN+kiRrKHWk3i8tXiO/joPwXLMYvF9TTF0eqgHIuOw==}
+  '@types/node@22.15.2':
+    resolution: {integrity: sha512-uKXqKN9beGoMdBfcaTY1ecwz6ctxuJAcUlwE55938g0ZJ8lRxwAZqRz2AJ4pzpt5dHdTPMB863UZ0ESiFUcP7A==}
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -7135,19 +7135,19 @@ snapshots:
   '@dprint/win32-x64@0.49.1':
     optional: true
 
-  '@effect-app/cli@1.18.5':
+  '@effect-app/cli@1.19.0':
     dependencies:
       node-watch: 0.7.4
 
-  '@effect-rx/rx-vue@0.11.23(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
+  '@effect-rx/rx-vue@0.11.24(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
     dependencies:
-      '@effect-rx/rx': 0.36.0(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))
+      '@effect-rx/rx': 0.36.1(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))
       effect: 3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)
       vue: 3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
     transitivePeerDependencies:
       - '@effect/platform'
 
-  '@effect-rx/rx@0.36.0(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))':
+  '@effect-rx/rx@0.36.1(@effect/platform@0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)))(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))':
     dependencies:
       '@effect/platform': 0.80.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))
       effect: 3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)
@@ -7233,10 +7233,10 @@ snapshots:
       effect: 3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)
       uuid: 11.1.0
 
-  '@effect/vitest@0.20.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vitest@3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))':
+  '@effect/vitest@0.20.14(effect@3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad))(vitest@3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))':
     dependencies:
       effect: 3.14.14(patch_hash=c2b2c4dda605f7cebb13b321c3c9a349a3a1b3f8815cd4a2ce280f971fd3f2ad)
-      vitest: 3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vitest: 3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   '@emnapi/core@1.4.0':
     dependencies:
@@ -7488,7 +7488,7 @@ snapshots:
     dependencies:
       '@formatjs/icu-messageformat-parser': 2.11.2
       '@types/json-stable-stringify': 1.2.0
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       chalk: 4.1.2
       json-stable-stringify: 1.2.1
       tslib: 2.8.1
@@ -7526,7 +7526,7 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       '@types/yargs': 15.0.19
       chalk: 4.1.2
 
@@ -8259,13 +8259,13 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@storybook/builder-vite@8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))':
+  '@storybook/builder-vite@8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))':
     dependencies:
       '@storybook/csf-plugin': 8.6.12(storybook@8.6.12(prettier@3.3.3))
       browser-assert: 1.2.1
       storybook: 8.6.12(prettier@3.3.3)
       ts-dedent: 2.2.0
-      vite: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   '@storybook/components@8.6.12(storybook@8.6.12(prettier@3.3.3))':
     dependencies:
@@ -8345,15 +8345,15 @@ snapshots:
     dependencies:
       storybook: 8.6.12(prettier@3.3.3)
 
-  '@storybook/vue3-vite@8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
+  '@storybook/vue3-vite@8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
     dependencies:
-      '@storybook/builder-vite': 8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
+      '@storybook/builder-vite': 8.6.12(storybook@8.6.12(prettier@3.3.3))(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
       '@storybook/vue3': 8.6.12(storybook@8.6.12(prettier@3.3.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
       find-package-json: 1.2.0
       magic-string: 0.30.17
       storybook: 8.6.12(prettier@3.3.3)
       typescript: 5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)
-      vite: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
       vue-component-meta: 2.2.8(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
       vue-docgen-api: 4.79.2(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
     transitivePeerDependencies:
@@ -8484,11 +8484,11 @@ snapshots:
   '@types/body-parser@1.19.2':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/eslint-scope@3.7.7':
     dependencies:
@@ -8506,13 +8506,13 @@ snapshots:
 
   '@types/express-serve-static-core@4.17.33':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       '@types/qs': 6.9.7
       '@types/range-parser': 1.2.4
 
   '@types/express-serve-static-core@5.0.0':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       '@types/qs': 6.9.7
       '@types/range-parser': 1.2.4
       '@types/send': 0.17.4
@@ -8533,7 +8533,7 @@ snapshots:
   '@types/glob@8.1.0':
     dependencies:
       '@types/minimatch': 5.1.2
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/hast@3.0.4':
     dependencies:
@@ -8541,11 +8541,11 @@ snapshots:
 
   '@types/ioredis@4.28.10':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/is-buffer@2.0.0':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/istanbul-lib-coverage@2.0.6': {}
 
@@ -8567,7 +8567,7 @@ snapshots:
 
   '@types/jsonwebtoken@8.5.9':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/linkify-it@5.0.0': {}
 
@@ -8594,11 +8594,11 @@ snapshots:
 
   '@types/mysql@2.15.26':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/node@12.20.55': {}
 
-  '@types/node@22.14.1':
+  '@types/node@22.15.2':
     dependencies:
       undici-types: 6.21.0
 
@@ -8610,7 +8610,7 @@ snapshots:
 
   '@types/pg@8.6.1':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       pg-protocol: 1.6.1
       pg-types: 2.2.0
 
@@ -8633,7 +8633,7 @@ snapshots:
 
   '@types/redis@2.8.32':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/redlock@4.0.7':
     dependencies:
@@ -8646,12 +8646,12 @@ snapshots:
   '@types/send@0.17.4':
     dependencies:
       '@types/mime': 1.3.5
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/serve-static@1.15.0':
     dependencies:
       '@types/mime': 3.0.1
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/shimmer@1.2.0': {}
 
@@ -8659,7 +8659,7 @@ snapshots:
 
   '@types/tedious@4.0.14':
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
 
   '@types/unist@3.0.3': {}
 
@@ -8914,14 +8914,14 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.7.0':
     optional: true
 
-  '@vitejs/plugin-vue@5.2.3(vite@5.4.15(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
+  '@vitejs/plugin-vue@5.2.3(vite@5.4.15(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
     dependencies:
-      vite: 5.4.15(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)
+      vite: 5.4.15(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)
       vue: 3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
 
-  '@vitejs/plugin-vue@5.2.3(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
+  '@vitejs/plugin-vue@5.2.3(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))':
     dependencies:
-      vite: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
       vue: 3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
 
   '@vitest/expect@2.0.5':
@@ -8938,13 +8938,13 @@ snapshots:
       chai: 5.2.0
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.1.2(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))':
+  '@vitest/mocker@3.1.2(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))':
     dependencies:
       '@vitest/spy': 3.1.2
       estree-walker: 3.0.3
       magic-string: 0.30.17
     optionalDependencies:
-      vite: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
   '@vitest/pretty-format@2.0.5':
     dependencies:
@@ -11042,7 +11042,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -12817,13 +12817,13 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.2
 
-  vite-node@3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3):
+  vite-node@3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3):
     dependencies:
       cac: 6.7.14
       debug: 4.4.0(supports-color@5.5.0)
       es-module-lexer: 1.6.0
       pathe: 2.0.3
-      vite: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -12838,22 +12838,22 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-css-injected-by-js@3.5.2(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)):
+  vite-plugin-css-injected-by-js@3.5.2(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)):
     dependencies:
-      vite: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
 
-  vite@5.4.15(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0):
+  vite@5.4.15(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.3
       rollup: 4.40.0
     optionalDependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       fsevents: 2.3.3
       sass: 1.86.0
       terser: 5.39.0
 
-  vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3):
+  vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3):
     dependencies:
       esbuild: 0.25.0
       fdir: 6.4.4(picomatch@4.0.2)
@@ -12862,13 +12862,13 @@ snapshots:
       rollup: 4.40.0
       tinyglobby: 0.2.13
     optionalDependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
       fsevents: 2.3.3
       sass: 1.86.0
       terser: 5.39.0
       tsx: 4.19.3
 
-  vitepress@1.6.3(@algolia/client-search@5.23.0)(@types/node@22.14.1)(@types/react@18.3.20)(axios@1.8.4)(change-case@5.4.4)(jwt-decode@4.0.0)(postcss@8.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.86.0)(search-insights@2.17.3)(terser@5.39.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)):
+  vitepress@1.6.3(@algolia/client-search@5.23.0)(@types/node@22.15.2)(@types/react@18.3.20)(axios@1.8.4)(change-case@5.4.4)(jwt-decode@4.0.0)(postcss@8.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.86.0)(search-insights@2.17.3)(terser@5.39.0)(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)):
     dependencies:
       '@docsearch/css': 3.8.2
       '@docsearch/js': 3.8.2(@algolia/client-search@5.23.0)(@types/react@18.3.20)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(search-insights@2.17.3)
@@ -12877,7 +12877,7 @@ snapshots:
       '@shikijs/transformers': 2.5.0
       '@shikijs/types': 2.5.0
       '@types/markdown-it': 14.1.2
-      '@vitejs/plugin-vue': 5.2.3(vite@5.4.15(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
+      '@vitejs/plugin-vue': 5.2.3(vite@5.4.15(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0))(vue@3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)))
       '@vue/devtools-api': 7.7.2
       '@vue/shared': 3.5.13
       '@vueuse/core': 12.8.2(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
@@ -12886,7 +12886,7 @@ snapshots:
       mark.js: 8.11.1
       minisearch: 7.1.2
       shiki: 2.5.0
-      vite: 5.4.15(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)
+      vite: 5.4.15(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)
       vue: 3.5.13(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
     optionalDependencies:
       postcss: 8.5.3
@@ -12917,10 +12917,10 @@ snapshots:
       - typescript
       - universal-cookie
 
-  vitest@3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3):
+  vitest@3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3):
     dependencies:
       '@vitest/expect': 3.1.2
-      '@vitest/mocker': 3.1.2(vite@6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
+      '@vitest/mocker': 3.1.2(vite@6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3))
       '@vitest/pretty-format': 3.1.2
       '@vitest/runner': 3.1.2
       '@vitest/snapshot': 3.1.2
@@ -12937,11 +12937,11 @@ snapshots:
       tinyglobby: 0.2.13
       tinypool: 1.0.2
       tinyrainbow: 2.0.0
-      vite: 6.3.3(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
-      vite-node: 3.1.2(@types/node@22.14.1)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite: 6.3.3(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
+      vite-node: 3.1.2(@types/node@22.15.2)(sass@1.86.0)(terser@5.39.0)(tsx@4.19.3)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 22.14.1
+      '@types/node': 22.15.2
     transitivePeerDependencies:
       - jiti
       - less

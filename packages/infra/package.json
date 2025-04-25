@@ -20,7 +20,7 @@
     "@azure/service-bus": "^7.9.5",
     "@sentry/node": "^9.14.0",
     "@types/express": "^5.0.1",
-    "@types/node": "~22.14.1",
+    "@types/node": "~22.15.2",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.7",

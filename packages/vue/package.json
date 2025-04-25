@@ -14,14 +14,14 @@
   "peerDependencies": {
     "@effect/platform": "^0.80.14",
     "@effect/platform-browser": "^0.60.5",
-    "@effect-rx/rx": "^0.36.0",
-    "@effect-rx/rx-vue": "^0.11.23",
+    "@effect-rx/rx": "^0.36.1",
+    "@effect-rx/rx-vue": "^0.11.24",
     "@sentry/browser": "^9.14.0",
     "effect": "^3.14.14",
     "vue": "^3.5.13"
   },
   "devDependencies": {
-    "@types/node": "~22.14.1",
+    "@types/node": "~22.15.2",
     "intl-messageformat": "^10.7.16",
     "json5": "^2.2.3",
     "typescript": "^5.8.3",

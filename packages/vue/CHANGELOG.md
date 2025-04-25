@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.41.2
+
+### Patch Changes
+
+- fd4985d: update rx
+
 ## 2.41.1
 
 ### Patch Changes

@@ -413,7 +413,7 @@ export const makeRouter = <
               >
 
             const impl = rpcLayer(requestLayers)
-            const l = RpcServer.layer(rpcs).pipe(Layer.provide(impl))
+            const l = RpcServer.layer(rpcs, { spanPrefix: "RpcServer." + meta.moduleName }).pipe(Layer.provide(impl))
             return l.pipe(
               Layer.provideMerge(
                 RpcServer.layerProtocolHttp(

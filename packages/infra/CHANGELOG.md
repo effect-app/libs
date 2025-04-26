@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.54.3
+
+### Patch Changes
+
+- de7a5ce: add some servicebus spans
+
 ## 2.54.2
 
 ### Patch Changes

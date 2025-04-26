@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 import { type OperationOptionsBase, type ProcessErrorArgs, ServiceBusClient, type ServiceBusMessage, type ServiceBusMessageBatch, type ServiceBusReceivedMessage, type ServiceBusReceiver, type ServiceBusSender } from "@azure/service-bus"
 import { Cause, Context, Effect, Exit, FiberSet, Layer, type Scope } from "effect-app"
-import { InfraLogger } from "./logger.js"
+import { InfraLogger } from "../logger.js"
+
+const withSpanAndLog = (name: string) => <A, E, R>(self: Effect<A, E, R>) =>
+  self.pipe(Effect.withLogSpan(name), Effect.withSpan(name))
 
 function makeClient(url: string) {
   return Effect.acquireRelease(
-    Effect.sync(() => new ServiceBusClient(url)).pipe(Effect.withSpan("ServiceBus.client.create")),
-    (client) => Effect.promise(() => client.close()).pipe(Effect.withSpan("ServiceBus.client.close"))
+    Effect.sync(() => new ServiceBusClient(url)).pipe(withSpanAndLog("ServiceBus.client.create")),
+    (client) => Effect.promise(() => client.close()).pipe(withSpanAndLog("ServiceBus.client.close"))
   )
 }
 
@@ -19,9 +22,9 @@ function makeSender(queueName: string) {
 
     return yield* Effect.acquireRelease(
       Effect.sync(() => serviceBusClient.createSender(queueName)).pipe(
-        Effect.withSpan(`ServiceBus.sender.create ${queueName}`)
+        withSpanAndLog(`ServiceBus.sender.create ${queueName}`)
       ),
-      (sender) => Effect.promise(() => sender.close()).pipe(Effect.withSpan(`ServiceBus.sender.close ${queueName}`))
+      (sender) => Effect.promise(() => sender.close()).pipe(withSpanAndLog(`ServiceBus.sender.close ${queueName}`))
     )
   })
 }
@@ -40,14 +43,14 @@ function makeReceiver(queueName: string, waitTillEmpty: Effect<void>, sessionId?
       (sessionId
         ? Effect.promise(() => serviceBusClient.acceptSession(queueName, sessionId))
         : Effect.sync(() => serviceBusClient.createReceiver(queueName)))
-        .pipe(Effect.withSpan(`ServiceBus.receiver.create ${queueName}.${sessionId}`)),
+        .pipe(withSpanAndLog(`ServiceBus.receiver.create ${queueName}.${sessionId}`)),
       (r) =>
         waitTillEmpty.pipe(
-          Effect.withSpan(`ServiceBus.receiver.waitTillEmpty ${queueName}.${sessionId}`),
+          withSpanAndLog(`ServiceBus.receiver.waitTillEmpty ${queueName}.${sessionId}`),
           Effect.andThen(
-            Effect.promise(() => r.close()).pipe(Effect.withSpan(`ServiceBus.receiver.close ${queueName}.${sessionId}`))
+            Effect.promise(() => r.close()).pipe(withSpanAndLog(`ServiceBus.receiver.close ${queueName}.${sessionId}`))
           ),
-          Effect.withSpan(`ServiceBus.receiver.release ${queueName}.${sessionId}`)
+          withSpanAndLog(`ServiceBus.receiver.release ${queueName}.${sessionId}`)
         )
     )
   })
@@ -124,9 +127,9 @@ export function subscribe<RMsg, RErr>(hndlr: MessageHandlers<RMsg, RErr>, sessio
               // DO NOT CATCH ERRORS here as they should return to the queue!
             })
         )
-        .pipe(Effect.withSpan(`ServiceBus.subscription.create ${sessionId}`)),
+        .pipe(withSpanAndLog(`ServiceBus.subscription.create ${sessionId}`)),
       (subscription) =>
-        Effect.promise(() => subscription.close()).pipe(Effect.withSpan(`ServiceBus.subscription.close ${sessionId}`))
+        Effect.promise(() => subscription.close()).pipe(withSpanAndLog(`ServiceBus.subscription.close ${sessionId}`))
     )
   })
 }

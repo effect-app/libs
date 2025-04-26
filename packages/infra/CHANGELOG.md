@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.54.5
+
+### Patch Changes
+
+- ff31fcc: improve ServiceBus span/log
+
 ## 2.54.4
 
 ### Patch Changes

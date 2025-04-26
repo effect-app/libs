@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.54.4
+
+### Patch Changes
+
+- a5ad0b5: improve ServiceBus span/log
+
 ## 2.54.3
 
 ### Patch Changes

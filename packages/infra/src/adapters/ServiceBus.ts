@@ -4,7 +4,12 @@ import { Cause, Context, Effect, Exit, FiberSet, Layer, type Scope } from "effec
 import { InfraLogger } from "../logger.js"
 
 const withSpanAndLog = (name: string) => <A, E, R>(self: Effect<A, E, R>) =>
-  self.pipe(Effect.withLogSpan(name), Effect.withSpan(name))
+  Effect.logInfo(name).pipe(
+    Effect.zipRight(self),
+    Effect.tap(Effect.logInfo(name + " done")),
+    Effect.withLogSpan(name),
+    Effect.withSpan(name)
+  )
 
 function makeClient(url: string) {
   return Effect.acquireRelease(

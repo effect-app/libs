@@ -61,8 +61,8 @@
 import { useStore, type StandardSchemaV1Issue } from "@tanstack/vue-form"
 import { type S } from "effect-app"
 import {
-  type FilterItems,
   type FormProps,
+  type FilterItems,
   type OmegaFormApi,
   type OmegaFormState,
   type ShowErrorsOn,
@@ -74,23 +74,24 @@ import {
   type OmegaFormReturn,
   useOmegaForm,
 } from "./useOmegaForm"
-import { computed, watch, defineSlots } from "vue"
+import { computed, watch, defineSlots, onBeforeMount } from "vue"
 
 const props = defineProps<
   {
     omegaConfig?: OmegaConfig<From>
     subscribe?: K[]
     showErrorsOn?: ShowErrorsOn
-  } & (
-    | {
-        form: OmegaFormReturn<To, From>
-        schema?: undefined
-      }
-    | (FormProps<To, From> & {
-        form?: undefined
-        schema: S.Schema<From, To, never>
-      })
-  )
+  } & FormProps<To, From> &
+    (
+      | {
+          form: OmegaFormReturn<To, From>
+          schema?: undefined
+        }
+      | {
+          form?: undefined
+          schema: S.Schema<From, To, never>
+        }
+    )
 >()
 
 const localForm = computed(() => {
@@ -101,6 +102,47 @@ const localForm = computed(() => {
 })
 
 const formToUse = computed(() => props.form ?? localForm.value!)
+
+onBeforeMount(() => {
+  if (!props.form) return
+  const formOptionsKeys = Object.keys(props.form.options || {})
+
+  const excludedKeys: Set<keyof typeof props> = new Set([
+    "omegaConfig",
+    "subscribe",
+    "showErrorsOn",
+    "asyncAlways",
+    "form",
+    "schema",
+  ])
+
+  const filteredProps = Object.fromEntries(
+    Object.entries(props).filter(
+      ([key]) => !excludedKeys.has(key as keyof typeof props),
+    ),
+  ) as Partial<typeof props>
+
+  const propsKeys = Object.keys(filteredProps)
+
+  const overlappingKeys = formOptionsKeys.filter(
+    key =>
+      propsKeys.includes(key) &&
+      filteredProps[key as keyof typeof props] !== undefined,
+  )
+
+  if (overlappingKeys.length > 0) {
+    console.warn(
+      `[OmegaWrapper] Overlapping keys found between form options and filtered props:\n${overlappingKeys.join(
+        ", \n",
+      )}.\nProps will overwrite existing form options. This might indicate a configuration issue.`,
+    )
+  }
+
+  formToUse.value.options = {
+    ...formToUse.value.options,
+    ...filteredProps,
+  }
+})
 
 const formIsSubmitting = useStore(
   formToUse.value.store,

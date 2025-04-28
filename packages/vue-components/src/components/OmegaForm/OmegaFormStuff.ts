@@ -122,7 +122,7 @@ export type FormComponent<T, S> = FieldComponent<
 > &
   Component
 
-export type FormType<T, S> = OmegaFormApi<T, S> & {
+export type FormType<T, S = unknown> = OmegaFormApi<T, S> & {
   Field: Component
 }
 

@@ -57,7 +57,7 @@ export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
 
 export interface OmegaFormReturn<To extends Record<PropertyKey, any>, From>
   extends OF<To, From> {
-  Input: typeof OmegaFormInput<From, To>
+  Input: typeof OmegaFormInput
 }
 
 export const useOmegaForm = <

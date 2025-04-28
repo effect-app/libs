@@ -12,6 +12,7 @@ import PersistencyForm from "./OmegaForm/PersistencyForm.vue"
 import MetaForm from "./OmegaForm/Meta.vue"
 import FormInput from "./OmegaForm/form.Input.vue"
 import OneHundredWaysToWriteAForm from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
+import Clearable from "./OmegaForm/Clearable.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -102,5 +103,12 @@ export const FormInputStory: Story = {
   render: () => ({
     components: { FormInput },
     template: "<FormInput />",
+  }),
+}
+
+export const ClearableStory: Story = {
+  render: () => ({
+    components: { Clearable },
+    template: "<Clearable />",
   }),
 }

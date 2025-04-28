@@ -1,5 +1,17 @@
 # @effect-app/vue-components
 
+## 0.5.0
+
+### Minor Changes
+
+- 030de1b: - You can now combine `useForm` attributes with `OmegaForm` element props to flexibly configure your form’s behavior.
+  - The standard Vuetify clear function has been standardized to adhere to the schema defined at form creation.
+  - Minor fixes and improvements to TypeScript typings.
+
+### Patch Changes
+
+- 54c3b1e: fixes default vuetify error list styling
+
 ## 0.4.6
 
 ### Patch Changes

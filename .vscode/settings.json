@@ -1,4 +1,7 @@
 {
+  "workbench.colorCustomizations": {
+    "titleBar.inactiveBackground": "#16a085"
+  },
   "explorer.sortOrderLexicographicOptions": "upper",
   // would prefer on in frontend, so might want to use a specialised frontend config..
   "volar.updateImportsOnFileMove.enabled": false,

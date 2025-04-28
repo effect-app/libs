@@ -118,7 +118,8 @@ onBeforeMount(() => {
 
   const filteredProps = Object.fromEntries(
     Object.entries(props).filter(
-      ([key]) => !excludedKeys.has(key as keyof typeof props),
+      ([key, value]) =>
+        !excludedKeys.has(key as keyof typeof props) && value !== undefined,
     ),
   ) as Partial<typeof props>
 
@@ -138,10 +139,14 @@ onBeforeMount(() => {
     )
   }
 
-  formToUse.value.options = {
+  const mergedOptions = {
     ...formToUse.value.options,
     ...filteredProps,
   }
+
+  formToUse.value.options = Object.fromEntries(
+    Object.entries(mergedOptions).filter(([_, value]) => value !== undefined),
+  )
 })
 
 const formIsSubmitting = useStore(

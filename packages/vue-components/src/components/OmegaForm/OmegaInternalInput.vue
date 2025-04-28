@@ -22,6 +22,7 @@ import {
   watchEffect,
   type ComputedRef,
   getCurrentInstance,
+  nextTick,
 } from "vue"
 import type {
   FieldValidators,
@@ -73,12 +74,14 @@ const errors = computed(() =>
 // we remove value and errors when the field is empty and not required
 //watchEffect will trigger infinite times with both free fieldValue and errors, so bet to watch a stupid boolean
 watch(
-  () => [!!fieldValue.value],
-  () => {
-    if (errors.value.length && !fieldValue.value && !props.meta?.required) {
-      fieldApi.setValue(
-        props.meta?.nullableOrUndefined === "undefined" ? undefined : null,
-      )
+  () => !!fieldValue.value,
+  value => {
+    if (!value) {
+      nextTick(() => {
+        fieldApi.setValue(
+          props.meta?.nullableOrUndefined === "undefined" ? undefined : null,
+        )
+      })
     }
   },
 )

@@ -16,6 +16,16 @@
           e: S.Number,
           f: S.Number,
         }),
+        nullableStruct: S.NullOr(
+          S.Struct({
+            a: S.NullOr(S.String),
+            b: S.UndefinedOr(S.Number),
+            c: S.NullishOr(S.Number),
+            d: S.String,
+            e: S.Number,
+            f: S.Number,
+          }),
+        ),
       })
     "
   >

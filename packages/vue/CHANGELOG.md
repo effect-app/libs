@@ -1,5 +1,29 @@
 # @effect-app/vue
 
+## 2.41.2
+
+### Patch Changes
+
+- fd4985d: update rx
+
+## 2.41.1
+
+### Patch Changes
+
+- Updated dependencies [0230385]
+  - effect-app@2.40.1
+
+## 2.41.0
+
+### Minor Changes
+
+- 8cb33d5: update packages
+
+### Patch Changes
+
+- Updated dependencies [8cb33d5]
+  - effect-app@2.40.0
+
 ## 2.40.1
 
 ### Patch Changes

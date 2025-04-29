@@ -1,6 +1,6 @@
 <template>
   <OmegaForm :schema="schema" :subscribe="['values']">
-    <template #default="{ form, subscribedValues: { values } }">
+    <template #internalForm="{ form, subscribedValues: { values } }">
       <OmegaInput label="aString" :form="form" name="aString" />
       <pre>{{ values }}</pre>
     </template>

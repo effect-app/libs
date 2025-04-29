@@ -109,14 +109,18 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
     TheClient,
     RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
   >() {
-    static layer = Layer.scoped(TheClient, RpcClient.make(rpcs))
+    static layer = Layer.scoped(TheClient, RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }))
   }
 }
 
 const makeApiClientFactory = Effect
   .gen(function*() {
     const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
-    const makeClientFor = <M extends Requests>(resource: M, requestLevelLayers = Layer.empty, options?: ClientForOptions) =>
+    const makeClientFor = <M extends Requests>(
+      resource: M,
+      requestLevelLayers = Layer.empty,
+      options?: ClientForOptions
+    ) =>
       Effect.gen(function*() {
         const TheClient = makeRpcTag(resource)
 
@@ -171,10 +175,6 @@ const makeApiClientFactory = Effect
                 ? {
                   handler: TheClient.pipe(
                     Effect.flatMap((client) => (client as any)[requestAttr]!(new Request()) as Effect<any, any, never>),
-                    Effect.withSpan("client.request " + requestName, {
-                      captureStackTrace: false,
-                      attributes: { "request.name": requestName }
-                    }),
                     Effect.provide(requestLevelLayers),
                     Effect.provide(mr),
                     Effect.provide(requestNameLayer)
@@ -186,10 +186,6 @@ const makeApiClientFactory = Effect
                         (client as any)[requestAttr]!(new Request()) as Effect<any, any, never>
                       ),
                       Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
-                      Effect.withSpan("client.request " + requestName, {
-                        captureStackTrace: false,
-                        attributes: { "request.name": requestName }
-                      }),
                       Effect.provide(requestLevelLayers),
                       Effect.provide(mr),
                       Effect.provide(requestNameLayer)
@@ -204,10 +200,6 @@ const makeApiClientFactory = Effect
                       Effect.flatMap((client) =>
                         (client as any)[requestAttr]!(new Request(req)) as Effect<any, any, never>
                       ),
-                      Effect.withSpan("client.request " + requestName, {
-                        captureStackTrace: false,
-                        attributes: { "request.name": requestName }
-                      }),
                       Effect.provide(requestLevelLayers),
                       Effect.provide(mr),
                       Effect.provide(requestNameLayer)
@@ -221,10 +213,6 @@ const makeApiClientFactory = Effect
                           (client as any)[requestAttr]!(new Request(req)) as Effect<any, any, never>
                         ),
                         Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
-                        Effect.withSpan("client.request " + requestName, {
-                          captureStackTrace: false,
-                          attributes: { "request.name": requestName }
-                        }),
                         Effect.provide(requestLevelLayers),
                         Effect.provide(mr),
                         Effect.provide(requestNameLayer)
@@ -269,7 +257,6 @@ const makeApiClientFactory = Effect
     return makeClientForCached
   })
 
-
 /**
  * Used to create clients for resource modules.
  */
@@ -281,7 +268,8 @@ export class ApiClientFactory
   static readonly layerFromConfig = DefaultApiConfig.pipe(Effect.map(this.layer), Layer.unwrapEffect)
 
   static readonly makeFor =
-    (requestLevelLayers: Layer.Layer<never, never, never>,  options?: ClientForOptions) => <M extends Requests>(resource: M) =>
+    (requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) =>
+    <M extends Requests>(resource: M) =>
       this
         .use((apiClientFactory) => apiClientFactory(requestLevelLayers, options))
         .pipe(Effect.flatMap((f) => f(resource))) // don't rename f to clientFor or integration in vue project linked fucks up

@@ -1,5 +1,58 @@
 # @effect-app/infra
 
+## 2.54.5
+
+### Patch Changes
+
+- ff31fcc: improve ServiceBus span/log
+
+## 2.54.4
+
+### Patch Changes
+
+- a5ad0b5: improve ServiceBus span/log
+
+## 2.54.3
+
+### Patch Changes
+
+- de7a5ce: add some servicebus spans
+
+## 2.54.2
+
+### Patch Changes
+
+- 0230385: improve: rpc spans
+
+  - fewer duplicate spans
+  - improve name
+
+- Updated dependencies [0230385]
+  - effect-app@2.40.1
+
+## 2.54.1
+
+### Patch Changes
+
+- 4fd0b08: fix: error processing queue messages should return message to the queue
+
+## 2.54.0
+
+### Minor Changes
+
+- 8cb33d5: update packages
+
+### Patch Changes
+
+- Updated dependencies [8cb33d5]
+  - effect-app@2.40.0
+
+## 2.53.12
+
+### Patch Changes
+
+- 52c5fb4: improve queue span handling
+
 ## 2.53.11
 
 ### Patch Changes

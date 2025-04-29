@@ -14,8 +14,16 @@ import {
   type MetaRecord,
   type OmegaFormApi,
 } from "./OmegaFormStuff"
-import { computed, onBeforeUnmount, onMounted, onUnmounted } from "vue"
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  onUnmounted,
+  provide,
+  type InjectionKey,
+} from "vue"
 import { isObject } from "effect/Predicate"
+import OmegaFormInput from "./OmegaFormInput.vue"
 
 type keysRule<T> =
   | {
@@ -39,10 +47,17 @@ export type OmegaConfig<T> = {
   } & keysRule<T>
 }
 
-export interface OmegaFormReturn<To, From> extends OmegaFormApi<To, From> {
+interface OF<To, From> extends OmegaFormApi<To, From> {
   meta: MetaRecord<To>
   filterItems?: FilterItems
   clear: () => void
+}
+
+export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
+
+export interface OmegaFormReturn<To extends Record<PropertyKey, any>, From>
+  extends OF<To, From> {
+  Input: typeof OmegaFormInput
 }
 
 export const useOmegaForm = <
@@ -265,7 +280,15 @@ export const useOmegaForm = <
     window.removeEventListener("blur", saveDataInUrl)
   })
 
-  const exposed = Object.assign(form, { meta, filterItems, clear })
+  const formWithExtras: OF<To, From> = Object.assign(form, {
+    meta,
+    filterItems,
+    clear,
+  })
 
-  return exposed
+  provide(OmegaFormKey, formWithExtras)
+
+  return Object.assign(formWithExtras, {
+    Input: OmegaFormInput,
+  })
 }

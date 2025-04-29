@@ -1,10 +1,10 @@
-import { Tracer } from "effect"
+import { Cause, Tracer } from "effect"
 import { Effect, Fiber, flow, S } from "effect-app"
 import { pretty } from "effect-app/utils"
 import { MemQueue } from "../adapters/memQueue.js"
-import { getRequestContext, setupRequestContext } from "../api/setupRequest.js"
+import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
-import { reportNonInterruptedFailure } from "./errors.js"
+import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.js"
 import { type QueueBase, QueueMeta } from "./service.js"
 
 export function makeMemQueue<
@@ -56,6 +56,7 @@ export function makeMemQueue<
       ) =>
         Effect.gen(function*() {
           const silenceAndReportError = reportNonInterruptedFailure({ name: "MemQueue.drain." + queueDrainName })
+          const reportError = reportNonInterruptedFailureCause({ name: "MemQueue.drain." + queueDrainName })
           const processMessage = (msg: string) =>
             // we JSON parse, because that is what the wire also does, and it reveals holes in e.g unknown encoders (Date->String)
             Effect
@@ -72,20 +73,20 @@ export function makeMemQueue<
                         Effect.zipRight(handleEvent(body)),
                         silenceAndReportError,
                         (_) =>
-                          setupRequestContext(
+                          setupRequestContextWithCustomSpan(
                             _,
-                            meta
-                          ),
-                        Effect
-                          .withSpan(`queue.drain: ${queueDrainName}.${body._tag}`, {
-                            captureStackTrace: false,
-                            kind: "consumer",
-                            attributes: {
-                              "queue.name": queueDrainName,
-                              "queue.sessionId": sessionId,
-                              "queue.input": body
+                            meta,
+                            `queue.drain: ${queueDrainName}.${body._tag}`,
+                            {
+                              captureStackTrace: false,
+                              kind: "consumer",
+                              attributes: {
+                                "queue.name": queueDrainName,
+                                "queue.sessionId": sessionId,
+                                "queue.input": body
+                              }
                             }
-                          })
+                          )
                       )
                     if (meta.span) {
                       effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
@@ -96,11 +97,25 @@ export function makeMemQueue<
           return yield* qDrain
             .take
             .pipe(
-              Effect.flatMap((x) =>
-                processMessage(x).pipe(Effect.uninterruptible, Effect.fork, Effect.flatMap(Fiber.join))
-              ),
-              // TODO: normally a failed item would be returned to the queue and retried up to X times.
-              // .flatMap(_ => _._tag === "Failure" && !isInterrupted ? qDrain.offer(x) : Effect.unit) // TODO: retry count tracking and max retries.
+              Effect
+                .flatMap((x) =>
+                  processMessage(x).pipe(
+                    Effect.uninterruptible,
+                    Effect.fork,
+                    Effect.flatMap(Fiber.join),
+                    // normally a failed item would be returned to the queue and retried up to X times.
+                    Effect.flatMap((_) =>
+                      _._tag === "Failure" && !Cause.isInterruptedOnly(_.cause)
+                        ? qDrain.offer(x).pipe(
+                          // TODO: retry count tracking and max retries.
+                          Effect.delay("5 seconds"),
+                          Effect.tapErrorCause(reportError),
+                          Effect.forkDaemon
+                        )
+                        : Effect.void
+                    )
+                  )
+                ),
               silenceAndReportError,
               Effect.withSpan(`queue.drain: ${queueDrainName}`, {
                 attributes: {

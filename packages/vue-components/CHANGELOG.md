@@ -1,5 +1,128 @@
 # @effect-app/vue-components
 
+## 0.5.0
+
+### Minor Changes
+
+- 030de1b: - You can now combine `useForm` attributes with `OmegaForm` element props to flexibly configure your form’s behavior.
+  - The standard Vuetify clear function has been standardized to adhere to the schema defined at form creation.
+  - Minor fixes and improvements to TypeScript typings.
+
+### Patch Changes
+
+- 54c3b1e: fixes default vuetify error list styling
+
+## 0.4.6
+
+### Patch Changes
+
+- Updated dependencies [fd4985d]
+  - @effect-app/vue@2.41.2
+
+## 0.4.5
+
+### Patch Changes
+
+- Updated dependencies [0230385]
+  - effect-app@2.40.1
+  - @effect-app/vue@2.41.1
+
+## 0.4.4
+
+### Patch Changes
+
+- 3677a8e: Fix: correctly type slots inside form.Input component
+
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies [8cb33d5]
+  - effect-app@2.40.0
+  - @effect-app/vue@2.41.0
+
+## 0.4.2
+
+### Patch Changes
+
+- 3797aa0: add class prop for custom styling
+
+## 0.4.1
+
+### Patch Changes
+
+- 3d63b4d: fixes wrong ts implementation
+
+## 0.4.0
+
+### Minor Changes
+
+- 3da34a1: - Rewrite external api to integrate `form.Input` as possible way to use `OmegaInput` and document the changes
+
+  **BREAKING CHANGE (v0.4.0):** Users upgrading from v0.3.x need to adjust their `OmegaForm` templates.
+
+  The `#default` slot has been replaced:
+
+  - If you **do not** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#internalForm`.
+  - If you **do** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#externalForm`.
+
+  Additionally, when using the `#externalForm` slot (passing an external `form` prop):
+
+  - **Do not** use the `form` instance provided by the slot template variables.
+  - Use your **externally created/passed** `form` instance directly within the template.
+
+  **Example Diff:**
+
+  _Before (v0.3.x):_
+
+  ```vue
+  <template>
+    <!-- Case 1: No external form prop -->
+    <OmegaForm :schema="schema">
+      <template #default="{ form }">
+        <!-- Use form -->
+      </template>
+    </OmegaForm>
+
+    <!-- Case 2: External form prop -->
+    <OmegaForm :schema="schema" :form="myForm">
+      <template #default="{ form }">
+        <!-- Use form (implicitly myForm) -->
+      </template>
+    </OmegaForm>
+  </template>
+  ```
+
+  _After (v0.4.0):_
+
+  ```vue
+  <template>
+    <!-- Case 1: No external form prop -->
+    <OmegaForm :schema="schema">
+      <template #internalForm="{ form }">
+        <!-- Use form -->
+      </template>
+    </OmegaForm>
+
+    <!-- Case 2: External form prop -->
+    <OmegaForm :schema="schema" :form="myForm">
+      <!-- You can also remove the template if you don't use :subscribe prop -->
+      <template #externalForm>
+        <!-- Use myForm directly -->
+      </template>
+    </OmegaForm>
+  </template>
+  <script setup>
+  // Assuming myForm is defined here for Case 2
+  </script>
+  ```
+
+## 0.3.3
+
+### Patch Changes
+
+- df2e948: Fixes meta.required wrong inheritance and adds at least storybook story, waiting for unit tests
+
 ## 0.3.2
 
 ### Patch Changes

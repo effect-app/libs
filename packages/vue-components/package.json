@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue-components",
-  "version": "0.3.2",
+  "version": "0.5.0",
   "scripts": {
     "build": "rimraf dist && vue-tsc && vite build",
     "docs:dev": "vitepress dev docs",
@@ -61,6 +61,8 @@
   },
   "dependencies": {
     "@effect-app/vue": "workspace:*",
-    "effect-app": "workspace:*"
+    "effect-app": "workspace:*",
+    "highlight.js": "^11.11.1",
+    "vue3-highlightjs": "^1.0.5"
   }
 }

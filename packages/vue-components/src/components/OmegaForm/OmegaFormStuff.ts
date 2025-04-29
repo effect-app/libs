@@ -18,6 +18,17 @@ import { useIntl } from "../../utils"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
+export type OmegaInputProps<From, To> = {
+  form: FormType<From, To> & {
+    meta: MetaRecord<To>
+  }
+  name: NestedKeyOf<To>
+  validators?: FieldValidators<From>
+  label: string
+  options?: { title: string; value: string }[]
+  type?: TypeOverride
+}
+
 export type TypeOverride =
   | "string"
   | "text"
@@ -111,7 +122,7 @@ export type FormComponent<T, S> = FieldComponent<
 > &
   Component
 
-export type FormType<T, S> = OmegaFormApi<T, S> & {
+export type FormType<T, S = unknown> = OmegaFormApi<T, S> & {
   Field: Component
 }
 
@@ -241,7 +252,7 @@ const createMeta = <T = any>(
     for (const p of propertySignatures) {
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
-      const isRequired = meta["required"] ?? !nullableOrUndefined
+      const isRequired = !nullableOrUndefined
 
       let typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {

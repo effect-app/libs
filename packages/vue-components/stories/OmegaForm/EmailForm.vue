@@ -15,7 +15,11 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput, OmegaErrors } from "../../components/OmegaForm"
+import {
+  OmegaForm,
+  OmegaInput,
+  OmegaErrors,
+} from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   email: S.Email,

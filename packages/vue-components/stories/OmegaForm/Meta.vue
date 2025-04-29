@@ -52,6 +52,6 @@
 </template>
 
 <script setup lang="ts">
-import { OmegaForm, OmegaInput } from "../../components/OmegaForm"
+import { OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 import { S } from "effect-app"
 </script>

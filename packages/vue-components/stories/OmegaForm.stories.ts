@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/vue3"
-import { OmegaForm } from "../components/OmegaForm"
-import { provideIntl } from "../utils"
+import { OmegaForm } from "../src/components/OmegaForm"
+import { provideIntl } from "../src/utils"
 import { type makeIntl } from "@effect-app/vue"
 import { ref } from "vue"
 import SimpleForm from "./OmegaForm/SimpleForm.vue"

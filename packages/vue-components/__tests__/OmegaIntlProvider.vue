@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provideIntl } from "@effect-app/vue-components"
+import { provideIntl } from "../src/utils"
 
 provideIntl({} as any)
 </script>

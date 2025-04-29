@@ -14,7 +14,7 @@
 
 <script setup lang="ts" generic="_, To">
 import { S } from "effect-app"
-import { OmegaForm, useOmegaForm } from "../../components/OmegaForm"
+import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
 
 const form = useOmegaForm(S.Struct({ a: S.NullOr(S.String) }), {})
 </script>

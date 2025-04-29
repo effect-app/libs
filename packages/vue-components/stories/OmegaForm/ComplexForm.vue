@@ -42,7 +42,11 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput, useOmegaForm } from "../../components/OmegaForm"
+import {
+  OmegaForm,
+  OmegaInput,
+  useOmegaForm,
+} from "../../src/components/OmegaForm"
 
 const exampleForm = useOmegaForm(
   S.Struct({

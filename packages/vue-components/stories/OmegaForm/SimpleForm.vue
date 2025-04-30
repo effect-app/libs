@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput } from "../../components/OmegaForm"
+import { OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({ asder2: S.String })
 const onSubmit = ({ value }: { value: { asder2: string } }) => {

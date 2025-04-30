@@ -74,7 +74,7 @@ import {
   type OmegaFormReturn,
   useOmegaForm,
 } from "./useOmegaForm"
-import { computed, watch, defineSlots, onBeforeMount } from "vue"
+import { computed, watch, onBeforeMount } from "vue"
 
 const props = defineProps<
   {

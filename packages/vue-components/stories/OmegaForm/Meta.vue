@@ -16,6 +16,16 @@
           e: S.Number,
           f: S.Number,
         }),
+        nullableStruct: S.NullOr(
+          S.Struct({
+            a: S.NullOr(S.String),
+            b: S.UndefinedOr(S.Number),
+            c: S.NullishOr(S.Number),
+            d: S.String,
+            e: S.Number,
+            f: S.Number,
+          }),
+        ),
       })
     "
   >
@@ -42,6 +52,6 @@
 </template>
 
 <script setup lang="ts">
-import { OmegaForm, OmegaInput } from "../../components/OmegaForm"
+import { OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 import { S } from "effect-app"
 </script>

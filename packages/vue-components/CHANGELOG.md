@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.6.0
+
+### Minor Changes
+
+- 369170e: Adds the auto generation feature. Now you can autogenerate inputs from a schema, with mapping and sorting options
+
 ## 0.5.0
 
 ### Minor Changes

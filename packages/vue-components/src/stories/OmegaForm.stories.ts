@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/vue3"
+import type { Meta as StoryMeta, StoryObj } from "@storybook/vue3"
 import { OmegaForm } from "../components/OmegaForm"
 import { provideIntl } from "../utils"
 import { type makeIntl } from "@effect-app/vue"
 import { ref } from "vue"
-import SimpleForm from "./OmegaForm/SimpleForm.vue"
-import EmailForm from "./OmegaForm/EmailForm.vue"
-import ComplexForm from "./OmegaForm/ComplexForm.vue"
-import SimpleFormVuetifyDefault from "./OmegaForm/SimpleFormVuetifyDefault.vue"
-import SumExample from "./OmegaForm/SumExample.vue"
-import PersistencyForm from "./OmegaForm/PersistencyForm.vue"
-import AutoGeneration from "./OmegaForm/AutoGeneration.vue"
-import MetaForm from "./OmegaForm/Meta.vue"
-import FormInput from "./OmegaForm/form.Input.vue"
-import OneHundredWaysToWriteAForm from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
-import Clearable from "./OmegaForm/Clearable.vue"
+import SimpleFormComponent from "./OmegaForm/SimpleForm.vue"
+import EmailFormComponent from "./OmegaForm/EmailForm.vue"
+import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
+import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefault.vue"
+import SumExampleComponent from "./OmegaForm/SumExample.vue"
+import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
+import AutoGenerationComponent from "./OmegaForm/AutoGeneration.vue"
+import MetaFormComponent from "./OmegaForm/Meta.vue"
+import FormInputComponent from "./OmegaForm/form.Input.vue"
+import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
+import ClearableComponent from "./OmegaForm/Clearable.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -21,7 +21,7 @@ const mockIntl = {
   intl: ref({ formatMessage: (msg: { id: string }) => msg.id }),
 } as unknown as ReturnType<ReturnType<typeof makeIntl<string>>["useIntl"]>
 
-const meta: Meta<typeof OmegaForm> = {
+const meta: StoryMeta<typeof OmegaForm> = {
   title: "Components/OmegaForm",
   component: OmegaForm,
   argTypes: {
@@ -44,79 +44,79 @@ const meta: Meta<typeof OmegaForm> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const AnHundredWayToWriteAFormStory: Story = {
+export const AnHundredWayToWriteAForm: Story = {
   render: () => ({
-    components: { OneHundredWaysToWriteAForm },
-    template: "<OneHundredWaysToWriteAForm />",
+    components: { OneHundredWaysToWriteAFormComponent },
+    template: "<OneHundredWaysToWriteAFormComponent />",
   }),
 }
 
-export const SimpleFormStory: Story = {
+export const SimpleForm: Story = {
   render: () => ({
-    components: { SimpleForm },
-    template: "<SimpleForm />",
+    components: { SimpleFormComponent },
+    template: "<SimpleFormComponent />",
   }),
 }
 
-export const EmailFormStory: Story = {
+export const EmailForm: Story = {
   render: () => ({
-    components: { EmailForm },
-    template: "<EmailForm />",
+    components: { EmailFormComponent },
+    template: "<EmailFormComponent />",
   }),
 }
 
-export const ComplexFormStory: Story = {
+export const ComplexForm: Story = {
   render: () => ({
-    components: { ComplexForm },
-    template: "<ComplexForm />",
+    components: { ComplexFormComponent },
+    template: "<ComplexFormComponent />",
   }),
 }
 
-export const SimpleFormVuetifyDefaultStory: Story = {
+export const SimpleFormVuetifyDefault: Story = {
   render: () => ({
-    components: { SimpleFormVuetifyDefault },
-    template: "<SimpleFormVuetifyDefault />",
+    components: { SimpleFormVuetifyDefaultComponent },
+    template: "<SimpleFormVuetifyDefaultComponent />",
   }),
 }
 
-export const SumExampleStory: Story = {
+export const SumExample: Story = {
   render: () => ({
-    components: { SumExample },
-    template: "<SumExample />",
+    components: { SumExampleComponent },
+    template: "<SumExampleComponent />",
   }),
 }
 
-export const PersistencyFormStory: Story = {
+export const PersistencyForm: Story = {
   render: () => ({
-    components: { PersistencyForm },
-    template: "<PersistencyForm />",
+    components: { PersistencyFormComponent },
+    template: "<PersistencyFormComponent />",
   }),
 }
 
-export const AutoGenerationStory: Story = {
+export const AutoGeneration: Story = {
   render: () => ({
-    components: { AutoGeneration },
-    template: "<AutoGeneration />",
+    components: { AutoGenerationComponent },
+    template: "<AutoGenerationComponent />",
   }),
 }
 
-export const MetaStory: Story = {
+export const Meta: Story = {
   render: () => ({
-    components: { MetaForm },
-    template: "<MetaForm />",
+    components: { MetaFormComponent },
+    template: "<MetaFormComponent />",
   }),
 }
 
-export const FormInputStory: Story = {
+export const FormInput: Story = {
   render: () => ({
-    components: { FormInput },
-    template: "<FormInput />",
+    components: { FormInputComponent },
+    template: "<FormInputComponent />",
   }),
 }
 
-export const ClearableStory: Story = {
+export const Clearable: Story = {
   render: () => ({
-    components: { Clearable },
-    template: "<Clearable />",
+    components: { ClearableComponent },
+    template: "<ClearableComponent />",
   }),
 }

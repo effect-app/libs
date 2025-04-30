@@ -16,7 +16,7 @@ import {
   type FieldMeta,
   type OmegaInputProps,
 } from "./OmegaFormStuff"
-import { pipe, Order, Array } from "effect"
+import { pipe, Order, Array as A } from "effect-app"
 import OmegaInput from "./OmegaInput.vue"
 
 type NewMeta = Omit<OmegaInputProps<From, To>, "form">
@@ -97,9 +97,9 @@ const children = computed<NewMeta[]>(() =>
     // transform to array
     obj => Object.values(obj) as NewMeta[],
     // order
-    Array.sort(orderBy),
+    A.sort(orderBy),
     // sort
-    props.sort ? Array.sort(props.sort) : x => x,
+    props.sort ? A.sort(props.sort) : x => x,
   ),
 )
 

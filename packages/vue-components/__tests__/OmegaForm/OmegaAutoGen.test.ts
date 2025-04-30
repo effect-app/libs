@@ -6,6 +6,7 @@ import {
   useOmegaForm,
 } from "../../src/components/OmegaForm"
 import * as S from "effect-app/Schema"
+import { Order } from "effect"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 // We need to mock the components used by OmegaAutoGen.vue since they depend on Vuetify
@@ -56,19 +57,211 @@ describe("OmegaAutoGen", () => {
       },
     )
 
-    // Check if OmegaAutoGen correctly passes props to OmegaInput components
     const inputs = wrapper.findAll(".mock-omega-input")
     expect(inputs.length).toBe(2) // Should generate 2 inputs
 
-    // Check the first input (string)
     const firstInput = inputs[0]
     expect(firstInput.find("label").attributes("for")).toBe("string")
     expect(firstInput.find("input").attributes("name")).toBe("string")
 
-    // Check the second input (number)
     const secondInput = inputs[1]
     expect(secondInput.find("label").attributes("for")).toBe("number")
     expect(secondInput.find("input").attributes("name")).toBe("number")
+  })
+
+  // Pick option test
+  it("uses the pick option to include only specific fields", () => {
+    const wrapper = mount(
+      {
+        components: {
+          OmegaForm,
+          OmegaAutoGen,
+          OmegaIntlProvider,
+        },
+        template: `
+        <OmegaIntlProvider>
+          <OmegaForm :form="form">
+            <OmegaAutoGen 
+              :form="form" 
+              :pick="['string']"
+            />
+          </OmegaForm>
+        </OmegaIntlProvider>
+      `,
+        setup() {
+          const form = useOmegaForm(
+            S.Struct({
+              string: S.String,
+              number: S.Number,
+              boolean: S.Boolean,
+            }),
+          )
+          return { form }
+        },
+      },
+      {
+        global: {
+          stubs: {
+            OmegaInput: mockComponents.OmegaInput,
+          },
+        },
+      },
+    )
+
+    // Should only have inputs for fields in the pick array
+    const inputs = wrapper.findAll(".mock-omega-input")
+    expect(inputs.length).toBe(1)
+    expect(inputs[0].find("input").attributes("name")).toBe("string")
+  })
+
+  // Omit option test
+  it("uses the omit option to exclude specific fields", () => {
+    const wrapper = mount(
+      {
+        components: {
+          OmegaForm,
+          OmegaAutoGen,
+          OmegaIntlProvider,
+        },
+        template: `
+        <OmegaIntlProvider>
+          <OmegaForm :form="form">
+            <OmegaAutoGen 
+              :form="form" 
+              :omit="['number', 'boolean']"
+            />
+          </OmegaForm>
+        </OmegaIntlProvider>
+      `,
+        setup() {
+          const form = useOmegaForm(
+            S.Struct({
+              string: S.String,
+              number: S.Number,
+              boolean: S.Boolean,
+            }),
+          )
+          return { form }
+        },
+      },
+      {
+        global: {
+          stubs: {
+            OmegaInput: mockComponents.OmegaInput,
+          },
+        },
+      },
+    )
+
+    // Should only have inputs for fields not in the omit array
+    const inputs = wrapper.findAll(".mock-omega-input")
+    expect(inputs.length).toBe(1)
+    expect(inputs[0].find("input").attributes("name")).toBe("string")
+  })
+
+  // Order option test
+  it("uses the order option to control field order", () => {
+    const wrapper = mount(
+      {
+        components: {
+          OmegaForm,
+          OmegaAutoGen,
+          OmegaIntlProvider,
+        },
+        template: `
+        <OmegaIntlProvider>
+          <OmegaForm :form="form">
+            <OmegaAutoGen 
+              :form="form" 
+              :order="['boolean', 'number', 'string']"
+            />
+          </OmegaForm>
+        </OmegaIntlProvider>
+      `,
+        setup() {
+          const form = useOmegaForm(
+            S.Struct({
+              string: S.String,
+              number: S.Number,
+              boolean: S.Boolean,
+            }),
+          )
+          return { form }
+        },
+      },
+      {
+        global: {
+          stubs: {
+            OmegaInput: mockComponents.OmegaInput,
+          },
+        },
+      },
+    )
+
+    // Check that the fields are ordered according to the specified order
+    const inputs = wrapper.findAll(".mock-omega-input input")
+    const inputNames = inputs.map(input => input.attributes("name"))
+
+    // The order should match the specified order
+    expect(inputNames[0]).toBe("boolean")
+    expect(inputNames[1]).toBe("number")
+    expect(inputNames[2]).toBe("string")
+  })
+
+  // Sort option test
+  it("uses the sort option to sort fields", () => {
+    const wrapper = mount(
+      {
+        components: {
+          OmegaForm,
+          OmegaAutoGen,
+          OmegaIntlProvider,
+        },
+        template: `
+        <OmegaIntlProvider>
+          <OmegaForm :form="form">
+            <OmegaAutoGen 
+              :form="form" 
+              :sort="sortByName"
+            />
+          </OmegaForm>
+        </OmegaIntlProvider>
+      `,
+        setup() {
+          const form = useOmegaForm(
+            S.Struct({
+              charlie: S.String,
+              alpha: S.String,
+              bravo: S.String,
+            }),
+          )
+
+          // Create a sorter that sorts by name alphabetically
+          const sortByName = Order.mapInput(
+            Order.string,
+            (item: { name: string }) => item.name,
+          )
+
+          return { form, sortByName }
+        },
+      },
+      {
+        global: {
+          stubs: {
+            OmegaInput: mockComponents.OmegaInput,
+          },
+        },
+      },
+    )
+
+    // Check that the fields are sorted alphabetically by name
+    const inputs = wrapper.findAll(".mock-omega-input input")
+    const inputNames = inputs.map(input => input.attributes("name"))
+
+    // The fields should be sorted alphabetically
+    expect(inputNames[0]).toBe("alpha")
+    expect(inputNames[1]).toBe("bravo")
+    expect(inputNames[2]).toBe("charlie")
   })
 
   // LabelMap

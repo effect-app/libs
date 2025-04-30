@@ -1,7 +1,6 @@
 <template>
   <slot
     v-for="{ name, label, ...attrs } in children"
-    :class="`omega-form-auto-${name}`"
     :child="{ name, label, ...attrs }"
   >
     <OmegaInput :form="props.form" :name="name" :label="label" v-bind="attrs" />
@@ -17,8 +16,7 @@ import {
   type FieldMeta,
   type OmegaInputProps,
 } from "./OmegaFormStuff"
-import { pipe } from "effect"
-import { Order, Array } from "effect-app"
+import { pipe, Order, Array } from "effect"
 import OmegaInput from "./OmegaInput.vue"
 
 type NewMeta = Omit<OmegaInputProps<From, To>, "form">
@@ -92,10 +90,11 @@ const children = computed<NewMeta[]>(() =>
     // filterMap
     props.filterMap
       ? filterMapRecord(m => {
-          const result = props.filterMap?.(m.name!, m)
+          const result = props.filterMap?.(m.name!, m as NewMeta)
           return result === undefined || result === true ? m : result
         })
       : x => x,
+    // transform to array
     obj => Object.values(obj) as NewMeta[],
     // order
     Array.sort(orderBy),

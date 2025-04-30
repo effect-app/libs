@@ -66,7 +66,11 @@
 
 <script setup lang="ts">
 import { Match, S } from "effect-app"
-import { OmegaForm, OmegaAutoGen, OmegaInput } from "../../components/OmegaForm"
+import {
+  OmegaForm,
+  OmegaAutoGen,
+  OmegaInput,
+} from "../../src/components/OmegaForm"
 import { constUndefined } from "effect/Function"
 import { Order } from "effect"
 </script>

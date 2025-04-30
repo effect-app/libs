@@ -15,7 +15,12 @@
       <OmegaAutoGen
         :form="form"
         :pick="['string', 'number', 'email']"
-        :sort="Order.mapInput(Order.string, x => x.name)"
+        :sort="
+          Order.mapInput(
+            Order.string,
+            (x: OmegaAutoGenMeta<any, any>) => x.name,
+          )
+        "
         :label-map="
           a =>
             Match.value(a).pipe(
@@ -71,6 +76,7 @@ import {
   OmegaAutoGen,
   OmegaInput,
 } from "../../src/components/OmegaForm"
+import { type OmegaAutoGenMeta } from "../../src/components/OmegaForm/OmegaAutoGen.vue"
 import { constUndefined } from "effect/Function"
 import { Order } from "effect"
 </script>

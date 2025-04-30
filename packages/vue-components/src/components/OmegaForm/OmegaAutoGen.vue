@@ -19,7 +19,8 @@ import {
 import { pipe, Order, Array as A } from "effect-app"
 import OmegaInput from "./OmegaInput.vue"
 
-type NewMeta = Omit<OmegaInputProps<From, To>, "form">
+export type OmegaAutoGenMeta<From, To> = Omit<OmegaInputProps<From, To>, "form">
+type NewMeta = OmegaAutoGenMeta<From, To>
 
 const mapObject =
   <K extends string, A, B>(fn: (value: A, key: K) => B) =>

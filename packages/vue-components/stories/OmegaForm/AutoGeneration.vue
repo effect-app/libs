@@ -1,16 +1,5 @@
 <template>
-  <OmegaForm
-    :schema="
-      S.Struct({
-        string: S.String,
-        number: S.Number,
-        boolean: S.Boolean,
-        email: S.Email,
-        url: S.Url,
-        date: S.Date,
-      })
-    "
-  >
+  <OmegaForm :schema="schema">
     <template #internalForm="{ form }">
       <OmegaAutoGen
         :form="form"
@@ -18,7 +7,12 @@
         :sort="
           Order.mapInput(
             Order.string,
-            (x: OmegaAutoGenMeta<any, any>) => x.name,
+            (
+              x: OmegaAutoGenMeta<
+                S.Schema.Encoded<typeof schema>,
+                S.Schema.Type<typeof schema>
+              >,
+            ) => x.name,
           )
         "
         :label-map="
@@ -79,4 +73,13 @@ import {
 import { type OmegaAutoGenMeta } from "../../src/components/OmegaForm/OmegaAutoGen.vue"
 import { constUndefined } from "effect/Function"
 import { Order } from "effect"
+
+const schema = S.Struct({
+  string: S.String,
+  number: S.Number,
+  boolean: S.Boolean,
+  email: S.Email,
+  url: S.Url,
+  date: S.Date,
+})
 </script>

@@ -465,7 +465,7 @@ export type RefineWithLiteral<
   Exclde extends boolean = false
 > =
   // refine only if the value is a primitive
-  [V] extends [string | number | boolean | null | bigint | undefined]
+  [V] extends [string | number | boolean | null | bigint]
     ? RefineFieldPathValue<TFieldValues, TFieldName, V, Exclde>
     : TFieldValues
 /* dprint-ignore-end */

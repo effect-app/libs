@@ -570,9 +570,8 @@ type ExtractTagged_<T, EncodedRefined> = EncodedRefined extends { _tag: string }
   : T
   : T
 
-type ExtractTagged<T, EncodedRefined> = ExtractTagged_<T, EncodedRefined> extends infer R ? ResolveFirstLevel<
-    NullableRefined<RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined>, EncodedRefined>
-  >
+type ExtractTagged<T, EncodedRefined> = ExtractTagged_<T, EncodedRefined> extends infer R
+  ? RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined>
   : never
 
 type ShouldRecursiveExtractIded<T, EncodedRefined> = true extends {
@@ -597,12 +596,8 @@ type ExtractIded_<T, EncodedRefined> = EncodedRefined extends { id: string }
   : T
   : T
 
-type ExtractIded<T, EncodedRefined> = ExtractIded_<T, EncodedRefined> extends infer R ? ResolveFirstLevel<
-    NullableRefined<
-      RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined>,
-      EncodedRefined
-    >
-  >
+type ExtractIded<T, EncodedRefined> = ExtractIded_<T, EncodedRefined> extends infer R
+  ? RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined>
   : never
 
 export type RefineTHelper<T, EncodedRefined> = ResolveFirstLevel<

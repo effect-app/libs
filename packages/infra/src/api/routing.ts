@@ -700,7 +700,13 @@ export const makeRouter = <
       >
     } = (obj: Record<keyof Filtered, any>) =>
       typedKeysOf(obj).reduce((acc, cur) => {
-        acc[cur] = "raw" in obj[cur] ? items[cur].raw(obj[cur].raw) : items[cur](obj[cur])
+        if ("raw" in obj[cur]) {
+          acc[cur] = obj[cur].raw[Symbol.toStringTag] === "GeneratorFunction"
+            ? Effect.fnUntraced(obj[cur].raw)
+            : obj[cur].raw
+        } else {
+          acc[cur] = obj[cur][Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(obj[cur]) : obj[cur]
+        }
         return acc
       }, {} as any)
 

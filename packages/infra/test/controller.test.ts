@@ -310,6 +310,9 @@ Router(Something)({
         //   expected an error here because RequestError is not a valid error for controllers
         //   return yield* new RequestError(1 as any)
         // }
+        if (Math.random() > 0.5) {
+          return yield* Effect.succeed("12")
+        }
         if (!_b) {
           return yield* new UnauthorizedError()
         } else {

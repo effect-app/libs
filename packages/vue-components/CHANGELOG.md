@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.6.1
+
+### Patch Changes
+
+- bd46585: remove legacy broken stuff
+
 ## 0.6.0
 
 ### Minor Changes

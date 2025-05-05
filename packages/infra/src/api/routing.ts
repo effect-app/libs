@@ -637,14 +637,13 @@ export const makeRouter = <
     type HndlrWithInputG<
       Action extends AnyRequestModule,
       Mode extends "d" | "raw"
-    > = <
-      Eff extends YieldWrap<
-        Effect<GetSuccessShape<Action, Mode>, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>
-      >,
-      AEff
-    >(
+    > = (
       req: S.Schema.Type<Action>
-    ) => Generator<Eff, AEff, never>
+    ) => Generator<
+      YieldWrap<
+        Effect<GetSuccessShape<Action, Mode>, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>
+      >
+    >
 
     type HndlrWithInput<Action extends AnyRequestModule, Mode extends "d" | "raw"> = (
       req: S.Schema.Type<Action>
@@ -661,16 +660,16 @@ export const makeRouter = <
     >
 
     type Hndlrs<Action extends AnyRequestModule, Mode extends "d" | "raw"> =
+      | HndlrWithInputG<Action, Mode>
       | HndlrWithInput<Action, Mode>
       | Hndlr<Action, Mode>
-      | HndlrWithInputG<Action, Mode>
 
     type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, "d">
 
     type RawHndlrs<Action extends AnyRequestModule> =
+      | { raw: HndlrWithInputG<Action, "raw"> }
       | { raw: HndlrWithInput<Action, "raw"> }
       | { raw: Hndlr<Action, "raw"> }
-      | { raw: HndlrWithInputG<Action, "raw"> }
 
     type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
 

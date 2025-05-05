@@ -313,6 +313,8 @@ Router(Something)({
         if (!_b) {
           return yield* new UnauthorizedError()
         } else {
+          // expected an error here because a boolean is not a string
+          // return _b
           return "12"
         }
       },

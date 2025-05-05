@@ -2,11 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
-import { Rpc } from "@effect/rpc"
-import type { Request } from "effect-app"
-import { Context, Effect, FiberRef, Layer, S, Schedule } from "effect-app"
+import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
 import { type GetEffectContext, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { HttpHeaders, HttpServerRequest } from "effect-app/http"
+import { type HttpServerRequest } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { it } from "vitest"
 
@@ -29,11 +27,15 @@ const middleware = makeMiddleware({
   execute: Effect.gen(function*() {
     return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, R>(
       _schema: T & S.Schema<Req, any, never>,
-      handler: (request: Req) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
+      handler: (
+        request: Req,
+        headers: any
+      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
       moduleName?: string
     ) =>
     (
-      req: Req
+      req: Req,
+      headers: any
     ): Effect.Effect<
       Request.Request.Success<Req>,
       Request.Request.Error<Req>,
@@ -88,7 +90,7 @@ const middleware = makeMiddleware({
           //   }
           // }
 
-          return yield* handler(req).pipe(
+          return yield* handler(req, headers).pipe(
             Effect.retry(optimisticConcurrencySchedule),
             Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>)
           )
@@ -102,16 +104,16 @@ const middleware = makeMiddleware({
                 //   ..._,
                 //   name: NonEmptyString255(moduleName ? `${moduleName}.${req._tag}` : req._tag)
                 // }))
-                const httpReq = yield* HttpServerRequest.HttpServerRequest
+                // const httpReq = yield* HttpServerRequest.HttpServerRequest
                 // TODO: only pass Authentication etc, or move headers to actual Rpc Headers
-                yield* FiberRef.update(
-                  Rpc.currentHeaders,
-                  (headers) =>
-                    HttpHeaders.merge(
-                      httpReq.headers,
-                      headers
-                    )
-                )
+                // yield* FiberRef.update(
+                //   Rpc.currentHeaders,
+                //   (headers) =>
+                //     HttpHeaders.merge(
+                //       httpReq.headers,
+                //       headers
+                //     )
+                // )
               })
               .pipe(Layer.effectDiscard)
           )

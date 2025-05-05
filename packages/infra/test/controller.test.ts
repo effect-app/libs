@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
+import { RequestError } from "@effect/platform/HttpClientError"
 import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
 import { type GetEffectContext, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"
@@ -306,10 +307,11 @@ Router(Something)({
       *GetSomething(req) {
         console.log(req.id)
         const _b = yield* Effect.succeed(false)
-        // if (_b) {
-        //   expected an error here because RequestError is not a valid error for controllers
-        //   return yield* new RequestError(1 as any)
-        // }
+        if (_b) {
+          //   expected errors here because RequestError is not a valid error for controllers
+          // yield* new RequestError(1 as any)
+          // return yield* new RequestError(1 as any)
+        }
         if (Math.random() > 0.5) {
           return yield* Effect.succeed("12")
         }

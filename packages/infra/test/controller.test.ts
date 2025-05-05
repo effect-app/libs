@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
-import { RequestError } from "@effect/platform/HttpClientError"
 import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
 import { type GetEffectContext, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"

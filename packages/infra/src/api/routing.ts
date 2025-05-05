@@ -11,6 +11,7 @@ import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
+import { type YieldWrap } from "effect/Utils"
 import { makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
 
 const logRequestError = logError("Request")
@@ -633,6 +634,18 @@ export const makeRouter = <
       }
     }
 
+    type HndlrWithInputG<
+      Action extends AnyRequestModule,
+      Mode extends "d" | "raw"
+    > = <
+      Eff extends YieldWrap<
+        Effect<GetSuccessShape<Action, Mode>, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>
+      >,
+      AEff
+    >(
+      req: S.Schema.Type<Action>
+    ) => Generator<Eff, AEff, never>
+
     type HndlrWithInput<Action extends AnyRequestModule, Mode extends "d" | "raw"> = (
       req: S.Schema.Type<Action>
     ) => Effect<
@@ -650,12 +663,14 @@ export const makeRouter = <
     type Hndlrs<Action extends AnyRequestModule, Mode extends "d" | "raw"> =
       | HndlrWithInput<Action, Mode>
       | Hndlr<Action, Mode>
+      | HndlrWithInputG<Action, Mode>
 
     type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, "d">
 
     type RawHndlrs<Action extends AnyRequestModule> =
       | { raw: HndlrWithInput<Action, "raw"> }
       | { raw: Hndlr<Action, "raw"> }
+      | { raw: HndlrWithInputG<Action, "raw"> }
 
     type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
 

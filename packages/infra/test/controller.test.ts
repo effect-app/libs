@@ -306,7 +306,15 @@ Router(Something)({
       *GetSomething(req) {
         console.log(req.id)
         const _b = yield* Effect.succeed(false)
-        return yield* Effect.succeed("ciao")
+        // if (_b) {
+        //   expected an error here because RequestError is not a valid error for controllers
+        //   return yield* new RequestError(1 as any)
+        // }
+        if (!_b) {
+          return yield* new UnauthorizedError()
+        } else {
+          return "12"
+        }
       },
       DoSomething: {
         *raw() {

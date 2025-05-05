@@ -305,10 +305,13 @@ Router(Something)({
     return matchFor(Something)({
       *GetSomething(req) {
         console.log(req.id)
-        return yield* Effect.succeed("abc")
+        const _b = yield* Effect.succeed(false)
+        return yield* Effect.succeed("ciao")
       },
       DoSomething: {
-        raw: Effect.succeed(2)
+        *raw() {
+          return yield* Effect.succeed(undefined)
+        }
       },
       GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
     })

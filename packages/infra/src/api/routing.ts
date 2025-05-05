@@ -640,9 +640,9 @@ export const makeRouter = <
     > = (
       req: S.Schema.Type<Action>
     ) => Generator<
-      YieldWrap<
-        Effect<GetSuccessShape<Action, Mode>, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>
-      >
+      YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>>,
+      GetSuccessShape<Action, Mode>,
+      never
     >
 
     type HndlrWithInput<Action extends AnyRequestModule, Mode extends "d" | "raw"> = (

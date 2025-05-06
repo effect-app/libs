@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
-import { Rpc } from "@effect/rpc"
-import type { Request } from "effect-app"
-import { Context, Effect, FiberRef, Layer, S, Schedule } from "effect-app"
-import { type GetEffectContext, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { HttpHeaders, HttpServerRequest } from "effect-app/http"
+import { expectTypeOf } from "@effect/vitest"
+import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
+import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { type HttpServerRequest } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { it } from "vitest"
 
@@ -29,11 +28,15 @@ const middleware = makeMiddleware({
   execute: Effect.gen(function*() {
     return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, R>(
       _schema: T & S.Schema<Req, any, never>,
-      handler: (request: Req) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
+      handler: (
+        request: Req,
+        headers: any
+      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
       moduleName?: string
     ) =>
     (
-      req: Req
+      req: Req,
+      headers: any
     ): Effect.Effect<
       Request.Request.Success<Req>,
       Request.Request.Error<Req>,
@@ -88,7 +91,7 @@ const middleware = makeMiddleware({
           //   }
           // }
 
-          return yield* handler(req).pipe(
+          return yield* handler(req, headers).pipe(
             Effect.retry(optimisticConcurrencySchedule),
             Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>)
           )
@@ -102,16 +105,16 @@ const middleware = makeMiddleware({
                 //   ..._,
                 //   name: NonEmptyString255(moduleName ? `${moduleName}.${req._tag}` : req._tag)
                 // }))
-                const httpReq = yield* HttpServerRequest.HttpServerRequest
+                // const httpReq = yield* HttpServerRequest.HttpServerRequest
                 // TODO: only pass Authentication etc, or move headers to actual Rpc Headers
-                yield* FiberRef.update(
-                  Rpc.currentHeaders,
-                  (headers) =>
-                    HttpHeaders.merge(
-                      httpReq.headers,
-                      headers
-                    )
-                )
+                // yield* FiberRef.update(
+                //   Rpc.currentHeaders,
+                //   (headers) =>
+                //     HttpHeaders.merge(
+                //       httpReq.headers,
+                //       headers
+                //     )
+                // )
               })
               .pipe(Layer.effectDiscard)
           )
@@ -286,3 +289,55 @@ Router(Something)({
     })
   })
 })
+
+const { make: _make, routes: _routes } = Router(Something)({
+  dependencies: [
+    SomethingRepo.Default,
+    SomethingService.Default,
+    SomethingService2.Default
+  ],
+  *effect(match) {
+    const repo = yield* SomethingRepo
+    const smth = yield* SomethingService
+    const smth2 = yield* SomethingService2
+
+    // this gets catched in 'routes' type
+    if (Math.random() > 0.5) {
+      return yield* new InvalidStateError("ciao")
+    }
+
+    console.log({ repo, smth, smth2 })
+
+    return match({
+      *GetSomething(req) {
+        console.log(req.id)
+
+        const _b = yield* Effect.succeed(false)
+        if (_b) {
+          //   expected errors here because RequestError is not a valid error for controllers
+          // yield* new RequestError(1 as any)
+          // return yield* new RequestError(1 as any)
+        }
+        if (Math.random() > 0.5) {
+          return yield* Effect.succeed("12")
+        }
+        if (!_b) {
+          return yield* new UnauthorizedError()
+        } else {
+          // expected an error here because a boolean is not a string
+          // return _b
+          return "12"
+        }
+      },
+      DoSomething: {
+        *raw() {
+          return yield* Effect.succeed(undefined)
+        }
+      },
+      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
+    })
+  }
+})
+
+expectTypeOf({} as MakeErrors<typeof _make>).toEqualTypeOf<InvalidStateError>()
+expectTypeOf({} as MakeContext<typeof _make>).toEqualTypeOf<SomethingService | SomethingRepo | SomethingService2>()

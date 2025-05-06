@@ -287,8 +287,9 @@ export const makeRouter = <
         Effect
           .gen(function*() {
             make = (make as any)[Symbol.toStringTag] === "GeneratorFunction"
-              ? Effect.fnUntraced(make as any) as any
+              ? Effect.fnUntraced(make as any)(router3) as any
               : make
+
             const controllers = yield* make
             const rpc = yield* makeRpc(middleware)
 

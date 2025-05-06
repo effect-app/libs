@@ -474,9 +474,9 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
-            YieldWrap<Effect<any, any, any>>,
+            YieldWrap<Effect<any, any, Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>>>,
             { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
-            Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
+            any
           >
 
           strict?: boolean
@@ -623,9 +623,9 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
-            YieldWrap<Effect<any, any, any>>,
+            YieldWrap<Effect<any, any, Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>>>,
             { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
-            Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
+            any
           >
 
           strict?: boolean

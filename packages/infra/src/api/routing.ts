@@ -266,6 +266,92 @@ export const makeRouter = <
       ? { [k in keyof Layers]: Layer.Layer.Error<Layers[k]> }[number]
       : never
 
+    const total = Object.keys(filtered).length
+    const router: AddAction<Filtered[keyof Filtered]> = {
+      accum: {},
+      add(a: any) {
+        ;(this.accum as any)[a.request._tag] = a
+        ;(this as any)[a.request._tag] = a
+        if (Object.keys(this.accum).length === total) return this.accum as any
+        return this as any
+      }
+    }
+
+    type HndlrWithInputG<
+      Action extends AnyRequestModule,
+      Mode extends "d" | "raw"
+    > = (
+      req: S.Schema.Type<Action>
+    ) => Generator<
+      YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>>,
+      GetSuccessShape<Action, Mode>,
+      never
+    >
+
+    type HndlrWithInput<Action extends AnyRequestModule, Mode extends "d" | "raw"> = (
+      req: S.Schema.Type<Action>
+    ) => Effect<
+      GetSuccessShape<Action, Mode>,
+      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      any
+    >
+
+    type Hndlr<Action extends AnyRequestModule, Mode extends "d" | "raw"> = Effect<
+      GetSuccessShape<Action, Mode>,
+      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      any
+    >
+
+    type Hndlrs<Action extends AnyRequestModule, Mode extends "d" | "raw"> =
+      | HndlrWithInputG<Action, Mode>
+      | HndlrWithInput<Action, Mode>
+      | Hndlr<Action, Mode>
+
+    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, "d">
+
+    type RawHndlrs<Action extends AnyRequestModule> =
+      | { raw: HndlrWithInputG<Action, "raw"> }
+      | { raw: HndlrWithInput<Action, "raw"> }
+      | { raw: Hndlr<Action, "raw"> }
+
+    type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
+
+    const router3: <
+      const Impl extends {
+        [K in keyof Filter<Rsc>]: AnyHndlrs<Rsc[K]>
+      }
+    >(
+      impl: Impl
+    ) => {
+      [K in keyof Impl & keyof Filter<Rsc>]: Handler<
+        Filter<Rsc>[K],
+        Impl[K] extends { raw: any } ? "raw" : "d",
+        Exclude<
+          | Context
+          | Exclude<
+            Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
+              : Impl[K]["raw"] extends Effect<any, any, infer R> ? R
+              : never
+              : Impl[K] extends (...args: any[]) => Effect<any, any, infer R> ? R
+              : Impl[K] extends Effect<any, any, infer R> ? R
+              : never,
+            GetEffectContext<CTXMap, Rsc[K]["config"]>
+          >,
+          HttpRouter.HttpRouter.Provided
+        >
+      >
+    } = (obj: Record<keyof Filtered, any>) =>
+      typedKeysOf(obj).reduce((acc, cur) => {
+        if ("raw" in obj[cur]) {
+          acc[cur] = obj[cur].raw[Symbol.toStringTag] === "GeneratorFunction"
+            ? Effect.fnUntraced(obj[cur].raw)
+            : obj[cur].raw
+        } else {
+          acc[cur] = obj[cur][Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(obj[cur]) : obj[cur]
+        }
+        return acc
+      }, {} as any)
+
     const f = <
       E,
       R,
@@ -702,92 +788,6 @@ export const makeRouter = <
     } =
       ((m: { dependencies: any; effect: any; strict?: any }) =>
         Object.assign(f(m.dependencies, m.effect), { make: m })) as any
-
-    const total = Object.keys(filtered).length
-    const router: AddAction<Filtered[keyof Filtered]> = {
-      accum: {},
-      add(a: any) {
-        ;(this.accum as any)[a.request._tag] = a
-        ;(this as any)[a.request._tag] = a
-        if (Object.keys(this.accum).length === total) return this.accum as any
-        return this as any
-      }
-    }
-
-    type HndlrWithInputG<
-      Action extends AnyRequestModule,
-      Mode extends "d" | "raw"
-    > = (
-      req: S.Schema.Type<Action>
-    ) => Generator<
-      YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>>,
-      GetSuccessShape<Action, Mode>,
-      never
-    >
-
-    type HndlrWithInput<Action extends AnyRequestModule, Mode extends "d" | "raw"> = (
-      req: S.Schema.Type<Action>
-    ) => Effect<
-      GetSuccessShape<Action, Mode>,
-      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
-      any
-    >
-
-    type Hndlr<Action extends AnyRequestModule, Mode extends "d" | "raw"> = Effect<
-      GetSuccessShape<Action, Mode>,
-      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
-      any
-    >
-
-    type Hndlrs<Action extends AnyRequestModule, Mode extends "d" | "raw"> =
-      | HndlrWithInputG<Action, Mode>
-      | HndlrWithInput<Action, Mode>
-      | Hndlr<Action, Mode>
-
-    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, "d">
-
-    type RawHndlrs<Action extends AnyRequestModule> =
-      | { raw: HndlrWithInputG<Action, "raw"> }
-      | { raw: HndlrWithInput<Action, "raw"> }
-      | { raw: Hndlr<Action, "raw"> }
-
-    type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
-
-    const router3: <
-      const Impl extends {
-        [K in keyof Filter<Rsc>]: AnyHndlrs<Rsc[K]>
-      }
-    >(
-      impl: Impl
-    ) => {
-      [K in keyof Impl & keyof Filter<Rsc>]: Handler<
-        Filter<Rsc>[K],
-        Impl[K] extends { raw: any } ? "raw" : "d",
-        Exclude<
-          | Context
-          | Exclude<
-            Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
-              : Impl[K]["raw"] extends Effect<any, any, infer R> ? R
-              : never
-              : Impl[K] extends (...args: any[]) => Effect<any, any, infer R> ? R
-              : Impl[K] extends Effect<any, any, infer R> ? R
-              : never,
-            GetEffectContext<CTXMap, Rsc[K]["config"]>
-          >,
-          HttpRouter.HttpRouter.Provided
-        >
-      >
-    } = (obj: Record<keyof Filtered, any>) =>
-      typedKeysOf(obj).reduce((acc, cur) => {
-        if ("raw" in obj[cur]) {
-          acc[cur] = obj[cur].raw[Symbol.toStringTag] === "GeneratorFunction"
-            ? Effect.fnUntraced(obj[cur].raw)
-            : obj[cur].raw
-        } else {
-          acc[cur] = obj[cur][Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(obj[cur]) : obj[cur]
-        }
-        return acc
-      }, {} as any)
 
     return Object.assign(effect, items, { router, router3 })
   }

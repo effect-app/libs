@@ -305,6 +305,7 @@ Router(Something)({
     return match({
       *GetSomething(req) {
         console.log(req.id)
+
         const _b = yield* Effect.succeed(false)
         if (_b) {
           //   expected errors here because RequestError is not a valid error for controllers

@@ -295,14 +295,14 @@ Router(Something)({
     SomethingService.Default,
     SomethingService2.Default
   ],
-  effect: Effect.gen(function*() {
+  *effect(match) {
     const repo = yield* SomethingRepo
     const smth = yield* SomethingService
     const smth2 = yield* SomethingService2
 
     console.log({ repo, smth, smth2 })
 
-    return matchFor(Something)({
+    return match({
       *GetSomething(req) {
         console.log(req.id)
         const _b = yield* Effect.succeed(false)
@@ -329,5 +329,5 @@ Router(Something)({
       },
       GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
     })
-  })
+  }
 })

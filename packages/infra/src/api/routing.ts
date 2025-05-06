@@ -276,7 +276,7 @@ export const makeRouter = <
       TLayers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
     >(
       layers: TLayers,
-      make: Effect<THandlers, E, R>
+      make: Effect<THandlers, E, R> | Generator<YieldWrap<Effect<any, any, any>>, THandlers, E>
     ) => {
       type ProvidedLayers =
         | { [k in keyof Layers]: Layer.Layer.Success<Layers[k]> }[number]
@@ -286,6 +286,9 @@ export const makeRouter = <
       const layer = (requestLayers: any) =>
         Effect
           .gen(function*() {
+            make = (make as any)[Symbol.toStringTag] === "GeneratorFunction"
+              ? Effect.fnUntraced(make as any) as any
+              : make
             const controllers = yield* make
             const rpc = yield* makeRpc(middleware)
 
@@ -470,6 +473,32 @@ export const makeRouter = <
       <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
+          effect: (match: typeof router3) => Generator<
+            YieldWrap<Effect<any, any, any>>,
+            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
+          >
+
+          strict?: boolean
+          /** @deprecated */
+          readonly ಠ_ಠ: never
+        }
+      >(
+        make: Make
+      ): {
+        moduleName: ModuleName
+
+        routes: (requestLayers: any) => Layer.Layer<
+          RouterShape<Rsc>,
+          MakeErrors<Make> | GetError<Make["dependencies"]>,
+          | GetContext<Make["dependencies"]>
+          // | GetContext<Layers> // elsewhere provided
+          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+        >
+      }
+      <
+        const Make extends {
+          dependencies: Array<Layer.Layer.Any>
           effect: Effect<
             { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
             any,
@@ -575,6 +604,30 @@ export const makeRouter = <
             any,
             GetSuccess<Make["dependencies"]>
           >
+          strict?: boolean
+        }
+      >(
+        make: Make
+      ): {
+        moduleName: ModuleName
+
+        routes: (requestLayers: any) => Layer.Layer<
+          RouterShape<Rsc>,
+          MakeErrors<Make> | GetError<Make["dependencies"]>,
+          | GetContext<Make["dependencies"]>
+          // | GetContext<Layers> // elsewhere provided
+          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+        >
+      }
+      <
+        const Make extends {
+          dependencies: Array<Layer.Layer.Any>
+          effect: (match: typeof router3) => Generator<
+            YieldWrap<Effect<any, any, any>>,
+            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
+          >
+
           strict?: boolean
         }
       >(
@@ -749,14 +802,14 @@ export type MakeDeps<Make> = Make extends { readonly dependencies: ReadonlyArray
   : never
 
 export type MakeErrors<Make> = Make extends { readonly effect: Effect<any, infer E, any> } ? E
-  : never
+  : never // TODO: get error from generator
 
 export type MakeContext<Make> = Make extends { readonly effect: Effect<any, any, infer R> } ? R
-  : never
+  : never // TODO: get context from generator
 
 export type MakeHandlers<Make, Handlers extends Record<string, any>> = Make extends
   { readonly effect: Effect<{ [K in keyof Handlers]: AHandler<Handlers[K]> }, any, any> }
-  ? Effect.Success<Make["effect"]>
+  ? Effect.Success<Make["effect"]> // TODO: get from generator
   : never
 
 /**

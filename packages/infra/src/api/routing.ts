@@ -495,6 +495,9 @@ export const makeRouter = <
           // | GetContext<Layers> // elsewhere provided
           | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
         >
+
+        // just for type testing purposes
+        make: Make
       }
       <
         const Make extends {
@@ -520,6 +523,9 @@ export const makeRouter = <
           // | GetContext<Layers> // elsewhere provided
           | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
         >
+
+        // just for type testing purposes
+        make: Make
       }
       <
         const Make extends {
@@ -545,6 +551,9 @@ export const makeRouter = <
           // | GetContext<Layers> // elsewhere provided
           | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
         >
+
+        // just for type testing purposes
+        make: Make
       }
       <
         const Make extends {
@@ -570,6 +579,9 @@ export const makeRouter = <
           // | GetContext<Layers> // elsewhere provided
           | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
         >
+
+        // just for type testing purposes
+        make: Make
       }
       <
         const Make extends {
@@ -595,6 +607,9 @@ export const makeRouter = <
           // | GetContext<Layers> // elsewhere provided
           | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
         >
+
+        // just for type testing purposes
+        make: Make
       }
       <
         const Make extends {
@@ -618,6 +633,9 @@ export const makeRouter = <
           // | GetContext<Layers> // elsewhere provided
           | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
         >
+
+        // just for type testing purposes
+        make: Make
       }
       <
         const Make extends {
@@ -642,6 +660,9 @@ export const makeRouter = <
           // | GetContext<Layers> // elsewhere provided
           | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
         >
+
+        // just for type testing purposes
+        make: Make
       }
       <
         const Make extends {
@@ -673,8 +694,13 @@ export const makeRouter = <
         //   HttpRouter.HttpRouter.Provided
         // >
         routes: any
+
+        // just for type testing purposes
+        make: Make
       }
-    } = ((m: { dependencies: any; effect: any; strict?: any }) => f(m.dependencies, m.effect)) as any
+    } =
+      ((m: { dependencies: any; effect: any; strict?: any }) =>
+        Object.assign(f(m.dependencies, m.effect), { make: m })) as any
 
     const total = Object.keys(filtered).length
     const router: AddAction<Filtered[keyof Filtered]> = {

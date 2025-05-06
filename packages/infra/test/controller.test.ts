@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
+import { expectTypeOf } from "@effect/vitest"
 import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"
@@ -289,7 +290,7 @@ Router(Something)({
   })
 })
 
-const { routes: _routes } = Router(Something)({
+const { make: _make, routes: _routes } = Router(Something)({
   dependencies: [
     SomethingRepo.Default,
     SomethingService.Default,
@@ -337,3 +338,13 @@ const { routes: _routes } = Router(Something)({
     })
   }
 })
+
+type RouterSomethingMake = typeof _make
+
+// expected to be InvalidStateError
+type RouterSomethingMakeErrors = MakeErrors<RouterSomethingMake>
+expectTypeOf({} as RouterSomethingMakeErrors).toEqualTypeOf<InvalidStateError>()
+
+// expected to be SomethingService | SomethingRepo | SomethingService2
+type RouterSomethingMakeContext = MakeContext<RouterSomethingMake>
+expectTypeOf({} as RouterSomethingMakeContext).toEqualTypeOf<SomethingService | SomethingRepo | SomethingService2>()

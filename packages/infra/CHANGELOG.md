@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.55.0
+
+### Minor Changes
+
+- ad8c310: feat: enable plain generator functions for Router effect and handlers
+
 ## 2.54.5
 
 ### Patch Changes

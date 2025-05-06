@@ -3,7 +3,7 @@
 import { makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
-import { type GetEffectContext, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { it } from "vitest"
@@ -289,7 +289,7 @@ Router(Something)({
   })
 })
 
-Router(Something)({
+const { routes: _routes } = Router(Something)({
   dependencies: [
     SomethingRepo.Default,
     SomethingService.Default,
@@ -299,6 +299,11 @@ Router(Something)({
     const repo = yield* SomethingRepo
     const smth = yield* SomethingService
     const smth2 = yield* SomethingService2
+
+    // this gets catched in 'routes' type
+    if (Math.random() > 0.5) {
+      return yield* new InvalidStateError("ciao")
+    }
 
     console.log({ repo, smth, smth2 })
 

@@ -205,6 +205,7 @@ export const makeRouter = <
     const items = typedKeysOf(filtered).reduce(
       (prev, cur) => {
         ;(prev as any)[cur] = Object.assign((fnOrEffect: any) => {
+          if (fnOrEffect[Symbol.toStringTag] === "GeneratorFunction") fnOrEffect = Effect.fnUntraced(fnOrEffect)
           const stack = new Error().stack?.split("\n").slice(2).join("\n")
           return Effect.isEffect(fnOrEffect)
             ? class {
@@ -342,13 +343,7 @@ export const makeRouter = <
       >
     } = (obj: Record<keyof Filtered, any>) =>
       typedKeysOf(obj).reduce((acc, cur) => {
-        if ("raw" in obj[cur]) {
-          acc[cur] = obj[cur].raw[Symbol.toStringTag] === "GeneratorFunction"
-            ? Effect.fnUntraced(obj[cur].raw)
-            : obj[cur].raw
-        } else {
-          acc[cur] = obj[cur][Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(obj[cur]) : obj[cur]
-        }
+        acc[cur] = "raw" in obj[cur] ? items[cur].raw(obj[cur].raw) : items[cur](obj[cur])
         return acc
       }, {} as any)
 

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.6.2
+
+### Patch Changes
+
+- a1e4b5b: Exports OmegaFormReturn type
+
 ## 0.6.1
 
 ### Patch Changes

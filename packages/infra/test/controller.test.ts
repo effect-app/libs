@@ -339,8 +339,5 @@ const { make: _make, routes: _routes } = Router(Something)({
   }
 })
 
-// expected to be InvalidStateError
 expectTypeOf({} as MakeErrors<typeof _make>).toEqualTypeOf<InvalidStateError>()
-
-// expected to be SomethingService | SomethingRepo | SomethingService2
 expectTypeOf({} as MakeContext<typeof _make>).toEqualTypeOf<SomethingService | SomethingRepo | SomethingService2>()

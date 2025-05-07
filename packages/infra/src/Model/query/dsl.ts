@@ -48,6 +48,8 @@ type ExtractTType<T> = T extends QueryTogether<any, any, any, any, any, any, inf
 type ExtractExclusiveness<T> = T extends QueryTogether<any, any, infer Exclusive extends boolean, any, any, any, any>
   ? Exclusive
   : never
+type ExtractFieldValues<T> = T extends QueryTogether<infer TFieldValues, any, any, any, any, any, any> ? TFieldValues
+  : never
 type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldValuesRefined, any, any, any, any, any>
   ? TFieldValuesRefined
   : never
@@ -216,6 +218,12 @@ export class Project<A, TFieldValues extends FieldValues, R, TType extends "one"
 export const make: <TFieldValues extends FieldValues>() => Query<TFieldValues> = () => new Initial()
 
 export const where: FilterWhere = (...operation: any[]) => (current: any) =>
+  new Where({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
+
+// the point is that the pipe overloads conflict with the other Where overloads when there are exactly three arguments
+// so a solution is to separate those overloads, or to use flow when there are three arguments
+// something similar should be done for or and and too
+export const wherePipe: NestedQueriesFixedRefinement<true> = (...operation: any[]) => (current: any) =>
   new Where({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
 
 export const and: FilterContinuationAnd = (...operation: any[]) => (current: any) =>
@@ -1938,7 +1946,6 @@ export type NestedQueriesFreeDisjointRefinement = {
 }
 
 export type FilterWhere =
-  & NestedQueriesFixedRefinement<true>
   & FilteringRefinements<true>
   & FilterContinuations<true>
 

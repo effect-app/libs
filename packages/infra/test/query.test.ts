@@ -5,7 +5,7 @@ import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-ap
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import { and, count, make, one, or, order, page, project, type QueryEnd, type QueryProjection, type QueryWhere, toFilter, where } from "../src/Model/query.js"
+import { and, count, make, one, or, order, page, project, type QueryEnd, type QueryProjection, type QueryWhere, toFilter, where, wherePipe } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 
@@ -1082,5 +1082,62 @@ it("refine union with nested union", () =>
           readonly nested: D
         })[]
       >()
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("support multiple ors", () =>
+  Effect
+    .gen(function*() {
+      class A extends S.TaggedClass<A>()("A", {
+        id: S.String,
+        a: S.String,
+        at: S.Date.withDefault,
+        things_a: S.Array(S.String)
+      }) {}
+
+      class B extends S.TaggedClass<B>()("B", {
+        id: S.String,
+        b: S.String,
+        at: S.Date.withDefault,
+        things_b: S.Array(S.String)
+      }) {}
+
+      class C extends S.TaggedClass<C>()("C", {
+        id: S.String,
+        c: S.String,
+        at: S.Date.withDefault,
+        things_c: S.Array(S.String)
+      }) {}
+
+      class D extends S.TaggedClass<D>()("D", {
+        id: S.String,
+        d: S.String,
+        at: S.Date.withDefault,
+        things_d: S.Array(S.String)
+      }) {}
+
+      class E extends S.TaggedClass<E>()("E", {
+        id: S.String,
+        e: S.String,
+        at: S.Date.withDefault,
+        things_e: S.Array(S.String)
+      }) {}
+
+      class Container extends S.TaggedClass<Container>()("Container", {
+        id: S.String,
+        state: S.Union(A, B, C, D, E)
+      }) {}
+
+      const repo = yield* makeRepo("container", Container, {})
+
+      const res_query = yield* repo.query(
+        // where("state.id", "test"),
+        wherePipe(
+          where("state._tag", "B"),
+          and("state.at", "gt", "2021-01-01T00:00:00Z"),
+          and("state.id", "test")
+          // and("state.id", "test")
+        )
+      )
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))

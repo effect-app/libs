@@ -228,6 +228,7 @@ export const makeRouter = <
             // e.g for direct projection from DB
             // but more importantly, to skip Effectful decoders, like to resolve relationships from the database or remote client.
             (fnOrEffect: any) => {
+              if (fnOrEffect[Symbol.toStringTag] === "GeneratorFunction") fnOrEffect = Effect.fnUntraced(fnOrEffect)
               const stack = new Error().stack?.split("\n").slice(2).join("\n")
               return Effect.isEffect(fnOrEffect)
                 ? class {

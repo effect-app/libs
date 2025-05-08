@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.55.2
+
+### Patch Changes
+
+- fix: raw
+
 ## 2.55.1
 
 ### Patch Changes

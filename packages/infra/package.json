@@ -342,6 +342,10 @@
       "types": "./dist/logger/shared.d.ts",
       "default": "./dist/logger/shared.js"
     },
+    "./pipegen": {
+      "types": "./dist/pipegen.d.ts",
+      "default": "./dist/pipegen.js"
+    },
     "./rateLimit": {
       "types": "./dist/rateLimit.d.ts",
       "default": "./dist/rateLimit.js"

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.6.3
+
+### Patch Changes
+
+- 587e832: Fixes checkbox standard behaviour and add switch type
+
 ## 0.6.2
 
 ### Patch Changes

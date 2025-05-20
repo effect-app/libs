@@ -14,6 +14,7 @@ import MetaFormComponent from "./OmegaForm/Meta.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
 import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 import ClearableComponent from "./OmegaForm/Clearable.vue"
+import BooleansComponent from "./OmegaForm/Booleans.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -118,5 +119,12 @@ export const Clearable: Story = {
   render: () => ({
     components: { ClearableComponent },
     template: "<ClearableComponent />",
+  }),
+}
+
+export const Booleans: Story = {
+  render: () => ({
+    components: { BooleansComponent },
+    template: "<BooleansComponent />",
   }),
 }

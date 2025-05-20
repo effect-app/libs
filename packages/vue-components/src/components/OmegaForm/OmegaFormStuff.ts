@@ -38,6 +38,7 @@ export type TypeOverride =
   | "boolean"
   | "autocomplete"
   | "autocompletemultiple"
+  | "switch"
 
 export interface OmegaError {
   label: string

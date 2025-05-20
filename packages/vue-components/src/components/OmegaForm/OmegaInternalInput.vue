@@ -76,7 +76,7 @@ const errors = computed(() =>
 watch(
   () => !!fieldValue.value,
   value => {
-    if (!value) {
+    if (!value && props.meta?.type !== "boolean") {
       nextTick(() => {
         fieldApi.setValue(
           props.meta?.nullableOrUndefined === "undefined" ? undefined : null,

@@ -4,8 +4,9 @@
     @focusout="$emit('blur', $event)"
     @focusin="$emit('focus', $event)"
   >
-    <v-checkbox
-      v-if="inputProps.type === 'boolean'"
+    <component
+      :is="inputProps.type === 'boolean' ? 'v-checkbox' : 'v-switch'"
+      v-if="inputProps.type === 'boolean' || inputProps.type === 'switch'"
       :id="inputProps.id"
       :name="inputProps.name"
       :label="inputProps.label"

@@ -62,8 +62,8 @@ importers:
         specifier: workspace:*
         version: link:packages/infra
       '@effect/language-service':
-        specifier: 0.10.0
-        version: 0.10.0
+        specifier: 0.16.5
+        version: 0.16.5
       '@effect/platform':
         specifier: ^0.80.20
         version: 0.80.20(effect@3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765))
@@ -172,6 +172,9 @@ importers:
       npm-check-updates:
         specifier: ^18.0.1
         version: 18.0.1
+      ts-patch:
+        specifier: ^2.0.5
+        version: 2.1.0(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98))
       ts-plugin-sort-import-suggestions:
         specifier: ^1.0.4
         version: 1.0.4(patch_hash=4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561)
@@ -1080,8 +1083,8 @@ packages:
       lmdb:
         optional: true
 
-  '@effect/language-service@0.10.0':
-    resolution: {integrity: sha512-bGjLhHflGFxqNXQn7qEGNrVAgWl3wVndbk9Zz+Zg2gK5qsz5mSVaruC88S050oaNqscqslDUVaFOsJZh+avmhQ==}
+  '@effect/language-service@0.16.5':
+    resolution: {integrity: sha512-pL2vRQXurF4IfLElALIppwIrRSMSLbkoAYNnRucmraqc6b8G59qaFv1i3x6LasWquiAV6WP4VpOjCEw7Gr44cQ==}
 
   '@effect/platform-browser@0.60.11':
     resolution: {integrity: sha512-2n+iigCvBgEfD8LvNQmp0r+fdiaWZ+2czF9+4fGMAQIukRLJPxiibr/v9dB/plkonxUlgmf2bUTmPwTKncDqeg==}
@@ -4244,6 +4247,10 @@ packages:
     engines: {node: '>=12'}
     deprecated: Glob versions prior to v9 are no longer supported
 
+  global-prefix@3.0.0:
+    resolution: {integrity: sha512-awConJSVCHVGND6x3tmMaKcQvwXLhjdkmomy2W+Goaui8YPgYgXJZewhg3fWC+DlfqqQuWg8AwqjGTD2nAPVWg==}
+    engines: {node: '>=6'}
+
   globals@11.12.0:
     resolution: {integrity: sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==}
     engines: {node: '>=4'}
@@ -4757,6 +4764,10 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  kind-of@6.0.3:
+    resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
+    engines: {node: '>=0.10.0'}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -5587,6 +5598,10 @@ packages:
     resolution: {integrity: sha512-YTUo+Flmw4ZXiWfQKGcwwc11KnoRAYgzAE2E7mXKCjSviTKShtxBsN6YUUBB2gtaBzKzeKunxhUwNHQuRryhWA==}
     engines: {node: '>= 4'}
 
+  rechoir@0.6.2:
+    resolution: {integrity: sha512-HFM8rkZ+i3zrV+4LQjwQ0W+ez98pApMGM3HUrN04j3CqzPOzl9nmP15Y8YXNm8QHGv/eacOVEjqhmWpkRV0NAw==}
+    engines: {node: '>= 0.10'}
+
   redent@3.0.0:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
@@ -5814,6 +5829,11 @@ packages:
 
   shell-quote@1.8.1:
     resolution: {integrity: sha512-6j1W9l1iAs/4xYBI1SYOVZyFcCis9b4KCLQ8fgAGG07QvzaRLVVRQvAy85yNmmZSjYjg4MWh4gNvlPujU/5LpA==}
+
+  shelljs@0.8.5:
+    resolution: {integrity: sha512-TiwcRcrkhHvbrZbnRcFYMLl30Dfov3HKqzp5tO5b4pt6G/SezKcYhmDg15zXVBswHmctSAQKznqNW2LO5tTDow==}
+    engines: {node: '>=4'}
+    hasBin: true
 
   shiki@2.5.0:
     resolution: {integrity: sha512-mI//trrsaiCIPsja5CNfsyNOqgAZUb6VpJA+340toL42UpzQlXpwRV9nch69X6gaUxrr9kaOOa6e3y3uAkGFxQ==}
@@ -6194,6 +6214,12 @@ packages:
 
   ts-map@1.0.3:
     resolution: {integrity: sha512-vDWbsl26LIcPGmDpoVzjEP6+hvHZkBkLW7JpvwbCv/5IYPJlsbzCVXY3wsCeAxAUeTclNOUZxnLdGh3VBD/J6w==}
+
+  ts-patch@2.1.0:
+    resolution: {integrity: sha512-+6LbQSGgHUnK+grgk9nvKhesc0/dDNxms0IL1XPZeTfmPFCx/QSuwz9k+9yFe0xYDD7xBlHYK0Zp0qrTCaJcAw==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=4.0.0'
 
   ts-pattern@5.7.0:
     resolution: {integrity: sha512-0/FvIG4g3kNkYgbNwBBW5pZBkfpeYQnH+2AA3xmjkCAit/DSDPKmgwC3fKof4oYUq6gupClVOJlFl+939VRBMg==}
@@ -6665,6 +6691,10 @@ packages:
   which-typed-array@1.1.15:
     resolution: {integrity: sha512-oV0jmFtUky6CXfkqehVvBP/LSWJ2sy4vWMioiENyJLePrBO/yKyV9OyJySfAKosh+RYkIl5zJCNZ8/4JncrpdA==}
     engines: {node: '>= 0.4'}
+
+  which@1.3.1:
+    resolution: {integrity: sha512-HxJdYWq1MTIQbJ3nw0cqssHoTNU267KlrDuGZ1WYlxDStUtKUhOaJmh112/TZmHxxUfuJqPXSOm7tDyas0OSIQ==}
+    hasBin: true
 
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
@@ -7413,7 +7443,7 @@ snapshots:
       effect: 3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765)
       uuid: 11.1.0
 
-  '@effect/language-service@0.10.0': {}
+  '@effect/language-service@0.16.5': {}
 
   '@effect/platform-browser@0.60.11(@effect/platform@0.80.20(effect@3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765)))(effect@3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765))':
     dependencies:
@@ -11003,6 +11033,12 @@ snapshots:
       minimatch: 5.1.2
       once: 1.4.0
 
+  global-prefix@3.0.0:
+    dependencies:
+      ini: 1.3.8
+      kind-of: 6.0.3
+      which: 1.3.1
+
   globals@11.12.0: {}
 
   globals@14.0.0: {}
@@ -11504,6 +11540,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  kind-of@6.0.3: {}
 
   levn@0.4.1:
     dependencies:
@@ -12337,6 +12375,10 @@ snapshots:
       tiny-invariant: 1.3.3
       tslib: 2.8.1
 
+  rechoir@0.6.2:
+    dependencies:
+      resolve: 1.22.8
+
   redent@3.0.0:
     dependencies:
       indent-string: 4.0.0
@@ -12613,6 +12655,12 @@ snapshots:
   shebang-regex@3.0.0: {}
 
   shell-quote@1.8.1: {}
+
+  shelljs@0.8.5:
+    dependencies:
+      glob: 7.2.3
+      interpret: 1.4.0
+      rechoir: 0.6.2
 
   shiki@2.5.0:
     dependencies:
@@ -12981,6 +13029,17 @@ snapshots:
       '@ts-graphviz/core': 2.0.5
 
   ts-map@1.0.3: {}
+
+  ts-patch@2.1.0(typescript@5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)):
+    dependencies:
+      chalk: 4.1.2
+      glob: 8.1.0
+      global-prefix: 3.0.0
+      minimist: 1.2.8
+      resolve: 1.22.8
+      shelljs: 0.8.5
+      strip-ansi: 6.0.1
+      typescript: 5.8.3(patch_hash=7af373fd9f312fc5d8a2eaa8d73521d9506fdcc3acb360e7da5ef59524637f98)
 
   ts-pattern@5.7.0: {}
 
@@ -13555,6 +13614,10 @@ snapshots:
       for-each: 0.3.3
       gopd: 1.2.0
       has-tostringtag: 1.0.2
+
+  which@1.3.1:
+    dependencies:
+      isexe: 2.0.0
 
   which@2.0.2:
     dependencies:

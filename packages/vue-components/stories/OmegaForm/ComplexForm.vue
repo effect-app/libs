@@ -34,6 +34,16 @@
         { title: 'c', value: 'c' },
       ]"
     />
+    <OmegaInput
+      label="aMultiple"
+      :form="exampleForm"
+      name="aMultiple"
+      type="autocomplete"
+      :options="[
+        { title: 'a', value: 'a' },
+        { title: 'b', value: 'b' },
+      ]"
+    />
     <button>Submit</button>
     <button type="reset" @click.prevent="exampleForm.clear()">Clear</button>
     <button type="button" @click="exampleForm.reset()">Reset</button>
@@ -61,6 +71,7 @@ const exampleForm = useOmegaForm(
     aNumberMin2Max: S.Number.pipe(S.greaterThan(2)).pipe(S.lessThan(4)),
     aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.between(2, 4))),
     aSelect: S.Union(S.Literal("a"), S.Literal("b"), S.Literal("c")),
+    aMultiple: S.Array(S.String),
   }),
   {
     onSubmit: ({

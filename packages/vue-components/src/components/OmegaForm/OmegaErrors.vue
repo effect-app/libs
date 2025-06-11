@@ -130,15 +130,19 @@ const showedGeneralErrors = computed(() => {
   }
 }
 
+.error-list {
+  list-style-position: inside;
+}
+
 div.error-list {
   container-type: inline-size;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 0.5em;
+  gap: 1.5em;
   align-items: start;
 }
 
-@container (max-width: 28.125rem) {
+@container (max-width: 27.125rem) {
   div.error-list {
     grid-template-columns: auto 1fr;
   }
@@ -149,7 +153,7 @@ div.error-list {
   }
 }
 
-@container (max-width: 18.75rem) {
+@container (max-width: 17.75rem) {
   div.error-list {
     grid-template-columns: 1fr;
   }

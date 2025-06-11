@@ -1,17 +1,26 @@
 <template>
   <OmegaForm :form="form" :subscribe="['values']">
     <template #externalForm>
-      <OmegaArray array :form="form" name="User">
+      <OmegaArray array :form="form" name="Users">
         <template #default="{ index }">
           <OmegaInput
             :form="form"
-            :name="`User[${index}].name`"
+            :name="`Users[${index}].name`"
             :label="`name ${index}`"
           />
-          <form.Input :name="`User[${index}].age`" :label="`age ${index}`" />
+          <form.Input :name="`Users[${index}].age`" :label="`age ${index}`" />
+        </template>
+        <template #field="{ field }">
+          <v-btn
+            type="button"
+            variant="tonal"
+            @click="field.pushValue({ age: 0 })"
+          >
+            add
+          </v-btn>
         </template>
       </OmegaArray>
-      <button>submit</button>
+      <v-btn type="submit" variant="plain">submit</v-btn>
     </template>
   </OmegaForm>
 </template>
@@ -26,18 +35,20 @@ import {
 } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
-  User: S.Array(S.Struct({ name: S.String, age: S.Number })),
+  Users: S.Array(
+    S.Struct({ name: S.String, age: S.Number.pipe(S.greaterThan(18)) }),
+  ),
 })
 
 const form = useOmegaForm(schema, {
   defaultValues: {
-    User: [
+    Users: [
       { name: "Mario Mario", age: 33 },
       { name: "Luigi Mario", age: 31 },
     ],
   },
-  onSubmit: values => {
-    console.log(values)
+  onSubmit: ({ value }) => {
+    console.log(value)
   },
 })
 </script>

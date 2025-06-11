@@ -6,13 +6,13 @@
   >
     <template #externalForm="{ subscribedValues: { values } }">
       <div>values: {{ values }}</div>
-      <form.Input name="a" label="Nullable value" clearable />
+      <form.Input name="aaa" label="Nullable value" clearable />
       <button type="submit">submit</button>
     </template>
   </OmegaForm>
 </template>
 
-<script setup lang="ts" generic="_, To">
+<script setup lang="ts">
 import { S } from "effect-app"
 import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
 

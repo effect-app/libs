@@ -10,6 +10,7 @@
         <template #default="{ field: subField, state: subState }">
           <slot
             v-bind="{
+              field,
               subField,
               subState,
               index: i,
@@ -17,6 +18,7 @@
           />
         </template>
       </component>
+      <slot name="field" v-bind="{ field }" />
     </template>
   </component>
 </template>
@@ -51,7 +53,6 @@ const getMetaFromArray = computed(() => {
     )
 
     const arrayMeta = createMeta(propertySignatures)
-    console.log(arrayMeta)
     const getMeta = (index: string) => {
       const parts = index.split("].")
       const key = parts[parts.length - 1]

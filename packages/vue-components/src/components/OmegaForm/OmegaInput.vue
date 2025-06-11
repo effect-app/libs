@@ -41,8 +41,10 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const getMetaFromArray =
-  inject<Ref<(name: string) => FieldMeta | null>>("getMetaFromArray")
+const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
+  "getMetaFromArray",
+  null,
+)
 
 const meta = computed(() => {
   if (getMetaFromArray?.value && getMetaFromArray.value(props.name)) {

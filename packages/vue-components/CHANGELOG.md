@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.1
+
+### Patch Changes
+
+- 24f7a8f: Shout down vue warn for missing provider, 'cause is managed
+
 ## 0.7.0
 
 ### Minor Changes

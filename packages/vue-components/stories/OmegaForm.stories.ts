@@ -15,6 +15,7 @@ import FormInputComponent from "./OmegaForm/form.Input.vue"
 import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 import ClearableComponent from "./OmegaForm/Clearable.vue"
 import BooleansComponent from "./OmegaForm/Booleans.vue"
+import DateComponent from "./OmegaForm/Date.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -126,5 +127,12 @@ export const Booleans: Story = {
   render: () => ({
     components: { BooleansComponent },
     template: "<BooleansComponent />",
+  }),
+}
+
+export const Date: Story = {
+  render: () => ({
+    components: { DateComponent },
+    template: "<DateComponent />",
   }),
 }

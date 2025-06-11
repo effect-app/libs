@@ -16,6 +16,7 @@ import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWri
 import ClearableComponent from "./OmegaForm/Clearable.vue"
 import BooleansComponent from "./OmegaForm/Booleans.vue"
 import DateComponent from "./OmegaForm/Date.vue"
+import ArrayComponent from "./OmegaForm/Array.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -134,5 +135,11 @@ export const Date: Story = {
   render: () => ({
     components: { DateComponent },
     template: "<DateComponent />",
+  }),
+}
+export const Array: Story = {
+  render: () => ({
+    components: { ArrayComponent },
+    template: "<ArrayComponent />",
   }),
 }

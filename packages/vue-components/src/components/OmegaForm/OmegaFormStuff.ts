@@ -170,6 +170,7 @@ export type SelectFieldMeta = BaseFieldMeta & {
 export type MultipleFieldMeta = BaseFieldMeta & {
   type: "multiple"
   members: any[]
+  rest: S.AST.Type[]
 }
 
 export type BooleanFieldMeta = BaseFieldMeta & {
@@ -230,7 +231,7 @@ const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
   return false
 }
 
-const createMeta = <T = any>(
+export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
   acc: Partial<MetaRecord<T>> = {},
 ): MetaRecord<T> | FieldMeta => {
@@ -326,6 +327,7 @@ const createMeta = <T = any>(
         ...meta,
         type: "multiple",
         members: property.elements,
+        rest: property.rest,
       } as FieldMeta
     }
 
@@ -430,6 +432,7 @@ export const generateMetaFromSchema = <From, To>(
     ),
     Option.getOrUndefined,
   )
+
   return { schema, meta, filterItems }
 }
 

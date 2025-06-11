@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.0
+
+### Minor Changes
+
+- f5968af: Adds array fields in Omega Form
+
 ## 0.6.3
 
 ### Patch Changes

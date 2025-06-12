@@ -24,36 +24,64 @@
 </template>
 
 <script setup lang="ts" generic="From, To">
-import { computed, provide } from "vue"
-import { type OmegaInputProps, createMeta } from "./OmegaFormStuff"
-import { type S } from "effect-app"
+import { computed, onMounted, provide, watch } from "vue"
+import {
+  type CreateMeta,
+  type OmegaInputProps,
+  createMeta,
+} from "./OmegaFormStuff"
+import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
 
-const props =
-  defineProps<
-    Omit<OmegaInputProps<From, To>, "validators" | "options" | "label" | "type">
-  >()
+const props = defineProps<
+  Omit<
+    OmegaInputProps<From, To>,
+    "validators" | "options" | "label" | "type" | "items"
+  > & {
+    items?: DeepValue<From, DeepKeys<To>>
+  }
+>()
 
 defineOptions({
   inheritAttrs: false,
 })
 
+onMounted(() => {
+  if (props.items) {
+    props.form.setFieldValue(props.name, props.items)
+  }
+})
+
+watch(
+  () => props.items,
+  async items => {
+    if (items) {
+      props.form.setFieldValue(props.name, items)
+    }
+  },
+)
+
 const getMetaFromArray = computed(() => {
   const inputMeta = props.form.meta[props.name]
   if (inputMeta && inputMeta.type === "multiple") {
-    const propertySignatures = inputMeta.rest.reduce(
-      (acc, curr) => {
-        if (curr.type._tag === "TypeLiteral") {
-          acc.propertySignatures.push(...curr.type.propertySignatures)
-        }
-        return acc
-      },
-      {
-        propertySignatures: [],
-      } as { propertySignatures: S.AST.PropertySignature[] },
-    )
+    const result = inputMeta.rest.reduce<CreateMeta>((acc, curr) => {
+      if (curr.type._tag === "TypeLiteral") {
+        return {
+          ...acc,
+          propertySignatures: [
+            ...(acc.propertySignatures || []),
+            ...curr.type.propertySignatures,
+          ],
+        } as CreateMeta
+      }
+      return {
+        ...acc,
+        property: curr.type,
+      } as CreateMeta
+    }, {} as CreateMeta)
 
-    const arrayMeta = createMeta(propertySignatures)
+    const arrayMeta = createMeta({ ...result, meta: inputMeta })
     const getMeta = (index: string) => {
+      if (index.endsWith("]")) return arrayMeta
       const parts = index.split("].")
       const key = parts[parts.length - 1]
       return arrayMeta[key as keyof typeof arrayMeta]

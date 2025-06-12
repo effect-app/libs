@@ -23,7 +23,7 @@
   </component>
 </template>
 
-<script setup lang="ts" generic="From, To">
+<script setup lang="ts" generic="T">
 import { computed, onMounted, provide, watch } from "vue"
 import {
   type CreateMeta,
@@ -34,10 +34,10 @@ import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
 
 const props = defineProps<
   Omit<
-    OmegaInputProps<From, To>,
+    OmegaInputProps<T, T>,
     "validators" | "options" | "label" | "type" | "items"
   > & {
-    items?: DeepValue<From, DeepKeys<To>>
+    items?: DeepValue<T, DeepKeys<T>>
   }
 >()
 

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.3
+
+### Patch Changes
+
+- 127c9d0: Adds items prop to OmegaArray and fixes plain items management
+
 ## 0.7.2
 
 ### Patch Changes

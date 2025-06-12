@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.4
+
+### Patch Changes
+
+- 26ba725: Fix type mismatch
+
 ## 0.7.3
 
 ### Patch Changes

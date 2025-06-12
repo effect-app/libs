@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.2
+
+### Patch Changes
+
+- ec9d31e: Fix build
+
 ## 0.7.1
 
 ### Patch Changes

@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts" generic="From, To">
-import { computed, onMounted, provide, watch } from "vue"
+import { computed, onMounted, provide } from "vue"
 import {
   type CreateMeta,
   type OmegaInputProps,
@@ -50,15 +50,6 @@ onMounted(() => {
     props.form.setFieldValue(props.name as any, props.items)
   }
 })
-
-watch(
-  () => props.items,
-  async items => {
-    if (items) {
-      props.form.setFieldValue(props.name as any, items)
-    }
-  },
-)
 
 const getMetaFromArray = computed(() => {
   const inputMeta = props.form.meta[props.name]

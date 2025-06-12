@@ -1,7 +1,7 @@
 <template>
   <OmegaForm :form="form" :subscribe="['values']">
     <template #externalForm>
-      <OmegaArray array :form="form" name="Users">
+      <OmegaArray :form="form" name="Users">
         <template #default="{ index }">
           <OmegaInput
             :form="form"
@@ -27,7 +27,7 @@
   <h2>Passing OmegaArray elements as a prop</h2>
   <OmegaForm :form="form2" :subscribe="['values']">
     <template #externalForm>
-      <OmegaArray array :form="form2" name="string" :items="randomItems">
+      <OmegaArray :form="form2" name="string" :items="randomItems">
         <template #default="{ index }">
           <OmegaInput
             :form="form2"

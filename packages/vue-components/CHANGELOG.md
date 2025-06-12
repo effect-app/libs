@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.6
+
+### Patch Changes
+
+- b4e7a51: removes watcher on default items of OmegaArray
+
 ## 0.7.5
 
 ### Patch Changes

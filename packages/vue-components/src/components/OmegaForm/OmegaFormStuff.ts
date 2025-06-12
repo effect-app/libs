@@ -201,7 +201,7 @@ export type FilterItems = {
     | { readonly message: string | Effect.Effect<string> }
 }
 
-type CreateMeta = {
+export type CreateMeta = {
   parent?: string
   meta?: Record<string, any>
   nullableOrUndefined?: false | "undefined" | "null"

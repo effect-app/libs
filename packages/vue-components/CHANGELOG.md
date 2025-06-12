@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.5
+
+### Patch Changes
+
+- 57afead: fixes vue inference
+
 ## 0.7.4
 
 ### Patch Changes

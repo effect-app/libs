@@ -23,7 +23,7 @@
   </component>
 </template>
 
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="From, To">
 import { computed, onMounted, provide, watch } from "vue"
 import {
   type CreateMeta,
@@ -34,10 +34,10 @@ import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
 
 const props = defineProps<
   Omit<
-    OmegaInputProps<T, T>,
+    OmegaInputProps<From, To>,
     "validators" | "options" | "label" | "type" | "items"
   > & {
-    items?: DeepValue<T, DeepKeys<T>>
+    items?: DeepValue<To, DeepKeys<To>>
   }
 >()
 
@@ -47,7 +47,7 @@ defineOptions({
 
 onMounted(() => {
   if (props.items) {
-    props.form.setFieldValue(props.name, props.items)
+    props.form.setFieldValue(props.name as any, props.items)
   }
 })
 
@@ -55,7 +55,7 @@ watch(
   () => props.items,
   async items => {
     if (items) {
-      props.form.setFieldValue(props.name, items)
+      props.form.setFieldValue(props.name as any, items)
     }
   },
 )

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.8.1
+
+### Patch Changes
+
+- 380ed56: fixes wrong use of watched proxy in setValue for empty input in OmegaForm
+
 ## 0.8.0
 
 ### Minor Changes

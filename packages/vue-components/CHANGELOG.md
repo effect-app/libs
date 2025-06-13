@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.7.7
+
+### Patch Changes
+
+- a2846db: Fixes false positive setValue with falsy value like 0 as input value
+
 ## 0.7.6
 
 ### Patch Changes

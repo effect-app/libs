@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.8.0
+
+### Minor Changes
+
+- 08d0c44: Adds vuetify slider to type range
+
 ## 0.7.7
 
 ### Patch Changes

@@ -79,8 +79,8 @@ const isFalsyButNotZero = (value: unknown): boolean => {
 //watchEffect will trigger infinite times with both free fieldValue and errors, so bet to watch a stupid boolean
 watch(
   () => !!fieldValue.value,
-  value => {
-    if (isFalsyButNotZero(value) && props.meta?.type !== "boolean") {
+  () => {
+    if (isFalsyButNotZero(fieldValue.value) && props.meta?.type !== "boolean") {
       nextTick(() => {
         fieldApi.setValue(
           props.meta?.nullableOrUndefined === "undefined" ? undefined : null,

@@ -12,7 +12,13 @@
       :form="exampleForm"
       name="aStringMin2Max3Nullable"
     />
-    <OmegaInput label="aNumber" :form="exampleForm" name="aNumber" />
+    <OmegaInput
+      label="aNumber"
+      :form="exampleForm"
+      name="aNumber"
+      type="range"
+      :step="0.1"
+    />
     <OmegaInput label="aNumberMin2" :form="exampleForm" name="aNumberMin2" />
     <OmegaInput
       label="aNumberMin2Max"

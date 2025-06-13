@@ -47,8 +47,9 @@
       :model-value="vuetifyValue"
       @update:model-value="inputProps.field.handleChange"
     />
-    <v-text-field
-      v-if="inputProps.type === 'number'"
+    <component
+      :is="inputProps.type === 'range' ? 'v-slider' : 'v-text-field'"
+      v-if="inputProps.type === 'number' || inputProps.type === 'range'"
       :id="inputProps.id"
       :required="inputProps.required"
       :min="inputProps.min"

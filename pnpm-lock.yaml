@@ -62,8 +62,8 @@ importers:
         specifier: workspace:*
         version: link:packages/infra
       '@effect/language-service':
-        specifier: 0.10.0
-        version: 0.10.0
+        specifier: 0.16.5
+        version: 0.16.5
       '@effect/platform':
         specifier: ^0.80.20
         version: 0.80.20(effect@3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765))
@@ -172,6 +172,9 @@ importers:
       npm-check-updates:
         specifier: ^18.0.1
         version: 18.0.1
+      ts-patch:
+        specifier: ^3.3.0
+        version: 3.3.0
       ts-plugin-sort-import-suggestions:
         specifier: ^1.0.4
         version: 1.0.4(patch_hash=4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561)
@@ -1080,8 +1083,8 @@ packages:
       lmdb:
         optional: true
 
-  '@effect/language-service@0.10.0':
-    resolution: {integrity: sha512-bGjLhHflGFxqNXQn7qEGNrVAgWl3wVndbk9Zz+Zg2gK5qsz5mSVaruC88S050oaNqscqslDUVaFOsJZh+avmhQ==}
+  '@effect/language-service@0.16.5':
+    resolution: {integrity: sha512-pL2vRQXurF4IfLElALIppwIrRSMSLbkoAYNnRucmraqc6b8G59qaFv1i3x6LasWquiAV6WP4VpOjCEw7Gr44cQ==}
 
   '@effect/platform-browser@0.60.11':
     resolution: {integrity: sha512-2n+iigCvBgEfD8LvNQmp0r+fdiaWZ+2czF9+4fGMAQIukRLJPxiibr/v9dB/plkonxUlgmf2bUTmPwTKncDqeg==}
@@ -4244,6 +4247,10 @@ packages:
     engines: {node: '>=12'}
     deprecated: Glob versions prior to v9 are no longer supported
 
+  global-prefix@4.0.0:
+    resolution: {integrity: sha512-w0Uf9Y9/nyHinEk5vMJKRie+wa4kR5hmDbEhGGds/kG1PwGLLHKRoNMeJOyCQjjBkANlnScqgzcFwGHgmgLkVA==}
+    engines: {node: '>=16'}
+
   globals@11.12.0:
     resolution: {integrity: sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==}
     engines: {node: '>=4'}
@@ -4406,6 +4413,10 @@ packages:
 
   ini@1.3.8:
     resolution: {integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==}
+
+  ini@4.1.3:
+    resolution: {integrity: sha512-X7rqawQBvfdjS10YU1y1YVreA3SsLrW9dX2CewP2EbBJM4ypVNLDkO5y04gejPwKIY9lR+7r9gn3rFPt/kmWFg==}
+    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
 
   internal-slot@1.1.0:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
@@ -4611,6 +4622,10 @@ packages:
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
+  isexe@3.1.1:
+    resolution: {integrity: sha512-LpB/54B+/2J5hqQ7imZHfdU31OlgQqx7ZicVlkm9kzg9/w8GKLEcFfJl/t7DCEDueOyBAD6zCCwTO6Fzs0NoEQ==}
+    engines: {node: '>=16'}
+
   jackspeak@3.4.3:
     resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
 
@@ -4757,6 +4772,10 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  kind-of@6.0.3:
+    resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
+    engines: {node: '>=0.10.0'}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -6195,6 +6214,10 @@ packages:
   ts-map@1.0.3:
     resolution: {integrity: sha512-vDWbsl26LIcPGmDpoVzjEP6+hvHZkBkLW7JpvwbCv/5IYPJlsbzCVXY3wsCeAxAUeTclNOUZxnLdGh3VBD/J6w==}
 
+  ts-patch@3.3.0:
+    resolution: {integrity: sha512-zAOzDnd5qsfEnjd9IGy1IRuvA7ygyyxxdxesbhMdutt8AHFjD8Vw8hU2rMF89HX1BKRWFYqKHrO8Q6lw0NeUZg==}
+    hasBin: true
+
   ts-pattern@5.7.0:
     resolution: {integrity: sha512-0/FvIG4g3kNkYgbNwBBW5pZBkfpeYQnH+2AA3xmjkCAit/DSDPKmgwC3fKof4oYUq6gupClVOJlFl+939VRBMg==}
 
@@ -6669,6 +6692,11 @@ packages:
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
+    hasBin: true
+
+  which@4.0.0:
+    resolution: {integrity: sha512-GlaYyEb07DPxYCKhKzplCWBJtvxZcZMrL+4UkrTSJHHPyZU4mYYTv3qaOe77H7EODLSSopAUFAc6W8U4yqvscg==}
+    engines: {node: ^16.13.0 || >=18.0.0}
     hasBin: true
 
   why-is-node-running@2.3.0:
@@ -7413,7 +7441,7 @@ snapshots:
       effect: 3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765)
       uuid: 11.1.0
 
-  '@effect/language-service@0.10.0': {}
+  '@effect/language-service@0.16.5': {}
 
   '@effect/platform-browser@0.60.11(@effect/platform@0.80.20(effect@3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765)))(effect@3.14.20(patch_hash=ffe6d96fd342c3a44a239a4eb44ac635b2a37d3e7aef17e54f9e94f259ee5765))':
     dependencies:
@@ -11003,6 +11031,12 @@ snapshots:
       minimatch: 5.1.2
       once: 1.4.0
 
+  global-prefix@4.0.0:
+    dependencies:
+      ini: 4.1.3
+      kind-of: 6.0.3
+      which: 4.0.0
+
   globals@11.12.0: {}
 
   globals@14.0.0: {}
@@ -11159,6 +11193,8 @@ snapshots:
   inherits@2.0.4: {}
 
   ini@1.3.8: {}
+
+  ini@4.1.3: {}
 
   internal-slot@1.1.0:
     dependencies:
@@ -11335,6 +11371,8 @@ snapshots:
 
   isexe@2.0.0: {}
 
+  isexe@3.1.1: {}
+
   jackspeak@3.4.3:
     dependencies:
       '@isaacs/cliui': 8.0.2
@@ -11504,6 +11542,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  kind-of@6.0.3: {}
 
   levn@0.4.1:
     dependencies:
@@ -12982,6 +13022,15 @@ snapshots:
 
   ts-map@1.0.3: {}
 
+  ts-patch@3.3.0:
+    dependencies:
+      chalk: 4.1.2
+      global-prefix: 4.0.0
+      minimist: 1.2.8
+      resolve: 1.22.8
+      semver: 7.7.1
+      strip-ansi: 6.0.1
+
   ts-pattern@5.7.0: {}
 
   ts-plugin-sort-import-suggestions@1.0.4(patch_hash=4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561): {}
@@ -13559,6 +13608,10 @@ snapshots:
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
+
+  which@4.0.0:
+    dependencies:
+      isexe: 3.1.1
 
   why-is-node-running@2.3.0:
     dependencies:

@@ -45,12 +45,8 @@ export function provideOmegaErrors(
   }
 
   const showErrors = computed(() => {
-    switch (showErrorsOn) {
-      case "onChange":
-        return true
-      default:
-        return formSubmissionAttempts.value > 0
-    }
+    if (showErrorsOn === "onSubmit") return formSubmissionAttempts.value > 0
+    return true
   })
 
   const context = {

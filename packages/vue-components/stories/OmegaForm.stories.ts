@@ -17,6 +17,7 @@ import ClearableComponent from "./OmegaForm/Clearable.vue"
 import BooleansComponent from "./OmegaForm/Booleans.vue"
 import DateComponent from "./OmegaForm/Date.vue"
 import ArrayComponent from "./OmegaForm/Array.vue"
+import TanstackComponent from "./OmegaForm/Tanstack.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -141,5 +142,12 @@ export const Array: Story = {
   render: () => ({
     components: { ArrayComponent },
     template: "<ArrayComponent />",
+  }),
+}
+
+export const Tanstack: Story = {
+  render: () => ({
+    components: { TanstackComponent },
+    template: "<TanstackComponent />",
   }),
 }

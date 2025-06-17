@@ -25,20 +25,14 @@ const schema = S.Struct({
   email: S.Email,
   confirm: S.Email,
 }).pipe(
-  S.filter(
-    form => {
-      if (form.email !== form.confirm) {
-        return false
+  S.filter(form => {
+    if (form.email !== form.confirm) {
+      return {
+        path: ["confirm"],
+        message: "Email and confirmation must match!",
       }
-      return true
-    },
-    {
-      message: () => "Email and confirmation must match",
-      jsonSchema: {
-        items: ["confirm"],
-      },
-    },
-  ),
+    }
+  }),
 )
 
 const defaultValues = {

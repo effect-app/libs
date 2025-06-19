@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 0.8.2
+
+### Patch Changes
+
+- 94a43dd: Adds support to union with nested struct
+- cf61b34: Adds showErrorsOnBlur
+- 37bfc38: Fixes vuetify nullable number
+
 ## 0.8.1
 
 ### Patch Changes

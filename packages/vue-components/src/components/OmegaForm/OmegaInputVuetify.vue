@@ -63,7 +63,11 @@
       :model-value="vuetifyValue"
       @update:model-value="
         (e: any) => {
-          inputProps.field.handleChange(Number(e))
+          if (e || e === 0) {
+            inputProps.field.handleChange(Number(e))
+          } else {
+            inputProps.field.handleChange(undefined)
+          }
         }
       "
     />

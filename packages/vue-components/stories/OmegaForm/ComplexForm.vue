@@ -29,6 +29,7 @@
       label="aNumberMin2Max4Nullable"
       :form="exampleForm"
       name="aNumberMin2Max4Nullable"
+      clearable
     />
     <OmegaInput
       label="aSelect"

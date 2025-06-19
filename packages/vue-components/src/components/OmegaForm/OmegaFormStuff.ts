@@ -257,13 +257,48 @@ export const createMeta = <T = any>(
       const nullableOrUndefined = isNullableOrUndefined(p.type)
       const isRequired = !nullableOrUndefined
 
-      let typeToProcess = p.type
+      const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
-        typeToProcess = p.type.types.find(
+        const nonNullTypes = p.type.types.filter(
           t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast,
-        )!
-      }
+        )
 
+        const hasStructMembers = nonNullTypes.some(
+          t => "propertySignatures" in t,
+        )
+
+        if (hasStructMembers) {
+          // Create metadata for the parent level (the union itself)
+          const parentMeta = createMeta<T>({
+            parent: key,
+            property: p.type,
+            meta: { required: isRequired, nullableOrUndefined },
+          })
+          acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+
+          // Process each non-null type and merge their metadata
+          for (const nonNullType of nonNullTypes) {
+            if ("propertySignatures" in nonNullType) {
+              Object.assign(
+                acc,
+                createMeta<T>({
+                  parent: key,
+                  propertySignatures: nonNullType.propertySignatures,
+                  meta: { required: isRequired, nullableOrUndefined },
+                }),
+              )
+            }
+          }
+        } else {
+          // If no struct members, process as regular union
+          const newMeta = createMeta<T>({
+            parent: key,
+            property: p.type,
+            meta: { required: isRequired, nullableOrUndefined },
+          })
+          acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
+        }
+      }
       if ("propertySignatures" in typeToProcess) {
         Object.assign(
           acc,

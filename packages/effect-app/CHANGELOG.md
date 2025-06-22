@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.41.0
+
+### Minor Changes
+
+- b1d4af4: housekeeping: update packages
+
 ## 2.40.1
 
 ### Patch Changes

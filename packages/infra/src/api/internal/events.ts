@@ -8,13 +8,16 @@ import { setupRequestContextFromCurrent } from "../setupRequest.js"
 const setRetry = Stream.succeed("retry: 10000")
 const keepAlive = Stream.repeat(Effect.succeed(":keep-alive"), Schedule.fixed(Duration.seconds(15)))
 
+let connId = BigInt(0)
+
 export const makeSSE = <A extends { id: any }, SI, SR>(
   schema: S.Schema<A, SI, SR>
 ) =>
 <E, R>(events: Stream.Stream<{ evt: A; namespace: string }, E, R>) =>
   Effect
     .gen(function*() {
-      yield* InfraLogger.logInfo("$ start listening to events")
+      const id = connId++
+      yield* InfraLogger.logInfo("$ start listening to events, id: ", id)
 
       const enc = new TextEncoder()
 
@@ -39,6 +42,7 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
         stream
           .pipe(
             Stream.tapErrorCause(reportError("Request")),
+            Stream.onDone(() => InfraLogger.logInfo("$ close connection, id: ", id)),
             Stream.provideContext(ctx)
           ),
         {

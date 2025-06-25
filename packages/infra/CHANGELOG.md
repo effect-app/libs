@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.56.3
+
+### Patch Changes
+
+- db3dafc: improve: SSE logs
+
 ## 2.56.2
 
 ### Patch Changes

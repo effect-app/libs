@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.56.2
+
+### Patch Changes
+
+- 90670bb: fix bigint serialisation error
+
 ## 2.56.1
 
 ### Patch Changes

@@ -17,7 +17,10 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
   Effect
     .gen(function*() {
       const id = connId++
-      yield* InfraLogger.logInfo("$ start listening to events, id: ", id.toString())
+
+      yield* Effect.annotateCurrentSpan({ connectionId: id.toString() })
+      yield* InfraLogger.logInfo("$ start listening to events, id: " + id.toString())
+      yield* Effect.addFinalizer(() => InfraLogger.logInfo("$ end listening to events, id: " + id.toString()))
 
       const enc = new TextEncoder()
 
@@ -42,7 +45,6 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
         stream
           .pipe(
             Stream.tapErrorCause(reportError("Request")),
-            Stream.onDone(() => InfraLogger.logInfo("$ close connection, id: ", id.toString())),
             Stream.provideContext(ctx)
           ),
         {

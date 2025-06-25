@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.56.1
+
+### Patch Changes
+
+- cd0f564: improve: add connection id logging for SSE
+
 ## 2.56.0
 
 ### Minor Changes

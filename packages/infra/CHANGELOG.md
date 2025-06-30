@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.57.0
+
+### Minor Changes
+
+- ba96171: improve Cosmos errors
+
+### Patch Changes
+
+- Updated dependencies [ba96171]
+  - effect-app@2.42.0
+
 ## 2.56.3
 
 ### Patch Changes

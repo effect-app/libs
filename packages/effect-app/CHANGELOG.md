@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.42.0
+
+### Minor Changes
+
+- ba96171: improve Cosmos errors
+
 ## 2.41.0
 
 ### Minor Changes

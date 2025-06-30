@@ -21,7 +21,7 @@ const makeReverseMapId =
     ({ ...t, [idKey]: id }) as any as PersistenceModelType<Encoded>
 
 class CosmosDbOperationError {
-  constructor(readonly message: string) {}
+  constructor(readonly message: string, readonly raw?: unknown) {}
 } // TODO: Retry operation when running into RU limit.
 
 function makeCosmosStore({ prefix }: StorageConfig) {
@@ -111,17 +111,34 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                               if (r) {
                                 return yield* Effect.fail(
                                   new OptimisticConcurrencyException(
-                                    { type: name, id: JSON.stringify(r.resourceBody?.["id"]), code: r.statusCode }
+                                    {
+                                      type: name,
+                                      id: JSON.stringify(r.resourceBody?.["id"]),
+                                      code: r.statusCode,
+                                      raw: responses
+                                    }
                                   )
                                 )
                               }
                               const r2 = responses.find(
-                                (x) => x.statusCode > 299 || x.statusCode < 200
+                                (x) => x.statusCode !== 424 && (x.statusCode > 299 || x.statusCode < 200)
                               )
                               if (r2) {
                                 return yield* Effect.die(
                                   new CosmosDbOperationError(
-                                    "not able to update record: " + r2.statusCode
+                                    "not able to update records: " + r2.statusCode,
+                                    responses
+                                  )
+                                )
+                              }
+                              const r3 = responses.find(
+                                (x) => x.statusCode > 299 || x.statusCode < 200
+                              )
+                              if (r3) {
+                                return yield* Effect.die(
+                                  new CosmosDbOperationError(
+                                    "not able to update records: " + r3.statusCode,
+                                    responses
                                   )
                                 )
                               }

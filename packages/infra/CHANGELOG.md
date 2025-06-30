@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.57.1
+
+### Patch Changes
+
+- 18c15ef: chore: change queue incoming message log level to debug
+
 ## 2.57.0
 
 ### Minor Changes

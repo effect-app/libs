@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.57.3
+
+### Patch Changes
+
+- 50bd7c1: peer
+
 ## 2.57.2
 
 ### Patch Changes

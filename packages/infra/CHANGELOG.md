@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.57.5
+
+### Patch Changes
+
+- e02a908: bun workaround
+
 ## 2.57.4
 
 ### Patch Changes

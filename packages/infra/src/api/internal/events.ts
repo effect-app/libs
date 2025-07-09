@@ -40,7 +40,7 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
             const stream = pipe(
               setRetry,
               Stream.merge(keepAlive),
-              Stream.merge(eventStream),
+              Stream.merge(eventStream, { haltStrategy: "either" }),
               Stream.map((_) => enc.encode(_ + "\n\n"))
             )
 

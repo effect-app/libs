@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.57.6
+
+### Patch Changes
+
+- cfe1601: fix: eventstream termination
+
 ## 2.57.5
 
 ### Patch Changes

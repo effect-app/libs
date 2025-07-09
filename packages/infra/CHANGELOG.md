@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.57.7
+
+### Patch Changes
+
+- 9b3717d: fix stream end on error
+
 ## 2.57.6
 
 ### Patch Changes

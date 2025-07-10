@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.57.8
+
+### Patch Changes
+
+- log error
+
 ## 2.57.7
 
 ### Patch Changes

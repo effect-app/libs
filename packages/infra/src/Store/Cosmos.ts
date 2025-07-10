@@ -7,6 +7,7 @@ import { CosmosClient, CosmosClientLayer } from "../adapters/cosmos-client.js"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import { type RawQuery } from "../Model/query.js"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 
@@ -223,6 +224,30 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           }
 
           const s: Store<IdKey, Encoded> = {
+            queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
+              Effect
+                .sync(() => query.cosmos({ importedMarkerId, name }))
+                .pipe(
+                  Effect.tap((q) => logQuery(q)),
+                  Effect.flatMap((q) =>
+                    Effect.promise(() =>
+                      container
+                        .items
+                        .query<Out>(q)
+                        .fetchAll()
+                        .then(({ resources }) =>
+                          resources.map(
+                            (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
+                          )
+                        )
+                    )
+                  ),
+                  Effect
+                    .withSpan("Cosmos.queryRaw [effect-app/infra/Store]", {
+                      captureStackTrace: false,
+                      attributes: { "repository.container_id": containerId, "repository.model_name": name }
+                    })
+                ),
             all: Effect
               .sync(() => ({
                 query: `SELECT * FROM ${name} f WHERE f.id != @id`,

@@ -122,6 +122,17 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           withPermit
         )
     const s: Store<IdKey, Encoded> = {
+      queryRaw: (query) =>
+        all
+          .pipe(
+            // Effect.tap(() => logQuery(query, defaultValues)),
+            Effect.map(query.memory),
+            Effect.withSpan("Memory.filter [effect-app/infra/Store]", {
+              captureStackTrace: false,
+              attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+            })
+          ),
+
       all: all.pipe(Effect.withSpan("Memory.all [effect-app/infra/Store]", {
         captureStackTrace: false,
         attributes: {
@@ -253,6 +264,7 @@ export const makeMemoryStore = () => ({
         }))
       const s: Store<IdKey, Encoded> = {
         all: Effect.flatMap(getStore, (_) => _.all),
+        queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args)),
         find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
         filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),
         set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),

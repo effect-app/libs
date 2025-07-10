@@ -127,7 +127,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           .pipe(
             // Effect.tap(() => logQuery(query, defaultValues)),
             Effect.map(query.memory),
-            Effect.withSpan("Memory.filter [effect-app/infra/Store]", {
+            Effect.withSpan("Memory.queryRaw [effect-app/infra/Store]", {
               captureStackTrace: false,
               attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
             })

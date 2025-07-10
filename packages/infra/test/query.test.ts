@@ -1124,7 +1124,7 @@ it("projects on nested arrays union with nested union", () =>
 
       const res_query = base.pipe(
         where("id", "1"),
-        project(S.Struct({ id: S.String, bs: S.Struct({ b1: S.String }) }))
+        project(S.Struct({ id: S.String, bs: S.Array(S.Struct({ b1: S.String })) }))
       )
 
       const res = yield* repo.query(
@@ -1134,9 +1134,9 @@ it("projects on nested arrays union with nested union", () =>
       expectTypeOf(res).toEqualTypeOf<
         readonly {
           readonly id: string
-          readonly bs: {
+          readonly bs: readonly {
             readonly b1: string
-          }
+          }[]
         }[]
       >()
 

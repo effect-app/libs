@@ -233,7 +233,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     Effect.promise(() =>
                       container
                         .items
-                        .query<Out>(q)
+                        .query<Out>(q, { partitionKey: "primary" })
                         .fetchAll()
                         .then(({ resources }) =>
                           resources.map(

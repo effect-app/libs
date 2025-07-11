@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.59.1
+
+### Patch Changes
+
+- 1c86c6a: remove obsolete :error workaround
+
 ## 2.59.0
 
 ### Minor Changes

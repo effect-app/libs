@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue",
-  "version": "2.42.2",
+  "version": "2.43.0",
   "license": "MIT",
   "type": "module",
   "homepage": "https://github.com/effect-ts-app/libs/tree/main/packages/vue",

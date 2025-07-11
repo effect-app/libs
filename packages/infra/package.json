@@ -9,11 +9,11 @@
     "cross-fetch": "^4.1.0",
     "effect-app": "workspace:*",
     "express-oauth2-jwt-bearer": "^1.6.1",
-    "fast-check": "~4.1.1",
+    "fast-check": "~4.2.0",
     "path-parser": "^6.1.0",
     "proper-lockfile": "^4.1.2",
     "pure-rand": "7.0.1",
-    "query-string": "^9.2.1"
+    "query-string": "^9.2.2"
   },
   "devDependencies": {
     "@azure/cosmos": "^4.4.1",
@@ -21,7 +21,7 @@
     "@sentry/node": "9.14.0",
     "@sentry/opentelemetry": "9.14.0",
     "@types/express": "^5.0.3",
-    "@types/node": "~24.0.7",
+    "@types/node": "~24.0.13",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.7",
@@ -38,12 +38,12 @@
   "peerDependencies": {
     "@azure/cosmos": "^4.4.1",
     "@azure/service-bus": "^7.9.5",
-    "@effect/experimental": "^0.51.1",
-    "@effect/platform": "^0.87.1",
+    "@effect/experimental": "^0.51.13",
+    "@effect/platform": "^0.87.12",
     "@effect/rpc-http": "^0.52.4",
-    "@effect/rpc": "^0.64.2",
-    "@effect/sql": "^0.40.1",
-    "@effect/vitest": "^0.23.10",
+    "@effect/rpc": "^0.64.13",
+    "@effect/sql": "^0.40.13",
+    "@effect/vitest": "^0.23.12",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.5",
     "@sentry/node": "9.14.0",
@@ -51,7 +51,7 @@
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^3.16.10",
+    "effect": "^3.16.12",
     "express": "^5.1.0"
   },
   "typesVersions": {

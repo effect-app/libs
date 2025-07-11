@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest"
-import { Effect, Layer, Redacted, S } from "effect-app"
+import { Config, Effect, Layer, Redacted, S } from "effect-app"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
@@ -54,14 +54,23 @@ class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
   static readonly TestCosmos = this
     .layer
     .pipe(
-      Layer.provide(CosmosStoreLayer({
-        dbName: "test",
-        prefix: "",
-        url: Redacted.make(
-          // the emulator doesn't implement array projections :/ so you need an actual cloud instance!
-          "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+      Layer.provide(
+        Config.redacted("STORAGE_URL").pipe(
+          Config.withDefault(Redacted
+            .make(
+              // the emulator doesn't implement array projections :/ so you need an actual cloud instance!
+              "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+            )),
+          Effect.map((url) =>
+            CosmosStoreLayer({
+              dbName: "test",
+              prefix: "",
+              url
+            })
+          ),
+          Layer.unwrapEffect
         )
-      }))
+      )
     )
 }
 

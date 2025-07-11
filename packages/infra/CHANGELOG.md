@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.59.0
+
+### Minor Changes
+
+- d88598d: feat: add `queryRaw` support for experimentation
+
 ## 2.58.0
 
 ### Minor Changes

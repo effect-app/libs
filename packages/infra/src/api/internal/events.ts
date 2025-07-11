@@ -41,10 +41,7 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
               setRetry,
               Stream.merge(keepAlive),
               Stream.merge(eventStream, { haltStrategy: "either" }),
-              // somehow errors are not causing the connection to end in the browser
-              // so we send an :error message and end the stream
               Stream.tapErrorCause((cause) => Effect.logError("SSE error", cause)),
-              Stream.catchAllCause(() => Stream.succeed(":error")),
               Stream.map((_) => enc.encode(_ + "\n\n"))
             )
 

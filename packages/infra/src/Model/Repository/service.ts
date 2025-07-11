@@ -3,7 +3,7 @@ import type { Effect, Option, PubSub, S } from "effect-app"
 import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "effect-app/client/errors"
 import type { NonNegativeInt } from "effect-app/Schema/numbers"
 import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
-import type { QAll, Query, QueryProjection } from "../query.js"
+import type { QAll, Query, QueryProjection, RawQuery } from "../query.js"
 import type { Mapped } from "./legacy.js"
 
 export interface Repository<
@@ -28,6 +28,11 @@ export interface Repository<
     items: Iterable<T>,
     events?: Iterable<Evt>
   ) => Effect<void, never, RSchema | RPublish>
+
+  readonly queryRaw: <T, Out, R>(
+    schema: S.Schema<T, Out, R>,
+    raw: RawQuery<Encoded, Out>
+  ) => Effect<readonly T[], S.ParseResult.ParseError, R>
 
   readonly query: {
     // ending with projection

@@ -308,6 +308,10 @@ export function makeRepoInternal<
             all,
             saveAndPublish,
             removeAndPublish,
+            queryRaw(schema, q) {
+              const dec = S.decode(S.Array(schema))
+              return store.queryRaw(q).pipe(Effect.flatMap(dec))
+            },
             query(q: any) {
               // eslint-disable-next-line prefer-rest-params
               return query(typeof q === "function" ? Pipeable.pipeArguments(Q.make(), arguments) : q) as any

@@ -68,6 +68,13 @@ export const codeFilterStatement = <E>(p: FilterR, x: E, isRelation: boolean) =>
 
 const isRelationCheck = (f: readonly FilterResult[]) => {
   if (f.every((_) => "path" in _ && _.path.includes(".-1."))) {
+    const first = f[0] as { path: string }
+    const rel = first.path.split(".-1.")[0]
+    if (!f.every((_) => "path" in _ && _.path.startsWith(rel + ".-1."))) {
+      throw new Error(
+        `Cannot mix relation checks of different props, expected all to be "${rel}"`
+      )
+    }
     return true
   }
   if (f.some((_) => "path" in _ && _.path.includes(".-1."))) {

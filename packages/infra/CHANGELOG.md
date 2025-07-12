@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.61.0
+
+### Minor Changes
+
+- 71a6ba8: feat: add proper relationship query grouping
+
 ## 2.60.1
 
 ### Patch Changes

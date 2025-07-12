@@ -10,57 +10,54 @@ import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusi
 const vAsArr = (v: string) => v as unknown as any[]
 
 export const codeFilterStatement = <E>(p: FilterR, x: E) => {
-  const k = get(x, p.path)
+  const oneOrSome = (predicate: (k: any, val: any) => boolean) =>
+    p.path.includes(".-1.")
+      ? (get(x, p.path.split(".-1.")[0]) as any[])
+        // TODO: all vs some
+        .some((_) => !predicate(get(_, p.path.split(".-1.")[1]!), p.value))
+      : !predicate(get(x, p.path), p.value)
   switch (p.op) {
     case "in":
-      return p.value.includes(k)
+      return oneOrSome((k, v) => v.includes(k))
     case "notIn":
-      return !p.value.includes(k)
+      return oneOrSome((k, v) => !v.includes(k))
     case "lt":
-      return lowerThan(k, p.value)
+      return oneOrSome((k, v) => lowerThan(k, v))
     case "lte":
-      return lowerThanExclusive(k, p.value)
+      return oneOrSome((k, v) => lowerThanExclusive(k, v))
     case "gt":
-      return greaterThan(k, p.value)
+      return oneOrSome((k, v) => greaterThan(k, v))
     case "gte":
-      return greaterThanExclusive(k, p.value)
+      return oneOrSome((k, v) => greaterThanExclusive(k, v))
     case "includes":
-      return (k as Array<string>).includes(p.value)
+      return oneOrSome((k, v) => (k as Array<string>).includes(v))
     case "notIncludes":
-      return !(k as Array<string>).includes(p.value)
+      return oneOrSome((k, v) => !(k as Array<string>).includes(v))
     case "includes-any":
-      return (vAsArr(p.value)).some((_) => (k as Array<string>)?.includes(_))
+      return oneOrSome((k, v) => (vAsArr(v)).some((_) => (k as Array<string>)?.includes(_)))
     case "notIncludes-any":
-      return !(vAsArr(p.value)).some((_) => (k as Array<string>)?.includes(_))
+      return oneOrSome((k, v) => !(vAsArr(v)).some((_) => (k as Array<string>)?.includes(_)))
     case "includes-all":
-      return (vAsArr(p.value)).every((_) => (k as Array<string>)?.includes(_))
+      return oneOrSome((k, v) => (vAsArr(v)).every((_) => (k as Array<string>)?.includes(_)))
     case "notIncludes-all":
-      return !(vAsArr(p.value)).every((_) => (k as Array<string>)?.includes(_))
+      return oneOrSome((k, v) => !(vAsArr(v)).every((_) => (k as Array<string>)?.includes(_)))
     case "contains":
-      return (k as string).toLowerCase().includes(p.value.toLowerCase())
+      return oneOrSome((k, v) => (k as string).toLowerCase().includes(v.toLowerCase()))
     case "endsWith":
-      return (k as string).toLowerCase().endsWith(p.value.toLowerCase())
+      return oneOrSome((k, v) => (k as string).toLowerCase().endsWith(v.toLowerCase()))
     case "startsWith":
-      return (k as string).toLowerCase().startsWith(p.value.toLowerCase())
+      return oneOrSome((k, v) => (k as string).toLowerCase().startsWith(v.toLowerCase()))
     case "notContains":
-      return !(k as string).toLowerCase().includes(p.value.toLowerCase())
+      return oneOrSome((k, v) => !(k as string).toLowerCase().includes(v.toLowerCase()))
     case "notEndsWith":
-      return !(k as string).toLowerCase().endsWith(p.value.toLowerCase())
+      return oneOrSome((k, v) => !(k as string).toLowerCase().endsWith(v.toLowerCase()))
     case "notStartsWith":
-      return !(k as string).toLowerCase().startsWith(p.value.toLowerCase())
+      return oneOrSome((k, v) => !(k as string).toLowerCase().startsWith(v.toLowerCase()))
     case "neq":
-      return p.path.includes(".-1.")
-        ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
-          .every((_) => !compare(get(_, p.path.split(".-1.")[1]!), p.value))
-        : !compare(k, p.value)
+      return oneOrSome((k, v) => !compare(k, v))
     case "eq":
     case undefined:
-      return p.path.includes(".-1.")
-        ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
-          .some((_) => compare(get(_, p.path.split(".-1.")[1]!), p.value))
-        : compare(k, p.value)
+      return oneOrSome((k, v) => compare(k, v))
     default: {
       return assertUnreachable(p.op)
     }

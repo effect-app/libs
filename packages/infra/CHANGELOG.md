@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.61.2
+
+### Patch Changes
+
+- 43dbb4d: support nested in memory
+
 ## 2.61.1
 
 ### Patch Changes

@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest"
 import { Array, Config, Effect, Layer, Logger, LogLevel, ManagedRuntime, Option, Redacted, S } from "effect-app"
 import { LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import { and, project, where } from "../src/Model/query.js"
+import { and, or, project, where } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
@@ -201,10 +201,22 @@ describe("filter first-level array fields as groups", () => {
         project(projected)
       )
 
+      const items2Or = yield* repo.query(
+        where("items.-1.value", "gt", 20),
+        or("items.-1.description", "contains", "d item"),
+        project(projected)
+      )
+
       // mixing relation check with scoped relationcheck
       const items3 = yield* repo.query(
         where("items.-1.value", "gt", 20),
         and(where("items.-1.description", "contains", "d item")),
+        project(projected)
+      )
+
+      const items3Or = yield* repo.query(
+        where("items.-1.value", "gt", 20),
+        or(where("items.-1.description", "contains", "d item")),
         project(projected)
       )
 
@@ -226,10 +238,7 @@ describe("filter first-level array fields as groups", () => {
         }
       ]
 
-      expect(items).toStrictEqual(expected)
-      expect(items2).toStrictEqual(expected)
-      expect(items3).toStrictEqual(expected)
-      expect(items4).toStrictEqual([
+      const both = [
         {
           name: "Item 1",
           items: [
@@ -244,7 +253,14 @@ describe("filter first-level array fields as groups", () => {
             { id: "2-2", value: 40 }
           ]
         }
-      ])
+      ]
+
+      expect(items).toStrictEqual(expected)
+      expect(items2).toStrictEqual(expected)
+      expect(items2Or).toStrictEqual(both)
+      expect(items3).toStrictEqual(expected)
+      expect(items3Or).toStrictEqual(both)
+      expect(items4).toStrictEqual(both)
     })
     .pipe(setupRequestContextFromCurrent())
 

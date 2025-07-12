@@ -161,7 +161,10 @@ export const toFilter = <
       select = t.propertySignatures.map((_) => _.name as string)
       for (const prop of t.propertySignatures) {
         if (S.AST.isTupleType(prop.type)) {
-          select.push({
+          // make sure we only select when there are actually type literals in the tuple...
+          // otherwise we might be dealing with strings etc.
+          // TODO; be more strict, can't support arrays with unions that have non TypeLiteral members etc..
+          const arraySelect = {
             key: prop.name as string,
             subKeys: Array.flatMap(
               prop.type.rest,
@@ -170,10 +173,13 @@ export const toFilter = <
                 return S.AST.isTypeLiteral(t) ? t.propertySignatures.map((y) => y.name as string) : []
               }
             )
-          })
-          // make sure we don't double select?
-          if (select.includes(prop.name as string)) {
-            select.splice(select.indexOf(prop.name as string), 1)
+          }
+          if (arraySelect.subKeys.length > 0) {
+            select.push(arraySelect)
+            // make sure we don't double select?
+            if (select.includes(prop.name as string)) {
+              select.splice(select.indexOf(prop.name as string), 1)
+            }
           }
         }
       }

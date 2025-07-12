@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.60.1
+
+### Patch Changes
+
+- fix: don't array select non selectable types
+
 ## 2.60.0
 
 ### Minor Changes

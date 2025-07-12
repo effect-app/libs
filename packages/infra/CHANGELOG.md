@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 2.60.0
+
+### Minor Changes
+
+- a085319: feat: support first-level array field selection
+
+### Patch Changes
+
+- eea664d: fix: support for reserved keywords in cosmos queries.
+
 ## 2.59.1
 
 ### Patch Changes

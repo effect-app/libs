@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Match, Option, pipe, S } from "effect-app"
+import { Array, Match, Option, pipe, S } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { dropUndefinedT } from "effect-app/utils"
 import type { FilterResult } from "../filter/filterApi.js"
@@ -135,6 +135,13 @@ const interpret = <
   return data
 }
 
+const walkTransformation = (t: S.AST.AST) => {
+  if (S.AST.isTransformation(t)) {
+    return walkTransformation(t.from)
+  }
+  return t
+}
+
 export const toFilter = <
   TFieldValues extends FieldValues,
   A,
@@ -146,14 +153,30 @@ export const toFilter = <
   // TODO: Native interpreter for each db adapter, instead of the intermediate "new-kid" format
   const a = interpret(q)
   const schema = a.schema
-  let select: (keyof TFieldValues)[] = []
+  let select: (keyof TFieldValues | { key: string; subKeys: string[] })[] = []
+  // TODO: support more complex (nested) schemas?
   if (schema) {
-    let t = schema.ast
-    if (S.AST.isTransformation(t)) {
-      t = t.from
-    }
+    const t = walkTransformation(schema.ast)
     if (S.AST.isTypeLiteral(t)) {
-      select = t.propertySignatures.map((_) => _.name) as any
+      select = t.propertySignatures.map((_) => _.name as string)
+      for (const prop of t.propertySignatures) {
+        if (S.AST.isTupleType(prop.type)) {
+          select.push({
+            key: prop.name as string,
+            subKeys: Array.flatMap(
+              prop.type.rest,
+              (x) => {
+                const t = walkTransformation(x.type)
+                return S.AST.isTypeLiteral(t) ? t.propertySignatures.map((y) => y.name as string) : []
+              }
+            )
+          })
+          // make sure we don't double select?
+          if (select.includes(prop.name as string)) {
+            select.splice(select.indexOf(prop.name as string), 1)
+          }
+        }
+      }
     }
   }
   return dropUndefinedT({

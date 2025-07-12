@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Struct } from "effect-app"
+import { Array, Context, Effect, Either, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { get } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
@@ -12,7 +12,23 @@ import { makeUpdateETag } from "./utils.js"
 export function memFilter<T extends FieldValues, U extends keyof T = never>(f: FilterArgs<T, U>) {
   type M = U extends undefined ? T : Pick<T, U>
   return ((c: T[]): M[] => {
-    const select = (r: T[]): M[] => (f.select ? r.map(Struct.pick(...f.select)) : r) as any
+    const select = (r: T[]): M[] => {
+      const sel = f.select
+      if (!sel) return r as M[]
+      return r.map((i) => {
+        const [keys, subKeys] = pipe(
+          sel,
+          Array.partitionMap((r) =>
+            typeof r === "string" ? Either.left(r as string) : Either.right(r as { key: string; subKeys: string[] })
+          )
+        )
+        const n = Struct.pick(i, ...keys)
+        subKeys.forEach((subKey) => {
+          n[subKey.key] = i[subKey.key]!.map(Struct.pick(...subKey.subKeys))
+        })
+        return n as M
+      }) as any
+    }
     const skip = f?.skip
     const limit = f?.limit
     const ords = Option.map(Option.fromNullable(f.order), (_) =>

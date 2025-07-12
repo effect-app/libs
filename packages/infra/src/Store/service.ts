@@ -60,7 +60,7 @@ export interface O<TFieldValues extends FieldValues> {
 export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded = never> {
   t: Encoded
   filter?: Filter | undefined
-  select?: NonEmptyReadonlyArray<U> | undefined
+  select?: NonEmptyReadonlyArray<U | { key: string; subKeys: readonly string[] }> | undefined
   order?: NonEmptyReadonlyArray<O<NoInfer<Encoded>>>
   limit?: number | undefined
   skip?: number | undefined

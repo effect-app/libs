@@ -1,5 +1,7 @@
 import { expect, it } from "@effect/vitest"
 import { Config, Effect, Layer, Redacted, S } from "effect-app"
+import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
+import { project } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
@@ -18,7 +20,7 @@ const items = [
     description: "This is the first item",
     items: [
       { id: "1-1", value: 10, description: "First item" },
-      { id: "1-2", value: 20, description: "Second  item" }
+      { id: "1-2", value: 20, description: "Second item" }
     ]
   }),
   new Something({
@@ -98,7 +100,9 @@ const test = Effect
         }))
     })
 
-    expect(items).toStrictEqual([
+    const items2 = yield* repo.query(project(projected))
+
+    const expected = [
       {
         name: "Item 1",
         items: [
@@ -113,8 +117,12 @@ const test = Effect
           { id: "2-2", value: 40 }
         ]
       }
-    ])
+    ]
+
+    expect(items).toStrictEqual(expected)
+    expect(items2).toStrictEqual(expected)
   })
+  .pipe(setupRequestContextFromCurrent())
 
 it("works well in CosmosDB", () =>
   test

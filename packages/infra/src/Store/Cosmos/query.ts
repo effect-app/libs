@@ -34,7 +34,7 @@ export function buildWhereCosmosQuery3(
   name: string,
   importedMarkerId: string,
   defaultValues: Record<string, unknown>,
-  select?: NonEmptyReadonlyArray<string>,
+  select?: NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number
@@ -186,7 +186,15 @@ export function buildWhereCosmosQuery3(
     query: `
     SELECT ${
       select
-        ? `${select.map((_) => (_ as any) === idKey ? "id" : _).map((_) => `f.${_}`).join(", ")}`
+        ? `${
+          select
+            .map((s) =>
+              typeof s === "string"
+                ? s === idKey ? "f.id" : `f["${s}"]` // x["y"} vs x.y, helps with reserved keywords like "value"
+                : `ARRAY (SELECT ${s.subKeys.map((_) => `t["${_}"]`).join(",")} FROM t in f.${s.key}) AS ${s.key}`
+            )
+            .join(", ")
+        }`
         : "f"
     }
     FROM ${name} f

@@ -292,7 +292,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     name,
                     importedMarkerId,
                     defaultValues,
-                    f.select as NonEmptyReadonlyArray<string> | undefined,
+                    f.select as NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }> | undefined,
                     f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
                     skip,
                     limit
@@ -311,7 +311,10 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             .then(({ resources }) =>
                               resources.map((_) =>
                                 ({
-                                  ...pipe(defaultValues, Struct.pick(...f.select!)),
+                                  ...pipe(
+                                    defaultValues,
+                                    Struct.pick(...f.select!.filter((_) => typeof _ === "string"))
+                                  ),
                                   ...mapReverseId(_ as any)
                                 }) as any
                               )
@@ -326,10 +329,12 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       )
                     )
                 )
-                .pipe(Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
-                  captureStackTrace: false,
-                  attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                }))
+                .pipe(
+                  Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
+                    captureStackTrace: false,
+                    attributes: { "repository.container_id": containerId, "repository.model_name": name }
+                  })
+                )
             },
             find: (id) =>
               Effect

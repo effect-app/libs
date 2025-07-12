@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.61.1
+
+### Patch Changes
+
+- 18ebe56: fix rel
+
 ## 2.61.0
 
 ### Minor Changes

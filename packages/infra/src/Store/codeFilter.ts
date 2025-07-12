@@ -66,16 +66,19 @@ export const codeFilterStatement = <E>(p: FilterR, x: E, isRelation: boolean) =>
   return filterStatement(x, p)
 }
 
-const isRelationCheck = (f: readonly FilterResult[]) => {
-  if (f.every((_) => "path" in _ && _.path.includes(".-1."))) {
+const isRelationCheck = (f: readonly FilterResult[], isRelation: string | null) => {
+  if (f.filter((_) => "path" in _).every((_) => "path" in _ && _.path.includes(".-1."))) {
     const first = f[0] as { path: string }
     const rel = first.path.split(".-1.")[0]
-    if (!f.every((_) => "path" in _ && _.path.startsWith(rel + ".-1."))) {
+    if (isRelation && rel !== isRelation) {
+      throw new Error(`expected ${isRelation} relation but found ${rel}`)
+    }
+    if (!f.filter((_) => "path" in _).every((_) => "path" in _ && _.path.startsWith(rel + ".-1."))) {
       throw new Error(
         `Cannot mix relation checks of different props, expected all to be "${rel}"`
       )
     }
-    return true
+    return rel
   }
   if (f.some((_) => "path" in _ && _.path.includes(".-1."))) {
     throw new Error(
@@ -87,7 +90,12 @@ const isRelationCheck = (f: readonly FilterResult[]) => {
 }
 
 export const codeFilter3 = <E>(state: readonly FilterResult[]) => (sut: E) => codeFilter3_(state, sut)
-const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: any[], isRelation = false): string => {
+const codeFilter3__ = <E>(
+  state: readonly FilterResult[],
+  sut: E,
+  statements: any[],
+  isRelation: string | null = null
+): string => {
   let s = ""
   let l = 0
   const printN = (n: number) => {
@@ -117,11 +125,14 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
         break
       case "or-scope": {
         ++l
-        if (isRelationCheck(e.result)) {
+        const rel = isRelationCheck(e.result, isRelation)
+        if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
-          s += ` || (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, true)})\n${
-            printN(l)
-          })`
+          s += isRelation
+            ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
+            : ` || (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
+              printN(l)
+            })`
         } else {
           s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }
@@ -130,11 +141,14 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
       }
       case "and-scope": {
         ++l
-        if (isRelationCheck(e.result)) {
+        const rel = isRelationCheck(e.result, isRelation)
+        if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
-          s += ` && (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, true)})\n${
-            printN(l)
-          })`
+          s += isRelation
+            ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
+            : ` && (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
+              printN(l)
+            })`
         } else {
           s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }
@@ -144,11 +158,14 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
       }
       case "where-scope": {
         // ;++l
-        if (isRelationCheck(e.result)) {
+        const rel = isRelationCheck(e.result, isRelation)
+        if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
-          s += `(\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, true)})\n${
-            printN(l)
-          })`
+          s += isRelation
+            ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
+            : `(\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
+              printN(l)
+            })`
         } else {
           s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }

@@ -201,6 +201,13 @@ describe("filter first-level array fields as groups", () => {
         project(projected)
       )
 
+      // mixing relation check with scoped relationcheck
+      const items3 = yield* repo.query(
+        where("items.-1.value", "gt", 20),
+        and(where("items.-1.description", "contains", "d item")),
+        project(projected)
+      )
+
       const expected = [
         {
           name: "Item 2",
@@ -213,6 +220,7 @@ describe("filter first-level array fields as groups", () => {
 
       expect(items).toStrictEqual(expected)
       expect(items2).toStrictEqual(expected)
+      expect(items3).toStrictEqual(expected)
     })
     .pipe(setupRequestContextFromCurrent())
 

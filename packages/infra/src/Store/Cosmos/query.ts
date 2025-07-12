@@ -44,10 +44,10 @@ export function buildWhereCosmosQuery3(
       x = { ...x, path: "id" }
     }
     let k = x.path.includes(".-1.")
-      ? `${x.path.split(".-1.")[0]}.${x.path.split(".-1.")[1]!}`
+      ? `${x.path.split(".-1.")[0]}["${x.path.split(".-1.")[1]!}"]`
       : x.path.endsWith(".length")
       ? `ARRAY_LENGTH(f.${x.path.split(".length")[0]})`
-      : `f.${x.path}`
+      : `f["${x.path}"]`
 
     // would have to map id, but shouldnt allow id in defaultValues anyway..
     k = x.path in defaultValues ? `(${k} ?? ${JSON.stringify(defaultValues[x.path])})` : k

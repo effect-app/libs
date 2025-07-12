@@ -26,13 +26,13 @@ export type Ops = OtherOps | InOps
 
 export type FilterScopes = {
   t: "or-scope"
-  result: FilterResult[]
+  result: readonly FilterResult[]
 } | {
   t: "and-scope"
-  result: FilterResult[]
+  result: readonly FilterResult[]
 } | {
   t: "where-scope"
-  result: FilterResult[]
+  result: readonly FilterResult[]
 }
 
 export type FilterR = {

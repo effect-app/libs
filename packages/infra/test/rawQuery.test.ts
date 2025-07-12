@@ -159,7 +159,7 @@ describe("filter first-level array fields as groups", () => {
         // TODO
         cosmos: () => ({
           query: `
-          SELECT 
+          SELECT DISTINCT
             f.name,
             ARRAY (SELECT t.id,t["value"] FROM t in f.items) AS items
           FROM Somethings f
@@ -208,6 +208,14 @@ describe("filter first-level array fields as groups", () => {
         project(projected)
       )
 
+      // broken in cosmos db somehow... returns twice record 2??
+      // need to use DISTINCT..
+      // https://stackoverflow.com/questions/51855660/cosmos-db-joins-give-duplicate-results
+      const items4 = yield* repo.query(
+        where("items.-1.value", "gt", 10),
+        project(projected)
+      )
+
       const expected = [
         {
           name: "Item 2",
@@ -221,6 +229,22 @@ describe("filter first-level array fields as groups", () => {
       expect(items).toStrictEqual(expected)
       expect(items2).toStrictEqual(expected)
       expect(items3).toStrictEqual(expected)
+      expect(items4).toStrictEqual([
+        {
+          name: "Item 1",
+          items: [
+            { id: "1-1", value: 10 },
+            { id: "1-2", value: 20 }
+          ]
+        },
+        {
+          name: "Item 2",
+          items: [
+            { id: "2-1", value: 30 },
+            { id: "2-2", value: 40 }
+          ]
+        }
+      ])
     })
     .pipe(setupRequestContextFromCurrent())
 

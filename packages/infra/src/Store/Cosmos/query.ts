@@ -182,9 +182,11 @@ export function buildWhereCosmosQuery3(
           : [_]
       )
   const values = getValues(filter)
+  // with joins, you should use DISTINCT
+  // or you can end up with duplicates
   return {
     query: `
-    SELECT ${
+    SELECT DISTINCT ${
       select
         ? `${
           select

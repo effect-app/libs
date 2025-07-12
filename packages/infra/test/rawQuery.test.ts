@@ -177,38 +177,29 @@ describe("filter first-level array fields as groups", () => {
         )
       })
 
-      // this sucks and is poorly implemented:
-      // in memory, only eq/neq operators are implemented for arrays.
-
       // problem 1:
-      // we cannot specify if all items must match the filter, or if at least one item must match the filter.
+      // we cannot specify if all/"every" items must match the filter, or if at least one item (any/"some") must match the filter.
       // we should start with supporting "any", and then add "all" support..
+      // good thing: cosmosdb currently defaults to "any", and we can always filter down to "all" after finished querying,
+      // "all" is more of an optimisation, so let's focus on problem 2
 
       // problem 2:
-      // wait a minute, cosmos seems to work correctly already... even though a better api would be desirable..
-      // // in both: we don't properly group the filters. you want to express; find Something where some item has both value > 20 and description includes "d item"
-      // // but in reality, you find Something where at least an item has value > 20, and at least an item has a description that includes "d item".
+      // in memory is not implemented properly for array sub queries.
+      // 1. in the current situation, it only is somewhat implemented for eq and neq, nothing else.
+      // 2. we don't properly group the filters. you want to express; find Something where some item has both (value > 20 and description includes "d item")
+      // but in reality, you find Something where at least an item has value > 20, and at least an item has a description that includes "d item".
+      // subtle but very important difference.. in the sample query it would lead to showing 2 items instead of 1 item.
+
+      // This should mean:
+      // Find all Somethings where at least one item (has value > 20 and description includes "d item")
+      // aka: somethings.filter(s => s.items.some((_) => _.value > 20 && _.description.includes("d item")))
+      // for this, codeFilter should be updated to support accordingly.
+      // (removing detection of ".-1." using 'some' check from `codeFilterStatement`, and moving it somehow higher up... higher up we need to detect and group sub-item checks!)
       const items2 = yield* repo.query(
         where("items.-1.value", "gt", 20),
         and("items.-1.description", "contains", "d item"),
         project(projected)
       )
-      // TODO: we need something like this instead:
-      /*
-  const subQuery = <T extends FieldValues>() => <TKey extends keyof T>(key: TKey) => make<T[TKey][number]>() // todo: mark that this is sub query on field "items"
-
-  const test = subQuery<typeof Something.Encoded>()("items")
-    .pipe(
-      where("value", "gt", 20),
-      and("description", "contains", "d item")
-    )
-
-    // ideally we can do stuff like:
-    where(subQuery("items")(
-      where("value", "gt", 10),
-      and("description", "contains", "d item")
-    ))
-    */
 
       const expected = [
         {
@@ -233,3 +224,20 @@ describe("filter first-level array fields as groups", () => {
     test
       .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
 })
+
+// FUTURE: we need something like this instead:
+/*
+  const subQuery = <T extends FieldValues>() => <TKey extends keyof T>(key: TKey, type: "some" | "every" = "some") => make<T[TKey][number]>() // todo: mark that this is sub query on field "items"
+
+  const test = subQuery<typeof Something.Encoded>()("items", "every")
+    .pipe(
+      where("value", "gt", 20),
+      and("description", "contains", "d item")
+    )
+
+    // ideally we can do stuff like:
+    where(subQuery("items")(
+      where("value", "gt", 10),
+      and("description", "contains", "d item")
+    ))
+    */

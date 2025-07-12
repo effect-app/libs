@@ -49,16 +49,18 @@ export const codeFilterStatement = <E>(p: FilterR, x: E) => {
     case "notStartsWith":
       return !(k as string).toLowerCase().startsWith(p.value.toLowerCase())
     case "neq":
+      // TODO: array checks using some/every should happen outside, not here.
       return p.path.includes(".-1.")
         ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
+          // TODO: some vs every
           .every((_) => !compare(get(_, p.path.split(".-1.")[1]!), p.value))
         : !compare(k, p.value)
     case "eq":
     case undefined:
+      // TODO: array checks using some/every should happen outside, not here.
       return p.path.includes(".-1.")
         ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
+          // TODO: some vs every
           .some((_) => compare(get(_, p.path.split(".-1.")[1]!), p.value))
         : compare(k, p.value)
     default: {

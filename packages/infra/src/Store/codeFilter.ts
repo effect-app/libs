@@ -9,7 +9,7 @@ import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusi
 
 const vAsArr = (v: string) => v as unknown as any[]
 
-export const codeFilterStatement = <E>(p: FilterR, x: E) => {
+const filterStatement = (x: any, p: FilterR) => {
   const k = get(x, p.path)
   switch (p.op) {
     case "in":
@@ -49,26 +49,45 @@ export const codeFilterStatement = <E>(p: FilterR, x: E) => {
     case "notStartsWith":
       return !(k as string).toLowerCase().startsWith(p.value.toLowerCase())
     case "neq":
-      return p.path.includes(".-1.")
-        ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
-          .every((_) => !compare(get(_, p.path.split(".-1.")[1]!), p.value))
-        : !compare(k, p.value)
+      return !compare(k, p.value)
     case "eq":
     case undefined:
-      return p.path.includes(".-1.")
-        ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
-          .some((_) => compare(get(_, p.path.split(".-1.")[1]!), p.value))
-        : compare(k, p.value)
+      return compare(k, p.value)
     default: {
       return assertUnreachable(p.op)
     }
   }
 }
 
+export const codeFilterStatement = <E>(p: FilterR, x: E, isRelation: boolean) => {
+  if (isRelation) {
+    return (x: any) => filterStatement(x, p)
+  }
+  return filterStatement(x, p)
+}
+
+const isRelationCheck = (f: readonly FilterResult[]) => {
+  if (f.every((_) => "path" in _ && _.path.includes(".-1."))) {
+    const first = f[0] as { path: string }
+    const rel = first.path.split(".-1.")[0]
+    if (!f.every((_) => "path" in _ && _.path.startsWith(rel + ".-1."))) {
+      throw new Error(
+        `Cannot mix relation checks of different props, expected all to be "${rel}"`
+      )
+    }
+    return true
+  }
+  if (f.some((_) => "path" in _ && _.path.includes(".-1."))) {
+    throw new Error(
+      "Cannot mix relation checks with non-relation checks in the same filter scope. create a separate one"
+    )
+  }
+
+  return false
+}
+
 export const codeFilter3 = <E>(state: readonly FilterResult[]) => (sut: E) => codeFilter3_(state, sut)
-const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: any[]): string => {
+const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: any[], isRelation = false): string => {
   let s = ""
   let l = 0
   const printN = (n: number) => {
@@ -76,37 +95,63 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
   }
   // TODO: path str updates
 
-  const process = (e: FilterR) => codeFilterStatement(e, sut)
+  const process = isRelation
+    ? (e: FilterR) => codeFilterStatement({ ...e, path: e.path.split(".-1.").slice(1).join(".-1.") }, sut, true)
+    : (e: FilterR) => codeFilterStatement(e, sut, false)
+  const statement = () =>
+    isRelation ? `statements[${statements.length - 1}]()(el)` : `statements[${statements.length - 1}]()`
   for (const e of state) {
     switch (e.t) {
-      case "where":
+      case "where": {
         statements.push(() => process(e))
-        s += `statements[${statements.length - 1}]()`
+        s += statement()
         break
+      }
       case "or":
         statements.push(() => process(e))
-        s += " || " + `statements[${statements.length - 1}]()`
+        s += " || " + statement()
         break
       case "and":
         statements.push(() => process(e))
-        s += " && " + `statements[${statements.length - 1}]()`
+        s += " && " + statement()
         break
       case "or-scope": {
         ++l
-        s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
+        if (isRelationCheck(e.result)) {
+          const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+          s += ` || (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, true)})\n${
+            printN(l)
+          })`
+        } else {
+          s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, true)}\n${printN(l)})`
+        }
         --l
         break
       }
       case "and-scope": {
         ++l
-        s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
+        if (isRelationCheck(e.result)) {
+          const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+          s += ` && (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, true)})\n${
+            printN(l)
+          })`
+        } else {
+          s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, true)}\n${printN(l)})`
+        }
         --l
 
         break
       }
       case "where-scope": {
         // ;++l
-        s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n)`
+        if (isRelationCheck(e.result)) {
+          const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+          s += `(\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, true)})\n${
+            printN(l)
+          })`
+        } else {
+          s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, true)}\n${printN(l)})`
+        }
         // ;--l
         break
       }
@@ -117,7 +162,8 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
 
 export const codeFilter3_ = <E>(state: readonly FilterResult[], sut: E): boolean => {
   const statements: any[] = [] // must be defined here to be used by eval.
-  const s = codeFilter3__(state, sut, statements)
+  // always put everything inside a root scope.
+  const s = codeFilter3__([{ t: "where-scope", result: state }], sut, statements)
   return eval(s)
 }
 

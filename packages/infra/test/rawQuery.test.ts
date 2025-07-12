@@ -159,12 +159,43 @@ describe("filter first-level array fields as groups", () => {
         // TODO
         cosmos: () => ({
           query: `
-          SELECT DISTINCT
+          SELECT
             f.name,
             ARRAY (SELECT t.id,t["value"] FROM t in f.items) AS items
           FROM Somethings f
           JOIN items in f.items
           WHERE (items["value"] > @v1 AND CONTAINS(items["description"], @v2, true))`,
+          parameters: [{ name: "@v1", value: 20 }, { name: "@v2", value: "d item" }]
+        }),
+        memory: Array.filterMap(({ items, name }) =>
+          items.some((_) => _.value > 20 && _.description.includes("d item"))
+            ? Option.some({
+              name,
+              items: items.map(({ id, value }) => ({ id, value }))
+            })
+            : Option.none()
+        )
+      })
+
+      // TODO: Instead of Cosmos JOIN + Distinct use Exists??
+      // Seems more like a some() equivalent...
+      // will need more of that same query rebuilding logic as in `codeFilterStatement` to support this properly?
+      // https://stackoverflow.com/a/51863028
+      // > If the intention is to filter by documents that has a child date later than a certain date, then using EXISTS with a subquery is more efficient than opting for a JOIN and then using DISTINCT to remove duplicates.
+      /*
+SELECT parent.id, parent.Title
+FROM parent
+WHERE EXISTS(SELECT VALUE child FROM child IN parent.Children WHERE child.Date >= "01-01-2014")
+      */
+      const itemsExists = yield* repo.queryRaw(projected, {
+        // TODO
+        cosmos: () => ({
+          query: `
+          SELECT
+            f.name,
+            ARRAY (SELECT t.id,t["value"] FROM t in f.items) AS items
+          FROM Somethings f
+          WHERE EXISTS(SELECT VALUE item FROM item IN f.items WHERE item["value"] > @v1 AND CONTAINS(item.description, @v2, true))`,
           parameters: [{ name: "@v1", value: 20 }, { name: "@v2", value: "d item" }]
         }),
         memory: Array.filterMap(({ items, name }) =>
@@ -256,6 +287,7 @@ describe("filter first-level array fields as groups", () => {
       ]
 
       expect(items).toStrictEqual(expected)
+      expect(itemsExists).toStrictEqual(expected)
       expect(items2).toStrictEqual(expected)
       expect(items2Or).toStrictEqual(both)
       expect(items3).toStrictEqual(expected)

@@ -66,6 +66,9 @@ export const codeFilterStatement = <E>(p: FilterR, x: E, isRelation: boolean) =>
   return filterStatement(x, p)
 }
 
+// TODO: still prevent mixing relation checks with non-relation checks in the same filter scope
+// right now we ignore scoped combinations, because they allow us to scope relation checks too.
+// probably best to create a separate keyword and dsl for relation checks, so we can remove all the special casing alltogether..
 const isRelationCheck = (f: readonly FilterResult[], isRelation: string | null) => {
   if (f.filter((_) => "path" in _).every((_) => "path" in _ && _.path.includes(".-1."))) {
     const first = f[0] as { path: string }

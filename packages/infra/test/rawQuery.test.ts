@@ -196,8 +196,12 @@ describe("filter first-level array fields as groups", () => {
       // for this, codeFilter should be updated to support accordingly.
       // (removing detection of ".-1." using 'some' check from `codeFilterStatement`, and moving it somehow higher up... higher up we need to detect and group sub-item checks!)
       const items2 = yield* repo.query(
+        // TODO: right now only supported inside a scope..
+        /*
         where("items.-1.value", "gt", 20),
         and("items.-1.description", "contains", "d item"),
+        */
+        where(where("items.-1.value", "gt", 20), and("items.-1.description", "contains", "d item")),
         project(projected)
       )
 

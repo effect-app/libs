@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.61.3
+
+### Patch Changes
+
+- 136e178: fix distinct for join
+
 ## 2.61.2
 
 ### Patch Changes

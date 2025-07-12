@@ -123,7 +123,7 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
             printN(l)
           })`
         } else {
-          s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, true)}\n${printN(l)})`
+          s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }
         --l
         break
@@ -136,7 +136,7 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
             printN(l)
           })`
         } else {
-          s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, true)}\n${printN(l)})`
+          s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }
         --l
 
@@ -150,7 +150,7 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
             printN(l)
           })`
         } else {
-          s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, true)}\n${printN(l)})`
+          s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }
         // ;--l
         break

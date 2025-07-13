@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Array, Effect, Equivalence, type NonEmptyReadonlyArray, pipe } from "effect-app"
+import { Array, Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
+import { isRelationCheck } from "../codeFilter.js"
 import type { SupportedValues } from "../service.js"
 
 export function logQuery(q: {
@@ -118,7 +119,7 @@ export function buildWhereCosmosQuery3(
 
   let i = 0
 
-  const print = (state: readonly FilterResult[], values: any[]) => {
+  const print = (state: readonly FilterResult[], values: any[], isRelation: string | null = null) => {
     let s = ""
     let l = 0
     const printN = (n: number) => {
@@ -137,19 +138,49 @@ export function buildWhereCosmosQuery3(
           break
         case "or-scope": {
           ++l
-          s += ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+          const rel = isRelationCheck(e.result, isRelation)
+          if (rel) {
+            const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+            s += isRelation
+              ? ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+              : ` OR (\n${printN(l + 1)}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(e.result, values, rel)
+              }))`
+          } else {
+            s += ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+          }
           --l
           break
         }
         case "and-scope": {
           ++l
-          s += ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+          const rel = isRelationCheck(e.result, isRelation)
+          if (rel) {
+            const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+            s += isRelation
+              ? ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+              : ` AND (\n${printN(l + 1)}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(e.result, values, rel)
+              }))`
+          } else {
+            s += ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+          }
           --l
           break
         }
         case "where-scope": {
           // ;++l
-          s += `(\n${printN(l + 1)}${print(e.result, values)}\n)`
+          const rel = isRelationCheck(e.result, isRelation)
+          if (rel) {
+            const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+            s += isRelation
+              ? `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+              : `(\n${printN(l + 1)}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(e.result, values, rel)
+              }))`
+          } else {
+            s += `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+          }
           // ;--l
           break
         }
@@ -186,7 +217,7 @@ export function buildWhereCosmosQuery3(
   // or you can end up with duplicates
   return {
     query: `
-    SELECT DISTINCT ${
+    SELECT ${
       select
         ? `${
           select
@@ -200,17 +231,6 @@ export function buildWhereCosmosQuery3(
         : "f"
     }
     FROM ${name} f
-
-    ${
-      pipe(
-        values
-          .filter((_) => _.path.includes(".-1."))
-          .map((_) => _.path.split(".-1.")[0])
-          .map((_) => `JOIN ${_} IN f.${_}`),
-        Array.dedupeWith(Equivalence.string)
-      )
-        .join("\n")
-    }
 
     WHERE f.id != @id ${filter.length ? `AND (${print(filter, values.map((_) => _.value))})` : ""}
     ${order ? `ORDER BY ${order.map((_) => `f.${_.key} ${_.direction}`).join(", ")}` : ""}

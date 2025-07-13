@@ -98,7 +98,6 @@ describe("select first-level array fields", () => {
 
       // ok crazy lol, "value" is a reserved word in CosmosDB, so we have to use t["value"] as a field name instead of t.value
       const items = yield* repo.queryRaw(projected, {
-        // TODO
         cosmos: () => ({
           query: `
           SELECT 
@@ -147,6 +146,8 @@ describe("select first-level array fields", () => {
       .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
 })
 
+// NOTE: right now we cannot specify if all/"every" items must match the filter, or if at least one item (any/"some") must match the filter.
+// the current implementation is any/some, so we can always filter down in the code to narrow further..
 describe("filter first-level array fields as groups", () => {
   const test = Effect
     .gen(function*() {
@@ -155,8 +156,9 @@ describe("filter first-level array fields as groups", () => {
       const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Number })) })
 
       // ok crazy lol, "value" is a reserved word in CosmosDB, so we have to use t["value"] as a field name instead of t.value
+      // deprecated; joins should be avoided because they're very expensive, and require DISTINCT to avoid duplicates
+      // which might affect results in unexpected ways?
       const items = yield* repo.queryRaw(projected, {
-        // TODO
         cosmos: () => ({
           query: `
           SELECT DISTINCT
@@ -177,24 +179,27 @@ describe("filter first-level array fields as groups", () => {
         )
       })
 
-      // problem 1:
-      // we cannot specify if all/"every" items must match the filter, or if at least one item (any/"some") must match the filter.
-      // we should start with supporting "any", and then add "all" support..
-      // good thing: cosmosdb currently defaults to "any", and we can always filter down to "all" after finished querying,
-      // "all" is more of an optimisation, so let's focus on problem 2
+      // we use EXISTS by default now: https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/query/subquery#exists-expression
+      const itemsExists = yield* repo.queryRaw(projected, {
+        cosmos: () => ({
+          query: `
+          SELECT
+            f.name,
+            ARRAY (SELECT t.id,t["value"] FROM t in f.items) AS items
+          FROM Somethings f
+          WHERE EXISTS(SELECT VALUE item FROM item IN f.items WHERE item["value"] > @v1 AND CONTAINS(item.description, @v2, true))`,
+          parameters: [{ name: "@v1", value: 20 }, { name: "@v2", value: "d item" }]
+        }),
+        memory: Array.filterMap(({ items, name }) =>
+          items.some((_) => _.value > 20 && _.description.includes("d item"))
+            ? Option.some({
+              name,
+              items: items.map(({ id, value }) => ({ id, value }))
+            })
+            : Option.none()
+        )
+      })
 
-      // problem 2:
-      // in memory is not implemented properly for array sub queries.
-      // 1. in the current situation, it only is somewhat implemented for eq and neq, nothing else.
-      // 2. we don't properly group the filters. you want to express; find Something where some item has both (value > 20 and description includes "d item")
-      // but in reality, you find Something where at least an item has value > 20, and at least an item has a description that includes "d item".
-      // subtle but very important difference.. in the sample query it would lead to showing 2 items instead of 1 item.
-
-      // This should mean:
-      // Find all Somethings where at least one item (has value > 20 and description includes "d item")
-      // aka: somethings.filter(s => s.items.some((_) => _.value > 20 && _.description.includes("d item")))
-      // for this, codeFilter should be updated to support accordingly.
-      // (removing detection of ".-1." using 'some' check from `codeFilterStatement`, and moving it somehow higher up... higher up we need to detect and group sub-item checks!)
       const items2 = yield* repo.query(
         where("items.-1.value", "gt", 20),
         and("items.-1.description", "contains", "d item"),
@@ -256,6 +261,7 @@ describe("filter first-level array fields as groups", () => {
       ]
 
       expect(items).toStrictEqual(expected)
+      expect(itemsExists).toStrictEqual(expected)
       expect(items2).toStrictEqual(expected)
       expect(items2Or).toStrictEqual(both)
       expect(items3).toStrictEqual(expected)

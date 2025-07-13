@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.61.5
+
+### Patch Changes
+
+- 17a78df: fix non relation
+
 ## 2.61.4
 
 ### Patch Changes

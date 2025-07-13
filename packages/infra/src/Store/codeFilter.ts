@@ -105,7 +105,9 @@ const codeFilter3__ = <E>(
     ? (e: FilterR, el: any) =>
       codeFilterStatement({ ...e, path: e.path.split(".-1.").slice(1).join(".-1.") }, el ?? sut)
     : (e: FilterR, el: any) => codeFilterStatement(e, el ?? sut)
-  const statement = () => `statements[${statements.length - 1}](el)`
+  const statement = isRelation
+    ? () => `statements[${statements.length - 1}](el)`
+    : () => `statements[${statements.length - 1}]()`
   for (const e of state) {
     switch (e.t) {
       case "where": {

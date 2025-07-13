@@ -153,7 +153,12 @@ it("works with repo", () =>
       expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("id", "displayName")))
       expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("displayName")))
     })
-    .pipe(Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())), Effect.runPromise))
+    .pipe(
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      Effect.provide(MemoryStoreLive),
+      setupRequestContextFromCurrent(),
+      Effect.runPromise
+    ))
 
 it("collect", () =>
   Effect
@@ -220,7 +225,12 @@ it("collect", () =>
       expectTypeOf(value).toEqualTypeOf<string>()
       expect(value).toEqual("hi")
     })
-    .pipe(Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())), Effect.runPromise))
+    .pipe(
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      Effect.provide(MemoryStoreLive),
+      setupRequestContextFromCurrent(),
+      Effect.runPromise
+    ))
 
 class Person extends S.ExtendedTaggedClass<Person, Person.Encoded>()("person", {
   id: S.String,
@@ -1082,5 +1092,62 @@ it("refine union with nested union", () =>
           readonly nested: D
         })[]
       >()
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("projects on nested arrays union with nested union", () =>
+  Effect
+    .gen(function*() {
+      class Item extends S.TaggedClass<Item>()("Item", {
+        id: S.String,
+        a: S.String,
+        bs: S.Array(S.Struct({
+          b1: S.String,
+          b2: S.String
+        }))
+      }) {}
+
+      const repo = yield* makeRepo("items", Item, {
+        makeInitial: Effect.sync(() => [
+          new Item({
+            id: "1",
+            a: "a1",
+            bs: [
+              { b1: "b1-1", b2: "b2-1" },
+              { b1: "b1-2", b2: "b2-2" }
+            ]
+          })
+        ])
+      })
+
+      const base = make<Item>()
+
+      const res_query = base.pipe(
+        where("id", "1"),
+        project(S.Struct({ id: S.String, bs: S.Array(S.Struct({ b1: S.String })) }))
+      )
+
+      const res = yield* repo.query(
+        () => res_query
+      )
+
+      expectTypeOf(res).toEqualTypeOf<
+        readonly {
+          readonly id: string
+          readonly bs: readonly {
+            readonly b1: string
+          }[]
+        }[]
+      >()
+
+      expect(res).toEqual([
+        {
+          id: "1",
+          bs: [
+            { b1: "b1-1" },
+            { b1: "b1-2" }
+          ]
+        }
+      ])
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))

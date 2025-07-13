@@ -59,12 +59,7 @@ const filterStatement = (x: any, p: FilterR) => {
   }
 }
 
-export const codeFilterStatement = <E>(p: FilterR, x: E, isRelation: boolean) => {
-  if (isRelation) {
-    return (x: any) => filterStatement(x, p)
-  }
-  return filterStatement(x, p)
-}
+export const codeFilterStatement = <E>(p: FilterR, x: E) => filterStatement(x, p)
 
 // TODO: still prevent mixing relation checks with non-relation checks in the same filter scope
 // right now we ignore scoped combinations, because they allow us to scope relation checks too.
@@ -107,23 +102,23 @@ const codeFilter3__ = <E>(
   // TODO: path str updates
 
   const process = isRelation
-    ? (e: FilterR) => codeFilterStatement({ ...e, path: e.path.split(".-1.").slice(1).join(".-1.") }, sut, true)
-    : (e: FilterR) => codeFilterStatement(e, sut, false)
-  const statement = () =>
-    isRelation ? `statements[${statements.length - 1}]()(el)` : `statements[${statements.length - 1}]()`
+    ? (e: FilterR, el: any) =>
+      codeFilterStatement({ ...e, path: e.path.split(".-1.").slice(1).join(".-1.") }, el ?? sut)
+    : (e: FilterR, el: any) => codeFilterStatement(e, el ?? sut)
+  const statement = () => `statements[${statements.length - 1}](el)`
   for (const e of state) {
     switch (e.t) {
       case "where": {
-        statements.push(() => process(e))
+        statements.push((el: any) => process(e, el))
         s += statement()
         break
       }
       case "or":
-        statements.push(() => process(e))
+        statements.push((el: any) => process(e, el))
         s += " || " + statement()
         break
       case "and":
-        statements.push(() => process(e))
+        statements.push((el: any) => process(e, el))
         s += " && " + statement()
         break
       case "or-scope": {

@@ -66,7 +66,7 @@ export const codeFilterStatement = <E>(p: FilterR, x: E) => filterStatement(x, p
 // probably best to create a separate keyword and dsl for relation checks, so we can remove all the special casing alltogether..
 export const isRelationCheck = (f: readonly FilterResult[], isRelation: string | null) => {
   const withPath = f.filter((_) => "path" in _)
-  if (withPath.every((_) => "path" in _ && _.path.includes(".-1."))) {
+  if (withPath.length && withPath.every((_) => "path" in _ && _.path.includes(".-1."))) {
     const first = withPath[0] as { path: string }
     const rel = first.path.split(".-1.")[0]
     if (isRelation && rel !== isRelation) {

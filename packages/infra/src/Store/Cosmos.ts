@@ -288,7 +288,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 .sync(() =>
                   buildWhereCosmosQuery3(
                     idKey,
-                    filter ?? [],
+                    filter ? [{ t: "where-scope", result: filter }] : [],
                     name,
                     importedMarkerId,
                     defaultValues,

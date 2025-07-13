@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.61.4
+
+### Patch Changes
+
+- 50b470c: optimise
+
 ## 2.61.3
 
 ### Patch Changes

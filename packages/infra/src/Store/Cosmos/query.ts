@@ -29,6 +29,12 @@ export function logQuery(q: {
     }))
 }
 
+const dottedToAccess = (path: string) =>
+  path
+    .split(".")
+    .map((p, i) => i === 0 ? p : `["${p}"]`)
+    .join("")
+
 export function buildWhereCosmosQuery3(
   idKey: PropertyKey,
   filter: readonly FilterResult[],
@@ -45,10 +51,10 @@ export function buildWhereCosmosQuery3(
       x = { ...x, path: "id" }
     }
     let k = x.path.includes(".-1.")
-      ? `${x.path.split(".-1.")[0]}["${x.path.split(".-1.")[1]!}"]`
+      ? dottedToAccess(`${x.path.split(".-1.")[0]}.${x.path.split(".-1.")[1]!}`)
       : x.path.endsWith(".length")
-      ? `ARRAY_LENGTH(f.${x.path.split(".length")[0]})`
-      : `f["${x.path}"]`
+      ? `ARRAY_LENGTH(${dottedToAccess(`f.${x.path.split(".length")[0]}`)})`
+      : dottedToAccess(`f.${x.path}`)
 
     // would have to map id, but shouldnt allow id in defaultValues anyway..
     k = x.path in defaultValues ? `(${k} ?? ${JSON.stringify(defaultValues[x.path])})` : k
@@ -223,8 +229,9 @@ export function buildWhereCosmosQuery3(
           select
             .map((s) =>
               typeof s === "string"
-                ? s === idKey ? "f.id" : `f["${s}"]` // x["y"} vs x.y, helps with reserved keywords like "value"
-                : `ARRAY (SELECT ${s.subKeys.map((_) => `t["${_}"]`).join(",")} FROM t in f.${s.key}) AS ${s.key}`
+                ? dottedToAccess(s === idKey ? "f.id" : `f.${s}`) // x["y"} vs x.y, helps with reserved keywords like "value"
+                : `ARRAY (SELECT ${s.subKeys.map((_) => dottedToAccess(`t.${_}`)).join(",")}
+                FROM t in ${dottedToAccess(`f.${s.key}`)}) AS ${s.key}`
             )
             .join(", ")
         }`
@@ -233,7 +240,7 @@ export function buildWhereCosmosQuery3(
     FROM ${name} f
 
     WHERE f.id != @id ${filter.length ? `AND (${print(filter, values.map((_) => _.value))})` : ""}
-    ${order ? `ORDER BY ${order.map((_) => `f.${_.key} ${_.direction}`).join(", ")}` : ""}
+    ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
     parameters: [
       { name: "@id", value: importedMarkerId },

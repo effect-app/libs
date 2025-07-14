@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.61.8
+
+### Patch Changes
+
+- fix: proper dotted access path conversion
+
 ## 2.61.7
 
 ### Patch Changes

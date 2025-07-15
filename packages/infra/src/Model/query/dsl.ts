@@ -124,9 +124,10 @@ export class Initial<TFieldValues extends FieldValues> extends Data.TaggedClass(
 export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("where")<{
   current: Query<TFieldValues>
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+  relation: RelationDirection
+  subPath?: string
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  readonly relation: RelationDirection = "some"
 
   pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -137,9 +138,9 @@ export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("w
 export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and")<{
   current: Query<TFieldValues>
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+  relation: RelationDirection
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  readonly relation: RelationDirection = "some"
   pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
@@ -149,9 +150,9 @@ export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and
 export class Or<TFieldValues extends FieldValues> extends Data.TaggedClass("or")<{
   current: Query<TFieldValues>
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+  relation: RelationDirection
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  readonly relation: RelationDirection = "some"
   pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)

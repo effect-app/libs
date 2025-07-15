@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Array, Effect, identity, type NonEmptyReadonlyArray } from "effect-app"
+import { Array, Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
-import { type RelationDirection } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 import type { SupportedValues } from "../service.js"
 
@@ -154,8 +153,8 @@ export function buildWhereCosmosQuery3(
     or: "and"
   } satisfies Record<"and" | "or", "and" | "or">
 
-  const flip = (e: { relation: "some" | "every" } | null) => <T extends FilterResult>(_: T): T =>
-    e !== null && e.relation === "every"
+  const flip = (e: { relation: "some" | "every" }) => (_: FilterResult): FilterResult =>
+    e.relation === "every"
       ? _.t === "where" || _.t === "or" || _.t === "and"
         ? {
           ..._,
@@ -167,27 +166,22 @@ export function buildWhereCosmosQuery3(
         : _
       : _
 
-  const print = (
-    state: readonly FilterResult[],
-    values: any[],
-    isRelation: { rel: string; relation: RelationDirection } | null = null
-  ) => {
+  const print = (state: readonly FilterResult[], values: any[], isRelation: string | null = null) => {
     let s = ""
     let l = 0
     const printN = (n: number) => {
       return n === 0 ? "" : Array.range(1, n).map(() => "  ").join("")
     }
-    const fl = isRelation ? flip(isRelation) : identity
     for (const e of state) {
       switch (e.t) {
         case "where":
-          s += statement(fl(e), i++, values)
+          s += statement(e, i++, values)
           break
         case "or":
-          s += ` OR ${statement(fl(e), i++, values)}`
+          s += ` OR ${statement(e, i++, values)}`
           break
         case "and":
-          s += ` AND ${statement(fl(e), i++, values)}`
+          s += ` AND ${statement(e, i++, values)}`
           break
         case "or-scope": {
           ++l
@@ -199,10 +193,16 @@ export function buildWhereCosmosQuery3(
               : ` OR (\n${printN(l + 1)}${
                 e.relation === "every" ? "NOT " : ""
               }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result, values, { rel, relation: e.relation })
+                print(
+                  e
+                    .result
+                    .map(flip(e)),
+                  values,
+                  rel
+                )
               }))`
           } else {
-            s += ` OR (\n${printN(l + 1)}${print(e.result, values, isRelation)}\n${printN(l)})`
+            s += ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
           }
           --l
           break
@@ -216,11 +216,9 @@ export function buildWhereCosmosQuery3(
               ? ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
               : ` AND (\n${printN(l + 1)}${
                 e.relation === "every" ? "NOT " : ""
-              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result.map(flip(e)), values, { rel, relation: e.relation })
-              }))`
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${print(e.result.map(flip(e)), values, rel)}))`
           } else {
-            s += ` AND (\n${printN(l + 1)}${print(e.result, values, isRelation)}\n${printN(l)})`
+            s += ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
           }
           --l
           break
@@ -234,11 +232,9 @@ export function buildWhereCosmosQuery3(
               ? `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
               : `(\n${printN(l + 1)}${
                 e.relation === "every" ? "NOT " : ""
-              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result.map(flip(e)), values, { rel, relation: e.relation })
-              }))`
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${print(e.result.map(flip(e)), values, rel)}))`
           } else {
-            s += `(\n${printN(l + 1)}${print(e.result, values, isRelation)}\n${printN(l)})`
+            s += `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
           }
           // ;--l
           break

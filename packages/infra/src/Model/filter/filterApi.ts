@@ -1,3 +1,5 @@
+import { type RelationDirection } from "../query.js"
+
 export type InOps =
   | "in"
   | "notIn"
@@ -27,12 +29,15 @@ export type Ops = OtherOps | InOps
 export type FilterScopes = {
   t: "or-scope"
   result: readonly FilterResult[]
+  relation: RelationDirection
 } | {
   t: "and-scope"
   result: readonly FilterResult[]
+  relation: RelationDirection
 } | {
   t: "where-scope"
   result: readonly FilterResult[]
+  relation: RelationDirection
 }
 
 export type FilterR = {

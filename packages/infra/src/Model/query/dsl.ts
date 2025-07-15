@@ -52,17 +52,21 @@ type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldVal
   ? TFieldValuesRefined
   : never
 
+export type RelationDirection = "some" | "every"
+export type Relation = { relation: RelationDirection }
 export type Query<TFieldValues extends FieldValues> = QueryTogether<TFieldValues, TFieldValues, false, "initial">
 export type QueryWhere<
   TFieldValues extends FieldValues,
   TFieldValuesRefined extends TFieldValues = TFieldValues,
   Exclusive extends boolean = false
-> = QueryTogether<
-  TFieldValues,
-  TFieldValuesRefined,
-  Exclusive,
-  "where"
->
+> =
+  & QueryTogether<
+    TFieldValues,
+    TFieldValuesRefined,
+    Exclusive,
+    "where"
+  >
+  & Relation
 
 export type QueryEnd<
   TFieldValues extends FieldValues,
@@ -122,6 +126,7 @@ export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("w
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
+  readonly relation: RelationDirection = "some"
 
   pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -134,6 +139,7 @@ export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
+  readonly relation: RelationDirection = "some"
   pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
@@ -145,6 +151,7 @@ export class Or<TFieldValues extends FieldValues> extends Data.TaggedClass("or")
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
+  readonly relation: RelationDirection = "some"
   pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)

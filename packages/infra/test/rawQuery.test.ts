@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Array, Config, Effect, Layer, Logger, LogLevel, ManagedRuntime, Option, Redacted, S } from "effect-app"
-import { LogLevels } from "effect-app/utils"
+import { copy, LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, or, project, where } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
@@ -233,6 +233,19 @@ describe("filter first-level array fields as groups", () => {
         project(projected)
       )
 
+      // TODO: how to support this in Cosmos.
+      // it's almost like you need to flip the query, and the or/and:
+      // use NOT EXISTS, but then not-gt 20 or not-contains "d item"
+      // otherwise can't we do math? count items where MATCHES, and then check if the count equals the number of items??
+      const itemsCheckWithEvery = yield* repo.query(
+        where(
+          where("items.-1.value", "gt", 20),
+          and("items.-1.description", "contains", "d item")
+        ),
+        copy({ relation: "every" }),
+        project(projected)
+      )
+
       const expected = [
         {
           name: "Item 2",
@@ -267,6 +280,7 @@ describe("filter first-level array fields as groups", () => {
       expect(items3).toStrictEqual(expected)
       expect(items3Or).toStrictEqual(both)
       expect(items4).toStrictEqual(both)
+      expect(itemsCheckWithEvery).toStrictEqual([])
     })
     .pipe(setupRequestContextFromCurrent())
 

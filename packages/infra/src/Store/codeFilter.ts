@@ -131,9 +131,9 @@ const codeFilter3__ = <E>(
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
             ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
-            : ` || (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
-              printN(l)
-            })`
+            : ` || (\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${
+              codeFilter3__(e.result, sut, statements, rel)
+            })\n${printN(l)})`
         } else {
           s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }
@@ -147,9 +147,9 @@ const codeFilter3__ = <E>(
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
             ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
-            : ` && (\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
-              printN(l)
-            })`
+            : ` && (\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${
+              codeFilter3__(e.result, sut, statements, rel)
+            })\n${printN(l)})`
         } else {
           s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }
@@ -164,7 +164,7 @@ const codeFilter3__ = <E>(
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
             ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
-            : `(\n${printN(l + 1)}sut.${rel}.some(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
+            : `(\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
               printN(l)
             })`
         } else {
@@ -181,7 +181,7 @@ const codeFilter3__ = <E>(
 export const codeFilter3_ = <E>(state: readonly FilterResult[], sut: E): boolean => {
   const statements: any[] = [] // must be defined here to be used by eval.
   // always put everything inside a root scope.
-  const s = codeFilter3__([{ t: "where-scope", result: state }], sut, statements)
+  const s = codeFilter3__([{ t: "where-scope", result: state, relation: "some" }], sut, statements)
   return eval(s)
 }
 

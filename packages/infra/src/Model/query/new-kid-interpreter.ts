@@ -54,11 +54,11 @@ const interpret = <
       value: () => {
         // data.filter.push(value)
       },
-      where: ({ current, operation }) => {
+      where: ({ current, operation, relation }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
           data.filter.push(
-            { t: "where-scope", result: interpret(operation(make())).filter }
+            { t: "where-scope", result: interpret(operation(make())).filter, relation }
           )
         } else {
           data.filter.push(
@@ -71,11 +71,11 @@ const interpret = <
           )
         }
       },
-      and: ({ current, operation }) => {
+      and: ({ current, operation, relation }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
           data.filter.push(
-            { t: "and-scope", result: interpret(operation(make())).filter }
+            { t: "and-scope", result: interpret(operation(make())).filter, relation }
           )
         } else {
           data.filter.push(
@@ -88,11 +88,11 @@ const interpret = <
           )
         }
       },
-      or: ({ current, operation }) => {
+      or: ({ current, operation, relation }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
           data.filter.push(
-            { t: "or-scope", result: interpret(operation(make())).filter }
+            { t: "or-scope", result: interpret(operation(make())).filter, relation }
           )
         } else {
           data.filter.push(

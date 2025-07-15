@@ -4,6 +4,7 @@ import { Array, Option } from "effect-app"
 import { assertUnreachable, get } from "effect-app/utils"
 import type { FilterR, FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import { type RelationDirection } from "../Model/query.js"
 import type { Filter } from "./service.js"
 import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive } from "./utils.js"
 
@@ -64,13 +65,16 @@ export const codeFilterStatement = <E>(p: FilterR, x: E) => filterStatement(x, p
 // TODO: still prevent mixing relation checks with non-relation checks in the same filter scope
 // right now we ignore scoped combinations, because they allow us to scope relation checks too.
 // probably best to create a separate keyword and dsl for relation checks, so we can remove all the special casing alltogether..
-export const isRelationCheck = (f: readonly FilterResult[], isRelation: string | null) => {
+export const isRelationCheck = (
+  f: readonly FilterResult[],
+  isRelation: { rel: string; relation: RelationDirection } | null
+) => {
   const withPath = f.filter((_) => "path" in _)
   if (withPath.length && withPath.every((_) => "path" in _ && _.path.includes(".-1."))) {
     const first = withPath[0] as { path: string }
     const rel = first.path.split(".-1.")[0]
-    if (isRelation && rel !== isRelation) {
-      throw new Error(`expected ${isRelation} relation but found ${rel}`)
+    if (isRelation && rel !== isRelation.rel) {
+      throw new Error(`expected ${isRelation.rel} relation but found ${rel}`)
     }
     if (!f.filter((_) => "path" in _).every((_) => "path" in _ && _.path.startsWith(rel + ".-1."))) {
       throw new Error(
@@ -93,7 +97,7 @@ const codeFilter3__ = <E>(
   state: readonly FilterResult[],
   sut: E,
   statements: any[],
-  isRelation: string | null = null
+  isRelation: { rel: string; relation: RelationDirection } | null = null
 ): string => {
   let s = ""
   let l = 0
@@ -130,9 +134,9 @@ const codeFilter3__ = <E>(
         if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
-            ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
+            ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, isRelation)}\n${printN(l)})`
             : ` || (\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${
-              codeFilter3__(e.result, sut, statements, rel)
+              codeFilter3__(e.result, sut, statements, { rel, relation: e.relation })
             })\n${printN(l)})`
         } else {
           s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
@@ -146,9 +150,9 @@ const codeFilter3__ = <E>(
         if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
-            ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
+            ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, isRelation)}\n${printN(l)})`
             : ` && (\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${
-              codeFilter3__(e.result, sut, statements, rel)
+              codeFilter3__(e.result, sut, statements, { rel, relation: e.relation })
             })\n${printN(l)})`
         } else {
           s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
@@ -163,10 +167,10 @@ const codeFilter3__ = <E>(
         if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
-            ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
-            : `(\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
-              printN(l)
-            })`
+            ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, isRelation)}\n${printN(l)})`
+            : `(\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${
+              codeFilter3__(e.result, sut, statements, { rel, relation: e.relation })
+            })\n${printN(l)})`
         } else {
           s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
         }

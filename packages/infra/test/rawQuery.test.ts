@@ -235,10 +235,12 @@ describe("filter first-level array fields as groups", () => {
 
       const itemsCheckWithEvery = yield* repo.query(
         where(
-          where("items.-1.value", "gt", 20),
-          and("items.-1.description", "contains", "d item")
+          where(
+            where("items.-1.value", "gt", 20),
+            and(where("items.-1.description", "contains", "d item"))
+          ),
+          (_) => copy(_, { relation: "every" })
         ),
-        copy({ relation: "every" }),
         project(projected)
       )
 

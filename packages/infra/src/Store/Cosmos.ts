@@ -54,6 +54,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           const container = db.container(containerId)
           const bulk = container.items.bulk.bind(container.items)
           const execBatch = container.items.batch.bind(container.items)
+          // TODO: move the marker to a separate container and get rid of the checks on every query
+          // then need to clean up the actual data.. perhaps first do with a config toggle to prescribe to it.
           const importedMarkerId = containerId
 
           const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
@@ -288,7 +290,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 .sync(() =>
                   buildWhereCosmosQuery3(
                     idKey,
-                    filter ? [{ t: "where-scope", result: filter }] : [],
+                    filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
                     name,
                     importedMarkerId,
                     defaultValues,

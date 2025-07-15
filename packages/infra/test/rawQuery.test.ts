@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Array, Config, Effect, Layer, Logger, LogLevel, ManagedRuntime, Option, Redacted, S } from "effect-app"
-import { LogLevels } from "effect-app/utils"
+import { copy, LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, or, project, where } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
@@ -146,14 +146,41 @@ describe("select first-level array fields", () => {
       .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
 })
 
+const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Number })) })
+
+const expected = [
+  {
+    name: "Item 2",
+    items: [
+      { id: "2-1", value: 30 },
+      { id: "2-2", value: 40 }
+    ]
+  }
+]
+
+const both = [
+  {
+    name: "Item 1",
+    items: [
+      { id: "1-1", value: 10 },
+      { id: "1-2", value: 20 }
+    ]
+  },
+  {
+    name: "Item 2",
+    items: [
+      { id: "2-1", value: 30 },
+      { id: "2-2", value: 40 }
+    ]
+  }
+]
+
 // NOTE: right now we cannot specify if all/"every" items must match the filter, or if at least one item (any/"some") must match the filter.
 // the current implementation is any/some, so we can always filter down in the code to narrow further..
 describe("filter first-level array fields as groups", () => {
   const test = Effect
     .gen(function*() {
       const repo = yield* SomethingRepo
-
-      const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Number })) })
 
       // ok crazy lol, "value" is a reserved word in CosmosDB, so we have to use t["value"] as a field name instead of t.value
       // deprecated; joins should be avoided because they're very expensive, and require DISTINCT to avoid duplicates
@@ -200,11 +227,30 @@ describe("filter first-level array fields as groups", () => {
         )
       })
 
+      expect(items).toStrictEqual(expected)
+      expect(itemsExists).toStrictEqual(expected)
+    })
+    .pipe(setupRequestContextFromCurrent())
+
+  it("works well in CosmosDB", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
+
+  it("works well in Memory", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
+})
+
+describe("1", () => {
+  const test = Effect
+    .gen(function*() {
+      const repo = yield* SomethingRepo
       const items2 = yield* repo.query(
         where("items.-1.value", "gt", 20),
         and("items.-1.description", "contains", "d item"),
         project(projected)
       )
+      expect(items2).toStrictEqual(expected)
 
       const items2Or = yield* repo.query(
         where("items.-1.value", "gt", 20),
@@ -212,6 +258,7 @@ describe("filter first-level array fields as groups", () => {
         project(projected)
       )
 
+      expect(items2Or).toStrictEqual(both)
       // mixing relation check with scoped relationcheck
       const items3 = yield* repo.query(
         where("items.-1.value", "gt", 20),
@@ -219,54 +266,48 @@ describe("filter first-level array fields as groups", () => {
         project(projected)
       )
 
+      expect(items3).toStrictEqual(expected)
       const items3Or = yield* repo.query(
         where("items.-1.value", "gt", 20),
         or(where("items.-1.description", "contains", "d item")),
         project(projected)
       )
 
-      // broken in cosmos db somehow... returns twice record 2??
-      // need to use DISTINCT..
-      // https://stackoverflow.com/questions/51855660/cosmos-db-joins-give-duplicate-results
+      expect(items3Or).toStrictEqual(both)
       const items4 = yield* repo.query(
         where("items.-1.value", "gt", 10),
         project(projected)
       )
 
-      const expected = [
-        {
-          name: "Item 2",
-          items: [
-            { id: "2-1", value: 30 },
-            { id: "2-2", value: 40 }
-          ]
-        }
-      ]
-
-      const both = [
-        {
-          name: "Item 1",
-          items: [
-            { id: "1-1", value: 10 },
-            { id: "1-2", value: 20 }
-          ]
-        },
-        {
-          name: "Item 2",
-          items: [
-            { id: "2-1", value: 30 },
-            { id: "2-2", value: 40 }
-          ]
-        }
-      ]
-
-      expect(items).toStrictEqual(expected)
-      expect(itemsExists).toStrictEqual(expected)
-      expect(items2).toStrictEqual(expected)
-      expect(items2Or).toStrictEqual(both)
-      expect(items3).toStrictEqual(expected)
-      expect(items3Or).toStrictEqual(both)
       expect(items4).toStrictEqual(both)
+    })
+    .pipe(setupRequestContextFromCurrent())
+
+  it("works well in CosmosDB", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
+
+  it("works well in Memory", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
+})
+
+describe("multi-level", () => {
+  const test = Effect
+    .gen(function*() {
+      const repo = yield* SomethingRepo
+      const itemsCheckWithEvery = yield* repo.query(
+        where(
+          where(
+            where("items.-1.value", "gt", 20),
+            and("items.-1.description", "contains", "d item")
+          )
+        ),
+        copy({ relation: "every" }),
+        project(projected)
+      )
+
+      expect(itemsCheckWithEvery).toStrictEqual([])
     })
     .pipe(setupRequestContextFromCurrent())
 

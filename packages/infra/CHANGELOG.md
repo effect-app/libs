@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.62.0
+
+### Minor Changes
+
+- feat: support "every" semantic in the relationship query instead of only "some"
+
 ## 2.61.8
 
 ### Patch Changes

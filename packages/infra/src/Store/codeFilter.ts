@@ -93,7 +93,8 @@ const codeFilter3__ = <E>(
   state: readonly FilterResult[],
   sut: E,
   statements: any[],
-  isRelation: string | null = null
+  isRelation: string | null,
+  every: boolean
 ): string => {
   let s = ""
   let l = 0
@@ -126,32 +127,34 @@ const codeFilter3__ = <E>(
         break
       case "or-scope": {
         ++l
+        if (!every) every = e.relation === "every"
         const rel = isRelationCheck(e.result, isRelation)
         if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
-            ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
-            : ` || (\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${
-              codeFilter3__(e.result, sut, statements, rel)
+            ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
+            : ` || (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
+              codeFilter3__(e.result, sut, statements, rel, every)
             })\n${printN(l)})`
         } else {
-          s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
+          s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
         }
         --l
         break
       }
       case "and-scope": {
         ++l
+        if (!every) every = e.relation === "every"
         const rel = isRelationCheck(e.result, isRelation)
         if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
-            ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
-            : ` && (\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${
-              codeFilter3__(e.result, sut, statements, rel)
+            ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
+            : ` && (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
+              codeFilter3__(e.result, sut, statements, rel, every)
             })\n${printN(l)})`
         } else {
-          s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
+          s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
         }
         --l
 
@@ -159,16 +162,17 @@ const codeFilter3__ = <E>(
       }
       case "where-scope": {
         // ;++l
+        if (!every) every = e.relation === "every"
         const rel = isRelationCheck(e.result, isRelation)
         if (rel) {
           const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
           s += isRelation
-            ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel)}\n${printN(l)})`
-            : `(\n${printN(l + 1)}sut.${rel}.${e.relation}(el => ${codeFilter3__(e.result, sut, statements, rel)})\n${
-              printN(l)
-            })`
+            ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
+            : `(\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
+              codeFilter3__(e.result, sut, statements, rel, every)
+            })\n${printN(l)})`
         } else {
-          s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
+          s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
         }
         // ;--l
         break
@@ -181,7 +185,7 @@ const codeFilter3__ = <E>(
 export const codeFilter3_ = <E>(state: readonly FilterResult[], sut: E): boolean => {
   const statements: any[] = [] // must be defined here to be used by eval.
   // always put everything inside a root scope.
-  const s = codeFilter3__([{ t: "where-scope", result: state, relation: "some" }], sut, statements)
+  const s = codeFilter3__([{ t: "where-scope", result: state, relation: "some" }], sut, statements, null, false)
   return eval(s)
 }
 

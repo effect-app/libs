@@ -153,8 +153,8 @@ export function buildWhereCosmosQuery3(
     or: "and"
   } satisfies Record<"and" | "or", "and" | "or">
 
-  const flip = (e: { relation: "some" | "every" }) => (_: FilterResult): FilterResult =>
-    e.relation === "every"
+  const flip = (every: boolean) => (_: FilterResult): FilterResult =>
+    every
       ? _.t === "where" || _.t === "or" || _.t === "and"
         ? {
           ..._,
@@ -166,7 +166,7 @@ export function buildWhereCosmosQuery3(
         : _
       : _
 
-  const print = (state: readonly FilterResult[], values: any[], isRelation: string | null = null) => {
+  const print = (state: readonly FilterResult[], values: any[], isRelation: string | null, every: boolean) => {
     let s = ""
     let l = 0
     const printN = (n: number) => {
@@ -185,56 +185,62 @@ export function buildWhereCosmosQuery3(
           break
         case "or-scope": {
           ++l
+          if (!every) every = e.relation === "every"
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
-              ? ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+              ? ` OR (\n${printN(l + 1)}${print(e.result, values, isRelation, every)}\n${printN(l)})`
               : ` OR (\n${printN(l + 1)}${
-                e.relation === "every" ? "NOT " : ""
+                every ? "NOT " : ""
               }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
                 print(
                   e
                     .result
-                    .map(flip(e)),
+                    .map(flip(every)),
                   values,
-                  rel
+                  isRelation,
+                  every
                 )
               }))`
           } else {
-            s += ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+            s += ` OR (\n${printN(l + 1)}${print(e.result, values, isRelation, every)}\n${printN(l)})`
           }
           --l
           break
         }
         case "and-scope": {
           ++l
+          if (!every) every = e.relation === "every"
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
-              ? ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+              ? ` AND (\n${printN(l + 1)}${print(e.result, values, isRelation, every)}\n${printN(l)})`
               : ` AND (\n${printN(l + 1)}${
-                e.relation === "every" ? "NOT " : ""
-              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${print(e.result.map(flip(e)), values, rel)}))`
+                every ? "NOT " : ""
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(e.result.map(flip(every)), values, isRelation, every)
+              }))`
           } else {
-            s += ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+            s += ` AND (\n${printN(l + 1)}${print(e.result, values, isRelation, every)}\n${printN(l)})`
           }
           --l
           break
         }
         case "where-scope": {
           // ;++l
+          if (!every) every = e.relation === "every"
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
-              ? `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
-              : `(\n${printN(l + 1)}${
-                e.relation === "every" ? "NOT " : ""
-              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${print(e.result.map(flip(e)), values, rel)}))`
+              ? `(\n${printN(l + 1)}${print(e.result, values, isRelation, every)}\n${printN(l)})`
+              : `(\n${printN(l + 1)}${every ? "NOT " : ""}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(e.result.map(flip(every)), values, isRelation, every)
+              }))`
           } else {
-            s += `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+            s += `(\n${printN(l + 1)}${print(e.result, values, isRelation, every)}\n${printN(l)})`
           }
           // ;--l
           break
@@ -288,7 +294,7 @@ export function buildWhereCosmosQuery3(
     }
     FROM ${name} f
 
-    WHERE f.id != @id ${filter.length ? `AND (${print(filter, values.map((_) => _.value))})` : ""}
+    WHERE f.id != @id ${filter.length ? `AND (${print(filter, values.map((_) => _.value), null, false)})` : ""}
     ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
     parameters: [

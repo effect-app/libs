@@ -3,7 +3,7 @@
 import { Array, Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
-import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
+import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
 import { isRelationCheck } from "../codeFilter.js"
 import type { SupportedValues } from "../service.js"
 
@@ -125,6 +125,47 @@ export function buildWhereCosmosQuery3(
 
   let i = 0
 
+  const flipOps = {
+    gt: "lt",
+    lt: "gt",
+    gte: "lte",
+    lte: "gte",
+    contains: "notContains",
+    notContains: "contains",
+    startsWith: "notStartsWith",
+    notStartsWith: "startsWith",
+    endsWith: "notEndsWith",
+    notEndsWith: "endsWith",
+    eq: "neq",
+    neq: "eq",
+    includes: "notIncludes",
+    notIncludes: "includes",
+    "includes-any": "notIncludes-any",
+    "notIncludes-any": "includes-any",
+    "includes-all": "notIncludes-all",
+    "notIncludes-all": "includes-all",
+    in: "notIn",
+    notIn: "in"
+  } satisfies Record<Ops, Ops>
+
+  const flippies = {
+    and: "or",
+    or: "and"
+  } satisfies Record<"and" | "or", "and" | "or">
+
+  const flip = (e: { relation: "some" | "every" }) => (_: FilterResult): FilterResult =>
+    e.relation === "every"
+      ? _.t === "where" || _.t === "or" || _.t === "and"
+        ? {
+          ..._,
+          t: _.t === "where"
+            ? _.t
+            : flippies[_.t],
+          op: flipOps[_.op]
+        }
+        : _
+      : _
+
   const print = (state: readonly FilterResult[], values: any[], isRelation: string | null = null) => {
     let s = ""
     let l = 0
@@ -149,8 +190,16 @@ export function buildWhereCosmosQuery3(
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
               ? ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
-              : ` OR (\n${printN(l + 1)}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result, values, rel)
+              : ` OR (\n${printN(l + 1)}${
+                e.relation === "every" ? "NOT " : ""
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(
+                  e
+                    .result
+                    .map(flip(e)),
+                  values,
+                  rel
+                )
               }))`
           } else {
             s += ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
@@ -165,9 +214,9 @@ export function buildWhereCosmosQuery3(
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
               ? ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
-              : ` AND (\n${printN(l + 1)}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result, values, rel)
-              }))`
+              : ` AND (\n${printN(l + 1)}${
+                e.relation === "every" ? "NOT " : ""
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${print(e.result.map(flip(e)), values, rel)}))`
           } else {
             s += ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
           }
@@ -181,9 +230,9 @@ export function buildWhereCosmosQuery3(
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
               ? `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
-              : `(\n${printN(l + 1)}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result, values, rel)
-              }))`
+              : `(\n${printN(l + 1)}${
+                e.relation === "every" ? "NOT " : ""
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${print(e.result.map(flip(e)), values, rel)}))`
           } else {
             s += `(\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
           }

@@ -233,10 +233,6 @@ describe("filter first-level array fields as groups", () => {
         project(projected)
       )
 
-      // TODO: how to support this in Cosmos.
-      // it's almost like you need to flip the query, and the or/and:
-      // use NOT EXISTS, but then not-gt 20 or not-contains "d item"
-      // otherwise can't we do math? count items where MATCHES, and then check if the count equals the number of items??
       const itemsCheckWithEvery = yield* repo.query(
         where(
           where("items.-1.value", "gt", 20),

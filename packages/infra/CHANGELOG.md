@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.63.0
+
+### Minor Changes
+
+- e8bb979: feat: every/some dsl
+
 ## 2.62.0
 
 ### Minor Changes

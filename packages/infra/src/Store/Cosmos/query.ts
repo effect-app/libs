@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Array, Effect, Equivalence, type NonEmptyReadonlyArray, pipe } from "effect-app"
+import { Array, Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
-import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
+import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
+import { isRelationCheck } from "../codeFilter.js"
 import type { SupportedValues } from "../service.js"
 
 export function logQuery(q: {
@@ -28,13 +29,19 @@ export function logQuery(q: {
     }))
 }
 
+const dottedToAccess = (path: string) =>
+  path
+    .split(".")
+    .map((p, i) => i === 0 ? p : `["${p}"]`)
+    .join("")
+
 export function buildWhereCosmosQuery3(
   idKey: PropertyKey,
   filter: readonly FilterResult[],
   name: string,
   importedMarkerId: string,
   defaultValues: Record<string, unknown>,
-  select?: NonEmptyReadonlyArray<string>,
+  select?: NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number
@@ -44,10 +51,10 @@ export function buildWhereCosmosQuery3(
       x = { ...x, path: "id" }
     }
     let k = x.path.includes(".-1.")
-      ? `${x.path.split(".-1.")[0]}.${x.path.split(".-1.")[1]!}`
+      ? dottedToAccess(`${x.path.split(".-1.")[0]}.${x.path.split(".-1.")[1]!}`)
       : x.path.endsWith(".length")
-      ? `ARRAY_LENGTH(f.${x.path.split(".length")[0]})`
-      : `f.${x.path}`
+      ? `ARRAY_LENGTH(${dottedToAccess(`f.${x.path.split(".length")[0]}`)})`
+      : dottedToAccess(`f.${x.path}`)
 
     // would have to map id, but shouldnt allow id in defaultValues anyway..
     k = x.path in defaultValues ? `(${k} ?? ${JSON.stringify(defaultValues[x.path])})` : k
@@ -118,7 +125,48 @@ export function buildWhereCosmosQuery3(
 
   let i = 0
 
-  const print = (state: readonly FilterResult[], values: any[]) => {
+  const flipOps = {
+    gt: "lt",
+    lt: "gt",
+    gte: "lte",
+    lte: "gte",
+    contains: "notContains",
+    notContains: "contains",
+    startsWith: "notStartsWith",
+    notStartsWith: "startsWith",
+    endsWith: "notEndsWith",
+    notEndsWith: "endsWith",
+    eq: "neq",
+    neq: "eq",
+    includes: "notIncludes",
+    notIncludes: "includes",
+    "includes-any": "notIncludes-any",
+    "notIncludes-any": "includes-any",
+    "includes-all": "notIncludes-all",
+    "notIncludes-all": "includes-all",
+    in: "notIn",
+    notIn: "in"
+  } satisfies Record<Ops, Ops>
+
+  const flippies = {
+    and: "or",
+    or: "and"
+  } satisfies Record<"and" | "or", "and" | "or">
+
+  const flip = (every: boolean) => (_: FilterResult): FilterResult =>
+    every
+      ? _.t === "where" || _.t === "or" || _.t === "and"
+        ? {
+          ..._,
+          t: _.t === "where"
+            ? _.t
+            : flippies[_.t],
+          op: flipOps[_.op]
+        }
+        : _
+      : _
+
+  const print = (state: readonly FilterResult[], values: any[], isRelation: string | null, every: boolean) => {
     let s = ""
     let l = 0
     const printN = (n: number) => {
@@ -137,19 +185,63 @@ export function buildWhereCosmosQuery3(
           break
         case "or-scope": {
           ++l
-          s += ` OR (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+          if (!every) every = e.relation === "every"
+          const rel = isRelationCheck(e.result, isRelation)
+          if (rel) {
+            const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+            s += isRelation
+              ? ` OR (\n${printN(l + 1)}${print(e.result, values, rel, every)}\n${printN(l)})`
+              : ` OR (\n${printN(l + 1)}${
+                every ? "NOT " : ""
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(
+                  e
+                    .result
+                    .map(flip(every)),
+                  values,
+                  rel,
+                  every
+                )
+              }))`
+          } else {
+            s += ` OR (\n${printN(l + 1)}${print(e.result, values, null, every)}\n${printN(l)})`
+          }
           --l
           break
         }
         case "and-scope": {
           ++l
-          s += ` AND (\n${printN(l + 1)}${print(e.result, values)}\n${printN(l)})`
+          if (!every) every = e.relation === "every"
+          const rel = isRelationCheck(e.result, isRelation)
+          if (rel) {
+            const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+            s += isRelation
+              ? ` AND (\n${printN(l + 1)}${print(e.result, values, rel, every)}\n${printN(l)})`
+              : ` AND (\n${printN(l + 1)}${
+                every ? "NOT " : ""
+              }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(e.result.map(flip(every)), values, rel, every)
+              }))`
+          } else {
+            s += ` AND (\n${printN(l + 1)}${print(e.result, values, null, every)}\n${printN(l)})`
+          }
           --l
           break
         }
         case "where-scope": {
           // ;++l
-          s += `(\n${printN(l + 1)}${print(e.result, values)}\n)`
+          if (!every) every = e.relation === "every"
+          const rel = isRelationCheck(e.result, isRelation)
+          if (rel) {
+            const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+            s += isRelation
+              ? `(\n${printN(l + 1)}${print(e.result, values, rel, every)}\n${printN(l)})`
+              : `(\n${printN(l + 1)}${every ? "NOT " : ""}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
+                print(e.result.map(flip(every)), values, rel, every)
+              }))`
+          } else {
+            s += `(\n${printN(l + 1)}${print(e.result, values, null, every)}\n${printN(l)})`
+          }
           // ;--l
           break
         }
@@ -182,28 +274,28 @@ export function buildWhereCosmosQuery3(
           : [_]
       )
   const values = getValues(filter)
+  // with joins, you should use DISTINCT
+  // or you can end up with duplicates
   return {
     query: `
     SELECT ${
       select
-        ? `${select.map((_) => (_ as any) === idKey ? "id" : _).map((_) => `f.${_}`).join(", ")}`
+        ? `${
+          select
+            .map((s) =>
+              typeof s === "string"
+                ? dottedToAccess(s === idKey ? "f.id" : `f.${s}`) // x["y"} vs x.y, helps with reserved keywords like "value"
+                : `ARRAY (SELECT ${s.subKeys.map((_) => dottedToAccess(`t.${_}`)).join(",")}
+                FROM t in ${dottedToAccess(`f.${s.key}`)}) AS ${s.key}`
+            )
+            .join(", ")
+        }`
         : "f"
     }
     FROM ${name} f
 
-    ${
-      pipe(
-        values
-          .filter((_) => _.path.includes(".-1."))
-          .map((_) => _.path.split(".-1.")[0])
-          .map((_) => `JOIN ${_} IN f.${_}`),
-        Array.dedupeWith(Equivalence.string)
-      )
-        .join("\n")
-    }
-
-    WHERE f.id != @id ${filter.length ? `AND (${print(filter, values.map((_) => _.value))})` : ""}
-    ${order ? `ORDER BY ${order.map((_) => `f.${_.key} ${_.direction}`).join(", ")}` : ""}
+    WHERE f.id != @id ${filter.length ? `AND (${print(filter, values.map((_) => _.value), null, false)})` : ""}
+    ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
     parameters: [
       { name: "@id", value: importedMarkerId },

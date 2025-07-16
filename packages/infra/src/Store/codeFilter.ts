@@ -9,7 +9,7 @@ import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusi
 
 const vAsArr = (v: string) => v as unknown as any[]
 
-export const codeFilterStatement = <E>(p: FilterR, x: E) => {
+const filterStatement = (x: any, p: FilterR) => {
   const k = get(x, p.path)
   switch (p.op) {
     case "in":
@@ -49,26 +49,53 @@ export const codeFilterStatement = <E>(p: FilterR, x: E) => {
     case "notStartsWith":
       return !(k as string).toLowerCase().startsWith(p.value.toLowerCase())
     case "neq":
-      return p.path.includes(".-1.")
-        ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
-          .every((_) => !compare(get(_, p.path.split(".-1.")[1]!), p.value))
-        : !compare(k, p.value)
+      return !compare(k, p.value)
     case "eq":
     case undefined:
-      return p.path.includes(".-1.")
-        ? (get(x, p.path.split(".-1.")[0]) as any[])
-          // TODO: or vs and
-          .some((_) => compare(get(_, p.path.split(".-1.")[1]!), p.value))
-        : compare(k, p.value)
+      return compare(k, p.value)
     default: {
       return assertUnreachable(p.op)
     }
   }
 }
 
+export const codeFilterStatement = <E>(p: FilterR, x: E) => filterStatement(x, p)
+
+// TODO: still prevent mixing relation checks with non-relation checks in the same filter scope
+// right now we ignore scoped combinations, because they allow us to scope relation checks too.
+// probably best to create a separate keyword and dsl for relation checks, so we can remove all the special casing alltogether..
+export const isRelationCheck = (f: readonly FilterResult[], isRelation: string | null) => {
+  const withPath = f.filter((_) => "path" in _)
+  if (withPath.length && withPath.every((_) => "path" in _ && _.path.includes(".-1."))) {
+    const first = withPath[0] as { path: string }
+    const rel = first.path.split(".-1.")[0]
+    if (isRelation && rel !== isRelation) {
+      throw new Error(`expected ${isRelation} relation but found ${rel}`)
+    }
+    if (!f.filter((_) => "path" in _).every((_) => "path" in _ && _.path.startsWith(rel + ".-1."))) {
+      throw new Error(
+        `Cannot mix relation checks of different props, expected all to be "${rel}"`
+      )
+    }
+    return rel
+  }
+  if (f.some((_) => "path" in _ && _.path.includes(".-1."))) {
+    throw new Error(
+      "Cannot mix relation checks with non-relation checks in the same filter scope. create a separate one"
+    )
+  }
+
+  return false
+}
+
 export const codeFilter3 = <E>(state: readonly FilterResult[]) => (sut: E) => codeFilter3_(state, sut)
-const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: any[]): string => {
+const codeFilter3__ = <E>(
+  state: readonly FilterResult[],
+  sut: E,
+  statements: any[],
+  isRelation: string | null,
+  every: boolean
+): string => {
   let s = ""
   let l = 0
   const printN = (n: number) => {
@@ -76,37 +103,77 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
   }
   // TODO: path str updates
 
-  const process = (e: FilterR) => codeFilterStatement(e, sut)
+  const process = isRelation
+    ? (e: FilterR, el: any) =>
+      codeFilterStatement({ ...e, path: e.path.split(".-1.").slice(1).join(".-1.") }, el ?? sut)
+    : (e: FilterR, el: any) => codeFilterStatement(e, el ?? sut)
+  const statement = isRelation
+    ? () => `statements[${statements.length - 1}](el)`
+    : () => `statements[${statements.length - 1}]()`
   for (const e of state) {
     switch (e.t) {
-      case "where":
-        statements.push(() => process(e))
-        s += `statements[${statements.length - 1}]()`
+      case "where": {
+        statements.push((el: any) => process(e, el))
+        s += statement()
         break
+      }
       case "or":
-        statements.push(() => process(e))
-        s += " || " + `statements[${statements.length - 1}]()`
+        statements.push((el: any) => process(e, el))
+        s += " || " + statement()
         break
       case "and":
-        statements.push(() => process(e))
-        s += " && " + `statements[${statements.length - 1}]()`
+        statements.push((el: any) => process(e, el))
+        s += " && " + statement()
         break
       case "or-scope": {
         ++l
-        s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
+        if (!every) every = e.relation === "every"
+        const rel = isRelationCheck(e.result, isRelation)
+        if (rel) {
+          const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+          s += isRelation
+            ? ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
+            : ` || (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
+              codeFilter3__(e.result, sut, statements, rel, every)
+            })\n${printN(l)})`
+        } else {
+          s += ` || (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
+        }
         --l
         break
       }
       case "and-scope": {
         ++l
-        s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n${printN(l)})`
+        if (!every) every = e.relation === "every"
+        const rel = isRelationCheck(e.result, isRelation)
+        if (rel) {
+          const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+          s += isRelation
+            ? ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
+            : ` && (\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
+              codeFilter3__(e.result, sut, statements, rel, every)
+            })\n${printN(l)})`
+        } else {
+          s += ` && (\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
+        }
         --l
 
         break
       }
       case "where-scope": {
         // ;++l
-        s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements)}\n)`
+        if (!every) every = e.relation === "every"
+        const rel = isRelationCheck(e.result, isRelation)
+        if (rel) {
+          const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
+          s += isRelation
+            ? `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, rel, every)}\n${printN(l)})`
+            : `(\n${printN(l + 1)}sut.${rel}.${every ? "every" : "some"}(el => ${
+              codeFilter3__(e.result, sut, statements, rel, every)
+            })\n${printN(l)})`
+        } else {
+          s += `(\n${printN(l + 1)}${codeFilter3__(e.result, sut, statements, null, every)}\n${printN(l)})`
+        }
         // ;--l
         break
       }
@@ -117,7 +184,8 @@ const codeFilter3__ = <E>(state: readonly FilterResult[], sut: E, statements: an
 
 export const codeFilter3_ = <E>(state: readonly FilterResult[], sut: E): boolean => {
   const statements: any[] = [] // must be defined here to be used by eval.
-  const s = codeFilter3__(state, sut, statements)
+  // always put everything inside a root scope.
+  const s = codeFilter3__([{ t: "where-scope", result: state, relation: "some" }], sut, statements, null, false)
   return eval(s)
 }
 

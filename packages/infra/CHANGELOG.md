@@ -1,5 +1,200 @@
 # @effect-app/infra
 
+## 2.63.0
+
+### Minor Changes
+
+- e8bb979: feat: every/some dsl
+
+## 2.62.0
+
+### Minor Changes
+
+- feat: support "every" semantic in the relationship query instead of only "some"
+
+## 2.61.8
+
+### Patch Changes
+
+- fix: proper dotted access path conversion
+
+## 2.61.7
+
+### Patch Changes
+
+- fix
+
+## 2.61.6
+
+### Patch Changes
+
+- d56da4e: fix
+
+## 2.61.5
+
+### Patch Changes
+
+- 17a78df: fix non relation
+
+## 2.61.4
+
+### Patch Changes
+
+- 50b470c: optimise
+
+## 2.61.3
+
+### Patch Changes
+
+- 136e178: fix distinct for join
+
+## 2.61.2
+
+### Patch Changes
+
+- 43dbb4d: support nested in memory
+
+## 2.61.1
+
+### Patch Changes
+
+- 18ebe56: fix rel
+
+## 2.61.0
+
+### Minor Changes
+
+- 71a6ba8: feat: add proper relationship query grouping
+
+## 2.60.1
+
+### Patch Changes
+
+- fix: don't array select non selectable types
+
+## 2.60.0
+
+### Minor Changes
+
+- a085319: feat: support first-level array field selection
+
+### Patch Changes
+
+- eea664d: fix: support for reserved keywords in cosmos queries.
+
+## 2.59.1
+
+### Patch Changes
+
+- 1c86c6a: remove obsolete :error workaround
+
+## 2.59.0
+
+### Minor Changes
+
+- d88598d: feat: add `queryRaw` support for experimentation
+
+## 2.58.0
+
+### Minor Changes
+
+- eac9c67: update packages
+
+### Patch Changes
+
+- Updated dependencies [eac9c67]
+  - effect-app@2.43.0
+
+## 2.57.8
+
+### Patch Changes
+
+- log error
+
+## 2.57.7
+
+### Patch Changes
+
+- 9b3717d: fix stream end on error
+
+## 2.57.6
+
+### Patch Changes
+
+- cfe1601: fix: eventstream termination
+
+## 2.57.5
+
+### Patch Changes
+
+- e02a908: bun workaround
+
+## 2.57.4
+
+### Patch Changes
+
+- 7d7a286: peer
+
+## 2.57.3
+
+### Patch Changes
+
+- 50bd7c1: peer
+
+## 2.57.2
+
+### Patch Changes
+
+- 49d93a5: update packages
+- Updated dependencies [49d93a5]
+  - effect-app@2.42.1
+
+## 2.57.1
+
+### Patch Changes
+
+- 18c15ef: chore: change queue incoming message log level to debug
+
+## 2.57.0
+
+### Minor Changes
+
+- ba96171: improve Cosmos errors
+
+### Patch Changes
+
+- Updated dependencies [ba96171]
+  - effect-app@2.42.0
+
+## 2.56.3
+
+### Patch Changes
+
+- db3dafc: improve: SSE logs
+
+## 2.56.2
+
+### Patch Changes
+
+- 90670bb: fix bigint serialisation error
+
+## 2.56.1
+
+### Patch Changes
+
+- cd0f564: improve: add connection id logging for SSE
+
+## 2.56.0
+
+### Minor Changes
+
+- b1d4af4: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [b1d4af4]
+  - effect-app@2.41.0
+
 ## 2.55.2
 
 ### Patch Changes

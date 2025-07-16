@@ -201,7 +201,7 @@ export const useOmegaForm = <
 
   const clear = () => {
     Object.keys(meta).forEach((key: any) => {
-      form.setFieldValue(key, undefined)
+      form.setFieldValue(key, undefined as any)
     })
   }
 

@@ -39,6 +39,7 @@ export type TypeOverride =
   | "autocomplete"
   | "autocompletemultiple"
   | "switch"
+  | "range"
 
 export interface OmegaError {
   label: string
@@ -170,6 +171,7 @@ export type SelectFieldMeta = BaseFieldMeta & {
 export type MultipleFieldMeta = BaseFieldMeta & {
   type: "multiple"
   members: any[]
+  rest: S.AST.Type[]
 }
 
 export type BooleanFieldMeta = BaseFieldMeta & {
@@ -200,7 +202,7 @@ export type FilterItems = {
     | { readonly message: string | Effect.Effect<string> }
 }
 
-type CreateMeta = {
+export type CreateMeta = {
   parent?: string
   meta?: Record<string, any>
   nullableOrUndefined?: false | "undefined" | "null"
@@ -230,7 +232,7 @@ const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
   return false
 }
 
-const createMeta = <T = any>(
+export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
   acc: Partial<MetaRecord<T>> = {},
 ): MetaRecord<T> | FieldMeta => {
@@ -255,13 +257,48 @@ const createMeta = <T = any>(
       const nullableOrUndefined = isNullableOrUndefined(p.type)
       const isRequired = !nullableOrUndefined
 
-      let typeToProcess = p.type
+      const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
-        typeToProcess = p.type.types.find(
+        const nonNullTypes = p.type.types.filter(
           t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast,
-        )!
-      }
+        )
 
+        const hasStructMembers = nonNullTypes.some(
+          t => "propertySignatures" in t,
+        )
+
+        if (hasStructMembers) {
+          // Create metadata for the parent level (the union itself)
+          const parentMeta = createMeta<T>({
+            parent: key,
+            property: p.type,
+            meta: { required: isRequired, nullableOrUndefined },
+          })
+          acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+
+          // Process each non-null type and merge their metadata
+          for (const nonNullType of nonNullTypes) {
+            if ("propertySignatures" in nonNullType) {
+              Object.assign(
+                acc,
+                createMeta<T>({
+                  parent: key,
+                  propertySignatures: nonNullType.propertySignatures,
+                  meta: { required: isRequired, nullableOrUndefined },
+                }),
+              )
+            }
+          }
+        } else {
+          // If no struct members, process as regular union
+          const newMeta = createMeta<T>({
+            parent: key,
+            property: p.type,
+            meta: { required: isRequired, nullableOrUndefined },
+          })
+          acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
+        }
+      }
       if ("propertySignatures" in typeToProcess) {
         Object.assign(
           acc,
@@ -326,6 +363,7 @@ const createMeta = <T = any>(
         ...meta,
         type: "multiple",
         members: property.elements,
+        rest: property.rest,
       } as FieldMeta
     }
 
@@ -430,6 +468,7 @@ export const generateMetaFromSchema = <From, To>(
     ),
     Option.getOrUndefined,
   )
+
   return { schema, meta, filterItems }
 }
 

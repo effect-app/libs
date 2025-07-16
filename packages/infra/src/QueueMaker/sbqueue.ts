@@ -54,7 +54,7 @@ export function makeServiceBusQueue<
                   Effect
                     .flatMap(({ body, meta }) => {
                       let effect = InfraLogger
-                        .logInfo(`[${queueDrainName}] Processing incoming message`)
+                        .logDebug(`[${queueDrainName}] Processing incoming message`)
                         .pipe(
                           Effect.annotateLogs({
                             body: pretty(body),

@@ -1,5 +1,105 @@
 # @effect-app/vue-components
 
+## 0.8.6
+
+### Patch Changes
+
+- Updated dependencies [eac9c67]
+  - effect-app@2.43.0
+  - @effect-app/vue@2.43.0
+
+## 0.8.5
+
+### Patch Changes
+
+- Updated dependencies [49d93a5]
+  - effect-app@2.42.1
+  - @effect-app/vue@2.42.2
+
+## 0.8.4
+
+### Patch Changes
+
+- Updated dependencies [ba96171]
+  - effect-app@2.42.0
+  - @effect-app/vue@2.42.1
+
+## 0.8.3
+
+### Patch Changes
+
+- Updated dependencies [b1d4af4]
+  - effect-app@2.41.0
+  - @effect-app/vue@2.42.0
+
+## 0.8.2
+
+### Patch Changes
+
+- 94a43dd: Adds support to union with nested struct
+- cf61b34: Adds showErrorsOnBlur
+- 37bfc38: Fixes vuetify nullable number
+
+## 0.8.1
+
+### Patch Changes
+
+- 380ed56: fixes wrong use of watched proxy in setValue for empty input in OmegaForm
+
+## 0.8.0
+
+### Minor Changes
+
+- 08d0c44: Adds vuetify slider to type range
+
+## 0.7.7
+
+### Patch Changes
+
+- a2846db: Fixes false positive setValue with falsy value like 0 as input value
+
+## 0.7.6
+
+### Patch Changes
+
+- b4e7a51: removes watcher on default items of OmegaArray
+
+## 0.7.5
+
+### Patch Changes
+
+- 57afead: fixes vue inference
+
+## 0.7.4
+
+### Patch Changes
+
+- 26ba725: Fix type mismatch
+
+## 0.7.3
+
+### Patch Changes
+
+- 127c9d0: Adds items prop to OmegaArray and fixes plain items management
+
+## 0.7.2
+
+### Patch Changes
+
+- ec9d31e: Fix build
+
+## 0.7.1
+
+### Patch Changes
+
+- 24f7a8f: Shout down vue warn for missing provider, 'cause is managed
+
+## 0.7.0
+
+### Minor Changes
+
+- f5968af: Adds array fields in Omega Form
+
 ## 0.6.3
 
 ### Patch Changes

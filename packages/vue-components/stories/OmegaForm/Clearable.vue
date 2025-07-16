@@ -12,7 +12,7 @@
   </OmegaForm>
 </template>
 
-<script setup lang="ts" generic="_, To">
+<script setup lang="ts">
 import { S } from "effect-app"
 import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
 

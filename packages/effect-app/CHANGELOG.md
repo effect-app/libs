@@ -1,5 +1,29 @@
 # @effect-app/prelude
 
+## 2.43.0
+
+### Minor Changes
+
+- eac9c67: update packages
+
+## 2.42.1
+
+### Patch Changes
+
+- 49d93a5: update packages
+
+## 2.42.0
+
+### Minor Changes
+
+- ba96171: improve Cosmos errors
+
+## 2.41.0
+
+### Minor Changes
+
+- b1d4af4: housekeeping: update packages
+
 ## 2.40.1
 
 ### Patch Changes

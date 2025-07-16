@@ -7,6 +7,7 @@ import { CosmosClient, CosmosClientLayer } from "../adapters/cosmos-client.js"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import { type RawQuery } from "../Model/query.js"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 
@@ -21,7 +22,7 @@ const makeReverseMapId =
     ({ ...t, [idKey]: id }) as any as PersistenceModelType<Encoded>
 
 class CosmosDbOperationError {
-  constructor(readonly message: string) {}
+  constructor(readonly message: string, readonly raw?: unknown) {}
 } // TODO: Retry operation when running into RU limit.
 
 function makeCosmosStore({ prefix }: StorageConfig) {
@@ -53,6 +54,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           const container = db.container(containerId)
           const bulk = container.items.bulk.bind(container.items)
           const execBatch = container.items.batch.bind(container.items)
+          // TODO: move the marker to a separate container and get rid of the checks on every query
+          // then need to clean up the actual data.. perhaps first do with a config toggle to prescribe to it.
           const importedMarkerId = containerId
 
           const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
@@ -111,17 +114,34 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                               if (r) {
                                 return yield* Effect.fail(
                                   new OptimisticConcurrencyException(
-                                    { type: name, id: JSON.stringify(r.resourceBody?.["id"]), code: r.statusCode }
+                                    {
+                                      type: name,
+                                      id: JSON.stringify(r.resourceBody?.["id"]),
+                                      code: r.statusCode,
+                                      raw: responses
+                                    }
                                   )
                                 )
                               }
                               const r2 = responses.find(
-                                (x) => x.statusCode > 299 || x.statusCode < 200
+                                (x) => x.statusCode !== 424 && (x.statusCode > 299 || x.statusCode < 200)
                               )
                               if (r2) {
                                 return yield* Effect.die(
                                   new CosmosDbOperationError(
-                                    "not able to update record: " + r2.statusCode
+                                    "not able to update records: " + r2.statusCode,
+                                    responses
+                                  )
+                                )
+                              }
+                              const r3 = responses.find(
+                                (x) => x.statusCode > 299 || x.statusCode < 200
+                              )
+                              if (r3) {
+                                return yield* Effect.die(
+                                  new CosmosDbOperationError(
+                                    "not able to update records: " + r3.statusCode,
+                                    responses
                                   )
                                 )
                               }
@@ -206,6 +226,30 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           }
 
           const s: Store<IdKey, Encoded> = {
+            queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
+              Effect
+                .sync(() => query.cosmos({ importedMarkerId, name }))
+                .pipe(
+                  Effect.tap((q) => logQuery(q)),
+                  Effect.flatMap((q) =>
+                    Effect.promise(() =>
+                      container
+                        .items
+                        .query<Out>(q, { partitionKey: "primary" })
+                        .fetchAll()
+                        .then(({ resources }) =>
+                          resources.map(
+                            (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
+                          )
+                        )
+                    )
+                  ),
+                  Effect
+                    .withSpan("Cosmos.queryRaw [effect-app/infra/Store]", {
+                      captureStackTrace: false,
+                      attributes: { "repository.container_id": containerId, "repository.model_name": name }
+                    })
+                ),
             all: Effect
               .sync(() => ({
                 query: `SELECT * FROM ${name} f WHERE f.id != @id`,
@@ -246,11 +290,11 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 .sync(() =>
                   buildWhereCosmosQuery3(
                     idKey,
-                    filter ?? [],
+                    filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
                     name,
                     importedMarkerId,
                     defaultValues,
-                    f.select as NonEmptyReadonlyArray<string> | undefined,
+                    f.select as NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }> | undefined,
                     f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
                     skip,
                     limit
@@ -269,7 +313,10 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             .then(({ resources }) =>
                               resources.map((_) =>
                                 ({
-                                  ...pipe(defaultValues, Struct.pick(...f.select!)),
+                                  ...pipe(
+                                    defaultValues,
+                                    Struct.pick(...f.select!.filter((_) => typeof _ === "string"))
+                                  ),
                                   ...mapReverseId(_ as any)
                                 }) as any
                               )
@@ -284,10 +331,12 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       )
                     )
                 )
-                .pipe(Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
-                  captureStackTrace: false,
-                  attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                }))
+                .pipe(
+                  Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
+                    captureStackTrace: false,
+                    attributes: { "repository.container_id": containerId, "repository.model_name": name }
+                  })
+                )
             },
             find: (id) =>
               Effect

@@ -12,7 +12,13 @@
       :form="exampleForm"
       name="aStringMin2Max3Nullable"
     />
-    <OmegaInput label="aNumber" :form="exampleForm" name="aNumber" />
+    <OmegaInput
+      label="aNumber"
+      :form="exampleForm"
+      name="aNumber"
+      type="range"
+      :step="0.1"
+    />
     <OmegaInput label="aNumberMin2" :form="exampleForm" name="aNumberMin2" />
     <OmegaInput
       label="aNumberMin2Max"
@@ -23,6 +29,7 @@
       label="aNumberMin2Max4Nullable"
       :form="exampleForm"
       name="aNumberMin2Max4Nullable"
+      clearable
     />
     <OmegaInput
       label="aSelect"
@@ -32,6 +39,16 @@
         { title: 'a', value: 'a' },
         { title: 'b', value: 'b' },
         { title: 'c', value: 'c' },
+      ]"
+    />
+    <OmegaInput
+      label="aMultiple"
+      :form="exampleForm"
+      name="aMultiple"
+      type="autocomplete"
+      :options="[
+        { title: 'a', value: 'a' },
+        { title: 'b', value: 'b' },
       ]"
     />
     <button>Submit</button>
@@ -61,6 +78,7 @@ const exampleForm = useOmegaForm(
     aNumberMin2Max: S.Number.pipe(S.greaterThan(2)).pipe(S.lessThan(4)),
     aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.between(2, 4))),
     aSelect: S.Union(S.Literal("a"), S.Literal("b"), S.Literal("c")),
+    aMultiple: S.Array(S.String),
   }),
   {
     onSubmit: ({

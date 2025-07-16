@@ -2,7 +2,7 @@
   "name": "@effect-app/eslint-codegen-model",
   "description": "Contains eslint helpers",
   "sideEffects": false,
-  "version": "1.37.0",
+  "version": "1.39.0",
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && tsc --build",
@@ -14,9 +14,9 @@
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "dependencies": {
-    "@babel/generator": "7.27.1",
-    "@babel/parser": "7.27.2",
-    "@typescript-eslint/utils": "8.32.0",
+    "@babel/generator": "7.28.0",
+    "@babel/parser": "7.28.0",
+    "@typescript-eslint/utils": "8.36.0",
     "eslint-plugin-codegen": "0.17.0",
     "glob": "8.1.0",
     "io-ts": "2.2.22",
@@ -25,14 +25,14 @@
     "lodash": "4.17.21"
   },
   "peerDependencies": {
-    "effect": "^3.14.20"
+    "effect": "^3.16.12"
   },
   "devDependencies": {
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.20.7",
     "@types/glob": "8.1.0",
-    "@types/lodash": "4.17.16",
-    "effect": "^3.14.20",
+    "@types/lodash": "4.17.20",
+    "effect": "^3.16.12",
     "madge": "8.0.0",
     "typescript": "^5.8.3"
   },

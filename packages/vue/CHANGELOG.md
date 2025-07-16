@@ -1,5 +1,42 @@
 # @effect-app/vue
 
+## 2.43.0
+
+### Minor Changes
+
+- eac9c67: update packages
+
+### Patch Changes
+
+- Updated dependencies [eac9c67]
+  - effect-app@2.43.0
+
+## 2.42.2
+
+### Patch Changes
+
+- 49d93a5: update packages
+- Updated dependencies [49d93a5]
+  - effect-app@2.42.1
+
+## 2.42.1
+
+### Patch Changes
+
+- Updated dependencies [ba96171]
+  - effect-app@2.42.0
+
+## 2.42.0
+
+### Minor Changes
+
+- b1d4af4: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [b1d4af4]
+  - effect-app@2.41.0
+
 ## 2.41.2
 
 ### Patch Changes

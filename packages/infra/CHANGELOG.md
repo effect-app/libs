@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.64.2
+
+### Patch Changes
+
+- 492915e: add more overloads for whereSome and whereEvery (DX)
+
 ## 2.64.1
 
 ### Patch Changes

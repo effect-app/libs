@@ -100,7 +100,6 @@ export const proxify = <T extends object>(Tag: T) =>
       const fn = (...args: Array<any>) => Effect.andThen(Tag as any, (s: any) => s[prop](...args))
       // @ts-expect-error abc
       const cn = Effect.andThen(Tag, (s) => s[prop])
-      // @effect-diagnostics effect/floatingEffect:off
       Object.assign(fn, cn)
       Object.setPrototypeOf(fn, Object.getPrototypeOf(cn))
       cache.set(prop, fn)

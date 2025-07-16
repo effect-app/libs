@@ -232,28 +232,30 @@ export const and: FilterContinuationAnd = (...operation: any[]) => (current: any
 export const or: FilterContinuationOr = (...operation: any[]) => (current: any) =>
   new Or({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
 
-// TODO: make nice.
-export type WhereEveryOrSome = {
-  <
-    TFieldValues extends FieldValues,
-    TFieldName extends FieldPath<TFieldValues>
-  >(
-    path: TFieldName,
-    dude: (
-      current: Query<TFieldValues[TFieldName][number]>
-    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>,
-    ...dudes: ((
-      current: QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
-    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>)[]
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues, TFieldValues, false>
-}
-
-export const whereEvery: WhereEveryOrSome = (subPath, ...operations) => (current) =>
-  new Where({ current, operation: flow(...operations as [any]), relation: "every", subPath } as any)
-export const whereSome: WhereEveryOrSome = (subPath, ...operations) => (current) =>
-  new Where({ current, operation: flow(...operations as [any]), relation: "some", subPath } as any)
+export const whereEvery: WhereEveryOrSome =
+  ((subPath: string, ...[first, ...rest]: any[]) => (current: any) =>
+    new Where(
+      {
+        current,
+        operation: typeof first === "function"
+          ? flow(...[first, ...rest] as [any])
+          : [`${subPath}.-1.${first}`, ...rest],
+        relation: "every",
+        subPath
+      } as any
+    )) as unknown as WhereEveryOrSome
+export const whereSome: WhereEveryOrSome =
+  ((subPath: string, ...[first, ...rest]: any[]) => (current: any) =>
+    new Where(
+      {
+        current,
+        operation: typeof first === "function"
+          ? flow(...[first, ...rest] as [any])
+          : [`${subPath}.-1.${first}`, ...rest],
+        relation: "some",
+        subPath
+      } as any
+    )) as unknown as WhereEveryOrSome
 
 export const order: {
   <
@@ -409,27 +411,8 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     E extends boolean = false
   >(
     path: TFieldName,
-    op: "in",
+    op: "in" | "notIn",
     value: V
-  ): (
-    current: IsCurrentInitial extends true ? Query<TFieldValues>
-      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<
-    TFieldValues,
-    // @ts-expect-error it's TS
-    RefineWithLiteral<TFieldValuesRefined, TFieldName, NonNullable<V[number]>>,
-    E
-  >
-  <
-    TFieldValues extends FieldValues,
-    TFieldName extends FieldPath<TFieldValues>,
-    V extends FieldPathValue<TFieldValues, TFieldName>,
-    TFieldValuesRefined extends TFieldValues = TFieldValues,
-    E extends boolean = false
-  >(
-    path: TFieldName,
-    op: "notIn",
-    value: readonly V[]
   ): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
@@ -479,13 +462,118 @@ export type FilterContinuations<IsCurrentInitial extends boolean = false> = {
     E extends boolean = false
   >(f: {
     path: TFieldName
-    op: Ops
+    op: "eq"
     value: V
   }): (
     current: IsCurrentInitial extends true ? Query<TFieldValues>
       : QueryWhere<TFieldValues, TFieldValuesRefined, E>
   ) => IsCurrentInitial extends true ? QueryWhere<TFieldValues>
     : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+}
+
+export type FilterContinuationsWithSubpath = {
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    value: V
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "gt" | "gte" | "lt" | "lte" | "neq",
+    value: V // only numbers?
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "startsWith" | "endsWith" | "contains" | "notContains" | "notStartsWith" | "notEndsWith",
+    value: FieldPathValue<TFieldValuesSub, TFieldNameSub> extends string ? string : never
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    const V extends readonly FieldPathValue<TFieldValuesSub, TFieldNameSub>[]
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op: "in" | "notIn",
+    value: V
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op:
+      | "includes"
+      | "notIncludes",
+    value: GetArV<V>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(
+    subPath: TFieldName,
+    restPath: TFieldNameSub,
+    op:
+      | "includes-any"
+      | "notIncludes-any"
+      | "includes-all"
+      | "notIncludes-all",
+    value: readonly GetArV<V>[]
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    TFieldValuesSub extends TFieldValues[TFieldName][number],
+    TFieldNameSub extends FieldPath<TFieldValuesSub>,
+    V extends FieldPathValue<TFieldValuesSub, TFieldNameSub>
+  >(f: {
+    subPath: TFieldName
+    restPath: TFieldNameSub
+    op: "eq"
+    value: V
+  }): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues>
 }
 
 /* dprint-ignore-start */
@@ -539,6 +627,25 @@ export type FilteringRefinements<IsCurrentInitial extends boolean = false> = {
       RefineWithLiteral<TFieldValuesRefined, TFieldName, V, true>,
       E
     >
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>,
+    const V extends readonly FieldPathValue<TFieldValues, TFieldName>[],
+    TFieldValuesRefined extends TFieldValues = TFieldValues,
+    E extends boolean = false
+  >(
+    path: TFieldName,
+    op: "in",
+    value: V
+  ): (
+    current: IsCurrentInitial extends true ? Query<TFieldValues>
+      : QueryWhere<TFieldValues, TFieldValuesRefined, E>
+  ) => QueryWhere<
+    TFieldValues,
+    // @ts-expect-error it's TS
+    RefineWithLiteral<TFieldValuesRefined, TFieldName, NonNullable<V[number]>>,
+    E
+  >
 }
 
 export type NestedQueriesFixedRefinement<IsCurrentInitial extends boolean = false> = {
@@ -1981,3 +2088,23 @@ export type FilterContinuationAnd =
 export type FilterContinuationOr =
   & NestedQueriesFreeDisjointRefinement
   & FilterContinuations
+
+// it does not support refinements by choice (for now)
+export type WhereEveryOrSome =
+  & {
+    <
+      TFieldValues extends FieldValues,
+      TFieldName extends FieldPath<TFieldValues>
+    >(
+      subPath: TFieldName,
+      dude: (
+        current: Query<TFieldValues[TFieldName][number]>
+      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>,
+      ...dudes: ((
+        current: QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
+      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>)[]
+    ): (
+      current: Query<TFieldValues>
+    ) => QueryWhere<TFieldValues, TFieldValues, false>
+  }
+  & FilterContinuationsWithSubpath

@@ -241,16 +241,19 @@ export type WhereEveryOrSome = {
     path: TFieldName,
     dude: (
       current: Query<TFieldValues[TFieldName][number]>
-    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
+    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>,
+    ...dudes: ((
+      current: QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
+    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>)[]
   ): (
     current: Query<TFieldValues>
   ) => QueryWhere<TFieldValues, TFieldValues, false>
 }
 
-export const whereEvery: WhereEveryOrSome = (subPath, operation) => (current) =>
-  new Where({ current, operation, relation: "every", subPath } as any)
-export const whereSome: WhereEveryOrSome = (subPath, operation) => (current) =>
-  new Where({ current, operation, relation: "some", subPath } as any)
+export const whereEvery: WhereEveryOrSome = (subPath, ...operations) => (current) =>
+  new Where({ current, operation: flow(...operations as [any]), relation: "every", subPath } as any)
+export const whereSome: WhereEveryOrSome = (subPath, ...operations) => (current) =>
+  new Where({ current, operation: flow(...operations as [any]), relation: "some", subPath } as any)
 
 export const order: {
   <

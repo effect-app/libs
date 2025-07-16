@@ -153,7 +153,11 @@ it("works with repo", () =>
       expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("id", "displayName")))
       expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("displayName")))
     })
-    .pipe(Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())), Effect.runPromise))
+    .pipe(
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      setupRequestContextFromCurrent(),
+      Effect.runPromise
+    ))
 
 it("collect", () =>
   Effect
@@ -220,7 +224,11 @@ it("collect", () =>
       expectTypeOf(value).toEqualTypeOf<string>()
       expect(value).toEqual("hi")
     })
-    .pipe(Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())), Effect.runPromise))
+    .pipe(
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      setupRequestContextFromCurrent(),
+      Effect.runPromise
+    ))
 
 class Person extends S.ExtendedTaggedClass<Person, Person.Encoded>()("person", {
   id: S.String,

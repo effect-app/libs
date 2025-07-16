@@ -248,10 +248,8 @@ describe("1", () => {
       const items2 = yield* repo.query(
         whereSome(
           "items",
-          flow(
-            where("value", "gt", 20),
-            and("description", "contains", "d item")
-          )
+          where("value", "gt", 20),
+          and("description", "contains", "d item")
         ),
         project(projected)
       )
@@ -260,10 +258,8 @@ describe("1", () => {
       const items2Or = yield* repo.query(
         whereSome(
           "items",
-          flow(
-            where("value", "gt", 20),
-            or("description", "contains", "d item")
-          )
+          where("value", "gt", 20),
+          or("description", "contains", "d item")
         ),
         project(projected)
       )
@@ -273,7 +269,8 @@ describe("1", () => {
       const items3 = yield* repo.query(
         whereSome(
           "items",
-          flow(where("value", "gt", 20), and(where("description", "contains", "d item")))
+          where("value", "gt", 20),
+          and(where("description", "contains", "d item"))
         ),
         project(projected)
       )
@@ -282,10 +279,8 @@ describe("1", () => {
       const items3Or = yield* repo.query(
         whereSome(
           "items",
-          flow(
-            where("value", "gt", 20),
-            or(where("description", "contains", "d item"))
-          )
+          where("value", "gt", 20),
+          or(where("description", "contains", "d item"))
         ),
         project(projected)
       )

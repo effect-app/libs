@@ -19,12 +19,12 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
         const [keys, subKeys] = pipe(
           sel,
           Array.partitionMap((r) =>
-            typeof r === "string" ? Either.left(r) : Either.right(r as { key: string; subKeys: string[] })
+            typeof r === "string" ? Either.left(r as string) : Either.right(r as { key: string; subKeys: string[] })
           )
         )
         const n = Struct.pick(i, ...keys)
         subKeys.forEach((subKey) => {
-          n[subKey.key as keyof typeof n] = i[subKey.key]!.map(Struct.pick(...subKey.subKeys))
+          n[subKey.key] = i[subKey.key]!.map(Struct.pick(...subKey.subKeys))
         })
         return n as M
       }) as any

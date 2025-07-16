@@ -208,6 +208,7 @@ const makeApiClientFactory = Effect
                   ...requestMeta,
                   raw: {
                     handler: (req: any) =>
+                      // @effect-diagnostics effect/missingEffectContext:off
                       TheClient.pipe(
                         Effect.flatMap((client) =>
                           (client as any)[requestAttr]!(new Request(req)) as Effect<any, any, never>

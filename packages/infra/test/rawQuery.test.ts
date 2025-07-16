@@ -292,6 +292,13 @@ describe("1", () => {
       )
 
       expect(items4).toStrictEqual(both)
+
+      const items5 = yield* repo.query(
+        whereSome("items", "value", "gt", 10),
+        project(projected)
+      )
+
+      expect(items5).toStrictEqual(both)
     })
     .pipe(setupRequestContextFromCurrent())
 

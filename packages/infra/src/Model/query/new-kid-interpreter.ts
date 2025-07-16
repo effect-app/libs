@@ -62,7 +62,6 @@ const interpret = <
       where: ({ current, operation, relation, subPath }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
-          console.log("where", { current, operation, subPath, relation })
           data.filter.push(
             {
               t: "where-scope",

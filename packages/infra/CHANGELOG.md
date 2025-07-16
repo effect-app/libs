@@ -1,5 +1,23 @@
 # @effect-app/infra
 
+## 2.64.2
+
+### Patch Changes
+
+- 492915e: add more overloads for whereSome and whereEvery (DX)
+
+## 2.64.1
+
+### Patch Changes
+
+- 95e6e0f: cleanup
+
+## 2.64.0
+
+### Minor Changes
+
+- feat: better every some queries: remove the need of flow wrapper
+
 ## 2.63.0
 
 ### Minor Changes

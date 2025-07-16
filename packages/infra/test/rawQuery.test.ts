@@ -2,31 +2,10 @@ import { describe, expect, it } from "@effect/vitest"
 import { Array, Config, Effect, flow, Layer, Logger, LogLevel, ManagedRuntime, Option, Redacted, S } from "effect-app"
 import { LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import { type FieldValues } from "../src/Model/filter/types.js"
-import { type FieldPath } from "../src/Model/filter/types/path/eager.js"
-import { and, or, project, type Query, type QueryWhere, Where, where } from "../src/Model/query.js"
+import { and, or, project, where, whereEvery, whereSome } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
-
-type Every = {
-  <
-    TFieldValues extends FieldValues,
-    TFieldName extends FieldPath<TFieldValues>
-  >(
-    path: TFieldName,
-    dude: (
-      current: Query<TFieldValues[TFieldName][number]>
-    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
-  ): (
-    current: Query<TFieldValues>
-  ) => QueryWhere<TFieldValues, TFieldValues, false>
-}
-
-const every: Every = (subPath, operation) => (current) =>
-  new Where({ current, operation, relation: "every", subPath } as any)
-const some: Every = (subPath, operation) => (current) =>
-  new Where({ current, operation, relation: "some", subPath } as any)
 
 export const rt = ManagedRuntime.make(Layer.mergeAll(
   Layer.effect(
@@ -267,7 +246,7 @@ describe("1", () => {
     .gen(function*() {
       const repo = yield* SomethingRepo
       const items2 = yield* repo.query(
-        some(
+        whereSome(
           "items",
           flow(
             where("value", "gt", 20),
@@ -279,7 +258,7 @@ describe("1", () => {
       expect(items2).toStrictEqual(expected)
 
       const items2Or = yield* repo.query(
-        some(
+        whereSome(
           "items",
           flow(
             where("value", "gt", 20),
@@ -292,7 +271,7 @@ describe("1", () => {
       expect(items2Or).toStrictEqual(both)
       // mixing relation check with scoped relationcheck
       const items3 = yield* repo.query(
-        some(
+        whereSome(
           "items",
           flow(where("value", "gt", 20), and(where("description", "contains", "d item")))
         ),
@@ -301,7 +280,7 @@ describe("1", () => {
 
       expect(items3).toStrictEqual(expected)
       const items3Or = yield* repo.query(
-        some(
+        whereSome(
           "items",
           flow(
             where("value", "gt", 20),
@@ -313,7 +292,7 @@ describe("1", () => {
 
       expect(items3Or).toStrictEqual(both)
       const items4 = yield* repo.query(
-        some("items", where("value", "gt", 10)),
+        whereSome("items", where("value", "gt", 10)),
         project(projected)
       )
 
@@ -335,7 +314,7 @@ describe("multi-level", () => {
     .gen(function*() {
       const repo = yield* SomethingRepo
       const itemsCheckWithEvery = yield* repo.query(
-        every(
+        whereEvery(
           "items",
           flow(
             where("value", "gt", 20),

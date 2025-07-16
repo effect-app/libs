@@ -232,6 +232,26 @@ export const and: FilterContinuationAnd = (...operation: any[]) => (current: any
 export const or: FilterContinuationOr = (...operation: any[]) => (current: any) =>
   new Or({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
 
+// TODO: make nice.
+export type WhereEveryOrSome = {
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>
+  >(
+    path: TFieldName,
+    dude: (
+      current: Query<TFieldValues[TFieldName][number]>
+    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues, TFieldValues, false>
+}
+
+export const whereEvery: WhereEveryOrSome = (subPath, operation) => (current) =>
+  new Where({ current, operation, relation: "every", subPath } as any)
+export const whereSome: WhereEveryOrSome = (subPath, operation) => (current) =>
+  new Where({ current, operation, relation: "some", subPath } as any)
+
 export const order: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "many", any>

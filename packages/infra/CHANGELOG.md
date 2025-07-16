@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.64.0
+
+### Minor Changes
+
+- feat: better every some queries: remove the need of flow wrapper
+
 ## 2.63.0
 
 ### Minor Changes

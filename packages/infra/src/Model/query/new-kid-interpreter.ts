@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Array, Match, Option, pipe, S } from "effect-app"
+import { Array, identity, Match, Option, pipe, S } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { dropUndefinedT } from "effect-app/utils"
 import type { FilterResult } from "../filter/filterApi.js"
@@ -48,17 +48,27 @@ const interpret = <
     if (v.mode !== undefined) data.mode = v.mode
   }
 
+  const applyPath = (path: string) => (_: FilterResult): FilterResult =>
+    _.t === "where" || _.t === "and" || _.t === "or"
+      ? { ..._, path: `${path}.-1.${_.path}` }
+      : { ..._, result: _.result.map(applyPath(path)) }
+
   pipe(
     a,
     Match.valueTags({
       value: () => {
         // data.filter.push(value)
       },
-      where: ({ current, operation, relation }) => {
+      where: ({ current, operation, relation, subPath }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
+          console.log("where", { current, operation, subPath, relation })
           data.filter.push(
-            { t: "where-scope", result: interpret(operation(make())).filter, relation }
+            {
+              t: "where-scope",
+              result: interpret(operation(make())).filter.map(subPath ? applyPath(subPath) : identity),
+              relation
+            }
           )
         } else {
           data.filter.push(

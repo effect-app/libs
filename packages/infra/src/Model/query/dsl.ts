@@ -124,9 +124,10 @@ export class Initial<TFieldValues extends FieldValues> extends Data.TaggedClass(
 export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("where")<{
   current: Query<TFieldValues>
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+  relation: RelationDirection
+  subPath?: string
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  readonly relation: RelationDirection = "some"
 
   pipe() {
     // eslint-disable-next-line prefer-rest-params
@@ -137,9 +138,9 @@ export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("w
 export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and")<{
   current: Query<TFieldValues>
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+  relation: RelationDirection
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  readonly relation: RelationDirection = "some"
   pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
@@ -149,9 +150,9 @@ export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and
 export class Or<TFieldValues extends FieldValues> extends Data.TaggedClass("or")<{
   current: Query<TFieldValues>
   operation: [string, Ops, any] | [string, any] | ((q: Query<TFieldValues>) => QueryWhere<TFieldValues>)
+  relation: RelationDirection
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  readonly relation: RelationDirection = "some"
   pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
@@ -230,6 +231,26 @@ export const and: FilterContinuationAnd = (...operation: any[]) => (current: any
 
 export const or: FilterContinuationOr = (...operation: any[]) => (current: any) =>
   new Or({ current, operation: typeof operation[0] === "function" ? flow(...operation as [any]) : operation } as any)
+
+// TODO: make nice.
+export type WhereEveryOrSome = {
+  <
+    TFieldValues extends FieldValues,
+    TFieldName extends FieldPath<TFieldValues>
+  >(
+    path: TFieldName,
+    dude: (
+      current: Query<TFieldValues[TFieldName][number]>
+    ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
+  ): (
+    current: Query<TFieldValues>
+  ) => QueryWhere<TFieldValues, TFieldValues, false>
+}
+
+export const whereEvery: WhereEveryOrSome = (subPath, operation) => (current) =>
+  new Where({ current, operation, relation: "every", subPath } as any)
+export const whereSome: WhereEveryOrSome = (subPath, operation) => (current) =>
+  new Where({ current, operation, relation: "some", subPath } as any)
 
 export const order: {
   <

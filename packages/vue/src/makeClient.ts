@@ -852,7 +852,6 @@ export const makeClient = <Locale extends string, R>(
       argOrOptions,
       { ...options, suspense: true } // experimental_prefetchInRender: true }
     )
-    // @effect-diagnostics effect/missingEffectError:off
     return Effect.gen(function*() {
       // we want to throw on error so that we can catch cancelled error and skip handling it
       // what's the difference with just calling `fetch` ?

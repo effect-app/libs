@@ -26,14 +26,21 @@ Uses [Changesets](https://github.com/changesets/changesets/blob/main/README.md)
 
 ## How to view OmegaForm docs
 
-1. go to the vue-components directory
+On Mac:
+
+1. `Shift + Command + P`
+2. Select `Run Task`
+3. Select `Run Storybook OmegaForm`
+4. Will automatically open browser to http://localhost:6006/ Enjoy!
+
+On Windows:
+
+1. Select "Run Task"
 ``` bash
 cd packages/vue-components
 ```
-
 2. run storybook
 ```bash
 pnpm storybook
 ```
-
 3. Will automatically open browser to http://localhost:6006/ Enjoy!

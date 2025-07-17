@@ -23,3 +23,17 @@ Uses [Changesets](https://github.com/changesets/changesets/blob/main/README.md)
 - Michael Arnaldi, Max Brown and the Effect-TS contributors for Effect
   - ZIO Contributors for the excellent ZIO
 - Anyone else we're forgetting..
+
+## How to view OmegaForm docs
+
+1. go to the vue-components directory
+``` bash
+cd packages/vue-components
+```
+
+2. run storybook
+```bash
+pnpm storybook
+```
+
+3. Will automatically open browser to http://localhost:6006/ Enjoy!

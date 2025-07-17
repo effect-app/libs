@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.43.1
+
+### Patch Changes
+
+- a2e1e1e: improve jsonschema of Email
+
 ## 2.43.0
 
 ### Minor Changes

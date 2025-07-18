@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 2.43.2
+
+### Patch Changes
+
+- Updated dependencies [aec6960]
+  - effect-app@2.43.2
+
 ## 2.43.1
 
 ### Patch Changes

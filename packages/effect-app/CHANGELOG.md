@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.43.2
+
+### Patch Changes
+
+- aec6960: fix complex ast tagged union
+
 ## 2.43.1
 
 ### Patch Changes

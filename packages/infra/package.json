@@ -16,12 +16,12 @@
     "query-string": "^9.2.2"
   },
   "devDependencies": {
-    "@azure/cosmos": "^4.4.1",
+    "@azure/cosmos": "^4.5.0",
     "@azure/service-bus": "^7.9.5",
     "@sentry/node": "9.14.0",
     "@sentry/opentelemetry": "9.14.0",
     "@types/express": "^5.0.3",
-    "@types/node": "~24.0.13",
+    "@types/node": "~24.0.15",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.7",
@@ -36,14 +36,14 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "@azure/cosmos": "^4.4.1",
+    "@azure/cosmos": "^4.5.0",
     "@azure/service-bus": "^7.9.5",
-    "@effect/experimental": "^0.51.13",
-    "@effect/platform": "^0.87.12",
+    "@effect/experimental": "^0.52.2",
+    "@effect/platform": "^0.88.2",
     "@effect/rpc-http": "^0.52.4",
-    "@effect/rpc": "^0.64.13",
-    "@effect/sql": "^0.40.13",
-    "@effect/vitest": "^0.23.12",
+    "@effect/rpc": "^0.65.2",
+    "@effect/sql": "^0.42.1",
+    "@effect/vitest": "^0.24.1",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.5",
     "@sentry/node": "9.14.0",
@@ -51,7 +51,7 @@
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^3.16.12",
+    "effect": "^3.16.16",
     "express": "^5.1.0"
   },
   "typesVersions": {

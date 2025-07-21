@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 2.64.5
+
+### Patch Changes
+
+- b771967: update packages
+- Updated dependencies [b771967]
+  - effect-app@2.43.3
+
 ## 2.64.4
 
 ### Patch Changes

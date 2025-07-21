@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.43.3
+
+### Patch Changes
+
+- b771967: update packages
+
 ## 2.43.2
 
 ### Patch Changes

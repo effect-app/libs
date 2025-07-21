@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.21.1
+
+### Patch Changes
+
+- b771967: update packages
+
 ## 1.21.0
 
 ### Minor Changes

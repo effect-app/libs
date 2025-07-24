@@ -17,30 +17,18 @@ import { makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
+// retry just once on optimistic concurrency exceptions
 const optimisticConcurrencySchedule = Schedule.once.pipe(
   Schedule.intersect(Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException"))
 )
 
-export type _R<T extends Effect<any, any, any>> = [T] extends [
-  Effect<any, any, infer R>
-] ? R
-  : never
-
-export type _E<T extends Effect<any, any, any>> = [T] extends [
-  Effect<any, infer E, any>
-] ? E
-  : never
-
-export type EffectDeps<A> = {
-  [K in keyof A as A[K] extends Effect<any, any, any> ? K : never]: A[K] extends Effect<any, any, any> ? A[K] : never
-}
-
 export type AnyRequestModule = S.Schema.Any & {
-  _tag: string
-  config: any
-  success: S.Schema.Any
-  failure: S.Schema.Any
+  _tag: string // unique identifier for the request module
+  config: any // ?
+  success: S.Schema.Any // validates the success response
+  failure: S.Schema.Any // validates the failure response
 }
+
 export interface AddAction<Actions extends AnyRequestModule, Accum extends Record<string, any> = {}> {
   accum: Accum
   add<A extends Handler<Actions, any, any>>(
@@ -60,12 +48,12 @@ export interface AddAction<Actions extends AnyRequestModule, Accum extends Recor
 
 type GetSuccess<T> = T extends { success: S.Schema.Any } ? T["success"] : typeof S.Void
 
-type GetSuccessShape<Action extends { success?: S.Schema.Any }, RT extends "d" | "raw"> = RT extends "raw"
+type GetSuccessShape<Action extends { success?: S.Schema.Any }, RT extends "decoded" | "raw"> = RT extends "raw"
   ? S.Schema.Encoded<GetSuccess<Action>>
   : S.Schema.Type<GetSuccess<Action>>
 type GetFailure<T extends { failure?: S.Schema.Any }> = T["failure"] extends never ? typeof S.Never : T["failure"]
 
-type HandlerFull<Action extends AnyRequestModule, RT extends "raw" | "d", A, E, R> = {
+type HandlerFull<Action extends AnyRequestModule, RT extends "raw" | "decoded", A, E, R> = {
   new(): {}
   _tag: RT
   stack: string
@@ -79,7 +67,7 @@ type HandlerFull<Action extends AnyRequestModule, RT extends "raw" | "d", A, E, 
   >
 }
 
-export interface Handler<Action extends AnyRequestModule, RT extends "raw" | "d", R> extends
+export interface Handler<Action extends AnyRequestModule, RT extends "raw" | "decoded", R> extends
   HandlerFull<
     Action,
     RT,
@@ -116,7 +104,7 @@ type RPCRouteR<
 type Match<
   Rsc extends Record<string, any>,
   CTXMap extends Record<string, any>,
-  RT extends "raw" | "d",
+  RT extends "raw" | "decoded",
   Key extends keyof Rsc,
   Context
 > = {
@@ -153,7 +141,7 @@ export type RouteMatcher<
   /**
    * Requires the Type shape
    */
-  [Key in keyof Filter<Rsc>]: Match<Rsc, CTXMap, "d", Key, Context> & {
+  [Key in keyof Filter<Rsc>]: Match<Rsc, CTXMap, "decoded", Key, Context> & {
     success: Rsc[Key]["success"]
     successRaw: S.SchemaClass<S.Schema.Encoded<Rsc[Key]["success"]>>
     failure: Rsc[Key]["failure"]
@@ -211,13 +199,13 @@ export const makeRouter = <
             ? class {
               static request = rsc[cur]
               static stack = stack
-              static _tag = "d"
+              static _tag = "decoded"
               static handler = () => fnOrEffect
             }
             : class {
               static request = rsc[cur]
               static stack = stack
-              static _tag = "d"
+              static _tag = "decoded"
               static handler = fnOrEffect
             }
         }, {
@@ -281,7 +269,7 @@ export const makeRouter = <
 
     type HndlrWithInputG<
       Action extends AnyRequestModule,
-      Mode extends "d" | "raw"
+      Mode extends "decoded" | "raw"
     > = (
       req: S.Schema.Type<Action>
     ) => Generator<
@@ -290,7 +278,7 @@ export const makeRouter = <
       never
     >
 
-    type HndlrWithInput<Action extends AnyRequestModule, Mode extends "d" | "raw"> = (
+    type HndlrWithInput<Action extends AnyRequestModule, Mode extends "decoded" | "raw"> = (
       req: S.Schema.Type<Action>
     ) => Effect<
       GetSuccessShape<Action, Mode>,
@@ -298,18 +286,18 @@ export const makeRouter = <
       any
     >
 
-    type Hndlr<Action extends AnyRequestModule, Mode extends "d" | "raw"> = Effect<
+    type Hndlr<Action extends AnyRequestModule, Mode extends "decoded" | "raw"> = Effect<
       GetSuccessShape<Action, Mode>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
       any
     >
 
-    type Hndlrs<Action extends AnyRequestModule, Mode extends "d" | "raw"> =
+    type Hndlrs<Action extends AnyRequestModule, Mode extends "decoded" | "raw"> =
       | HndlrWithInputG<Action, Mode>
       | HndlrWithInput<Action, Mode>
       | Hndlr<Action, Mode>
 
-    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, "d">
+    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, "decoded">
 
     type RawHndlrs<Action extends AnyRequestModule> =
       | { raw: HndlrWithInputG<Action, "raw"> }
@@ -327,7 +315,7 @@ export const makeRouter = <
     ) => {
       [K in keyof Impl & keyof Filter<Rsc>]: Handler<
         Filter<Rsc>[K],
-        Impl[K] extends { raw: any } ? "raw" : "d",
+        Impl[K] extends { raw: any } ? "raw" : "decoded",
         Exclude<
           | Context
           | Exclude<
@@ -486,9 +474,9 @@ export const makeRouter = <
                   headers: HttpHeaders.Headers
                 ) => Effect.Effect<
                   any,
-                  _E<ReturnType<THandlers[K]["handler"]>>,
-                  Context | _R<ReturnType<THandlers[K]["handler"]>>
-                > // Context | _R<ReturnType<THandlers[K]["handler"]>>
+                  Effect.Error<ReturnType<THandlers[K]["handler"]>>,
+                  Context | Effect.Context<ReturnType<THandlers[K]["handler"]>>
+                >
               ]
             }
 
@@ -782,7 +770,7 @@ export const makeRouter = <
           Exclude<Context, HttpRouter.HttpRouter.Provided>
         > // | Exclude<
         //   RPCRouteR<
-        //     { [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], _R<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Rsc>]
+        //     { [K in keyof Filter<Rsc>]: Rpc.Rpc<Rsc[K], Effect.Context<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Rsc>]
         //   >,
         //   HttpRouter.HttpRouter.Provided
         // >

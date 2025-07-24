@@ -10,7 +10,7 @@ export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
     usersActiveLastWeek: S.Number,
     newUsersLast24Hours: S.Number,
     newUsersLastWeek: S.Number
-  }
+  },
 }) {}
 
 declare const stats: typeof Stats.success.Type

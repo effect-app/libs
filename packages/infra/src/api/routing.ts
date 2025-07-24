@@ -59,7 +59,6 @@ namespace RequestTypes {
 }
 type RequestType = typeof RequestTypes[keyof typeof RequestTypes]
 
-
 type GetSuccess<T> = T extends { success: S.Schema.Any } ? T["success"] : typeof S.Void
 type GetFailure<T extends { failure?: S.Schema.Any }> = T["failure"] extends never ? typeof S.Never : T["failure"]
 
@@ -68,18 +67,11 @@ type GetSuccessShape<Action extends { success?: S.Schema.Any }, RT extends Reque
   raw: S.Schema.Encoded<GetSuccess<Action>>
 }[RT]
 
-type HandlerBase<Action extends AnyRequestModule, RT extends RequestType, A, E, R> = {
+interface HandlerBase<Action extends AnyRequestModule, RT extends RequestType, A, E, R> {
   new(): {}
   _tag: RT
   stack: string
-  handler: (
-    req: S.Schema.Type<Action>,
-    headers: HttpHeaders.Headers
-  ) => Effect<
-    A,
-    E,
-    R
-  >
+  handler: (req: S.Schema.Type<Action>, headers: HttpHeaders.Headers) => Effect<A, E, R>
 }
 
 export interface Handler<Action extends AnyRequestModule, RT extends RequestType, R> extends
@@ -90,16 +82,15 @@ export interface Handler<Action extends AnyRequestModule, RT extends RequestType
     S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
     R
   >
-{
-}
+{}
 
-type AHandler<Action extends AnyRequestModule> = Handler<
+type AnyHandler<Action extends AnyRequestModule> = Handler<
   Action,
-  any,
-  any
+  RequestType,
+  any // R
 >
 
-type Filter<T> = {
+type FilterRequestModules<T> = {
   [K in keyof T as T[K] extends AnyRequestModule ? K : never]: T[K]
 }
 
@@ -156,7 +147,7 @@ export type RouteMatcher<
   /**
    * Requires the Type shape
    */
-  [Key in keyof Filter<Rsc>]: Match<Rsc, CTXMap, RequestTypes.D, Key, Context> & {
+  [Key in keyof FilterRequestModules<Rsc>]: Match<Rsc, CTXMap, RequestTypes.D, Key, Context> & {
     success: Rsc[Key]["success"]
     successRaw: S.SchemaClass<S.Schema.Encoded<Rsc[Key]["success"]>>
     failure: Rsc[Key]["failure"]
@@ -197,7 +188,7 @@ export const makeRouter = <
     rsc: Rsc & { meta: { moduleName: ModuleName } }
   ) {
     const meta = rsc.meta
-    type Filtered = Filter<Rsc>
+    type Filtered = FilterRequestModules<Rsc>
     const filtered = typedKeysOf(rsc).reduce((acc, cur) => {
       if (Predicate.isObject(rsc[cur]) && rsc[cur]["success"]) {
         acc[cur as keyof Filtered] = rsc[cur]
@@ -323,18 +314,19 @@ export const makeRouter = <
 
     const router3: <
       const Impl extends {
-        [K in keyof Filter<Rsc>]: AnyHndlrs<Rsc[K]>
+        [K in keyof FilterRequestModules<Rsc>]: AnyHndlrs<Rsc[K]>
       }
     >(
       impl: Impl
     ) => {
-      [K in keyof Impl & keyof Filter<Rsc>]: Handler<
-        Filter<Rsc>[K],
+      [K in keyof Impl & keyof FilterRequestModules<Rsc>]: Handler<
+        FilterRequestModules<Rsc>[K],
         Impl[K] extends { raw: any } ? RequestTypes.RAW : RequestTypes.D,
         Exclude<
           | Context
           | Exclude<
-            Impl[K] extends { raw: any } ? Impl[K][RequestTypes.RAW] extends (...args: any[]) => Effect<any, any, infer R> ? R
+            Impl[K] extends { raw: any }
+              ? Impl[K][RequestTypes.RAW] extends (...args: any[]) => Effect<any, any, infer R> ? R
               : Impl[K][RequestTypes.RAW] extends Effect<any, any, infer R> ? R
               : Impl[K][RequestTypes.RAW] extends (...args: any[]) => Generator<
                 YieldWrap<Effect<any, any, infer R>>,
@@ -366,7 +358,7 @@ export const makeRouter = <
       R,
       THandlers extends {
         // import to keep them separate via | for type checking!!
-        [K in Keys]: AHandler<Rsc[K]>
+        [K in Keys]: AnyHandler<Rsc[K]>
       },
       TLayers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
     >(
@@ -571,7 +563,7 @@ export const makeRouter = <
           dependencies: Array<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
             YieldWrap<Effect<any, any, Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>>>,
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any
           >
 
@@ -599,7 +591,7 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: Effect<
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any,
             Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
           >
@@ -627,7 +619,7 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: Effect<
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any,
             Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
           >
@@ -655,7 +647,7 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: Effect<
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any,
             Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
           >
@@ -683,7 +675,7 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: Effect<
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any,
             GetSuccess<Make["dependencies"]>
           >
@@ -711,7 +703,7 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: Effect<
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any,
             GetSuccess<Make["dependencies"]>
           >
@@ -738,7 +730,7 @@ export const makeRouter = <
           dependencies: Array<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
             YieldWrap<Effect<any, any, Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>>>,
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any
           >
 
@@ -768,7 +760,7 @@ export const makeRouter = <
               : [Layer.Layer<Exclude<Effect.Context<Make["effect"]>, MakeDepsOut<Make>>, never, never>]
           ]
           effect: Effect<
-            { [K in keyof Filter<Rsc>]: AHandler<Rsc[K]> },
+            { [K in keyof FilterRequestModules<Rsc>]: AnyHandler<Rsc[K]> },
             any,
             any
           >
@@ -846,7 +838,7 @@ export type MakeContext<Make> = Make extends { readonly effect: Effect<any, any,
   : never
 
 export type MakeHandlers<Make, Handlers extends Record<string, any>> = Make extends
-  { readonly effect: Effect<{ [K in keyof Handlers]: AHandler<Handlers[K]> }, any, any> }
+  { readonly effect: Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
   ? Effect.Success<Make["effect"]>
   : Make extends { readonly effect: (_: any) => Generator<YieldWrap<any>, infer S, any> } ? S
   : never

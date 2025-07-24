@@ -29,31 +29,46 @@ export type AnyRequestModule = S.Schema.Any & {
   failure: S.Schema.Any // validates the failure response
 }
 
+// builder pattern for adding actions to a router until all actions are added
 export interface AddAction<Actions extends AnyRequestModule, Accum extends Record<string, any> = {}> {
   accum: Accum
   add<A extends Handler<Actions, any, any>>(
     a: A
-  ): Exclude<Actions, A extends Handler<infer M, any, any> ? M : never> extends never ?
-      & Accum
-      & { [K in A extends Handler<infer M, any, any> ? M extends AnyRequestModule ? M["_tag"] : never : never]: A }
+  ): A extends Handler<infer M extends AnyRequestModule, any, any> ? Exclude<Actions, M> extends never ?
+        & Accum
+        & { [K in M["_tag"]]: A }
     :
       & AddAction<
-        Exclude<Actions, A extends Handler<infer M, any, any> ? M : never>,
+        Exclude<Actions, M>,
         & Accum
-        & { [K in A extends Handler<infer M, any, any> ? M extends AnyRequestModule ? M["_tag"] : never : never]: A }
+        & { [K in M["_tag"]]: A }
       >
       & Accum
-      & { [K in A extends Handler<infer M, any, any> ? M extends AnyRequestModule ? M["_tag"] : never : never]: A }
+      & { [K in M["_tag"]]: A }
+    : never
 }
 
-type GetSuccess<T> = T extends { success: S.Schema.Any } ? T["success"] : typeof S.Void
+// note:
+// "d" stands for decoded i.e. the Type
+// "raw" stands for encoded i.e. the Encoded
+namespace RequestTypes {
+  export const D = "d" as const
+  export type D = typeof D
+  export const RAW = "raw" as const
+  export type RAW = typeof RAW
+}
+type RequestType = typeof RequestTypes[keyof typeof RequestTypes]
 
-type GetSuccessShape<Action extends { success?: S.Schema.Any }, RT extends "decoded" | "raw"> = RT extends "raw"
-  ? S.Schema.Encoded<GetSuccess<Action>>
-  : S.Schema.Type<GetSuccess<Action>>
+
+type GetSuccess<T> = T extends { success: S.Schema.Any } ? T["success"] : typeof S.Void
 type GetFailure<T extends { failure?: S.Schema.Any }> = T["failure"] extends never ? typeof S.Never : T["failure"]
 
-type HandlerFull<Action extends AnyRequestModule, RT extends "raw" | "decoded", A, E, R> = {
+type GetSuccessShape<Action extends { success?: S.Schema.Any }, RT extends RequestType> = {
+  d: S.Schema.Type<GetSuccess<Action>>
+  raw: S.Schema.Encoded<GetSuccess<Action>>
+}[RT]
+
+type HandlerBase<Action extends AnyRequestModule, RT extends RequestType, A, E, R> = {
   new(): {}
   _tag: RT
   stack: string
@@ -67,8 +82,8 @@ type HandlerFull<Action extends AnyRequestModule, RT extends "raw" | "decoded", 
   >
 }
 
-export interface Handler<Action extends AnyRequestModule, RT extends "raw" | "decoded", R> extends
-  HandlerFull<
+export interface Handler<Action extends AnyRequestModule, RT extends RequestType, R> extends
+  HandlerBase<
     Action,
     RT,
     GetSuccessShape<Action, RT>,
@@ -104,7 +119,7 @@ type RPCRouteR<
 type Match<
   Rsc extends Record<string, any>,
   CTXMap extends Record<string, any>,
-  RT extends "raw" | "decoded",
+  RT extends RequestType,
   Key extends keyof Rsc,
   Context
 > = {
@@ -141,14 +156,14 @@ export type RouteMatcher<
   /**
    * Requires the Type shape
    */
-  [Key in keyof Filter<Rsc>]: Match<Rsc, CTXMap, "decoded", Key, Context> & {
+  [Key in keyof Filter<Rsc>]: Match<Rsc, CTXMap, RequestTypes.D, Key, Context> & {
     success: Rsc[Key]["success"]
     successRaw: S.SchemaClass<S.Schema.Encoded<Rsc[Key]["success"]>>
     failure: Rsc[Key]["failure"]
     /**
      * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
      */
-    raw: Match<Rsc, CTXMap, "raw", Key, Context>
+    raw: Match<Rsc, CTXMap, RequestTypes.RAW, Key, Context>
   }
 }
 // export interface RouteMatcher<
@@ -199,13 +214,13 @@ export const makeRouter = <
             ? class {
               static request = rsc[cur]
               static stack = stack
-              static _tag = "decoded"
+              static _tag = RequestTypes.D
               static handler = () => fnOrEffect
             }
             : class {
               static request = rsc[cur]
               static stack = stack
-              static _tag = "decoded"
+              static _tag = RequestTypes.D
               static handler = fnOrEffect
             }
         }, {
@@ -222,13 +237,13 @@ export const makeRouter = <
                 ? class {
                   static request = rsc[cur]
                   static stack = stack
-                  static _tag = "raw"
+                  static _tag = RequestTypes.RAW
                   static handler = () => fnOrEffect
                 }
                 : class {
                   static request = rsc[cur]
                   static stack = stack
-                  static _tag = "raw"
+                  static _tag = RequestTypes.RAW
                   static handler = (req: any) => fnOrEffect(req)
                 }
             }
@@ -269,7 +284,7 @@ export const makeRouter = <
 
     type HndlrWithInputG<
       Action extends AnyRequestModule,
-      Mode extends "decoded" | "raw"
+      Mode extends RequestType
     > = (
       req: S.Schema.Type<Action>
     ) => Generator<
@@ -278,7 +293,7 @@ export const makeRouter = <
       never
     >
 
-    type HndlrWithInput<Action extends AnyRequestModule, Mode extends "decoded" | "raw"> = (
+    type HndlrWithInput<Action extends AnyRequestModule, Mode extends RequestType> = (
       req: S.Schema.Type<Action>
     ) => Effect<
       GetSuccessShape<Action, Mode>,
@@ -286,23 +301,23 @@ export const makeRouter = <
       any
     >
 
-    type Hndlr<Action extends AnyRequestModule, Mode extends "decoded" | "raw"> = Effect<
+    type Hndlr<Action extends AnyRequestModule, Mode extends RequestType> = Effect<
       GetSuccessShape<Action, Mode>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
       any
     >
 
-    type Hndlrs<Action extends AnyRequestModule, Mode extends "decoded" | "raw"> =
+    type Hndlrs<Action extends AnyRequestModule, Mode extends RequestType> =
       | HndlrWithInputG<Action, Mode>
       | HndlrWithInput<Action, Mode>
       | Hndlr<Action, Mode>
 
-    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, "decoded">
+    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, RequestTypes.D>
 
     type RawHndlrs<Action extends AnyRequestModule> =
-      | { raw: HndlrWithInputG<Action, "raw"> }
-      | { raw: HndlrWithInput<Action, "raw"> }
-      | { raw: Hndlr<Action, "raw"> }
+      | { raw: HndlrWithInputG<Action, RequestTypes.RAW> }
+      | { raw: HndlrWithInput<Action, RequestTypes.RAW> }
+      | { raw: Hndlr<Action, RequestTypes.RAW> }
 
     type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
 
@@ -315,13 +330,13 @@ export const makeRouter = <
     ) => {
       [K in keyof Impl & keyof Filter<Rsc>]: Handler<
         Filter<Rsc>[K],
-        Impl[K] extends { raw: any } ? "raw" : "decoded",
+        Impl[K] extends { raw: any } ? RequestTypes.RAW : RequestTypes.D,
         Exclude<
           | Context
           | Exclude<
-            Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
-              : Impl[K]["raw"] extends Effect<any, any, infer R> ? R
-              : Impl[K]["raw"] extends (...args: any[]) => Generator<
+            Impl[K] extends { raw: any } ? Impl[K][RequestTypes.RAW] extends (...args: any[]) => Effect<any, any, infer R> ? R
+              : Impl[K][RequestTypes.RAW] extends Effect<any, any, infer R> ? R
+              : Impl[K][RequestTypes.RAW] extends (...args: any[]) => Generator<
                 YieldWrap<Effect<any, any, infer R>>,
                 any,
                 any
@@ -342,7 +357,7 @@ export const makeRouter = <
       >
     } = (obj: Record<keyof Filtered, any>) =>
       typedKeysOf(obj).reduce((acc, cur) => {
-        acc[cur] = "raw" in obj[cur] ? items[cur].raw(obj[cur].raw) : items[cur](obj[cur])
+        acc[cur] = RequestTypes.RAW in obj[cur] ? items[cur].raw(obj[cur].raw) : items[cur](obj[cur])
         return acc
       }, {} as any)
 
@@ -387,7 +402,7 @@ export const makeRouter = <
                 : (req: any, headers: HttpHeaders.Headers) => Effect.interruptible(handler.handler(req, headers) as any)
 
               acc[cur] = [
-                handler._tag === "raw"
+                handler._tag === RequestTypes.RAW
                   ? class extends (req as any) {
                     static success = S.encodedSchema(req.success)
                     get [Schema.symbolSerializable]() {

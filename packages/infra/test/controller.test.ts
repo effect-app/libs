@@ -136,6 +136,9 @@ export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, CTXMap>({
   requireRoles: UnauthorizedError
 })
 
+export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
+export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}
+
 export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
@@ -148,7 +151,7 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.NumberFromString }) {}
 
-const Something = { DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
+const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
 
 export class SomethingService extends Effect.Service<SomethingService>()("SomethingService", {
   dependencies: [],
@@ -195,6 +198,8 @@ it("router", () => {
       console.log({ repo, smth, smth2 })
 
       return matchFor(Something)({
+        Eff: Effect.void,
+        Gen: Effect.void,
         DoSomething: Effect.void,
         GetSomething: Effect.succeed("12"),
         GetSomething2: Effect.succeed(12)
@@ -218,6 +223,8 @@ Router(Something)({
     console.log({ repo, smth, smth2 })
 
     return matchFor(Something)({
+      Eff: Effect.void,
+      Gen: Effect.void,
       GetSomething: Effect.succeed("12"),
       DoSomething: Effect.void,
       GetSomething2: Effect.succeed(12)
@@ -239,6 +246,8 @@ Router(Something)({
     console.log({ repo, smth, smth2 })
 
     return matchFor(Something)({
+      Eff: Effect.void,
+      Gen: Effect.void,
       GetSomething: Effect.succeed("12"),
       DoSomething: Effect.succeed(2),
       GetSomething2: Effect.succeed(12)
@@ -260,6 +269,8 @@ Router(Something)({
     console.log({ repo, smth, smth2 })
 
     return matchFor(Something)({
+      Eff: Effect.void,
+      Gen: Effect.void,
       GetSomething: SomethingService2.use(() => Effect.succeed("12")),
       DoSomething: { raw: Effect.void },
       GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
@@ -281,6 +292,8 @@ Router(Something)({
     console.log({ repo, smth, smth2 })
 
     return matchFor(Something)({
+      Eff: Effect.void,
+      Gen: Effect.void,
       GetSomething: SomethingService2.use(() => Effect.succeed("12")),
       DoSomething: {
         raw: Effect.succeed(2)
@@ -289,6 +302,11 @@ Router(Something)({
     })
   })
 })
+
+export class Some extends Effect.Service<Some>()("Some", {
+  effect: Effect.succeed({ a: 1 }),
+  dependencies: []
+}) {}
 
 const { make: _make, routes: _routes } = Router(Something)({
   dependencies: [
@@ -309,6 +327,16 @@ const { make: _make, routes: _routes } = Router(Something)({
     console.log({ repo, smth, smth2 })
 
     return match({
+      Eff: () =>
+        Effect.gen(function*() {
+          const some = yield* Some
+          return yield* Effect.logInfo("Some", some)
+        }),
+
+      *Gen() {
+        const some = yield* Some
+        return yield* Effect.logInfo("Some", some)
+      },
       *GetSomething(req) {
         console.log(req.id)
 

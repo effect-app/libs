@@ -333,9 +333,19 @@ export const makeRouter = <
           | Exclude<
             Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends Effect<any, any, infer R> ? R
+              : Impl[K]["raw"] extends (...args: any[]) => Generator<
+                YieldWrap<Effect<any, any, infer R>>,
+                any,
+                any
+              > ? R
               : never
               : Impl[K] extends (...args: any[]) => Effect<any, any, infer R> ? R
               : Impl[K] extends Effect<any, any, infer R> ? R
+              : Impl[K] extends (...args: any[]) => Generator<
+                YieldWrap<Effect<any, any, infer R>>,
+                any,
+                any
+              > ? R
               : never,
             GetEffectContext<CTXMap, Rsc[K]["config"]>
           >,
@@ -358,7 +368,7 @@ export const makeRouter = <
       TLayers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
     >(
       layers: TLayers,
-      make: Effect<THandlers, E, R> | Generator<YieldWrap<Effect<any, any, any>>, THandlers, E>
+      make: Effect<THandlers, E, R> | Generator<YieldWrap<Effect<any, any, R>>, THandlers, E>
     ) => {
       type ProvidedLayers =
         | { [k in keyof Layers]: Layer.Layer.Success<Layers[k]> }[number]

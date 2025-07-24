@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.64.6
+
+### Patch Changes
+
+- 0e0c962: router: fix missing R retrieval in generators
+
 ## 2.64.5
 
 ### Patch Changes

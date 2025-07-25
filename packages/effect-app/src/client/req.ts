@@ -207,6 +207,7 @@ export const makeRpcClient = <
       // S.TaggedRequest is a factory function that creates a TaggedRequest class
       const req = S.TaggedRequest<Self>()(tag, {
         payload: fields,
+        // ensure both failure and success are schemas
         failure: merge(
           config?.failure ? S.isSchema(config.failure) ? config.failure : S.Struct(config.failure) : undefined,
           [...errorSchemas, generalErrors].filter(Boolean)

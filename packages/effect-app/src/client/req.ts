@@ -17,7 +17,7 @@ export type RPCContextMap<Key, Service, E> = {
 }
 
 export declare namespace RPCContextMap {
-  export type Custom<Key, Service, E, Custom extends boolean> = {
+  export type Custom<Key, Service, E, Custom> = {
     key: Key
     service: Service
     error: E

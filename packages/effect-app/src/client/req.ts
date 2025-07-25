@@ -204,6 +204,7 @@ export const makeRpcClient = <
       fields: Fields,
       config?: C
     ) => {
+      // S.TaggedRequest is a factory function that creates a TaggedRequest class
       const req = S.TaggedRequest<Self>()(tag, {
         payload: fields,
         failure: merge(

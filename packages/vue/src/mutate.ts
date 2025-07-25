@@ -3,7 +3,7 @@ import * as Result from "@effect-rx/rx/Result"
 import { type InvalidateOptions, type InvalidateQueryFilters, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, type Exit, Option } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
-import { tuple } from "effect-app/Function"
+import { identity, tuple } from "effect-app/Function"
 import { computed, type ComputedRef, type Ref, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
 
@@ -193,7 +193,8 @@ export const makeMutation = () => {
         .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
     })
 
-    const mapHandler = options?.mapHandler ?? ((_) => _)
+    type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
+    const mapHandler = options?.mapHandler ?? identity as MH
 
     const handle = (self: Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
       Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),

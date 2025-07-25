@@ -217,9 +217,9 @@ export const makeRpcClient = <
           : ForceVoid
       })
       return class extends (Object.assign(req, { config }) as any) {
-        constructor(a: any, b: any = true) {
+        constructor(payload: any, disableValidation: any = true) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          super(a, b)
+          super(payload, disableValidation)
         }
       }
     }) as any

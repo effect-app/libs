@@ -43,6 +43,7 @@ const optimisticConcurrencySchedule = Schedule.once.pipe(
 )
 
 // it's the result of extending S.Req setting success, config
+// it's a schema plus some metadata
 export type AnyRequestModule = S.Schema.Any & {
   _tag: string // unique identifier for the request module
   config: any // ?
@@ -207,60 +208,65 @@ export const makeRouter = <
   >(
     rsc: Resource & { meta: { moduleName: ModuleName } }
   ) {
-    type RequestModules = FilterRequestModules<Resource>
-    type Keys = keyof RequestModules
-
-    type HndlrWithInputG<
+    type HandlerWithInputGen<
       Action extends AnyRequestModule,
-      Mode extends RequestType
+      RT extends RequestType
     > = (
       req: S.Schema.Type<Action>
     ) => Generator<
       YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>>,
-      GetSuccessShape<Action, Mode>,
+      GetSuccessShape<Action, RT>,
       never
     >
 
-    type HndlrWithInput<Action extends AnyRequestModule, Mode extends RequestType> = (
+    type HandlerWithInputEff<
+      Action extends AnyRequestModule,
+      RT extends RequestType
+    > = (
       req: S.Schema.Type<Action>
     ) => Effect<
-      GetSuccessShape<Action, Mode>,
+      GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
       any
     >
 
-    type Hndlr<Action extends AnyRequestModule, Mode extends RequestType> = Effect<
-      GetSuccessShape<Action, Mode>,
+    type HandlerEff<
+      Action extends AnyRequestModule,
+      RT extends RequestType
+    > = Effect<
+      GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
       any
     >
 
-    type Hndlrs<Action extends AnyRequestModule, Mode extends RequestType> =
-      | HndlrWithInputG<Action, Mode>
-      | HndlrWithInput<Action, Mode>
-      | Hndlr<Action, Mode>
+    type Handlers<Action extends AnyRequestModule, RT extends RequestType> =
+      | HandlerWithInputGen<Action, RT>
+      | HandlerWithInputEff<Action, RT>
+      | HandlerEff<Action, RT>
 
-    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, RequestTypes.DECODED>
+    type HandlersDecoded<Action extends AnyRequestModule> = Handlers<Action, RequestTypes.DECODED>
 
-    type RawHndlrs<Action extends AnyRequestModule> =
-      | { raw: HndlrWithInputG<Action, RequestTypes.TYPE> }
-      | { raw: HndlrWithInput<Action, RequestTypes.TYPE> }
-      | { raw: Hndlr<Action, RequestTypes.TYPE> }
+    type HandlersRaw<Action extends AnyRequestModule> =
+      | { raw: HandlerWithInputGen<Action, RequestTypes.TYPE> }
+      | { raw: HandlerWithInputEff<Action, RequestTypes.TYPE> }
+      | { raw: HandlerEff<Action, RequestTypes.TYPE> }
 
-    type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
+    type AnyHandlers<Action extends AnyRequestModule> = HandlersRaw<Action> | HandlersDecoded<Action>
 
     const { meta } = rsc
 
-    const filtered = typedKeysOf(rsc).reduce((acc, cur) => {
+    type RequestModules = FilterRequestModules<Resource>
+    const requestModules = typedKeysOf(rsc).reduce((acc, cur) => {
       if (Predicate.isObject(rsc[cur]) && rsc[cur]["success"]) {
         acc[cur as keyof RequestModules] = rsc[cur]
       }
       return acc
     }, {} as RequestModules)
 
-    const items = typedKeysOf(filtered).reduce(
+    const items = typedKeysOf(requestModules).reduce(
       (prev, cur) => {
         ;(prev as any)[cur] = Object.assign((fnOrEffect: any) => {
+          // fnOrEffect is the actual handler implementation
           if (fnOrEffect[Symbol.toStringTag] === "GeneratorFunction") fnOrEffect = Effect.fnUntraced(fnOrEffect)
           const stack = new Error().stack?.split("\n").slice(2).join("\n")
           return Effect.isEffect(fnOrEffect)
@@ -297,7 +303,7 @@ export const makeRouter = <
                   static request = rsc[cur]
                   static stack = stack
                   static _tag = RequestTypes.TYPE
-                  static handler = (req: any) => fnOrEffect(req)
+                  static handler = fnOrEffect
                 }
             }
         })
@@ -306,7 +312,7 @@ export const makeRouter = <
       {} as RouteMatcher<CTXMap, Resource, Context>
     )
 
-    const total = Object.keys(filtered).length
+    const total = Object.keys(requestModules).length
     const router: AddAction<RequestModules[keyof RequestModules]> = {
       accum: {},
       add(a: any) {
@@ -319,7 +325,7 @@ export const makeRouter = <
 
     const router3: <
       const Impl extends {
-        [K in keyof FilterRequestModules<Resource>]: AnyHndlrs<Resource[K]>
+        [K in keyof FilterRequestModules<Resource>]: AnyHandlers<Resource[K]>
       }
     >(
       impl: Impl
@@ -363,7 +369,7 @@ export const makeRouter = <
       R,
       THandlers extends {
         // import to keep them separate via | for type checking!!
-        [K in Keys]: AnyHandler<Resource[K]>
+        [K in keyof RequestModules]: AnyHandler<Resource[K]>
       },
       TLayers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
     >(
@@ -386,7 +392,7 @@ export const makeRouter = <
             const rpc = yield* makeRpc(middleware)
 
             // return make.pipe(Effect.map((c) => controllers(c, layers)))
-            const mapped = typedKeysOf(filtered).reduce((acc, cur) => {
+            const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {
               const handler = controllers[cur as keyof typeof controllers]
               const req = rsc[cur]
 
@@ -477,7 +483,7 @@ export const makeRouter = <
               ] as const
               return acc
             }, {} as any) as {
-              [K in Keys]: [
+              [K in keyof RequestModules]: [
                 Resource[K],
                 (
                   requestLayers: any

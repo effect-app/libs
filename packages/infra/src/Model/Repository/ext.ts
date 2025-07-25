@@ -242,7 +242,6 @@ export const extendRepo = <
     request: (id: T[IdKey]) => Effect.request(_request({ id }), requestResolver),
     get,
     log: (evt: Evt) => AnyPureDSL.log(evt),
-    removeById: (id: T[IdKey]) => Effect.andThen(get(id), (_) => repo.removeAndPublish([_])),
     save: (...items: NonEmptyArray<T>) => repo.saveAndPublish(items),
     saveWithEvents: (events: Iterable<Evt>) => (...items: NonEmptyArray<T>) => repo.saveAndPublish(items, events),
     queryAndSavePure,

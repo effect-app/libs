@@ -94,7 +94,7 @@ export function makeRepoInternal<
           const pub = "publishEvents" in args
             ? args.publishEvents
             : () => Effect.void
-          const changeFeed = yield* PubSub.unbounded<[T[], "save" | "remove"]>()
+          const changeFeed = yield* PubSub.unbounded<[T[], "save" | "remove"] | [T[IdKey][], "remove"]>()
 
           const allE = cms
             .pipe(Effect.flatMap((cm) => Effect.map(store.all, (_) => _.map((_) => mapReverse(_, cm.set)))))
@@ -187,6 +187,11 @@ export function makeRepoInternal<
               })
               .pipe(Effect.withSpan("saveAndPublish", { captureStackTrace: false }))
           }
+
+          const removeById = Effect.fnUntraced(function*(...id: T[IdKey][]) {
+            yield* store.removeById(...id)
+            yield* changeFeed.publish([...id, "remove"] as any)
+          })
 
           function removeAndPublish(a: Iterable<T>, events: Iterable<Evt> = []) {
             return Effect.gen(function*() {

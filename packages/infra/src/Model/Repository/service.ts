@@ -23,7 +23,8 @@ export interface Repository<
     items: Iterable<T>,
     events?: Iterable<Evt>
   ) => Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
-  readonly changeFeed: PubSub.PubSub<[T[], "save" | "remove"]>
+  readonly changeFeed: PubSub.PubSub<[T[], "save" | "remove"] | [T[IdKey][], "remove"]>
+  readonly removeById: (...id: T[IdKey][]) => Effect<void, never>
   readonly removeAndPublish: (
     items: Iterable<T>,
     events?: Iterable<Evt>

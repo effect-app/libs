@@ -14,6 +14,26 @@ import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
 
+namespace LayersUtils {
+  export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
+    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
+      [k in keyof Layers]: Layer.Layer.Success<Layers[k]>
+    }[number]
+    : never
+
+  export type GetLayersContext<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
+    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
+      [k in keyof Layers]: Layer.Layer.Context<Layers[k]>
+    }[number]
+    : never
+
+  export type GetLayersError<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
+    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
+      [k in keyof Layers]: Layer.Layer.Error<Layers[k]>
+    }[number]
+    : never
+}
+
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
@@ -22,6 +42,7 @@ const optimisticConcurrencySchedule = Schedule.once.pipe(
   Schedule.intersect(Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException"))
 )
 
+// it's the result of extending S.Req setting success, config
 export type AnyRequestModule = S.Schema.Any & {
   _tag: string // unique identifier for the request module
   config: any // ?
@@ -90,6 +111,8 @@ type AnyHandler<Action extends AnyRequestModule> = Handler<
   any // R
 >
 
+// a Resource is typically the whole module with all the exported sh*t
+// this helper retrieves only the entities (classes) which are built by extending S.Req
 type FilterRequestModules<T> = {
   [K in keyof T as T[K] extends AnyRequestModule ? K : never]: T[K]
 }
@@ -157,28 +180,25 @@ export type RouteMatcher<
     raw: Match<Resource, CTXMap, RequestTypes.TYPE, Key, Context>
   }
 }
-// export interface RouteMatcher<
-//   Filtered extends Record<string, any>,
-//   CTXMap extends Record<string, any>,
-//   Resource extends Filtered
-// > extends RouteMatcherInt<Filtered, CTXMap, Resource> {}
 
+// identity factory for Middleware
 export const makeMiddleware = <
   Context,
   CTXMap extends Record<string, RPCContextMap.Any>,
-  RMW,
+  MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
->(content: Middleware<Context, CTXMap, RMW, Layers>): Middleware<Context, CTXMap, RMW, Layers> => content
+>(content: Middleware<Context, CTXMap, MiddlewareR, Layers>): Middleware<Context, CTXMap, MiddlewareR, Layers> =>
+  content
 
 export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
 export const makeRouter = <
   Context,
   CTXMap extends Record<string, RPCContextMap.Any>,
-  RMW,
+  MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
 >(
-  middleware: Middleware<Context, CTXMap, RMW, Layers>,
+  middleware: Middleware<Context, CTXMap, MiddlewareR, Layers>,
   devMode: boolean
 ) => {
   function matchFor<
@@ -187,14 +207,56 @@ export const makeRouter = <
   >(
     rsc: Resource & { meta: { moduleName: ModuleName } }
   ) {
-    const meta = rsc.meta
-    type Filtered = FilterRequestModules<Resource>
+    type RequestModules = FilterRequestModules<Resource>
+    type Keys = keyof RequestModules
+
+    type HndlrWithInputG<
+      Action extends AnyRequestModule,
+      Mode extends RequestType
+    > = (
+      req: S.Schema.Type<Action>
+    ) => Generator<
+      YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>>,
+      GetSuccessShape<Action, Mode>,
+      never
+    >
+
+    type HndlrWithInput<Action extends AnyRequestModule, Mode extends RequestType> = (
+      req: S.Schema.Type<Action>
+    ) => Effect<
+      GetSuccessShape<Action, Mode>,
+      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      any
+    >
+
+    type Hndlr<Action extends AnyRequestModule, Mode extends RequestType> = Effect<
+      GetSuccessShape<Action, Mode>,
+      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      any
+    >
+
+    type Hndlrs<Action extends AnyRequestModule, Mode extends RequestType> =
+      | HndlrWithInputG<Action, Mode>
+      | HndlrWithInput<Action, Mode>
+      | Hndlr<Action, Mode>
+
+    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, RequestTypes.DECODED>
+
+    type RawHndlrs<Action extends AnyRequestModule> =
+      | { raw: HndlrWithInputG<Action, RequestTypes.TYPE> }
+      | { raw: HndlrWithInput<Action, RequestTypes.TYPE> }
+      | { raw: Hndlr<Action, RequestTypes.TYPE> }
+
+    type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
+
+    const { meta } = rsc
+
     const filtered = typedKeysOf(rsc).reduce((acc, cur) => {
       if (Predicate.isObject(rsc[cur]) && rsc[cur]["success"]) {
-        acc[cur as keyof Filtered] = rsc[cur]
+        acc[cur as keyof RequestModules] = rsc[cur]
       }
       return acc
-    }, {} as Filtered)
+    }, {} as RequestModules)
 
     const items = typedKeysOf(filtered).reduce(
       (prev, cur) => {
@@ -244,26 +306,8 @@ export const makeRouter = <
       {} as RouteMatcher<CTXMap, Resource, Context>
     )
 
-    type Keys = keyof Filtered
-
-    type GetSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-      NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-        [k in keyof Layers]: Layer.Layer.Success<Layers[k]>
-      }[number]
-      : never
-
-    type GetContext<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-      NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-        [k in keyof Layers]: Layer.Layer.Context<Layers[k]>
-      }[number]
-      : never
-
-    type GetError<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends NonEmptyReadonlyArray<Layer.Layer.Any>
-      ? { [k in keyof Layers]: Layer.Layer.Error<Layers[k]> }[number]
-      : never
-
     const total = Object.keys(filtered).length
-    const router: AddAction<Filtered[keyof Filtered]> = {
+    const router: AddAction<RequestModules[keyof RequestModules]> = {
       accum: {},
       add(a: any) {
         ;(this.accum as any)[a.request._tag] = a
@@ -272,45 +316,6 @@ export const makeRouter = <
         return this as any
       }
     }
-
-    type HndlrWithInputG<
-      Action extends AnyRequestModule,
-      Mode extends RequestType
-    > = (
-      req: S.Schema.Type<Action>
-    ) => Generator<
-      YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>>,
-      GetSuccessShape<Action, Mode>,
-      never
-    >
-
-    type HndlrWithInput<Action extends AnyRequestModule, Mode extends RequestType> = (
-      req: S.Schema.Type<Action>
-    ) => Effect<
-      GetSuccessShape<Action, Mode>,
-      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
-      any
-    >
-
-    type Hndlr<Action extends AnyRequestModule, Mode extends RequestType> = Effect<
-      GetSuccessShape<Action, Mode>,
-      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
-      any
-    >
-
-    type Hndlrs<Action extends AnyRequestModule, Mode extends RequestType> =
-      | HndlrWithInputG<Action, Mode>
-      | HndlrWithInput<Action, Mode>
-      | Hndlr<Action, Mode>
-
-    type DHndlrs<Action extends AnyRequestModule> = Hndlrs<Action, RequestTypes.DECODED>
-
-    type RawHndlrs<Action extends AnyRequestModule> =
-      | { raw: HndlrWithInputG<Action, RequestTypes.TYPE> }
-      | { raw: HndlrWithInput<Action, RequestTypes.TYPE> }
-      | { raw: Hndlr<Action, RequestTypes.TYPE> }
-
-    type AnyHndlrs<Action extends AnyRequestModule> = RawHndlrs<Action> | DHndlrs<Action>
 
     const router3: <
       const Impl extends {
@@ -347,7 +352,7 @@ export const makeRouter = <
           HttpRouter.HttpRouter.Provided
         >
       >
-    } = (obj: Record<keyof Filtered, any>) =>
+    } = (obj: Record<keyof RequestModules, any>) =>
       typedKeysOf(obj).reduce((acc, cur) => {
         acc[cur] = RequestTypes.TYPE in obj[cur] ? items[cur].raw(obj[cur].raw) : items[cur](obj[cur])
         return acc
@@ -499,7 +504,7 @@ export const makeRouter = <
                   return acc
                 }, {} as Record<string, any>)
               })) as unknown as Layer<
-                { [K in keyof Filtered]: Rpc.Handler<K> },
+                { [K in keyof RequestModules]: Rpc.Handler<K> },
                 never,
                 RPCRouteR<typeof mapped[keyof typeof mapped]>
               >
@@ -540,10 +545,10 @@ export const makeRouter = <
           middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _
         )) as ((requestLayer: any) => Layer.Layer<
           Router,
-          GetError<TLayers> | E,
-          | GetContext<TLayers>
+          LayersUtils.GetLayersError<TLayers> | E,
+          | LayersUtils.GetLayersContext<TLayers>
           | Exclude<
-            RMW | R,
+            MiddlewareR | R,
             ProvidedLayers
           >
         >)
@@ -562,7 +567,9 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
-            YieldWrap<Effect<any, any, Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>>>,
+            YieldWrap<
+              Effect<any, any, Make["strict"] extends false ? any : LayersUtils.GetLayersSuccess<Make["dependencies"]>>
+            >,
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any
           >
@@ -578,10 +585,13 @@ export const makeRouter = <
 
         routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Resource>,
-          MakeErrors<Make> | GetError<Make["dependencies"]>,
-          | GetContext<Make["dependencies"]>
+          MakeErrors<Make> | LayersUtils.GetLayersError<Make["dependencies"]>,
+          | LayersUtils.GetLayersContext<Make["dependencies"]>
           // | GetContext<Layers> // elsewhere provided
-          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+          | Exclude<
+            MakeContext<Make> | MiddlewareR,
+            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<Layers>
+          >
         >
 
         // just for type testing purposes
@@ -593,7 +603,7 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
+            Make["strict"] extends false ? any : LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
           strict?: boolean
           /** @deprecated */
@@ -606,10 +616,13 @@ export const makeRouter = <
 
         routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Resource>,
-          MakeErrors<Make> | GetError<Make["dependencies"]>,
-          | GetContext<Make["dependencies"]>
+          MakeErrors<Make> | LayersUtils.GetLayersError<Make["dependencies"]>,
+          | LayersUtils.GetLayersContext<Make["dependencies"]>
           // | GetContext<Layers> // elsewhere provided
-          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+          | Exclude<
+            MakeContext<Make> | MiddlewareR,
+            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<Layers>
+          >
         >
 
         // just for type testing purposes
@@ -621,7 +634,7 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
+            Make["strict"] extends false ? any : LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
           strict?: boolean
           /** @deprecated */
@@ -634,10 +647,13 @@ export const makeRouter = <
 
         routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Resource>,
-          MakeErrors<Make> | GetError<Make["dependencies"]>,
-          | GetContext<Make["dependencies"]>
+          MakeErrors<Make> | LayersUtils.GetLayersError<Make["dependencies"]>,
+          | LayersUtils.GetLayersContext<Make["dependencies"]>
           // | GetContext<Layers> // elsewhere provided
-          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+          | Exclude<
+            MakeContext<Make> | MiddlewareR,
+            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<Layers>
+          >
         >
 
         // just for type testing purposes
@@ -649,7 +665,7 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>
+            Make["strict"] extends false ? any : LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
           strict?: boolean
           /** @deprecated */
@@ -662,10 +678,13 @@ export const makeRouter = <
 
         routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Resource>,
-          MakeErrors<Make> | GetError<Make["dependencies"]>,
-          | GetContext<Make["dependencies"]>
+          MakeErrors<Make> | LayersUtils.GetLayersError<Make["dependencies"]>,
+          | LayersUtils.GetLayersContext<Make["dependencies"]>
           // | GetContext<Layers> // elsewhere provided
-          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+          | Exclude<
+            MakeContext<Make> | MiddlewareR,
+            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<Layers>
+          >
         >
 
         // just for type testing purposes
@@ -677,7 +696,7 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            GetSuccess<Make["dependencies"]>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
           strict?: boolean
           /** @deprecated */
@@ -690,10 +709,13 @@ export const makeRouter = <
 
         routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Resource>,
-          MakeErrors<Make> | GetError<Make["dependencies"]>,
-          | GetContext<Make["dependencies"]>
+          MakeErrors<Make> | LayersUtils.GetLayersError<Make["dependencies"]>,
+          | LayersUtils.GetLayersContext<Make["dependencies"]>
           // | GetContext<Layers> // elsewhere provided
-          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+          | Exclude<
+            MakeContext<Make> | MiddlewareR,
+            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<Layers>
+          >
         >
 
         // just for type testing purposes
@@ -705,7 +727,7 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            GetSuccess<Make["dependencies"]>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
           strict?: boolean
         }
@@ -716,10 +738,13 @@ export const makeRouter = <
 
         routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Resource>,
-          MakeErrors<Make> | GetError<Make["dependencies"]>,
-          | GetContext<Make["dependencies"]>
+          MakeErrors<Make> | LayersUtils.GetLayersError<Make["dependencies"]>,
+          | LayersUtils.GetLayersContext<Make["dependencies"]>
           // | GetContext<Layers> // elsewhere provided
-          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+          | Exclude<
+            MakeContext<Make> | MiddlewareR,
+            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<Layers>
+          >
         >
 
         // just for type testing purposes
@@ -729,7 +754,9 @@ export const makeRouter = <
         const Make extends {
           dependencies: Array<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
-            YieldWrap<Effect<any, any, Make["strict"] extends false ? any : GetSuccess<Make["dependencies"]>>>,
+            YieldWrap<
+              Effect<any, any, Make["strict"] extends false ? any : LayersUtils.GetLayersSuccess<Make["dependencies"]>>
+            >,
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any
           >
@@ -743,10 +770,13 @@ export const makeRouter = <
 
         routes: (requestLayers: any) => Layer.Layer<
           RouterShape<Resource>,
-          MakeErrors<Make> | GetError<Make["dependencies"]>,
-          | GetContext<Make["dependencies"]>
+          MakeErrors<Make> | LayersUtils.GetLayersError<Make["dependencies"]>,
+          | LayersUtils.GetLayersContext<Make["dependencies"]>
           // | GetContext<Layers> // elsewhere provided
-          | Exclude<MakeContext<Make> | RMW, GetSuccess<Make["dependencies"]> | GetSuccess<Layers>>
+          | Exclude<
+            MakeContext<Make> | MiddlewareR,
+            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<Layers>
+          >
         >
 
         // just for type testing purposes

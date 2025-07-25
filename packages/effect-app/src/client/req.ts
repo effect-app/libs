@@ -3,80 +3,108 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { S } from "../internal/lib.js"
+import { type Values } from "../utils.js"
 
 /**
  * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
- * Unless configured as `true`
+ * Unless explicitly configured as `true`.
  */
-export type RPCContextMap<Key, Service, E> = [Key, Service, E, true]
+export type RPCContextMap<Key, Service, E> = {
+  key: Key
+  service: Service
+  error: E
+  idkWhatIsThis: true
+}
 
 export declare namespace RPCContextMap {
-  export type Custom<Key, Service, E, Custom> = [Key, Service, E, Custom]
+  export type Custom<Key, Service, E, Custom extends boolean> = {
+    key: Key
+    service: Service
+    error: E
+    idkWhatIsThis: Custom
+  }
 
   /**
    * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect Context.
-   * Unless omitted
+   * Unless explicitly omitted.
    */
-  export type Inverted<Key, Service, E> = [Key, Service, E, false]
+  export type Inverted<Key, Service, E> = {
+    key: Key
+    service: Service
+    error: E
+    idkWhatIsThis: false
+  }
 
-  export type Any = [string, any, S.Schema.All, any]
+  export type Any = {
+    key: string
+    service: any
+    error: S.Schema.All
+    idkWhatIsThis: any
+  }
 }
 
-type Values<T extends Record<any, any>> = T[keyof T]
-
 export type GetEffectContext<CTXMap extends Record<string, RPCContextMap.Any>, T> = Values<
-  // inverted
+  // inverted: idkWhatIsThis is false => remove if explicitly set to true (that's confusing ??)
   & {
     [
-      key in keyof CTXMap as CTXMap[key][3] extends true ? never
-        : key extends keyof T ? T[key] extends true ? never : CTXMap[key][0]
-        : CTXMap[key][0]
+      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends true ? never
+        : key extends keyof T ? T[key] extends true ? never : CTXMap[key]["key"]
+        : CTXMap[key]["key"]
     ]: // TODO: or as an Optional available?
-      CTXMap[key][1]
+      CTXMap[key]["service"]
   }
-  // normal
+  // normal: idkWhatIsThis is true => add if explicitly set to true
   & {
     [
-      key in keyof CTXMap as CTXMap[key][3] extends false ? never
-        : key extends keyof T ? T[key] extends true ? CTXMap[key][0] : never
+      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends false ? never
+        : key extends keyof T ? T[key] extends true ? CTXMap[key]["key"] : never
         : never
     ]: // TODO: or as an Optional available?
-      CTXMap[key][1]
-  }
->
-export type ValuesOrNeverSchema<T extends Record<any, any>> = Values<T> extends never ? typeof S.Never : Values<T>
-export type GetEffectError<CTXMap extends Record<string, RPCContextMap.Any>, T> = Values<
-  // inverted
-  & {
-    [
-      key in keyof CTXMap as CTXMap[key][3] extends true ? never
-        : key extends keyof T ? T[key] extends true ? never : CTXMap[key][0]
-        : CTXMap[key][0]
-    ]: // TODO: or as an Optional available?
-      CTXMap[key][2]
-  }
-  // normal
-  & {
-    [
-      key in keyof CTXMap as CTXMap[key][3] extends false ? never
-        : key extends keyof T ? T[key] extends true ? CTXMap[key][0] : never
-        : never
-    ]: // TODO: or as an Optional available?
-      CTXMap[key][2]
+      CTXMap[key]["service"]
   }
 >
 
-// TODO: Fix error types...
+export type GetEffectError<CTXMap extends Record<string, RPCContextMap.Any>, T> = Values<
+  // inverted: idkWhatIsThis is false => remove if explicitly set to true (that's confusing ??)
+  & {
+    [
+      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends true ? never
+        : key extends keyof T ? T[key] extends true ? never : CTXMap[key]["key"]
+        : CTXMap[key]["key"]
+    ]: // TODO: or as an Optional available?
+      CTXMap[key]["error"]
+  }
+  // normal: idkWhatIsThis is true => add if explicitly set to true
+  & {
+    [
+      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends false ? never
+        : key extends keyof T ? T[key] extends true ? CTXMap[key]["key"] : never
+        : never
+    ]: // TODO: or as an Optional available?
+      CTXMap[key]["error"]
+  }
+>
+
+// TODO: Fix error types... (?)
 type JoinSchema<T> = T extends ReadonlyArray<S.Schema.All> ? S.Union<T> : typeof S.Never
-type ExcludeFromTuple<T extends readonly any[], E> = T extends [infer F, ...infer R]
-  ? [F] extends [E] ? ExcludeFromTuple<R, E>
-  : [F, ...ExcludeFromTuple<R, E>]
-  : []
 
 const merge = (a: any, b: Array<any>) =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   a !== undefined && b.length ? S.Union(a, ...b) : a !== undefined ? a : b.length ? S.Union(...b) : S.Never
 
+/**
+ * Converts struct fields to TypeLiteral schema, or returns existing schema.
+ *
+ * @example
+ * ```typescript
+ * type Fields = { name: S.String; age: S.Number }
+ * type Schema = SchemaOrFields<Fields>
+ * // Result: S.TypeLiteral<Fields, []>
+ *
+ * type Existing = S.String
+ * type Same = SchemaOrFields<Existing>
+ * // Result: S.String
+ * ```
+ */
 type SchemaOrFields<T> = T extends S.Struct.Fields ? S.TypeLiteral<T, []> : T extends S.Schema.Any ? T : never
 
 /**
@@ -89,11 +117,15 @@ export const makeRpcClient = <
   CTXMap extends Record<string, RPCContextMap.Any>,
   GeneralErrors extends S.Schema.All = never
 >(
-  errors: { [K in keyof CTXMap]: CTXMap[K][2] },
+  errors: { [K in keyof CTXMap]: CTXMap[K]["error"] },
   generalErrors?: GeneralErrors
 ) => {
-  // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc...
-  type Context = { success: S.Schema.Any | S.Struct.Fields; failure: S.Schema.Any | S.Struct.Fields }
+  // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
+  type Context = {
+    success: S.Schema.Any | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
+    failure: S.Schema.Any | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
+  }
+
   function TaggedRequest<Self>(): {
     <Tag extends string, Payload extends S.Struct.Fields, C extends Context>(
       tag: Tag,
@@ -106,14 +138,11 @@ export const makeRpcClient = <
         { readonly _tag: S.tag<Tag> } & Payload,
         SchemaOrFields<typeof config["success"]>,
         JoinSchema<
-          ExcludeFromTuple<
-            [SchemaOrFields<typeof config["failure"]> | GetEffectError<CTXMap, C> | GeneralErrors],
-            never
-          >
+          [SchemaOrFields<typeof config["failure"]> | GetEffectError<CTXMap, C> | GeneralErrors]
         >
       >
       & { config: Omit<C, "success" | "failure"> }
-    <Tag extends string, Payload extends S.Struct.Fields, C extends { success: S.Schema.Any | S.Struct.Fields }>(
+    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "success">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
@@ -123,10 +152,10 @@ export const makeRpcClient = <
         Tag,
         { readonly _tag: S.tag<Tag> } & Payload,
         SchemaOrFields<typeof config["success"]>,
-        JoinSchema<ExcludeFromTuple<[GetEffectError<CTXMap, C> | GeneralErrors], never>>
+        JoinSchema<[GetEffectError<CTXMap, C> | GeneralErrors]>
       >
       & { config: Omit<C, "success" | "failure"> }
-    <Tag extends string, Payload extends S.Struct.Fields, C extends { failure: S.Schema.Any | S.Struct.Fields }>(
+    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "failure">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
@@ -137,10 +166,7 @@ export const makeRpcClient = <
         { readonly _tag: S.tag<Tag> } & Payload,
         typeof S.Void,
         JoinSchema<
-          ExcludeFromTuple<
-            [SchemaOrFields<typeof config["failure"]> | GetEffectError<CTXMap, C> | GeneralErrors],
-            never
-          >
+          [SchemaOrFields<typeof config["failure"]> | GetEffectError<CTXMap, C> | GeneralErrors]
         >
       >
       & { config: Omit<C, "success" | "failure"> }
@@ -154,7 +180,7 @@ export const makeRpcClient = <
         Tag,
         { readonly _tag: S.tag<Tag> } & Payload,
         typeof S.Void,
-        JoinSchema<ExcludeFromTuple<[GetEffectError<CTXMap, C> | GeneralErrors], never>>
+        JoinSchema<[GetEffectError<CTXMap, C> | GeneralErrors]>
       >
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields>(

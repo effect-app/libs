@@ -75,8 +75,6 @@ export type TaggedRequestClassAny = S.Schema.Any & {
   readonly failure: any
 }
 
-
-
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
 }

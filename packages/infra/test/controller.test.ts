@@ -6,8 +6,20 @@ import { expectTypeOf } from "@effect/vitest"
 import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"
+import { Class, TaggedError } from "effect-app/Schema"
 import type * as EffectRequest from "effect/Request"
 import { it } from "vitest"
+
+class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
+  Class<UserProfile>()({
+    id: S.String
+  })
+) {
+}
+
+class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
+  message: S.String
+}) {}
 
 const optimisticConcurrencySchedule = Schedule.once
   && Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException")
@@ -17,7 +29,7 @@ export interface CTX {
 }
 
 export type CTXMap = {
-  // allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
+  allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
@@ -26,12 +38,12 @@ const middleware = makeMiddleware({
   // helper to deal with nested generic lmitations
   context: null as any as HttpServerRequest.HttpServerRequest,
   execute: Effect.gen(function*() {
-    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, R>(
+    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
       _schema: T & S.Schema<Req, any, never>,
       handler: (
         request: Req,
         headers: any
-      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
+      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
       moduleName?: string
     ) =>
     (
@@ -41,12 +53,14 @@ const middleware = makeMiddleware({
       Request.Request.Success<Req>,
       Request.Request.Error<Req>,
       | HttpServerRequest.HttpServerRequest
-      | Exclude<R, GetEffectContext<CTXMap, T["config"]>>
+      | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
     > =>
       Effect
         .gen(function*() {
           // const headers = yield* Rpc.currentHeaders
-          const ctx = Context.empty()
+          const ctx = Context.empty().pipe(
+            Context.add(UserProfile, { id: "whatever" })
+          )
 
           // const config = "config" in schema ? schema.config : undefined
 
@@ -132,7 +146,7 @@ export type RequestConfig = {
   allowRoles?: readonly string[]
 }
 export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, CTXMap>({
-  // allowAnonymous: NotLoggedInError,
+  allowAnonymous: NotLoggedInError,
   requireRoles: UnauthorizedError
 })
 
@@ -271,9 +285,15 @@ Router(Something)({
     return matchFor(Something)({
       Eff: Effect.void,
       Gen: Effect.void,
-      GetSomething: SomethingService2.use(() => Effect.succeed("12")),
+      GetSomething: SomethingService2.use(() => Effect.succeed("12")).pipe(
+        Effect.provide(SomethingService2.Default)
+      ),
       DoSomething: { raw: Effect.void },
-      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
+      GetSomething2: {
+        raw: SomethingService2.use(() => Effect.succeed("12")).pipe(
+          Effect.provide(SomethingService2.Default)
+        )
+      }
     })
   })
 })
@@ -294,11 +314,17 @@ Router(Something)({
     return matchFor(Something)({
       Eff: Effect.void,
       Gen: Effect.void,
-      GetSomething: SomethingService2.use(() => Effect.succeed("12")),
+      GetSomething: SomethingService2.use(() => Effect.succeed("12")).pipe(
+        Effect.provide(SomethingService2.Default)
+      ),
       DoSomething: {
         raw: Effect.succeed(2)
       },
-      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
+      GetSomething2: {
+        raw: SomethingService2.use(() => Effect.succeed("12")).pipe(
+          Effect.provide(SomethingService2.Default)
+        )
+      }
     })
   })
 })
@@ -328,14 +354,20 @@ const { make: _make, routes: _routes } = Router(Something)({
 
     return match({
       Eff: () =>
-        Effect.gen(function*() {
-          const some = yield* Some
-          return yield* Effect.logInfo("Some", some)
-        }),
+        Effect
+          .gen(function*() {
+            const some = yield* Some
+            return yield* Effect.logInfo("Some", some)
+          })
+          .pipe(
+            Effect.provide(Some.Default)
+          ),
 
       *Gen() {
-        const some = yield* Some
-        return yield* Effect.logInfo("Some", some)
+        // with gen syntax you cannot provide layers, so you can't use some here
+        // because by default handlers got only what is provided by the middleware
+        // const some = yield* Some
+        // return yield* Effect.logInfo("Some", some)
       },
       *GetSomething(req) {
         console.log(req.id)
@@ -362,7 +394,11 @@ const { make: _make, routes: _routes } = Router(Something)({
           return yield* Effect.succeed(undefined)
         }
       },
-      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
+      GetSomething2: {
+        raw: SomethingService2.use(() => Effect.succeed("12")).pipe(
+          Effect.provide(SomethingService2.Default)
+        )
+      }
     })
   }
 })

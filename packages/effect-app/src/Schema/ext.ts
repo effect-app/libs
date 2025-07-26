@@ -257,7 +257,17 @@ export const transformTo = <To extends Schema.Any, From extends Schema.Any>(
   S.transformOrFail<To, From, never, never>(
     from,
     to,
-    { decode: (...args) => Effect.sync(() => decode(...args)), encode: () => Effect.die("one way schema") }
+    {
+      decode: (...args) => Effect.sync(() => decode(...args)),
+      encode: (i, _, ast) =>
+        ParseResult.fail(
+          new ParseResult.Forbidden(
+            ast,
+            i,
+            "One way schema transformation, encoding is not allowed"
+          )
+        )
+    }
   )
 
 /** A version of transformOrFail which is only a one way mapping of From->To */
@@ -269,7 +279,18 @@ export const transformToOrFail = <To extends Schema.Any, From extends Schema.Any
     options: SchemaAST.ParseOptions,
     ast: SchemaAST.Transformation
   ) => Effect.Effect<Schema.Encoded<To>, ParseResult.ParseIssue, RD>
-) => S.transformOrFail<To, From, RD, never>(from, to, { decode, encode: () => Effect.die("one way schema") })
+) =>
+  S.transformOrFail<To, From, RD, never>(from, to, {
+    decode,
+    encode: (i, _, ast) =>
+      ParseResult.fail(
+        new ParseResult.Forbidden(
+          ast,
+          i,
+          "One way schema transformation, encoding is not allowed"
+        )
+      )
+  })
 
 export const provide = <Self extends S.Schema.Any, R>(
   self: Self,

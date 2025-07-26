@@ -136,7 +136,7 @@ type Match<
   CTXMap extends Record<string, any>,
   RT extends RequestType,
   Key extends keyof Resource,
-  Context
+  MiddlewareContext
 > = {
   // note: the defaults of = never prevent the whole router to error (??)
   <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
@@ -145,7 +145,7 @@ type Match<
     Resource[Key],
     RT,
     Exclude<
-      Context | Exclude<R2, GetEffectContext<CTXMap, Resource[Key]["config"]>>,
+      MiddlewareContext | Exclude<R2, GetEffectContext<CTXMap, Resource[Key]["config"]>>,
       HttpRouter.HttpRouter.Provided
     >
   >
@@ -156,7 +156,7 @@ type Match<
     Resource[Key],
     RT,
     Exclude<
-      Context | Exclude<R2, GetEffectContext<CTXMap, Resource[Key]["config"]>>,
+      MiddlewareContext | Exclude<R2, GetEffectContext<CTXMap, Resource[Key]["config"]>>,
       HttpRouter.HttpRouter.Provided
     >
   >
@@ -165,41 +165,41 @@ type Match<
 export type RouteMatcher<
   CTXMap extends Record<string, any>,
   Resource extends Record<string, any>,
-  Context
+  MiddlewareContext
 > = {
   // use Resource as Key over using Keys, so that the Go To on X.Action remain in tact in Controllers files
   /**
    * Requires the Type shape
    */
-  [Key in keyof FilterRequestModules<Resource>]: Match<Resource, CTXMap, RequestTypes.DECODED, Key, Context> & {
+  [Key in keyof FilterRequestModules<Resource>]: Match<Resource, CTXMap, RequestTypes.DECODED, Key, MiddlewareContext> & {
     success: Resource[Key]["success"]
     successRaw: S.SchemaClass<S.Schema.Encoded<Resource[Key]["success"]>>
     failure: Resource[Key]["failure"]
     /**
      * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
      */
-    raw: Match<Resource, CTXMap, RequestTypes.TYPE, Key, Context>
+    raw: Match<Resource, CTXMap, RequestTypes.TYPE, Key, MiddlewareContext>
   }
 }
 
 // identity factory for Middleware
 export const makeMiddleware = <
-  Context,
+  MiddlewareContext,
   CTXMap extends Record<string, RPCContextMap.Any>,
   MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
->(content: Middleware<Context, CTXMap, MiddlewareR, Layers>): Middleware<Context, CTXMap, MiddlewareR, Layers> =>
+>(content: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers>): Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers> =>
   content
 
 export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
 export const makeRouter = <
-  Context,
+  MiddlewareContext,
   CTXMap extends Record<string, RPCContextMap.Any>,
   MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
 >(
-  middleware: Middleware<Context, CTXMap, MiddlewareR, Layers>,
+  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers>,
   devMode: boolean
 ) => {
   function matchFor<
@@ -309,7 +309,7 @@ export const makeRouter = <
         })
         return prev
       },
-      {} as RouteMatcher<CTXMap, Resource, Context>
+      {} as RouteMatcher<CTXMap, Resource, MiddlewareContext>
     )
 
     const total = Object.keys(requestModules).length
@@ -334,7 +334,7 @@ export const makeRouter = <
         FilterRequestModules<Resource>[K],
         Impl[K] extends { raw: any } ? RequestTypes.TYPE : RequestTypes.DECODED,
         Exclude<
-          | Context
+          | MiddlewareContext
           | Exclude<
             Impl[K] extends { raw: any }
               ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
@@ -493,7 +493,7 @@ export const makeRouter = <
                 ) => Effect.Effect<
                   any,
                   Effect.Error<ReturnType<THandlers[K]["handler"]>>,
-                  Context | Effect.Context<ReturnType<THandlers[K]["handler"]>>
+                  MiddlewareContext | Effect.Context<ReturnType<THandlers[K]["handler"]>>
                 >
               ]
             }
@@ -810,7 +810,7 @@ export const makeRouter = <
           RouterShape<Resource>,
           `${ModuleName}Router`,
           never,
-          Exclude<Context, HttpRouter.HttpRouter.Provided>
+          Exclude<MiddlewareContext, HttpRouter.HttpRouter.Provided>
         > // | Exclude<
         //   RPCRouteR<
         //     { [K in keyof Filter<Resource>]: Rpc.Rpc<Resource[K], Effect.Context<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Resource>]

@@ -38,12 +38,12 @@ const middleware = makeMiddleware({
   // helper to deal with nested generic lmitations
   context: null as any as HttpServerRequest.HttpServerRequest,
   execute: Effect.gen(function*() {
-    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, R>(
+    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
       _schema: T & S.Schema<Req, any, never>,
       handler: (
         request: Req,
         headers: any
-      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
+      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
       moduleName?: string
     ) =>
     (
@@ -53,7 +53,7 @@ const middleware = makeMiddleware({
       Request.Request.Success<Req>,
       Request.Request.Error<Req>,
       | HttpServerRequest.HttpServerRequest
-      | Exclude<R, GetEffectContext<CTXMap, T["config"]>>
+      | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
     > =>
       Effect
         .gen(function*() {

@@ -557,13 +557,13 @@ export const makeRouter = <
       const routes = (
         layer.pipe(
           layers && Array.isNonEmptyReadonlyArray(layers) ? Layer.provide(layers as any) as any : (_) => _,
+          Layer.provide(middleware.contextProvider.Default),
           // TODO: only provide to the middleware?
-          middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _,
-          Layer.provide(middleware.contextProvider.Default)
+          middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _
         )
       ) as (Layer.Layer<
         Router,
-        LayersUtils.GetLayersError<TLayers> | E,
+        LayersUtils.GetLayersError<TLayers> | E | RErr,
         | LayersUtils.GetLayersContext<TLayers>
         | Exclude<
           MiddlewareR | R | RCtx,

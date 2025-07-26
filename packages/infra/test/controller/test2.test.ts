@@ -35,17 +35,14 @@ export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker",
   effect: Effect.gen(function*() {
     const a = yield* SomeService
     return Effect.gen(function*() {
-      return <A, E, R>(handler: (req: any, headers: any) => Effect<A, E, R>) => (req: any, headers: any) =>
-        handler(req, headers).pipe(Effect.provide(Context.make(Some, new Some({ a: 1 }))))
+      return Context.make(Some, new Some({ a: 1 }))
     })
   })
 }) {}
 
 export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("ContextMaker", {
   strict: false,
-  succeed: Effect.succeed(<A, E, R>(handler: (req: any, headers: any) => Effect<A, E, R>) => (req: any, headers: any) =>
-    handler(req, headers).pipe(Effect.provide(Context.empty()))
-  )
+  succeed: Effect.succeed(Context.empty())
 }) {}
 
 export type CTXMap = {

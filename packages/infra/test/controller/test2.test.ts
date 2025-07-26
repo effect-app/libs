@@ -33,7 +33,7 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker", {
   strict: false,
   effect: Effect.gen(function*() {
-    const a = yield* SomeService
+    yield* SomeService
     return Effect.gen(function*() {
       return Context.make(Some, new Some({ a: 1 }))
     })

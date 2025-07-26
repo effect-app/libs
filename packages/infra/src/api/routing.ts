@@ -195,7 +195,16 @@ export const makeMiddleware = <
   RErr,
   RCtx
 >(
-  content: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx>
+  content: Middleware<
+    MiddlewareContext,
+    CTXMap,
+    MiddlewareR,
+    Layers,
+    CtxId,
+    RRet,
+    RErr,
+    RCtx
+  >
 ): Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx> => content
 
 export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}

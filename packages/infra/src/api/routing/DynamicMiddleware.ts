@@ -28,7 +28,20 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
   any // smd
 >
 
-type ContextProviderOut<RRet> = Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }
+type Handler<A, E, R> = (req: any, headers: any) => Effect<A, E, R>
+type ContextProviderOut<RRet> =
+  & Effect<
+    <ReqA, ReqE, ReqR>(
+      handler: Handler<ReqA, ReqE, ReqR>
+    ) => (req: any, headers: any) => Effect<ReqA, ReqE, Exclude<ReqR, RRet>>
+  >
+  & { _tag: "ContextMaker" }
+
+type ContextProvider<CtxId, RRet, RErr, RCtx> =
+  & Context.Tag<CtxId, ContextProviderOut<RRet>>
+  & {
+    Default: Layer.Layer<ContextProviderOut<RRet>, RErr, RCtx>
+  }
 
 export interface Middleware<
   MiddlewareContext,
@@ -43,9 +56,7 @@ export interface Middleware<
   dependencies?: Layers
   contextMap: CTXMap
   context: MiddlewareContext
-  contextProvider: Context.Tag<CtxId, ContextProviderOut<RRet>> & {
-    Default: Layer.Layer<ContextProviderOut<RRet>, RErr, RCtx>
-  }
+  contextProvider: ContextProvider<CtxId, RRet, RErr, RCtx>
   execute: Effect<
     RPCHandlerFactory<CTXMap>,
     never,
@@ -87,8 +98,7 @@ export const makeRpc = <
         return (req: Req, headers: any) =>
           Effect.gen(function*() {
             const ctx = yield* contextProvider
-            return yield* h(req, headers).pipe(
-              Effect.provide(ctx),
+            return yield* ctx(h)(req, headers).pipe(
               Effect.uninterruptible // TODO: make this depend on query/command, and consider if middleware also should be affected or not.
             )
           })

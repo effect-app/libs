@@ -15,12 +15,12 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
 >(
   schema: T & S.Schema<Req, any, never>,
   handler: (
-    request: S.Schema.Type<Req>,
+    request: Req,
     headers: any
   ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
   moduleName?: string
 ) => (
-  req: S.Schema.Type<Req>,
+  req: Req,
   headers: any
 ) => Effect.Effect<
   Request.Request.Success<Req>,
@@ -72,7 +72,7 @@ export const makeRpc = <
       effect: <T extends { config?: Partial<Record<keyof CTXMap, any>> }, Req extends S.TaggedRequest.All, R>(
         schema: T & S.Schema<Req, any, never>,
         handler: (
-          request: S.Schema.Type<Req>,
+          request: Req,
           headers: any
         ) => Effect.Effect<
           EffectRequest.Request.Success<Req>,
@@ -82,7 +82,7 @@ export const makeRpc = <
         moduleName?: string
       ) => {
         const h = execute(schema, handler, moduleName)
-        return (req: S.Schema.Type<Req>, headers: any) =>
+        return (req: Req, headers: any) =>
           Effect.gen(function*() {
             const ctx = yield* contextProvider
             return yield* h(req, headers).pipe(

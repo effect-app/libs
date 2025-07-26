@@ -33,6 +33,7 @@ export interface Middleware<
   CTXMap extends Record<string, RPCContextMap.Any>,
   R,
   Layers extends Array<Layer.Layer.Any>,
+  CtxId,
   RRet,
   RErr,
   RCtx
@@ -40,7 +41,9 @@ export interface Middleware<
   dependencies?: Layers
   contextMap: CTXMap
   context: MiddlewareContext
-  contextProvider: Effect.Effect<Effect<Context.Context<RRet>>, RErr, RCtx>
+  contextProvider: Context.Tag<CtxId, Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }> & {
+    Default: Layer.Layer<Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }, RErr, RCtx>
+  }
   execute: Effect<
     RPCHandlerFactory<CTXMap>,
     never,
@@ -53,11 +56,12 @@ export const makeRpc = <
   CTXMap extends Record<string, RPCContextMap.Any>,
   R,
   Layers extends Array<Layer.Layer.Any>,
+  CtxId,
   RRet,
   RErr,
   RCtx
 >(
-  middleware: Middleware<Context, CTXMap, R, Layers, RRet, RErr, RCtx>
+  middleware: Middleware<Context, CTXMap, R, Layers, CtxId, RRet, RErr, RCtx>
 ) =>
   Effect
     .all({

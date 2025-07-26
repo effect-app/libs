@@ -190,12 +190,13 @@ export const makeMiddleware = <
   CTXMap extends Record<string, RPCContextMap.Any>,
   MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
+  CtxId,
   RRet,
   RErr,
   RCtx
 >(
-  content: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, RRet, RErr, RCtx>
-): Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, RRet, RErr, RCtx> => content
+  content: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx>
+): Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx> => content
 
 export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
@@ -204,11 +205,12 @@ export const makeRouter = <
   CTXMap extends Record<string, RPCContextMap.Any>,
   MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
+  CtxId,
   RRet,
   RErr,
   RCtx
 >(
-  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, RRet, RErr, RCtx>,
+  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx>,
   devMode: boolean
 ) => {
   function matchFor<

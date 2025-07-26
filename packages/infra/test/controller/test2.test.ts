@@ -30,6 +30,21 @@ export interface CTX {
 
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
 
+export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker", {
+  strict: false,
+  effect: Effect.gen(function*() {
+    const a = yield* SomeService
+    return Effect.gen(function*() {
+      return Context.make(Some, new Some({ a: 1 }))
+    })
+  })
+}) {}
+
+export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("ContextMaker", {
+  strict: false,
+  succeed: Effect.succeed(Context.empty())
+}) {}
+
 export type CTXMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
   // TODO: not boolean but `string[]`
@@ -39,10 +54,7 @@ const middleware = makeMiddleware({
   contextMap: null as unknown as CTXMap,
   // helper to deal with nested generic lmitations
   context: null as any as HttpServerRequest.HttpServerRequest,
-  contextProvider: Effect.gen(function*() {
-    yield* SomeService
-    return Effect.sync(() => Context.make(Some, new Some({ a: 1 })))
-  }),
+  contextProvider: ContextMaker,
   execute: Effect.gen(function*() {
     return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
       _schema: T & S.Schema<Req, any, never>,

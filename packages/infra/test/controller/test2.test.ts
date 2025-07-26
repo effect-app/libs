@@ -40,11 +40,6 @@ export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker",
   })
 }) {}
 
-export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("ContextMaker", {
-  strict: false,
-  succeed: Effect.succeed(Context.empty())
-}) {}
-
 export type CTXMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
   // TODO: not boolean but `string[]`

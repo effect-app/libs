@@ -6,7 +6,7 @@ import { determineMethod } from "@effect-app/infra/api/routing/utils"
 import { logError, reportError } from "@effect-app/infra/errorReporter"
 import { InfraLogger } from "@effect-app/infra/logger"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { Array, Cause, Duration, Effect, Layer, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { Array, Cause, Context, Duration, Effect, Layer, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -528,6 +528,7 @@ export const makeRouter = <
           const impl = rpcLayer
           const l = RpcServer.layer(rpcs, { spanPrefix: "RpcServer." + meta.moduleName }).pipe(Layer.provide(impl))
           return l.pipe(
+            Layer.provide(middleware.contextProvider.Default),
             Layer.provideMerge(
               RpcServer.layerProtocolHttp(
                 { path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}`, routerTag: Router }
@@ -901,3 +902,8 @@ export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestCaching(true),
   Layer.setRequestBatching(true)
 )
+
+export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("ContextMaker", {
+  strict: false,
+  succeed: Effect.succeed(Context.empty())
+}) {}

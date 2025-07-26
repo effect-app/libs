@@ -28,7 +28,7 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
   any // smd
 >
 
-type ContextProviderOut<RRet> = Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }
+export type ContextProviderOut<RRet> = Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }
 
 export interface Middleware<
   MiddlewareContext,

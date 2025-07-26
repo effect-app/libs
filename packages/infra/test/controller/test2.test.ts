@@ -59,13 +59,13 @@ const middleware = makeMiddleware({
     return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
       _schema: T & S.Schema<Req, any, never>,
       handler: (
-        request: Req,
+        request: S.Schema.Type<Req>,
         headers: any
       ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
       moduleName?: string
     ) =>
     (
-      req: Req,
+      req: S.Schema.Type<Req>,
       headers: any
     ) =>
       Effect

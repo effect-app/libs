@@ -528,7 +528,6 @@ export const makeRouter = <
           const impl = rpcLayer
           const l = RpcServer.layer(rpcs, { spanPrefix: "RpcServer." + meta.moduleName }).pipe(Layer.provide(impl))
           return l.pipe(
-            Layer.provide(middleware.contextProvider.Default),
             Layer.provideMerge(
               RpcServer.layerProtocolHttp(
                 { path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}`, routerTag: Router }
@@ -559,7 +558,8 @@ export const makeRouter = <
         layer.pipe(
           layers && Array.isNonEmptyReadonlyArray(layers) ? Layer.provide(layers as any) as any : (_) => _,
           // TODO: only provide to the middleware?
-          middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _
+          middleware.dependencies ? Layer.provide(middleware.dependencies as any) : (_) => _,
+          Layer.provide(middleware.contextProvider.Default)
         )
       ) as (Layer.Layer<
         Router,

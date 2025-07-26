@@ -28,6 +28,8 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
   any // smd
 >
 
+type ContextProviderOut<RRet> = Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }
+
 export interface Middleware<
   MiddlewareContext,
   CTXMap extends Record<string, RPCContextMap.Any>,
@@ -41,8 +43,8 @@ export interface Middleware<
   dependencies?: Layers
   contextMap: CTXMap
   context: MiddlewareContext
-  contextProvider: Context.Tag<CtxId, Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }> & {
-    Default: Layer.Layer<Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }, RErr, RCtx>
+  contextProvider: Context.Tag<CtxId, ContextProviderOut<RRet>> & {
+    Default: Layer.Layer<ContextProviderOut<RRet>, RErr, RCtx>
   }
   execute: Effect<
     RPCHandlerFactory<CTXMap>,

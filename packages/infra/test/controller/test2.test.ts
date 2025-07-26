@@ -3,7 +3,7 @@
 import { type MakeContext, type MakeErrors, makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect, Layer, S, Schedule } from "effect-app"
+import { Context, Effect, Layer, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
@@ -20,9 +20,6 @@ class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfi
 class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
   message: S.String
 }) {}
-
-const optimisticConcurrencySchedule = Schedule.once
-  && Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException")
 
 export interface CTX {
   context: RequestContext
@@ -114,7 +111,6 @@ const middleware = makeMiddleware({
           // }
 
           return yield* handler(req, headers).pipe(
-            Effect.retry(optimisticConcurrencySchedule),
             Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>),
             Effect.provideService(Some, new Some({ a: 1 }))
           )

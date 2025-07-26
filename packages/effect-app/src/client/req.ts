@@ -13,7 +13,7 @@ export type RPCContextMap<Key, Service, E> = {
   key: Key
   service: Service
   error: E
-  idkWhatIsThis: true
+  contextActivation: true
 }
 
 export declare namespace RPCContextMap {
@@ -21,7 +21,7 @@ export declare namespace RPCContextMap {
     key: Key
     service: Service
     error: E
-    idkWhatIsThis: Custom
+    contextActivation: Custom
   }
 
   /**
@@ -32,31 +32,31 @@ export declare namespace RPCContextMap {
     key: Key
     service: Service
     error: E
-    idkWhatIsThis: false
+    contextActivation: false
   }
 
   export type Any = {
     key: string
     service: any
     error: S.Schema.All
-    idkWhatIsThis: any
+    contextActivation: any
   }
 }
 
 export type GetEffectContext<CTXMap extends Record<string, RPCContextMap.Any>, T> = Values<
-  // inverted: idkWhatIsThis is false => remove if explicitly set to true (that's confusing ??)
+  // inverted: contextActivation is false => remove if explicitly set to true (like allowAnonymous: true disables auth and auth service and related errors)
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends true ? never
+      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends true ? never
         : key extends keyof T ? T[key] extends true ? never : CTXMap[key]["key"]
         : CTXMap[key]["key"]
     ]: // TODO: or as an Optional available?
       CTXMap[key]["service"]
   }
-  // normal: idkWhatIsThis is true => add if explicitly set to true
+  // normal: contextActivation is true => add if explicitly set to true
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends false ? never
+      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends false ? never
         : key extends keyof T ? T[key] extends true ? CTXMap[key]["key"] : never
         : never
     ]: // TODO: or as an Optional available?
@@ -65,19 +65,19 @@ export type GetEffectContext<CTXMap extends Record<string, RPCContextMap.Any>, T
 >
 
 export type GetEffectError<CTXMap extends Record<string, RPCContextMap.Any>, T> = Values<
-  // inverted: idkWhatIsThis is false => remove if explicitly set to true (that's confusing ??)
+  // inverted: contextActivation is false => remove if explicitly set to true (like allowAnonymous: true disables auth and auth service and related errors)
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends true ? never
+      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends true ? never
         : key extends keyof T ? T[key] extends true ? never : CTXMap[key]["key"]
         : CTXMap[key]["key"]
     ]: // TODO: or as an Optional available?
       CTXMap[key]["error"]
   }
-  // normal: idkWhatIsThis is true => add if explicitly set to true
+  // normal: contextActivation is true => add if explicitly set to true
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["idkWhatIsThis"] extends false ? never
+      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends false ? never
         : key extends keyof T ? T[key] extends true ? CTXMap[key]["key"] : never
         : never
     ]: // TODO: or as an Optional available?

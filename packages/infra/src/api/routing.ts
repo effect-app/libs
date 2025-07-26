@@ -214,7 +214,7 @@ export const makeRouter = <
     > = (
       req: S.Schema.Type<Action>
     ) => Generator<
-      YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, any>>,
+      YieldWrap<Effect<any, S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError, GetEffectContext<CTXMap, Action["config"]>>>,
       GetSuccessShape<Action, RT>,
       never
     >
@@ -227,7 +227,7 @@ export const makeRouter = <
     ) => Effect<
       GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
-      any
+      GetEffectContext<CTXMap, Action["config"]>
     >
 
     type HandlerEff<
@@ -236,7 +236,7 @@ export const makeRouter = <
     > = Effect<
       GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
-      any
+      GetEffectContext<CTXMap, Action["config"]>
     >
 
     type Handlers<Action extends AnyRequestModule, RT extends RequestType> =

@@ -337,9 +337,9 @@ export const makeRouter = <
           | Context
           | Exclude<
             Impl[K] extends { raw: any }
-              ? Impl[K][RequestTypes.TYPE] extends (...args: any[]) => Effect<any, any, infer R> ? R
-              : Impl[K][RequestTypes.TYPE] extends Effect<any, any, infer R> ? R
-              : Impl[K][RequestTypes.TYPE] extends (...args: any[]) => Generator<
+              ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
+              : Impl[K]["raw"] extends Effect<any, any, infer R> ? R
+              : Impl[K]["raw"] extends (...args: any[]) => Generator<
                 YieldWrap<Effect<any, any, infer R>>,
                 any,
                 any
@@ -360,7 +360,7 @@ export const makeRouter = <
       >
     } = (obj: Record<keyof RequestModules, any>) =>
       typedKeysOf(obj).reduce((acc, cur) => {
-        acc[cur] = RequestTypes.TYPE in obj[cur] ? items[cur].raw(obj[cur].raw) : items[cur](obj[cur])
+        acc[cur] = "raw" in obj[cur] ? items[cur].raw(obj[cur].raw) : items[cur](obj[cur])
         return acc
       }, {} as any)
 

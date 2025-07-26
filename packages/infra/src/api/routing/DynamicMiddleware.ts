@@ -44,7 +44,7 @@ export interface Middleware<
   contextMap: CTXMap
   context: MiddlewareContext
   contextProvider: Context.Tag<CtxId, ContextProviderOut<RRet>> & {
-    Default: Layer.Layer<ContextProviderOut<RRet>, RErr, RCtx>
+    Default: Layer.Layer<CtxId, RErr, RCtx>
   }
   execute: Effect<
     RPCHandlerFactory<CTXMap>,

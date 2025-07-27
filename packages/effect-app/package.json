@@ -4,21 +4,21 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@effect/rpc": "^0.65.2",
+    "@effect/rpc": "^0.68.0",
     "@effect/rpc-http": "^0.52.4",
     "@tsconfig/strictest": "^2.0.5",
     "date-fns": "^4.1.0",
     "nanoid": "^5.1.5",
     "path-parser": "^6.1.0",
     "query-string": "^9.2.2",
-    "ts-pattern": "^5.7.1",
+    "ts-pattern": "^5.8.0",
     "ts-toolbelt": "^9.6.0",
     "uuid": "^11.1.0",
     "validator": "^13.15.15"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "~24.0.15",
+    "@types/node": "~24.1.0",
     "@types/uuid": "^10.0.0",
     "@types/validator": "^13.15.2",
     "fast-check": "~4.2.0",
@@ -26,8 +26,8 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.88.2",
-    "effect": "^3.16.16"
+    "@effect/platform": "^0.90.0",
+    "effect": "^3.17.2"
   },
   "typesVersions": {
     "*": {

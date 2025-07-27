@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.44.0
+
+### Minor Changes
+
+- 55da9e7: improve: Router supports contextProvider through middleware, replacing flawed requestLayers
+
 ## 2.43.3
 
 ### Patch Changes

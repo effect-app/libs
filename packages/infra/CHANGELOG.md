@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.65.0
+
+### Minor Changes
+
+- 55da9e7: improve: Router supports contextProvider through middleware, replacing flawed requestLayers
+
+### Patch Changes
+
+- Updated dependencies [55da9e7]
+  - effect-app@2.44.0
+
 ## 2.64.6
 
 ### Patch Changes

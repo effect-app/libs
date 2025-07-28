@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Array, type Context, Effect, type Layer, type Request, type S } from "effect-app"
+import { type Array, type Context, Effect, type Layer, type Request, type S, type Scope } from "effect-app"
 import type { RPCContextMap } from "effect-app/client/req"
 
 import type * as EffectRequest from "effect/Request"
@@ -28,7 +28,7 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
   any // smd
 >
 
-export type ContextProviderOut<RRet> = Effect<Context.Context<RRet>>
+export type ContextProviderOut<RRet> = Effect<Context.Context<RRet>, never, Scope>
 export type ContextProviderShape<RRet> = { makeRequestContext: ContextProviderOut<RRet> }
 
 export interface Middleware<

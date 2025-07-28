@@ -31,11 +31,10 @@ export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker",
   strict: false,
   effect: Effect.gen(function*() {
     yield* SomeService
+    const SomeContext = Layer.sync(Some, () => new Some({ a: 1 }))
     return {
       mooo: "moo",
-      makeRequestContext: Effect.gen(function*() {
-        return Context.make(Some, new Some({ a: 1 }))
-      })
+      makeRequestContext: Layer.build(SomeContext)
     }
   })
 }) {}

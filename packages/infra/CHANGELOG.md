@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.67.1
+
+### Patch Changes
+
+- 6e8123a: fup
+
 ## 2.67.0
 
 ### Minor Changes

@@ -184,23 +184,6 @@ export type RouteMatcher<
     }
 }
 
-// identity factory for Middleware
-export const makeMiddleware = () =>
-// <
-//   CTXMap extends Record<string, RPCContextMap.Any>,
-//   MiddlewareContext,
-//   MiddlewareR,
-//   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
-//   CtxId,
-//   CtxTag extends string,
-//   RRet,
-//   RErr,
-//   RCtx
-// >
-<M extends Middleware<any, any, any, any, any, any, any, any, any>>(
-  content: M
-): M => content
-
 export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
 export const makeRouter = <

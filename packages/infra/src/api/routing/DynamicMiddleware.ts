@@ -29,7 +29,7 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
 >
 
 export type ContextProviderOut<RRet> = Effect<Context.Context<RRet>, never, Scope>
-export type ContextProviderShape<RRet> = { makeRequestContext: ContextProviderOut<RRet> }
+export type ContextProviderShape<RRet> = ContextProviderOut<RRet>
 
 export interface Middleware<
   MiddlewareContext,
@@ -89,7 +89,7 @@ export const makeRpc = <
         const h = execute(schema, handler, moduleName)
         return (req: Req, headers: any) =>
           Effect.gen(function*() {
-            const ctx = yield* contextProvider.makeRequestContext
+            const ctx = yield* contextProvider
             return yield* h(req, headers).pipe(
               Effect.provide(ctx),
               Effect.uninterruptible // TODO: make this depend on query/command, and consider if middleware also should be affected or not.

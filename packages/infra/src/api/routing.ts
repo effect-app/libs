@@ -907,5 +907,5 @@ export const RequestCacheLayers = Layer.mergeAll(
 
 export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("DefaultContextMaker", {
   strict: false,
-  succeed: { makeRequestContext: Effect.succeed(Context.empty()) } satisfies ContextProviderShape<never>
+  succeed: Effect.succeed(Context.empty()) satisfies ContextProviderShape<never>
 }) {}

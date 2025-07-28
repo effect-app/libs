@@ -40,7 +40,8 @@ export type CTXMap = {
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
-const middleware = makeMiddleware<CTXMap>()({
+const middleware = makeMiddleware()({
+  contextMap: null as any as CTXMap,
   // helper to deal with nested generic lmitations
   context: null as any as HttpServerRequest.HttpServerRequest,
   contextProvider: ContextMaker,
@@ -161,6 +162,20 @@ export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}
 export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
+
+const eee = middleware.execute.pipe(
+  Effect.map((execute) => {
+    const wtf = execute(
+      DoSomething,
+      (req, headers) =>
+        Effect.gen(function*() {
+          const user = yield* UserProfile // dinamically provided by the middleware
+          const some = yield* Some // will be provided by the context provider
+          console.log({ some, req, headers, user })
+        })
+    )
+  })
+)
 
 export class GetSomething extends Req<GetSomething>()("GetSomething", {
   id: S.String

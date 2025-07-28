@@ -25,7 +25,7 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
 ) => Effect.Effect<
   Request.Request.Success<Req>,
   Request.Request.Error<Req>,
-  any // smd
+  any // the middleware may remove something from R (e.g. the dynamic context), but may also add something (e.g. MiddlewareContext)
 >
 
 export type ContextProviderShape<RRet> = Effect<Context.Context<RRet>, never, Scope>
@@ -42,6 +42,7 @@ export interface Middleware<
   RErr,
   RCtx
 > {
+  contextMap: CTXMap
   dependencies?: Layers
   context: MiddlewareContext
   contextProvider: Context.Tag<CtxId, CtxId & ContextProviderShape<RRet> & { _tag: CtxTag }> & {

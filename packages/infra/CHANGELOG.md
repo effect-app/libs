@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.67.2
+
+### Patch Changes
+
+- f5724bf: support scope
+
 ## 2.67.1
 
 ### Patch Changes

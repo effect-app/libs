@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.47.1
+
+### Patch Changes
+
+- fup
+
 ## 2.47.0
 
 ### Minor Changes

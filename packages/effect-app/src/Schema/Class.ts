@@ -198,7 +198,7 @@ export const TaggedClass: <Self = never>(identifier?: string) => <Tag extends st
     } as any
   }
 
-export const ExtendedClass: <Self, SelfFrom>(identifier?: string) => <Fields extends S.Struct.Fields>(
+export const ExtendedClass: <Self, SelfFrom>(identifier: string) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self, Struct.Type<Fields>>
 ) => EnhancedClass<

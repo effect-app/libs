@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.69.0
+
+### Minor Changes
+
+- ba4ad65: update packages; drop ServiceStrict in favour of language-service
+
+### Patch Changes
+
+- Updated dependencies [ba4ad65]
+  - effect-app@2.46.0
+
 ## 2.68.1
 
 ### Patch Changes

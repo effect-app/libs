@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.46.0
+
+### Minor Changes
+
+- ba4ad65: update packages; drop ServiceStrict in favour of language-service
+
 ## 2.45.0
 
 ### Minor Changes

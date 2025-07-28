@@ -40,8 +40,7 @@ export type CTXMap = {
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
-const middleware = makeMiddleware({
-  contextMap: null as unknown as CTXMap,
+const middleware = makeMiddleware<CTXMap>()({
   // helper to deal with nested generic lmitations
   context: null as any as HttpServerRequest.HttpServerRequest,
   contextProvider: ContextMaker,
@@ -114,8 +113,8 @@ const middleware = makeMiddleware({
           // }
 
           return yield* handler(req, headers).pipe(
-            Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>),
-            Effect.provideService(Some, new Some({ a: 1 }))
+            Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>)
+            // Effect.provideService(Some, new Some({ a: 1 }))
           )
         })
         .pipe(

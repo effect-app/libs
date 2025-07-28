@@ -28,14 +28,14 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
   any // smd
 >
 
-export type ContextProviderOut<RRet> = Effect<Context.Context<RRet>, never, Scope>
-export type ContextProviderShape<RRet> = ContextProviderOut<RRet>
+export type ContextProviderShape<RRet> = Effect<Context.Context<RRet>, never, Scope>
 
 export interface Middleware<
-  MiddlewareContext,
-  CTXMap extends Record<string, RPCContextMap.Any>,
-  R,
-  Layers extends Array<Layer.Layer.Any>,
+  MiddlewareContext, // added to what the handler already requires
+  CTXMap extends Record<string, RPCContextMap.Any>, // dynamic services provided to the handler
+  R, // to execute the middleware itself
+  Layers extends Array<Layer.Layer.Any>, // guess that was the old way to provide dependencies (?)
+  // additional context built just once and provided to the handler at each request
   CtxId,
   CtxTag extends string,
   RRet,
@@ -43,7 +43,6 @@ export interface Middleware<
   RCtx
 > {
   dependencies?: Layers
-  contextMap: CTXMap
   context: MiddlewareContext
   contextProvider: Context.Tag<CtxId, CtxId & ContextProviderShape<RRet> & { _tag: CtxTag }> & {
     Default: Layer.Layer<CtxId, RErr, RCtx>

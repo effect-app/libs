@@ -185,9 +185,9 @@ export type RouteMatcher<
 }
 
 // identity factory for Middleware
-export const makeMiddleware = <
+export const makeMiddleware = <CTXMap extends Record<string, RPCContextMap.Any>>() =>
+<
   MiddlewareContext,
-  CTXMap extends Record<string, RPCContextMap.Any>,
   MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
   CtxId,
@@ -823,8 +823,8 @@ export const makeRouter = <
         make: Make
       }
     } =
-      ((m: { dependencies: any; effect: any; strict?: any }) =>
-        Object.assign(makeRoutes(m.dependencies, m.effect), { make: m })) as any
+      ((make: { dependencies: any; effect: any; strict?: any }) =>
+        Object.assign(makeRoutes(make.dependencies, make.effect), { make })) as any
 
     return Object.assign(effect, routeMatcher, { router, router3 })
   }

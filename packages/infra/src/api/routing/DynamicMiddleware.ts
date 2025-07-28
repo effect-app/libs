@@ -28,7 +28,8 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>> 
   any // smd
 >
 
-export type ContextProviderOut<RRet> = Effect<Context.Context<RRet>> & { _tag: "ContextMaker" }
+export type ContextProviderOut<RRet> = Effect<Context.Context<RRet>>
+export type ContextProviderShape<RRet> = { makeRequestContext: ContextProviderOut<RRet> }
 
 export interface Middleware<
   MiddlewareContext,
@@ -36,6 +37,7 @@ export interface Middleware<
   R,
   Layers extends Array<Layer.Layer.Any>,
   CtxId,
+  CtxTag extends string,
   RRet,
   RErr,
   RCtx
@@ -43,7 +45,7 @@ export interface Middleware<
   dependencies?: Layers
   contextMap: CTXMap
   context: MiddlewareContext
-  contextProvider: Context.Tag<CtxId, ContextProviderOut<RRet>> & {
+  contextProvider: Context.Tag<CtxId, ContextProviderShape<RRet> & { _tag: CtxTag }> & {
     Default: Layer.Layer<CtxId, RErr, RCtx>
   }
   execute: Effect<
@@ -59,11 +61,12 @@ export const makeRpc = <
   R,
   Layers extends Array<Layer.Layer.Any>,
   CtxId,
+  CtxTag extends string,
   RRet,
   RErr,
   RCtx
 >(
-  middleware: Middleware<Context, CTXMap, R, Layers, CtxId, RRet, RErr, RCtx>
+  middleware: Middleware<Context, CTXMap, R, Layers, CtxId, CtxTag, RRet, RErr, RCtx>
 ) =>
   Effect
     .all({
@@ -86,7 +89,7 @@ export const makeRpc = <
         const h = execute(schema, handler, moduleName)
         return (req: Req, headers: any) =>
           Effect.gen(function*() {
-            const ctx = yield* contextProvider
+            const ctx = yield* contextProvider.makeRequestContext
             return yield* h(req, headers).pipe(
               Effect.provide(ctx),
               Effect.uninterruptible // TODO: make this depend on query/command, and consider if middleware also should be affected or not.

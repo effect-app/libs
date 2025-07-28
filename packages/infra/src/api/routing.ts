@@ -12,7 +12,7 @@ import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
-import { makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
+import { type ContextProviderShape, makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
 
 namespace LayersUtils {
   export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
@@ -191,12 +191,13 @@ export const makeMiddleware = <
   MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
   CtxId,
+  CtxTag extends string,
   RRet,
   RErr,
   RCtx
 >(
-  content: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx>
-): Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx> => content
+  content: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, CtxTag, RRet, RErr, RCtx>
+): Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, CtxTag, RRet, RErr, RCtx> => content
 
 export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
@@ -206,11 +207,12 @@ export const makeRouter = <
   MiddlewareR,
   Layers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
   CtxId,
+  CtxTag extends string,
   RRet,
   RErr,
   RCtx
 >(
-  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, RRet, RErr, RCtx>,
+  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, CtxTag, RRet, RErr, RCtx>,
   devMode: boolean
 ) => {
   function matchFor<
@@ -903,7 +905,7 @@ export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestBatching(true)
 )
 
-export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("ContextMaker", {
+export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("DefaultContextMaker", {
   strict: false,
-  succeed: Effect.succeed(Context.empty())
+  succeed: { makeRequestContext: Effect.succeed(Context.empty()) } satisfies ContextProviderShape<never>
 }) {}

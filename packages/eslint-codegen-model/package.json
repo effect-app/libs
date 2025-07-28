@@ -5,8 +5,8 @@
   "version": "1.40.0",
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && tsc --build",
-    "build": "tsc",
+    "build:tsc": "pnpm clean-dist && tspc --build",
+    "build": "tspc",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
     "pub": "pnpm prepublish && npm publish --access public",

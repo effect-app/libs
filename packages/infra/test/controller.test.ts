@@ -31,8 +31,7 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker", {
   effect: Effect.gen(function*() {
     yield* SomeService
-    const SomeContext = Layer.sync(Some, () => new Some({ a: 1 }))
-    return Layer.build(SomeContext)
+    return Effect.sync(() => Context.make(Some, new Some({ a: 1 })))
   })
 }) {}
 

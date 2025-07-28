@@ -905,7 +905,40 @@ export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestBatching(true)
 )
 
+type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
+
+export const contextMaker = <
+  TDeps extends Array.NonEmptyReadonlyArray<
+    & (
+      | Context.Tag<any, Effect<Context.Context<any>, any, any> & { _tag: any }>
+      | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
+    )
+    & {
+      new(...args: any[]): any
+      Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
+    }
+  >
+>(...deps: TDeps): {
+  dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
+  effect: Effect.Effect<
+    Effect.Effect<
+      Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
+      Effect.Error<InstanceType<TDeps[number]>>,
+      Effect.Context<InstanceType<TDeps[number]>>
+    >,
+    never,
+    InstanceType<TDeps[number]>
+  >
+} => ({
+  dependencies: deps.map((_) => _.Default) as any,
+  effect: Effect.gen(function*() {
+    const services = yield* Effect.all(deps)
+    return Effect.all(services as any[]).pipe(
+      Effect.map((_) => Context.mergeAll(..._ as any))
+    )
+  }) as any
+})
+
 export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("DefaultContextMaker", {
-  strict: false,
   succeed: Effect.succeed(Context.empty()) satisfies ContextProviderShape<never>
 }) {}

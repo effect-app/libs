@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.67.0
+
+### Minor Changes
+
+- e65a694: improve ContextMaker
+
 ## 2.66.0
 
 ### Minor Changes

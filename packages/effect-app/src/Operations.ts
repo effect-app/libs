@@ -6,7 +6,7 @@ export const OperationId = S.StringId
 export class OperationProgress extends S.ExtendedClass<
   OperationProgress,
   OperationProgress.Encoded
->()({
+>("OperationProgress")({
   completed: S.NonNegativeInt,
   total: S.NonNegativeInt
 }) {}

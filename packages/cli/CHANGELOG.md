@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.22.1
+
+### Patch Changes
+
+- b095bb5: tscp
+
 ## 1.22.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.46.1
+
+### Patch Changes
+
+- b095bb5: tscp
+
 ## 2.46.0
 
 ### Minor Changes

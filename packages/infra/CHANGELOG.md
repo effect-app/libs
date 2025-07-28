@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 2.69.1
+
+### Patch Changes
+
+- b095bb5: tscp
+- Updated dependencies [b095bb5]
+  - effect-app@2.46.1
+
 ## 2.69.0
 
 ### Minor Changes

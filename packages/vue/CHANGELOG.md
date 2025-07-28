@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.44.2
+
+### Patch Changes
+
+- b095bb5: tscp
+- Updated dependencies [b095bb5]
+  - effect-app@2.46.1
+
 ## 2.44.1
 
 ### Patch Changes

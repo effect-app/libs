@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 1.40.1
+
+### Patch Changes
+
+- b095bb5: tscp
+
 ## 1.40.0
 
 ### Minor Changes

@@ -13,7 +13,7 @@ const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
 const num = S.Struct({ _tag: S.Literal("number"), value: S.Number })
 const someUnion = S.Union(str, num)
 
-export class Something extends S.Class<Something>()({
+export class Something extends S.Class<Something>("Something")({
   id: S.StringId.withDefault,
   displayName: S.NonEmptyString255,
   name: S.NullOr(S.NonEmptyString255).withDefault,
@@ -467,22 +467,22 @@ it(
   () =>
     Effect
       .gen(function*() {
-        class AA extends S.Class<AA>()({
+        class AA extends S.Class<AA>("AA")({
           id: S.Literal("AA"),
           a: S.Unknown
         }) {}
 
-        class BB extends S.Class<BB>()({
+        class BB extends S.Class<BB>("BB")({
           id: S.Literal("BB"),
           b: S.Unknown
         }) {}
 
-        class CC extends S.Class<CC>()({
+        class CC extends S.Class<CC>("CC")({
           id: S.Literal("CC"),
           c: S.Unknown
         }) {}
 
-        class DD extends S.Class<DD>()({
+        class DD extends S.Class<DD>("DD")({
           id: S.Literal("DD"),
           d: S.Unknown
         }) {}
@@ -661,12 +661,12 @@ it(
 it("remove null from one constituent of a tagged union", () =>
   Effect
     .gen(function*() {
-      class AA extends S.Class<AA>()({
+      class AA extends S.Class<AA>("AA")({
         id: S.Literal("AA"),
         a: S.String
       }) {}
 
-      class BB extends S.Class<BB>()({
+      class BB extends S.Class<BB>("BB")({
         id: S.Literal("BB"),
         b: S.NullOr(S.Number)
       }) {}
@@ -709,22 +709,22 @@ it("remove null from one constituent of a tagged union", () =>
 it("refine 3", () =>
   Effect
     .gen(function*() {
-      class AA extends S.Class<AA>()({
+      class AA extends S.Class<AA>("AA")({
         id: S.Literal("AA"),
         a: S.Unknown
       }) {}
 
-      class BB extends S.Class<BB>()({
+      class BB extends S.Class<BB>("BB")({
         id: S.Literal("BB"),
         b: S.Unknown
       }) {}
 
-      class CC extends S.Class<CC>()({
+      class CC extends S.Class<CC>("CC")({
         id: S.Literal("CC"),
         c: S.Unknown
       }) {}
 
-      class DD extends S.Class<DD>()({
+      class DD extends S.Class<DD>("DD")({
         id: S.Literal("DD"),
         d: S.Unknown
       }) {}
@@ -747,7 +747,7 @@ it("refine 3", () =>
 it("my test", () =>
   Effect
     .gen(function*() {
-      class AA extends S.Class<AA>()({
+      class AA extends S.Class<AA>("AA")({
         id: S.String,
         as: S.Array(S.String)
       }) {}
@@ -773,7 +773,7 @@ it("refine inner without imposing a projection", () =>
         b: S.Unknown
       }) {}
 
-      class Data extends S.Class<Data>()({
+      class Data extends S.Class<Data>("Data")({
         id: S.String,
         union: S.Union(AA, BB)
       }) {}
@@ -940,7 +940,7 @@ it("distribution over union", () =>
 it("refine nested union", () =>
   Effect
     .gen(function*() {
-      class TestNested extends S.Class<TestNested>()({ id: S.String, nested: TestUnion }) {}
+      class TestNested extends S.Class<TestNested>("TestNested")({ id: S.String, nested: TestUnion }) {}
 
       const repo = yield* makeRepo("test", TestNested, {})
 

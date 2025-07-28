@@ -107,7 +107,7 @@ test("works with class", () => {
 })
 
 test("works with schema class", () => {
-  class Banana extends S.Class<Banana>()({
+  class Banana extends S.Class<Banana>("Banana")({
     name: S.String,
     state: S.Union(
       S.Struct({ a: S.String, _tag: S.Literal("a") }),

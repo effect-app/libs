@@ -11,7 +11,7 @@ import type * as EffectRequest from "effect/Request"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
-  Class<UserProfile>()({
+  Class<UserProfile>("UserProfile")({
     id: S.String
   })
 ) {

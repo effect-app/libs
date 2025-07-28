@@ -28,7 +28,7 @@ export interface EnhancedClass<Self, Fields extends Struct.Fields, I, R, C, Inhe
 
   readonly fields: Simplify<Fields>
 
-  readonly extend: <Extended = never>(identifier?: string) => <NewFields extends Struct.Fields>(
+  readonly extend: <Extended = never>(identifier: string) => <NewFields extends Struct.Fields>(
     newFieldsOr: NewFields | HasFields<NewFields>,
     annotations?: ClassAnnotations<Extended, Struct.Type<Fields & NewFields>>
   ) => [Extended] extends [never] ? MissingSelfGeneric<"Base.extend">
@@ -42,7 +42,7 @@ export interface EnhancedClass<Self, Fields extends Struct.Fields, I, R, C, Inhe
       Proto
     >
 
-  readonly transformOrFail: <Transformed = never>(identifier?: string) => <
+  readonly transformOrFail: <Transformed = never>(identifier: string) => <
     NewFields extends Struct.Fields,
     R2,
     R3
@@ -72,7 +72,7 @@ export interface EnhancedClass<Self, Fields extends Struct.Fields, I, R, C, Inhe
       Proto
     >
 
-  readonly transformOrFailFrom: <Transformed = never>(identifier?: string) => <
+  readonly transformOrFailFrom: <Transformed = never>(identifier: string) => <
     NewFields extends Struct.Fields,
     R2,
     R3
@@ -149,7 +149,7 @@ type HasFields<Fields extends Struct.Fields> = {
 //   return fnc("fields" in fields ? fields.fields : fields)
 // }
 
-export const Class: <Self = never>(identifier?: string) => <Fields extends S.Struct.Fields>(
+export const Class: <Self = never>(identifier: string) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self, Struct.Type<Fields>>
 ) => [Self] extends [never] ? MissingSelfGeneric<"Class">

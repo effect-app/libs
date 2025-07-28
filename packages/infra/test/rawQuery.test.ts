@@ -19,7 +19,7 @@ export const rt = ManagedRuntime.make(Layer.mergeAll(
   Logger.minimumLogLevel(LogLevel.Debug)
 ))
 
-class Something extends S.Class<Something>()({
+class Something extends S.Class<Something>("Something")({
   id: S.String,
   name: S.String,
   description: S.String,

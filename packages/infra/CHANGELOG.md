@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.68.0
+
+### Minor Changes
+
+- 940f9a0: flat ContextMaker again
+
 ## 2.67.2
 
 ### Patch Changes

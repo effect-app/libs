@@ -5,7 +5,7 @@ import { fakerArb } from "./faker.js"
 import { Email as EmailT } from "./Schema/email.js"
 import { withDefaultMake } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT } from "./Schema/phoneNumber.js"
-import type { A } from "./Schema/schema.js"
+import type { A, AST } from "./Schema/schema.js"
 import { extendM } from "./utils.js"
 
 export * from "effect/Schema"
@@ -61,15 +61,18 @@ export const PhoneNumber = PhoneNumberT
 export const makeIs = <A extends { _tag: string }, I, R>(
   schema: S.Schema<A, I, R>
 ) => {
+  const getToBottom = (ast: AST.AST) => {
+    if (SchemaAST.isTransformation(ast)) {
+      if (SchemaAST.isDeclaration(ast.to)) {
+        return getToBottom(ast.from)
+      }
+      return getToBottom(ast.to)
+    }
+    return ast
+  }
   if (SchemaAST.isUnion(schema.ast)) {
     return schema.ast.types.reduce((acc, t) => {
-      if (SchemaAST.isTransformation(t)) {
-        if (SchemaAST.isDeclaration(t.to)) {
-          t = t.from
-        } else {
-          t = t.to
-        }
-      }
+      t = getToBottom(t)
       if (!SchemaAST.isTypeLiteral(t)) return acc
       const tag = Array.findFirst(t.propertySignatures, (_) => {
         if (_.name === "_tag" && SchemaAST.isLiteral(_.type)) {

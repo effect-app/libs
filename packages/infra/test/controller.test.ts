@@ -3,21 +3,41 @@
 import { type MakeContext, type MakeErrors, makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect, Layer, type Request, S, Schedule } from "effect-app"
+import { Context, Effect, Layer, type Request, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"
+import { Class, TaggedError } from "effect-app/Schema"
 import type * as EffectRequest from "effect/Request"
-import { it } from "vitest"
+import { SomeService } from "./query.test.js"
 
-const optimisticConcurrencySchedule = Schedule.once
-  && Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException")
+class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
+  Class<UserProfile>()({
+    id: S.String
+  })
+) {
+}
+
+class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
+  message: S.String
+}) {}
 
 export interface CTX {
   context: RequestContext
 }
 
+export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
+
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
+export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker", {
+  effect: Effect.gen(function*() {
+    yield* SomeService
+    const SomeContext = Layer.sync(Some, () => new Some({ a: 1 }))
+    return Layer.build(SomeContext)
+  })
+}) {}
+
 export type CTXMap = {
-  // allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
+  allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
@@ -25,13 +45,14 @@ const middleware = makeMiddleware({
   contextMap: null as unknown as CTXMap,
   // helper to deal with nested generic lmitations
   context: null as any as HttpServerRequest.HttpServerRequest,
+  contextProvider: ContextMaker,
   execute: Effect.gen(function*() {
-    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, R>(
+    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
       _schema: T & S.Schema<Req, any, never>,
       handler: (
         request: Req,
         headers: any
-      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, R>,
+      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
       moduleName?: string
     ) =>
     (
@@ -41,12 +62,14 @@ const middleware = makeMiddleware({
       Request.Request.Success<Req>,
       Request.Request.Error<Req>,
       | HttpServerRequest.HttpServerRequest
-      | Exclude<R, GetEffectContext<CTXMap, T["config"]>>
+      | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
     > =>
       Effect
         .gen(function*() {
           // const headers = yield* Rpc.currentHeaders
-          const ctx = Context.empty()
+          const ctx = Context.empty().pipe(
+            Context.add(UserProfile, { id: "whatever" })
+          )
 
           // const config = "config" in schema ? schema.config : undefined
 
@@ -92,8 +115,8 @@ const middleware = makeMiddleware({
           // }
 
           return yield* handler(req, headers).pipe(
-            Effect.retry(optimisticConcurrencySchedule),
-            Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>)
+            Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>),
+            Effect.provideService(Some, new Some({ a: 1 }))
           )
         })
         .pipe(
@@ -123,8 +146,6 @@ const middleware = makeMiddleware({
   })
 })
 
-export const { Router, matchAll, matchFor } = makeRouter(middleware, true)
-
 export type RequestConfig = {
   /** Disable authentication requirement */
   allowAnonymous?: true
@@ -132,9 +153,12 @@ export type RequestConfig = {
   allowRoles?: readonly string[]
 }
 export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, CTXMap>({
-  // allowAnonymous: NotLoggedInError,
+  allowAnonymous: NotLoggedInError,
   requireRoles: UnauthorizedError
 })
+
+export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
+export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}
 
 export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
@@ -148,7 +172,7 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.NumberFromString }) {}
 
-const Something = { DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
+const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
 
 export class SomethingService extends Effect.Service<SomethingService>()("SomethingService", {
   dependencies: [],
@@ -180,117 +204,9 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
   })
 }) {}
 
-it("router", () => {
-  const routes = Router(Something)({
-    dependencies: [
-      SomethingRepo.Default,
-      SomethingService.Default,
-      SomethingService2.Default
-    ],
-    effect: Effect.gen(function*() {
-      const repo = yield* SomethingRepo
-      const smth = yield* SomethingService
-      const smth2 = yield* SomethingService2
+export const { Router, matchAll, matchFor } = makeRouter(middleware, true)
 
-      console.log({ repo, smth, smth2 })
-
-      return matchFor(Something)({
-        DoSomething: Effect.void,
-        GetSomething: Effect.succeed("12"),
-        GetSomething2: Effect.succeed(12)
-      })
-    })
-  })
-  console.log({ routes })
-})
-
-Router(Something)({
-  dependencies: [
-    SomethingRepo.Default,
-    SomethingService.Default,
-    SomethingService2.Default
-  ],
-  effect: Effect.gen(function*() {
-    const repo = yield* SomethingRepo
-    const smth = yield* SomethingService
-    const smth2 = yield* SomethingService2
-
-    console.log({ repo, smth, smth2 })
-
-    return matchFor(Something)({
-      GetSomething: Effect.succeed("12"),
-      DoSomething: Effect.void,
-      GetSomething2: Effect.succeed(12)
-    })
-  })
-})
-
-Router(Something)({
-  dependencies: [
-    SomethingRepo.Default,
-    SomethingService.Default,
-    SomethingService2.Default
-  ],
-  effect: Effect.gen(function*() {
-    const repo = yield* SomethingRepo
-    const smth = yield* SomethingService
-    const smth2 = yield* SomethingService2
-
-    console.log({ repo, smth, smth2 })
-
-    return matchFor(Something)({
-      GetSomething: Effect.succeed("12"),
-      DoSomething: Effect.succeed(2),
-      GetSomething2: Effect.succeed(12)
-    })
-  })
-})
-
-Router(Something)({
-  dependencies: [
-    SomethingRepo.Default,
-    SomethingService.Default,
-    SomethingService2.Default
-  ],
-  effect: Effect.gen(function*() {
-    const repo = yield* SomethingRepo
-    const smth = yield* SomethingService
-    const smth2 = yield* SomethingService2
-
-    console.log({ repo, smth, smth2 })
-
-    return matchFor(Something)({
-      GetSomething: SomethingService2.use(() => Effect.succeed("12")),
-      DoSomething: { raw: Effect.void },
-      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
-    })
-  })
-})
-
-Router(Something)({
-  dependencies: [
-    SomethingRepo.Default,
-    SomethingService.Default,
-    SomethingService2.Default
-  ],
-  effect: Effect.gen(function*() {
-    const repo = yield* SomethingRepo
-    const smth = yield* SomethingService
-    const smth2 = yield* SomethingService2
-
-    console.log({ repo, smth, smth2 })
-
-    return matchFor(Something)({
-      GetSomething: SomethingService2.use(() => Effect.succeed("12")),
-      DoSomething: {
-        raw: Effect.succeed(2)
-      },
-      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
-    })
-  })
-})
-
-const { make: _make, routes: _routes } = Router(Something)({
+const router = Router(Something)({
   dependencies: [
     SomethingRepo.Default,
     SomethingService.Default,
@@ -309,6 +225,17 @@ const { make: _make, routes: _routes } = Router(Something)({
     console.log({ repo, smth, smth2 })
 
     return match({
+      Eff: () =>
+        Effect
+          .gen(function*() {
+            const some = yield* Some
+            return yield* Effect.logInfo("Some", some)
+          }),
+
+      *Gen() {
+        const some = yield* Some
+        return yield* Effect.logInfo("Some", some)
+      },
       *GetSomething(req) {
         console.log(req.id)
 
@@ -334,10 +261,19 @@ const { make: _make, routes: _routes } = Router(Something)({
           return yield* Effect.succeed(undefined)
         }
       },
-      GetSomething2: { raw: SomethingService2.use(() => Effect.succeed("12")) }
+      GetSomething2: {
+        raw: Some.use(() => Effect.succeed("12"))
+      }
     })
   }
 })
 
-expectTypeOf({} as MakeErrors<typeof _make>).toEqualTypeOf<InvalidStateError>()
-expectTypeOf({} as MakeContext<typeof _make>).toEqualTypeOf<SomethingService | SomethingRepo | SomethingService2>()
+// eslint-disable-next-line unused-imports/no-unused-vars
+const matched = matchAll({ router })
+expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService>()
+
+type makeContext = MakeContext<typeof router.make>
+expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()
+expectTypeOf({} as makeContext).toEqualTypeOf<
+  SomethingService | SomethingRepo | SomethingService2
+>()

@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/cli",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -12,7 +12,7 @@
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
-    "@types/node": "~24.0.13",
+    "@types/node": "~24.1.0",
     "json5": "^2.2.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"

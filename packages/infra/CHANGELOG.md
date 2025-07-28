@@ -1,5 +1,96 @@
 # @effect-app/infra
 
+## 2.69.0
+
+### Minor Changes
+
+- ba4ad65: update packages; drop ServiceStrict in favour of language-service
+
+### Patch Changes
+
+- Updated dependencies [ba4ad65]
+  - effect-app@2.46.0
+
+## 2.68.1
+
+### Patch Changes
+
+- c53fb64: add contextMaker
+
+## 2.68.0
+
+### Minor Changes
+
+- 940f9a0: flat ContextMaker again
+
+## 2.67.2
+
+### Patch Changes
+
+- f5724bf: support scope
+
+## 2.67.1
+
+### Patch Changes
+
+- 6e8123a: fup
+
+## 2.67.0
+
+### Minor Changes
+
+- e65a694: improve ContextMaker
+
+## 2.66.0
+
+### Minor Changes
+
+- 2c217ce: update packages
+
+### Patch Changes
+
+- Updated dependencies [2c217ce]
+  - effect-app@2.45.0
+
+## 2.65.0
+
+### Minor Changes
+
+- 55da9e7: improve: Router supports contextProvider through middleware, replacing flawed requestLayers
+
+### Patch Changes
+
+- Updated dependencies [55da9e7]
+  - effect-app@2.44.0
+
+## 2.64.6
+
+### Patch Changes
+
+- 0e0c962: router: fix missing R retrieval in generators
+
+## 2.64.5
+
+### Patch Changes
+
+- b771967: update packages
+- Updated dependencies [b771967]
+  - effect-app@2.43.3
+
+## 2.64.4
+
+### Patch Changes
+
+- Updated dependencies [aec6960]
+  - effect-app@2.43.2
+
+## 2.64.3
+
+### Patch Changes
+
+- Updated dependencies [a2e1e1e]
+  - effect-app@2.43.1
+
 ## 2.64.2
 
 ### Patch Changes

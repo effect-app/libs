@@ -1,5 +1,41 @@
 # @effect-app/prelude
 
+## 2.46.0
+
+### Minor Changes
+
+- ba4ad65: update packages; drop ServiceStrict in favour of language-service
+
+## 2.45.0
+
+### Minor Changes
+
+- 2c217ce: update packages
+
+## 2.44.0
+
+### Minor Changes
+
+- 55da9e7: improve: Router supports contextProvider through middleware, replacing flawed requestLayers
+
+## 2.43.3
+
+### Patch Changes
+
+- b771967: update packages
+
+## 2.43.2
+
+### Patch Changes
+
+- aec6960: fix complex ast tagged union
+
+## 2.43.1
+
+### Patch Changes
+
+- a2e1e1e: improve jsonschema of Email
+
 ## 2.43.0
 
 ### Minor Changes

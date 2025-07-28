@@ -1,5 +1,18 @@
 # @effect-app/vue-components
 
+## 0.9.0
+
+### Minor Changes
+
+- d29cb1b: refactor: drop optional identifier for Schema classes.
+
+### Patch Changes
+
+- Updated dependencies [d29cb1b]
+- Updated dependencies [4ae597d]
+  - effect-app@2.47.0
+  - @effect-app/vue@2.45.0
+
 ## 0.8.13
 
 ### Patch Changes

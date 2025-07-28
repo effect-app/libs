@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.47.0
+
+### Minor Changes
+
+- d29cb1b: refactor: drop optional identifier for Schema classes.
+
 ## 2.46.1
 
 ### Patch Changes

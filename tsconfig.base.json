@@ -1,5 +1,5 @@
 {
-  "extends": ["@tsconfig/strictest/tsconfig.json", "./tsconfig.plugins.json"],
+  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
     "module": "Node16",
     "lib": [

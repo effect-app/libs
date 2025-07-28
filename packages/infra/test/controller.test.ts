@@ -32,6 +32,7 @@ export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker",
   effect: Effect.gen(function*() {
     yield* SomeService
     return {
+      mooo: "moo",
       makeRequestContext: Effect.gen(function*() {
         return Context.make(Some, new Some({ a: 1 }))
       })

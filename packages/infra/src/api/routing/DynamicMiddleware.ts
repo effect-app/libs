@@ -45,7 +45,7 @@ export interface Middleware<
   dependencies?: Layers
   contextMap: CTXMap
   context: MiddlewareContext
-  contextProvider: Context.Tag<CtxId, ContextProviderShape<RRet> & { _tag: CtxTag }> & {
+  contextProvider: Context.Tag<CtxId, CtxId & ContextProviderShape<RRet> & { _tag: CtxTag }> & {
     Default: Layer.Layer<CtxId, RErr, RCtx>
   }
   execute: Effect<

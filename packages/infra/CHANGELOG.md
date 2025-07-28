@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.68.1
+
+### Patch Changes
+
+- c53fb64: add contextMaker
+
 ## 2.68.0
 
 ### Minor Changes

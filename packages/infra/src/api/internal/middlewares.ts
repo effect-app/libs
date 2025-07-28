@@ -211,7 +211,7 @@ export const cors = (_options?: Partial<Middlewares.CorsOptions>) => {
   })()
 
   const allowHeaders = (accessControlRequestHeaders: string | undefined) => {
-    if(!options.allowedOrigins) return undefined
+    if (!options.allowedOrigins) return undefined
 
     if (options.allowedHeaders.length === 0 && accessControlRequestHeaders) {
       return {

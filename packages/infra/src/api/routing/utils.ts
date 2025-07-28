@@ -38,3 +38,5 @@ export const determineMethod = (actionName: string, schema: Schema<any, any, any
   if (patch.some((_) => actionName.startsWith(_))) return { _tag: "command", method: "PATCH" } as const
   return { _tag: "command", method: "POST" } as const
 }
+
+export const isCommand = (method: ReturnType<typeof determineMethod>) => method._tag === "command"

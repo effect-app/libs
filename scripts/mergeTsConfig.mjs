@@ -1,12 +1,11 @@
 "use strict";
 
-var _fs = _interopRequireDefault(require("fs"));
-var _json = _interopRequireDefault(require("json5"));
-var _path = _interopRequireDefault(require("path"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+import _fs from "fs" 
+import _json from "json5";
+import _path from "path"
 //import ts from "typescript"
+
 const configPath = process.argv[2];
-console.log(configPath);
 const rootPath = _path.resolve(configPath);
 
 function loadConfigRecursive(configPath) {

@@ -10,7 +10,7 @@
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
     "pub": "pnpm prepublish && npm publish --access public",
-    "prepublish": "pnpm build && cp -f ./tsconfig.json ./tsconfig.json.bak && node ../../scripts/mergeTsConfig.cjs ./tsconfig.json",
+    "prepublish": "pnpm build && cp -f ./tsconfig.json ./tsconfig.json.bak && node ../../scripts/mergeTsConfig.mjs ./tsconfig.json",
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "dependencies": {

@@ -96,8 +96,8 @@ it("works", () => {
   expect(processed).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("id", "displayName")))
 })
 
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
-  strict: false,
   effect: Effect.gen(function*() {
     return yield* makeRepo("Something", Something, {})
   })

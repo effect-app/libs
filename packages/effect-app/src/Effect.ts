@@ -10,8 +10,6 @@ import * as FiberRef from "effect/FiberRef"
 import { curry } from "./Function.js"
 import { typedKeysOf } from "./utils.js"
 
-export { ServiceStrict as Service } from "effect/Effect"
-
 export * from "effect/Effect"
 
 export function flatMapOption<R, E, A, R2, E2, A2>(

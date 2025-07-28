@@ -27,8 +27,8 @@ export interface CTX {
 
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
 
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker", {
-  strict: false,
   effect: Effect.gen(function*() {
     yield* SomeService
     const SomeContext = Layer.sync(Some, () => new Some({ a: 1 }))

@@ -198,6 +198,20 @@ export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
 
+// const rpc = makeRpc(middleware).pipe(
+//   Effect.map(({ effect }) =>
+//     effect(
+//       DoSomething,
+//       Effect.fn(function*(req, headers) {
+//         const user = yield* UserProfile // dynamic context
+//         const some = yield* Some // context provided by ContextMaker
+//         const someservice = yield* SomeService // extraneous service
+//         yield* Console.log("DoSomething", req.id, some)
+//       })
+//     )
+//   )
+// )
+
 export class GetSomething extends Req<GetSomething>()("GetSomething", {
   id: S.String
 }, { success: S.String }) {}

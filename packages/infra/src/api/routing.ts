@@ -6,17 +6,17 @@ import { determineMethod, isCommand } from "@effect-app/infra/api/routing/utils"
 import { logError, reportError } from "@effect-app/infra/errorReporter"
 import { InfraLogger } from "@effect-app/infra/logger"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { Array, Cause, Context, Duration, Effect, Layer, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { Array, Cause, Context, Duration, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
-import { type ContextProviderShape, makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
+import { type ContextProviderShape, makeMiddlewareLayer, makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
 
 export * from "./routing/DynamicMiddleware.js"
 
-namespace LayersUtils {
+export namespace LayersUtils {
   export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
     NonEmptyReadonlyArray<Layer.Layer.Any> ? {
       [k in keyof Layers]: Layer.Layer.Success<Layers[k]>
@@ -192,7 +192,7 @@ export const makeRouter = <
   MiddlewareR,
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   MakeMiddlewareR,
-  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>,
+  MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>,
   ContextProviderId,
   ContextProviderKey extends string,
   ContextProviderA,
@@ -392,16 +392,13 @@ export const makeRouter = <
         // import to keep them separate via | for type checking!!
         [K in keyof RequestModules]: AnyHandler<Resource[K]>
       },
-      MakeDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
+      MakeDependencies extends NonEmptyArray<Layer.Layer.Any> | never[]
     >(
       dependencies: MakeDependencies,
       make: Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
-      type ProvidedLayers =
-        | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
-        | LayersUtils.GetLayersSuccess<MakeDependencies>
       type Router = RouterShape<Resource>
-
+      const middlewareLayer = makeMiddlewareLayer(middleware)
       const layer = Effect
         .gen(function*() {
           make = (make as any)[Symbol.toStringTag] === "GeneratorFunction"
@@ -560,8 +557,7 @@ export const makeRouter = <
           Layer.provide([
             ...dependencies ?? [],
             middleware.contextProvider.Default,
-            // TODO: only provide to the middleware?
-            ...middleware.dependencies ?? []
+            middlewareLayer
           ] as any) as any
         )
       ) as (Layer.Layer<
@@ -570,7 +566,7 @@ export const makeRouter = <
         | LayersUtils.GetLayersContext<MakeDependencies>
         | MakeMiddlewareR
         | MakeContextProviderR
-        | Exclude<MakeR, ProvidedLayers>
+        | Exclude<MakeR, LayersUtils.GetLayersSuccess<MakeDependencies>>
       >)
 
       // Effect.Effect<HttpRouter.HttpRouter<unknown, HttpRouter.HttpRouter.DefaultServices>, never, UserRouter>
@@ -614,7 +610,7 @@ export const makeRouter = <
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
-            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
         >
 
@@ -649,7 +645,7 @@ export const makeRouter = <
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
-            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
         >
 
@@ -684,7 +680,7 @@ export const makeRouter = <
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
-            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
         >
 
@@ -719,7 +715,7 @@ export const makeRouter = <
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
-            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
         >
 
@@ -754,7 +750,7 @@ export const makeRouter = <
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
-            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
         >
 
@@ -787,7 +783,7 @@ export const makeRouter = <
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
-            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
         >
 
@@ -823,7 +819,7 @@ export const makeRouter = <
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
-            LayersUtils.GetLayersSuccess<Make["dependencies"]> | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+            LayersUtils.GetLayersSuccess<Make["dependencies"]>
           >
         >
 

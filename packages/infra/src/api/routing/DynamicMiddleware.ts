@@ -150,7 +150,7 @@ export const makeRpc = <
     .all({
       execute: middleware.execute ?? Effect.void,
       executeContextual: middleware.executeContextual
-        ? middleware.executeContextual(makeRpcHandler<CTXMap, MiddlewareContext>() as any)
+        ? middleware.executeContextual(makeRpcHandler<CTXMap, MiddlewareContext>())
         : Effect.void,
       contextProvider: middleware.contextProvider // uses the middleware.contextProvider tag to get the context provider service
     })

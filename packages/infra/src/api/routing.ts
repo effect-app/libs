@@ -880,6 +880,8 @@ export const RequestCacheLayers = Layer.mergeAll(
 type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
 
 export const contextMaker = <
+  // TDeps is an array of services whit Default implementation
+  // each service is an effect which builds some context for each request
   TDeps extends Array.NonEmptyReadonlyArray<
     & (
       | Context.Tag<any, Effect<Context.Context<any>, any, any> & { _tag: any }>
@@ -905,12 +907,13 @@ export const contextMaker = <
   dependencies: deps.map((_) => _.Default) as any,
   effect: Effect.gen(function*() {
     const services = yield* Effect.all(deps)
+    // services are effects which return some Context.Context<...>
     return Effect.all(services as any[]).pipe(
       Effect.map((_) => Context.mergeAll(..._ as any))
     )
   }) as any
 })
 
-export class DefaultContextMaker extends Effect.Service<DefaultContextMaker>()("DefaultContextMaker", {
+export class EmptyContextMaker extends Effect.Service<EmptyContextMaker>()("EmptyContextMaker", {
   succeed: Effect.succeed(Context.empty()) satisfies ContextProviderShape<never>
 }) {}

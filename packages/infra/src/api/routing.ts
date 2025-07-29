@@ -192,7 +192,7 @@ export const makeRouter = <
   MiddlewareR,
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   MakeMiddlewareR,
-  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
+  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>,
   ContextProviderId,
   ContextProviderKey extends string,
   ContextProviderA,

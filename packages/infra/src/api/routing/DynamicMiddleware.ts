@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Array, type Context, Effect, type Layer, type Request, type S, type Scope } from "effect-app"
+import { type Context, Effect, type Layer, type NonEmptyReadonlyArray, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 
 import type * as EffectRequest from "effect/Request"
@@ -45,7 +45,7 @@ export interface Middleware<
   MiddlewareR, // what the middlware requires to execute
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the handler, or raise errors.
   MakeMiddlewareR, // what the middlware requires to be constructed
-  MiddlewareDependencies extends Array<Layer.Layer.Any>, // layers provided for the middlware to be constructed
+  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
   //
   // ContextProvider is a service that builds additional context for each request.
   ContextProviderId, // it is the context provider itself
@@ -89,21 +89,29 @@ export const makeMiddlewareContextual =
   ): M => content
 
 // identity factory for Middleware
-export const makeMiddleware =
-  // <
-  //   RequestContextMap extends Record<string, RPCContextMap.Any>,
-  //   MiddlewareR,
-  //   MakeMiddlewareR,
-  //   MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[],
-  //   ContextProviderId,
-  //   ContextProviderKey extends string,
-  //   ContextProviderA,
-  //   MakeContextProviderE,
-  //   MakeContextProviderR
-  // >
-  <M extends Middleware<any, any, any, any, any, any, any, any, any>>(
-    content: M
-  ): M => content
+export const makeMiddleware = <
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  MiddlewareR,
+  MakeMiddlewareR,
+  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>,
+  ContextProviderId,
+  ContextProviderKey extends string,
+  ContextProviderA,
+  MakeContextProviderE,
+  MakeContextProviderR
+>(
+  content: Middleware<
+    MiddlewareR,
+    RequestContextMap,
+    MakeMiddlewareR,
+    MiddlewareDependencies,
+    ContextProviderId,
+    ContextProviderKey,
+    ContextProviderA,
+    MakeContextProviderE,
+    MakeContextProviderR
+  >
+) => content
 
 // it just provides the right types without cluttering the implementation with them
 function makeRpcEffect<RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR, ContextProviderA>() {
@@ -145,7 +153,7 @@ export const makeRpc = <
   MiddlewareR,
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   MakeMiddlewareR,
-  MiddlewareDependencies extends Array<Layer.Layer.Any>,
+  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>,
   ContextProviderId,
   ContextProviderKey extends string,
   ContextProviderA,

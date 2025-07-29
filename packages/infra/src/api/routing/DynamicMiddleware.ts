@@ -42,17 +42,17 @@ function makeRpcHandler<RequestContextMap extends Record<string, RPCContextMap.A
 export type ContextProviderShape<ContextProviderA> = Effect<Context.Context<ContextProviderA>, never, Scope>
 
 export interface Middleware<
-  MiddlewareR, // added to what the handler already requires
-  RequestContextMap extends Record<string, RPCContextMap.Any>, // dynamic services provided to the handler
-  MakeMiddlewareR, // to execute the middleware itself
-  MiddlewareDependencies extends Array<Layer.Layer.Any>, // layers required for the Middleware to do it's job
+  MiddlewareR, // what the middlware requires to execute
+  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the handler, or raise errors.
+  MakeMiddlewareR, // what the middlware requires to be constructed
+  MiddlewareDependencies extends Array<Layer.Layer.Any>, // layers provided for the middlware to be constructed
   //
-  // additional context built just once and provided to the handler at each request (request level context)
+  // ContextProvider is a service that builds additional context for each request.
   ContextProviderId, // it is the context provider itself
   ContextProviderKey extends string, // tag for the context provider
   ContextProviderA, // what the context provider provides
-  MakeContextProviderE, // what the context provider can fail with
-  MakeContextProviderR // needed for building the context provider
+  MakeContextProviderE, // what the context provider construction can fail with
+  MakeContextProviderR // what the context provider construction requires
 > {
   contextMap?: RequestContextMap
   dependencies?: MiddlewareDependencies

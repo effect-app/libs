@@ -40,7 +40,12 @@ export type RequestContextMap = {
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
+
+const Str = Context.GenericTag<"str", "str">("str")
+const Str2 = Context.GenericTag<"str2", "str">("str2")
+
 const middleware = makeMiddlewareContextual<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
+  dependencies: [Layer.effect(Str2, Str)],
   contextProvider: ContextMaker,
   // execute: Effect.gen(function*() {
   //   return <T extends { config?: { [K in keyof RequestContextMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
@@ -318,7 +323,7 @@ const router = Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService>()
+expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | "str">()
 
 type makeContext = MakeContext<typeof router.make>
 expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()

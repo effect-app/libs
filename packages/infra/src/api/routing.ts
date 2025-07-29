@@ -7,12 +7,14 @@ import { logError, reportError } from "@effect-app/infra/errorReporter"
 import { InfraLogger } from "@effect-app/infra/logger"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
 import { Array, Cause, Context, Duration, Effect, Layer, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
-import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
+import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { type ContextProviderShape, makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
+
+export * from "./routing/DynamicMiddleware.js"
 
 namespace LayersUtils {
   export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
@@ -396,8 +398,8 @@ export const makeRouter = <
       make: Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
       type ProvidedLayers =
-        | { [k in keyof MiddlewareDependencies]: Layer.Layer.Success<MiddlewareDependencies[k]> }[number]
-        | { [k in keyof MakeDependencies]: Layer.Layer.Success<MakeDependencies[k]> }[number]
+        | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
+        | LayersUtils.GetLayersSuccess<MakeDependencies>
       type Router = RouterShape<Resource>
 
       const layer = Effect
@@ -505,10 +507,14 @@ export const makeRouter = <
                 req: any,
                 headers: HttpHeaders.Headers
               ) => Effect.Effect<
-                any,
-                Effect.Error<ReturnType<THandlers[K]["handler"]>>,
-                // I don't think this is correct, because this is the result of calling rpc.effect which removes ContextProviderA and dynamic context
-                MiddlewareR | Effect.Context<ReturnType<THandlers[K]["handler"]>>
+                Effect.Success<ReturnType<THandlers[K]["handler"]>>,
+                | Effect.Error<ReturnType<THandlers[K]["handler"]>>
+                | GetEffectError<RequestContextMap, Resource[K]["config"]>,
+                | MiddlewareR
+                | Exclude<
+                  Effect.Context<ReturnType<THandlers[K]["handler"]>>,
+                  ContextProviderA | GetEffectContext<RequestContextMap, Resource[K]["config"]>
+                >
               >
             ]
           }
@@ -525,9 +531,14 @@ export const makeRouter = <
             }, {} as Record<string, any>)
           })) as unknown as Layer<
             { [K in keyof RequestModules]: Rpc.Handler<K> },
-            never,
-            // don't think this is correct for the above reason
-            RPCRouteR<typeof mapped[keyof typeof mapped]> | MakeContextProviderR
+            | MakeContextProviderE
+            | LayersUtils.GetLayersError<MiddlewareDependencies>
+            | LayersUtils.GetLayersError<MakeDependencies>,
+            | RPCRouteR<typeof mapped[keyof typeof mapped]>
+            | MakeContextProviderR
+            | MakeMiddlewareR
+            | LayersUtils.GetLayersContext<MakeDependencies>
+            | LayersUtils.GetLayersContext<MiddlewareDependencies>
           >
 
           return RpcServer

@@ -77,7 +77,7 @@ export const makeMiddleware =
 // it just provides the right types without cluttering the implementation with them
 function makeRpcEffect<CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext, RRet>() {
   return (
-    cb: <T extends { config?: Partial<Record<keyof CTXMap, any>> }, Req extends S.TaggedRequest.All, R>(
+    cb: <T extends { config?: Partial<Record<keyof CTXMap, any>> }, Req extends S.TaggedRequest.All, HandlerR>(
       schema: T & S.Schema<Req, any, never>,
       handler: (
         request: Req,
@@ -85,7 +85,7 @@ function makeRpcEffect<CTXMap extends Record<string, RPCContextMap.Any>, Middlew
       ) => Effect.Effect<
         EffectRequest.Request.Success<Req>,
         EffectRequest.Request.Error<Req>,
-        R
+        HandlerR
       >,
       moduleName?: string
     ) => (
@@ -94,9 +94,9 @@ function makeRpcEffect<CTXMap extends Record<string, RPCContextMap.Any>, Middlew
     ) => Effect.Effect<
       Request.Request.Success<Req>,
       Request.Request.Error<Req>,
-      | Scope.Scope
-      | Exclude<MiddlewareContext, RRet>
-      | Exclude<Exclude<R, GetEffectContext<CTXMap, (T & S.Schema<Req, any, never>)["config"]>>, RRet>
+      | Scope.Scope // the context provider may require a Scope to run
+      | Exclude<MiddlewareContext, RRet> // for sure RRet is provided, so it can be removed from the MiddlewareContext
+      | Exclude<Exclude<HandlerR, GetEffectContext<CTXMap, (T & S.Schema<Req, any, never>)["config"]>>, RRet> // it can also be removed from HandlerR
     >
   ) => cb
 }

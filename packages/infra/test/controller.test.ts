@@ -151,6 +151,9 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
               Context.add(UserProfile, { id: "whatever" })
             )
 
+            // you can use only HttpServerRequest.HttpServerRequest here as additional context
+            // const some = yield* Some
+
             const httpReq = yield* HttpServerRequest.HttpServerRequest
             yield* Console.log("HttpServerRequest", httpReq)
 

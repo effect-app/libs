@@ -557,10 +557,9 @@ export const makeRouter = <
         Router,
         LayersUtils.GetLayersError<MakeDependencies> | MakeE | MakeContextProviderE,
         | LayersUtils.GetLayersContext<MakeDependencies>
-        | Exclude<
-          MakeMiddlewareR | MakeR | MakeContextProviderR,
-          ProvidedLayers
-        >
+        | MakeMiddlewareR
+        | MakeContextProviderR
+        | Exclude<MakeR, ProvidedLayers>
       >)
 
       // Effect.Effect<HttpRouter.HttpRouter<unknown, HttpRouter.HttpRouter.DefaultServices>, never, UserRouter>

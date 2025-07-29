@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { type MakeContext, type MakeErrors, makeMiddleware, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect, Layer, type Request, S } from "effect-app"
+import { Console, Context, Effect, Layer, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { type HttpServerRequest } from "effect-app/http"
+import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import type * as EffectRequest from "effect/Request"
+import { makeMiddleware } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -35,114 +35,55 @@ export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker",
   })
 }) {}
 
-export type CTXMap = {
+export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
-const middleware = makeMiddleware({
-  contextMap: null as unknown as CTXMap,
-  // helper to deal with nested generic lmitations
-  context: null as any as HttpServerRequest.HttpServerRequest,
+
+const Str = Context.GenericTag<"str", "str">("str")
+const Str2 = Context.GenericTag<"str2", "str">("str2")
+
+const middleware = makeMiddleware<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
+  dependencies: [Layer.effect(Str2, Str)],
   contextProvider: ContextMaker,
-  execute: Effect.gen(function*() {
-    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
-      _schema: T & S.Schema<Req, any, never>,
-      handler: (
-        request: Req,
-        headers: any
-      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
-      moduleName?: string
-    ) =>
-    (
-      req: Req,
-      headers: any
-    ): Effect.Effect<
-      Request.Request.Success<Req>,
-      Request.Request.Error<Req>,
-      | HttpServerRequest.HttpServerRequest
-      | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
-    > =>
-      Effect
-        .gen(function*() {
-          // const headers = yield* Rpc.currentHeaders
-          const ctx = Context.empty().pipe(
-            Context.add(UserProfile, { id: "whatever" })
+  executeContextual: (maker) =>
+    Effect.gen(function*() {
+      return maker((_schema, handler, moduleName) => (req, headers) => {
+        return Effect
+          .gen(function*() {
+            // const headers = yield* Rpc.currentHeaders
+            const ctx = Context.empty().pipe(
+              Context.add(UserProfile, { id: "whatever" })
+            )
+
+            // you can use only HttpServerRequest.HttpServerRequest here as additional context
+            // const some = yield* Some
+
+            const httpReq = yield* HttpServerRequest.HttpServerRequest
+            yield* Console.log("HttpServerRequest", httpReq)
+
+            return yield* handler(req, headers).pipe(
+              Effect.provide(ctx as Context.Context<GetEffectContext<RequestContextMap, (typeof _schema)["config"]>>)
+              // I do expect the ContextMaker to provide this
+              // Effect.provideService(Some, new Some({ a: 1 }))
+            )
+          })
+          .pipe(
+            Effect.provide(
+              Effect
+                .gen(function*() {
+                  yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
+
+                  // const httpReq = yield* HttpServerRequest.HttpServerRequest
+
+                  //
+                })
+                .pipe(Layer.effectDiscard)
+            )
           )
-
-          // const config = "config" in schema ? schema.config : undefined
-
-          // Check JWT
-          // TODO
-          // if (!fakeLogin && !request.allowAnonymous) {
-          //   yield* Effect.catchAll(
-          //     checkJWTI({
-          //       ...authConfig,
-          //       issuer: authConfig.issuer + "/",
-          //       jwksUri: `${authConfig.issuer}/.well-known/jwks.json`
-          //     }),
-          //     (err) => Effect.fail(new JWTError({ error: err }))
-          //   )
-          // }
-
-          // const fakeLogin = true
-          // const r = (fakeLogin
-          //   ? makeUserProfileFromUserHeader(headers["x-user"])
-          //   : makeUserProfileFromAuthorizationHeader(
-          //     headers["authorization"]
-          //   ))
-          //   .pipe(Effect.exit, basicRuntime.runSync)
-          // if (!Exit.isSuccess(r)) {
-          //   yield* Effect.logWarning("Parsing userInfo failed").pipe(Effect.annotateLogs("r", r))
-          // }
-          // const userProfile = Option.fromNullable(Exit.isSuccess(r) ? r.value : undefined)
-          // if (Option.isSome(userProfile)) {
-          //   // yield* rcc.update((_) => ({ ..._, userPorfile: userProfile.value }))
-          //   ctx = ctx.pipe(Context.add(UserProfile, userProfile.value))
-          // } else if (!config?.allowAnonymous) {
-          //   return yield* new NotLoggedInError({ message: "no auth" })
-          // }
-
-          // if (config?.requireRoles) {
-          //   // TODO
-          //   if (
-          //     !userProfile.value
-          //     || !config.requireRoles.every((role: any) => userProfile.value!.roles.includes(role))
-          //   ) {
-          //     return yield* new UnauthorizedError()
-          //   }
-          // }
-
-          return yield* handler(req, headers).pipe(
-            Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>),
-            Effect.provideService(Some, new Some({ a: 1 }))
-          )
-        })
-        .pipe(
-          Effect.provide(
-            Effect
-              .gen(function*() {
-                yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
-                // yield* RequestContextContainer.update((_) => ({
-                //   ..._,
-                //   name: NonEmptyString255(moduleName ? `${moduleName}.${req._tag}` : req._tag)
-                // }))
-                // const httpReq = yield* HttpServerRequest.HttpServerRequest
-                // TODO: only pass Authentication etc, or move headers to actual Rpc Headers
-                // yield* FiberRef.update(
-                //   Rpc.currentHeaders,
-                //   (headers) =>
-                //     HttpHeaders.merge(
-                //       httpReq.headers,
-                //       headers
-                //     )
-                // )
-              })
-              .pipe(Layer.effectDiscard)
-          )
-        )
-    // .pipe(Effect.provide(RequestCacheLayers)) as any
-  })
+      })
+    })
 })
 
 export type RequestConfig = {
@@ -151,7 +92,7 @@ export type RequestConfig = {
   /** Control the roles that are required to access the resource */
   allowRoles?: readonly string[]
 }
-export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, CTXMap>({
+export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, RequestContextMap>({
   allowAnonymous: NotLoggedInError,
   requireRoles: UnauthorizedError
 })
@@ -162,6 +103,20 @@ export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}
 export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
+
+// const rpc = makeRpc(middleware).pipe(
+//   Effect.map(({ effect }) =>
+//     effect(
+//       DoSomething,
+//       Effect.fn(function*(req, headers) {
+//         const user = yield* UserProfile // dynamic context
+//         const some = yield* Some // context provided by ContextMaker
+//         const someservice = yield* SomeService // extraneous service
+//         yield* Console.log("DoSomething", req.id, some)
+//       })
+//     )
+//   )
+// )
 
 export class GetSomething extends Req<GetSomething>()("GetSomething", {
   id: S.String
@@ -269,7 +224,7 @@ const router = Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService>()
+expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | "str">()
 
 type makeContext = MakeContext<typeof router.make>
 expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()

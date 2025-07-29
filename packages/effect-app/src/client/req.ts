@@ -43,45 +43,45 @@ export declare namespace RPCContextMap {
   }
 }
 
-export type GetEffectContext<CTXMap extends Record<string, RPCContextMap.Any>, T> = Values<
+export type GetEffectContext<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<
   // inverted: contextActivation is false => remove if explicitly set to true (like allowAnonymous: true disables auth and auth service and related errors)
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends true ? never
-        : key extends keyof T ? T[key] extends true ? never : CTXMap[key]["key"]
-        : CTXMap[key]["key"]
+      key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends true ? never
+        : key extends keyof T ? T[key] extends true ? never : RequestContextMap[key]["key"]
+        : RequestContextMap[key]["key"]
     ]: // TODO: or as an Optional available?
-      CTXMap[key]["service"]
+      RequestContextMap[key]["service"]
   }
   // normal: contextActivation is true => add if explicitly set to true
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends false ? never
-        : key extends keyof T ? T[key] extends true ? CTXMap[key]["key"] : never
+      key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends false ? never
+        : key extends keyof T ? T[key] extends true ? RequestContextMap[key]["key"] : never
         : never
     ]: // TODO: or as an Optional available?
-      CTXMap[key]["service"]
+      RequestContextMap[key]["service"]
   }
 >
 
-export type GetEffectError<CTXMap extends Record<string, RPCContextMap.Any>, T> = Values<
+export type GetEffectError<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<
   // inverted: contextActivation is false => remove if explicitly set to true (like allowAnonymous: true disables auth and auth service and related errors)
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends true ? never
-        : key extends keyof T ? T[key] extends true ? never : CTXMap[key]["key"]
-        : CTXMap[key]["key"]
+      key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends true ? never
+        : key extends keyof T ? T[key] extends true ? never : RequestContextMap[key]["key"]
+        : RequestContextMap[key]["key"]
     ]: // TODO: or as an Optional available?
-      CTXMap[key]["error"]
+      RequestContextMap[key]["error"]
   }
   // normal: contextActivation is true => add if explicitly set to true
   & {
     [
-      key in keyof CTXMap as CTXMap[key]["contextActivation"] extends false ? never
-        : key extends keyof T ? T[key] extends true ? CTXMap[key]["key"] : never
+      key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends false ? never
+        : key extends keyof T ? T[key] extends true ? RequestContextMap[key]["key"] : never
         : never
     ]: // TODO: or as an Optional available?
-      CTXMap[key]["error"]
+      RequestContextMap[key]["error"]
   }
 >
 
@@ -114,10 +114,10 @@ const ForceVoid: S.Schema<void> = S.transform(S.Any, S.Void, { decode: () => voi
 
 export const makeRpcClient = <
   RequestConfig extends object,
-  CTXMap extends Record<string, RPCContextMap.Any>,
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
   GeneralErrors extends S.Schema.All = never
 >(
-  errors: { [K in keyof CTXMap]: CTXMap[K]["error"] },
+  errors: { [K in keyof RequestContextMap]: RequestContextMap[K]["error"] },
   generalErrors?: GeneralErrors
 ) => {
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
@@ -138,7 +138,7 @@ export const makeRpcClient = <
         { readonly _tag: S.tag<Tag> } & Payload,
         SchemaOrFields<typeof config["success"]>,
         JoinSchema<
-          [SchemaOrFields<typeof config["failure"]> | GetEffectError<CTXMap, C> | GeneralErrors]
+          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap, C> | GeneralErrors]
         >
       >
       & { config: Omit<C, "success" | "failure"> }
@@ -152,7 +152,7 @@ export const makeRpcClient = <
         Tag,
         { readonly _tag: S.tag<Tag> } & Payload,
         SchemaOrFields<typeof config["success"]>,
-        JoinSchema<[GetEffectError<CTXMap, C> | GeneralErrors]>
+        JoinSchema<[GetEffectError<RequestContextMap, C> | GeneralErrors]>
       >
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "failure">>(
@@ -166,7 +166,7 @@ export const makeRpcClient = <
         { readonly _tag: S.tag<Tag> } & Payload,
         typeof S.Void,
         JoinSchema<
-          [SchemaOrFields<typeof config["failure"]> | GetEffectError<CTXMap, C> | GeneralErrors]
+          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap, C> | GeneralErrors]
         >
       >
       & { config: Omit<C, "success" | "failure"> }
@@ -180,7 +180,7 @@ export const makeRpcClient = <
         Tag,
         { readonly _tag: S.tag<Tag> } & Payload,
         typeof S.Void,
-        JoinSchema<[GetEffectError<CTXMap, C> | GeneralErrors]>
+        JoinSchema<[GetEffectError<RequestContextMap, C> | GeneralErrors]>
       >
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields>(

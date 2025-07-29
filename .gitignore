@@ -47,3 +47,6 @@ fabric.properties
 
 # vitest?
 *.timestamp-*.mjs
+
+# nix
+.direnv

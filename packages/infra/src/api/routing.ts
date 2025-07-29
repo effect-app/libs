@@ -374,8 +374,8 @@ export const makeRouter = <
       }, {} as any)
 
     const makeRoutes = <
-      E,
-      R,
+      MakeE,
+      MakeR,
       THandlers extends {
         // import to keep them separate via | for type checking!!
         [K in keyof RequestModules]: AnyHandler<Resource[K]>
@@ -383,7 +383,7 @@ export const makeRouter = <
       TLayers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
     >(
       layers: TLayers,
-      make: Effect<THandlers, E, R> | Generator<YieldWrap<Effect<any, E, R>>, THandlers, any>
+      make: Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
       type ProvidedLayers =
         | { [k in keyof Layers]: Layer.Layer.Success<Layers[k]> }[number]
@@ -545,10 +545,10 @@ export const makeRouter = <
         )
       ) as (Layer.Layer<
         Router,
-        LayersUtils.GetLayersError<TLayers> | E | RErr,
+        LayersUtils.GetLayersError<TLayers> | MakeE | RErr,
         | LayersUtils.GetLayersContext<TLayers>
         | Exclude<
-          MiddlewareR | R | RCtx,
+          MiddlewareR | MakeR | RCtx,
           ProvidedLayers
         >
       >)

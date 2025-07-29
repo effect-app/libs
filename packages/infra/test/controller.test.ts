@@ -3,11 +3,11 @@
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect, Layer, S } from "effect-app"
+import { Console, Context, Effect, Layer, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { type HttpServerRequest } from "effect-app/http"
+import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { makeMiddleware } from "../src/api/routing/DynamicMiddleware.js"
+import { makeMiddlewareContextual } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -40,10 +40,7 @@ export type CTXMap = {
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
-const middleware = makeMiddleware({
-  contextMap: null as any as CTXMap,
-  // helper to deal with nested generic lmitations
-  context: null as any as HttpServerRequest.HttpServerRequest,
+const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServerRequest>()({
   contextProvider: ContextMaker,
   // execute: Effect.gen(function*() {
   //   return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
@@ -146,13 +143,16 @@ const middleware = makeMiddleware({
   // }),
   executeContextual: (maker) =>
     Effect.gen(function*() {
-      return maker((_schema, handler, moduleName) => (req, headers) =>
-        Effect
+      return maker((_schema, handler, moduleName) => (req, headers) => {
+        const e = Effect
           .gen(function*() {
             // const headers = yield* Rpc.currentHeaders
             const ctx = Context.empty().pipe(
               Context.add(UserProfile, { id: "whatever" })
             )
+
+            const httpReq = yield* HttpServerRequest.HttpServerRequest
+            yield* Console.log("HttpServerRequest", httpReq)
 
             return yield* handler(req, headers).pipe(
               Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, (typeof _schema)["config"]>>)
@@ -168,12 +168,14 @@ const middleware = makeMiddleware({
 
                   // const httpReq = yield* HttpServerRequest.HttpServerRequest
 
-                  // yield* Console.log("HttpServerRequest", httpReq)
+                  //
                 })
                 .pipe(Layer.effectDiscard)
             )
           )
-      )
+
+        return e
+      })
     })
 })
 

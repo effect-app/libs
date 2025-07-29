@@ -31,7 +31,8 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>, 
   Request.Request.Error<Req>,
   // the middleware will remove from HandlerR the dynamic context, but will also add the MiddlewareContext
   | MiddlewareContext
-  | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
+  // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
+  | Exclude<HandlerR, GetEffectContext<CTXMap, (T & S.Schema<Req, any, never>)["config"]>>
 >
 
 function makeRpcHandler<CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext>() {
@@ -53,9 +54,9 @@ export interface Middleware<
   RErr, // what the context provider can fail with
   RCtx // needed for building the context provider
 > {
-  contextMap: CTXMap
+  contextMap?: CTXMap
   dependencies?: Layers
-  context: MiddlewareContext
+  context?: MiddlewareContext
   contextProvider: Context.Tag<CtxId, CtxId & ContextProviderShape<RRet> & { _tag: CtxTag }> & {
     Default: Layer.Layer<CtxId, RErr, RCtx>
   }
@@ -73,6 +74,14 @@ export interface Middleware<
     MiddlewareR
   >
 }
+
+// identity factory for Middleware
+export const makeMiddlewareContextual =
+  // by setting MiddlewareContext and CTXMap beforehand, executeContextual contextual typing does not fuck up itself to anys
+  <CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext>() =>
+  <M extends Middleware<MiddlewareContext, CTXMap, any, any, any, any, any, any, any>>(
+    content: M
+  ): M => content
 
 // identity factory for Middleware
 export const makeMiddleware =
@@ -141,7 +150,7 @@ export const makeRpc = <
     .all({
       execute: middleware.execute ?? Effect.void,
       executeContextual: middleware.executeContextual
-        ? middleware.executeContextual(makeRpcHandler<CTXMap, MiddlewareContext>())
+        ? middleware.executeContextual(makeRpcHandler<CTXMap, MiddlewareContext>() as any)
         : Effect.void,
       contextProvider: middleware.contextProvider // uses the middleware.contextProvider tag to get the context provider service
     })

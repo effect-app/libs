@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.48.0
+
+### Minor Changes
+
+- 8bb246b: cleanup and document router/middleware
+
 ## 2.47.2
 
 ### Patch Changes

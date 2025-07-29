@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 2.71.0
+
+### Minor Changes
+
+- 8bb246b: cleanup and document router/middleware
+
+### Patch Changes
+
+- 8bb246b: better middlewares creation
+- Updated dependencies [8bb246b]
+  - effect-app@2.48.0
+
 ## 2.70.2
 
 ### Patch Changes

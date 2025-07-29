@@ -144,7 +144,7 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
   executeContextual: (maker) =>
     Effect.gen(function*() {
       return maker((_schema, handler, moduleName) => (req, headers) => {
-        const e = Effect
+        return Effect
           .gen(function*() {
             // const headers = yield* Rpc.currentHeaders
             const ctx = Context.empty().pipe(
@@ -173,8 +173,6 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
                 .pipe(Layer.effectDiscard)
             )
           )
-
-        return e
       })
     })
 })

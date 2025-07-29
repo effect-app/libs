@@ -533,9 +533,9 @@ export const makeRouter = <
             | LayersUtils.GetLayersError<MakeDependencies>,
             | RPCRouteR<typeof mapped[keyof typeof mapped]>
             | MakeContextProviderR
-            | MakeMiddlewareR
+            | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+            | LayersUtils.GetLayersSuccess<MiddlewareDependencies>
             | LayersUtils.GetLayersContext<MakeDependencies>
-            | LayersUtils.GetLayersContext<MiddlewareDependencies>
           >
 
           return RpcServer
@@ -562,9 +562,13 @@ export const makeRouter = <
         )
       ) as (Layer.Layer<
         Router,
-        LayersUtils.GetLayersError<MakeDependencies> | MakeE | MakeContextProviderE,
+        | LayersUtils.GetLayersError<MakeDependencies>
+        | MakeE
+        | MakeContextProviderE
+        | LayersUtils.GetLayersError<MiddlewareDependencies>,
         | LayersUtils.GetLayersContext<MakeDependencies>
-        | MakeMiddlewareR
+        | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+        | LayersUtils.GetLayersContext<MiddlewareDependencies>
         | MakeContextProviderR
         | Exclude<MakeR, LayersUtils.GetLayersSuccess<MakeDependencies>>
       >)
@@ -606,7 +610,8 @@ export const makeRouter = <
           | LayersUtils.GetLayersError<MiddlewareDependencies>
           | MakeContextProviderE,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | MakeMiddlewareR
+          | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+          | LayersUtils.GetLayersContext<MiddlewareDependencies>
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
@@ -641,7 +646,8 @@ export const makeRouter = <
           | LayersUtils.GetLayersError<MiddlewareDependencies>
           | MakeContextProviderE,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | MakeMiddlewareR
+          | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+          | LayersUtils.GetLayersContext<MiddlewareDependencies>
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
@@ -676,7 +682,8 @@ export const makeRouter = <
           | LayersUtils.GetLayersError<MiddlewareDependencies>
           | MakeContextProviderE,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | MakeMiddlewareR
+          | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+          | LayersUtils.GetLayersContext<MiddlewareDependencies>
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
@@ -711,7 +718,8 @@ export const makeRouter = <
           | LayersUtils.GetLayersError<MiddlewareDependencies>
           | MakeContextProviderE,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | MakeMiddlewareR
+          | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+          | LayersUtils.GetLayersContext<MiddlewareDependencies>
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
@@ -746,7 +754,8 @@ export const makeRouter = <
           | LayersUtils.GetLayersError<MiddlewareDependencies>
           | MakeContextProviderE,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | MakeMiddlewareR
+          | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+          | LayersUtils.GetLayersContext<MiddlewareDependencies>
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
@@ -779,7 +788,8 @@ export const makeRouter = <
           | LayersUtils.GetLayersError<MiddlewareDependencies>
           | MakeContextProviderE,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | MakeMiddlewareR
+          | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+          | LayersUtils.GetLayersContext<MiddlewareDependencies>
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,
@@ -815,7 +825,8 @@ export const makeRouter = <
           | LayersUtils.GetLayersError<MiddlewareDependencies>
           | MakeContextProviderE,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | MakeMiddlewareR
+          | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
+          | LayersUtils.GetLayersContext<MiddlewareDependencies>
           | MakeContextProviderR
           | Exclude<
             MakeContext<Make>,

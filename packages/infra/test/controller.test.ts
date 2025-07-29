@@ -1,3 +1,5 @@
+/** @effect-diagnostics missingEffectError:skip-file */
+/** @effect-diagnostics missingEffectContext:skip-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
@@ -7,7 +9,7 @@ import { Console, Context, Effect, Layer, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { makeMiddlewareContextual, makeRpc } from "../src/api/routing/DynamicMiddleware.js"
+import { makeMiddlewareContextual } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -34,6 +36,13 @@ export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker",
     return Effect.sync(() => Context.make(Some, new Some({ a: 1 })))
   })
 }) {}
+
+const Service1 = Context.Tag("something")<"something", { a: 1 }>()
+const middleware1 = <A, E, R>(handler: Effect<A, E, R>) => handler.pipe(Effect.provideService(Service1, { a: 1 }))
+declare const hndlr: Effect<"a", "e", "r" | "something">
+const resolved = middleware1(hndlr)
+type Provided<T extends Effect<any, any, any>> = Effect.Context<T> extends Exclude<infer U, infer F> ? F : never
+type A = Provided<ReturnType<typeof middleware1>>
 
 export type CTXMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
@@ -157,11 +166,9 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
             const httpReq = yield* HttpServerRequest.HttpServerRequest
             yield* Console.log("HttpServerRequest", httpReq)
 
-            return yield* handler(req, headers).pipe(
-              Effect.provide(ctx)
-              // I do expect the ContextMaker to provide this
-              // Effect.provideService(Some, new Some({ a: 1 }))
-            )
+            return yield* handler(req, headers).pipe() // Effect.provide(ctx)
+            // I do expect the ContextMaker to provide this
+            // Effect.provideService(Some, new Some({ a: 1 }))
           })
           .pipe(
             Effect.provide(
@@ -198,18 +205,29 @@ export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
 
-const rpc = makeRpc(middleware).pipe(
-  Effect.map(({ effect }) =>
-    effect(
-      DoSomething,
-      Effect.fn(function*(req, headers) {
-        const user = yield* UserProfile // dynamic context
-        const some = yield* Some // context provided by ContextMaker
-        const someservice = yield* SomeService // extraneous service
-        yield* Console.log("DoSomething", req.id, some)
-      })
-    )
+export const makeRpcTest = <A, E, R, A2, E2, R2>(
+  middleware: (handler: Effect<A, E, R>) => Effect<A2, E2, R2>
+) =>
+(handler: Effect<A, E, R>) => middleware(handler)
+// Effect.gen(function*() {
+//   return {
+//     effect: (handler: Effect<A, E, R>) => middleware(handler)
+//   }
+// })
+
+const middlware2 = <A, E, R>(handler: Effect<A, E, R>) =>
+  handler.pipe(
+    Effect.provideService(UserProfile, null as unknown as UserProfile)
   )
+const rpc = makeRpcTest(
+  middlware2
+)(
+  Effect.gen(function*() {
+    const user = yield* UserProfile // dynamic context
+    const some = yield* Some // context provided by ContextMaker
+    const someservice = yield* SomeService // extraneous service
+    // yield* Console.log("DoSomething", req.id, some)
+  })
 )
 
 export class GetSomething extends Req<GetSomething>()("GetSomething", {

@@ -195,9 +195,10 @@ export const makeRouter = <
   CtxTag extends string,
   RRet,
   RErr,
-  RCtx
+  RCtx,
+  TRet
 >(
-  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, CtxTag, RRet, RErr, RCtx>,
+  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, CtxTag, RRet, RErr, RCtx, TRet>,
   devMode: boolean
 ) => {
   function matchFor<

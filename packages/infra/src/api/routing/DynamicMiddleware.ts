@@ -127,7 +127,7 @@ export interface Middleware<
 export const makeMiddlewareContextual =
   // by setting MiddlewareR and RequestContextMap beforehand, executeContextual contextual typing does not fuck up itself to anys
   <RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR>() =>
-  <M extends Middleware<MiddlewareR, RequestContextMap, any, any, any, any, any, any, any>>(
+  <M extends Middleware<MiddlewareR, RequestContextMap, any, NonEmptyArray<Layer.Layer.Any>, any, any, any, any, any>>(
     content: M
   ): M => content
 

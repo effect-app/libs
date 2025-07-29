@@ -128,7 +128,7 @@ type RPCRouteR<
 > = T extends [
   any,
   (...args: any[]) => Effect<any, any, infer R>
-] ? R & {}
+] ? R
   : never
 
 type Match<
@@ -216,6 +216,8 @@ export const makeRouter = <
         Effect<
           any,
           S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+          // the actual implementation of the handler may just require the dynamic context provided by the middleware
+          // and the per request context provided by the context provider
           GetEffectContext<CTXMap, Action["config"]> | RRet
         >
       >,
@@ -231,6 +233,8 @@ export const makeRouter = <
     ) => Effect<
       GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      // the actual implementation of the handler may just require the dynamic context provided by the middleware
+      // and the per request context provided by the context provider
       GetEffectContext<CTXMap, Action["config"]> | RRet
     >
 
@@ -240,6 +244,8 @@ export const makeRouter = <
     > = Effect<
       GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      // the actual implementation of the handler may just require the dynamic context provided by the middleware
+      // and the per request context provided by the context provider
       GetEffectContext<CTXMap, Action["config"]> | RRet
     >
 
@@ -401,9 +407,10 @@ export const makeRouter = <
             const method = determineMethod(String(cur), resource)
 
             const handle = isCommand(method)
-              ? (req: any, headers: HttpHeaders.Headers) =>
+              ? (req: S.Schema.Type<AnyRequestModule>, headers: HttpHeaders.Headers) =>
                 Effect.retry(handler.handler(req, headers) as any, optimisticConcurrencySchedule)
-              : (req: any, headers: HttpHeaders.Headers) => Effect.interruptible(handler.handler(req, headers) as any)
+              : (req: S.Schema.Type<AnyRequestModule>, headers: HttpHeaders.Headers) =>
+                Effect.interruptible(handler.handler(req, headers) as any)
 
             acc[cur] = [
               handler._tag === RequestTypes.TYPE
@@ -490,6 +497,7 @@ export const makeRouter = <
               ) => Effect.Effect<
                 any,
                 Effect.Error<ReturnType<THandlers[K]["handler"]>>,
+                // I don't think this is correct, because this is the result of calling rpc.effect which removes RRet and dynamic context
                 MiddlewareContext | Effect.Context<ReturnType<THandlers[K]["handler"]>>
               >
             ]
@@ -508,6 +516,7 @@ export const makeRouter = <
           })) as unknown as Layer<
             { [K in keyof RequestModules]: Rpc.Handler<K> },
             never,
+            // don't think this is correct for the above reason
             RPCRouteR<typeof mapped[keyof typeof mapped]> | RCtx
           >
 

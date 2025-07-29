@@ -47,7 +47,7 @@ const Str2 = Context.GenericTag<"str2", "str">("str2")
 const middleware = makeMiddleware<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
   dependencies: [Layer.effect(Str2, Str)],
   contextProvider: ContextMaker,
-  executeContextual: (maker) =>
+  execute: (maker) =>
     Effect.gen(function*() {
       return maker((_schema, handler, moduleName) => (req, headers) => {
         return Effect

@@ -30,7 +30,7 @@ export type RPCHandlerFactory<RequestContextMap extends Record<string, RPCContex
   headers: any
 ) => Effect.Effect<
   Request.Request.Success<Req>,
-  Request.Request.Error<Req>,
+  Request.Request.Error<Req> | RequestContextMapErrors<RequestContextMap>,
   // the middleware will remove from HandlerR the dynamic context, but will also add the MiddlewareR
   | MiddlewareR
   // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
@@ -64,15 +64,10 @@ export const makeMiddlewareLayer = <
     MakeContextProviderR
   >
 ) => {
-  if (!middleware.execute && !middleware.executeContextual) {
-    throw new Error("No execute or executeContextual provided in middleware")
-  }
   const middlewareLayer = Layer
     .effect(
       MiddlewareMaker,
-      middleware.execute
-        ? middleware.execute
-        : middleware.executeContextual!(makeRpcHandler<RequestContextMap, MiddlewareR>())
+      middleware.execute!(makeRpcHandler<RequestContextMap, MiddlewareR>())
     )
     .pipe(middleware.dependencies ? Layer.provide(middleware.dependencies) as any : (_) => _)
 
@@ -106,13 +101,7 @@ export interface Middleware<
     & {
       Default: Layer.Layer<ContextProviderId, MakeContextProviderE, MakeContextProviderR>
     }
-  execute?: Effect<
-    RPCHandlerFactory<RequestContextMap, MiddlewareR>,
-    never,
-    MakeMiddlewareR
-  >
-  // better DX because types are contextually provided
-  executeContextual?: (
+  execute: (
     maker: (cb: RPCHandlerFactory<RequestContextMap, MiddlewareR>) => RPCHandlerFactory<RequestContextMap, MiddlewareR>
   ) => Effect<
     RPCHandlerFactory<RequestContextMap, MiddlewareR>,
@@ -121,9 +110,13 @@ export interface Middleware<
   >
 }
 
+export type RequestContextMapErrors<RequestContextMap extends Record<string, RPCContextMap.Any>> = S.Schema.Type<
+  RequestContextMap[keyof RequestContextMap]["error"]
+>
+
 // identity factory for Middleware
 export const makeMiddleware =
-  // by setting MiddlewareR and RequestContextMap beforehand, executeContextual contextual typing does not fuck up itself to anys
+  // by setting MiddlewareR and RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR>() =>
   <M extends Middleware<MiddlewareR, RequestContextMap, any, NonEmptyArray<Layer.Layer.Any>, any, any, any, any, any>>(
     content: M
@@ -154,7 +147,7 @@ function makeRpcEffect<RequestContextMap extends Record<string, RPCContextMap.An
       headers: any
     ) => Effect.Effect<
       Request.Request.Success<Req>,
-      Request.Request.Error<Req>,
+      Request.Request.Error<Req> | RequestContextMapErrors<RequestContextMap>,
       | Scope.Scope // the context provider may require a Scope to run
       | Exclude<MiddlewareR, ContextProviderA> // for sure ContextProviderA is provided, so it can be removed from the MiddlewareR
       | Exclude<

@@ -25,9 +25,9 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>, 
 ) => Effect.Effect<
   Request.Request.Success<Req>,
   Request.Request.Error<Req>,
+  // the middleware will remove from HandlerR the dynamic context, but will also add the MiddlewareContext
   | MiddlewareContext
-  | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]> // the middleware may remove something from HandlerR (e.g. the dynamic context), but may also add something (e.g. MiddlewareContext)
-  >
+  | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
 >
 
 export type ContextProviderShape<RRet> = Effect<Context.Context<RRet>, never, Scope>
@@ -74,6 +74,32 @@ export const makeMiddleware =
     content: M
   ): M => content
 
+function makeRpcEffect<CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext, RRet>() {
+  return (
+    cb: <T extends { config?: Partial<Record<keyof CTXMap, any>> }, Req extends S.TaggedRequest.All, R>(
+      schema: T & S.Schema<Req, any, never>,
+      handler: (
+        request: Req,
+        headers: any
+      ) => Effect.Effect<
+        EffectRequest.Request.Success<Req>,
+        EffectRequest.Request.Error<Req>,
+        R
+      >,
+      moduleName?: string
+    ) => (
+      req: Req,
+      headers: any
+    ) => Effect.Effect<
+      Request.Request.Success<Req>,
+      Request.Request.Error<Req>,
+      | Scope.Scope
+      | Exclude<MiddlewareContext, RRet>
+      | Exclude<Exclude<R, GetEffectContext<CTXMap, (T & S.Schema<Req, any, never>)["config"]>>, RRet>
+    >
+  ) => cb
+}
+
 export const makeRpc = <
   MiddlewareContext,
   CTXMap extends Record<string, RPCContextMap.Any>,
@@ -90,29 +116,18 @@ export const makeRpc = <
   Effect
     .all({
       execute: middleware.execute,
-      contextProvider: middleware.contextProvider
+      contextProvider: middleware.contextProvider // uses the middleware.contextProvider tag to get the context provider services
     })
     .pipe(Effect.map(({ contextProvider, execute }) => ({
-      effect: <T extends { config?: Partial<Record<keyof CTXMap, any>> }, Req extends S.TaggedRequest.All, R>(
-        schema: T & S.Schema<Req, any, never>,
-        handler: (
-          request: Req,
-          headers: any
-        ) => Effect.Effect<
-          EffectRequest.Request.Success<Req>,
-          EffectRequest.Request.Error<Req>,
-          R
-        >,
-        moduleName?: string
-      ) => {
+      effect: makeRpcEffect<CTXMap, MiddlewareContext, RRet>()((schema, handler, moduleName) => {
         const h = execute(schema, handler, moduleName)
-        return (req: Req, headers: any) =>
+        return (req, headers) =>
           Effect.gen(function*() {
             const ctx = yield* contextProvider
-            return yield* h(req, headers).pipe(
+            return yield* h(req as any, headers).pipe(
               Effect.provide(ctx),
               Effect.uninterruptible // TODO: make this depend on query/command, and consider if middleware also should be affected or not.
             )
           })
-      }
+      })
     })))

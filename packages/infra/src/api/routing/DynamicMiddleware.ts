@@ -45,9 +45,9 @@ export interface Middleware<
   MiddlewareContext, // added to what the handler already requires
   CTXMap extends Record<string, RPCContextMap.Any>, // dynamic services provided to the handler
   MiddlewareR, // to execute the middleware itself
-  Layers extends Array<Layer.Layer.Any>, // guess that was the old way to provide dependencies (?)
+  Layers extends Array<Layer.Layer.Any>, // layers required for the Middleware to do it's job
   //
-  // additional context built just once and provided to the handler at each request
+  // additional context built just once and provided to the handler at each request (request level context)
   CtxId, // it is the context provider itself
   CtxTag extends string, // tag for the context provider
   RRet, // what the context provider provides

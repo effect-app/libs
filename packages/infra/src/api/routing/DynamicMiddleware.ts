@@ -17,7 +17,11 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>, 
   handler: (
     request: Req,
     headers: any
-  ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
+  ) => Effect.Effect<
+    EffectRequest.Request.Success<Req>,
+    EffectRequest.Request.Error<Req>,
+    HandlerR
+  >,
   moduleName?: string
 ) => (
   req: Req,
@@ -35,7 +39,7 @@ export type ContextProviderShape<RRet> = Effect<Context.Context<RRet>, never, Sc
 export interface Middleware<
   MiddlewareContext, // added to what the handler already requires
   CTXMap extends Record<string, RPCContextMap.Any>, // dynamic services provided to the handler
-  R, // to execute the middleware itself
+  MiddlewareR, // to execute the middleware itself
   Layers extends Array<Layer.Layer.Any>, // guess that was the old way to provide dependencies (?)
   // additional context built just once and provided to the handler at each request
   CtxId,
@@ -53,7 +57,7 @@ export interface Middleware<
   execute: Effect<
     RPCHandlerFactory<CTXMap, MiddlewareContext>,
     never,
-    R
+    MiddlewareR
   >
 }
 
@@ -77,7 +81,13 @@ export const makeMiddleware =
 // it just provides the right types without cluttering the implementation with them
 function makeRpcEffect<CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext, RRet>() {
   return (
-    cb: <T extends { config?: Partial<Record<keyof CTXMap, any>> }, Req extends S.TaggedRequest.All, HandlerR>(
+    cb: <
+      T extends {
+        config?: Partial<Record<keyof CTXMap, any>>
+      },
+      Req extends S.TaggedRequest.All,
+      HandlerR
+    >(
       schema: T & S.Schema<Req, any, never>,
       handler: (
         request: Req,
@@ -104,7 +114,7 @@ function makeRpcEffect<CTXMap extends Record<string, RPCContextMap.Any>, Middlew
 export const makeRpc = <
   MiddlewareContext,
   CTXMap extends Record<string, RPCContextMap.Any>,
-  R,
+  MiddlewareR,
   Layers extends Array<Layer.Layer.Any>,
   CtxId,
   CtxTag extends string,
@@ -112,7 +122,7 @@ export const makeRpc = <
   RErr,
   RCtx
 >(
-  middleware: Middleware<MiddlewareContext, CTXMap, R, Layers, CtxId, CtxTag, RRet, RErr, RCtx>
+  middleware: Middleware<MiddlewareContext, CTXMap, MiddlewareR, Layers, CtxId, CtxTag, RRet, RErr, RCtx>
 ) =>
   Effect
     .all({

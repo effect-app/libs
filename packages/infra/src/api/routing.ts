@@ -212,6 +212,7 @@ export const makeRouter = <
   >,
   devMode: boolean
 ) => {
+  const middlewareLayer = makeMiddlewareLayer(middleware)
   function matchFor<
     const ModuleName extends string,
     const Resource extends Record<string, any>
@@ -398,7 +399,6 @@ export const makeRouter = <
       make: Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
       type Router = RouterShape<Resource>
-      const middlewareLayer = makeMiddlewareLayer(middleware)
       const layer = Effect
         .gen(function*() {
           make = (make as any)[Symbol.toStringTag] === "GeneratorFunction"

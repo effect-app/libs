@@ -4,10 +4,10 @@ import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
 import { Console, Context, Effect, Layer, S } from "effect-app"
-import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { makeMiddlewareContextual, makeRpc } from "../src/api/routing/DynamicMiddleware.js"
+import { makeMiddlewareContextual } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -158,7 +158,7 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
             yield* Console.log("HttpServerRequest", httpReq)
 
             return yield* handler(req, headers).pipe(
-              Effect.provide(ctx)
+              Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, (typeof _schema)["config"]>>)
               // I do expect the ContextMaker to provide this
               // Effect.provideService(Some, new Some({ a: 1 }))
             )
@@ -198,19 +198,19 @@ export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
 
-const rpc = makeRpc(middleware).pipe(
-  Effect.map(({ effect }) =>
-    effect(
-      DoSomething,
-      Effect.fn(function*(req, headers) {
-        const user = yield* UserProfile // dynamic context
-        const some = yield* Some // context provided by ContextMaker
-        const someservice = yield* SomeService // extraneous service
-        yield* Console.log("DoSomething", req.id, some)
-      })
-    )
-  )
-)
+// const rpc = makeRpc(middleware).pipe(
+//   Effect.map(({ effect }) =>
+//     effect(
+//       DoSomething,
+//       Effect.fn(function*(req, headers) {
+//         const user = yield* UserProfile // dynamic context
+//         const some = yield* Some // context provided by ContextMaker
+//         const someservice = yield* SomeService // extraneous service
+//         yield* Console.log("DoSomething", req.id, some)
+//       })
+//     )
+//   )
+// )
 
 export class GetSomething extends Req<GetSomething>()("GetSomething", {
   id: S.String

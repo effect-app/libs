@@ -29,14 +29,14 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>, 
 ) => Effect.Effect<
   Request.Request.Success<Req>,
   Request.Request.Error<Req>,
-  any
-> // the middleware will remove from HandlerR the dynamic context, but will also add the MiddlewareContext
-// | MiddlewareContext
-// // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
-// | Exclude<HandlerR, GetEffectContext<CTXMap, (T & S.Schema<Req, any, never>)["config"]>>
+  // the middleware will remove from HandlerR the dynamic context, but will also add the MiddlewareContext
+  | MiddlewareContext
+  // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
+  | Exclude<HandlerR, GetEffectContext<CTXMap, (T & S.Schema<Req, any, never>)["config"]>>
+>
 
 function makeRpcHandler<CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext>() {
-  return <CB extends RPCHandlerFactory<CTXMap, MiddlewareContext>>(cb: CB) => cb
+  return (cb: RPCHandlerFactory<CTXMap, MiddlewareContext>) => cb
 }
 
 export type ContextProviderShape<RRet> = Effect<Context.Context<RRet>, never, Scope>

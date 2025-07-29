@@ -7,7 +7,7 @@ import { Console, Context, Effect, Layer, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { makeMiddlewareContextual } from "../src/api/routing/DynamicMiddleware.js"
+import { makeMiddleware } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -44,7 +44,7 @@ export type RequestContextMap = {
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
 
-const middleware = makeMiddlewareContextual<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
+const middleware = makeMiddleware<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
   dependencies: [Layer.effect(Str2, Str)],
   contextProvider: ContextMaker,
   executeContextual: (maker) =>

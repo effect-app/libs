@@ -97,9 +97,7 @@ export interface Middleware<
   MakeContextProviderE, // what the context provider construction can fail with
   MakeContextProviderR // what the context provider construction requires
 > {
-  contextMap?: RequestContextMap
   dependencies?: MiddlewareDependencies
-  context?: MiddlewareR
   contextProvider:
     & Context.Tag<
       ContextProviderId,
@@ -124,19 +122,12 @@ export interface Middleware<
 }
 
 // identity factory for Middleware
-export const makeMiddlewareContextual =
+export const makeMiddleware =
   // by setting MiddlewareR and RequestContextMap beforehand, executeContextual contextual typing does not fuck up itself to anys
   <RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR>() =>
   <M extends Middleware<MiddlewareR, RequestContextMap, any, NonEmptyArray<Layer.Layer.Any>, any, any, any, any, any>>(
     content: M
   ): M => content
-
-// identity factory for Middleware
-export const makeMiddleware = <
-  M extends Middleware<any, any, any, NonEmptyArray<Layer.Layer.Any>, any, any, any, any, any>
->(
-  content: M
-): M => content
 
 // it just provides the right types without cluttering the implementation with them
 function makeRpcEffect<RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR, ContextProviderA>() {

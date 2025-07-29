@@ -34,6 +34,10 @@ export type RPCHandlerFactory<CTXMap extends Record<string, RPCContextMap.Any>, 
   | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
 >
 
+function makeRpcHandler<CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext>() {
+  return (cb: RPCHandlerFactory<CTXMap, MiddlewareContext>) => cb
+}
+
 export type ContextProviderShape<RRet> = Effect<Context.Context<RRet>, never, Scope>
 
 export interface Middleware<
@@ -55,7 +59,15 @@ export interface Middleware<
   contextProvider: Context.Tag<CtxId, CtxId & ContextProviderShape<RRet> & { _tag: CtxTag }> & {
     Default: Layer.Layer<CtxId, RErr, RCtx>
   }
-  execute: Effect<
+  execute?: Effect<
+    RPCHandlerFactory<CTXMap, MiddlewareContext>,
+    never,
+    MiddlewareR
+  >
+  // better DX because types are contextually provided
+  executeContextual?: (
+    maker: (cb: RPCHandlerFactory<CTXMap, MiddlewareContext>) => RPCHandlerFactory<CTXMap, MiddlewareContext>
+  ) => Effect<
     RPCHandlerFactory<CTXMap, MiddlewareContext>,
     never,
     MiddlewareR
@@ -127,12 +139,18 @@ export const makeRpc = <
 ) =>
   Effect
     .all({
-      execute: middleware.execute,
+      execute: middleware.execute ?? Effect.void,
+      executeContextual: middleware.executeContextual
+        ? middleware.executeContextual(makeRpcHandler<CTXMap, MiddlewareContext>())
+        : Effect.void,
       contextProvider: middleware.contextProvider // uses the middleware.contextProvider tag to get the context provider service
     })
-    .pipe(Effect.map(({ contextProvider, execute }) => ({
+    .pipe(Effect.map(({ contextProvider, execute, executeContextual }) => ({
       effect: makeRpcEffect<CTXMap, MiddlewareContext, RRet>()((schema, handler, moduleName) => {
-        const h = execute(schema, handler, moduleName)
+        if (!execute && !executeContextual) {
+          throw new Error("No execute or executeContextual provided in middleware")
+        }
+        const h = (executeContextual! ?? execute!)(schema, handler, moduleName)
         return (req, headers) =>
           // the contextProvider is an Effect that builds the context for the request
           contextProvider.pipe(

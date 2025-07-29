@@ -3,11 +3,10 @@
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect, Layer, type Request, S } from "effect-app"
+import { Context, Effect, Layer, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import type * as EffectRequest from "effect/Request"
 import { makeMiddleware } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
@@ -46,104 +45,136 @@ const middleware = makeMiddleware({
   // helper to deal with nested generic lmitations
   context: null as any as HttpServerRequest.HttpServerRequest,
   contextProvider: ContextMaker,
-  execute: Effect.gen(function*() {
-    return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
-      _schema: T & S.Schema<Req, any, never>,
-      handler: (
-        request: Req,
-        headers: any
-      ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
-      moduleName?: string
-    ) =>
-    (
-      req: Req,
-      headers: any
-    ): Effect.Effect<
-      Request.Request.Success<Req>,
-      Request.Request.Error<Req>,
-      | HttpServerRequest.HttpServerRequest
-      | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
-    > =>
-      Effect
-        .gen(function*() {
-          // const headers = yield* Rpc.currentHeaders
-          const ctx = Context.empty().pipe(
-            Context.add(UserProfile, { id: "whatever" })
+  // execute: Effect.gen(function*() {
+  //   return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
+  //     _schema: T & S.Schema<Req, any, never>,
+  //     handler: (
+  //       request: Req,
+  //       headers: any
+  //     ) => Effect.Effect<EffectRequest.Request.Success<Req>, EffectRequest.Request.Error<Req>, HandlerR>,
+  //     moduleName?: string
+  //   ) =>
+  //   (
+  //     req: Req,
+  //     headers: any
+  //   ): Effect.Effect<
+  //     Request.Request.Success<Req>,
+  //     Request.Request.Error<Req>,
+  //     | HttpServerRequest.HttpServerRequest
+  //     | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
+  //   > =>
+  //     Effect
+  //       .gen(function*() {
+  //         // const headers = yield* Rpc.currentHeaders
+  //         const ctx = Context.empty().pipe(
+  //           Context.add(UserProfile, { id: "whatever" })
+  //         )
+
+  //         // const config = "config" in schema ? schema.config : undefined
+
+  //         // Check JWT
+  //         // TODO
+  //         // if (!fakeLogin && !request.allowAnonymous) {
+  //         //   yield* Effect.catchAll(
+  //         //     checkJWTI({
+  //         //       ...authConfig,
+  //         //       issuer: authConfig.issuer + "/",
+  //         //       jwksUri: `${authConfig.issuer}/.well-known/jwks.json`
+  //         //     }),
+  //         //     (err) => Effect.fail(new JWTError({ error: err }))
+  //         //   )
+  //         // }
+
+  //         // const fakeLogin = true
+  //         // const r = (fakeLogin
+  //         //   ? makeUserProfileFromUserHeader(headers["x-user"])
+  //         //   : makeUserProfileFromAuthorizationHeader(
+  //         //     headers["authorization"]
+  //         //   ))
+  //         //   .pipe(Effect.exit, basicRuntime.runSync)
+  //         // if (!Exit.isSuccess(r)) {
+  //         //   yield* Effect.logWarning("Parsing userInfo failed").pipe(Effect.annotateLogs("r", r))
+  //         // }
+  //         // const userProfile = Option.fromNullable(Exit.isSuccess(r) ? r.value : undefined)
+  //         // if (Option.isSome(userProfile)) {
+  //         //   // yield* rcc.update((_) => ({ ..._, userPorfile: userProfile.value }))
+  //         //   ctx = ctx.pipe(Context.add(UserProfile, userProfile.value))
+  //         // } else if (!config?.allowAnonymous) {
+  //         //   return yield* new NotLoggedInError({ message: "no auth" })
+  //         // }
+
+  //         // if (config?.requireRoles) {
+  //         //   // TODO
+  //         //   if (
+  //         //     !userProfile.value
+  //         //     || !config.requireRoles.every((role: any) => userProfile.value!.roles.includes(role))
+  //         //   ) {
+  //         //     return yield* new UnauthorizedError()
+  //         //   }
+  //         // }
+
+  //         return yield* handler(req, headers).pipe(
+  //           Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>)
+  //           // I do expect the ContextMaker to provide this
+  //           // Effect.provideService(Some, new Some({ a: 1 }))
+  //         )
+  //       })
+  //       .pipe(
+  //         Effect.provide(
+  //           Effect
+  //             .gen(function*() {
+  //               yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
+  //               // yield* RequestContextContainer.update((_) => ({
+  //               //   ..._,
+  //               //   name: NonEmptyString255(moduleName ? `${moduleName}.${req._tag}` : req._tag)
+  //               // }))
+  //               // const httpReq = yield* HttpServerRequest.HttpServerRequest
+  //               // TODO: only pass Authentication etc, or move headers to actual Rpc Headers
+  //               // yield* FiberRef.update(
+  //               //   Rpc.currentHeaders,
+  //               //   (headers) =>
+  //               //     HttpHeaders.merge(
+  //               //       httpReq.headers,
+  //               //       headers
+  //               //     )
+  //               // )
+  //             })
+  //             .pipe(Layer.effectDiscard)
+  //         )
+  //       )
+  //   // .pipe(Effect.provide(RequestCacheLayers)) as any
+  // }),
+  executeContextual: (maker) =>
+    Effect.gen(function*() {
+      return maker((_schema, handler, moduleName) => (req, headers) =>
+        Effect
+          .gen(function*() {
+            // const headers = yield* Rpc.currentHeaders
+            const ctx = Context.empty().pipe(
+              Context.add(UserProfile, { id: "whatever" })
+            )
+
+            return yield* handler(req, headers).pipe(
+              Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, (typeof _schema)["config"]>>)
+              // I do expect the ContextMaker to provide this
+              // Effect.provideService(Some, new Some({ a: 1 }))
+            )
+          })
+          .pipe(
+            Effect.provide(
+              Effect
+                .gen(function*() {
+                  yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
+
+                  // const httpReq = yield* HttpServerRequest.HttpServerRequest
+
+                  // yield* Console.log("HttpServerRequest", httpReq)
+                })
+                .pipe(Layer.effectDiscard)
+            )
           )
-
-          // const config = "config" in schema ? schema.config : undefined
-
-          // Check JWT
-          // TODO
-          // if (!fakeLogin && !request.allowAnonymous) {
-          //   yield* Effect.catchAll(
-          //     checkJWTI({
-          //       ...authConfig,
-          //       issuer: authConfig.issuer + "/",
-          //       jwksUri: `${authConfig.issuer}/.well-known/jwks.json`
-          //     }),
-          //     (err) => Effect.fail(new JWTError({ error: err }))
-          //   )
-          // }
-
-          // const fakeLogin = true
-          // const r = (fakeLogin
-          //   ? makeUserProfileFromUserHeader(headers["x-user"])
-          //   : makeUserProfileFromAuthorizationHeader(
-          //     headers["authorization"]
-          //   ))
-          //   .pipe(Effect.exit, basicRuntime.runSync)
-          // if (!Exit.isSuccess(r)) {
-          //   yield* Effect.logWarning("Parsing userInfo failed").pipe(Effect.annotateLogs("r", r))
-          // }
-          // const userProfile = Option.fromNullable(Exit.isSuccess(r) ? r.value : undefined)
-          // if (Option.isSome(userProfile)) {
-          //   // yield* rcc.update((_) => ({ ..._, userPorfile: userProfile.value }))
-          //   ctx = ctx.pipe(Context.add(UserProfile, userProfile.value))
-          // } else if (!config?.allowAnonymous) {
-          //   return yield* new NotLoggedInError({ message: "no auth" })
-          // }
-
-          // if (config?.requireRoles) {
-          //   // TODO
-          //   if (
-          //     !userProfile.value
-          //     || !config.requireRoles.every((role: any) => userProfile.value!.roles.includes(role))
-          //   ) {
-          //     return yield* new UnauthorizedError()
-          //   }
-          // }
-
-          return yield* handler(req, headers).pipe(
-            Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>)
-            // Effect.provideService(Some, new Some({ a: 1 }))
-          )
-        })
-        .pipe(
-          Effect.provide(
-            Effect
-              .gen(function*() {
-                yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
-                // yield* RequestContextContainer.update((_) => ({
-                //   ..._,
-                //   name: NonEmptyString255(moduleName ? `${moduleName}.${req._tag}` : req._tag)
-                // }))
-                // const httpReq = yield* HttpServerRequest.HttpServerRequest
-                // TODO: only pass Authentication etc, or move headers to actual Rpc Headers
-                // yield* FiberRef.update(
-                //   Rpc.currentHeaders,
-                //   (headers) =>
-                //     HttpHeaders.merge(
-                //       httpReq.headers,
-                //       headers
-                //     )
-                // )
-              })
-              .pipe(Layer.effectDiscard)
-          )
-        )
-    // .pipe(Effect.provide(RequestCacheLayers)) as any
-  })
+      )
+    })
 })
 
 export type RequestConfig = {

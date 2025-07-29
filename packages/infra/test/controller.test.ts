@@ -35,15 +35,15 @@ export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker",
   })
 }) {}
 
-export type CTXMap = {
+export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
   // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
-const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServerRequest>()({
+const middleware = makeMiddlewareContextual<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
   contextProvider: ContextMaker,
   // execute: Effect.gen(function*() {
-  //   return <T extends { config?: { [K in keyof CTXMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
+  //   return <T extends { config?: { [K in keyof RequestContextMap]?: any } }, Req extends S.TaggedRequest.All, HandlerR>(
   //     _schema: T & S.Schema<Req, any, never>,
   //     handler: (
   //       request: Req,
@@ -58,7 +58,7 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
   //     Request.Request.Success<Req>,
   //     Request.Request.Error<Req>,
   //     | HttpServerRequest.HttpServerRequest
-  //     | Exclude<HandlerR, GetEffectContext<CTXMap, T["config"]>>
+  //     | Exclude<HandlerR, GetEffectContext<RequestContextMap, T["config"]>>
   //   > =>
   //     Effect
   //       .gen(function*() {
@@ -111,7 +111,7 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
   //         // }
 
   //         return yield* handler(req, headers).pipe(
-  //           Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, T["config"]>>)
+  //           Effect.provide(ctx as Context.Context<GetEffectContext<RequestContextMap, T["config"]>>)
   //           // I do expect the ContextMaker to provide this
   //           // Effect.provideService(Some, new Some({ a: 1 }))
   //         )
@@ -158,7 +158,7 @@ const middleware = makeMiddlewareContextual<CTXMap, HttpServerRequest.HttpServer
             yield* Console.log("HttpServerRequest", httpReq)
 
             return yield* handler(req, headers).pipe(
-              Effect.provide(ctx as Context.Context<GetEffectContext<CTXMap, (typeof _schema)["config"]>>)
+              Effect.provide(ctx as Context.Context<GetEffectContext<RequestContextMap, (typeof _schema)["config"]>>)
               // I do expect the ContextMaker to provide this
               // Effect.provideService(Some, new Some({ a: 1 }))
             )
@@ -186,7 +186,7 @@ export type RequestConfig = {
   /** Control the roles that are required to access the resource */
   allowRoles?: readonly string[]
 }
-export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, CTXMap>({
+export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, RequestContextMap>({
   allowAnonymous: NotLoggedInError,
   requireRoles: UnauthorizedError
 })

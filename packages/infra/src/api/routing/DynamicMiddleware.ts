@@ -133,28 +133,10 @@ export const makeMiddlewareContextual =
 
 // identity factory for Middleware
 export const makeMiddleware = <
-  RequestContextMap extends Record<string, RPCContextMap.Any>,
-  MiddlewareR,
-  MakeMiddlewareR,
-  MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>,
-  ContextProviderId,
-  ContextProviderKey extends string,
-  ContextProviderA,
-  MakeContextProviderE,
-  MakeContextProviderR
+  M extends Middleware<any, any, any, NonEmptyArray<Layer.Layer.Any>, any, any, any, any, any>
 >(
-  content: Middleware<
-    MiddlewareR,
-    RequestContextMap,
-    MakeMiddlewareR,
-    MiddlewareDependencies,
-    ContextProviderId,
-    ContextProviderKey,
-    ContextProviderA,
-    MakeContextProviderE,
-    MakeContextProviderR
-  >
-) => content
+  content: M
+): M => content
 
 // it just provides the right types without cluttering the implementation with them
 function makeRpcEffect<RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR, ContextProviderA>() {

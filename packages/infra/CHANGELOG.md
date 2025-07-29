@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 2.72.0
+
+### Minor Changes
+
+- 96c51df: replace execute with executeContextual
+
+### Patch Changes
+
+- 96c51df: add support for error
+
 ## 2.71.0
 
 ### Minor Changes

@@ -74,6 +74,7 @@ export const makeMiddleware =
     content: M
   ): M => content
 
+// it just provides the right types without cluttering the implementation with them
 function makeRpcEffect<CTXMap extends Record<string, RPCContextMap.Any>, MiddlewareContext, RRet>() {
   return (
     cb: <T extends { config?: Partial<Record<keyof CTXMap, any>> }, Req extends S.TaggedRequest.All, R>(
@@ -116,18 +117,22 @@ export const makeRpc = <
   Effect
     .all({
       execute: middleware.execute,
-      contextProvider: middleware.contextProvider // uses the middleware.contextProvider tag to get the context provider services
+      contextProvider: middleware.contextProvider // uses the middleware.contextProvider tag to get the context provider service
     })
     .pipe(Effect.map(({ contextProvider, execute }) => ({
       effect: makeRpcEffect<CTXMap, MiddlewareContext, RRet>()((schema, handler, moduleName) => {
         const h = execute(schema, handler, moduleName)
         return (req, headers) =>
-          Effect.gen(function*() {
-            const ctx = yield* contextProvider
-            return yield* h(req as any, headers).pipe(
-              Effect.provide(ctx),
-              Effect.uninterruptible // TODO: make this depend on query/command, and consider if middleware also should be affected or not.
+          // the contextProvider is an Effect that builds the context for the request
+          contextProvider.pipe(
+            Effect.flatMap((ctx) =>
+              h(req, headers)
+                .pipe(
+                  Effect.provide(ctx),
+                  // TODO: make this depend on query/command, and consider if middleware also should be affected or not.
+                  Effect.uninterruptible
+                )
             )
-          })
+          )
       })
     })))

@@ -390,14 +390,14 @@ export const makeRouter = <
         // import to keep them separate via | for type checking!!
         [K in keyof RequestModules]: AnyHandler<Resource[K]>
       },
-      TLayers extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
+      MakeDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
     >(
-      layers: TLayers,
+      dependencies: MakeDependencies,
       make: Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
       type ProvidedLayers =
         | { [k in keyof MiddlewareDependencies]: Layer.Layer.Success<MiddlewareDependencies[k]> }[number]
-        | { [k in keyof TLayers]: Layer.Layer.Success<TLayers[k]> }[number]
+        | { [k in keyof MakeDependencies]: Layer.Layer.Success<MakeDependencies[k]> }[number]
       type Router = RouterShape<Resource>
 
       const layer = Effect
@@ -409,7 +409,7 @@ export const makeRouter = <
           const controllers = yield* make
           const rpc = yield* makeRpc(middleware)
 
-          // return make.pipe(Effect.map((c) => controllers(c, layers)))
+          // return make.pipe(Effect.map((c) => controllers(c, dependencies)))
           const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {
             const handler = controllers[cur as keyof typeof controllers]
             const resource = rsc[cur]
@@ -547,7 +547,7 @@ export const makeRouter = <
       const routes = (
         layer.pipe(
           Layer.provide([
-            ...layers ?? [],
+            ...dependencies ?? [],
             middleware.contextProvider.Default,
             // TODO: only provide to the middleware?
             ...middleware.dependencies ?? []
@@ -555,8 +555,8 @@ export const makeRouter = <
         )
       ) as (Layer.Layer<
         Router,
-        LayersUtils.GetLayersError<TLayers> | MakeE | MakeContextProviderE,
-        | LayersUtils.GetLayersContext<TLayers>
+        LayersUtils.GetLayersError<MakeDependencies> | MakeE | MakeContextProviderE,
+        | LayersUtils.GetLayersContext<MakeDependencies>
         | Exclude<
           MakeMiddlewareR | MakeR | MakeContextProviderR,
           ProvidedLayers

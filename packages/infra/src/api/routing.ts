@@ -537,10 +537,10 @@ export const makeRouter = <
       const routes = (
         layer.pipe(
           Layer.provide([
-            ...(layers ?? []),
+            ...layers ?? [],
             middleware.contextProvider.Default,
             // TODO: only provide to the middleware?
-            ...middleware.dependencies ? (middleware.dependencies as any) : []
+            ...middleware.dependencies ?? []
           ] as any) as any
         )
       ) as (Layer.Layer<

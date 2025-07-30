@@ -114,7 +114,6 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
 }) {}
 
 class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
-  dependencies: [AllowAnonymous.Default],
   effect: Effect.gen(function*() {
     return {
       handle: Effect.fn(

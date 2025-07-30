@@ -39,7 +39,7 @@ export type MakeRPCHandlerFactory<
 ) => Effect.Effect<
   Request.Request.Success<Req>,
   Request.Request.Error<Req> | RequestContextMapErrors<RequestContextMap>,
-  // the middleware will remove from HandlerR the dynamic context, but will also add the MiddlewareR
+  // the middleware will remove from HandlerR the dynamic context, but will also add some requirements
   | MiddlewareR
   // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
   | Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>
@@ -47,7 +47,6 @@ export type MakeRPCHandlerFactory<
 
 export type RPCHandlerFactory<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
-  MiddlewareR,
   ContextProviderA
 > = <
   T extends {
@@ -72,12 +71,11 @@ export type RPCHandlerFactory<
 ) => Effect.Effect<
   Request.Request.Success<Req>,
   Request.Request.Error<Req> | RequestContextMapErrors<RequestContextMap>,
-  | HttpRouter.HttpRouter.Provided // because of the context provider
+  | HttpRouter.HttpRouter.Provided // because of the context provider and the middleware (Middleware)
   | Exclude<
-    | MiddlewareR
-    // the middleware will remove from HandlerR the dynamic context, but will also add the MiddlewareR
+    // the middleware will remove from HandlerR the dynamic context
     // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
-    | Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>,
+    Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>,
     // the context provider provides additional stuff both to the middleware and the handler
     ContextProviderA
   >
@@ -95,7 +93,6 @@ export interface ContextProviderId {
 }
 
 export interface MiddlewareMake<
-  MiddlewareR, // additional middleware requirements to be executed
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the handler, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middleware requires to be constructed
@@ -116,13 +113,15 @@ export interface MiddlewareMake<
     & {
       Default: Layer.Layer<ContextProviderId, MakeContextProviderE, MakeContextProviderR>
     }
-  // this actually construct "the middleware", i.e. returns the augmented handler factory when yielded...
+  // this actually builds "the middleware", i.e. returns the augmented handler factory when yielded...
   execute: (
     maker: (
-      cb: MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>
-    ) => MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>
+      // MiddlewareR is set to ContextProviderA | HttpRouter.HttpRouter.Provided because that's what, at most
+      // a middleware can additionally require to get executed
+      cb: MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
+    ) => MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
   ) => Effect<
-    MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>,
+    MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>,
     MakeMiddlewareE,
     MakeMiddlewareR // ...that's why MakeMiddlewareR is here
   >
@@ -219,7 +218,6 @@ export const ContextProvider = <
 export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(Context.empty())) })
 
 export type Middleware<
-  MiddlewareR, // additional middleware requirements to be executed
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the handler, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
@@ -228,7 +226,7 @@ export type Middleware<
   & Context.Tag<
     MiddlewareMakerId,
     MiddlewareMakerId & {
-      effect: RPCHandlerFactory<RequestContextMap, MiddlewareR, ContextProviderA>
+      effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
     }
   >
   & {
@@ -245,8 +243,10 @@ export type RequestContextMapErrors<RequestContextMap extends Record<string, RPC
 
 // factory for middlewares
 export const makeMiddleware =
-  // by setting MiddlewareR and RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
-  <RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR>() =>
+  // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
+  <
+    RequestContextMap extends Record<string, RPCContextMap.Any>
+  >() =>
   <
     MakeMiddlewareE, // what the middleware construction can fail with
     MakeMiddlewareR, // what the middlware requires to be constructed
@@ -259,7 +259,6 @@ export const makeMiddleware =
     MakeContextProviderR // what the context provider construction requires
   >(
     make: MiddlewareMake<
-      MiddlewareR,
       RequestContextMap,
       MakeMiddlewareE,
       MakeMiddlewareR,
@@ -274,7 +273,7 @@ export const makeMiddleware =
     const MiddlewareMaker = Context.GenericTag<
       MiddlewareMakerId,
       {
-        effect: RPCHandlerFactory<RequestContextMap, MiddlewareR, ContextProviderA>
+        effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
         _tag: "MiddlewareMaker"
       }
     >(
@@ -285,13 +284,15 @@ export const makeMiddleware =
       MiddlewareMaker,
       Effect
         .all({
-          middleware: make.execute((cb: MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>) => cb),
+          middleware: make.execute((
+            cb: MakeRPCHandlerFactory<RequestContextMap, HttpRouter.HttpRouter.Provided | ContextProviderA>
+          ) => cb),
           contextProvider: make.contextProvider // uses the middleware.contextProvider tag to get the context provider service
         })
         .pipe(
           Effect.map(({ contextProvider, middleware }) => ({
             _tag: "MiddlewareMaker" as const,
-            effect: makeRpcEffect<RequestContextMap, MiddlewareR, ContextProviderA>()(
+            effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
               (schema, handler, moduleName) => {
                 const h = middleware(schema, handler, moduleName)
                 return (req, headers) =>
@@ -330,7 +331,6 @@ export const makeMiddleware =
 // it just provides the right types without cluttering the implementation with them
 function makeRpcEffect<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
-  MiddlewareR,
   ContextProviderA
 >() {
   return (
@@ -358,7 +358,6 @@ function makeRpcEffect<
       Request.Request.Success<Req>,
       Request.Request.Error<Req> | RequestContextMapErrors<RequestContextMap>,
       | HttpRouter.HttpRouter.Provided // the context provider may require HttpRouter.Provided to run
-      | Exclude<MiddlewareR, ContextProviderA> // for sure ContextProviderA is provided, so it can be removed from the MiddlewareR\
       | Exclude<
         // it can also be removed from HandlerR
         Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>,

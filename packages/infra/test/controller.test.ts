@@ -29,6 +29,7 @@ export interface CTX {
 }
 
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
+export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 const contextProvider = ContextProvider({
@@ -68,7 +69,7 @@ export type RequestContextMap = {
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
 
-const middleware = makeMiddleware<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
+const middleware = makeMiddleware<RequestContextMap>()({
   dependencies: [Layer.effect(Str2, Str)],
   contextProvider,
   execute: (maker) =>
@@ -82,7 +83,8 @@ const middleware = makeMiddleware<RequestContextMap, HttpServerRequest.HttpServe
             )
 
             // you can use only HttpServerRequest.HttpServerRequest here as additional context
-            // const some = yield* Some
+            // or what the ContextMaker provides
+            // const someElse = yield* SomeElse
 
             const httpReq = yield* HttpServerRequest.HttpServerRequest
             yield* Console.log("HttpServerRequest", httpReq)

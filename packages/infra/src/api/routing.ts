@@ -6,13 +6,13 @@ import { determineMethod, isCommand } from "@effect-app/infra/api/routing/utils"
 import { logError, reportError } from "@effect-app/infra/errorReporter"
 import { InfraLogger } from "@effect-app/infra/logger"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { Array, Cause, Context, Duration, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { Array, Cause, Duration, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
-import { type ContextProviderShape, type Middleware } from "./routing/DynamicMiddleware.js"
+import { type Middleware } from "./routing/DynamicMiddleware.js"
 
 export * from "./routing/DynamicMiddleware.js"
 
@@ -366,7 +366,8 @@ export const makeRouter = <
                 any
               > ? R
               : never,
-            GetEffectContext<RequestContextMap, Resource[K]["config"]>
+            | GetEffectContext<RequestContextMap, Resource[K]["config"]>
+            | ContextProviderA
           >,
           HttpRouter.HttpRouter.Provided
         >
@@ -498,7 +499,7 @@ export const makeRouter = <
                 Effect.Success<ReturnType<THandlers[K]["handler"]>>,
                 | Effect.Error<ReturnType<THandlers[K]["handler"]>>
                 | GetEffectError<RequestContextMap, Resource[K]["config"]>,
-                | MiddlewareR
+                | Exclude<MiddlewareR, ContextProviderA>
                 | Exclude<
                   Effect.Context<ReturnType<THandlers[K]["handler"]>>,
                   ContextProviderA | GetEffectContext<RequestContextMap, Resource[K]["config"]>
@@ -903,44 +904,3 @@ export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestCaching(true),
   Layer.setRequestBatching(true)
 )
-
-type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
-
-export const contextMaker = <
-  // TDeps is an array of services whit Default implementation
-  // each service is an effect which builds some context for each request
-  TDeps extends Array.NonEmptyReadonlyArray<
-    & (
-      | Context.Tag<any, Effect<Context.Context<any>, any, any> & { _tag: any }>
-      | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
-    )
-    & {
-      new(...args: any[]): any
-      Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
-    }
-  >
->(...deps: TDeps): {
-  dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
-  effect: Effect.Effect<
-    Effect.Effect<
-      Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
-      Effect.Error<InstanceType<TDeps[number]>>,
-      Effect.Context<InstanceType<TDeps[number]>>
-    >,
-    never,
-    InstanceType<TDeps[number]>
-  >
-} => ({
-  dependencies: deps.map((_) => _.Default) as any,
-  effect: Effect.gen(function*() {
-    const services = yield* Effect.all(deps)
-    // services are effects which return some Context.Context<...>
-    return Effect.all(services as any[]).pipe(
-      Effect.map((_) => Context.mergeAll(..._ as any))
-    )
-  }) as any
-})
-
-export class EmptyContextMaker extends Effect.Service<EmptyContextMaker>()("EmptyContextMaker", {
-  succeed: Effect.succeed(Context.empty()) satisfies ContextProviderShape<never>
-}) {}

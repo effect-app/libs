@@ -80,10 +80,10 @@ function makeRpcHandler<RequestContextMap extends Record<string, RPCContextMap.A
   return (cb: MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>) => cb
 }
 
-export type ContextProviderShape<ContextProviderA> = Effect<
+export type ContextProviderShape<ContextProviderA, ContextProviderR extends HttpRouter.HttpRouter.Provided> = Effect<
   Context.Context<ContextProviderA>,
   never,
-  HttpRouter.HttpRouter.Provided
+  ContextProviderR
 >
 
 export interface MiddlewareMake<
@@ -95,6 +95,7 @@ export interface MiddlewareMake<
   //
   // ContextProvider is a service that builds additional context for each request.
   ContextProviderA, // what the context provider provides
+  ContextProviderR extends HttpRouter.HttpRouter.Provided, // what the context provider requires
   MakeContextProviderE, // what the context provider construction can fail with
   MakeContextProviderR // what the context provider construction requires
 > {
@@ -102,7 +103,7 @@ export interface MiddlewareMake<
   contextProvider:
     & Context.Tag<
       ContextProviderId,
-      ContextProviderShape<ContextProviderA>
+      ContextProviderShape<ContextProviderA, ContextProviderR>
     >
     & {
       Default: Layer.Layer<ContextProviderId, MakeContextProviderE, MakeContextProviderR>
@@ -179,12 +180,12 @@ export const mergeContextProviders = <
 //   >
 // >(...deps: TDeps) => ContextProvider(mergeContextProviders(...deps))
 
-export const ContextProvider = <A, E, R, EContext, Dependencies extends NonEmptyArray<Layer.Layer.Any>>(
-  input: { effect: Effect<Effect<A, EContext, HttpRouter.HttpRouter.Provided>, E, R>; dependencies?: Dependencies }
+export const ContextProvider = <A, E, R, ContextE, ContextR, Dependencies extends NonEmptyArray<Layer.Layer.Any>>(
+  input: { effect: Effect<Effect<A, ContextE, ContextR>, E, R>; dependencies?: Dependencies }
 ) => {
   const ctx = Context.GenericTag<
     ContextProviderId,
-    Effect<A, EContext, HttpRouter.HttpRouter.Provided>
+    Effect<A, ContextE, ContextR>
   >(
     "ContextProvider"
   )
@@ -240,6 +241,7 @@ export const makeMiddleware =
     //
     // ContextProvider is a service that builds additional context for each request.
     ContextProviderA, // what the context provider provides
+    ContextProviderR extends HttpRouter.HttpRouter.Provided, // what the context provider requires
     MakeContextProviderE, // what the context provider construction can fail with
     MakeContextProviderR // what the context provider construction requires
   >(
@@ -250,6 +252,7 @@ export const makeMiddleware =
       MakeMiddlewareR,
       MiddlewareDependencies,
       ContextProviderA,
+      ContextProviderR,
       MakeContextProviderE,
       MakeContextProviderR
     >

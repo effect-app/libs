@@ -78,7 +78,8 @@ const merged = mergeContextProviders(MyContextProvider)
 export const contextProvider2 = ContextProvider(merged)
 export const contextProvider3 = MergedContextProvider(MyContextProvider)
 
-expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider3>()
+expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider>()
+expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
 
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>

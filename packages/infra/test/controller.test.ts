@@ -31,7 +31,10 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 const contextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService
-    return Effect.sync(() => Context.make(Some, new Some({ a: 1 })))
+    return Effect.gen(function*() {
+      yield* Str2
+      return Context.make(Some, new Some({ a: 1 }))
+    })
   })
 })
 

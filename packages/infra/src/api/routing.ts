@@ -193,14 +193,16 @@ export const makeRouter = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   MakeMiddlewareE,
   MakeMiddlewareR,
-  ContextProviderA
+  ContextProviderA,
+  ContextProviderR
 >(
   middleware: Middleware<
     MiddlewareR,
     RequestContextMap,
     MakeMiddlewareE,
     MakeMiddlewareR,
-    ContextProviderA
+    ContextProviderA,
+    ContextProviderR
   >,
   devMode: boolean
 ) => {
@@ -323,7 +325,7 @@ export const makeRouter = <
         })
         return prev
       },
-      {} as RouteMatcher<RequestContextMap, Resource, MiddlewareR>
+      {} as RouteMatcher<RequestContextMap, Resource, MiddlewareR | ContextProviderR>
     )
 
     const router: AddAction<RequestModules[keyof RequestModules]> = {
@@ -348,6 +350,7 @@ export const makeRouter = <
         Impl[K] extends { raw: any } ? RequestTypes.TYPE : RequestTypes.DECODED,
         Exclude<
           | MiddlewareR
+          | ContextProviderR
           | Exclude<
             // retrieves context R from the actual implementation of the handler
             Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
@@ -366,7 +369,8 @@ export const makeRouter = <
                 any
               > ? R
               : never,
-            GetEffectContext<RequestContextMap, Resource[K]["config"]>
+            | GetEffectContext<RequestContextMap, Resource[K]["config"]>
+            | ContextProviderA
           >,
           HttpRouter.HttpRouter.Provided
         >
@@ -498,7 +502,8 @@ export const makeRouter = <
                 Effect.Success<ReturnType<THandlers[K]["handler"]>>,
                 | Effect.Error<ReturnType<THandlers[K]["handler"]>>
                 | GetEffectError<RequestContextMap, Resource[K]["config"]>,
-                | MiddlewareR
+                | ContextProviderR
+                | Exclude<MiddlewareR, ContextProviderA>
                 | Exclude<
                   Effect.Context<ReturnType<THandlers[K]["handler"]>>,
                   ContextProviderA | GetEffectContext<RequestContextMap, Resource[K]["config"]>

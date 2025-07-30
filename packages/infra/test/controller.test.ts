@@ -1,18 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter, RequestCacheLayers } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect, Layer, S } from "effect-app"
+import { Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
+import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   Class<UserProfile>("UserProfile")({
-    id: S.String
+    id: S.String,
+    roles: S.Array(S.String)
   })
 ) {
 }
@@ -83,52 +85,169 @@ expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
 
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
-  // TODO: not boolean but `string[]`
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
 }
 
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
 
+type ContextWithLayer<Config, Id, Service, E, R, MakeE, MakeR, Tag extends string> =
+  & Context.Tag<
+    Id,
+    { handle: (config: Config, headers: Record<string, string>) => Effect<Option<Context<Service>>, E, R>; _tag: Tag }
+  >
+  & {
+    Default: Layer.Layer<Id, MakeE, MakeR>
+  }
+
+type AnyContextWithLayer<Config, Service, Error> =
+  | ContextWithLayer<
+    Config,
+    any,
+    Service,
+    Error,
+    any,
+    any,
+    any,
+    string
+  >
+  | ContextWithLayer<
+    Config,
+    any,
+    Service,
+    Error,
+    never,
+    any,
+    never,
+    any
+  >
+  | ContextWithLayer<
+    Config,
+    any,
+    Service,
+    Error,
+    any,
+    any,
+    never,
+    any
+  >
+  | ContextWithLayer<
+    Config,
+    any,
+    Service,
+    Error,
+    never,
+    any,
+    any,
+    any
+  >
+
+const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
+<
+  TI extends {
+    [K in keyof T]: AnyContextWithLayer<
+      T[K]["contextActivation"] | undefined,
+      T[K]["service"],
+      S.Schema.Type<T[K]["error"]>
+    >
+  }
+>(implementations: TI) => ({
+  dependencies: typedValuesOf(implementations).map((_) => _.Default),
+  effect: Effect.gen(function*() {
+    return Effect.fn(function*(config: any, headers: Record<string, string>) {
+      const contexts = yield* Effect
+        .all(
+          typedKeysOf(implementations).map(Effect.fnUntraced(function*(k) {
+            const middleware = yield* implementations[k]!
+            return yield* middleware.handle(config[k], headers)
+          }))
+        )
+        .pipe(Effect.map(Array.filterMap((_) => _)))
+
+      const ctx = Context.mergeAll(
+        Context.empty(),
+        ...contexts
+      ) as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
+
+      return ctx
+    })
+  })
+})
+
+class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", {
+  dependencies: [],
+  effect: Effect.gen(function*() {
+    return {
+      handle: Effect.fn(function*(allowAnonymous: false | undefined, headers: Record<string, string>) {
+        const isLoggedIn = !!headers["x-user"]
+        if (!isLoggedIn) {
+          if (!allowAnonymous) {
+            return yield* new NotLoggedInError({ message: "Not logged in" })
+          }
+          return Option.none()
+        }
+        return Option.some(Context.make(
+          UserProfile,
+          { id: "whatever", roles: ["user", "manager"] }
+        ))
+      })
+    }
+  })
+}) {}
+
+class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
+  dependencies: [],
+  effect: Effect.gen(function*() {
+    return {
+      handle: Effect.fn(function*(requireRoles: readonly string[] | undefined) {
+        // todo; how to get to access UserProfile from this Middleware, while is provided from the middleware..??
+        // we need to somehow allow specifying other required middleware, so that we can run and provide it to this one?
+        // or should we instead share behaviour between the two?
+        // or should we somehow cover two configuration options, like requireRoles and allowAnonymous together?
+        const userProfile = yield* UserProfile
+        if (requireRoles && !userProfile.roles?.some((role) => requireRoles.includes(role))) {
+          return yield* new UnauthorizedError({ message: "Not logged in" })
+        }
+        return Option.none()
+      })
+    }
+  })
+}) {}
+
+const test = implementMiddleware<RequestContextMap>()({
+  allowAnonymous: AllowAnonymous,
+  requireRoles: RequireRoles // todo: not sure what else to do to allow request context..
+})
+
 const middleware = makeMiddleware<RequestContextMap>()({
-  dependencies: [Layer.effect(Str2, Str)],
+  dependencies: [Layer.effect(Str2, Str), ...test.dependencies],
   contextProvider,
   execute: (maker) =>
     Effect.gen(function*() {
-      return maker((_schema, handler, moduleName) => (req, headers) => {
+      const providers = yield* test.effect
+      return maker((schema, handler, moduleName) => (req, headers) => {
         return Effect
           .gen(function*() {
-            // const headers = yield* Rpc.currentHeaders
-            const ctx = Context.empty().pipe(
-              Context.add(UserProfile, { id: "whatever" })
-            )
+            yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
 
             // you can use only HttpRouter.HttpRouter.Provided here as additional context
             // and what ContextMaker provides too
             // const someElse = yield* SomeElse
+            const ctx = yield* providers(schema.config, headers)
 
             yield* Some // provided by ContextMaker
             yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
             return yield* handler(req, headers).pipe(
-              Effect.provide(ctx as Context.Context<GetEffectContext<RequestContextMap, (typeof _schema)["config"]>>)
+              Effect.provide(
+                Layer.succeedContext(ctx).pipe(
+                  Layer.provideMerge(RequestCacheLayers)
+                )
+              )
               // I do expect the ContextMaker to provide this
               // Effect.provideService(Some, new Some({ a: 1 }))
             )
           })
-          .pipe(
-            Effect.provide(
-              Effect
-                .gen(function*() {
-                  yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
-
-                  // const httpReq = yield* HttpServerRequest.HttpServerRequest
-
-                  //
-                })
-                .pipe(Layer.effectDiscard)
-            )
-          )
       })
     })
 })

@@ -84,6 +84,7 @@ export type ContextProviderShape<ContextProviderA> = Effect<Context.Context<Cont
 export interface MiddlewareMake<
   MiddlewareR, // what the middlware requires to execute
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the handler, or raise errors.
+  MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
   MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
   //
@@ -109,7 +110,7 @@ export interface MiddlewareMake<
     ) => MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>
   ) => Effect<
     MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>,
-    never,
+    MakeMiddlewareE,
     MakeMiddlewareR
   >
 }
@@ -153,6 +154,7 @@ export const makeMiddleware =
   // by setting MiddlewareR and RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR>() =>
   <
+    MakeMiddlewareE,
     MakeMiddlewareR, // what the middlware requires to be constructed
     MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     //
@@ -166,6 +168,7 @@ export const makeMiddleware =
     make: MiddlewareMake<
       MiddlewareR,
       RequestContextMap,
+      MakeMiddlewareE,
       MakeMiddlewareR,
       MiddlewareDependencies,
       ContextProviderId,
@@ -219,7 +222,8 @@ export const makeMiddleware =
         Layer.provide(make.contextProvider.Default)
       ) as Layer.Layer<
         MiddlewareMakerId,
-        Layer.Error<typeof make.contextProvider.Default>,
+        | MakeMiddlewareE
+        | Layer.Error<typeof make.contextProvider.Default>,
         | LayersUtils.GetLayersContext<MiddlewareDependencies>
         | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>>
         | Layer.Context<typeof make.contextProvider.Default>

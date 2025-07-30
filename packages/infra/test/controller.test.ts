@@ -4,7 +4,7 @@ import { type MakeContext, type MakeErrors, makeRouter, RequestCacheLayers } fro
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
-import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
 import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
@@ -170,9 +170,12 @@ const middleware = makeMiddleware<RequestContextMap>()({
 
             return yield* handler(req, headers).pipe(
               Effect.provide(
-                Layer.succeedContext(ctx).pipe(
-                  Layer.provideMerge(RequestCacheLayers)
-                )
+                Layer
+                  // todo: somehow make it work without having to cast, like buildDynamicContext remains generic
+                  .succeedContext(ctx as Context.Context<GetEffectContext<RequestContextMap, typeof schema["config"]>>)
+                  .pipe(
+                    Layer.provideMerge(RequestCacheLayers)
+                  )
               )
               // I do expect the ContextMaker to provide this
               // Effect.provideService(Some, new Some({ a: 1 }))

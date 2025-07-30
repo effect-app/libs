@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.73.4
+
+### Patch Changes
+
+- 6996ba3: fix MergedContextProvider
+
 ## 2.73.3
 
 ### Patch Changes

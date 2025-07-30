@@ -3,11 +3,11 @@
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expectTypeOf } from "@effect/vitest"
-import { Console, Context, Effect, Layer, S } from "effect-app"
+import { Context, Effect, Layer, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { ContextProvider, makeMiddleware, mergeContextProviders } from "../src/api/routing/DynamicMiddleware.js"
+import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -36,10 +36,17 @@ const contextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
+
     return Effect.gen(function*() {
-      // if (Math.random() > 0.5) return yield* new CustomError2()
+      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
       yield* HttpServerRequest.HttpServerRequest
-      // yield* Str2 // not allowed
+
+      // not allowed
+      // yield* SomeElse
+
+      // currently the effectful context provider cannot trigger an error when building the per request context
+      // if (Math.random() > 0.5) return yield* new CustomError2()
+
       return Context.make(Some, new Some({ a: 1 }))
     })
   })
@@ -49,9 +56,19 @@ const contextProvider = ContextProvider({
 class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextProvider", {
   effect: Effect.gen(function*() {
     yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
+
     return Effect.gen(function*() {
+      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
       yield* HttpServerRequest.HttpServerRequest
-      // yield* Str2 // not allowed
+
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // yield* SomeElse
+
+      // currently the effectful context provider cannot trigger an error when building the per request context
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // if (Math.random() > 0.5) return yield* new CustomError2()
+
       return Context.make(Some, new Some({ a: 1 }))
     })
   })
@@ -59,6 +76,9 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
 
 const merged = mergeContextProviders(MyContextProvider)
 export const contextProvider2 = ContextProvider(merged)
+export const contextProvider3 = MergedContextProvider(MyContextProvider)
+
+expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider3>()
 
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
@@ -86,8 +106,8 @@ const middleware = makeMiddleware<RequestContextMap>()({
             // or what the ContextMaker provides
             // const someElse = yield* SomeElse
 
-            const httpReq = yield* HttpServerRequest.HttpServerRequest
-            yield* Console.log("HttpServerRequest", httpReq)
+            // const httpReq = yield* HttpServerRequest.HttpServerRequest
+            // yield* Console.log("HttpServerRequest", httpReq)
 
             return yield* handler(req, headers).pipe(
               Effect.provide(ctx as Context.Context<GetEffectContext<RequestContextMap, (typeof _schema)["config"]>>)

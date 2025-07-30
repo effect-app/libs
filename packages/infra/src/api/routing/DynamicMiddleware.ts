@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Array, Context, Effect, Layer, type NonEmptyArray, type Request, type S } from "effect-app"
+import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Request, type S } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
@@ -127,11 +127,15 @@ export interface MiddlewareMake<
   >
 }
 
+// Note: the type here must be aligned with MergedContextProvider
 export const mergeContextProviders = <
   // TDeps is an array of services whit Default implementation
   // each service is an effect which builds some context for each request
   TDeps extends Array.NonEmptyReadonlyArray<
     & (
+      // E = never => the context provided cannot trigger errors
+      // can't put HttpRouter.HttpRouter.Provided as R here because of variance
+      // (TDeps is an input type parameter so it's contravariant therefore Effect's R becomes contravariant too)
       | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
       | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
     )
@@ -140,15 +144,23 @@ export const mergeContextProviders = <
       Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
     }
   >
->(...deps: TDeps): {
+>(
+  ...deps: {
+    [K in keyof TDeps]: TDeps[K]["Service"] extends Effect<Context.Context<any>, never, HttpRouter.HttpRouter.Provided>
+      ? TDeps[K]
+      : `HttpRouter.HttpRouter.Provided are the only requirements ${TDeps[K]["Service"][
+        "_tag"
+      ]}'s returned effect can have`
+  }
+): {
   dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
   effect: Effect.Effect<
     Effect.Effect<
       Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
-      Effect.Error<InstanceType<TDeps[number]>>,
+      never,
       Effect.Context<InstanceType<TDeps[number]>>
     >,
-    never,
+    LayersUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     InstanceType<TDeps[number]>
   >
 } => ({
@@ -162,22 +174,6 @@ export const mergeContextProviders = <
     )
   }) as any
 })
-
-// TODO: andrea; how?
-// export const MergedContextProvider = <
-//   // TDeps is an array of services whit Default implementation
-//   // each service is an effect which builds some context for each request
-//   TDeps extends Array.NonEmptyReadonlyArray<
-//     & (
-//       | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
-//       | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
-//     )
-//     & {
-//       new(...args: any[]): any
-//       Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
-//     }
-//   >
-// >(...deps: TDeps) => ContextProvider(mergeContextProviders(...deps))
 
 export interface MiddlewareMakerId {
   _tag: "MiddlewareMaker"
@@ -214,6 +210,57 @@ export const ContextProvider = <
     >
   })
 }
+
+// Note: the type here must be aligned with mergeContextProviders
+export const MergedContextProvider = <
+  // TDeps is an array of services whit Default implementation
+  // each service is an effect which builds some context for each request
+  TDeps extends Array.NonEmptyReadonlyArray<
+    & (
+      // E = never => the context provided cannot trigger errors
+      // can't put HttpRouter.HttpRouter.Provided as R here because of variance
+      // (TDeps is an input type parameter so it's contravariant therefore Effect's R becomes contravariant too)
+      | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
+      | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
+    )
+    & {
+      new(...args: any[]): any
+      Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
+    }
+  >
+>(
+  ...deps: {
+    [K in keyof TDeps]: TDeps[K]["Service"] extends Effect<Context.Context<any>, never, HttpRouter.HttpRouter.Provided>
+      ? TDeps[K]
+      : `HttpRouter.HttpRouter.Provided are the only requirements ${TDeps[K]["Service"][
+        "_tag"
+      ]}'s returned effect can have`
+  }
+) =>
+  pipe(
+    deps as Parameters<typeof mergeContextProviders>[0],
+    mergeContextProviders,
+    (_) => ContextProvider(_ as any)
+  ) as unknown as
+    & Context.Tag<
+      ContextProviderId,
+      Effect.Effect<
+        Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
+        never,
+        Effect.Context<InstanceType<TDeps[number]>>
+      >
+    >
+    & {
+      Default: Layer.Layer<
+        ContextProviderId,
+        LayersUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
+        | Exclude<
+          InstanceType<TDeps[number]>,
+          LayersUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
+        >
+        | LayersUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
+      >
+    }
 
 export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(Context.empty())) })
 

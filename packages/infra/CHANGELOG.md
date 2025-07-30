@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 2.73.0
+
+### Minor Changes
+
+- f260706: simplify middleware
+- 063b79f: further simplify ContextProvider
+- 063b79f: improve ContextProvider
+
 ## 2.72.0
 
 ### Minor Changes

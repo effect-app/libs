@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.73.1
+
+### Patch Changes
+
+- 4c93aae: fix: ContextProvider R
+
 ## 2.73.0
 
 ### Minor Changes

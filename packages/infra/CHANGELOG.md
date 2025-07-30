@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.73.3
+
+### Patch Changes
+
+- 981c4ed: set proper upperbounds for contexts, add MergedContextProvider, remove MiddlewareR from makeMiddleware
+
 ## 2.73.2
 
 ### Patch Changes

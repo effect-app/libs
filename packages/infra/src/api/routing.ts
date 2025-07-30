@@ -12,7 +12,7 @@ import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
-import { type ContextProviderShape, makeRpc, type Middleware } from "./routing/DynamicMiddleware.js"
+import { type ContextProviderShape, type Middleware } from "./routing/DynamicMiddleware.js"
 
 export * from "./routing/DynamicMiddleware.js"
 
@@ -191,22 +191,16 @@ export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 export const makeRouter = <
   MiddlewareR,
   RequestContextMap extends Record<string, RPCContextMap.Any>,
+  MakeMiddlewareE,
   MakeMiddlewareR,
-  ContextProviderId,
-  ContextProviderKey extends string,
-  ContextProviderA,
-  MakeContextProviderE,
-  MakeContextProviderR
+  ContextProviderA
 >(
   middleware: Middleware<
     MiddlewareR,
     RequestContextMap,
+    MakeMiddlewareE,
     MakeMiddlewareR,
-    ContextProviderId,
-    ContextProviderKey,
-    ContextProviderA,
-    MakeContextProviderE,
-    MakeContextProviderR
+    ContextProviderA
   >,
   devMode: boolean
 ) => {
@@ -403,7 +397,7 @@ export const makeRouter = <
             : make
 
           const controllers = yield* make
-          const rpc = yield* makeRpc(middleware)
+          const rpc = yield* middleware
 
           // return make.pipe(Effect.map((c) => controllers(c, dependencies)))
           const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {
@@ -525,12 +519,10 @@ export const makeRouter = <
             }, {} as Record<string, any>)
           })) as unknown as Layer<
             { [K in keyof RequestModules]: Rpc.Handler<K> },
-            | MakeContextProviderE
-            | Layer.Error<typeof middleware.provider.Default>
+            | Layer.Error<typeof middleware.Default>
             | LayersUtils.GetLayersError<MakeDependencies>,
             | RPCRouteR<typeof mapped[keyof typeof mapped]>
-            | MakeContextProviderR
-            | Layer.Context<typeof middleware.provider.Default>
+            | Layer.Context<typeof middleware.Default>
             | LayersUtils.GetLayersContext<MakeDependencies>
           >
 
@@ -552,19 +544,16 @@ export const makeRouter = <
         layer.pipe(
           Layer.provide([
             ...dependencies ?? [],
-            middleware.contextProvider.Default,
-            middleware.provider.Default
+            middleware.Default
           ] as any) as any
         )
       ) as (Layer.Layer<
         Router,
         | LayersUtils.GetLayersError<MakeDependencies>
         | MakeE
-        | MakeContextProviderE
-        | Layer.Error<typeof middleware.provider.Default>,
+        | Layer.Error<typeof middleware.Default>,
         | LayersUtils.GetLayersContext<MakeDependencies>
-        | Layer.Context<typeof middleware.provider.Default>
-        | MakeContextProviderR
+        | Layer.Context<typeof middleware.Default>
         | Exclude<MakeR, LayersUtils.GetLayersSuccess<MakeDependencies>>
       >)
 
@@ -602,11 +591,9 @@ export const makeRouter = <
           RouterShape<Resource>,
           | MakeErrors<Make>
           | LayersUtils.GetLayersError<Make["dependencies"]>
-          | Layer.Error<typeof middleware.provider.Default>
-          | MakeContextProviderE,
+          | Layer.Error<typeof middleware.Default>,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | Layer.Context<typeof middleware.provider.Default>
-          | MakeContextProviderR
+          | Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             LayersUtils.GetLayersSuccess<Make["dependencies"]>
@@ -637,11 +624,9 @@ export const makeRouter = <
           RouterShape<Resource>,
           | MakeErrors<Make>
           | LayersUtils.GetLayersError<Make["dependencies"]>
-          | Layer.Error<typeof middleware.provider.Default>
-          | MakeContextProviderE,
+          | Layer.Error<typeof middleware.Default>,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | Layer.Context<typeof middleware.provider.Default>
-          | MakeContextProviderR
+          | Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             LayersUtils.GetLayersSuccess<Make["dependencies"]>
@@ -672,11 +657,9 @@ export const makeRouter = <
           RouterShape<Resource>,
           | MakeErrors<Make>
           | LayersUtils.GetLayersError<Make["dependencies"]>
-          | Layer.Error<typeof middleware.provider.Default>
-          | MakeContextProviderE,
+          | Layer.Error<typeof middleware.Default>,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | Layer.Context<typeof middleware.provider.Default>
-          | MakeContextProviderR
+          | Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             LayersUtils.GetLayersSuccess<Make["dependencies"]>
@@ -707,11 +690,9 @@ export const makeRouter = <
           RouterShape<Resource>,
           | MakeErrors<Make>
           | LayersUtils.GetLayersError<Make["dependencies"]>
-          | Layer.Error<typeof middleware.provider.Default>
-          | MakeContextProviderE,
+          | Layer.Error<typeof middleware.Default>,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | Layer.Context<typeof middleware.provider.Default>
-          | MakeContextProviderR
+          | Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             LayersUtils.GetLayersSuccess<Make["dependencies"]>
@@ -742,11 +723,9 @@ export const makeRouter = <
           RouterShape<Resource>,
           | MakeErrors<Make>
           | LayersUtils.GetLayersError<Make["dependencies"]>
-          | Layer.Error<typeof middleware.provider.Default>
-          | MakeContextProviderE,
+          | Layer.Error<typeof middleware.Default>,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | Layer.Context<typeof middleware.provider.Default>
-          | MakeContextProviderR
+          | Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             LayersUtils.GetLayersSuccess<Make["dependencies"]>
@@ -775,11 +754,9 @@ export const makeRouter = <
           RouterShape<Resource>,
           | MakeErrors<Make>
           | LayersUtils.GetLayersError<Make["dependencies"]>
-          | Layer.Error<typeof middleware.provider.Default>
-          | MakeContextProviderE,
+          | Layer.Error<typeof middleware.Default>,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | Layer.Context<typeof middleware.provider.Default>
-          | MakeContextProviderR
+          | Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             LayersUtils.GetLayersSuccess<Make["dependencies"]>
@@ -811,11 +788,9 @@ export const makeRouter = <
           RouterShape<Resource>,
           | MakeErrors<Make>
           | LayersUtils.GetLayersError<Make["dependencies"]>
-          | Layer.Error<typeof middleware.provider.Default>
-          | MakeContextProviderE,
+          | Layer.Error<typeof middleware.Default>,
           | LayersUtils.GetLayersContext<Make["dependencies"]>
-          | Layer.Context<typeof middleware.provider.Default>
-          | MakeContextProviderR
+          | Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             LayersUtils.GetLayersSuccess<Make["dependencies"]>

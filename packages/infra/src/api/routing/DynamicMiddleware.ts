@@ -133,7 +133,7 @@ export const mergeContextProviders = <
   // each service is an effect which builds some context for each request
   TDeps extends Array.NonEmptyReadonlyArray<
     & (
-      | Context.Tag<any, Effect<Context.Context<any>, any, any> & { _tag: any }>
+      | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
       | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
     )
     & {
@@ -162,6 +162,22 @@ export const mergeContextProviders = <
     )
   }) as any
 })
+
+// TODO: andrea; how?
+// export const MergedContextProvider = <
+//   // TDeps is an array of services whit Default implementation
+//   // each service is an effect which builds some context for each request
+//   TDeps extends Array.NonEmptyReadonlyArray<
+//     & (
+//       | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
+//       | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
+//     )
+//     & {
+//       new(...args: any[]): any
+//       Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
+//     }
+//   >
+// >(...deps: TDeps) => ContextProvider(mergeContextProviders(...deps))
 
 export const ContextProvider = <A, E, R, EContext, Dependencies extends NonEmptyArray<Layer.Layer.Any>>(
   input: { effect: Effect<Effect<A, EContext, HttpRouter.HttpRouter.Provided>, E, R>; dependencies?: Dependencies }

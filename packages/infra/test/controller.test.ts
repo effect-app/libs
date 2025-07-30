@@ -32,7 +32,8 @@ const contextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService
     return Effect.gen(function*() {
-      yield* Str2
+      yield* HttpServerRequest.HttpServerRequest
+      // yield* Str2 // not allowed
       return Context.make(Some, new Some({ a: 1 }))
     })
   })

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, Effect, type Layer, type Option, type S } from "effect-app"
 import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
+import { type Tag } from "effect-app/Context"
 import { typedValuesOf } from "effect-app/utils"
 import { type RequestContextMap } from "./controller.test.js"
 import { sort } from "./tsort.js"
@@ -103,6 +104,13 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
         }
         return context as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
       }
-    )
+    ) as (
+      config: { [K in keyof T]?: T[K]["contextActivation"] },
+      headers: Record<string, string>
+    ) => Effect.Effect<
+      Context.Context<GetEffectContext<RequestContextMap, typeof config>>,
+      Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>,
+      Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>
+    >
   })
 })

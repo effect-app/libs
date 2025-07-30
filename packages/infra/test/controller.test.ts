@@ -103,12 +103,12 @@ const middleware = makeMiddleware<RequestContextMap>()({
               Context.add(UserProfile, { id: "whatever" })
             )
 
-            // you can use only HttpServerRequest.HttpServerRequest here as additional context
-            // or what the ContextMaker provides
+            // you can use only HttpRouter.HttpRouter.Provided here as additional context
+            // and what ContextMaker provides too
             // const someElse = yield* SomeElse
 
-            // const httpReq = yield* HttpServerRequest.HttpServerRequest
-            // yield* Console.log("HttpServerRequest", httpReq)
+            yield* Some // provided by ContextMaker
+            yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
             return yield* handler(req, headers).pipe(
               Effect.provide(ctx as Context.Context<GetEffectContext<RequestContextMap, (typeof _schema)["config"]>>)

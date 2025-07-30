@@ -86,7 +86,9 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
     >
   }
 >(implementations: TI) => ({
-  dependencies: typedValuesOf(implementations).map((_) => _.Default),
+  dependencies: typedValuesOf(implementations).map((_) => _.Default) as {
+    [K in keyof TI]: TI[K]["Default"]
+  }[keyof TI][],
   effect: Effect.gen(function*() {
     return Effect.fn(
       function*(config: { [K in keyof T]?: T[K]["contextActivation"] }, headers: Record<string, string>) {

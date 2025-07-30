@@ -146,7 +146,7 @@ const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 <
   TI extends {
     [K in keyof T]: AnyContextWithLayer<
-      T[K]["contextActivation"] | undefined,
+      { [K in keyof T]?: T[K]["contextActivation"] },
       T[K]["service"],
       S.Schema.Type<T[K]["error"]>
     >
@@ -154,33 +154,35 @@ const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 >(implementations: TI) => ({
   dependencies: typedValuesOf(implementations).map((_) => _.Default),
   effect: Effect.gen(function*() {
-    return Effect.fn(function*(config: any, headers: Record<string, string>) {
-      const contexts = yield* Effect
-        .all(
-          typedKeysOf(implementations).map(Effect.fnUntraced(function*(k) {
-            const middleware = yield* implementations[k]!
-            return yield* middleware.handle(config[k], headers)
-          }))
-        )
-        .pipe(Effect.map(Array.filterMap((_) => _)))
+    return Effect.fn(
+      function*(config: { [K in keyof T]?: T[K]["contextActivation"] }, headers: Record<string, string>) {
+        const contexts = yield* Effect
+          .all(
+            typedKeysOf(implementations).map(Effect.fnUntraced(function*(k) {
+              const middleware = yield* implementations[k]!
+              return yield* middleware.handle(config, headers)
+            }))
+          )
+          .pipe(Effect.map(Array.filterMap((_) => _)))
 
-      const ctx = Context.mergeAll(
-        Context.empty(),
-        ...contexts
-      ) as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
+        const ctx = Context.mergeAll(
+          Context.empty(),
+          ...contexts
+        ) as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
 
-      return ctx
-    })
+        return ctx
+      }
+    )
   })
 })
 
 class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", {
   effect: Effect.gen(function*() {
     return {
-      handle: Effect.fn(function*(allowAnonymous: false | undefined, headers: Record<string, string>) {
+      handle: Effect.fn(function*(opts: { allowAnonymous?: false }, headers: Record<string, string>) {
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
-          if (!allowAnonymous) {
+          if (!opts.allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
           return Option.none()
@@ -195,19 +197,28 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
 }) {}
 
 class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
+  dependencies: [AllowAnonymous.Default],
   effect: Effect.gen(function*() {
+    const allowAnonymous = yield* AllowAnonymous
     return {
-      handle: Effect.fn(function*(requireRoles: readonly string[] | undefined) {
-        // todo; how to get to access UserProfile from this Middleware, while is provided from the middleware..??
-        // we need to somehow allow specifying other required middleware, so that we can run and provide it to this one?
-        // or should we instead share behaviour between the two?
-        // or should we somehow cover two configuration options, like requireRoles and allowAnonymous together?
-        const userProfile = yield* UserProfile
-        if (requireRoles && !userProfile.roles?.some((role) => requireRoles.includes(role))) {
-          return yield* new UnauthorizedError({ message: "Not logged in" })
+      handle: Effect.fn(
+        function*(cfg: { requireRoles?: readonly string[]; allowAnonymous?: false }, headers: Record<string, string>) {
+          // todo; how to get to access UserProfile from this Middleware, while is provided from the middleware..??
+          // we need to somehow allow specifying other required middleware, so that we can run and provide it to this one?
+          // or should we instead share behaviour between the two?
+          // or should we somehow cover two configuration options, like requireRoles and allowAnonymous together?
+          const anon = yield* allowAnonymous.handle(cfg, headers).pipe(
+            Effect.map(Option.getOrElse(() => Context.empty())),
+            Effect.orDie // just a quick cop out to silence the error
+          )
+          const userProfile = yield* Effect.serviceOption(UserProfile).pipe(Effect.provide(anon))
+          const { requireRoles } = cfg
+          if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
+            return yield* new UnauthorizedError({ message: "Not logged in" })
+          }
+          return Option.none<Context<never>>()
         }
-        return Option.none()
-      })
+      )
     }
   })
 }) {}
@@ -231,7 +242,7 @@ const middleware = makeMiddleware<RequestContextMap>()({
             // you can use only HttpRouter.HttpRouter.Provided here as additional context
             // and what ContextMaker provides too
             // const someElse = yield* SomeElse
-            const ctx = yield* providers(schema.config, headers)
+            const ctx = yield* providers(schema.config ?? {}, headers)
 
             yield* Some // provided by ContextMaker
             yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided

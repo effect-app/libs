@@ -85,9 +85,9 @@ expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider>()
 expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
 
 export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
-  requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
-  test: RPCContextMap<"test", never, typeof S.Never>
+  allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
+  requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
+  test: RPCContextMap<never, typeof S.Never>
 }
 
 const Str = Context.GenericTag<"str", "str">("str")

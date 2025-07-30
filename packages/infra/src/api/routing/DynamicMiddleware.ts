@@ -238,8 +238,8 @@ export const MergedContextProvider = <
   }
 ) =>
   pipe(
-    deps as Parameters<typeof mergeContextProviders>[0],
-    mergeContextProviders,
+    deps as [Parameters<typeof mergeContextProviders>[0]],
+    (_) => mergeContextProviders(..._),
     (_) => ContextProvider(_ as any)
   ) as unknown as
     & Context.Tag<

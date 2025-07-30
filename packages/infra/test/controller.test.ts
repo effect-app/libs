@@ -21,6 +21,9 @@ class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError
   message: S.String
 }) {}
 
+class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
+class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
+
 export interface CTX {
   context: RequestContext
 }
@@ -31,7 +34,9 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 const contextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
     return Effect.gen(function*() {
+      // if (Math.random() > 0.5) return yield* new CustomError2()
       yield* HttpServerRequest.HttpServerRequest
       // yield* Str2 // not allowed
       return Context.make(Some, new Some({ a: 1 }))

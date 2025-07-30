@@ -7,7 +7,7 @@ import { Console, Context, Effect, Layer, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { makeMiddleware } from "../src/api/routing/DynamicMiddleware.js"
+import { ContextProvider, makeMiddleware } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -28,12 +28,12 @@ export interface CTX {
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class ContextMaker extends Effect.Service<ContextMaker>()("ContextMaker", {
+const contextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService
     return Effect.sync(() => Context.make(Some, new Some({ a: 1 })))
   })
-}) {}
+})
 
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
@@ -46,7 +46,7 @@ const Str2 = Context.GenericTag<"str2", "str">("str2")
 
 const middleware = makeMiddleware<RequestContextMap, HttpServerRequest.HttpServerRequest>()({
   dependencies: [Layer.effect(Str2, Str)],
-  contextProvider: ContextMaker,
+  contextProvider,
   execute: (maker) =>
     Effect.gen(function*() {
       return maker((_schema, handler, moduleName) => (req, headers) => {

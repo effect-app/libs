@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer, type NonEmptyArray, type Request, type S, type Scope } from "effect-app"
+import { type Array, Context, Effect, Layer, type NonEmptyArray, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import type * as EffectRequest from "effect/Request"
 import { type LayersUtils } from "../routing.js"
@@ -89,8 +89,6 @@ export interface MiddlewareMake<
   MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
   //
   // ContextProvider is a service that builds additional context for each request.
-  ContextProviderId, // it is the context provider itself
-  ContextProviderKey extends string, // tag for the context provider
   ContextProviderA, // what the context provider provides
   MakeContextProviderE, // what the context provider construction can fail with
   MakeContextProviderR // what the context provider construction requires
@@ -99,7 +97,7 @@ export interface MiddlewareMake<
   contextProvider:
     & Context.Tag<
       ContextProviderId,
-      ContextProviderId & ContextProviderShape<ContextProviderA> & { _tag: ContextProviderKey }
+      ContextProviderShape<ContextProviderA>
     >
     & {
       Default: Layer.Layer<ContextProviderId, MakeContextProviderE, MakeContextProviderR>
@@ -119,18 +117,77 @@ export interface MiddlewareMakerId {
   _tag: "MiddlewareMaker"
 }
 
+export interface ContextProviderId {
+  _tag: "ContextProvider"
+}
+
+type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
+
+export const contextProvider = <
+  // TDeps is an array of services whit Default implementation
+  // each service is an effect which builds some context for each request
+  TDeps extends Array.NonEmptyReadonlyArray<
+    & (
+      | Context.Tag<any, Effect<Context.Context<any>, any, any> & { _tag: any }>
+      | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
+    )
+    & {
+      new(...args: any[]): any
+      Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
+    }
+  >
+>(...deps: TDeps): {
+  dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
+  effect: Effect.Effect<
+    Effect.Effect<
+      Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
+      Effect.Error<InstanceType<TDeps[number]>>,
+      Effect.Context<InstanceType<TDeps[number]>>
+    >,
+    never,
+    InstanceType<TDeps[number]>
+  >
+} => ({
+  dependencies: deps.map((_) => _.Default) as any,
+  effect: Effect.gen(function*() {
+    const services = yield* Effect.all(deps)
+    // services are effects which return some Context.Context<...>
+    return Effect.all(services as any[]).pipe(
+      Effect.map((_) => Context.mergeAll(..._ as any))
+    )
+  }) as any
+})
+
+export const ContextProvider = <A, E, R, EContext, RContext, Dependencies extends NonEmptyArray<Layer.Layer.Any>>(
+  input: { effect: Effect<Effect<A, EContext, RContext>, E, R>; dependencies?: Dependencies }
+) => {
+  const ctx = Context.GenericTag<
+    ContextProviderId,
+    Effect<A, EContext, RContext | Scope>
+  >(
+    "ContextProvider"
+  )
+  const l = Layer.effect(ctx, input.effect)
+  return Object.assign(ctx, {
+    Default: l.pipe(
+      input.dependencies ? Layer.provide(input.dependencies) as any : (_) => _
+    ) as Layer.Layer<
+      ContextProviderId,
+      E | LayersUtils.GetLayersError<Dependencies>,
+      Exclude<R, LayersUtils.GetLayersSuccess<Dependencies>> | LayersUtils.GetLayersContext<Dependencies>
+    >
+  })
+}
+
+export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(Context.empty())) })
+
 export type Middleware<
   MiddlewareR, // what the middlware requires to execute
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the handler, or raise errors.
-  MakeMiddlewareE,
+  MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
-  //
-  // ContextProvider is a service that builds additional context for each request.
-  // ContextProviderId, // it is the context provider itself
-  // ContextProviderKey extends string, // tag for the context provider
   ContextProviderA // what the context provider provides
-> // MakeContextProviderE, // what the context provider construction can fail with
- = // MakeContextProviderR // what the context provider construction requires
+> =
   & Context.Tag<
     MiddlewareMakerId,
     MiddlewareMakerId & { effect: RPCHandlerFactory<RequestContextMap, MiddlewareR, ContextProviderA> } & {
@@ -154,13 +211,11 @@ export const makeMiddleware =
   // by setting MiddlewareR and RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <RequestContextMap extends Record<string, RPCContextMap.Any>, MiddlewareR>() =>
   <
-    MakeMiddlewareE,
+    MakeMiddlewareE, // what the middleware construction can fail with
     MakeMiddlewareR, // what the middlware requires to be constructed
     MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     //
     // ContextProvider is a service that builds additional context for each request.
-    ContextProviderId, // it is the context provider itself
-    ContextProviderKey extends string, // tag for the context provider
     ContextProviderA, // what the context provider provides
     MakeContextProviderE, // what the context provider construction can fail with
     MakeContextProviderR // what the context provider construction requires
@@ -171,8 +226,6 @@ export const makeMiddleware =
       MakeMiddlewareE,
       MakeMiddlewareR,
       MiddlewareDependencies,
-      ContextProviderId,
-      ContextProviderKey,
       ContextProviderA,
       MakeContextProviderE,
       MakeContextProviderR

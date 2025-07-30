@@ -144,14 +144,6 @@ class Test extends Effect.Service<Test>()("Test", {
   })
 }) {}
 
-it("sorts based on requirements", () => {
-  const input = [RequireRoles, AllowAnonymous, Test]
-  const sorted = sort(input)
-  console.dir({ input, sorted }, { depth: 10 })
-  expect(sorted).toEqual([AllowAnonymous, RequireRoles, Test])
-  // todo: add the rest of the items that are missing
-})
-
 const dynamicMiddlewares = implementMiddleware<RequestContextMap>()({
   requireRoles: RequireRoles,
   allowAnonymous: AllowAnonymous,
@@ -326,6 +318,13 @@ const router = Router(Something)({
       }
     })
   }
+})
+
+it("sorts based on requirements", () => {
+  const input = [RequireRoles, AllowAnonymous, Test]
+  const sorted = sort(input)
+  console.dir({ input, sorted }, { depth: 10 })
+  expect(sorted).toEqual([AllowAnonymous, RequireRoles, Test])
 })
 
 // eslint-disable-next-line unused-imports/no-unused-vars

@@ -80,7 +80,7 @@ function makeRpcHandler<RequestContextMap extends Record<string, RPCContextMap.A
   return (cb: MakeRPCHandlerFactory<RequestContextMap, MiddlewareR>) => cb
 }
 
-export type ContextProviderShape<ContextProviderA, ContextProviderR extends HttpRouter.HttpRouter.Provided> = Effect<
+export type ContextProviderShape<ContextProviderA, ContextProviderR> = Effect<
   Context.Context<ContextProviderA>,
   never,
   ContextProviderR

@@ -2,14 +2,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter, RequestCacheLayers } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
-import { expectTypeOf } from "@effect/vitest"
-import { Array, Context, Effect, Layer, Option, S } from "effect-app"
+import { expect, expectTypeOf, it } from "@effect/vitest"
+import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { typedKeysOf, typedValuesOf } from "effect-app/utils"
+import { typedValuesOf } from "effect-app/utils"
 import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
 import { SomeService } from "./query.test.js"
+import { sort } from "./tsort.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   Class<UserProfile>("UserProfile")({
@@ -86,18 +87,31 @@ expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
   requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
+  test: RPCContextMap<"test", never, typeof S.Never>
 }
 
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
 
-type ContextWithLayer<Config, Id, Service, E, R, MakeE, MakeR, Tag extends string> =
+type ContextWithLayer<
+  Config,
+  Id,
+  Service,
+  E,
+  R,
+  MakeE,
+  MakeR,
+  Tag extends string,
+  Args extends [config: Config, headers: Record<string, string>],
+  Dependencies extends any[]
+> =
   & Context.Tag<
     Id,
-    { handle: (config: Config, headers: Record<string, string>) => Effect<Option<Context<Service>>, E, R>; _tag: Tag }
+    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag }
   >
   & {
     Default: Layer.Layer<Id, MakeE, MakeR>
+    dependsOn?: Dependencies
   }
 
 type AnyContextWithLayer<Config, Service, Error> =
@@ -109,7 +123,9 @@ type AnyContextWithLayer<Config, Service, Error> =
     any,
     any,
     any,
-    string
+    string,
+    any,
+    any
   >
   | ContextWithLayer<
     Config,
@@ -119,6 +135,8 @@ type AnyContextWithLayer<Config, Service, Error> =
     never,
     any,
     never,
+    any,
+    any,
     any
   >
   | ContextWithLayer<
@@ -129,6 +147,8 @@ type AnyContextWithLayer<Config, Service, Error> =
     any,
     any,
     never,
+    any,
+    any,
     any
   >
   | ContextWithLayer<
@@ -137,6 +157,8 @@ type AnyContextWithLayer<Config, Service, Error> =
     Service,
     Error,
     never,
+    any,
+    any,
     any,
     any,
     any
@@ -156,21 +178,16 @@ const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
   effect: Effect.gen(function*() {
     return Effect.fn(
       function*(config: { [K in keyof T]?: T[K]["contextActivation"] }, headers: Record<string, string>) {
-        const contexts = yield* Effect
-          .all(
-            typedKeysOf(implementations).map(Effect.fnUntraced(function*(k) {
-              const middleware = yield* implementations[k]!
-              return yield* middleware.handle(config, headers)
-            }))
-          )
-          .pipe(Effect.map(Array.filterMap((_) => _)))
-
-        const ctx = Context.mergeAll(
-          Context.empty(),
-          ...contexts
-        ) as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
-
-        return ctx
+        let context = Context.empty()
+        const sorted = sort(typedValuesOf(implementations))
+        for (const mw of sorted) {
+          const middleware = yield* mw
+          const moreContext = yield* middleware.handle(config, headers).pipe(Effect.provide(context))
+          if (moreContext.value) {
+            context = Context.merge(context, moreContext.value)
+          }
+        }
+        return context as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
       }
     )
   })
@@ -199,33 +216,46 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
 class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
   dependencies: [AllowAnonymous.Default],
   effect: Effect.gen(function*() {
-    const allowAnonymous = yield* AllowAnonymous
     return {
       handle: Effect.fn(
-        function*(cfg: { requireRoles?: readonly string[]; allowAnonymous?: false }, headers: Record<string, string>) {
-          // todo; how to get to access UserProfile from this Middleware, while is provided from the middleware..??
-          // we need to somehow allow specifying other required middleware, so that we can run and provide it to this one?
-          // or should we instead share behaviour between the two?
-          // or should we somehow cover two configuration options, like requireRoles and allowAnonymous together?
-          const anon = yield* allowAnonymous.handle(cfg, headers).pipe(
-            Effect.map(Option.getOrElse(() => Context.empty())),
-            Effect.orDie // just a quick cop out to silence the error
-          )
-          const userProfile = yield* Effect.serviceOption(UserProfile).pipe(Effect.provide(anon))
+        function*(cfg: { requireRoles?: readonly string[] }) {
+          // we don't know if the service will be provided or not, so we use option..
+          const userProfile = yield* Effect.serviceOption(UserProfile)
           const { requireRoles } = cfg
           if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
-            return yield* new UnauthorizedError({ message: "Not logged in" })
+            return yield* new UnauthorizedError({ message: "don't have the right roles" })
           }
           return Option.none<Context<never>>()
         }
       )
     }
   })
+}) {
+  static dependsOn = [AllowAnonymous]
+}
+
+class Test extends Effect.Service<Test>()("Test", {
+  effect: Effect.gen(function*() {
+    return {
+      handle: Effect.fn(function*(opts: { test?: true }, headers: Record<string, string>) {
+        return Option.none<Context<never>>()
+      })
+    }
+  })
 }) {}
 
+it("sorts based on requirements", () => {
+  const input = [RequireRoles, AllowAnonymous, Test]
+  const sorted = sort(input)
+  console.dir({ input, sorted }, { depth: 10 })
+  expect(sorted).toEqual([AllowAnonymous, RequireRoles, Test])
+  // todo: add the rest of the items that are missing
+})
+
 const test = implementMiddleware<RequestContextMap>()({
+  requireRoles: RequireRoles,
   allowAnonymous: AllowAnonymous,
-  requireRoles: RequireRoles // todo: not sure what else to do to allow request context..
+  test: Test
 })
 
 const middleware = makeMiddleware<RequestContextMap>()({
@@ -269,7 +299,8 @@ export type RequestConfig = {
 }
 export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, RequestContextMap>({
   allowAnonymous: NotLoggedInError,
-  requireRoles: UnauthorizedError
+  requireRoles: UnauthorizedError,
+  test: S.Never
 })
 
 export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}

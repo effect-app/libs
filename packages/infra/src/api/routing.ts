@@ -137,8 +137,7 @@ type Match<
   Resource extends Record<string, any>,
   RequestContextMap extends Record<string, any>,
   RT extends RequestType,
-  Key extends keyof Resource,
-  MiddlewareR
+  Key extends keyof Resource
 > = {
   // note: the defaults of = never prevent the whole router to error (??)
   <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
@@ -147,7 +146,7 @@ type Match<
     Resource[Key],
     RT,
     Exclude<
-      MiddlewareR | Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
+      Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
       HttpRouter.HttpRouter.Provided
     >
   >
@@ -158,7 +157,7 @@ type Match<
     Resource[Key],
     RT,
     Exclude<
-      MiddlewareR | Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
+      Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
       HttpRouter.HttpRouter.Provided
     >
   >
@@ -166,15 +165,14 @@ type Match<
 
 export type RouteMatcher<
   RequestContextMap extends Record<string, any>,
-  Resource extends Record<string, any>,
-  MiddlewareR
+  Resource extends Record<string, any>
 > = {
   // use Resource as Key over using Keys, so that the Go To on X.Action remain in tact in Controllers files
   /**
    * Requires the Type shape
    */
   [Key in keyof FilterRequestModules<Resource>]:
-    & Match<Resource, RequestContextMap, RequestTypes.DECODED, Key, MiddlewareR>
+    & Match<Resource, RequestContextMap, RequestTypes.DECODED, Key>
     & {
       success: Resource[Key]["success"]
       successRaw: S.SchemaClass<S.Schema.Encoded<Resource[Key]["success"]>>
@@ -182,21 +180,19 @@ export type RouteMatcher<
       /**
        * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
        */
-      raw: Match<Resource, RequestContextMap, RequestTypes.TYPE, Key, MiddlewareR>
+      raw: Match<Resource, RequestContextMap, RequestTypes.TYPE, Key>
     }
 }
 
 export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
 export const makeRouter = <
-  MiddlewareR,
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   MakeMiddlewareE,
   MakeMiddlewareR,
   ContextProviderA
 >(
   middleware: Middleware<
-    MiddlewareR,
     RequestContextMap,
     MakeMiddlewareE,
     MakeMiddlewareR,
@@ -323,7 +319,7 @@ export const makeRouter = <
         })
         return prev
       },
-      {} as RouteMatcher<RequestContextMap, Resource, MiddlewareR>
+      {} as RouteMatcher<RequestContextMap, Resource>
     )
 
     const router: AddAction<RequestModules[keyof RequestModules]> = {
@@ -347,8 +343,7 @@ export const makeRouter = <
         FilterRequestModules<Resource>[K],
         Impl[K] extends { raw: any } ? RequestTypes.TYPE : RequestTypes.DECODED,
         Exclude<
-          | MiddlewareR
-          | Exclude<
+          Exclude<
             // retrieves context R from the actual implementation of the handler
             Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends Effect<any, any, infer R> ? R
@@ -499,8 +494,7 @@ export const makeRouter = <
                 Effect.Success<ReturnType<THandlers[K]["handler"]>>,
                 | Effect.Error<ReturnType<THandlers[K]["handler"]>>
                 | GetEffectError<RequestContextMap, Resource[K]["config"]>,
-                | Exclude<MiddlewareR, ContextProviderA>
-                | Exclude<
+                Exclude<
                   Effect.Context<ReturnType<THandlers[K]["handler"]>>,
                   ContextProviderA | GetEffectContext<RequestContextMap, Resource[K]["config"]>
                 >
@@ -823,7 +817,7 @@ export const makeRouter = <
           RouterShape<Resource>,
           `${ModuleName}Router`,
           never,
-          Exclude<MiddlewareR, HttpRouter.HttpRouter.Provided>
+          never
         > // | Exclude<
         //   RPCRouteR<
         //     { [K in keyof Filter<Resource>]: Rpc.Rpc<Resource[K], Effect.Context<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Resource>]

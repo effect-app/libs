@@ -21,8 +21,8 @@ class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError
   message: S.String
 }) {}
 
-class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
-class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
+export class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
+export class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
 
 export interface CTX {
   context: RequestContext

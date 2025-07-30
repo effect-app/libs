@@ -175,7 +175,6 @@ const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 })
 
 class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", {
-  dependencies: [],
   effect: Effect.gen(function*() {
     return {
       handle: Effect.fn(function*(allowAnonymous: false | undefined, headers: Record<string, string>) {
@@ -196,7 +195,6 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
 }) {}
 
 class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
-  dependencies: [],
   effect: Effect.gen(function*() {
     return {
       handle: Effect.fn(function*(requireRoles: readonly string[] | undefined) {

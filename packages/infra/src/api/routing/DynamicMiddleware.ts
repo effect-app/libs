@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Request, type S } from "effect-app"
+import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
@@ -123,7 +123,7 @@ export interface MiddlewareMake<
   ) => Effect<
     MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>,
     MakeMiddlewareE,
-    MakeMiddlewareR // ...that's why MakeMiddlewareR is here
+    MakeMiddlewareR | Scope // ...that's why MakeMiddlewareR is here
   >
 }
 
@@ -187,7 +187,11 @@ export const ContextProvider = <
   Dependencies extends NonEmptyArray<Layer.Layer.Any>
 >(
   input: {
-    effect: Effect<Effect<ContextProviderA, never, ContextProviderR>, MakeContextProviderE, MakeContextProviderR>
+    effect: Effect<
+      Effect<ContextProviderA, never, ContextProviderR>,
+      MakeContextProviderE,
+      MakeContextProviderR | Scope
+    >
     dependencies?: Dependencies
   }
 ) => {
@@ -197,7 +201,7 @@ export const ContextProvider = <
   >(
     "ContextProvider"
   )
-  const l = Layer.effect(ctx, input.effect)
+  const l = Layer.scoped(ctx, input.effect)
   return Object.assign(ctx, {
     Default: l.pipe(
       input.dependencies ? Layer.provide(input.dependencies) as any : (_) => _
@@ -327,7 +331,7 @@ export const makeMiddleware =
       "MiddlewareMaker"
     )
 
-    const l = Layer.effect(
+    const l = Layer.scoped(
       MiddlewareMaker,
       Effect
         .all({

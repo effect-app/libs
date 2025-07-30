@@ -4,11 +4,11 @@ import { type MakeContext, type MakeErrors, makeRouter, RequestCacheLayers } fro
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
-import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { typedValuesOf } from "effect-app/utils"
 import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
+import { implementMiddleware } from "./dynamic-middleware.js"
 import { SomeService } from "./query.test.js"
 import { sort } from "./tsort.js"
 
@@ -93,106 +93,6 @@ export type RequestContextMap = {
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
 
-type ContextWithLayer<
-  Config,
-  Id,
-  Service,
-  E,
-  R,
-  MakeE,
-  MakeR,
-  Tag extends string,
-  Args extends [config: Config, headers: Record<string, string>],
-  Dependencies extends any[]
-> =
-  & Context.Tag<
-    Id,
-    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag }
-  >
-  & {
-    Default: Layer.Layer<Id, MakeE, MakeR>
-    dependsOn?: Dependencies
-  }
-
-type AnyContextWithLayer<Config, Service, Error> =
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    any,
-    any,
-    any,
-    string,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    never,
-    any,
-    never,
-    any,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    any,
-    any,
-    never,
-    any,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    never,
-    any,
-    any,
-    any,
-    any,
-    any
-  >
-
-const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
-<
-  TI extends {
-    [K in keyof T]: AnyContextWithLayer<
-      { [K in keyof T]?: T[K]["contextActivation"] },
-      T[K]["service"],
-      S.Schema.Type<T[K]["error"]>
-    >
-  }
->(implementations: TI) => ({
-  dependencies: typedValuesOf(implementations).map((_) => _.Default),
-  effect: Effect.gen(function*() {
-    return Effect.fn(
-      function*(config: { [K in keyof T]?: T[K]["contextActivation"] }, headers: Record<string, string>) {
-        let context = Context.empty()
-        const sorted = sort(typedValuesOf(implementations))
-        for (const mw of sorted) {
-          const middleware = yield* mw
-          const moreContext = yield* middleware.handle(config, headers).pipe(Effect.provide(context))
-          if (moreContext.value) {
-            context = Context.merge(context, moreContext.value)
-          }
-        }
-        return context as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
-      }
-    )
-  })
-})
-
 class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", {
   effect: Effect.gen(function*() {
     return {
@@ -252,28 +152,28 @@ it("sorts based on requirements", () => {
   // todo: add the rest of the items that are missing
 })
 
-const test = implementMiddleware<RequestContextMap>()({
+const dynamicMiddlewares = implementMiddleware<RequestContextMap>()({
   requireRoles: RequireRoles,
   allowAnonymous: AllowAnonymous,
   test: Test
 })
 
 const middleware = makeMiddleware<RequestContextMap>()({
-  dependencies: [Layer.effect(Str2, Str), ...test.dependencies],
+  dependencies: [Layer.effect(Str2, Str), ...dynamicMiddlewares.dependencies],
   contextProvider,
   execute: (maker) =>
     Effect.gen(function*() {
-      const providers = yield* test.effect
+      const buildDynamicContext = yield* dynamicMiddlewares.effect
       return maker((schema, handler, moduleName) => (req, headers) => {
         return Effect
           .gen(function*() {
             yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
 
+            const ctx = yield* buildDynamicContext(schema.config ?? {}, headers)
+
             // you can use only HttpRouter.HttpRouter.Provided here as additional context
             // and what ContextMaker provides too
             // const someElse = yield* SomeElse
-            const ctx = yield* providers(schema.config ?? {}, headers)
-
             yield* Some // provided by ContextMaker
             yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 

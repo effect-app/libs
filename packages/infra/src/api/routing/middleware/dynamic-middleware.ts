@@ -29,55 +29,57 @@ export type ContextWithLayer<
     dependsOn?: Dependencies
   }
 
-export type AnyContextWithLayer<Config, Service, Error> =
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    any,
-    any,
-    any,
-    string,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    never,
-    any,
-    never,
-    any,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    any,
-    any,
-    never,
-    any,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    never,
-    any,
-    any,
-    any,
-    any,
-    any
-  >
+export namespace ContextWithLayer {
+  export type Base<Config, Service, Error> =
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      any,
+      any,
+      any,
+      string,
+      any,
+      any
+    >
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      never,
+      any,
+      never,
+      any,
+      any,
+      any
+    >
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      any,
+      any,
+      never,
+      any,
+      any,
+      any
+    >
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      never,
+      any,
+      any,
+      any,
+      any,
+      any
+    >
+}
 
 export const mergeContexts = Effect.fnUntraced(
   function*<T extends readonly { maker: any; handle: Effect<Context<any>> }[]>(makers: T) {
@@ -118,7 +120,7 @@ export const mergeOptionContexts = Effect.fnUntraced(
 export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 <
   TI extends {
-    [K in keyof T]: AnyContextWithLayer<
+    [K in keyof T]: ContextWithLayer.Base<
       { [K in keyof T]?: T[K]["contextActivation"] },
       T[K]["service"],
       S.Schema.Type<T[K]["error"]>

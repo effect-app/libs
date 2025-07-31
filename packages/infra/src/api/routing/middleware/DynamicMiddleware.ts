@@ -7,7 +7,7 @@ import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
-import { type AnyContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
+import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 
 // module:
@@ -82,7 +82,7 @@ export type RPCHandlerFactory<
 >
 
 type RequestContextMapProvider<RequestContextMap extends Record<string, RPCContextMap.Any>> = {
-  [K in keyof RequestContextMap]: AnyContextWithLayer<
+  [K in keyof RequestContextMap]: ContextWithLayer.Base<
     { [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"] },
     RequestContextMap[K]["service"],
     S.Schema.Type<RequestContextMap[K]["error"]>

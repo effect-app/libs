@@ -319,8 +319,8 @@ export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultVa
 
 export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("MiddlewareLogger", {
   effect: Effect.gen(function*() {
-    return <A, E, R>(
-      handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, R>,
+    return <A, E>(
+      handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
       moduleName: string
     ) =>
       Effect.fnUntraced(function*(input: any, rpcHeaders: HttpHeaders.Headers) {
@@ -385,6 +385,51 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
   })
 }) {}
 
+export const genericMiddlewareMaker = <
+  T extends Array<
+    Context.Tag<
+      any,
+      & { _tag: any }
+      & (<A, E>(
+        handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+        moduleName: string
+      ) => (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>)
+    > & { Default: Layer.Layer<any, any, any> }
+  >
+>(...middlewares: T): {
+  dependencies: { [K in keyof T]: T[K]["Default"] }
+  effect: Effect.Effect<
+    (<A, E>(
+      handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+      moduleName: string
+    ) => (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>)
+  >
+} => {
+  return {
+    dependencies: middlewares.map((_) => _.Default),
+    effect: Effect.gen(function*() {
+      const middlewaresInstances = yield* Effect.all(middlewares)
+
+      return <A, E, R>(
+        handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, R>,
+        moduleName: string
+      ) => {
+        return (input: any, headers: HttpHeaders.Headers) => {
+          let effect = handle
+          for (const middleware of middlewaresInstances as any[]) {
+            effect = middleware(effect, moduleName)
+          }
+          return effect(input, headers)
+        }
+        // (middlewaresInstances as any[]).reduceRight(
+        //   (prev, cur) => cur(prev, moduleName)(input, headers),
+        //   handle(input, headers)
+        // )
+      }
+    })
+  } as any
+}
+
 // factory for middlewares
 export const makeMiddleware =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
@@ -427,25 +472,26 @@ export const makeMiddleware =
     )
 
     const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
+    const middlewares = genericMiddlewareMaker(MiddlewareLogger)
 
     const l = Layer.scoped(
       MiddlewareMaker,
       Effect
         .all({
           dynamicMiddlewares: dynamicMiddlewares.effect,
-          logger: MiddlewareLogger,
+          generic: middlewares.effect,
           middleware: make.execute((
             cb: MakeRPCHandlerFactory<RequestContextMap, HttpRouter.HttpRouter.Provided | ContextProviderA>
           ) => cb),
           contextProvider: make.contextProvider // uses the middleware.contextProvider tag to get the context provider service
         })
         .pipe(
-          Effect.map(({ contextProvider, dynamicMiddlewares, logger, middleware }) => ({
+          Effect.map(({ contextProvider, dynamicMiddlewares, generic, middleware }) => ({
             _tag: "MiddlewareMaker" as const,
             effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
               (schema, handler, moduleName) => {
                 const h = middleware(schema, handler as any, moduleName)
-                return logger(
+                return generic(
                   Effect.fnUntraced(function*(req, headers) {
                     yield* Effect.annotateCurrentSpan(
                       "request.name",
@@ -470,6 +516,7 @@ export const makeMiddleware =
           }))
         )
     )
+
     const middlewareLayer = l
       .pipe(
         Layer.provide(
@@ -477,15 +524,17 @@ export const makeMiddleware =
             make.dependencies ? make.dependencies as any : Layer.empty,
             ...(dynamicMiddlewares.dependencies as any),
             make.contextProvider.Default,
-            MiddlewareLogger.Default
+            ...middlewares.dependencies
           )
         )
       ) as Layer.Layer<
         MiddlewareMakerId,
         | MakeMiddlewareE // what the middleware construction can fail with
-        | LayersUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what could go wrong when building the dynamic middleware provider
+        | LayersUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies>
+        | LayersUtils.GetLayersContext<typeof middlewares.dependencies> // what could go wrong when building the dynamic middleware provider
         | Layer.Error<typeof make.contextProvider.Default>, // what could go wrong when building the context provider
         | LayersUtils.GetLayersContext<MiddlewareDependencies> // what's needed to build layers
+        | LayersUtils.GetLayersContext<typeof middlewares.dependencies>
         | LayersUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what's needed to build dynamic middleware layers
         | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>> // what layers provides
         | Layer.Context<typeof make.contextProvider.Default> // what's needed to build the contextProvider

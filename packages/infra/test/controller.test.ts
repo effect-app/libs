@@ -169,7 +169,6 @@ export class MiddlewareLogger2 extends Effect.Service<MiddlewareLogger2>()("Midd
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
-  dependencies: [Layer.effect(Str2, Str)],
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
   contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
   genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
@@ -179,7 +178,8 @@ const middleware = makeMiddleware<RequestContextMap>()({
     allowAnonymous: AllowAnonymous,
     test: Test
   },
-  // TODO: 0..n of these generic middlewares?
+  // // TODO: 0..n of these generic middlewares?
+  dependencies: [Layer.effect(Str2, Str)],
   execute: (maker) =>
     Effect.gen(function*() {
       return maker(
@@ -198,6 +198,18 @@ const middleware = makeMiddleware<RequestContextMap>()({
             })
       )
     })
+})
+
+const middleware2 = makeMiddleware<RequestContextMap>()({
+  // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
+  contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
+  genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
+  // or is the better api to use constructors outside, like how contextProvider is used now?
+  dynamicMiddlewares: {
+    requireRoles: RequireRoles,
+    allowAnonymous: AllowAnonymous,
+    test: Test
+  }
 })
 
 export type RequestConfig = {
@@ -275,6 +287,8 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
 
 export const { Router, matchAll, matchFor } = makeRouter(middleware, true)
 
+export const r2 = makeRouter(middleware2, true)
+
 const router = Router(Something)({
   dependencies: [
     SomethingRepo.Default,
@@ -351,5 +365,77 @@ expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | "s
 type makeContext = MakeContext<typeof router.make>
 expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()
 expectTypeOf({} as makeContext).toEqualTypeOf<
+  SomethingService | SomethingRepo | SomethingService2
+>()
+
+const router2 = r2.Router(Something)({
+  dependencies: [
+    SomethingRepo.Default,
+    SomethingService.Default,
+    SomethingService2.Default
+  ],
+  *effect(match) {
+    const repo = yield* SomethingRepo
+    const smth = yield* SomethingService
+    const smth2 = yield* SomethingService2
+
+    // this gets catched in 'routes' type
+    if (Math.random() > 0.5) {
+      return yield* new InvalidStateError("ciao")
+    }
+
+    console.log({ repo, smth, smth2 })
+
+    return match({
+      Eff: () =>
+        Effect
+          .gen(function*() {
+            const some = yield* Some
+            return yield* Effect.logInfo("Some", some)
+          }),
+
+      *Gen() {
+        const some = yield* Some
+        return yield* Effect.logInfo("Some", some)
+      },
+      *GetSomething(req) {
+        console.log(req.id)
+
+        const _b = yield* Effect.succeed(false)
+        if (_b) {
+          //   expected errors here because RequestError is not a valid error for controllers
+          // yield* new RequestError(1 as any)
+          // return yield* new RequestError(1 as any)
+        }
+        if (Math.random() > 0.5) {
+          return yield* Effect.succeed("12")
+        }
+        if (!_b) {
+          return yield* new UnauthorizedError()
+        } else {
+          // expected an error here because a boolean is not a string
+          // return _b
+          return "12"
+        }
+      },
+      DoSomething: {
+        *raw() {
+          return yield* Effect.succeed(undefined)
+        }
+      },
+      GetSomething2: {
+        raw: Some.use(() => Effect.succeed("12"))
+      }
+    })
+  }
+})
+
+// eslint-disable-next-line unused-imports/no-unused-vars
+const matched2 = matchAll({ router: router2 })
+expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<SomeService>()
+
+type makeContext2 = MakeContext<typeof router2.make>
+expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateError>()
+expectTypeOf({} as makeContext2).toEqualTypeOf<
   SomethingService | SomethingRepo | SomethingService2
 >()

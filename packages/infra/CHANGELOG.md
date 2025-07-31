@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.75.0
+
+### Minor Changes
+
+- 6490adf: add "generic middleware"
+- 0fc2abc: extract ConfigureInterruptibility
+
+### Patch Changes
+
+- make execute/dependencies optional
+
 ## 2.74.0
 
 ### Minor Changes

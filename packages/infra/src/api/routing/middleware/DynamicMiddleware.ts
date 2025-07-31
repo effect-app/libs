@@ -91,9 +91,6 @@ type RequestContextMapProvider<RequestContextMap extends Record<string, RPCConte
 
 export interface MiddlewareMake<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the handler, or raise errors.
-  MakeMiddlewareE, // what the middleware construction can fail with
-  MakeMiddlewareR, // what the middleware requires to be constructed
-  MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middleware to be constructed
   //
   // ContextProvider is a service that builds additional context for each request.
   ContextProviderA, // what the context provider provides
@@ -103,7 +100,10 @@ export interface MiddlewareMake<
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
   GenericMiddlewareProviders extends Array<
     ContextTagWithDefault.Base<GenericMiddlewareMaker>
-  >
+  >,
+  MakeMiddlewareE, // what the middleware construction can fail with
+  MakeMiddlewareR, // what the middleware requires to be constructed
+  MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
 > {
   /* dynamic middlewares to be applied based on Request Configuration */
   dynamicMiddlewares: DynamicMiddlewareProviders
@@ -120,7 +120,7 @@ export interface MiddlewareMake<
   /* dependencies for the main middleware running just before the handler is called */
   dependencies?: MiddlewareDependencies
   // this actually builds "the middleware", i.e. returns the augmented handler factory when yielded...
-  execute: (
+  execute?: (
     maker: (
       // MiddlewareR is set to ContextProviderA | HttpRouter.HttpRouter.Provided because that's what, at most
       // a middleware can additionally require to get executed
@@ -163,9 +163,6 @@ export const makeMiddleware =
     RequestContextMap extends Record<string, RPCContextMap.Any>
   >() =>
   <
-    MakeMiddlewareE, // what the middleware construction can fail with
-    MakeMiddlewareR, // what the middlware requires to be constructed
-    MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     //
     // ContextProvider is a service that builds additional context for each request.
     ContextProviderA, // what the context provider provides
@@ -175,19 +172,22 @@ export const makeMiddleware =
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
     GenericMiddlewareProviders extends Array<
       ContextTagWithDefault.Base<GenericMiddlewareMaker>
-    >
+    >,
+    MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
+    MakeMiddlewareE = never, // what the middleware construction can fail with
+    MakeMiddlewareR = never // what the middlware requires to be constructed
   >(
     make: MiddlewareMake<
       RequestContextMap,
-      MakeMiddlewareE,
-      MakeMiddlewareR,
-      MiddlewareDependencies,
       ContextProviderA,
       ContextProviderR,
       MakeContextProviderE,
       MakeContextProviderR,
       RequestContextProviders,
-      GenericMiddlewareProviders
+      GenericMiddlewareProviders,
+      MakeMiddlewareE,
+      MakeMiddlewareR,
+      MiddlewareDependencies
     >
   ) => {
     // type Id = MiddlewareMakerId &
@@ -210,9 +210,13 @@ export const makeMiddleware =
         .all({
           dynamicMiddlewares: dynamicMiddlewares.effect,
           generic: middlewares.effect,
-          middleware: make.execute((
-            cb: MakeRPCHandlerFactory<RequestContextMap, HttpRouter.HttpRouter.Provided | ContextProviderA>
-          ) => cb),
+          middleware: make.execute
+            ? make.execute((
+              cb: MakeRPCHandlerFactory<RequestContextMap, HttpRouter.HttpRouter.Provided | ContextProviderA>
+            ) => cb)
+            : Effect.succeed<
+              MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
+            >((_schema, handle) => (req, headers) => handle(req, headers)),
           contextProvider: make.contextProvider // uses the middleware.contextProvider tag to get the context provider service
         })
         .pipe(

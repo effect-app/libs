@@ -167,6 +167,7 @@ export const mergeContextProviders = <
   dependencies: deps.map((_) => _.Default) as any,
   effect: Effect.gen(function*() {
     const services = yield* Effect.all(deps)
+    // TODO: we should run them in order and apply context from one to the other.
     // services are effects which return some Context.Context<...>
     // @effect-diagnostics effect/returnEffectInGen:off
     return Effect.all(services as any[]).pipe(

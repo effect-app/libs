@@ -77,11 +77,20 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
   })
 }) {}
 
-const merged = mergeContextProviders(MyContextProvider)
-export const contextProvider2 = ContextProvider(merged)
-export const contextProvider3 = MergedContextProvider(MyContextProvider)
+class RequestCacheContext extends Effect.Service<RequestCacheContext>()("RequestCacheContext", {
+  effect: Effect.gen(function*() {
+    return Effect.gen(function*() {
+      const ctx = yield* Layer.build(RequestCacheLayers)
+      return ctx as Context.Context<any> // todo: ugh.
+    })
+  })
+}) {}
 
-expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider>()
+const merged = mergeContextProviders(MyContextProvider, RequestCacheContext)
+export const contextProvider2 = ContextProvider(merged)
+export const contextProvider3 = MergedContextProvider(MyContextProvider, RequestCacheContext)
+
+// expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider>()
 expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
 
 export type RequestContextMap = {
@@ -156,11 +165,12 @@ const middleware = makeMiddleware<RequestContextMap>()({
     Effect.gen(function*() {
       const buildDynamicContext = yield* dynamicMiddlewares.effect
       return maker((schema, handler, moduleName) => (req, headers) => {
+        // todo: perhaps it's even better when we receive the context created by contextProvider and friends here?
         return Effect
           .gen(function*() {
             yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
 
-            const ctx = yield* buildDynamicContext(schema.config ?? {}, headers)
+            const ctx = yield* buildDynamicContext(schema.config!, headers)
 
             // you can use only HttpRouter.HttpRouter.Provided here as additional context
             // and what ContextMaker provides too
@@ -173,9 +183,6 @@ const middleware = makeMiddleware<RequestContextMap>()({
                 Layer
                   // todo: somehow make it work without having to cast, like buildDynamicContext remains generic
                   .succeedContext(ctx as Context.Context<GetEffectContext<RequestContextMap, typeof schema["config"]>>)
-                  .pipe(
-                    Layer.provideMerge(RequestCacheLayers)
-                  )
               )
               // I do expect the ContextMaker to provide this
               // Effect.provideService(Some, new Some({ a: 1 }))

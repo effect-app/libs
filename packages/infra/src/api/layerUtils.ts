@@ -1,4 +1,4 @@
-import { type Layer, type NonEmptyReadonlyArray } from "effect-app"
+import { type Context, type Layer, type NonEmptyReadonlyArray } from "effect-app"
 
 export namespace LayerUtils {
   export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
@@ -18,4 +18,12 @@ export namespace LayerUtils {
       [k in keyof Layers]: Layer.Layer.Error<Layers[k]>
     }[number]
     : never
+}
+
+export type ContextTagWithDefault<Id, Tag, A, LayerE, LayerR> = Context.Tag<Id, { _tag: Tag } & A> & {
+  Default: Layer.Layer<Id, LayerE, LayerR>
+}
+
+export namespace ContextTagWithDefault {
+  export type Base<A> = ContextTagWithDefault<any, any, A, any, any>
 }

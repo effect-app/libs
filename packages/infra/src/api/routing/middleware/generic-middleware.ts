@@ -1,27 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Array, type Context, Effect, type Layer } from "effect-app"
+import { type Array, Effect } from "effect-app"
 import { type HttpHeaders, type HttpRouter } from "effect-app/http"
+import { type ContextTagWithDefault } from "../../layerUtils.js"
 
-export type ContextTagWithDefault<Id, Tag, A, LayerE, LayerR> = Context.Tag<Id, { _tag: Tag } & A> & {
-  Default: Layer.Layer<Id, LayerE, LayerR>
-}
-
-export namespace ContextTagWithDefault {
-  export type Base<A> = ContextTagWithDefault<any, any, A, any, any>
-}
-
-type ContextMakerA = <A, E>(
+export type GenericMiddlewareMaker = <A, E>(
   handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
   moduleName: string
 ) => (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
 
 export const genericMiddlewareMaker = <
   T extends Array<
-    ContextTagWithDefault.Base<ContextMakerA>
+    ContextTagWithDefault.Base<GenericMiddlewareMaker>
   >
 >(...middlewares: T): {
   dependencies: { [K in keyof T]: T[K]["Default"] }
-  effect: Effect.Effect<ContextMakerA>
+  effect: Effect.Effect<GenericMiddlewareMaker>
 } => {
   return {
     dependencies: middlewares.map((_) => _.Default),

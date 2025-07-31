@@ -5,11 +5,10 @@ import { Context, Effect, Layer, type NonEmptyArray, type Request, type S, type 
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
-import { type LayerUtils } from "../../layerUtils.js"
+import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextMaker.js"
 import { type AnyContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
-import { genericMiddlewareMaker } from "./generic-middleware.js"
-import { MiddlewareLogger } from "./middleware.js"
+import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 
 // module:
 //
@@ -101,10 +100,16 @@ export interface MiddlewareMake<
   ContextProviderR extends HttpRouter.HttpRouter.Provided, // what the context provider requires
   MakeContextProviderE, // what the context provider construction can fail with
   MakeContextProviderR, // what the context provider construction requires
-  TI extends RequestContextMapProvider<RequestContextMap> // how to resolve the dynamic middleware
+  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
+  GenericMiddlewareProviders extends Array<
+    ContextTagWithDefault.Base<GenericMiddlewareMaker>
+  >
 > {
-  dependencies?: MiddlewareDependencies
-  dynamicMiddlewares: TI
+  /* dynamic middlewares to be applied based on Request Configuration */
+  dynamicMiddlewares: DynamicMiddlewareProviders
+  /** generic middlewares are those which follow the (next) => (input, headers) => pattern */
+  genericMiddlewares: GenericMiddlewareProviders
+  /** static context providers */
   contextProvider:
     & Context.Tag<
       ContextProviderId,
@@ -113,6 +118,9 @@ export interface MiddlewareMake<
     & {
       Default: Layer.Layer<ContextProviderId, MakeContextProviderE, MakeContextProviderR>
     }
+
+  /* dependencies for the main middleware running just before the handler is called */
+  dependencies?: MiddlewareDependencies
   // this actually builds "the middleware", i.e. returns the augmented handler factory when yielded...
   execute: (
     maker: (
@@ -171,7 +179,10 @@ export const makeMiddleware =
     ContextProviderR extends HttpRouter.HttpRouter.Provided, // what the context provider requires
     MakeContextProviderE, // what the context provider construction can fail with
     MakeContextProviderR, // what the context provider construction requires
-    TI extends RequestContextMapProvider<RequestContextMap> // how to resolve the dynamic middleware
+    RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
+    GenericMiddlewareProviders extends Array<
+      ContextTagWithDefault.Base<GenericMiddlewareMaker>
+    >
   >(
     make: MiddlewareMake<
       RequestContextMap,
@@ -182,7 +193,8 @@ export const makeMiddleware =
       ContextProviderR,
       MakeContextProviderE,
       MakeContextProviderR,
-      TI
+      RequestContextProviders,
+      GenericMiddlewareProviders
     >
   ) => {
     // type Id = MiddlewareMakerId &
@@ -197,8 +209,7 @@ export const makeMiddleware =
     )
 
     const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
-    // TODO: take as argument
-    const middlewares = genericMiddlewareMaker(MiddlewareLogger) // genericMiddlewareMaker(MiddlewareLogger, MiddlewareLogger2)
+    const middlewares = genericMiddlewareMaker(...make.genericMiddlewares)
 
     const l = Layer.scoped(
       MiddlewareMaker,

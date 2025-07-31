@@ -3,8 +3,8 @@ import { Array, Context, Effect, type Layer, Option, type S } from "effect-app"
 import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect-app/Context"
 import { typedValuesOf } from "effect-app/utils"
-import { InfraLogger } from "../../logger.js"
-import { sort } from "./tsort.js"
+import { InfraLogger } from "../../../logger.js"
+import { sort } from "../tsort.js"
 
 export type ContextWithLayer<
   Config,

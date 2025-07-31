@@ -15,15 +15,15 @@ export type ContextWithLayer<
   R,
   MakeE,
   MakeR,
-  Tag extends string,
   Args extends [config: Config, headers: Record<string, string>],
   Dependencies extends any[]
 > =
   & ContextTagWithDefault<
     Id,
-    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag },
+    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R> },
     MakeE,
-    MakeR
+    MakeR,
+    any
   >
   & {
     dependsOn?: Dependencies
@@ -39,7 +39,6 @@ export namespace ContextWithLayer {
       any,
       any,
       any,
-      string,
       any,
       any
     >
@@ -52,7 +51,6 @@ export namespace ContextWithLayer {
       any,
       never,
       any,
-      any,
       any
     >
     | ContextWithLayer<
@@ -64,7 +62,6 @@ export namespace ContextWithLayer {
       any,
       never,
       any,
-      any,
       any
     >
     | ContextWithLayer<
@@ -73,7 +70,6 @@ export namespace ContextWithLayer {
       Service,
       Error,
       never,
-      any,
       any,
       any,
       any,

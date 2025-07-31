@@ -9,6 +9,24 @@ const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 
+export class ConfigureInterruptibility extends Effect.Service<ConfigureInterruptibility>()(
+  "ConfigureInterruptibility",
+  {
+    effect: Effect.gen(function*() {
+      return <A, E>(
+        handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+        _moduleName: string
+      ) =>
+        Effect.fnUntraced(function*(input: any, headers: HttpHeaders.Headers) {
+          return yield* handle(input, headers).pipe(
+            // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
+            Effect.uninterruptible
+          )
+        })
+    })
+  }
+) {}
+
 export class CaptureHttpHeadersAsRpcHeaders
   extends Effect.Service<CaptureHttpHeadersAsRpcHeaders>()("CaptureHttpHeadersAsRpcHeaders", {
     effect: Effect.gen(function*() {
@@ -95,4 +113,8 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
   })
 }) {}
 
-export const DefaultGenericMiddlewares = [CaptureHttpHeadersAsRpcHeaders, MiddlewareLogger] as const
+export const DefaultGenericMiddlewares = [
+  ConfigureInterruptibility,
+  CaptureHttpHeadersAsRpcHeaders,
+  MiddlewareLogger
+] as const

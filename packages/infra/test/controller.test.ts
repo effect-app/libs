@@ -195,10 +195,6 @@ const middleware = makeMiddleware<RequestContextMap>()({
               yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
               return yield* handler(req, headers)
-                .pipe(
-                  // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
-                  Effect.uninterruptible
-                )
             })
       )
     })

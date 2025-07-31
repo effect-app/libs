@@ -9,6 +9,24 @@ const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 
+export class CaptureHttpHeadersAsRpcHeaders
+  extends Effect.Service<CaptureHttpHeadersAsRpcHeaders>()("CaptureHttpHeadersAsRpcHeaders", {
+    effect: Effect.gen(function*() {
+      return <A, E>(
+        handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+        _moduleName: string
+      ) =>
+        Effect.fnUntraced(function*(input: any, rpcHeaders: HttpHeaders.Headers) {
+          // merge in the request headers
+          // we should consider if we should merge them into rpc headers on the Protocol layer instead.
+          const httpReq = yield* HttpServerRequest.HttpServerRequest
+          const headers = HttpHeaders.merge(httpReq.headers, rpcHeaders)
+          return yield* handle(input, headers)
+        })
+    })
+  })
+{}
+
 export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("MiddlewareLogger", {
   effect: Effect.gen(function*() {
     return <A, E>(
@@ -76,3 +94,5 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
       })
   })
 }) {}
+
+export const DefaultGenericMiddleware = [CaptureHttpHeadersAsRpcHeaders, MiddlewareLogger] as const

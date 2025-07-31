@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, type Layer, type Option, type S } from "effect-app"
+import { Array, Context, Effect, type Layer, type Option, type S } from "effect-app"
 import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect-app/Context"
 import { typedValuesOf } from "effect-app/utils"
-import { type RequestContextMap } from "./controller.test.js"
 import { sort } from "./tsort.js"
 
 export type ContextWithLayer<
@@ -77,6 +76,28 @@ export type AnyContextWithLayer<Config, Service, Error> =
     any
   >
 
+export const mergeContexts = Effect.fnUntraced(function*<T extends readonly Effect<Context<any>>[]>(makers: T) {
+  let context = Context.empty()
+  for (const mw of makers) {
+    const moreContext = yield* mw.pipe(Effect.provide(context))
+    context = Context.merge(context, moreContext)
+  }
+  return context as Context.Context<Effect.Success<T[number]>>
+})
+
+export const mergeOptionContexts = Effect.fnUntraced(
+  function*<T extends readonly Effect<Option<Context<any>>>[]>(makers: T) {
+    let context = Context.empty()
+    for (const mw of makers) {
+      const moreContext = yield* mw.pipe(Effect.provide(context))
+      if (moreContext.value) {
+        context = Context.merge(context, moreContext.value)
+      }
+    }
+    return context
+  }
+)
+
 export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 <
   TI extends {
@@ -93,22 +114,19 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
   effect: Effect.gen(function*() {
     return Effect.fn(
       function*(config: { [K in keyof T]?: T[K]["contextActivation"] }, headers: Record<string, string>) {
-        let context = Context.empty()
         const sorted = sort(typedValuesOf(implementations))
-        for (const mw of sorted) {
-          const middleware = yield* mw
-          const moreContext = yield* middleware.handle(config, headers).pipe(Effect.provide(context))
-          if (moreContext.value) {
-            context = Context.merge(context, moreContext.value)
-          }
-        }
-        return context as Context.Context<GetEffectContext<RequestContextMap, typeof config>>
+        const ctx = yield* mergeOptionContexts(
+          Array.map(sorted, (_) => _.pipe(Effect.flatMap((_: any) => _.handle(config, headers)) as any)) as any
+        )
+        return ctx as Context.Context<
+          GetEffectContext<T, typeof config>
+        >
       }
     ) as (
       config: { [K in keyof T]?: T[K]["contextActivation"] },
       headers: Record<string, string>
     ) => Effect.Effect<
-      Context.Context<GetEffectContext<RequestContextMap, typeof config>>,
+      Context.Context<GetEffectContext<T, typeof config>>,
       Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>,
       Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>
     >

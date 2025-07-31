@@ -4,13 +4,12 @@ import { type MakeContext, type MakeErrors, makeRouter, RequestCacheLayers } fro
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
-import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
 import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
-import { implementMiddleware } from "./dynamic-middleware.js"
+import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
-import { sort } from "./tsort.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   Class<UserProfile>("UserProfile")({
@@ -62,7 +61,7 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requiremeno you can have are the one provided by HttpRouter.HttpRouter.Provided
       yield* HttpServerRequest.HttpServerRequest
 
       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
@@ -145,48 +144,37 @@ class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
 class Test extends Effect.Service<Test>()("Test", {
   effect: Effect.gen(function*() {
     return {
-      handle: Effect.fn(function*(opts: { test?: true }, headers: Record<string, string>) {
+      handle: Effect.fn(function*() {
         return Option.none<Context<never>>()
       })
     }
   })
 }) {}
 
-const dynamicMiddlewares = implementMiddleware<RequestContextMap>()({
-  requireRoles: RequireRoles,
-  allowAnonymous: AllowAnonymous,
-  test: Test
-})
-
 const middleware = makeMiddleware<RequestContextMap>()({
-  dependencies: [Layer.effect(Str2, Str), ...dynamicMiddlewares.dependencies],
+  dependencies: [Layer.effect(Str2, Str)],
   contextProvider,
+  dynamicMiddlewares: {
+    requireRoles: RequireRoles,
+    allowAnonymous: AllowAnonymous,
+    test: Test
+  },
   execute: (maker) =>
     Effect.gen(function*() {
-      const buildDynamicContext = yield* dynamicMiddlewares.effect
-      return maker((schema, handler, moduleName) => (req, headers) => {
-        // todo: perhaps it's even better when we receive the context created by contextProvider and friends here?
+      return maker((_schema, handler) => (req, headers) => {
         return Effect
           .gen(function*() {
-            yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
-
-            const ctx = yield* buildDynamicContext(schema.config!, headers)
-
             // you can use only HttpRouter.HttpRouter.Provided here as additional context
             // and what ContextMaker provides too
             // const someElse = yield* SomeElse
             yield* Some // provided by ContextMaker
             yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
-            return yield* handler(req, headers).pipe(
-              Effect.provide(
-                Layer
-                  // todo: somehow make it work without having to cast, like buildDynamicContext remains generic
-                  .succeedContext(ctx as Context.Context<GetEffectContext<RequestContextMap, typeof schema["config"]>>)
+            return yield* handler(req, headers)
+              .pipe(
+                // TODO: make this depend on query/command, and consider if middleware also should be affected or not.
+                Effect.uninterruptible
               )
-              // I do expect the ContextMaker to provide this
-              // Effect.provideService(Some, new Some({ a: 1 }))
-            )
           })
       })
     })

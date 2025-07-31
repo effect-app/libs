@@ -6,6 +6,7 @@ import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { type LayersUtils } from "../routing.js"
+import { type AnyContextWithLayer, implementMiddleware, mergeContexts } from "./dynamic-middleware.js"
 
 // utils:
 //
@@ -30,7 +31,8 @@ export type MakeRPCHandlerFactory<
   ) => Effect.Effect<
     EffectRequest.Request.Success<Req>,
     EffectRequest.Request.Error<Req>,
-    HandlerR
+    // dynamic middlewares removes the dynamic context from HandlerR
+    Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>
   >,
   moduleName?: string
 ) => (
@@ -92,6 +94,14 @@ export interface ContextProviderId {
   _tag: "ContextProvider"
 }
 
+type RequestContextMapProvider<RequestContextMap extends Record<string, RPCContextMap.Any>> = {
+  [K in keyof RequestContextMap]: AnyContextWithLayer<
+    { [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"] },
+    RequestContextMap[K]["service"],
+    S.Schema.Type<RequestContextMap[K]["error"]>
+  >
+}
+
 export interface MiddlewareMake<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the handler, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
@@ -102,9 +112,11 @@ export interface MiddlewareMake<
   ContextProviderA, // what the context provider provides
   ContextProviderR extends HttpRouter.HttpRouter.Provided, // what the context provider requires
   MakeContextProviderE, // what the context provider construction can fail with
-  MakeContextProviderR // what the context provider construction requires
+  MakeContextProviderR, // what the context provider construction requires
+  TI extends RequestContextMapProvider<RequestContextMap> // how to resolve the dynamic middleware
 > {
   dependencies?: MiddlewareDependencies
+  dynamicMiddlewares: TI
   contextProvider:
     & Context.Tag<
       ContextProviderId,
@@ -167,12 +179,8 @@ export const mergeContextProviders = <
   dependencies: deps.map((_) => _.Default) as any,
   effect: Effect.gen(function*() {
     const services = yield* Effect.all(deps)
-    // TODO: we should run them in order and apply context from one to the other.
     // services are effects which return some Context.Context<...>
-    // @effect-diagnostics effect/returnEffectInGen:off
-    return Effect.all(services as any[]).pipe(
-      Effect.map((_) => Context.mergeAll(..._ as any))
-    )
+    return yield* mergeContexts(services as any)
   }) as any
 })
 
@@ -308,7 +316,8 @@ export const makeMiddleware =
     ContextProviderA, // what the context provider provides
     ContextProviderR extends HttpRouter.HttpRouter.Provided, // what the context provider requires
     MakeContextProviderE, // what the context provider construction can fail with
-    MakeContextProviderR // what the context provider construction requires
+    MakeContextProviderR, // what the context provider construction requires
+    TI extends RequestContextMapProvider<RequestContextMap> // how to resolve the dynamic middleware
   >(
     make: MiddlewareMake<
       RequestContextMap,
@@ -318,7 +327,8 @@ export const makeMiddleware =
       ContextProviderA,
       ContextProviderR,
       MakeContextProviderE,
-      MakeContextProviderR
+      MakeContextProviderR,
+      TI
     >
   ) => {
     // type Id = MiddlewareMakerId &
@@ -332,33 +342,38 @@ export const makeMiddleware =
       "MiddlewareMaker"
     )
 
+    const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
+
     const l = Layer.scoped(
       MiddlewareMaker,
       Effect
         .all({
+          dynamicMiddlewares: dynamicMiddlewares.effect,
           middleware: make.execute((
             cb: MakeRPCHandlerFactory<RequestContextMap, HttpRouter.HttpRouter.Provided | ContextProviderA>
           ) => cb),
           contextProvider: make.contextProvider // uses the middleware.contextProvider tag to get the context provider service
         })
         .pipe(
-          Effect.map(({ contextProvider, middleware }) => ({
+          Effect.map(({ contextProvider, dynamicMiddlewares, middleware }) => ({
             _tag: "MiddlewareMaker" as const,
             effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
               (schema, handler, moduleName) => {
-                const h = middleware(schema, handler, moduleName)
-                return (req, headers) =>
+                const h = middleware(schema, handler as any, moduleName)
+                return Effect.fnUntraced(function*(req, headers) {
+                  yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
+
                   // the contextProvider is an Effect that builds the context for the request
-                  contextProvider.pipe(
-                    Effect.flatMap((ctx) =>
-                      h(req, headers)
-                        .pipe(
-                          Effect.provide(ctx),
-                          // TODO: make this depend on query/command, and consider if middleware also should be affected or not.
-                          Effect.uninterruptible
-                        )
+                  return yield* contextProvider.pipe(
+                    Effect.flatMap((contextProviderContext) =>
+                      // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
+                      dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                        Effect.flatMap((dynamicContext) => h(req, headers).pipe(Effect.provide(dynamicContext))),
+                        Effect.provide(contextProviderContext)
+                      )
                     )
                   )
+                }) as any
               }
             )
           }))
@@ -366,13 +381,20 @@ export const makeMiddleware =
     )
     const middlewareLayer = l
       .pipe(
-        make.dependencies ? Layer.provide(make.dependencies) as any : (_) => _,
-        Layer.provide(make.contextProvider.Default)
+        Layer.provide(
+          Layer.mergeAll(
+            make.dependencies ? make.dependencies as any : Layer.empty,
+            ...(dynamicMiddlewares.dependencies as any),
+            make.contextProvider.Default
+          )
+        )
       ) as Layer.Layer<
         MiddlewareMakerId,
         | MakeMiddlewareE // what the middleware construction can fail with
+        | LayersUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what could go wrong when building the dynamic middleware provider
         | Layer.Error<typeof make.contextProvider.Default>, // what could go wrong when building the context provider
         | LayersUtils.GetLayersContext<MiddlewareDependencies> // what's needed to build layers
+        | LayersUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what's needed to build dynamic middleware layers
         | Exclude<MakeMiddlewareR, LayersUtils.GetLayersSuccess<MiddlewareDependencies>> // what layers provides
         | Layer.Context<typeof make.contextProvider.Default> // what's needed to build the contextProvider
       >

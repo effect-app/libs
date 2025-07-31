@@ -1,18 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter, RequestCacheLayers } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
-import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect, Layer, S } from "effect-app"
-import { type GetEffectContext, InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { expect, expectTypeOf, it } from "@effect/vitest"
+import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
+import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
 import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
+import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
 class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   Class<UserProfile>("UserProfile")({
-    id: S.String
+    id: S.String,
+    roles: S.Array(S.String)
   })
 ) {
 }
@@ -32,7 +34,7 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-const contextProvider = ContextProvider({
+export const someContextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
@@ -59,7 +61,7 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requiremeno you can have are the one provided by HttpRouter.HttpRouter.Provided
       yield* HttpServerRequest.HttpServerRequest
 
       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
@@ -74,62 +76,118 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
   })
 }) {}
 
+class RequestCacheContext extends Effect.Service<RequestCacheContext>()("RequestCacheContext", {
+  effect: Effect.gen(function*() {
+    return Effect.gen(function*() {
+      const ctx = yield* Layer.build(RequestCacheLayers)
+      return ctx as Context.Context<any> // todo: ugh.
+    })
+  })
+}) {}
+
 const merged = mergeContextProviders(MyContextProvider)
 export const contextProvider2 = ContextProvider(merged)
 export const contextProvider3 = MergedContextProvider(MyContextProvider)
-
-expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider>()
+expectTypeOf(contextProvider2).toEqualTypeOf<typeof someContextProvider>()
 expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
+const merged2 = mergeContextProviders(MyContextProvider, RequestCacheContext)
+export const contextProvider22 = ContextProvider(merged2)
+export const contextProvider23 = MergedContextProvider(MyContextProvider, RequestCacheContext)
+expectTypeOf(contextProvider23).toEqualTypeOf<typeof contextProvider22>()
 
 export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<"userProfile", UserProfile, typeof NotLoggedInError>
-  // TODO: not boolean but `string[]`
-  requireRoles: RPCContextMap.Custom<"", never, typeof UnauthorizedError, Array<string>>
+  allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
+  requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
+  test: RPCContextMap<never, typeof S.Never>
 }
 
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
 
+class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", {
+  effect: Effect.gen(function*() {
+    return {
+      handle: Effect.fn(function*(opts: { allowAnonymous?: false }, headers: Record<string, string>) {
+        const isLoggedIn = !!headers["x-user"]
+        if (!isLoggedIn) {
+          if (!opts.allowAnonymous) {
+            return yield* new NotLoggedInError({ message: "Not logged in" })
+          }
+          return Option.none()
+        }
+        return Option.some(Context.make(
+          UserProfile,
+          { id: "whatever", roles: ["user", "manager"] }
+        ))
+      })
+    }
+  })
+}) {}
+
+class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
+  effect: Effect.gen(function*() {
+    return {
+      handle: Effect.fn(
+        function*(cfg: { requireRoles?: readonly string[] }) {
+          // we don't know if the service will be provided or not, so we use option..
+          const userProfile = yield* Effect.serviceOption(UserProfile)
+          const { requireRoles } = cfg
+          if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
+            return yield* new UnauthorizedError({ message: "don't have the right roles" })
+          }
+          return Option.none<Context<never>>()
+        }
+      )
+    }
+  })
+}) {
+  static dependsOn = [AllowAnonymous]
+}
+
+class Test extends Effect.Service<Test>()("Test", {
+  effect: Effect.gen(function*() {
+    return {
+      handle: Effect.fn(function*() {
+        return Option.none<Context<never>>()
+      })
+    }
+  })
+}) {}
+
+// TODO: eventually it might be nice if we have total control over order somehow..
+// [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
   dependencies: [Layer.effect(Str2, Str)],
-  contextProvider,
+  // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
+  contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
+  // or is the better api to use constructors outside, like how contextProvider is used now?
+  dynamicMiddlewares: {
+    requireRoles: RequireRoles,
+    allowAnonymous: AllowAnonymous,
+    test: Test
+  },
+  // TODO: 0..n of these generic middlewares?
   execute: (maker) =>
     Effect.gen(function*() {
-      return maker((_schema, handler, moduleName) => (req, headers) => {
-        return Effect
-          .gen(function*() {
-            // const headers = yield* Rpc.currentHeaders
-            const ctx = Context.empty().pipe(
-              Context.add(UserProfile, { id: "whatever" })
-            )
+      return maker(
+        (_schema, handler) => (req, headers) =>
+          // contextProvider and dynamicMiddlewares are already provided here.
+          // aka this runs "last"
+          Effect
+            .gen(function*() {
+              // you can use only HttpRouter.HttpRouter.Provided here as additional context
+              // and what ContextMaker provides too
+              // const someElse = yield* SomeElse
+              yield* Some // provided by ContextMaker
+              yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
-            // you can use only HttpRouter.HttpRouter.Provided here as additional context
-            // and what ContextMaker provides too
-            // const someElse = yield* SomeElse
-
-            yield* Some // provided by ContextMaker
-            yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
-
-            return yield* handler(req, headers).pipe(
-              Effect.provide(ctx as Context.Context<GetEffectContext<RequestContextMap, (typeof _schema)["config"]>>)
-              // I do expect the ContextMaker to provide this
-              // Effect.provideService(Some, new Some({ a: 1 }))
-            )
-          })
-          .pipe(
-            Effect.provide(
-              Effect
-                .gen(function*() {
-                  yield* Effect.annotateCurrentSpan("request.name", moduleName ? `${moduleName}.${req._tag}` : req._tag)
-
-                  // const httpReq = yield* HttpServerRequest.HttpServerRequest
-
-                  //
-                })
-                .pipe(Layer.effectDiscard)
-            )
-          )
-      })
+              return yield* handler(req, headers)
+                .pipe(
+                  // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
+                  Effect.uninterruptible
+                )
+            })
+      )
     })
 })
 
@@ -141,7 +199,8 @@ export type RequestConfig = {
 }
 export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, RequestContextMap>({
   allowAnonymous: NotLoggedInError,
-  requireRoles: UnauthorizedError
+  requireRoles: UnauthorizedError,
+  test: S.Never
 })
 
 export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
@@ -267,6 +326,13 @@ const router = Router(Something)({
       }
     })
   }
+})
+
+it("sorts based on requirements", () => {
+  const input = [RequireRoles, AllowAnonymous, Test]
+  const sorted = sort(input)
+  console.dir({ input, sorted }, { depth: 10 })
+  expect(sorted).toEqual([AllowAnonymous, RequireRoles, Test])
 })
 
 // eslint-disable-next-line unused-imports/no-unused-vars

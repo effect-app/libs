@@ -298,9 +298,17 @@
       "types": "./dist/api/routing/DynamicMiddleware.d.ts",
       "default": "./dist/api/routing/DynamicMiddleware.js"
     },
+    "./api/routing/dynamic-middleware": {
+      "types": "./dist/api/routing/dynamic-middleware.d.ts",
+      "default": "./dist/api/routing/dynamic-middleware.js"
+    },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",
       "default": "./dist/api/routing/schema/jwt.js"
+    },
+    "./api/routing/tsort": {
+      "types": "./dist/api/routing/tsort.d.ts",
+      "default": "./dist/api/routing/tsort.js"
     },
     "./api/routing/utils": {
       "types": "./dist/api/routing/utils.d.ts",

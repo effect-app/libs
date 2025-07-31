@@ -9,16 +9,14 @@ import { type Values } from "../utils.js"
  * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
  * Unless explicitly configured as `true`.
  */
-export type RPCContextMap<Key, Service, E> = {
-  key: Key
+export type RPCContextMap<Service, E> = {
   service: Service
   error: E
   contextActivation: true
 }
 
 export declare namespace RPCContextMap {
-  export type Custom<Key, Service, E, Custom> = {
-    key: Key
+  export type Custom<Service, E, Custom> = {
     service: Service
     error: E
     contextActivation: Custom
@@ -28,15 +26,13 @@ export declare namespace RPCContextMap {
    * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect Context.
    * Unless explicitly omitted.
    */
-  export type Inverted<Key, Service, E> = {
-    key: Key
+  export type Inverted<Service, E> = {
     service: Service
     error: E
     contextActivation: false
   }
 
   export type Any = {
-    key: string
     service: any
     error: S.Schema.All
     contextActivation: any
@@ -48,8 +44,8 @@ export type GetEffectContext<RequestContextMap extends Record<string, RPCContext
   & {
     [
       key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends true ? never
-        : key extends keyof T ? T[key] extends true ? never : RequestContextMap[key]["key"]
-        : RequestContextMap[key]["key"]
+        : key extends keyof T ? T[key] extends true ? never : key
+        : key
     ]: // TODO: or as an Optional available?
       RequestContextMap[key]["service"]
   }
@@ -57,7 +53,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RPCContext
   & {
     [
       key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends false ? never
-        : key extends keyof T ? T[key] extends true ? RequestContextMap[key]["key"] : never
+        : key extends keyof T ? T[key] extends true ? key : never
         : never
     ]: // TODO: or as an Optional available?
       RequestContextMap[key]["service"]
@@ -69,8 +65,8 @@ export type GetEffectError<RequestContextMap extends Record<string, RPCContextMa
   & {
     [
       key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends true ? never
-        : key extends keyof T ? T[key] extends true ? never : RequestContextMap[key]["key"]
-        : RequestContextMap[key]["key"]
+        : key extends keyof T ? T[key] extends true ? never : key
+        : key
     ]: // TODO: or as an Optional available?
       RequestContextMap[key]["error"]
   }
@@ -78,7 +74,7 @@ export type GetEffectError<RequestContextMap extends Record<string, RPCContextMa
   & {
     [
       key in keyof RequestContextMap as RequestContextMap[key]["contextActivation"] extends false ? never
-        : key extends keyof T ? T[key] extends true ? RequestContextMap[key]["key"] : never
+        : key extends keyof T ? T[key] extends true ? key : never
         : never
     ]: // TODO: or as an Optional available?
       RequestContextMap[key]["error"]

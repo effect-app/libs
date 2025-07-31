@@ -9,72 +9,34 @@ import { sort } from "../tsort.js"
 
 export type ContextWithLayer<
   Config,
-  Id,
   Service,
-  E,
-  R,
-  MakeE,
-  MakeR,
-  Args extends [config: Config, headers: Record<string, string>],
-  Dependencies extends any[]
-> =
-  & ContextTagWithDefault<
-    Id,
-    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R> },
-    MakeE,
-    MakeR,
+  Error,
+  Dependencies,
+  Thing extends ContextTagWithDefault<
+    any,
+    {
+      handle: (
+        ...args: [config: Config, headers: Record<string, string>]
+      ) => Effect<Option<Context<Service>>, Error, unknown>
+    },
+    any,
+    unknown,
     any
   >
+> =
+  & Thing
   & {
     dependsOn?: Dependencies
   }
 
 export namespace ContextWithLayer {
-  export type Base<Config, Service, Error> =
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      any,
-      any,
-      any,
-      any,
-      any
-    >
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      never,
-      any,
-      never,
-      any,
-      any
-    >
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      any,
-      any,
-      never,
-      any,
-      any
-    >
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      never,
-      any,
-      any,
-      any,
-      any
-    >
+  export type Base<Config, Service, Error> = ContextWithLayer<
+    Config,
+    Service,
+    Error,
+    any,
+    any
+  >
 }
 
 export const mergeContexts = Effect.fnUntraced(

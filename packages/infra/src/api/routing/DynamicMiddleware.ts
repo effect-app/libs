@@ -173,14 +173,19 @@ export const mergeContextProviders = <
       Effect.Context<InstanceType<TDeps[number]>>
     >,
     LayersUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
-    InstanceType<TDeps[number]>
+    LayersUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
   >
 } => ({
   dependencies: deps.map((_) => _.Default) as any,
   effect: Effect.gen(function*() {
-    const services = yield* Effect.all(deps)
-    // services are effects which return some Context.Context<...>
-    return yield* mergeContexts(services as any)
+    const makers = yield* Effect.all(deps)
+    return Effect
+      .gen(function*() {
+        const services = (makers as any[]).map((handle, i) => ({ maker: deps[i], handle }))
+        // services are effects which return some Context.Context<...>
+        const context = yield* mergeContexts(services as any)
+        return context
+      })
   }) as any
 })
 

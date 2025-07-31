@@ -1,25 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Array, type Context, Effect, type Layer } from "effect-app"
 import { type HttpHeaders, type HttpRouter } from "effect-app/http"
 
+export type ContextTagWithDefault<Id, Tag, A, LayerE, LayerR> = Context.Tag<Id, { _tag: Tag } & A> & {
+  Default: Layer.Layer<Id, LayerE, LayerR>
+}
+
+export namespace ContextTagWithDefault {
+  export type Base<A> = ContextTagWithDefault<any, any, A, any, any>
+}
+
+type ContextMakerA = <A, E>(
+  handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+  moduleName: string
+) => (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+
 export const genericMiddlewareMaker = <
   T extends Array<
-    Context.Tag<
-      any,
-      & { _tag: any }
-      & (<A, E>(
-        handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
-        moduleName: string
-      ) => (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>)
-    > & { Default: Layer.Layer<any, any, any> }
+    ContextTagWithDefault.Base<ContextMakerA>
   >
 >(...middlewares: T): {
   dependencies: { [K in keyof T]: T[K]["Default"] }
-  effect: Effect.Effect<
-    (<A, E>(
-      handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
-      moduleName: string
-    ) => (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>)
-  >
+  effect: Effect.Effect<ContextMakerA>
 } => {
   return {
     dependencies: middlewares.map((_) => _.Default),
@@ -37,10 +39,6 @@ export const genericMiddlewareMaker = <
           }
           return effect(input, headers)
         }
-        // (middlewaresInstances as any[]).reduceRight(
-        //   (prev, cur) => cur(prev, moduleName)(input, headers),
-        //   handle(input, headers)
-        // )
       }
     })
   } as any

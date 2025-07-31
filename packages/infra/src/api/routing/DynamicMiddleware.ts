@@ -416,7 +416,7 @@ export const genericMiddlewareMaker = <
       ) => {
         return (input: any, headers: HttpHeaders.Headers) => {
           let effect = handle
-          for (const middleware of middlewaresInstances as any[]) {
+          for (const middleware of (middlewaresInstances as any[]).toReversed()) {
             effect = middleware(effect, moduleName)
           }
           return effect(input, headers)
@@ -472,7 +472,8 @@ export const makeMiddleware =
     )
 
     const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
-    const middlewares = genericMiddlewareMaker(MiddlewareLogger)
+    // TODO: take as argument
+    const middlewares = genericMiddlewareMaker(MiddlewareLogger) // genericMiddlewareMaker(MiddlewareLogger, MiddlewareLogger2)
 
     const l = Layer.scoped(
       MiddlewareMaker,

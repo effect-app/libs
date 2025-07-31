@@ -5,7 +5,7 @@ import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { HttpServerRequest } from "effect-app/http"
+import { type HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
 import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
 import { sort } from "../src/api/routing/tsort.js"
@@ -344,3 +344,15 @@ expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateErr
 expectTypeOf({} as makeContext).toEqualTypeOf<
   SomethingService | SomethingRepo | SomethingService2
 >()
+
+export class MiddlewareLogger2 extends Effect.Service<MiddlewareLogger2>()("MiddlewareLogger2", {
+  effect: Effect.gen(function*() {
+    return <A, E>(
+      handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+      _moduleName: string
+    ) =>
+      Effect.fnUntraced(function*(input: any, headers: HttpHeaders.Headers) {
+        return yield* handle(input, headers)
+      })
+  })
+}) {}

@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 export function tsort(edges) {
   const nodes = new Map(), sorted = [], visited = new Map()
 

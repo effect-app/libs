@@ -1,5 +1,5 @@
 // codegen:start {preset: barrel, include: ./middleware/*.ts, nodir: false }
-export * from "./middleware/ContextMaker.js"
+export * from "./middleware/ContextProvider.js"
 export * from "./middleware/dynamic-middleware.js"
 export * from "./middleware/DynamicMiddleware.js"
 export * from "./middleware/generic-middleware.js"

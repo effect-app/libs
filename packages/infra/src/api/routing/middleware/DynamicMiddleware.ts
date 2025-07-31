@@ -6,7 +6,7 @@ import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
-import { type ContextProviderId, type ContextProviderShape } from "./ContextMaker.js"
+import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
 import { type AnyContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 

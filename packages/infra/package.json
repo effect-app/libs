@@ -302,9 +302,9 @@
       "types": "./dist/api/routing/middleware.d.ts",
       "default": "./dist/api/routing/middleware.js"
     },
-    "./api/routing/middleware/ContextMaker": {
-      "types": "./dist/api/routing/middleware/ContextMaker.d.ts",
-      "default": "./dist/api/routing/middleware/ContextMaker.js"
+    "./api/routing/middleware/ContextProvider": {
+      "types": "./dist/api/routing/middleware/ContextProvider.d.ts",
+      "default": "./dist/api/routing/middleware/ContextProvider.js"
     },
     "./api/routing/middleware/DynamicMiddleware": {
       "types": "./dist/api/routing/middleware/DynamicMiddleware.d.ts",

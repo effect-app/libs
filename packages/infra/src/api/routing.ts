@@ -3,16 +3,14 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { determineMethod, isCommand } from "@effect-app/infra/api/routing/utils"
-import { logError, reportError } from "@effect-app/infra/errorReporter"
-import { InfraLogger } from "@effect-app/infra/logger"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { Array, Cause, Duration, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, ParseResult, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { type Array, Duration, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
-import { pretty, typedKeysOf, typedValuesOf } from "effect-app/utils"
+import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
-import { type Middleware } from "./routing/DynamicMiddleware.js"
+import { DevMode, type Middleware } from "./routing/DynamicMiddleware.js"
 
 export * from "./routing/DynamicMiddleware.js"
 
@@ -35,9 +33,6 @@ export namespace LayersUtils {
     }[number]
     : never
 }
-
-const logRequestError = logError("Request")
-const reportRequestError = reportError("Request")
 
 // retry just once on optimistic concurrency exceptions
 const optimisticConcurrencySchedule = Schedule.once.pipe(
@@ -423,64 +418,17 @@ export const makeRouter = <
                   }
                 } as any
                 : resource,
-              rpc.effect(resource, (input: any, headers: HttpHeaders.Headers) =>
-                // TODO: render more data... similar to console?
-                Effect
-                  .annotateCurrentSpan(
-                    "requestInput",
-                    Object.entries(input).reduce((prev, [key, value]: [string, unknown]) => {
-                      prev[key] = key === "password"
-                        ? "<redacted>"
-                        : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-                        ? typeof value === "string" && value.length > 256
-                          ? (value.substring(0, 253) + "...")
-                          : value
-                        : Array.isArray(value)
-                        ? `Array[${value.length}]`
-                        : value === null || value === undefined
-                        ? `${value}`
-                        : typeof value === "object" && value
-                        ? `Object[${Object.keys(value).length}]`
-                        : typeof value
-                      return prev
-                    }, {} as Record<string, string | number | boolean>)
-                  )
-                  .pipe(
-                    // can't use andThen due to some being a function and effect
-                    Effect.zipRight(handle(input, headers)),
-                    // TODO: support ParseResult if the error channel of the request allows it.. but who would want that?
-                    Effect.catchAll((_) => ParseResult.isParseError(_) ? Effect.die(_) : Effect.fail(_)),
-                    Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
-                    Effect.tapDefect((cause) =>
-                      Effect
-                        .all([
-                          reportRequestError(cause, {
-                            action: `${meta.moduleName}.${resource._tag}`
-                          }),
-                          InfraLogger
-                            .logError("Finished request", cause)
-                            .pipe(Effect.annotateLogs({
-                              action: `${meta.moduleName}.${resource._tag}`,
-                              req: pretty(resource),
-                              headers: pretty(headers)
-                              // resHeaders: pretty(
-                              //   Object
-                              //     .entries(headers)
-                              //     .reduce((prev, [key, value]) => {
-                              //       prev[key] = value && typeof value === "string" ? snipString(value) : value
-                              //       return prev
-                              //     }, {} as Record<string, any>)
-                              // )
-                            }))
-                        ])
-                    ),
-                    // NOTE: this does not catch errors from the middlewares..
-                    // we should re-evalute this in any case..
-                    devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error")),
+              rpc.effect(
+                resource,
+                (req, headers) =>
+                  handle(req, headers).pipe(
                     Effect.withSpan("Request." + meta.moduleName + "." + resource._tag, {
                       captureStackTrace: () => handler.stack
-                    })
-                  ), meta.moduleName),
+                    }),
+                    Effect.provideService(DevMode, devMode)
+                  ),
+                meta.moduleName
+              ),
               meta.moduleName
             ] as const
             return acc

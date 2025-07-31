@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.49.0
+
+### Minor Changes
+
+- a36ceed: feat: composable dynamic middleware
+
 ## 2.48.0
 
 ### Minor Changes

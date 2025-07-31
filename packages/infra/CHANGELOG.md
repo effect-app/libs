@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.74.0
+
+### Minor Changes
+
+- a36ceed: feat: composable dynamic middleware
+
+### Patch Changes
+
+- Updated dependencies [a36ceed]
+  - effect-app@2.49.0
+
 ## 2.73.4
 
 ### Patch Changes

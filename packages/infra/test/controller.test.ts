@@ -5,9 +5,9 @@ import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { HttpServerRequest } from "effect-app/http"
+import { type HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { ContextProvider, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/DynamicMiddleware.js"
+import { ContextProvider, DefaultGenericMiddlewares, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -154,12 +154,25 @@ class Test extends Effect.Service<Test>()("Test", {
   })
 }) {}
 
+export class MiddlewareLogger2 extends Effect.Service<MiddlewareLogger2>()("MiddlewareLogger2", {
+  effect: Effect.gen(function*() {
+    return <A, E>(
+      handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+      _moduleName: string
+    ) =>
+      Effect.fnUntraced(function*(input: any, headers: HttpHeaders.Headers) {
+        return yield* handle(input, headers)
+      })
+  })
+}) {}
+
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
   dependencies: [Layer.effect(Str2, Str)],
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
   contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
+  genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {
     requireRoles: RequireRoles,

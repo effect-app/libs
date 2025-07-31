@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Array, Context, Effect, type Layer, Option, type S } from "effect-app"
+import { Array, Context, Effect, Option, type S } from "effect-app"
 import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect-app/Context"
 import { typedValuesOf } from "effect-app/utils"
-import { InfraLogger } from "../../logger.js"
-import { sort } from "./tsort.js"
+import { InfraLogger } from "../../../logger.js"
+import { type ContextTagWithDefault } from "../../layerUtils.js"
+import { sort } from "../tsort.js"
 
 export type ContextWithLayer<
   Config,
@@ -18,64 +19,67 @@ export type ContextWithLayer<
   Args extends [config: Config, headers: Record<string, string>],
   Dependencies extends any[]
 > =
-  & Context.Tag<
+  & ContextTagWithDefault<
     Id,
-    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag }
+    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag },
+    MakeE,
+    MakeR
   >
   & {
-    Default: Layer.Layer<Id, MakeE, MakeR>
     dependsOn?: Dependencies
   }
 
-export type AnyContextWithLayer<Config, Service, Error> =
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    any,
-    any,
-    any,
-    string,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    never,
-    any,
-    never,
-    any,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    any,
-    any,
-    never,
-    any,
-    any,
-    any
-  >
-  | ContextWithLayer<
-    Config,
-    any,
-    Service,
-    Error,
-    never,
-    any,
-    any,
-    any,
-    any,
-    any
-  >
+export namespace ContextWithLayer {
+  export type Base<Config, Service, Error> =
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      any,
+      any,
+      any,
+      string,
+      any,
+      any
+    >
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      never,
+      any,
+      never,
+      any,
+      any,
+      any
+    >
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      any,
+      any,
+      never,
+      any,
+      any,
+      any
+    >
+    | ContextWithLayer<
+      Config,
+      any,
+      Service,
+      Error,
+      never,
+      any,
+      any,
+      any,
+      any,
+      any
+    >
+}
 
 export const mergeContexts = Effect.fnUntraced(
   function*<T extends readonly { maker: any; handle: Effect<Context<any>> }[]>(makers: T) {
@@ -116,7 +120,7 @@ export const mergeOptionContexts = Effect.fnUntraced(
 export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 <
   TI extends {
-    [K in keyof T]: AnyContextWithLayer<
+    [K in keyof T]: ContextWithLayer.Base<
       { [K in keyof T]?: T[K]["contextActivation"] },
       T[K]["service"],
       S.Schema.Type<T[K]["error"]>

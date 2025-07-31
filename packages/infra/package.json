@@ -282,6 +282,10 @@
       "types": "./dist/api/codec.d.ts",
       "default": "./dist/api/codec.js"
     },
+    "./api/layerUtils": {
+      "types": "./dist/api/layerUtils.d.ts",
+      "default": "./dist/api/layerUtils.js"
+    },
     "./api/middlewares": {
       "types": "./dist/api/middlewares.d.ts",
       "default": "./dist/api/middlewares.js"
@@ -294,13 +298,29 @@
       "types": "./dist/api/routing.d.ts",
       "default": "./dist/api/routing.js"
     },
-    "./api/routing/DynamicMiddleware": {
-      "types": "./dist/api/routing/DynamicMiddleware.d.ts",
-      "default": "./dist/api/routing/DynamicMiddleware.js"
+    "./api/routing/middleware": {
+      "types": "./dist/api/routing/middleware.d.ts",
+      "default": "./dist/api/routing/middleware.js"
     },
-    "./api/routing/dynamic-middleware": {
-      "types": "./dist/api/routing/dynamic-middleware.d.ts",
-      "default": "./dist/api/routing/dynamic-middleware.js"
+    "./api/routing/middleware/ContextProvider": {
+      "types": "./dist/api/routing/middleware/ContextProvider.d.ts",
+      "default": "./dist/api/routing/middleware/ContextProvider.js"
+    },
+    "./api/routing/middleware/DynamicMiddleware": {
+      "types": "./dist/api/routing/middleware/DynamicMiddleware.d.ts",
+      "default": "./dist/api/routing/middleware/DynamicMiddleware.js"
+    },
+    "./api/routing/middleware/dynamic-middleware": {
+      "types": "./dist/api/routing/middleware/dynamic-middleware.d.ts",
+      "default": "./dist/api/routing/middleware/dynamic-middleware.js"
+    },
+    "./api/routing/middleware/generic-middleware": {
+      "types": "./dist/api/routing/middleware/generic-middleware.d.ts",
+      "default": "./dist/api/routing/middleware/generic-middleware.js"
+    },
+    "./api/routing/middleware/middleware": {
+      "types": "./dist/api/routing/middleware/middleware.d.ts",
+      "default": "./dist/api/routing/middleware/middleware.js"
     },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",

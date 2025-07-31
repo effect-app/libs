@@ -110,14 +110,12 @@ export interface MiddlewareMake<
   /** generic middlewares are those which follow the (next) => (input, headers) => pattern */
   genericMiddlewares: GenericMiddlewareProviders
   /** static context providers */
-  contextProvider:
-    & Context.Tag<
-      ContextProviderId,
-      ContextProviderShape<ContextProviderA, ContextProviderR>
-    >
-    & {
-      Default: Layer.Layer<ContextProviderId, MakeContextProviderE, MakeContextProviderR>
-    }
+  contextProvider: ContextTagWithDefault<
+    ContextProviderId,
+    ContextProviderShape<ContextProviderA, ContextProviderR>,
+    MakeContextProviderE,
+    MakeContextProviderR
+  >
 
   /* dependencies for the main middleware running just before the handler is called */
   dependencies?: MiddlewareDependencies
@@ -144,20 +142,15 @@ export type Middleware<
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
   ContextProviderA // what the context provider provides
-> =
-  & Context.Tag<
-    MiddlewareMakerId,
-    MiddlewareMakerId & {
-      effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
-    }
-  >
-  & {
-    Default: Layer.Layer<
-      MiddlewareMakerId,
-      MakeMiddlewareE,
-      MakeMiddlewareR
-    >
-  }
+> = ContextTagWithDefault<
+  MiddlewareMakerId,
+  {
+    effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
+  },
+  MakeMiddlewareE,
+  MakeMiddlewareR,
+  "MiddlewareMaker"
+>
 
 export type RequestContextMapErrors<RequestContextMap extends Record<string, RPCContextMap.Any>> = S.Schema.Type<
   RequestContextMap[keyof RequestContextMap]["error"]

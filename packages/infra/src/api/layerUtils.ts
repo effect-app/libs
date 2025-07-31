@@ -20,9 +20,12 @@ export namespace LayerUtils {
     : never
 }
 
-export type ContextTagWithDefault<Id, Tag, A, LayerE, LayerR> = Context.Tag<Id, { _tag: Tag } & A> & {
-  Default: Layer.Layer<Id, LayerE, LayerR>
-}
+export type ContextTagWithDefault<Id, A, LayerE, LayerR, Tag = unknown> =
+  & (Tag extends string ? Context.Tag<Id, { _tag: Tag } & A> : Context.Tag<Id, A>)
+  & {
+    Default: Layer.Layer<Id, LayerE, LayerR>
+    // new(a: A): Id
+  }
 
 export namespace ContextTagWithDefault {
   export type Base<A> = ContextTagWithDefault<any, any, A, any, any>

@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Array, Context, Effect, type Layer, Option, type S } from "effect-app"
+import { Array, Context, Effect, Option, type S } from "effect-app"
 import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect-app/Context"
 import { typedValuesOf } from "effect-app/utils"
 import { InfraLogger } from "../../../logger.js"
+import { type ContextTagWithDefault } from "../../layerUtils.js"
 import { sort } from "../tsort.js"
 
 export type ContextWithLayer<
@@ -18,12 +19,13 @@ export type ContextWithLayer<
   Args extends [config: Config, headers: Record<string, string>],
   Dependencies extends any[]
 > =
-  & Context.Tag<
+  & ContextTagWithDefault<
     Id,
-    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag }
+    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag },
+    MakeE,
+    MakeR
   >
   & {
-    Default: Layer.Layer<Id, MakeE, MakeR>
     dependsOn?: Dependencies
   }
 

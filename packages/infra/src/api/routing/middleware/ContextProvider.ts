@@ -1,6 +1,6 @@
 import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
 import { type HttpRouter } from "effect-app/http"
-import { type GetContext, type LayerUtils } from "../../layerUtils.js"
+import { type ContextTagWithDefault, type GetContext, type LayerUtils } from "../../layerUtils.js"
 import { mergeContexts } from "./dynamic-middleware.js"
 
 // the context provider provides additional stuff
@@ -130,25 +130,19 @@ export const MergedContextProvider = <
     deps as [Parameters<typeof mergeContextProviders>[0]],
     (_) => mergeContextProviders(..._),
     (_) => ContextProvider(_ as any)
-  ) as unknown as
-    & Context.Tag<
-      ContextProviderId,
-      Effect.Effect<
-        Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
-        never,
-        Effect.Context<InstanceType<TDeps[number]>>
-      >
+  ) as unknown as ContextTagWithDefault<
+    ContextProviderId,
+    Effect.Effect<
+      Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
+      never,
+      Effect.Context<InstanceType<TDeps[number]>>
+    >,
+    LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
+    | Exclude<
+      InstanceType<TDeps[number]>,
+      LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
     >
-    & {
-      Default: Layer.Layer<
-        ContextProviderId,
-        LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
-        | Exclude<
-          InstanceType<TDeps[number]>,
-          LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
-        >
-        | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
-      >
-    }
+    | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
+  >
 
 export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(Context.empty())) })

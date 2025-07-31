@@ -27,3 +27,5 @@ export type ContextTagWithDefault<Id, Tag, A, LayerE, LayerR> = Context.Tag<Id, 
 export namespace ContextTagWithDefault {
   export type Base<A> = ContextTagWithDefault<any, any, A, any, any>
 }
+
+export type GetContext<T> = T extends Context.Context<infer Y> ? Y : never

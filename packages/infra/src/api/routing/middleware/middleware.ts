@@ -95,4 +95,4 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
   })
 }) {}
 
-export const DefaultGenericMiddleware = [CaptureHttpHeadersAsRpcHeaders, MiddlewareLogger] as const
+export const DefaultGenericMiddlewares = [CaptureHttpHeadersAsRpcHeaders, MiddlewareLogger] as const

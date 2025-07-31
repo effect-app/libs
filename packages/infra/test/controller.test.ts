@@ -7,7 +7,7 @@ import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { ContextProvider, DefaultGenericMiddleware, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
+import { ContextProvider, DefaultGenericMiddlewares, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -172,7 +172,7 @@ const middleware = makeMiddleware<RequestContextMap>()({
   dependencies: [Layer.effect(Str2, Str)],
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
   contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
-  genericMiddlewares: [...DefaultGenericMiddleware, MiddlewareLogger2],
+  genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {
     requireRoles: RequireRoles,

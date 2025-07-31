@@ -34,7 +34,7 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-const contextProvider = ContextProvider({
+export const someContextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
@@ -85,12 +85,15 @@ class RequestCacheContext extends Effect.Service<RequestCacheContext>()("Request
   })
 }) {}
 
-const merged = mergeContextProviders(MyContextProvider, RequestCacheContext)
+const merged = mergeContextProviders(MyContextProvider)
 export const contextProvider2 = ContextProvider(merged)
-export const contextProvider3 = MergedContextProvider(MyContextProvider, RequestCacheContext)
-
-// expectTypeOf(contextProvider2).toEqualTypeOf<typeof contextProvider>()
+export const contextProvider3 = MergedContextProvider(MyContextProvider)
+expectTypeOf(contextProvider2).toEqualTypeOf<typeof someContextProvider>()
 expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
+const merged2 = mergeContextProviders(MyContextProvider, RequestCacheContext)
+export const contextProvider22 = ContextProvider(merged2)
+export const contextProvider23 = MergedContextProvider(MyContextProvider, RequestCacheContext)
+expectTypeOf(contextProvider23).toEqualTypeOf<typeof contextProvider22>()
 
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
@@ -151,32 +154,40 @@ class Test extends Effect.Service<Test>()("Test", {
   })
 }) {}
 
+// TODO: eventually it might be nice if we have total control over order somehow..
+// [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
   dependencies: [Layer.effect(Str2, Str)],
-  contextProvider,
+  // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
+  contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
+  // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {
     requireRoles: RequireRoles,
     allowAnonymous: AllowAnonymous,
     test: Test
   },
+  // TODO: 0..n of these generic middlewares?
   execute: (maker) =>
     Effect.gen(function*() {
-      return maker((_schema, handler) => (req, headers) => {
-        return Effect
-          .gen(function*() {
-            // you can use only HttpRouter.HttpRouter.Provided here as additional context
-            // and what ContextMaker provides too
-            // const someElse = yield* SomeElse
-            yield* Some // provided by ContextMaker
-            yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
+      return maker(
+        (_schema, handler) => (req, headers) =>
+          // contextProvider and dynamicMiddlewares are already provided here.
+          // aka this runs "last"
+          Effect
+            .gen(function*() {
+              // you can use only HttpRouter.HttpRouter.Provided here as additional context
+              // and what ContextMaker provides too
+              // const someElse = yield* SomeElse
+              yield* Some // provided by ContextMaker
+              yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
-            return yield* handler(req, headers)
-              .pipe(
-                // TODO: make this depend on query/command, and consider if middleware also should be affected or not.
-                Effect.uninterruptible
-              )
-          })
-      })
+              return yield* handler(req, headers)
+                .pipe(
+                  // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
+                  Effect.uninterruptible
+                )
+            })
+      )
     })
 })
 

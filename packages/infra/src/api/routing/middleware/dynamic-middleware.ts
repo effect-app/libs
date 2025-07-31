@@ -104,13 +104,19 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
           GetEffectContext<T, typeof config>
         >
       }
-    ) as (
+    )
+  }) as unknown as Effect<
+    (
       config: { [K in keyof T]?: T[K]["contextActivation"] },
       headers: Record<string, string>
     ) => Effect.Effect<
       Context.Context<GetEffectContext<T, typeof config>>,
       Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>,
       Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>
-    >
-  })
+    >,
+    never,
+    // doesn't work , resolves to never
+    // Layer.Success<{ [K in keyof TI]: TI[K]["Default"] }[keyof TI]>
+    Tag.Identifier<{ [K in keyof TI]: TI[K] }[keyof TI]>
+  >
 })

@@ -7,7 +7,7 @@ import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { type HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { ContextProvider, DefaultGenericMiddlewares, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
+import { ContextProvider, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -124,8 +124,10 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
   })
 }) {}
 
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
   effect: Effect.gen(function*() {
+    yield* Some
     return {
       handle: Effect.fn(
         function*(cfg: { requireRoles?: readonly string[] }) {
@@ -439,3 +441,9 @@ expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateEr
 expectTypeOf({} as makeContext2).toEqualTypeOf<
   SomethingService | SomethingRepo | SomethingService2
 >()
+
+export const dynamicMiddlewares = implementMiddleware<RequestContextMap>()({
+  requireRoles: RequireRoles,
+  allowAnonymous: AllowAnonymous,
+  test: Test
+})

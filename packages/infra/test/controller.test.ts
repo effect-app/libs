@@ -98,9 +98,18 @@ class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContext
   })
 }) {}
 
-const merged = mergeContextProviders(MyContextProvider)
+class RequestCacheContext extends Effect.Service<RequestCacheContext>()("RequestCacheContext", {
+  effect: Effect.gen(function*() {
+    return Effect.gen(function*() {
+      const ctx = yield* Layer.build(RequestCacheLayers)
+      return ctx
+    })
+  })
+}) {}
+
+const merged = mergeContextProviders(MyContextProvider, RequestCacheContext)
 export const contextProvider2 = ContextProvider(merged)
-export const contextProvider3 = MergedContextProvider(MyContextProvider)
+export const contextProvider3 = MergedContextProvider(MyContextProvider, RequestCacheContext)
 expectTypeOf(contextProvider2).toEqualTypeOf<typeof someContextProvider>()
 expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
 const merged2 = mergeContextProviders(MyContextProvider, MyContextProvider2)

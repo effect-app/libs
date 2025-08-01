@@ -73,7 +73,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
         : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"][
           "_tag"
         ]}'s returned effect can have`
-      : "fanculo"
+      : "WTF are you yielding man?"
     : `You cannot throw errors from providers`
 }
 

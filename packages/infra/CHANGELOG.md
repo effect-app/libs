@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.78.6
+
+### Patch Changes
+
+- 8c62716: make contextProvider optional
+
 ## 2.78.5
 
 ### Patch Changes

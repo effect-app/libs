@@ -172,7 +172,7 @@ class Test extends Effect.Service<Test>()("Test", {
 export class BogusMiddleware extends Effect.Service<BogusMiddleware>()("BogusMiddleware", {
   effect: Effect.gen(function*() {
     return genericMiddleware(Effect.fnUntraced(function*(options) {
-      return yield* options.next(options.payload, options.headers)
+      return yield* options.next
     }))
   })
 }) {}

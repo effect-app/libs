@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, Effect, Layer, type NonEmptyArray, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import { type HttpRouter } from "effect-app/http"
+import { HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
@@ -225,29 +225,35 @@ export const makeMiddleware =
             effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
               (schema, handler, moduleName) => {
                 const h = middleware(schema, handler as any, moduleName)
-                return (payload, headers) =>
-                  generic({
-                    payload,
-                    headers,
-                    next: Effect.fnUntraced(function*(req, headers) {
-                      yield* Effect.annotateCurrentSpan(
-                        "request.name",
-                        moduleName ? `${moduleName}.${req._tag}` : req._tag
-                      )
+                return (payload, rpcHeaders) =>
+                  Effect.gen(function*() {
+                    const httpReq = yield* HttpServerRequest.HttpServerRequest
+                    const headers = HttpHeaders.merge(httpReq.headers, rpcHeaders)
+                    return yield* generic({
+                      payload,
+                      headers,
+                      next: Effect.gen(function*() {
+                        yield* Effect.annotateCurrentSpan(
+                          "request.name",
+                          moduleName ? `${moduleName}.${payload._tag}` : payload._tag
+                        )
 
-                      // the contextProvider is an Effect that builds the context for the request
-                      return yield* contextProvider.pipe(
-                        Effect.flatMap((contextProviderContext) =>
-                          // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
-                          dynamicMiddlewares(schema.config ?? {}, headers).pipe(
-                            Effect.flatMap((dynamicContext) => h(req, headers).pipe(Effect.provide(dynamicContext))),
-                            Effect.provide(contextProviderContext)
+                        // the contextProvider is an Effect that builds the context for the request
+                        return yield* contextProvider.pipe(
+                          Effect.flatMap((contextProviderContext) =>
+                            // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
+                            dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                              Effect.flatMap((dynamicContext) =>
+                                h(payload, headers).pipe(Effect.provide(dynamicContext))
+                              ),
+                              Effect.provide(contextProviderContext)
+                            )
                           )
                         )
-                      )
-                    }) as any,
-                    moduleName
-                  })
+                      }) as any,
+                      moduleName
+                    })
+                  }) as any // why?
               }
             )
           }))

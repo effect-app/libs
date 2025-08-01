@@ -5,7 +5,7 @@ import { type ContextTagWithDefault } from "../../layerUtils.js"
 
 export interface GenericMiddlewareOptions<A, E> {
   // Effect rpc middleware does not support changing payload or headers, but we do..
-  readonly next: (payload: unknown, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+  readonly next: Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
   readonly payload: unknown
   readonly headers: HttpHeaders.Headers
   readonly moduleName: string
@@ -37,10 +37,9 @@ export const genericMiddlewareMaker = <
       ) => {
         let next = options.next
         for (const middleware of (middlewaresInstances as any[]).toReversed()) {
-          const currentNext = next
-          next = (payload, headers) => middleware({ ...options, payload, headers, next: currentNext })
+          next = middleware({ ...options, next })
         }
-        return next(options.payload, options.headers)
+        return next
       }
     })
   } as any

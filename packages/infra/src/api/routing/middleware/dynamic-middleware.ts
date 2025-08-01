@@ -23,7 +23,7 @@ export type ContextWithLayer<
         handle: (
           config: Config,
           headers: Record<string, string>
-        ) => Effect<Option<Context<Service>>, Error, unknown>
+        ) => Effect<Option<Context<Service>>, Error, any>
       },
       LayerE,
       LayerR

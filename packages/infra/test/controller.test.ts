@@ -146,6 +146,7 @@ class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContext
     })
   })
 }) {}
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2Gen extends Effect.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
   effect: Effect.gen(function*() {
     yield* SomeService

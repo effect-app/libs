@@ -1,7 +1,29 @@
-import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
+
 import { type HttpRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
+import { type YieldWrap } from "effect/Utils"
 import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "../../layerUtils.js"
+
+export namespace EffectGenUtils {
+  export type Success<EG> = EG extends Effect<infer A, infer _E, infer _R> ? A
+    // there could be a case where the generator function does not yield anything, so we need to handle that
+    : EG extends (..._: infer _3) => Generator<never, infer A, infer _2> ? A
+    : EG extends (..._: infer _3) => Generator<YieldWrap<Effect<infer _, infer _E, infer _R>>, infer A, infer _2> ? A
+    : never
+
+  export type Error<EG> = EG extends Effect<infer _A, infer E, infer _R> ? E
+    // there could be a case where the generator function does not yield anything, so we need to handle that
+    : EG extends (..._: infer _3) => Generator<never, infer _A, infer _2> ? never
+    : EG extends (..._: infer _3) => Generator<YieldWrap<Effect<infer _, infer E, infer _R>>, infer _A, infer _2> ? E
+    : never
+
+  export type Context<EG> = EG extends Effect<infer _A, infer _E, infer R> ? R
+    // there could be a case where the generator function does not yield anything, so we need to handle that
+    : EG extends (..._: infer _3) => Generator<never, infer _A, infer _2> ? never
+    : EG extends (..._: infer _3) => Generator<YieldWrap<Effect<infer _, infer _E, infer R>>, infer _A, infer _2> ? R
+    : never
+}
 
 // the context provider provides additional stuff
 export type ContextProviderShape<ContextProviderA, ContextProviderR extends HttpRouter.HttpRouter.Provided> = Effect<
@@ -14,51 +36,75 @@ export interface ContextProviderId {
   _tag: "ContextProvider"
 }
 
+//  ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
+
 /**
  * TDeps is an array of services with Default implementation
  * each service is an effect which builds some context for each request
  */
-
-type TDepsArr = Array.NonEmptyReadonlyArray<
+type TDepsArr<TDeps extends ReadonlyArray<any>> = {
+  // the following freaking shit helps me with nested variance issues: it wasn't sufficient to use never/any/unknown for
+  // the various type parameters, not anymore because of () => Generator<YieldWrap<Effect craziness
+  // existential types may help, and all the following usages of infer _ have that meaning: I do not care which is the
+  // actual type in that position, I just wanna set the overall structure
+  [K in keyof TDeps]: TDeps[K] extends //
   // E = never => the context provided cannot trigger errors
-  // can't put HttpRouter.HttpRouter.Provided as R here because of variance
-  // (TDeps is an input type parameter so it's contravariant therefore Effect's R becomes contravariant too)
-  | ContextTagWithDefault.Base<Effect<Context.Context<any>, never, any> & { _tag: any }>
-  | ContextTagWithDefault.Base<Effect<Context.Context<any>, never, never> & { _tag: any }>
->
-
-type ConstrainDeps<TDeps extends TDepsArr> = {
-  [K in keyof TDeps]: TDeps[K]["Service"] extends Effect<Context.Context<any>, never, HttpRouter.HttpRouter.Provided>
-    ? TDeps[K]
-    : `HttpRouter.HttpRouter.Provided are the only requirements ${TDeps[K]["Service"][
-      "_tag"
-    ]}'s returned effect can have`
+  //  _R extends HttpRouter.HttpRouter.Provided => the context provided can only have what HttpRouter.Provided provides as requirements
+  (
+    ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
+  ) ? [_R] extends [HttpRouter.HttpRouter.Provided] ? TDeps[K]
+    : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"]["_tag"]}'s returned effect can have`
+    : TDeps[K] extends (
+      ContextTagWithDefault.Base<
+        & (() => Generator<
+          infer _YW,
+          infer _1,
+          infer _2
+        >)
+        & { _tag: infer _3 }
+      >
+    ) // [_YW] extends [never] if no yield* is used and just some context is returned
+      ? [_YW] extends [never] ? TDeps[K]
+      : [_YW] extends [YieldWrap<Effect<infer _2, never, infer _R>>]
+        ? [_R] extends [HttpRouter.HttpRouter.Provided] ? TDeps[K]
+        : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"][
+          "_tag"
+        ]}'s returned effect can have`
+      : "WTF are you yielding man?"
+    : `You cannot throw errors from providers`
 }
 
 // Note: the type here must be aligned with MergedContextProvider
 export const mergeContextProviders = <
-  TDeps extends TDepsArr
+  TDeps extends ReadonlyArray<any>
 >(
-  ...deps: ConstrainDeps<TDeps>
+  // long life to reverse mapped types
+  ...deps: TDepsArr<TDeps>
 ): {
   dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
   effect: Effect.Effect<
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<Effect.Success<Tag.Service<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Tag.Service<TDeps[number]>>>>,
       never,
-      Effect.Context<Tag.Service<TDeps[number]>>
+      EffectGenUtils.Context<Tag.Service<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
   >
 } => ({
-  dependencies: deps.map((_) => _.Default) as any,
+  dependencies: deps.map((_) => (_ as any).Default) as any,
   effect: Effect.gen(function*() {
-    const makers = yield* Effect.all(deps)
+    // uses the tags to request the context providers
+    const makers = yield* Effect.all(deps as any[])
     return Effect
       .gen(function*() {
-        const services = (makers as any[]).map((handle, i) => ({ maker: deps[i], handle }))
+        const services = (makers as any[]).map((handle, i) => (
+          {
+            maker: deps[i],
+            handle: handle[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(handle)() : handle
+          }
+        ))
         // services are effects which return some Context.Context<...>
         const context = yield* mergeContexts(services as any)
         return context
@@ -76,7 +122,12 @@ export const ContextProvider = <
 >(
   input: {
     effect: Effect<
-      Effect<ContextProviderA, never, ContextProviderR>,
+      | Effect<ContextProviderA, never, ContextProviderR>
+      | (() => Generator<
+        YieldWrap<Effect<any, never, ContextProviderR>>,
+        ContextProviderA,
+        any
+      >),
       MakeContextProviderE,
       MakeContextProviderR | Scope
     >
@@ -89,7 +140,10 @@ export const ContextProvider = <
   >(
     "ContextProvider"
   )
-  const l = Layer.scoped(ctx, input.effect)
+  const e = input.effect.pipe(
+    Effect.map((eg) => (eg as any)[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(eg as any)() : eg)
+  )
+  const l = Layer.scoped(ctx, e as any)
   return Object.assign(ctx, {
     Default: l.pipe(
       input.dependencies ? Layer.provide(input.dependencies) as any : (_) => _
@@ -105,9 +159,10 @@ export const ContextProvider = <
 
 // Note: the type here must be aligned with mergeContextProviders
 export const MergedContextProvider = <
-  TDeps extends TDepsArr
+  TDeps extends ReadonlyArray<any>
 >(
-  ...deps: ConstrainDeps<TDeps>
+  // long life to reverse mapped types
+  ...deps: TDepsArr<TDeps>
 ) =>
   pipe(
     deps as [Parameters<typeof mergeContextProviders>[0]],
@@ -117,9 +172,9 @@ export const MergedContextProvider = <
     ContextProviderId,
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<Effect.Success<Tag.Service<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Tag.Service<TDeps[number]>>>>,
       never,
-      Effect.Context<Tag.Service<TDeps[number]>>
+      EffectGenUtils.Context<Tag.Service<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     | Exclude<

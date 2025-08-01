@@ -83,15 +83,7 @@ class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContext
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return Effect.gen(function*() {
-      // the only requiremeno you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
-
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
+      // we test without dependencies, so that we end up with an R of never.
 
       return Context.make(SomeElse, new SomeElse({ b: 2 }))
     })

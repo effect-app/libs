@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { determineMethod, isCommand } from "@effect-app/infra/api/routing/utils"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { type Array, Console, Duration, Effect, Layer, type NonEmptyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { type Array, Duration, Effect, Layer, type NonEmptyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -406,8 +406,7 @@ export const makeRouter = <
                     Effect.withSpan("Request." + meta.moduleName + "." + resource._tag, {
                       captureStackTrace: () => handler.stack
                     }),
-                    Effect.provideService(DevMode, devMode),
-                    Effect.onExit(Console.warn)
+                    Effect.provideService(DevMode, devMode)
                   ),
                 meta.moduleName
               ),

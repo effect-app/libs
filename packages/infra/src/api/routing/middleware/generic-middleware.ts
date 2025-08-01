@@ -3,10 +3,21 @@ import { type Array, Effect } from "effect-app"
 import { type HttpHeaders, type HttpRouter } from "effect-app/http"
 import { type ContextTagWithDefault } from "../../layerUtils.js"
 
+export interface GenericMiddlewareOptions<A, E> {
+  // Effect rpc middleware does not support changing payload or headers, but we do..
+  readonly next: (payload: unknown, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+  readonly payload: unknown
+  readonly headers: HttpHeaders.Headers
+  readonly moduleName: string
+  // readonly clientId: number
+  // readonly rpc: Rpc.AnyWithProps
+}
+
 export type GenericMiddlewareMaker = <A, E>(
-  handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
-  moduleName: string
-) => (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+  options: GenericMiddlewareOptions<A, E>
+) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+
+export const genericMiddleware = (i: GenericMiddlewareMaker) => i
 
 export const genericMiddlewareMaker = <
   T extends Array<
@@ -21,17 +32,15 @@ export const genericMiddlewareMaker = <
     effect: Effect.gen(function*() {
       const middlewaresInstances = yield* Effect.all(middlewares)
 
-      return <A, E, R>(
-        handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, R>,
-        moduleName: string
+      return <A, E>(
+        options: GenericMiddlewareOptions<A, E>
       ) => {
-        return (input: any, headers: HttpHeaders.Headers) => {
-          let effect = handle
-          for (const middleware of (middlewaresInstances as any[]).toReversed()) {
-            effect = middleware(effect, moduleName)
-          }
-          return effect(input, headers)
+        let next = options.next
+        for (const middleware of (middlewaresInstances as any[]).toReversed()) {
+          const currentNext = next
+          next = (payload, headers) => middleware({ ...options, payload, headers, next: currentNext })
         }
+        return next(options.payload, options.headers)
       }
     })
   } as any

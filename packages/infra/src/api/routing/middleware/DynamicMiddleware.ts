@@ -226,8 +226,11 @@ export const makeMiddleware =
                 const h = middleware(schema, next as any, moduleName)
                 return (payload, rpcHeaders) =>
                   Effect.gen(function*() {
-                    const httpReq = yield* HttpServerRequest.HttpServerRequest
-                    const headers = HttpHeaders.merge(httpReq.headers, rpcHeaders)
+                    // TODO: perhaps this should be part of Protocol instead.
+                    // the alternative is that UserProfile handling is part of Http Middleware instead of Rpc Middleware..
+                    // the Rpc Middleware then just needs to confirm if it's there..
+                    const req = yield* HttpServerRequest.HttpServerRequest
+                    const headers = HttpHeaders.merge(req.headers, rpcHeaders)
                     return yield* generic({
                       payload,
                       headers,

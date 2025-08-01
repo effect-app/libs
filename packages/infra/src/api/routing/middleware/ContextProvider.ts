@@ -20,29 +20,19 @@ export interface ContextProviderId {
 each service is an effect which builds some context for each request
 */
 type TDepsArr = Array.NonEmptyReadonlyArray<
-  & (
-    // E = never => the context provided cannot trigger errors
-    // can't put HttpRouter.HttpRouter.Provided as R here because of variance
-    // (TDeps is an input type parameter so it's contravariant therefore Effect's R becomes contravariant too)
-    | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
-    | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
-  )
-  & {
-    Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
-  }
->
+type ConstrainDeps<TDeps extends TDepsArr> = {
+  [K in keyof TDeps]: TDeps[K]["Service"] extends Effect<Context.Context<any>, never, HttpRouter.HttpRouter.Provided>
+    ? TDeps[K]
+    : `HttpRouter.HttpRouter.Provided are the only requirements ${TDeps[K]["Service"][
+      "_tag"
+    ]}'s returned effect can have`
+}
 
 // Note: the type here must be aligned with MergedContextProvider
 export const mergeContextProviders = <
   TDeps extends TDepsArr
 >(
-  ...deps: {
-    [K in keyof TDeps]: TDeps[K]["Service"] extends Effect<Context.Context<any>, never, HttpRouter.HttpRouter.Provided>
-      ? TDeps[K]
-      : `HttpRouter.HttpRouter.Provided are the only requirements ${TDeps[K]["Service"][
-        "_tag"
-      ]}'s returned effect can have`
-  }
+  ...deps: ConstrainDeps<TDeps>
 ): {
   dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
   effect: Effect.Effect<
@@ -108,13 +98,7 @@ export const ContextProvider = <
 export const MergedContextProvider = <
   TDeps extends TDepsArr
 >(
-  ...deps: {
-    [K in keyof TDeps]: TDeps[K]["Service"] extends Effect<Context.Context<any>, never, HttpRouter.HttpRouter.Provided>
-      ? TDeps[K]
-      : `HttpRouter.HttpRouter.Provided are the only requirements ${TDeps[K]["Service"][
-        "_tag"
-      ]}'s returned effect can have`
-  }
+  ...deps: ConstrainDeps<TDeps>
 ) =>
   pipe(
     deps as [Parameters<typeof mergeContextProviders>[0]],

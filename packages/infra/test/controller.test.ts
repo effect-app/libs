@@ -168,11 +168,12 @@ export class MiddlewareLogger2 extends Effect.Service<MiddlewareLogger2>()("Midd
   })
 }) {}
 
+const contextProvider = MergedContextProvider(RequestCacheContext, MyContextProvider)
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
-  contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
+  contextProvider,
   genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {

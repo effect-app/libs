@@ -1,6 +1,7 @@
 import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
 import { type HttpRouter } from "effect-app/http"
-import { type ContextTagWithDefault, type GetContext, type LayerUtils } from "../../layerUtils.js"
+import { type Tag } from "effect/Context"
+import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { mergeContexts } from "./dynamic-middleware.js"
 
 // the context provider provides additional stuff
@@ -27,7 +28,6 @@ export const mergeContextProviders = <
       | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
     )
     & {
-      new(...args: any[]): any
       Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
     }
   >
@@ -43,9 +43,9 @@ export const mergeContextProviders = <
   dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
   effect: Effect.Effect<
     Effect.Effect<
-      Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
+      Effect.Success<Tag.Service<TDeps[number]>>,
       never,
-      Effect.Context<InstanceType<TDeps[number]>>
+      Effect.Context<Tag.Service<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
@@ -113,7 +113,6 @@ export const MergedContextProvider = <
       | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
     )
     & {
-      new(...args: any[]): any
       Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
     }
   >
@@ -133,13 +132,13 @@ export const MergedContextProvider = <
   ) as unknown as ContextTagWithDefault<
     ContextProviderId,
     Effect.Effect<
-      Context.Context<GetContext<Effect.Success<InstanceType<TDeps[number]>>>>,
+      Effect.Success<Tag.Service<TDeps[number]>>,
       never,
-      Effect.Context<InstanceType<TDeps[number]>>
+      Effect.Context<Tag.Service<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     | Exclude<
-      InstanceType<TDeps[number]>,
+      Tag.Service<TDeps[number]>,
       LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
     >
     | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>

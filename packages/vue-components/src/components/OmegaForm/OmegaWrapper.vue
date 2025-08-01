@@ -124,7 +124,7 @@ onBeforeMount(() => {
     ),
   ) as typeof props extends infer TOP
     ? {
-        [K in keyof TOP as K extends ExcludedKeys ? never : K]: NonNullable<
+        [K in keyof TOP as K extends ExcludedKeys ? never : K]-?: NonNullable<
           TOP[K]
         >
       }

@@ -38,7 +38,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       | RequestHandlerWithInput<I, A, E, R, Request>
       | RequestHandler<A, E, R, Request>,
     arg?: I | WatchSource<I>,
-    options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
+    _options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
   ) => {
     const runPromise = Runtime.runPromise(getRuntime(runtime))
     const arr = arg
@@ -53,6 +53,10 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       : ref(arg)
     const queryKey = makeQueryKey(q)
     const handler = q.handler
+    const options = {
+      ..._options,
+      enabled: _options.enabled ? (() => _options.enabled!) : undefined
+    }
     const r = useQuery<unknown, KnownFiberFailure<E>, A>(
       Effect.isEffect(handler)
         ? {

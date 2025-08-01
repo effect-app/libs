@@ -124,7 +124,9 @@ onBeforeMount(() => {
     ),
   ) as typeof props extends infer TOP
     ? {
-        [K in keyof TOP as K extends ExcludedKeys ? never : K]: NonNullable<TOP[K]>
+        [K in keyof TOP as K extends ExcludedKeys ? never : K]: NonNullable<
+          TOP[K]
+        >
       }
     : never
 
@@ -149,10 +151,6 @@ onBeforeMount(() => {
     ...formToUse.value.options,
     ...filteredProps,
   }
-
-  const what = Object.entries(mergedOptions).map(([key, value]) => {
-    return value!
-  })
 
   formToUse.value.options = Object.fromEntries(
     // TODO

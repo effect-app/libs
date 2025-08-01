@@ -36,6 +36,7 @@ export interface ContextProviderId {
 type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   [K in keyof TDeps]: TDeps[K] extends //
   // E = never => the context provided cannot trigger errors
+  //  _R extends HttpRouter.HttpRouter.Provided => the context provided can only have what HttpRouter.Provided provides as requirements
   (
     & Context.Tag<
       infer _1,

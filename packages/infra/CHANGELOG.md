@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.78.3
+
+### Patch Changes
+
+- cab6fad: fix dependencies
+
 ## 2.78.2
 
 ### Patch Changes

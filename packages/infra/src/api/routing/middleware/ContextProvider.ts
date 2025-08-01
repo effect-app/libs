@@ -87,6 +87,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
 export const mergeContextProviders = <
   TDeps extends ReadonlyArray<any>
 >(
+  // long life to reverse mapped types
   ...deps: TDepsArr<TDeps>
 ): {
   dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
@@ -168,6 +169,7 @@ export const ContextProvider = <
 export const MergedContextProvider = <
   TDeps extends ReadonlyArray<any>
 >(
+  // long life to reverse mapped types
   ...deps: TDepsArr<TDeps>
 ) =>
   pipe(

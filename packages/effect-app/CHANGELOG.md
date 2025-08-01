@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.50.2
+
+### Patch Changes
+
+- 0d33085: fix dts freak
+
 ## 2.50.1
 
 ### Patch Changes

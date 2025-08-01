@@ -270,8 +270,12 @@ export class ApiClientFactory
 
   static readonly makeFor =
     (requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) =>
-    <M extends Requests>(resource: M) =>
+    <M extends Requests>(
+      resource: M
+    ) =>
       this
         .use((apiClientFactory) => apiClientFactory(requestLevelLayers, options))
-        .pipe(Effect.flatMap((f) => f(resource))) // don't rename f to clientFor or integration in vue project linked fucks up
+        .pipe(
+          Effect.flatMap((f) => f(resource))
+        ) // don't rename f to clientFor or integration in vue project linked fucks up
 }

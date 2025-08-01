@@ -5,7 +5,7 @@ import { type Tag } from "effect/Context"
 import { type YieldWrap } from "effect/Utils"
 import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "../../layerUtils.js"
 
-namespace EffectGenUtils {
+export namespace EffectGenUtils {
   export type Success<EG> = EG extends Effect<infer A, infer _E, infer _R> ? A
     // there could be a case where the generator function does not yield anything, so we need to handle that
     : EG extends (..._: infer _3) => Generator<never, infer A, infer _2> ? A

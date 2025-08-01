@@ -55,16 +55,13 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   ) ? [_R] extends [HttpRouter.HttpRouter.Provided] ? TDeps[K]
     : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"]["_tag"]}'s returned effect can have`
     : TDeps[K] extends (
-      ContextTagWithDefault<
-        infer _Id,
-        () => Generator<
+      ContextTagWithDefault.Base<
+        & (() => Generator<
           infer _YW,
-          infer _3,
-          infer _4
-        >,
-        infer _LayerE,
-        infer _LayerR,
-        infer _Tag
+          infer _1,
+          infer _2
+        >)
+        & { _tag: infer _3 }
       >
     ) // [_YW] extends [never] if no yield* is used and just some context is returned
       ? [_YW] extends [never] ? TDeps[K]

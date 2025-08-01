@@ -9,6 +9,7 @@ const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
+export class ModuleName extends Context.Reference<ModuleName>()("ModuleName", { defaultValue: () => "undefined" }) {}
 
 // Effect Rpc Middleware: Wrap
 export class RequestCacheMiddleware extends Effect.Service<RequestCacheMiddleware>()("RequestCacheMiddleware", {
@@ -39,8 +40,9 @@ export class ConfigureInterruptibility extends Effect.Service<ConfigureInterrupt
 // alternatively we could put it in Context or use a Reference like DevMode..
 export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("MiddlewareLogger", {
   effect: Effect.gen(function*() {
-    return genericMiddleware(Effect.fnUntraced(function*({ headers, moduleName, next, payload }) {
+    return genericMiddleware(Effect.fnUntraced(function*({ headers, next, payload }) {
       const devMode = yield* DevMode
+      const moduleName = yield* ModuleName // for now... let's see how we can get other metadata onto the request tag..
 
       return yield* Effect
         .annotateCurrentSpan(

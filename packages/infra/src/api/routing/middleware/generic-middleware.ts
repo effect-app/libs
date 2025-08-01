@@ -8,7 +8,6 @@ export interface GenericMiddlewareOptions<A, E> {
   readonly next: Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
   readonly payload: unknown
   readonly headers: HttpHeaders.Headers
-  readonly moduleName: string
   // readonly clientId: number
   // readonly rpc: Rpc.AnyWithProps
 }

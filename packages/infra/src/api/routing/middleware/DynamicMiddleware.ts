@@ -250,8 +250,7 @@ export const makeMiddleware =
                             )
                           )
                         )
-                      }) as any,
-                      moduleName
+                      }) as any
                     })
                   }) as any // why?
               }

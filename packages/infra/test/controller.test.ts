@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { type MakeContext, type MakeErrors, makeRouter, RequestCacheLayers } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
@@ -169,14 +169,14 @@ class Test extends Effect.Service<Test>()("Test", {
   })
 }) {}
 
-export class MiddlewareLogger2 extends Effect.Service<MiddlewareLogger2>()("MiddlewareLogger2", {
+export class BogusMiddleware extends Effect.Service<BogusMiddleware>()("BogusMiddleware", {
   effect: Effect.gen(function*() {
     return <A, E>(
       handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
       _moduleName: string
     ) =>
       Effect.fnUntraced(function*(input: any, headers: HttpHeaders.Headers) {
-        return yield* handle(input, headers).pipe(Effect.provide(RequestCacheLayers))
+        return yield* handle(input, headers)
       })
   })
 }) {}
@@ -187,7 +187,7 @@ const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvi
 const middleware = makeMiddleware<RequestContextMap>()({
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
   contextProvider,
-  genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
+  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {
     requireRoles: RequireRoles,
@@ -219,7 +219,7 @@ const middleware = makeMiddleware<RequestContextMap>()({
 const middleware2 = makeMiddleware<RequestContextMap>()({
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
   contextProvider,
-  genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
+  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {
     requireRoles: RequireRoles,

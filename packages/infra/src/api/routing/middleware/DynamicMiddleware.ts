@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer, type NonEmptyArray, Option, type Request, type S, type Scope } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
@@ -98,12 +98,12 @@ export interface MiddlewareMake<
   MakeContextProviderE, // what the context provider construction can fail with
   MakeContextProviderR, // what the context provider construction requires
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-  GenericMiddlewareProviders extends Array<
+  GenericMiddlewareProviders extends ReadonlyArray<
     ContextTagWithDefault.Base<GenericMiddlewareMaker>
   >,
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middleware requires to be constructed
-  MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
+  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
 > {
   /* dynamic middlewares to be applied based on Request Configuration */
   dynamicMiddlewares: DynamicMiddlewareProviders
@@ -164,10 +164,10 @@ export const makeMiddleware =
   >() =>
   <
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends Array<
+    GenericMiddlewareProviders extends ReadonlyArray<
       ContextTagWithDefault.Base<GenericMiddlewareMaker>
     >,
-    MiddlewareDependencies extends NonEmptyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
+    MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     //
     // ContextProvider is a service that builds additional context for each request.
     ContextProviderA = never, // what the context provider provides

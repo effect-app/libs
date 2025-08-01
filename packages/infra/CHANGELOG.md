@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.78.7
+
+### Patch Changes
+
+- minor api improvements
+
 ## 2.78.6
 
 ### Patch Changes

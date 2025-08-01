@@ -146,6 +146,26 @@ class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContext
     })
   })
 }) {}
+class MyContextProvider2Gen extends Effect.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
+  effect: Effect.gen(function*() {
+    yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
+
+    return function*() {
+      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      yield* HttpServerRequest.HttpServerRequest
+
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // yield* SomeElse
+
+      // currently the effectful context provider cannot trigger an error when building the per request context
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // if (Math.random() > 0.5) return yield* new CustomError2()
+
+      return Context.make(SomeElse, new SomeElse({ b: 2 }))
+    }
+  })
+}) {}
 
 export const contextProvider2 = ContextProvider(merged)
 export const contextProvider3 = MergedContextProvider(MyContextProvider)
@@ -160,10 +180,20 @@ expectTypeOf(contextProvider3Gen).toEqualTypeOf<typeof contextProvider2Gen>()
 expectTypeOf(contextProvider2Gen).toEqualTypeOf<typeof contextProvider2>()
 expectTypeOf(contextProvider3Gen).toEqualTypeOf<typeof contextProvider3>()
 
+//
+
 const merged2 = mergeContextProviders(MyContextProvider, MyContextProvider2)
 export const contextProvider22 = ContextProvider(merged2)
 export const contextProvider23 = MergedContextProvider(MyContextProvider, MyContextProvider2)
 expectTypeOf(contextProvider23).toEqualTypeOf<typeof contextProvider22>()
+
+const merged2Gen = mergeContextProviders(MyContextProviderGen, MyContextProvider2Gen)
+export const contextProvider22Gen = ContextProvider(merged2Gen)
+export const contextProvider23Gen = MergedContextProvider(MyContextProviderGen, MyContextProvider2Gen)
+expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider22Gen>()
+
+expectTypeOf(contextProvider22Gen).toEqualTypeOf<typeof contextProvider22>()
+expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider23>()
 
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>

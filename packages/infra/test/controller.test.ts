@@ -113,6 +113,7 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
   effect: Effect.gen(function*() {
     return {
       handle: Effect.fn(function*(opts: { allowAnonymous?: false }, headers: Record<string, string>) {
+        yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
           if (!opts.allowAnonymous) {

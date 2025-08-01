@@ -115,8 +115,6 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
       Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>
     >,
     never,
-    // doesn't work , resolves to never
-    // Layer.Success<{ [K in keyof TI]: TI[K]["Default"] }[keyof TI]>
     Tag.Identifier<{ [K in keyof TI]: TI[K] }[keyof TI]>
   >
 })

@@ -80,7 +80,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
     ) ? TDeps[K]
     : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"][
       "_tag"
-    ]}'s returned effect can have, and you cannot throw errors from it`
+    ]}'s returned effect can have, and you cannot throw errors from it.`
 }
 
 // Note: the type here must be aligned with MergedContextProvider

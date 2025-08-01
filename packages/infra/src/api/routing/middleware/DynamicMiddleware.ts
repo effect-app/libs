@@ -23,7 +23,7 @@ export type MakeRPCHandlerFactory<
   HandlerR
 >(
   schema: T & S.Schema<Req, any, never>,
-  handler: (
+  next: (
     request: Req,
     headers: any
   ) => Effect.Effect<
@@ -56,7 +56,7 @@ export type RPCHandlerFactory<
   HandlerR
 >(
   schema: T & S.Schema<Req, any, never>,
-  handler: (
+  next: (
     request: Req,
     headers: any
   ) => Effect.Effect<
@@ -76,7 +76,7 @@ export type RPCHandlerFactory<
     // the middleware will remove from HandlerR the dynamic context
     // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
     Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>,
-    // the context provider provides additional stuff both to the middleware and the handler
+    // the context provider provides additional stuff both to the middleware and the next
     ContextProviderA
   >
 >
@@ -90,7 +90,7 @@ type RequestContextMapProvider<RequestContextMap extends Record<string, RPCConte
 }
 
 export interface MiddlewareMake<
-  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the handler, or raise errors.
+  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the next, or raise errors.
   //
   // ContextProvider is a service that builds additional context for each request.
   ContextProviderA, // what the context provider provides
@@ -117,9 +117,9 @@ export interface MiddlewareMake<
     MakeContextProviderR
   >
 
-  /* dependencies for the main middleware running just before the handler is called */
+  /* dependencies for the main middleware running just before the next is called */
   dependencies?: MiddlewareDependencies
-  // this actually builds "the middleware", i.e. returns the augmented handler factory when yielded...
+  // this actually builds "the middleware", i.e. returns the augmented next factory when yielded...
   execute?: (
     maker: (
       // MiddlewareR is set to ContextProviderA | HttpRouter.HttpRouter.Provided because that's what, at most
@@ -138,7 +138,7 @@ export interface MiddlewareMakerId {
 }
 
 export type Middleware<
-  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the handler, or raise errors.
+  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
   ContextProviderA // what the context provider provides
@@ -190,7 +190,6 @@ export const makeMiddleware =
       MiddlewareDependencies
     >
   ) => {
-    // type Id = MiddlewareMakerId &
     const MiddlewareMaker = Context.GenericTag<
       MiddlewareMakerId,
       {
@@ -216,15 +215,15 @@ export const makeMiddleware =
             ) => cb)
             : Effect.succeed<
               MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
-            >((_schema, handle) => (payload, headers) => handle(payload, headers)),
+            >((_schema, next) => (payload, headers) => next(payload, headers)),
           contextProvider: make.contextProvider // uses the middleware.contextProvider tag to get the context provider service
         })
         .pipe(
           Effect.map(({ contextProvider, dynamicMiddlewares, generic, middleware }) => ({
             _tag: "MiddlewareMaker" as const,
             effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
-              (schema, handler, moduleName) => {
-                const h = middleware(schema, handler as any, moduleName)
+              (schema, next, moduleName) => {
+                const h = middleware(schema, next as any, moduleName)
                 return (payload, rpcHeaders) =>
                   Effect.gen(function*() {
                     const httpReq = yield* HttpServerRequest.HttpServerRequest
@@ -300,7 +299,7 @@ function makeRpcEffect<
       HandlerR
     >(
       schema: T & S.Schema<Req, any, never>,
-      handler: (
+      next: (
         request: Req,
         headers: any
       ) => Effect.Effect<

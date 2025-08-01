@@ -34,6 +34,10 @@ export interface ContextProviderId {
  * each service is an effect which builds some context for each request
  */
 type TDepsArr<TDeps extends ReadonlyArray<any>> = {
+  // the following freaking shit helps me with nested variance issues: it wasn't sufficient to use never/any/unknown for
+  // the various type parameters, not anymore because of () => Generator<YieldWrap<Effect craziness
+  // existential types may help, and all the following usages of infer _ have that meaning: I do not care which is the
+  // actual type in that position, I just wanna fix the overall structure
   [K in keyof TDeps]: TDeps[K] extends //
   // E = never => the context provided cannot trigger errors
   //  _R extends HttpRouter.HttpRouter.Provided => the context provided can only have what HttpRouter.Provided provides as requirements

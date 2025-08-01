@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.76.0
+
+### Minor Changes
+
+- d3a7a32: cleanup middleware
+
 ## 2.75.0
 
 ### Minor Changes

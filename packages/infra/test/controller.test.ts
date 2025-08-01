@@ -80,7 +80,7 @@ class RequestCacheContext extends Effect.Service<RequestCacheContext>()("Request
   effect: Effect.gen(function*() {
     return Effect.gen(function*() {
       const ctx = yield* Layer.build(RequestCacheLayers)
-      return ctx as Context.Context<any> // todo: ugh.
+      return ctx as Context.Context<unknown> // todo: ugh. variance
     })
   })
 }) {}

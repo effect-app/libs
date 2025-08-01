@@ -16,10 +16,22 @@ export interface ContextProviderId {
 }
 
 /**
- * TDeps is an array of services whit Default implementation
-each service is an effect which builds some context for each request
-*/
+ * TDeps is an array of services with Default implementation
+ * each service is an effect which builds some context for each request
+ */
 type TDepsArr = Array.NonEmptyReadonlyArray<
+  & (
+    // E = never => the context provided cannot trigger errors
+    // can't put HttpRouter.HttpRouter.Provided as R here because of variance
+    // (TDeps is an input type parameter so it's contravariant therefore Effect's R becomes contravariant too)
+    | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
+    | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
+  )
+  & {
+    Default: Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
+  }
+>
+
 type ConstrainDeps<TDeps extends TDepsArr> = {
   [K in keyof TDeps]: TDeps[K]["Service"] extends Effect<Context.Context<any>, never, HttpRouter.HttpRouter.Provided>
     ? TDeps[K]

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, Effect, Layer, type NonEmptyArray, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import { type HttpRouter } from "effect-app/http"
+import { HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
@@ -23,7 +23,7 @@ export type MakeRPCHandlerFactory<
   HandlerR
 >(
   schema: T & S.Schema<Req, any, never>,
-  handler: (
+  next: (
     request: Req,
     headers: any
   ) => Effect.Effect<
@@ -56,7 +56,7 @@ export type RPCHandlerFactory<
   HandlerR
 >(
   schema: T & S.Schema<Req, any, never>,
-  handler: (
+  next: (
     request: Req,
     headers: any
   ) => Effect.Effect<
@@ -76,7 +76,7 @@ export type RPCHandlerFactory<
     // the middleware will remove from HandlerR the dynamic context
     // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
     Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>,
-    // the context provider provides additional stuff both to the middleware and the handler
+    // the context provider provides additional stuff both to the middleware and the next
     ContextProviderA
   >
 >
@@ -90,7 +90,7 @@ type RequestContextMapProvider<RequestContextMap extends Record<string, RPCConte
 }
 
 export interface MiddlewareMake<
-  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the handler, or raise errors.
+  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the next, or raise errors.
   //
   // ContextProvider is a service that builds additional context for each request.
   ContextProviderA, // what the context provider provides
@@ -117,9 +117,9 @@ export interface MiddlewareMake<
     MakeContextProviderR
   >
 
-  /* dependencies for the main middleware running just before the handler is called */
+  /* dependencies for the main middleware running just before the next is called */
   dependencies?: MiddlewareDependencies
-  // this actually builds "the middleware", i.e. returns the augmented handler factory when yielded...
+  // this actually builds "the middleware", i.e. returns the augmented next factory when yielded...
   execute?: (
     maker: (
       // MiddlewareR is set to ContextProviderA | HttpRouter.HttpRouter.Provided because that's what, at most
@@ -138,7 +138,7 @@ export interface MiddlewareMakerId {
 }
 
 export type Middleware<
-  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the handler, or raise errors.
+  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
   ContextProviderA // what the context provider provides
@@ -190,7 +190,6 @@ export const makeMiddleware =
       MiddlewareDependencies
     >
   ) => {
-    // type Id = MiddlewareMakerId &
     const MiddlewareMaker = Context.GenericTag<
       MiddlewareMakerId,
       {
@@ -216,35 +215,47 @@ export const makeMiddleware =
             ) => cb)
             : Effect.succeed<
               MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
-            >((_schema, handle) => (req, headers) => handle(req, headers)),
+            >((_schema, next) => (payload, headers) => next(payload, headers)),
           contextProvider: make.contextProvider // uses the middleware.contextProvider tag to get the context provider service
         })
         .pipe(
           Effect.map(({ contextProvider, dynamicMiddlewares, generic, middleware }) => ({
             _tag: "MiddlewareMaker" as const,
             effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
-              (schema, handler, moduleName) => {
-                const h = middleware(schema, handler as any, moduleName)
-                return generic(
-                  Effect.fnUntraced(function*(req, headers) {
-                    yield* Effect.annotateCurrentSpan(
-                      "request.name",
-                      moduleName ? `${moduleName}.${req._tag}` : req._tag
-                    )
-
-                    // the contextProvider is an Effect that builds the context for the request
-                    return yield* contextProvider.pipe(
-                      Effect.flatMap((contextProviderContext) =>
-                        // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
-                        dynamicMiddlewares(schema.config ?? {}, headers).pipe(
-                          Effect.flatMap((dynamicContext) => h(req, headers).pipe(Effect.provide(dynamicContext))),
-                          Effect.provide(contextProviderContext)
+              (schema, next, moduleName) => {
+                const h = middleware(schema, next as any, moduleName)
+                return (payload, rpcHeaders) =>
+                  Effect.gen(function*() {
+                    // TODO: perhaps this should be part of Protocol instead.
+                    // the alternative is that UserProfile handling is part of Http Middleware instead of Rpc Middleware..
+                    // the Rpc Middleware then just needs to confirm if it's there..
+                    const req = yield* HttpServerRequest.HttpServerRequest
+                    const headers = HttpHeaders.merge(req.headers, rpcHeaders)
+                    return yield* generic({
+                      payload,
+                      headers,
+                      rpc: { _tag: `${moduleName}.${payload._tag}` }, // todo: make moduleName part of the tag on S.Req creation.
+                      next: Effect.gen(function*() {
+                        yield* Effect.annotateCurrentSpan(
+                          "request.name",
+                          moduleName ? `${moduleName}.${payload._tag}` : payload._tag
                         )
-                      )
-                    )
-                  }) as any,
-                  moduleName
-                )
+
+                        // the contextProvider is an Effect that builds the context for the request
+                        return yield* contextProvider.pipe(
+                          Effect.flatMap((contextProviderContext) =>
+                            // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
+                            dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                              Effect.flatMap((dynamicContext) =>
+                                h(payload, headers).pipe(Effect.provide(dynamicContext))
+                              ),
+                              Effect.provide(contextProviderContext)
+                            )
+                          )
+                        )
+                      }) as any
+                    })
+                  }) as any // why?
               }
             )
           }))
@@ -291,7 +302,7 @@ function makeRpcEffect<
       HandlerR
     >(
       schema: T & S.Schema<Req, any, never>,
-      handler: (
+      next: (
         request: Req,
         headers: any
       ) => Effect.Effect<

@@ -38,6 +38,7 @@ export namespace ContextWithLayer {
   >
 }
 
+// Effect Rpc Middleware: no substitute atm. though maybe something could be achieved with Wrap, we just don't have type safety on the Request input etc.
 export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 <
   TI extends {

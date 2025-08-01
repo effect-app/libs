@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
+
 import { type HttpRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
 import { type YieldWrap } from "effect/Utils"
@@ -7,13 +8,16 @@ import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeCont
 namespace EffectGenUtils {
   export type Success<EG> = EG extends Effect<infer A, infer _E, infer _R> ? A
     : EG extends (..._: infer _3) => Generator<YieldWrap<Effect<infer _, infer _E, infer _R>>, infer A, infer _2> ? A
+    : EG extends (..._: infer _3) => Generator<never, infer A, infer _2> ? A
     : never
 
   export type Error<EG> = EG extends Effect<infer _A, infer E, infer _R> ? E
+    : EG extends (..._: infer _3) => Generator<never, infer _A, infer _2> ? never
     : EG extends (..._: infer _3) => Generator<YieldWrap<Effect<infer _, infer E, infer _R>>, infer _A, infer _2> ? E
     : never
 
   export type Context<EG> = EG extends Effect<infer _A, infer _E, infer R> ? R
+    : EG extends (..._: infer _3) => Generator<never, infer _A, infer _2> ? never
     : EG extends (..._: infer _3) => Generator<YieldWrap<Effect<infer _, infer _E, infer R>>, infer _A, infer _2> ? R
     : never
 }
@@ -29,6 +33,8 @@ export interface ContextProviderId {
   _tag: "ContextProvider"
 }
 
+//  ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
+
 /**
  * TDeps is an array of services with Default implementation
  * each service is an effect which builds some context for each request
@@ -42,45 +48,30 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // E = never => the context provided cannot trigger errors
   //  _R extends HttpRouter.HttpRouter.Provided => the context provided can only have what HttpRouter.Provided provides as requirements
   (
-    & Context.Tag<
-      infer _1,
-      Effect<Context.Context<infer _2>, never, infer _R extends HttpRouter.HttpRouter.Provided> & { _tag: infer _4 }
-    >
-    & {
-      Default: Layer.Layer<Effect<Context.Context<infer _5>> & { _tag: infer _6 }, infer _7, infer _8>
-    }
-  ) ? TDeps[K]
-    : TDeps[K] extends //
-    (
-      & Context.Tag<
-        infer _1,
-        (() => Generator<
-          // can't just place YieldWrap here, another infer is needed for variance
-          infer _YW extends YieldWrap<Effect<infer _2, never, infer _R extends HttpRouter.HttpRouter.Provided>>,
-          Context.Context<infer _4>,
-          infer _5
-        >) & {
-          _tag: infer _6
-        }
+    ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
+  ) ? [_R] extends [HttpRouter.HttpRouter.Provided] ? TDeps[K]
+    : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"]["_tag"]}'s returned effect can have`
+    : TDeps[K] extends (
+      ContextTagWithDefault<
+        infer _Id,
+        () => Generator<
+          infer _YW,
+          infer _3,
+          infer _4
+        >,
+        infer _LayerE,
+        infer _LayerR,
+        infer _Tag
       >
-      & {
-        Default: Layer.Layer<
-          (() => Generator<
-            // can't just place YieldWrap here, another infer is needed for variance
-            infer _YW2 extends YieldWrap<Effect<infer _7, never, infer _RD extends HttpRouter.HttpRouter.Provided>>,
-            Context.Context<infer _9>,
-            infer _10
-          >) & {
-            _tag: infer _11
-          },
-          infer _12,
-          infer _13
-        >
-      }
-    ) ? TDeps[K]
-    : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"][
-      "_tag"
-    ]}'s returned effect can have, and you cannot throw errors from it.`
+    ) // [_YW] extends [never] if no yield* is used and just some context is returned
+      ? [_YW] extends [never] ? TDeps[K]
+      : [_YW] extends [YieldWrap<Effect<infer _2, never, infer _R>>]
+        ? [_R] extends [HttpRouter.HttpRouter.Provided] ? TDeps[K]
+        : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"][
+          "_tag"
+        ]}'s returned effect can have`
+      : "fanculo"
+    : `You cannot throw errors from providers`
 }
 
 // Note: the type here must be aligned with MergedContextProvider

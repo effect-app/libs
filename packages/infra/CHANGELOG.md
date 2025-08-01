@@ -1,5 +1,44 @@
 # @effect-app/infra
 
+## 2.78.6
+
+### Patch Changes
+
+- 8c62716: make contextProvider optional
+
+## 2.78.5
+
+### Patch Changes
+
+- fix type
+
+## 2.78.4
+
+### Patch Changes
+
+- fix typesafety
+
+## 2.78.3
+
+### Patch Changes
+
+- cab6fad: fix dependencies
+
+## 2.78.2
+
+### Patch Changes
+
+- Updated dependencies [0d33085]
+  - effect-app@2.50.2
+
+## 2.78.1
+
+### Patch Changes
+
+- build fix
+- Updated dependencies
+  - effect-app@2.50.1
+
 ## 2.78.0
 
 ### Minor Changes

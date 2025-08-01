@@ -128,19 +128,10 @@ const mergedGen = mergeContextProviders(MyContextProviderGen)
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContextProvider2", {
   effect: Effect.gen(function*() {
-    yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
-
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
+      // we test without dependencies, so that we end up with an R of never.
 
       return Context.make(SomeElse, new SomeElse({ b: 2 }))
     })
@@ -149,19 +140,10 @@ class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContext
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2Gen extends Effect.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
   effect: Effect.gen(function*() {
-    yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
-
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
+      // we test without dependencies, so that we end up with an R of never
 
       return Context.make(SomeElse, new SomeElse({ b: 2 }))
     }
@@ -211,6 +193,7 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
   effect: Effect.gen(function*() {
     return {
       handle: Effect.fn(function*(opts: { allowAnonymous?: false }, headers: Record<string, string>) {
+        yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
           if (!opts.allowAnonymous) {
@@ -233,7 +216,7 @@ class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
     yield* Some
     return {
       handle: Effect.fn(
-        function*(cfg: { requireRoles?: readonly string[] }) {
+        function*(cfg: { requireRoles?: readonly string[] }, _headers: Record<string, string>) {
           // we don't know if the service will be provided or not, so we use option..
           const userProfile = yield* Effect.serviceOption(UserProfile)
           const { requireRoles } = cfg
@@ -252,7 +235,7 @@ class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
 class Test extends Effect.Service<Test>()("Test", {
   effect: Effect.gen(function*() {
     return {
-      handle: Effect.fn(function*() {
+      handle: Effect.fn(function*(_cfg, _headers) {
         return Option.none<Context<never>>()
       })
     }
@@ -272,16 +255,15 @@ const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvi
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
-  // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
   contextProvider,
   genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
-  // or is the better api to use constructors outside, like how contextProvider is used now?
+
   dynamicMiddlewares: {
     requireRoles: RequireRoles,
     allowAnonymous: AllowAnonymous,
     test: Test
   },
-  // // TODO: 0..n of these generic middlewares?
+
   dependencies: [Layer.effect(Str2, Str)],
   execute: (maker) =>
     Effect.gen(function*() {
@@ -292,9 +274,9 @@ const middleware = makeMiddleware<RequestContextMap>()({
           Effect
             .gen(function*() {
               // you can use only HttpRouter.HttpRouter.Provided here as additional context
-              // and what ContextMaker provides too
+              // and what ContextProvider provides too
               // const someElse = yield* SomeElse
-              yield* Some // provided by ContextMaker
+              yield* Some // provided by ContextProvider
               yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
               return yield* handler(req, headers)
@@ -340,7 +322,7 @@ export class DoSomething extends Req<DoSomething>()("DoSomething", {
 //       DoSomething,
 //       Effect.fn(function*(req, headers) {
 //         const user = yield* UserProfile // dynamic context
-//         const some = yield* Some // context provided by ContextMaker
+//         const some = yield* Some // context provided by ContextProvider
 //         const someservice = yield* SomeService // extraneous service
 //         yield* Console.log("DoSomething", req.id, some)
 //       })

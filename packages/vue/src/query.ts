@@ -141,12 +141,14 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     if (r.error) {
       return Result.failureWithPrevious(
         r.error[Runtime.FiberFailureCauseId],
-        r.data === undefined ? Option.none() : Option.some(Result.success(r.data)),
-        r.isValidating
+        {
+          previous: r.data === undefined ? Option.none() : Option.some(Result.success(r.data)),
+          waiting: r.isValidating
+        }
       )
     }
     if (r.data !== undefined) {
-      return Result.success<A, E>(r.data, r.isValidating)
+      return Result.success<A, E>(r.data, { waiting: r.isValidating })
     }
 
     return Result.initial(r.isValidating)
@@ -209,8 +211,8 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
 export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
 
 function orPrevious<E, A>(result: Result.Result<A, E>) {
-  return Result.isFailure(result) && Option.isSome(result.previousValue)
-    ? Result.success(result.previousValue.value, result.waiting)
+  return Result.isFailure(result) && Option.isSome(result.previousSuccess)
+    ? Result.success(result.previousSuccess.value, { waiting: result.waiting })
     : result
 }
 
@@ -251,5 +253,5 @@ export function composeQueries<
     prev[key] = Result.value(value).value
     return prev
   }, {} as any)
-  return Result.success(r, isRefreshing)
+  return Result.success(r, { waiting: isRefreshing })
 }

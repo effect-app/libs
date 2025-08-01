@@ -145,7 +145,10 @@ onBeforeMount(() => {
   }
 
   formToUse.value.options = Object.fromEntries(
-    Object.entries(mergedOptions).filter(([_, value]) => value !== undefined),
+    // TODO
+    (Object.entries(mergedOptions) as any).filter(
+      ([_, value]: any) => value !== undefined,
+    ),
   )
 })
 

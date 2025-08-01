@@ -9,76 +9,34 @@ import { sort } from "../tsort.js"
 
 export type ContextWithLayer<
   Config,
-  Id,
   Service,
-  E,
-  R,
-  MakeE,
-  MakeR,
-  Tag extends string,
-  Args extends [config: Config, headers: Record<string, string>],
-  Dependencies extends any[]
-> =
-  & ContextTagWithDefault<
-    Id,
-    { handle: (...args: Args) => Effect<Option<Context<Service>>, E, R>; _tag: Tag },
-    MakeE,
-    MakeR
+  Error,
+  Dependencies,
+  Thing extends ContextTagWithDefault<
+    any,
+    {
+      handle: (
+        ...args: [config: Config, headers: Record<string, string>]
+      ) => Effect<Option<Context<Service>>, Error, unknown>
+    },
+    any,
+    unknown,
+    any
   >
+> =
+  & Thing
   & {
     dependsOn?: Dependencies
   }
 
 export namespace ContextWithLayer {
-  export type Base<Config, Service, Error> =
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      any,
-      any,
-      any,
-      string,
-      any,
-      any
-    >
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      never,
-      any,
-      never,
-      any,
-      any,
-      any
-    >
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      any,
-      any,
-      never,
-      any,
-      any,
-      any
-    >
-    | ContextWithLayer<
-      Config,
-      any,
-      Service,
-      Error,
-      never,
-      any,
-      any,
-      any,
-      any,
-      any
-    >
+  export type Base<Config, Service, Error> = ContextWithLayer<
+    Config,
+    Service,
+    Error,
+    any,
+    any
+  >
 }
 
 export const mergeContexts = Effect.fnUntraced(
@@ -146,13 +104,17 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
           GetEffectContext<T, typeof config>
         >
       }
-    ) as (
+    )
+  }) as unknown as Effect<
+    (
       config: { [K in keyof T]?: T[K]["contextActivation"] },
       headers: Record<string, string>
     ) => Effect.Effect<
       Context.Context<GetEffectContext<T, typeof config>>,
       Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>,
       Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>
-    >
-  })
+    >,
+    never,
+    Tag.Identifier<{ [K in keyof TI]: TI[K] }[keyof TI]>
+  >
 })

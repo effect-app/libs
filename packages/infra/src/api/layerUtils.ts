@@ -24,7 +24,6 @@ export type ContextTagWithDefault<Id, A, LayerE, LayerR, Tag = unknown> =
   & (Tag extends string ? Context.Tag<Id, { _tag: Tag } & A> : Context.Tag<Id, A>)
   & {
     Default: Layer.Layer<Id, LayerE, LayerR>
-    // new(a: A): Id
   }
 
 export namespace ContextTagWithDefault {

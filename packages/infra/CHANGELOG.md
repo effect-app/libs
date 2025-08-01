@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.78.0
+
+### Minor Changes
+
+- 40e4383: rely on rpc http protocol injecting http headers.
+
 ## 2.77.0
 
 ### Minor Changes

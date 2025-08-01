@@ -10,6 +10,7 @@ const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 
+// Effect Rpc Middleware: Wrap
 export class RequestCacheMiddleware extends Effect.Service<RequestCacheMiddleware>()("RequestCacheMiddleware", {
   effect: Effect.gen(function*() {
     return <A, E>(
@@ -22,6 +23,7 @@ export class RequestCacheMiddleware extends Effect.Service<RequestCacheMiddlewar
   })
 }) {}
 
+// Effect Rpc Middleware: Wrap
 export class ConfigureInterruptibility extends Effect.Service<ConfigureInterruptibility>()(
   "ConfigureInterruptibility",
   {
@@ -40,6 +42,7 @@ export class ConfigureInterruptibility extends Effect.Service<ConfigureInterrupt
   }
 ) {}
 
+// No substitute; maybe move back to routing.ts, or customise Http Protocol Layer
 export class CaptureHttpHeadersAsRpcHeaders
   extends Effect.Service<CaptureHttpHeadersAsRpcHeaders>()("CaptureHttpHeadersAsRpcHeaders", {
     effect: Effect.gen(function*() {
@@ -58,6 +61,9 @@ export class CaptureHttpHeadersAsRpcHeaders
   })
 {}
 
+// Effect Rpc Middleware: Wrap. But, we don't have access to `moduleName`
+// we could consider adding it on the Rpc Request class somehow, which gets passed in.
+// alternatively we could put it in Context or use a Reference like DevMode..
 export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("MiddlewareLogger", {
   effect: Effect.gen(function*() {
     return <A, E>(

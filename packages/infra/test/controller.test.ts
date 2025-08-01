@@ -174,16 +174,15 @@ const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvi
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
-  // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
   contextProvider,
   genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
-  // or is the better api to use constructors outside, like how contextProvider is used now?
+
   dynamicMiddlewares: {
     requireRoles: RequireRoles,
     allowAnonymous: AllowAnonymous,
     test: Test
   },
-  // // TODO: 0..n of these generic middlewares?
+
   dependencies: [Layer.effect(Str2, Str)],
   execute: (maker) =>
     Effect.gen(function*() {
@@ -194,9 +193,9 @@ const middleware = makeMiddleware<RequestContextMap>()({
           Effect
             .gen(function*() {
               // you can use only HttpRouter.HttpRouter.Provided here as additional context
-              // and what ContextMaker provides too
+              // and what ContextProvider provides too
               // const someElse = yield* SomeElse
-              yield* Some // provided by ContextMaker
+              yield* Some // provided by ContextProvider
               yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
 
               return yield* handler(req, headers)
@@ -242,7 +241,7 @@ export class DoSomething extends Req<DoSomething>()("DoSomething", {
 //       DoSomething,
 //       Effect.fn(function*(req, headers) {
 //         const user = yield* UserProfile // dynamic context
-//         const some = yield* Some // context provided by ContextMaker
+//         const some = yield* Some // context provided by ContextProvider
 //         const someservice = yield* SomeService // extraneous service
 //         yield* Console.log("DoSomething", req.id, some)
 //       })

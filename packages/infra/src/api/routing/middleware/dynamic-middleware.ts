@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Array, Context, Effect, Option, type S } from "effect-app"
+import { Array, type Context, Effect, type Option, type S } from "effect-app"
 import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect-app/Context"
 import { typedValuesOf } from "effect-app/utils"
-import { InfraLogger } from "../../../logger.js"
-import { type ContextTagWithDefault } from "../../layerUtils.js"
+import { type ContextTagWithDefault, mergeOptionContexts } from "../../layerUtils.js"
 import { sort } from "../tsort.js"
 
 export type ContextWithLayer<
@@ -38,42 +37,6 @@ export namespace ContextWithLayer {
     any
   >
 }
-
-export const mergeContexts = Effect.fnUntraced(
-  function*<T extends readonly { maker: any; handle: Effect<Context<any>> }[]>(makers: T) {
-    let context = Context.empty()
-    for (const mw of makers) {
-      yield* InfraLogger.logDebug("Building context for middleware", mw.maker.key ?? mw.maker)
-      const moreContext = yield* mw.handle.pipe(Effect.provide(context))
-      yield* InfraLogger.logDebug(
-        "Built context for middleware",
-        mw.maker.key ?? mw.maker,
-        (moreContext as any).toJSON().services
-      )
-      context = Context.merge(context, moreContext)
-    }
-    return context as Context.Context<Effect.Success<T[number]["handle"]>>
-  }
-)
-
-export const mergeOptionContexts = Effect.fnUntraced(
-  function*<T extends readonly { maker: any; handle: Effect<Option<Context<any>>> }[]>(makers: T) {
-    let context = Context.empty()
-    for (const mw of makers) {
-      yield* InfraLogger.logDebug("Building context for middleware", mw.maker.key ?? mw.maker)
-      const moreContext = yield* mw.handle.pipe(Effect.provide(context))
-      yield* InfraLogger.logDebug(
-        "Built context for middleware",
-        mw.maker.key ?? mw.maker,
-        Option.map(moreContext, (c) => (c as any).toJSON().services)
-      )
-      if (moreContext.value) {
-        context = Context.merge(context, moreContext.value)
-      }
-    }
-    return context
-  }
-)
 
 export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>() =>
 <

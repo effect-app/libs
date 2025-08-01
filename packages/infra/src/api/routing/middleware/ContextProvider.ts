@@ -1,8 +1,7 @@
 import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
 import { type HttpRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
-import { type ContextTagWithDefault, type GetContext, type LayerUtils } from "../../layerUtils.js"
-import { mergeContexts } from "./dynamic-middleware.js"
+import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "../../layerUtils.js"
 
 // the context provider provides additional stuff
 export type ContextProviderShape<ContextProviderA, ContextProviderR extends HttpRouter.HttpRouter.Provided> = Effect<

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.78.8
+
+### Patch Changes
+
+- 0e0f558: support for generators in context providers
+
 ## 2.78.7
 
 ### Patch Changes

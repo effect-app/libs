@@ -107,28 +107,34 @@ onBeforeMount(() => {
   if (!props.form) return
   const formOptionsKeys = Object.keys(props.form.options || {})
 
-  const excludedKeys: Set<keyof typeof props> = new Set([
+  const excludedKeys = new Set([
     "omegaConfig",
     "subscribe",
     "showErrorsOn",
     "asyncAlways",
     "form",
     "schema",
-  ])
+  ]) satisfies Set<keyof typeof props>
+  type ExcludedKeys = typeof excludedKeys extends Set<infer U> ? U : never
 
   const filteredProps = Object.fromEntries(
     Object.entries(props).filter(
       ([key, value]) =>
-        !excludedKeys.has(key as keyof typeof props) && value !== undefined,
+        !excludedKeys.has(key as ExcludedKeys) && value !== undefined,
     ),
-  ) as Partial<typeof props>
+  ) as typeof props extends infer TOP
+    ? {
+        [K in keyof TOP as K extends ExcludedKeys ? never : K]: NonNullable<TOP[K]>
+      }
+    : never
 
   const propsKeys = Object.keys(filteredProps)
 
   const overlappingKeys = formOptionsKeys.filter(
     key =>
       propsKeys.includes(key) &&
-      filteredProps[key as keyof typeof props] !== undefined,
+      key in filteredProps &&
+      filteredProps[key as keyof typeof filteredProps] !== undefined,
   )
 
   if (overlappingKeys.length > 0) {
@@ -144,11 +150,13 @@ onBeforeMount(() => {
     ...filteredProps,
   }
 
+  const what = Object.entries(mergedOptions).map(([key, value]) => {
+    return value!
+  })
+
   formToUse.value.options = Object.fromEntries(
     // TODO
-    (Object.entries(mergedOptions) as any).filter(
-      ([_, value]: any) => value !== undefined,
-    ),
+    Object.entries(mergedOptions).filter(([_, value]) => value !== undefined),
   )
 })
 

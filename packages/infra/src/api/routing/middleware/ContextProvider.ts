@@ -76,40 +76,6 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
     ]}'s returned effect can have, and you cannot throw errors from it`
 }
 
-// Array.NonEmptyReadonlyArray<
-//   & (
-//     // E = never => the context provided cannot trigger errors
-//     // can't put HttpRouter.HttpRouter.Provided as R here because of variance
-//     // (TDeps is an input type parameter so it's contravariant therefore Effect's R becomes contravariant too)
-//     | Context.Tag<any, Effect<Context.Context<any>, never, any> & { _tag: any }>
-//     | Context.Tag<any, Effect<Context.Context<any>, never, never> & { _tag: any }>
-//     | Context.Tag<any, (() => Generator<YieldWrap<Effect<any, never, any>>, Context.Context<any>, any>) & { _tag: any }>
-//     //
-//   )
-//   & {
-//     Default:
-//       | Layer.Layer<Effect<Context.Context<any>> & { _tag: any }, any, any>
-//       | Layer.Layer<
-//         (() => Generator<YieldWrap<Effect<any, never, any>>, Context.Context<any>, any>) & { _tag: any },
-//         any,
-//         any
-//       >
-//   }
-// >
-
-type ConstrainDeps<TDeps extends { Service: { _tag: any } }[]> = {
-  [K in keyof TDeps]: TDeps[K]["Service"] extends
-    | Effect<Context.Context<infer _>, infer _2, HttpRouter.HttpRouter.Provided>
-    | (() => Generator<
-      YieldWrap<Effect<infer _, infer _2, HttpRouter.HttpRouter.Provided>>,
-      Context.Context<infer _3>,
-      infer _4
-    >) ? TDeps[K]
-    : `HttpRouter.HttpRouter.Provided are the only requirements ${TDeps[K]["Service"][
-      "_tag"
-    ]}'s returned effect can have`
-}
-
 // Note: the type here must be aligned with MergedContextProvider
 export const mergeContextProviders = <
   TDeps extends ReadonlyArray<any>

@@ -3,11 +3,24 @@ import { HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
+import { RequestCacheLayers } from "../../routing.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
+
+export class RequestCacheMiddleware extends Effect.Service<RequestCacheMiddleware>()("RequestCacheMiddleware", {
+  effect: Effect.gen(function*() {
+    return <A, E>(
+      handle: (input: any, headers: HttpHeaders.Headers) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>,
+      _moduleName: string
+    ) =>
+      Effect.fnUntraced(function*(input: any, headers: HttpHeaders.Headers) {
+        return yield* handle(input, headers).pipe(Effect.provide(RequestCacheLayers))
+      })
+  })
+}) {}
 
 export class ConfigureInterruptibility extends Effect.Service<ConfigureInterruptibility>()(
   "ConfigureInterruptibility",
@@ -114,6 +127,7 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
 }) {}
 
 export const DefaultGenericMiddlewares = [
+  RequestCacheMiddleware,
   ConfigureInterruptibility,
   CaptureHttpHeadersAsRpcHeaders,
   MiddlewareLogger

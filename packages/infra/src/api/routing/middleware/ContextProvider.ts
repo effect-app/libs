@@ -1,7 +1,7 @@
 import { type Array, Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
 import { type HttpRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
-import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
+import { type ContextTagWithDefault, type GetContext, type LayerUtils } from "../../layerUtils.js"
 import { mergeContexts } from "./dynamic-middleware.js"
 
 // the context provider provides additional stuff
@@ -49,7 +49,8 @@ export const mergeContextProviders = <
   dependencies: { [K in keyof TDeps]: TDeps[K]["Default"] }
   effect: Effect.Effect<
     Effect.Effect<
-      Effect.Success<Tag.Service<TDeps[number]>>,
+      // we need to merge all contexts into one
+      Context.Context<GetContext<Effect.Success<Tag.Service<TDeps[number]>>>>,
       never,
       Effect.Context<Tag.Service<TDeps[number]>>
     >,
@@ -119,7 +120,8 @@ export const MergedContextProvider = <
   ) as unknown as ContextTagWithDefault<
     ContextProviderId,
     Effect.Effect<
-      Effect.Success<Tag.Service<TDeps[number]>>,
+      // we need to merge all contexts into one
+      Context.Context<GetContext<Effect.Success<Tag.Service<TDeps[number]>>>>,
       never,
       Effect.Context<Tag.Service<TDeps[number]>>
     >,

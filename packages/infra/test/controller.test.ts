@@ -76,11 +76,24 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
   })
 }) {}
 
-class RequestCacheContext extends Effect.Service<RequestCacheContext>()("RequestCacheContext", {
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
+class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContextProvider2", {
   effect: Effect.gen(function*() {
+    yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
+
     return Effect.gen(function*() {
-      const ctx = yield* Layer.build(RequestCacheLayers)
-      return ctx as Context.Context<unknown> // todo: ugh. variance
+      // the only requiremeno you can have are the one provided by HttpRouter.HttpRouter.Provided
+      yield* HttpServerRequest.HttpServerRequest
+
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // yield* SomeElse
+
+      // currently the effectful context provider cannot trigger an error when building the per request context
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // if (Math.random() > 0.5) return yield* new CustomError2()
+
+      return Context.make(SomeElse, new SomeElse({ b: 2 }))
     })
   })
 }) {}
@@ -90,9 +103,9 @@ export const contextProvider2 = ContextProvider(merged)
 export const contextProvider3 = MergedContextProvider(MyContextProvider)
 expectTypeOf(contextProvider2).toEqualTypeOf<typeof someContextProvider>()
 expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
-const merged2 = mergeContextProviders(MyContextProvider, RequestCacheContext)
+const merged2 = mergeContextProviders(MyContextProvider, MyContextProvider2)
 export const contextProvider22 = ContextProvider(merged2)
-export const contextProvider23 = MergedContextProvider(MyContextProvider, RequestCacheContext)
+export const contextProvider23 = MergedContextProvider(MyContextProvider, MyContextProvider2)
 expectTypeOf(contextProvider23).toEqualTypeOf<typeof contextProvider22>()
 
 export type RequestContextMap = {
@@ -163,12 +176,12 @@ export class MiddlewareLogger2 extends Effect.Service<MiddlewareLogger2>()("Midd
       _moduleName: string
     ) =>
       Effect.fnUntraced(function*(input: any, headers: HttpHeaders.Headers) {
-        return yield* handle(input, headers)
+        return yield* handle(input, headers).pipe(Effect.provide(RequestCacheLayers))
       })
   })
 }) {}
 
-const contextProvider = MergedContextProvider(RequestCacheContext, MyContextProvider)
+const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvider)
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
@@ -205,7 +218,7 @@ const middleware = makeMiddleware<RequestContextMap>()({
 
 const middleware2 = makeMiddleware<RequestContextMap>()({
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
-  contextProvider: MergedContextProvider(RequestCacheContext, MyContextProvider),
+  contextProvider,
   genericMiddlewares: [...DefaultGenericMiddlewares, MiddlewareLogger2],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {

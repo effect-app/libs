@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.46.3
+
+### Patch Changes
+
+- bb142a1: something about options and enabled that's behind a () => now
+
 ## 2.46.2
 
 ### Patch Changes

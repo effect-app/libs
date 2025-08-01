@@ -195,6 +195,8 @@ expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider22Gen>()
 expectTypeOf(contextProvider22Gen).toEqualTypeOf<typeof contextProvider22>()
 expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider23>()
 
+//
+
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
   requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>

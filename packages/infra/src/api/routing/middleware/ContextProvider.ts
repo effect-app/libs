@@ -67,7 +67,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
         Default: Layer.Layer<
           (() => Generator<
             // can't just place YieldWrap here, another infer is needed for variance
-            infer _YW2 extends YieldWrap<Effect<infer _7, never, infer _8>>,
+            infer _YW2 extends YieldWrap<Effect<infer _7, never, infer _RD extends HttpRouter.HttpRouter.Provided>>,
             Context.Context<infer _9>,
             infer _10
           >) & {

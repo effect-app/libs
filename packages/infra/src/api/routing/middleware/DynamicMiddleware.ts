@@ -257,16 +257,15 @@ export const makeMiddleware =
         )
     )
 
+    const dependencies = [
+      ...(make.dependencies ? make.dependencies : []),
+      ...(dynamicMiddlewares.dependencies as any),
+      make.contextProvider.Default,
+      ...middlewares.dependencies
+    ]
     const middlewareLayer = l
       .pipe(
-        Layer.provide(
-          Layer.mergeAll(
-            make.dependencies ? make.dependencies as any : Layer.empty,
-            ...(dynamicMiddlewares.dependencies as any),
-            make.contextProvider.Default,
-            ...middlewares.dependencies
-          )
-        )
+        Layer.provide(dependencies as any)
       ) as Layer.Layer<
         MiddlewareMakerId,
         | MakeMiddlewareE // what the middleware construction can fail with

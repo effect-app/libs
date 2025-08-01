@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.50.1
+
+### Patch Changes
+
+- build fix
+
 ## 2.50.0
 
 ### Minor Changes

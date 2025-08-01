@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue-components",
-  "version": "0.9.4",
+  "version": "0.10.0",
   "scripts": {
     "build": "pnpm build:run",
     "build:run": "rimraf dist && vue-tsc && vite build",
@@ -8,6 +8,8 @@
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs",
     "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint src",
+    "ncu": "ncu",
+    "clean": "rm -rf dist",
     "autofix": "pnpm lint --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -18,7 +20,7 @@
   "peerDependencies": {
     "@mdi/js": "^7.4.47",
     "@tanstack/vue-form": "^1.2.4",
-    "effect": "^3.14.2",
+    "effect": "^3.17.4",
     "intl-messageformat": "^10.7.16",
     "mdi-js": "^1.0.1",
     "primeflex": "^4.0.0",

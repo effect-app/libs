@@ -2,7 +2,7 @@
   "name": "@effect-app/eslint-codegen-model",
   "description": "Contains eslint helpers",
   "sideEffects": false,
-  "version": "1.40.1",
+  "version": "1.41.0",
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && tspc --build",
@@ -25,14 +25,14 @@
     "lodash": "4.17.21"
   },
   "peerDependencies": {
-    "effect": "^3.17.2"
+    "effect": "^3.17.4"
   },
   "devDependencies": {
     "@types/babel__generator": "7.27.0",
-    "@types/babel__traverse": "7.20.7",
+    "@types/babel__traverse": "7.28.0",
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.20",
-    "effect": "^3.17.2",
+    "effect": "^3.17.4",
     "madge": "8.0.0",
     "typescript": "^5.8.3"
   },

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, Effect, Layer, type NonEmptyArray, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import { HttpHeaders, type HttpRouter, HttpServerRequest } from "effect-app/http"
+import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
@@ -224,13 +224,8 @@ export const makeMiddleware =
             effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
               (schema, next, moduleName) => {
                 const h = middleware(schema, next as any, moduleName)
-                return (payload, rpcHeaders) =>
+                return (payload, headers) =>
                   Effect.gen(function*() {
-                    // TODO: perhaps this should be part of Protocol instead.
-                    // the alternative is that UserProfile handling is part of Http Middleware instead of Rpc Middleware..
-                    // the Rpc Middleware then just needs to confirm if it's there..
-                    const req = yield* HttpServerRequest.HttpServerRequest
-                    const headers = HttpHeaders.merge(req.headers, rpcHeaders)
                     return yield* generic({
                       payload,
                       headers,

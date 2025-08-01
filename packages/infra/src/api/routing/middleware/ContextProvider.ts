@@ -111,7 +111,7 @@ export const mergeContextProviders = <
         const services = (makers as any[]).map((handle, i) => (
           {
             maker: deps[i],
-            handle: handle[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(handle) : handle
+            handle: handle[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(handle)() : handle
           }
         ))
         // services are effects which return some Context.Context<...>
@@ -150,7 +150,7 @@ export const ContextProvider = <
     "ContextProvider"
   )
   const e = input.effect.pipe(
-    Effect.map((eg) => (eg as any)[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(eg as any) : eg)
+    Effect.map((eg) => (eg as any)[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(eg as any)() : eg)
   )
   const l = Layer.scoped(ctx, e as any)
   return Object.assign(ctx, {

@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 2.77.0
+
+### Minor Changes
+
+- 0a82e7f: update packages
+- 214afcc: align middleware more with rpc middleware
+
+### Patch Changes
+
+- Updated dependencies [0a82e7f]
+  - effect-app@2.50.0
+
 ## 2.76.0
 
 ### Minor Changes

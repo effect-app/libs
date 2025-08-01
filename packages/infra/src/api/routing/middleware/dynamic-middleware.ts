@@ -11,19 +11,36 @@ export type ContextWithLayer<
   Service,
   Error,
   Dependencies,
-  Thing extends ContextTagWithDefault<
-    any,
-    {
-      handle: (
-        ...args: [config: Config, headers: Record<string, string>]
-      ) => Effect<Option<Context<Service>>, Error, unknown>
-    },
-    any,
-    unknown,
-    any
-  >
+  Id,
+  LayerE,
+  LayerR
 > =
-  & Thing
+  & (
+    | ContextTagWithDefault<
+      Id,
+      {
+        _tag: any
+        handle: (
+          config: Config,
+          headers: Record<string, string>
+        ) => Effect<Option<Context<Service>>, Error, unknown>
+      },
+      LayerE,
+      LayerR
+    >
+    | ContextTagWithDefault<
+      Id,
+      {
+        _tag: any
+        handle: (
+          config: Config,
+          headers: Record<string, string>
+        ) => Effect<Option<Context<Service>>, Error, never>
+      },
+      LayerE,
+      LayerR
+    >
+  )
   & {
     dependsOn?: Dependencies
   }
@@ -33,6 +50,8 @@ export namespace ContextWithLayer {
     Config,
     Service,
     Error,
+    any,
+    any,
     any,
     any
   >

@@ -135,7 +135,7 @@ class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
     yield* Some
     return {
       handle: Effect.fn(
-        function*(cfg: { requireRoles?: readonly string[] }) {
+        function*(cfg: { requireRoles?: readonly string[] }, _headers: Record<string, string>) {
           // we don't know if the service will be provided or not, so we use option..
           const userProfile = yield* Effect.serviceOption(UserProfile)
           const { requireRoles } = cfg
@@ -154,7 +154,7 @@ class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
 class Test extends Effect.Service<Test>()("Test", {
   effect: Effect.gen(function*() {
     return {
-      handle: Effect.fn(function*() {
+      handle: Effect.fn(function*(_cfg, _headers) {
         return Option.none<Context<never>>()
       })
     }

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.78.4
+
+### Patch Changes
+
+- fix typesafety
+
 ## 2.78.3
 
 ### Patch Changes

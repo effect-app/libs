@@ -9,7 +9,7 @@ export interface GenericMiddlewareOptions<A, E> {
   readonly payload: unknown
   readonly headers: HttpHeaders.Headers
   // readonly clientId: number
-  // readonly rpc: Rpc.AnyWithProps
+  readonly rpc: { _tag: string } // Rpc.AnyWithProps
 }
 
 export type GenericMiddlewareMaker = <A, E>(

@@ -9,8 +9,6 @@ const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
-export class ModuleName extends Context.Reference<ModuleName>()("ModuleName", { defaultValue: () => "undefined" }) {}
-
 // Effect Rpc Middleware: Wrap
 export class RequestCacheMiddleware extends Effect.Service<RequestCacheMiddleware>()("RequestCacheMiddleware", {
   effect: Effect.gen(function*() {
@@ -35,14 +33,11 @@ export class ConfigureInterruptibility extends Effect.Service<ConfigureInterrupt
   }
 ) {}
 
-// Effect Rpc Middleware: Wrap. But, we don't have access to `moduleName`
-// we could consider adding it on the Rpc Request class somehow, which gets passed in.
-// alternatively we could put it in Context or use a Reference like DevMode..
+// Effect Rpc Middleware: Wrap
 export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("MiddlewareLogger", {
   effect: Effect.gen(function*() {
-    return genericMiddleware(Effect.fnUntraced(function*({ headers, next, payload }) {
+    return genericMiddleware(Effect.fnUntraced(function*({ headers, next, payload, rpc }) {
       const devMode = yield* DevMode
-      const moduleName = yield* ModuleName // for now... let's see how we can get other metadata onto the request tag..
 
       return yield* Effect
         .annotateCurrentSpan(
@@ -76,12 +71,12 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
             Effect
               .all([
                 reportRequestError(cause, {
-                  action: `${moduleName}.${(payload as any)._tag}`
+                  action: rpc._tag
                 }),
                 InfraLogger
                   .logError("Finished request", cause)
                   .pipe(Effect.annotateLogs({
-                    action: `${moduleName}.${(payload as any)._tag}`,
+                    action: rpc._tag,
                     req: pretty(payload),
                     headers: pretty(headers)
                     // resHeaders: pretty(

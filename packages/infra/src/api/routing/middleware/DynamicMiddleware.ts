@@ -232,6 +232,7 @@ export const makeMiddleware =
                     return yield* generic({
                       payload,
                       headers,
+                      rpc: { _tag: `${moduleName}.${payload._tag}` }, // todo: make moduleName part of the tag on S.Req creation.
                       next: Effect.gen(function*() {
                         yield* Effect.annotateCurrentSpan(
                           "request.name",

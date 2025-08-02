@@ -153,7 +153,7 @@ export interface MiddlewareMakerId {
   _tag: "MiddlewareMaker"
 }
 
-export type Middleware<
+export type RouterMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed

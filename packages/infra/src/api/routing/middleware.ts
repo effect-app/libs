@@ -5,3 +5,5 @@ export * from "./middleware/DynamicMiddleware.js"
 export * from "./middleware/generic-middleware.js"
 export * from "./middleware/middleware.js"
 // codegen:end
+
+export * as Middleware from "./middleware.js"

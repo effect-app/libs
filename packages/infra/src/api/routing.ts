@@ -11,7 +11,7 @@ import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { type LayerUtils } from "./layerUtils.js"
-import { DevMode, type Middleware } from "./routing/middleware.js"
+import { DevMode, type RouterMiddleware } from "./routing/middleware.js"
 
 export * from "./routing/middleware.js"
 
@@ -168,7 +168,7 @@ export const makeRouter = <
   MakeMiddlewareR,
   ContextProviderA
 >(
-  middleware: Middleware<
+  middleware: RouterMiddleware<
     RequestContextMap,
     MakeMiddlewareE,
     MakeMiddlewareR,

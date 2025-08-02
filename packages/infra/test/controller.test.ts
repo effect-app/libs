@@ -6,7 +6,7 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { Class, TaggedError } from "effect-app/Schema"
-import { contextMap, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { contextMap, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -194,6 +194,16 @@ const middleware2 = makeMiddleware<RequestContextMap>()({
     test: Test
   }
 })
+
+export const middleware3 = makeNewMiddleware<RequestContextMap>()(
+  ...genericMiddlewares
+)
+  .addDynamicMiddleware(AllowAnonymous)
+  .addDynamicMiddleware(Test)
+  .addDynamicMiddleware(RequireRoles)
+  .make()
+
+expectTypeOf(middleware3).toEqualTypeOf<typeof middleware2>()
 
 export type RequestConfig = {
   /** Disable authentication requirement */

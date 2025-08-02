@@ -5,9 +5,10 @@
   },
   "explorer.sortOrderLexicographicOptions": "upper",
   // would prefer on in frontend, so might want to use a specialised frontend config..
-  "volar.updateImportsOnFileMove.enabled": false,
   "typescript.preferences.includePackageJsonAutoImports": "on",
-  "typescript.preferences.autoImportFileExcludePatterns": [w
+  "typescript.experimental.expandableHover": true,
+  "js/ts.hover.maximumLength": 5000,
+  "typescript.preferences.autoImportFileExcludePatterns": [
     "node_modules/@sentry/node",
     "node_modules/vitest/dist",
     "node_modules/@azure/cosmos",
@@ -34,7 +35,7 @@
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
   "[javascript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   },
   "[javascriptreact]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"

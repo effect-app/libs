@@ -1,15 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc } from "@effect/rpc"
-import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, type Scope } from "effect-app"
+import { Rpc, RpcMiddleware } from "@effect/rpc"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
-import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
+import { genericMiddlewareMaker } from "./generic-middleware.js"
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { type RpcMiddlewareWrap } from "@effect/rpc/RpcMiddleware"
+import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 
 // module:
 //
@@ -99,9 +103,7 @@ export interface MiddlewareMake<
   MakeContextProviderE, // what the context provider construction can fail with
   MakeContextProviderR, // what the context provider construction requires
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-  GenericMiddlewareProviders extends ReadonlyArray<
-    ContextTagWithDefault.Base<GenericMiddlewareMaker>
-  >,
+  GenericMiddlewareProviders extends NonEmptyReadonlyArray<RpcMiddleware.TagClassAny>,
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middleware requires to be constructed
   MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
@@ -165,8 +167,8 @@ export const makeMiddleware =
   >() =>
   <
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends ReadonlyArray<
-      ContextTagWithDefault.Base<GenericMiddlewareMaker>
+    GenericMiddlewareProviders extends NonEmptyReadonlyArray<
+      ContextTagWithDefault.Base<RpcMiddleware.TagClassAny>
     >,
     MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     //
@@ -202,7 +204,7 @@ export const makeMiddleware =
     )
 
     const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
-    const middlewares = genericMiddlewareMaker(...make.genericMiddlewares)
+    const middlewares = genericMiddlewareMaker(...make.genericMiddlewares as any)
 
     const l = Layer.scoped(
       MiddlewareMaker,
@@ -334,3 +336,43 @@ function makeRpcEffect<
     >
   ) => cb
 }
+
+type RpcOptionsOriginal = {
+  readonly wrap?: boolean
+  readonly optional?: boolean
+  readonly failure?: Schema.Schema.All
+  readonly provides?: Context.Tag<any, any>
+  readonly requiredForClient?: boolean
+}
+
+export const Tag = <Self>() =>
+<
+  const Name extends string,
+  const Options extends RpcOptionsOriginal
+>(
+  id: Name,
+  options?: Options | undefined
+) =>
+<E, R, L extends NonEmptyReadonlyArray<Layer.Layer.Any>>(opts: {
+  effect: Effect.Effect<
+    RpcMiddleware.TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
+        RpcMiddleware.TagClass.Provides<Options>,
+        RpcMiddleware.TagClass.Failure<Options>
+      >
+      : RpcMiddleware.RpcMiddleware<
+        RpcMiddleware.TagClass.Service<Options>,
+        RpcMiddleware.TagClass.FailureService<Options>
+      >
+  >
+  dependencies?: L
+}): RpcMiddleware.TagClass<Self, Name, Options> & {
+  Default: Layer.Layer<Self, E, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
+} =>
+  class extends RpcMiddleware.Tag<Self>()(id, options) {
+    static readonly Default = Layer.scoped(this, opts.effect as any).pipe(
+      Layer.provide([Layer.empty, ...opts.dependencies ?? []])
+    )
+    static override [Unify.typeSymbol]?: unknown
+    static override [Unify.unifySymbol]?: TagUnify<typeof this>
+    static override [Unify.ignoreSymbol]?: TagUnifyIgnore
+  } as any

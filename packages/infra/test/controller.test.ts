@@ -10,7 +10,7 @@ import { DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, Middlew
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
-class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
+export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   Class<UserProfile>("UserProfile")({
     id: S.String,
     roles: S.Array(S.String)
@@ -18,7 +18,7 @@ class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfi
 ) {
 }
 
-class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
+export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
   message: S.String
 }) {}
 

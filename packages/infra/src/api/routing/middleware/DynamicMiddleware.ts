@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcMiddleware } from "@effect/rpc"
-import { type SuccessValue, type TagClass } from "@effect/rpc/RpcMiddleware"
-import { Console, Context, Effect, Layer, type NonEmptyReadonlyArray, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
+import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
+import { Console, Context, Effect, Layer, type NonEmptyReadonlyArray, type Option, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
@@ -347,10 +347,147 @@ type RpcOptionsOriginal = {
   readonly requiredForClient?: boolean
 }
 
+type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
+  key: Key
+  settings: A
+}
+
+type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
+  readonly dynamic: RpcDynamic<Key, A>
+}
+
+export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
+
+export interface RpcMiddlewareDynamic<A, E, Config> {
+  (options: {
+    readonly config: Config // todo
+    readonly clientId: number
+    readonly rpc: Rpc.AnyWithProps
+    readonly payload: unknown
+    readonly headers: Headers
+  }): Effect.Effect<Option.Option<Context.Context<A>>, E>
+}
+
+export interface TagClassDynamicAny extends Context.Tag<any, any> {
+  readonly [RpcMiddleware.TypeId]: RpcMiddleware.TypeId
+  readonly optional: boolean
+  readonly provides?: Context.Tag<any, any> | undefined
+  readonly failure: Schema.Schema.All
+  readonly requiredForClient: boolean
+  readonly dynamic: RpcDynamic<any, any>
+  readonly wrap: boolean
+}
+
+export declare namespace TagClass {
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type Provides<Options> = Options extends {
+    readonly provides: Context.Tag<any, any>
+    readonly optional?: false
+  } ? Context.Tag.Identifier<Options["provides"]>
+    : never
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
+    ? Context.Tag.Service<Options["provides"]>
+    : void
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type FailureSchema<Options> = Options extends
+    { readonly failure: Schema.Schema.All; readonly optional?: false } ? Options["failure"]
+    : typeof Schema.Never
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type Failure<Options> = Options extends
+    { readonly failure: Schema.Schema<infer _A, infer _I, infer _R>; readonly optional?: false } ? _A
+    : never
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type FailureContext<Options> = Schema.Schema.Context<FailureSchema<Options>>
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type FailureService<Options> = Optional<Options> extends true ? unknown : Failure<Options>
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type Optional<Options> = Options extends { readonly optional: true } ? true : false
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type RequiredForClient<Options> = Options extends { readonly requiredForClient: true } ? true : false
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type Wrap<Options> = Options extends { readonly wrap: true } ? true : false
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export interface Base<Self, Name extends string, Options, Service> extends Context.Tag<Self, Service> {
+    new(_: never): Context.TagClassShape<Name, Service>
+    readonly [TypeId]: TypeId
+    readonly optional: Optional<Options>
+    readonly failure: FailureSchema<Options>
+    readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
+      : undefined
+    readonly requiredForClient: RequiredForClient<Options>
+    readonly wrap: Wrap<Options>
+  }
+}
+
+export interface TagClass<
+  Self,
+  Name extends string,
+  Options
+> extends
+  TagClass.Base<
+    Self,
+    Name,
+    Options,
+    TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
+        TagClass.Provides<Options>,
+        TagClass.Failure<Options>
+      >
+      : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
+          TagClass.Service<Options>,
+          TagClass.FailureService<Options>,
+          { [K in Options["dynamic"]["key"]]?: boolean /* TODO */ }
+        >
+      : RpcMiddleware<
+        TagClass.Service<Options>,
+        TagClass.FailureService<Options>
+      >
+  >
+{}
+
 export const Tag = <Self>() =>
 <
   const Name extends string,
-  const Options extends RpcOptionsOriginal
+  const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>
 >(
   id: Name,
   options?: Options | undefined
@@ -361,6 +498,11 @@ export const Tag = <Self>() =>
         TagClass.Provides<Options>,
         TagClass.Failure<Options>
       >
+      : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
+          TagClass.Service<Options>,
+          TagClass.FailureService<Options>,
+          { [K in Options["dynamic"]["key"]]?: boolean /* TODO */ }
+        >
       : RpcMiddleware<
         TagClass.Service<Options>,
         TagClass.FailureService<Options>
@@ -369,7 +511,7 @@ export const Tag = <Self>() =>
     R
   >
   dependencies?: L
-}): RpcMiddleware.TagClass<Self, Name, Options> & {
+}): TagClass<Self, Name, Options> & {
   Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
 } =>
   class extends RpcMiddleware.Tag<Self>()(id, options) {

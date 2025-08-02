@@ -244,14 +244,9 @@ export const makeMiddleware =
                         key: `${moduleName}.${payload._tag}` /* ? */
                         // clientId: 0 as number /* ? */
                       }, // todo: make moduleName part of the tag on S.Req creation.
-                      next: Effect.gen(function*() {
-                        yield* Effect.annotateCurrentSpan(
-                          "request.name",
-                          moduleName ? `${moduleName}.${payload._tag}` : payload._tag
-                        )
-
+                      next:
                         // the contextProvider is an Effect that builds the context for the request
-                        return yield* contextProvider.pipe(
+                        contextProvider.pipe(
                           Effect.flatMap((contextProviderContext) =>
                             // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
                             dynamicMiddlewares(schema.config ?? {}, headers).pipe(
@@ -261,8 +256,7 @@ export const makeMiddleware =
                               Effect.provide(Option.getOrElse(contextProviderContext, () => Context.empty()))
                             )
                           )
-                        )
-                      }) as any
+                        ) as any
                     })
                   }) as any // why?
               }

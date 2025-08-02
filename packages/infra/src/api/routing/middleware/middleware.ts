@@ -34,9 +34,9 @@ export class MiddlewareLogger extends Tag<MiddlewareLogger>()("MiddlewareLogger"
     const devMode = yield* DevMode
     return ({ headers, next, payload, rpc }) =>
       Effect
-        .annotateCurrentSpan(
-          "requestInput",
-          typeof payload === "object" && payload !== null
+        .annotateCurrentSpan({
+          "request.name": rpc._tag,
+          "requestInput": typeof payload === "object" && payload !== null
             ? Object.entries(payload).reduce((prev, [key, value]: [string, unknown]) => {
               prev[key] = key === "password"
                 ? "<redacted>"
@@ -54,7 +54,7 @@ export class MiddlewareLogger extends Tag<MiddlewareLogger>()("MiddlewareLogger"
               return prev
             }, {} as Record<string, string | number | boolean>)
             : payload
-        )
+        })
         .pipe(
           // can't use andThen due to some being a function and effect
           Effect.zipRight(next),

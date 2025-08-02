@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, type Scope } from "effect-app"
+import { Rpc } from "@effect/rpc"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"
@@ -231,7 +232,18 @@ export const makeMiddleware =
                     return yield* generic({
                       payload,
                       headers,
-                      rpc: { _tag: `${moduleName}.${payload._tag}` }, // todo: make moduleName part of the tag on S.Req creation.
+                      clientId: 0, // TODO: get the clientId from the request context
+                      rpc: {
+                        ...Rpc.fromTaggedRequest(schema as any),
+                        // middlewares ? // todo: get from actual middleware flow?
+                        annotations: Context.empty(), // TODO //Annotations(schema as any),
+                        // successSchema: schema.success ?? Schema.Void,
+                        // errorSchema: schema.failure ?? Schema.Never,
+                        payloadSchema: schema,
+                        _tag: `${moduleName}.${payload._tag}`,
+                        key: `${moduleName}.${payload._tag}` /* ? */
+                        // clientId: 0 as number /* ? */
+                      }, // todo: make moduleName part of the tag on S.Req creation.
                       next: Effect.gen(function*() {
                         yield* Effect.annotateCurrentSpan(
                           "request.name",

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.81.1
+
+### Patch Changes
+
+- a33dd24: cleanupy
+
 ## 2.81.0
 
 ### Minor Changes

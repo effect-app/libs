@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { Console, Context, Effect, Layer, type NonEmptyReadonlyArray, type Option, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, type Option, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
@@ -258,16 +258,13 @@ export const makeMiddleware =
                             Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
                           ) as any
                       })
-                      console.log({ gen })
 
                       return yield* gen
-                    })
-                    .pipe(Effect.onExit(Console.log)) as any // why?
+                    }) as any // why?
                 }
               }
             )
-          })),
-          Effect.onExit(Console.log)
+          }))
         )
     )
 
@@ -383,12 +380,10 @@ export const makeMiddlewareBasic =
                             Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
                           ) as any
                       })
-                    })
-                    .pipe(Effect.onExit(Console.log)) as any // why?
+                    }) as any // why?
               }
             )
-          })),
-          Effect.onExit(Console.log)
+          }))
         )
     )
 

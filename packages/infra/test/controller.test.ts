@@ -242,10 +242,12 @@ class Test extends Effect.Service<Test>()("Test", {
   })
 }) {}
 
-export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", { wrap: true })({
+export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
+  provides: SomeService
+})({
   effect: Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return (options) => options.next
+    return (options) => options.next.pipe(Effect.provideService(SomeService, null as any))
   })
 }) {
 }

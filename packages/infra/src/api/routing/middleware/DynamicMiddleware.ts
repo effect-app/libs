@@ -2,18 +2,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcMiddleware } from "@effect/rpc"
+import { type RpcMiddlewareWrap } from "@effect/rpc/RpcMiddleware"
 import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
+import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { type RpcMiddlewareWrap } from "@effect/rpc/RpcMiddleware"
-import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 
 // module:
 //
@@ -127,10 +125,25 @@ export interface MiddlewareMake<
     maker: (
       // MiddlewareR is set to ContextProviderA | HttpRouter.HttpRouter.Provided because that's what, at most
       // a middleware can additionally require to get executed
-      cb: MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
-    ) => MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
+      cb: MakeRPCHandlerFactory<
+        RequestContextMap,
+        | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+        | ContextProviderA
+        | HttpRouter.HttpRouter.Provided
+      >
+    ) => MakeRPCHandlerFactory<
+      RequestContextMap,
+      | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+      | ContextProviderA
+      | HttpRouter.HttpRouter.Provided
+    >
   ) => Effect<
-    MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>,
+    MakeRPCHandlerFactory<
+      RequestContextMap,
+      | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+      | ContextProviderA
+      | HttpRouter.HttpRouter.Provided
+    >,
     MakeMiddlewareE,
     MakeMiddlewareR | Scope // ...that's why MakeMiddlewareR is here
   >
@@ -194,7 +207,10 @@ export const makeMiddleware =
     const MiddlewareMaker = Context.GenericTag<
       MiddlewareMakerId,
       {
-        effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
+        effect: RPCHandlerFactory<
+          RequestContextMap,
+          ContextProviderA | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+        >
         _tag: "MiddlewareMaker"
       }
     >(
@@ -330,14 +346,14 @@ function makeRpcEffect<
 }
 
 type RpcOptionsOriginal = {
-  readonly wrap?: boolean
+  readonly wrap?: boolean // let's do wrap by default
   readonly optional?: boolean
   readonly failure?: Schema.Schema.All
   readonly provides?: Context.Tag<any, any>
   readonly requiredForClient?: boolean
 }
 
-export const Tag = <Self>() =>
+const OurTag = <Self>() =>
 <
   const Name extends string,
   const Options extends RpcOptionsOriginal
@@ -347,7 +363,11 @@ export const Tag = <Self>() =>
 ) =>
 <E, R, L extends NonEmptyReadonlyArray<Layer.Layer.Any>>(opts: {
   effect: Effect.Effect<
-    RpcMiddleware.TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
+    | RpcMiddlewareWrap<
+      RpcMiddleware.TagClass.Provides<Options>,
+      RpcMiddleware.TagClass.Failure<Options>
+    >
+    | RpcMiddleware.TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
         RpcMiddleware.TagClass.Provides<Options>,
         RpcMiddleware.TagClass.Failure<Options>
       >
@@ -370,3 +390,29 @@ export const Tag = <Self>() =>
     static override [Unify.unifySymbol]?: TagUnify<typeof this>
     static override [Unify.ignoreSymbol]?: TagUnifyIgnore
   } as any
+
+export const Tag = <Self>() =>
+<
+  const Name extends string,
+  const Options extends Omit<RpcOptionsOriginal, "wrap">
+>(
+  id: Name,
+  options?: Options | undefined
+) =>
+  OurTag<Self>()(id, { ...options, wrap: true } as Options & { wrap: true }) as <
+    E,
+    R,
+    L extends NonEmptyReadonlyArray<Layer.Layer.Any>
+  >(opts: {
+    effect: Effect.Effect<
+      RpcMiddlewareWrap<
+        RpcMiddleware.TagClass.Provides<Options>,
+        RpcMiddleware.TagClass.Failure<Options>
+      >,
+      E,
+      R
+    >
+    dependencies?: L
+  }) => RpcMiddleware.TagClass<Self, Name, Options> & {
+    Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
+  }

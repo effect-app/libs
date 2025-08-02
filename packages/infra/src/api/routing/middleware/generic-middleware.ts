@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
 import { type TagClassAny } from "@effect/rpc/RpcMiddleware"
-import { type Array, Effect, type Layer } from "effect-app"
+import { type Array, type Context, Effect, type Layer } from "effect-app"
 import { type HttpHeaders, type HttpRouter } from "effect-app/http"
 
 export interface GenericMiddlewareOptions<A, E> {
@@ -14,6 +14,12 @@ export interface GenericMiddlewareOptions<A, E> {
 }
 
 export type GenericMiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
+
+export namespace GenericMiddlewareMaker {
+  export type Provided<T> = T extends TagClassAny
+    ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]> : never
+    : never
+}
 
 export const genericMiddleware = (i: GenericMiddlewareMaker) => i
 

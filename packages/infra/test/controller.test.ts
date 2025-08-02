@@ -254,15 +254,17 @@ export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
 }) {
 }
 
+const genericMiddlewares = [
+  ...DefaultGenericMiddlewares,
+  // BogusMiddleware,
+  MyContextProvider2,
+  MyContextProvider
+] as const
+
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
-  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2, MyContextProvider],
-  // genericMiddlewares: (_) =>
-  // _
-  //   .add(RequestCacheMiddleware)
-  //   .add(ConfigureInterruptibility)
-  //   .add(MiddlewareLogger),
+  genericMiddlewares,
 
   dynamicMiddlewares: {
     requireRoles: RequireRoles,
@@ -293,7 +295,7 @@ const middleware = makeMiddleware<RequestContextMap>()({
 
 const middleware2 = makeMiddleware<RequestContextMap>()({
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
-  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
+  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2, MyContextProvider],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {
     requireRoles: RequireRoles,

@@ -6,6 +6,7 @@
   "explorer.sortOrderLexicographicOptions": "upper",
   // would prefer on in frontend, so might want to use a specialised frontend config..
   "typescript.preferences.includePackageJsonAutoImports": "on",
+  "typescript.experimental.expandableHover": true,
   "js/ts.hover.maximumLength": 5000,
   "typescript.preferences.autoImportFileExcludePatterns": [
     "node_modules/@sentry/node",

@@ -2,12 +2,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
+import { RpcMiddleware } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { ContextProvider, DefaultGenericMiddlewares, genericMiddleware, implementMiddleware, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
+import { ContextProvider, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -242,13 +243,9 @@ class Test extends Effect.Service<Test>()("Test", {
   })
 }) {}
 
-export class BogusMiddleware extends Effect.Service<BogusMiddleware>()("BogusMiddleware", {
-  effect: Effect.gen(function*() {
-    return genericMiddleware(Effect.fnUntraced(function*(options) {
-      return yield* options.next
-    }))
-  })
-}) {}
+export class BogusMiddleware extends RpcMiddleware.Tag<BogusMiddleware>()("BogusMiddleware", { wrap: true }) {
+  static Default = Layer.succeed(this, (options) => options.next)
+}
 
 const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvider)
 

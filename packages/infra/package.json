@@ -322,6 +322,10 @@
       "types": "./dist/api/routing/middleware/middleware.d.ts",
       "default": "./dist/api/routing/middleware/middleware.js"
     },
+    "./api/routing/middleware/middleware-api": {
+      "types": "./dist/api/routing/middleware/middleware-api.d.ts",
+      "default": "./dist/api/routing/middleware/middleware-api.js"
+    },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",
       "default": "./dist/api/routing/schema/jwt.js"

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { RpcMiddleware } from "@effect/rpc"
-import { Cause, Context, Effect, Layer, ParseResult } from "effect-app"
+import { Cause, Context, Effect, Layer, ParseResult, Unify } from "effect-app"
+import { type TagUnify, type TagUnifyIgnore } from "effect-app/Context"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
@@ -12,9 +13,12 @@ const reportRequestError = reportError("Request")
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 
 export class RequestCacheMiddleware extends RpcMiddleware.Tag<RequestCacheMiddleware>()("RequestCacheMiddleware", {
-  wrap: true,
-  optional: true
+  wrap: true
 }) {
+  static override [Unify.typeSymbol]?: unknown
+  static override [Unify.unifySymbol]?: TagUnify<typeof this>
+  static override [Unify.ignoreSymbol]?: TagUnifyIgnore
+
   static readonly Default = Layer.succeed(
     this,
     (options) => options.next.pipe(Effect.provide(RequestCacheLayers))
@@ -26,6 +30,10 @@ export class ConfigureInterruptibility
     wrap: true
   })
 {
+  static override [Unify.typeSymbol]?: unknown
+  static override [Unify.unifySymbol]?: TagUnify<typeof this>
+  static override [Unify.ignoreSymbol]?: TagUnifyIgnore
+
   static readonly Default = Layer.succeed(
     this,
     (options) =>
@@ -39,6 +47,10 @@ export class ConfigureInterruptibility
 export class MiddlewareLogger extends RpcMiddleware.Tag<MiddlewareLogger>()("MiddlewareLogger", {
   wrap: true
 }) {
+  static override [Unify.typeSymbol]?: unknown
+  static override [Unify.unifySymbol]?: TagUnify<typeof this>
+  static override [Unify.ignoreSymbol]?: TagUnifyIgnore
+
   static readonly Default = Layer.effect(
     this,
     Effect.gen(function*() {

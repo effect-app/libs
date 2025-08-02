@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type RpcMiddlewareWrap } from "@effect/rpc/RpcMiddleware"
+import { type RpcMiddlewareWrap, type SuccessValue } from "@effect/rpc/RpcMiddleware"
 import { type Array, Effect } from "effect-app"
 import { type HttpHeaders, type HttpRouter } from "effect-app/http"
 import { type ContextTagWithDefault } from "../../layerUtils.js"
@@ -13,9 +13,9 @@ export interface GenericMiddlewareOptions<A, E> {
   readonly rpc: { _tag: string } // Rpc.AnyWithProps
 }
 
-export type GenericMiddlewareMaker = <A, E>(
-  options: Parameters<RpcMiddlewareWrap<never, E>>[0] // TODO: support `provides`
-) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+export type GenericMiddlewareMaker = (
+  options: Parameters<RpcMiddlewareWrap<never, never>>[0] // TODO: support `provides`
+) => Effect.Effect<SuccessValue, never, never>
 
 export const genericMiddleware = (i: GenericMiddlewareMaker) => i
 

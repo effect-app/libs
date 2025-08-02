@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc } from "@effect/rpc"
-import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, Schema, type Scope } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpRouter } from "effect-app/http"
 import type * as EffectRequest from "effect/Request"

@@ -37,11 +37,9 @@ export const mergeContexts = Effect.fnUntraced(
   function*<T extends readonly { maker: any; handle: Effect<Context<any>> }[]>(makers: T) {
     let context = Context.empty()
     for (const mw of makers) {
-      yield* InfraLogger.logDebug("Building context for middleware", mw.maker.key ?? mw.maker)
       const moreContext = yield* mw.handle.pipe(Effect.provide(context))
       yield* InfraLogger.logDebug(
-        "Built context for middleware",
-        mw.maker.key ?? mw.maker,
+        "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
         (moreContext as any).toJSON().services
       )
       context = Context.merge(context, moreContext)
@@ -54,11 +52,9 @@ export const mergeOptionContexts = Effect.fnUntraced(
   function*<T extends readonly { maker: any; handle: Effect<Option<Context<any>>> }[]>(makers: T) {
     let context = Context.empty()
     for (const mw of makers) {
-      yield* InfraLogger.logDebug("Building context for middleware", mw.maker.key ?? mw.maker)
       const moreContext = yield* mw.handle.pipe(Effect.provide(context))
       yield* InfraLogger.logDebug(
-        "Built context for middleware",
-        mw.maker.key ?? mw.maker,
+        "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
         Option.map(moreContext, (c) => (c as any).toJSON().services)
       )
       if (moreContext.value) {

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TagClass } from "@effect/rpc/RpcMiddleware"
-import { Context, Effect, Layer, type NonEmptyReadonlyArray, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
+import { Console, Context, Effect, Layer, type NonEmptyReadonlyArray, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, type HttpRouter } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
@@ -223,33 +223,39 @@ export const makeMiddleware =
               (schema, next, moduleName) => {
                 const h = middleware(schema, next as any, moduleName)
                 return (payload, headers) =>
-                  Effect.gen(function*() {
-                    return yield* generic({
-                      payload,
-                      headers,
-                      clientId: 0, // TODO: get the clientId from the request context
-                      rpc: {
-                        ...Rpc.fromTaggedRequest(schema as any),
-                        // middlewares ? // todo: get from actual middleware flow?
-                        annotations: Context.empty(), // TODO //Annotations(schema as any),
-                        // successSchema: schema.success ?? Schema.Void,
-                        // errorSchema: schema.failure ?? Schema.Never,
-                        payloadSchema: schema,
-                        _tag: `${moduleName}.${payload._tag}`,
-                        key: `${moduleName}.${payload._tag}` /* ? */
-                        // clientId: 0 as number /* ? */
-                      }, // todo: make moduleName part of the tag on S.Req creation.
-                      next:
-                        // the contextProvider is an Effect that builds the context for the request
-                        // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
-                        dynamicMiddlewares(schema.config ?? {}, headers).pipe(
-                          Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
-                        ) as any
+                  Effect
+                    .gen(function*() {
+                      const gen = generic({
+                        payload,
+                        headers,
+                        clientId: 0, // TODO: get the clientId from the request context
+                        rpc: {
+                          ...Rpc.fromTaggedRequest(schema as any),
+                          // middlewares ? // todo: get from actual middleware flow?
+                          annotations: Context.empty(), // TODO //Annotations(schema as any),
+                          // successSchema: schema.success ?? Schema.Void,
+                          // errorSchema: schema.failure ?? Schema.Never,
+                          payloadSchema: schema,
+                          _tag: `${moduleName}.${payload._tag}`,
+                          key: `${moduleName}.${payload._tag}` /* ? */
+                          // clientId: 0 as number /* ? */
+                        }, // todo: make moduleName part of the tag on S.Req creation.
+                        next:
+                          // the contextProvider is an Effect that builds the context for the request
+                          // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
+                          dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                            Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
+                          ) as any
+                      })
+                      console.log({ gen })
+
+                      return yield* gen
                     })
-                  }) as any // why?
+                    .pipe(Effect.onExit(Console.log)) as any // why?
               }
             )
-          }))
+          })),
+          Effect.onExit(Console.log)
         )
     )
 

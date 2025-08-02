@@ -9,7 +9,7 @@ import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
-import { genericMiddlewareMaker } from "./generic-middleware.js"
+import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddlewareWrap } from "@effect/rpc/RpcMiddleware"
@@ -103,7 +103,7 @@ export interface MiddlewareMake<
   MakeContextProviderE, // what the context provider construction can fail with
   MakeContextProviderR, // what the context provider construction requires
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-  GenericMiddlewareProviders extends NonEmptyReadonlyArray<RpcMiddleware.TagClassAny>,
+  GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middleware requires to be constructed
   MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
@@ -167,9 +167,7 @@ export const makeMiddleware =
   >() =>
   <
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends NonEmptyReadonlyArray<
-      ContextTagWithDefault.Base<RpcMiddleware.TagClassAny>
-    >,
+    GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
     MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     //
     // ContextProvider is a service that builds additional context for each request.
@@ -204,7 +202,7 @@ export const makeMiddleware =
     )
 
     const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
-    const middlewares = genericMiddlewareMaker(...make.genericMiddlewares as any)
+    const middlewares = genericMiddlewareMaker(...make.genericMiddlewares)
 
     const l = Layer.scoped(
       MiddlewareMaker,

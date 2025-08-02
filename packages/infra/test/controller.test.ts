@@ -2,14 +2,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
-import { RpcMiddleware } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { type Array, Context, Effect, Layer, Option, S, Unify } from "effect-app"
+import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
-import { ContextProvider, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, mergeContextProviders, MergedContextProvider } from "../src/api/routing/middleware.js"
+import { ContextProvider, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, mergeContextProviders, MergedContextProvider, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -244,11 +242,9 @@ class Test extends Effect.Service<Test>()("Test", {
   })
 }) {}
 
-export class BogusMiddleware extends RpcMiddleware.Tag<BogusMiddleware>()("BogusMiddleware", { wrap: true }) {
-  static override [Unify.typeSymbol]?: unknown
-  static override [Unify.unifySymbol]?: TagUnify<typeof this>
-  static override [Unify.ignoreSymbol]?: TagUnifyIgnore
-  static readonly Default = Layer.succeed(this, (options) => options.next)
+export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", { wrap: true })({
+  effect: Effect.succeed((options) => options.next)
+}) {
 }
 
 const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvider)
@@ -257,7 +253,12 @@ const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvi
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
   contextProvider,
-  genericMiddlewares: DefaultGenericMiddlewares,
+  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
+  // genericMiddlewares: (_) =>
+  // _
+  //   .add(RequestCacheMiddleware)
+  //   .add(ConfigureInterruptibility)
+  //   .add(MiddlewareLogger),
 
   dynamicMiddlewares: {
     requireRoles: RequireRoles,

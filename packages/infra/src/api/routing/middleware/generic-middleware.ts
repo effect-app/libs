@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type RpcMiddlewareWrap, type SuccessValue } from "@effect/rpc/RpcMiddleware"
-import { type Array, Effect } from "effect-app"
+import { type RpcMiddleware } from "@effect/rpc"
+import { type TagClassAny } from "@effect/rpc/RpcMiddleware"
+import { type Array, Effect, type Layer } from "effect-app"
 import { type HttpHeaders, type HttpRouter } from "effect-app/http"
-import { type ContextTagWithDefault } from "../../layerUtils.js"
 
 export interface GenericMiddlewareOptions<A, E> {
   // Effect rpc middleware does not support changing payload or headers, but we do..
@@ -13,19 +13,15 @@ export interface GenericMiddlewareOptions<A, E> {
   readonly rpc: { _tag: string } // Rpc.AnyWithProps
 }
 
-export type GenericMiddlewareMaker = (
-  options: Parameters<RpcMiddlewareWrap<never, never>>[0] // TODO: support `provides`
-) => Effect.Effect<SuccessValue, never, never>
+export type GenericMiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
 
 export const genericMiddleware = (i: GenericMiddlewareMaker) => i
 
 export const genericMiddlewareMaker = <
-  T extends Array<
-    ContextTagWithDefault.Base<GenericMiddlewareMaker>
-  >
+  T extends Array<GenericMiddlewareMaker>
 >(...middlewares: T): {
   dependencies: { [K in keyof T]: T[K]["Default"] }
-  effect: Effect.Effect<GenericMiddlewareMaker>
+  effect: Effect.Effect<RpcMiddleware.RpcMiddlewareWrap<any, any>>
 } => {
   return {
     dependencies: middlewares.map((_) => _.Default),

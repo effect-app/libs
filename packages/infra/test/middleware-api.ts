@@ -1,7 +1,7 @@
 import { Context, Effect, Option, Scope } from "effect-app"
 import { NotLoggedInError, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares, type DynamicMiddlewareMaker, type GenericMiddlewareMaker, Middleware } from "../src/api/routing.js"
-import { Some, UserProfile } from "./controller.test.js"
+import { UserProfile } from "./controller.test.js"
 
 export type RequestContextMap = {
   allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
@@ -13,7 +13,10 @@ const RequestContextMap = {
   requireRoles: "requireRoles"
 }
 
-const contextMap = (a: keyof RequestContextMap) => ({ key: a, settings: null as any as RequestContextMap[typeof a] })
+const contextMap = <K extends keyof RequestContextMap>(a: K) => ({
+  key: a,
+  settings: null as any as RequestContextMap[typeof a]
+})
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
   dynamic: contextMap("allowAnonymous")
@@ -37,22 +40,20 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
   })
 }) {}
 
-class RequireRoles extends Middleware.Tag<AllowAnonymous>()("RequireRoles", { dynamic: contextMap("requireRoles") })({
+class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", { dynamic: contextMap("requireRoles") })({
   effect: Effect.gen(function*() {
-    yield* Some
-    return {
-      handle: Effect.fn(
-        function*(cfg: { requireRoles?: readonly string[] }, _headers: Record<string, string>) {
-          // we don't know if the service will be provided or not, so we use option..
-          const userProfile = yield* Effect.serviceOption(UserProfile)
-          const { requireRoles } = cfg
-          if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
-            return yield* new UnauthorizedError({ message: "don't have the right roles" })
-          }
-          return Option.none<Context<never>>()
+    // yield* Some
+    return Effect.fn(
+      function*({ config }) {
+        // we don't know if the service will be provided or not, so we use option..
+        const userProfile = yield* Effect.serviceOption(UserProfile)
+        const { requireRoles } = config
+        if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
+          return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }
-      )
-    }
+        return Option.none<Context<never>>()
+      }
+    )
   })
 }) {
   static dependsOn = [AllowAnonymous]

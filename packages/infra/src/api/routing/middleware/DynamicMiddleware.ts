@@ -347,7 +347,7 @@ type RpcOptionsOriginal = {
   readonly requiredForClient?: boolean
 }
 
-type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
+type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
   key: Key
   settings: A
 }
@@ -364,8 +364,8 @@ export interface RpcMiddlewareDynamic<A, E, Config> {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
-    readonly headers: Headers
-  }): Effect.Effect<Option.Option<Context.Context<A>>, E>
+    readonly headers: HttpHeaders.Headers
+  }): Effect.Effect<Option.Option<Context.Context<A>>, E, Scope.Scope>
 }
 
 export interface TagClassDynamicAny extends Context.Tag<any, any> {
@@ -395,6 +395,7 @@ export declare namespace TagClass {
    */
   export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
     ? Context.Tag.Service<Options["provides"]>
+    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["service"]
     : void
 
   /**
@@ -403,6 +404,7 @@ export declare namespace TagClass {
    */
   export type FailureSchema<Options> = Options extends
     { readonly failure: Schema.Schema.All; readonly optional?: false } ? Options["failure"]
+    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]
     : typeof Schema.Never
 
   /**
@@ -411,6 +413,7 @@ export declare namespace TagClass {
    */
   export type Failure<Options> = Options extends
     { readonly failure: Schema.Schema<infer _A, infer _I, infer _R>; readonly optional?: false } ? _A
+    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
     : never
 
   /**
@@ -501,7 +504,7 @@ export const Tag = <Self>() =>
       : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
           TagClass.Service<Options>,
           TagClass.FailureService<Options>,
-          { [K in Options["dynamic"]["key"]]?: boolean /* TODO */ }
+          { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
         >
       : RpcMiddleware<
         TagClass.Service<Options>,

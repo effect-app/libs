@@ -83,7 +83,7 @@ export type RPCHandlerFactory<
   >
 >
 
-type RequestContextMapProvider<RequestContextMap extends Record<string, RPCContextMap.Any>> = {
+export type RequestContextMapProvider<RequestContextMap extends Record<string, RPCContextMap.Any>> = {
   [K in keyof RequestContextMap]: ContextWithLayer.Base<
     { [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"] },
     RequestContextMap[K]["service"],
@@ -154,6 +154,13 @@ export type RouterMiddleware<
 export type RequestContextMapErrors<RequestContextMap extends Record<string, RPCContextMap.Any>> = S.Schema.Type<
   RequestContextMap[keyof RequestContextMap]["error"]
 >
+
+/*:
+    & Context.Tag<MiddlewareMakerId, {
+      effect: RPCHandlerFactory<RequestContextMap, GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>>
+      _tag: "MiddlewareMaker"
+    }>
+    & { Default: "abc" } */
 
 // factory for middlewares
 export const makeMiddleware =
@@ -276,6 +283,123 @@ export const makeMiddleware =
         | LayerUtils.GetLayersContext<typeof middlewares.dependencies>
         | LayerUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what's needed to build dynamic middleware layers
         | Exclude<MakeMiddlewareR, LayerUtils.GetLayersSuccess<MiddlewareDependencies>> // what layers provides
+      >
+
+    return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
+  }
+
+export const makeMiddlewareBasic =
+  // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
+  <
+    RequestContextMap extends Record<string, RPCContextMap.Any>,
+    RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
+    GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>
+  >(
+    make: MiddlewareMake<
+      RequestContextMap,
+      RequestContextProviders,
+      GenericMiddlewareProviders,
+      never,
+      never,
+      never
+    >
+  ) => {
+    const MiddlewareMaker = Context.GenericTag<
+      MiddlewareMakerId,
+      {
+        effect: RPCHandlerFactory<
+          RequestContextMap,
+          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+        >
+        _tag: "MiddlewareMaker"
+      }
+    >(
+      "MiddlewareMaker"
+    )
+
+    const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
+    const middlewares = genericMiddlewareMaker(...make.genericMiddlewares)
+
+    const l = Layer.scoped(
+      MiddlewareMaker,
+      Effect
+        .all({
+          dynamicMiddlewares: dynamicMiddlewares.effect,
+          generic: middlewares.effect,
+          middleware: make.execute
+            ? make.execute((
+              cb: MakeRPCHandlerFactory<
+                RequestContextMap,
+                Scope.Scope | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+              >
+            ) => cb)
+            : Effect.succeed<
+              MakeRPCHandlerFactory<
+                RequestContextMap,
+                Scope.Scope | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+              >
+            >((_schema, next) => (payload, headers) => next(payload, headers))
+        })
+        .pipe(
+          Effect.map(({ dynamicMiddlewares, generic, middleware }) => ({
+            _tag: "MiddlewareMaker" as const,
+            effect: makeRpcEffect<
+              RequestContextMap,
+              GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+            >()(
+              (schema, next, moduleName) => {
+                const h = middleware(schema, next as any, moduleName)
+                return (payload, headers) =>
+                  Effect
+                    .gen(function*() {
+                      const gen = generic({
+                        payload,
+                        headers,
+                        clientId: 0, // TODO: get the clientId from the request context
+                        rpc: {
+                          ...Rpc.fromTaggedRequest(schema as any),
+                          // middlewares ? // todo: get from actual middleware flow?
+                          annotations: Context.empty(), // TODO //Annotations(schema as any),
+                          // successSchema: schema.success ?? Schema.Void,
+                          // errorSchema: schema.failure ?? Schema.Never,
+                          payloadSchema: schema,
+                          _tag: `${moduleName}.${payload._tag}`,
+                          key: `${moduleName}.${payload._tag}` /* ? */
+                          // clientId: 0 as number /* ? */
+                        }, // todo: make moduleName part of the tag on S.Req creation.
+                        next:
+                          // the contextProvider is an Effect that builds the context for the request
+                          // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
+                          dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                            Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
+                          ) as any
+                      })
+                      console.log({ gen })
+
+                      return yield* gen
+                    })
+                    .pipe(Effect.onExit(Console.log)) as any // why?
+              }
+            )
+          })),
+          Effect.onExit(Console.log)
+        )
+    )
+
+    const dependencies = [
+      ...(make.dependencies ? make.dependencies : []),
+      ...(dynamicMiddlewares.dependencies),
+      ...middlewares.dependencies
+    ]
+    const middlewareLayer = l
+      .pipe(
+        Layer.provide(dependencies as any)
+      ) as Layer.Layer<
+        MiddlewareMakerId,
+        | LayerUtils.GetLayersError<typeof dynamicMiddlewares.dependencies>
+        | LayerUtils.GetLayersError<typeof middlewares.dependencies>, // what could go wrong when building the dynamic middleware provider
+        | LayerUtils.GetLayersContext<typeof middlewares.dependencies>
+        | LayerUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what's needed to build dynamic middleware layers
       >
 
     return Object.assign(MiddlewareMaker, { Default: middlewareLayer })

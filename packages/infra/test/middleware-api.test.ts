@@ -8,11 +8,6 @@ export type RequestContextMap = {
   requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
 }
 
-const RequestContextMap = {
-  allowAnonymous: "allowAnonymous",
-  requireRoles: "requireRoles"
-}
-
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
   dynamic: contextMap<RequestContextMap>()("allowAnonymous")
 })({

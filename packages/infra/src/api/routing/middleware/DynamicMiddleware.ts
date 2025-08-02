@@ -354,14 +354,16 @@ export const Tag = <Self>() =>
       : RpcMiddleware.RpcMiddleware<
         RpcMiddleware.TagClass.Service<Options>,
         RpcMiddleware.TagClass.FailureService<Options>
-      >
+      >,
+    E,
+    R
   >
   dependencies?: L
 }): RpcMiddleware.TagClass<Self, Name, Options> & {
-  Default: Layer.Layer<Self, E, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
+  Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
 } =>
   class extends RpcMiddleware.Tag<Self>()(id, options) {
-    static readonly Default = Layer.scoped(this, opts.effect as any).pipe(
+    static readonly Default = Layer.scoped(this, opts.effect).pipe(
       Layer.provide([Layer.empty, ...opts.dependencies ?? []])
     )
     static override [Unify.typeSymbol]?: unknown

@@ -146,11 +146,11 @@ export type Middleware<
 > = ContextTagWithDefault<
   MiddlewareMakerId,
   {
+    _tag: "MiddlewareMaker"
     effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
   },
   MakeMiddlewareE,
-  MakeMiddlewareR,
-  "MiddlewareMaker"
+  MakeMiddlewareR
 >
 
 export type RequestContextMapErrors<RequestContextMap extends Record<string, RPCContextMap.Any>> = S.Schema.Type<

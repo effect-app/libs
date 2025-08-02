@@ -21,14 +21,14 @@ export namespace LayerUtils {
     : never
 }
 
-export type ContextTagWithDefault<Id, A, LayerE, LayerR, Tag = unknown> =
-  & (Tag extends string ? Context.Tag<Id, { _tag: Tag } & A> : Context.Tag<Id, A>)
+export type ContextTagWithDefault<Id, A, LayerE, LayerR> =
+  & Context.Tag<Id, A>
   & {
     Default: Layer.Layer<Id, LayerE, LayerR>
   }
 
 export namespace ContextTagWithDefault {
-  export type Base<A> = ContextTagWithDefault<any, A, any, any, any>
+  export type Base<A> = ContextTagWithDefault<any, A, any, any>
 }
 
 export type GetContext<T> = T extends Context.Context<infer Y> ? Y : never

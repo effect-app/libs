@@ -277,8 +277,8 @@ export const makeMiddleware =
       ) as Layer.Layer<
         MiddlewareMakerId,
         | MakeMiddlewareE // what the middleware construction can fail with
-        | LayerUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies>
-        | LayerUtils.GetLayersContext<typeof middlewares.dependencies> // what could go wrong when building the dynamic middleware provider
+        | LayerUtils.GetLayersError<typeof dynamicMiddlewares.dependencies>
+        | LayerUtils.GetLayersError<typeof middlewares.dependencies> // what could go wrong when building the dynamic middleware provider
         | MakeContextProviderE, // what could go wrong when building the context provider
         | LayerUtils.GetLayersContext<MiddlewareDependencies> // what's needed to build layers
         | LayerUtils.GetLayersContext<typeof middlewares.dependencies>

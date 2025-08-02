@@ -29,15 +29,16 @@ export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() => <Middlewares extends NonEmptyReadonlyArray<GenericMiddlewareMaker>>(
   ...genericMiddlewares: Middlewares
-) => DynamicMiddlewareMakerrsss<RequestContextMap, never, Middlewares, never> = (...genericMiddlewares) => {
+) => DynamicMiddlewareMakerrsss<RequestContextMap, never, Middlewares, never> = () => (...genericMiddlewares) => {
   const dynamicMiddlewares: Record<keyof any, any> = {} as any
   const make = makeMiddleware<any>()
   const it = {
     addDynamicMiddleware: (a: any) => {
+      console.log("Adding dynamic middleware", a, a.dynamic, Object.keys(a))
       ;(dynamicMiddlewares as any)[a.dynamic.key] = a
       return it
     },
     make: () => make({ genericMiddlewares: genericMiddlewares as any, dynamicMiddlewares })
   }
-  return it as any
+  return it
 }

@@ -229,28 +229,32 @@ export const makeMiddleware =
             >()(
               (schema, next, moduleName) => {
                 const h = middleware(schema, next as any, moduleName)
-                return (payload, headers) =>
-                  Effect
+                return (payload, headers) => {
+                  const basic = {
+                    config: schema.config ?? {},
+                    payload,
+                    headers,
+                    clientId: 0, // TODO: get the clientId from the request context
+                    rpc: {
+                      ...Rpc.fromTaggedRequest(schema as any),
+                      // middlewares ? // todo: get from actual middleware flow?
+                      annotations: Context.empty(), // TODO //Annotations(schema as any),
+                      // successSchema: schema.success ?? Schema.Void,
+                      // errorSchema: schema.failure ?? Schema.Never,
+                      payloadSchema: schema,
+                      _tag: `${moduleName}.${payload._tag}`,
+                      key: `${moduleName}.${payload._tag}` /* ? */
+                      // clientId: 0 as number /* ? */
+                    }
+                  }
+                  return Effect
                     .gen(function*() {
                       const gen = generic({
-                        payload,
-                        headers,
-                        clientId: 0, // TODO: get the clientId from the request context
-                        rpc: {
-                          ...Rpc.fromTaggedRequest(schema as any),
-                          // middlewares ? // todo: get from actual middleware flow?
-                          annotations: Context.empty(), // TODO //Annotations(schema as any),
-                          // successSchema: schema.success ?? Schema.Void,
-                          // errorSchema: schema.failure ?? Schema.Never,
-                          payloadSchema: schema,
-                          _tag: `${moduleName}.${payload._tag}`,
-                          key: `${moduleName}.${payload._tag}` /* ? */
-                          // clientId: 0 as number /* ? */
-                        }, // todo: make moduleName part of the tag on S.Req creation.
+                        ...basic,
                         next:
                           // the contextProvider is an Effect that builds the context for the request
                           // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
-                          dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                          dynamicMiddlewares(basic).pipe(
                             Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
                           ) as any
                       })
@@ -259,6 +263,7 @@ export const makeMiddleware =
                       return yield* gen
                     })
                     .pipe(Effect.onExit(Console.log)) as any // why?
+                }
               }
             )
           })),
@@ -352,7 +357,8 @@ export const makeMiddlewareBasic =
                 return (payload, headers) =>
                   Effect
                     .gen(function*() {
-                      const gen = generic({
+                      const basic = {
+                        config: schema.config ?? {},
                         payload,
                         headers,
                         clientId: 0, // TODO: get the clientId from the request context
@@ -366,17 +372,17 @@ export const makeMiddlewareBasic =
                           _tag: `${moduleName}.${payload._tag}`,
                           key: `${moduleName}.${payload._tag}` /* ? */
                           // clientId: 0 as number /* ? */
-                        }, // todo: make moduleName part of the tag on S.Req creation.
+                        }
+                      }
+                      return yield* generic({
+                        ...basic,
                         next:
                           // the contextProvider is an Effect that builds the context for the request
                           // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
-                          dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                          dynamicMiddlewares(basic).pipe(
                             Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
                           ) as any
                       })
-                      console.log({ gen })
-
-                      return yield* gen
                     })
                     .pipe(Effect.onExit(Console.log)) as any // why?
               }
@@ -646,6 +652,8 @@ export const Tag = <Self>() =>
   Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
 } =>
   class extends RpcMiddleware.Tag<Self>()(id, options) {
+    // TODO: move to TagClass.
+    static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly Default = Layer.scoped(this, opts.effect as any).pipe(
       Layer.provide([Layer.empty, ...opts.dependencies ?? []])
     )

@@ -80,10 +80,9 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
     )
   }) as unknown as Effect<
     (
-      config: { [K in keyof T]?: T[K]["contextActivation"] },
-      headers: HttpHeaders.Headers
+      options: { config: { [K in keyof T]?: T[K]["contextActivation"] }; headers: HttpHeaders.Headers }
     ) => Effect.Effect<
-      Context.Context<GetEffectContext<T, typeof config>>,
+      Context.Context<GetEffectContext<T, typeof options["config"]>>,
       Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>>>,
       Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>>>
     >,

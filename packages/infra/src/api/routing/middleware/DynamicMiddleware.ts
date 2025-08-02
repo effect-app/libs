@@ -606,7 +606,7 @@ export interface TagClass<
       : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
           TagClass.Service<Options>,
           TagClass.FailureService<Options>,
-          { [K in Options["dynamic"]["key"]]?: boolean /* TODO */ }
+          { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
         >
       : RpcMiddleware<
         TagClass.Service<Options>,

@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Array, type Context, Effect, type Option, type S } from "effect-app"
+import { Array, type Context, Effect, type S } from "effect-app"
 import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect-app/Context"
+import { type HttpHeaders } from "effect-app/http"
 import { typedValuesOf } from "effect-app/utils"
 import { type ContextTagWithDefault, mergeOptionContexts } from "../../layerUtils.js"
 import { sort } from "../tsort.js"
+import { type RpcMiddlewareDynamic } from "./DynamicMiddleware.js"
 
 export type ContextWithLayer<
   Config,
@@ -18,25 +20,13 @@ export type ContextWithLayer<
   & (
     | ContextTagWithDefault<
       Id,
-      {
-        _tag: any
-        handle: (
-          config: Config,
-          headers: Record<string, string>
-        ) => Effect<Option<Context<Service>>, Error, any>
-      },
+      RpcMiddlewareDynamic<Service, Error, Config>,
       LayerE,
       LayerR
     >
     | ContextTagWithDefault<
       Id,
-      {
-        _tag: any
-        handle: (
-          config: Config,
-          headers: Record<string, string>
-        ) => Effect<Option<Context<Service>>, Error, never>
-      },
+      RpcMiddlewareDynamic<Service, Error, Config>,
       LayerE,
       LayerR
     >
@@ -76,26 +66,26 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
 
     const makers = yield* Effect.all(sorted)
     return Effect.fnUntraced(
-      function*(config: { [K in keyof T]?: T[K]["contextActivation"] }, headers: Record<string, string>) {
+      function*(options: { config: { [K in keyof T]?: T[K]["contextActivation"] }; headers: HttpHeaders.Headers }) {
         const ctx = yield* mergeOptionContexts(
           Array.map(
             makers,
-            (_, i) => ({ maker: sorted[i], handle: (_ as any).handle(config, headers) as any }) as any
+            (_, i) => ({ maker: sorted[i], handle: (_ as any)(options) as any }) as any
           )
         )
         return ctx as Context.Context<
-          GetEffectContext<T, typeof config>
+          GetEffectContext<T, typeof options["config"]>
         >
       }
     )
   }) as unknown as Effect<
     (
       config: { [K in keyof T]?: T[K]["contextActivation"] },
-      headers: Record<string, string>
+      headers: HttpHeaders.Headers
     ) => Effect.Effect<
       Context.Context<GetEffectContext<T, typeof config>>,
-      Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>,
-      Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>["handle"]>>
+      Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>>>,
+      Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>>>
     >,
     never,
     Tag.Identifier<{ [K in keyof TI]: TI[K] }[keyof TI]>

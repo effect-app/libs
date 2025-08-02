@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { determineMethod, isCommand } from "@effect-app/infra/api/routing/utils"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { type Array, Duration, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema } from "effect-app"
+import { type Array, Duration, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -123,7 +123,7 @@ type Match<
     RT,
     Exclude<
       Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
-      HttpRouter.HttpRouter.Provided
+      Scope.Scope
     >
   >
 
@@ -134,7 +134,7 @@ type Match<
     RT,
     Exclude<
       Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
-      HttpRouter.HttpRouter.Provided
+      Scope.Scope
     >
   >
 }
@@ -340,7 +340,7 @@ export const makeRouter = <
             | GetEffectContext<RequestContextMap, Resource[K]["config"]>
             | ContextProviderA
           >,
-          HttpRouter.HttpRouter.Provided
+          Scope.Scope
         >
       >
     } = (impl: Record<keyof RequestModules, any>) =>
@@ -751,7 +751,7 @@ export const makeRouter = <
         //   RPCRouteR<
         //     { [K in keyof Filter<Resource>]: Rpc.Rpc<Resource[K], Effect.Context<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Resource>]
         //   >,
-        //   HttpRouter.HttpRouter.Provided
+        //   Scope.Scope
         // >
         routes: any
 

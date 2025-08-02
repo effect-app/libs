@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { expectTypeOf } from "@effect/vitest"
-import { Context, Effect } from "effect-app"
-import { HttpServerRequest } from "effect-app/http"
+import { Context, Effect, Scope } from "effect-app"
 import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/routing.js"
 import { CustomError1, Some, SomeElse } from "./controller.test.js"
 import { SomeService } from "./query.test.js"
@@ -15,7 +14,7 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
 
     return Effect.gen(function*() {
       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
+      yield* Scope.Scope
 
       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
       yield* Effect.succeed("this is a generator")
@@ -66,7 +65,7 @@ class MyContextProviderGen extends Effect.Service<MyContextProviderGen>()("MyCon
 
     return function*() {
       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
+      yield* Scope.Scope
 
       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
       yield* Effect.succeed("this is a generator")
@@ -90,7 +89,7 @@ export const someContextProvider = ContextProvider({
 
     return Effect.gen(function*() {
       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
+      yield* Scope.Scope
 
       // not allowed
       // yield* SomeElse
@@ -109,7 +108,7 @@ export const someContextProviderGen = ContextProvider({
 
     return function*() {
       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
+      yield* Scope.Scope
 
       // not allowed
       // yield* SomeElse

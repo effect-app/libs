@@ -26,12 +26,12 @@ export namespace EffectGenUtils {
     : never
 }
 
-// the context provider provides additional stuff
-export type ContextProviderShape<ContextProviderA, ContextProviderR extends HttpRouter.HttpRouter.Provided> = Effect<
-  Context.Context<ContextProviderA>,
-  never, // no errors are allowed
-  ContextProviderR
->
+// // the context provider provides additional stuff
+// export type ContextProviderShape<ContextProviderA, ContextProviderR> = Effect<
+//   Context.Context<ContextProviderA>,
+//   never, // no errors are allowed
+//   ContextProviderR
+// >
 
 export interface ContextProviderId {
   _tag: "ContextProvider"
@@ -50,6 +50,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // actual type in that position, I just wanna set the overall structure
   [K in keyof TDeps]: TDeps[K] extends //
   // E = never => the context provided cannot trigger errors
+  // TODO: remove HttpRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope?
   //  _R extends HttpRouter.HttpRouter.Provided => the context provided can only have what HttpRouter.Provided provides as requirements
   (
     ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
@@ -118,7 +119,7 @@ export const ContextProvider = <
   ContextProviderA,
   MakeContextProviderE,
   MakeContextProviderR,
-  ContextProviderR extends HttpRouter.HttpRouter.Provided,
+  ContextProviderR extends Scope.Scope,
   Dependencies extends NonEmptyArray<Layer.Layer.Any>
 >(
   input: {

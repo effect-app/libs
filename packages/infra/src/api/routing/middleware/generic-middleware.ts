@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, type RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TagClassAny } from "@effect/rpc/RpcMiddleware"
-import { type Array, Context, Effect, type Layer } from "effect-app"
-import { type HttpHeaders, type HttpRouter } from "effect-app/http"
+import { type Array, Context, Effect, type Layer, type Scope } from "effect-app"
+import { type HttpHeaders } from "effect-app/http"
 import { InfraLogger } from "../../../logger.js"
 
 export interface GenericMiddlewareOptions<E> {
   // Effect rpc middleware does not support changing payload or headers, but we do..
-  readonly next: Effect.Effect<SuccessValue, E, HttpRouter.HttpRouter.Provided>
+  readonly next: Effect.Effect<SuccessValue, E, Scope.Scope>
   readonly payload: unknown
   readonly headers: HttpHeaders.Headers
   readonly clientId: number

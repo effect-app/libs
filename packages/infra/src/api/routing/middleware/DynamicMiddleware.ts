@@ -5,7 +5,7 @@ import { Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TagClass } from "@effect/rpc/RpcMiddleware"
 import { Console, Context, Effect, Layer, type NonEmptyReadonlyArray, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import { type HttpHeaders, type HttpRouter } from "effect-app/http"
+import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
@@ -73,7 +73,7 @@ export type RPCHandlerFactory<
 ) => Effect.Effect<
   Request.Request.Success<Req>,
   Request.Request.Error<Req> | RequestContextMapErrors<RequestContextMap>,
-  | HttpRouter.HttpRouter.Provided // because of the context provider and the middleware (Middleware)
+  | Scope.Scope // because of the context provider and the middleware (Middleware)
   | Exclude<
     // the middleware will remove from HandlerR the dynamic context
     // & S.Schema<Req, any, never> is useless here but useful when creating the middleware
@@ -109,23 +109,23 @@ export interface MiddlewareMake<
   // this actually builds "the middleware", i.e. returns the augmented next factory when yielded...
   execute?: (
     maker: (
-      // MiddlewareR is set to GenericMiddlewareProviders | HttpRouter.HttpRouter.Provided because that's what, at most
+      // MiddlewareR is set to GenericMiddlewareProviders | Scope.Scope because that's what, at most
       // a middleware can additionally require to get executed
       cb: MakeRPCHandlerFactory<
         RequestContextMap,
         | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-        | HttpRouter.HttpRouter.Provided
+        | Scope.Scope
       >
     ) => MakeRPCHandlerFactory<
       RequestContextMap,
       | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-      | HttpRouter.HttpRouter.Provided
+      | Scope.Scope
     >
   ) => Effect<
     MakeRPCHandlerFactory<
       RequestContextMap,
       | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-      | HttpRouter.HttpRouter.Provided
+      | Scope.Scope
     >,
     MakeMiddlewareE,
     MakeMiddlewareR | Scope // ...that's why MakeMiddlewareR is here
@@ -203,13 +203,13 @@ export const makeMiddleware =
             ? make.execute((
               cb: MakeRPCHandlerFactory<
                 RequestContextMap,
-                HttpRouter.HttpRouter.Provided | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+                Scope.Scope | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
               >
             ) => cb)
             : Effect.succeed<
               MakeRPCHandlerFactory<
                 RequestContextMap,
-                HttpRouter.HttpRouter.Provided | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+                Scope.Scope | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
               >
             >((_schema, next) => (payload, headers) => next(payload, headers))
         })
@@ -310,7 +310,7 @@ function makeRpcEffect<
     ) => Effect.Effect<
       Request.Request.Success<Req>,
       Request.Request.Error<Req> | RequestContextMapErrors<RequestContextMap>,
-      | HttpRouter.HttpRouter.Provided // the context provider may require HttpRouter.Provided to run
+      | Scope.Scope // the context provider may require Scope to run
       | Exclude<
         // it can also be removed from HandlerR
         Exclude<HandlerR, GetEffectContext<RequestContextMap, (T & S.Schema<Req, any, never>)["config"]>>,
@@ -320,14 +320,14 @@ function makeRpcEffect<
   ) => cb
 }
 
-// updated to support HttpRouter.HttpRouter.Provided
+// updated to support Scope.Scope
 export interface RpcMiddleware<Provides, E> {
   (options: {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<Provides, E, HttpRouter.HttpRouter.Provided>
+  }): Effect.Effect<Provides, E, Scope.Scope>
 }
 export interface RpcMiddlewareWrap<Provides, E> {
   (options: {
@@ -335,8 +335,8 @@ export interface RpcMiddlewareWrap<Provides, E> {
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
-    readonly next: Effect.Effect<SuccessValue, E, Provides | HttpRouter.HttpRouter.Provided>
-  }): Effect.Effect<SuccessValue, E, HttpRouter.HttpRouter.Provided>
+    readonly next: Effect.Effect<SuccessValue, E, Provides | Scope.Scope>
+  }): Effect.Effect<SuccessValue, E, Scope.Scope>
 }
 
 type RpcOptionsOriginal = {

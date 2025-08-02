@@ -3,9 +3,8 @@
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
+import { type Array, Context, Effect, Layer, Option, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
 import { DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
@@ -41,7 +40,7 @@ class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextPr
 
     return Effect.fnUntraced(function*() {
       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
+      yield* Scope.Scope
 
       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
       yield* Effect.succeed("this is a generator")
@@ -86,7 +85,7 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
   effect: Effect.gen(function*() {
     return {
       handle: Effect.fn(function*(opts: { allowAnonymous?: false }, headers: Record<string, string>) {
-        yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
+        yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
           if (!opts.allowAnonymous) {
@@ -177,7 +176,7 @@ const middleware = makeMiddleware<RequestContextMap>()({
               // and what ContextProvider provides too
               // const someElse = yield* SomeElse
               yield* Some // provided by ContextProvider
-              yield* HttpServerRequest.HttpServerRequest // provided by HttpRouter.HttpRouter.Provided
+              yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
 
               return yield* handler(req, headers)
             })

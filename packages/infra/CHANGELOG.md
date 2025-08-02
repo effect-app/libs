@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 2.81.0
+
+### Minor Changes
+
+- e9ce960: improve: make dynamic middleware with the same RpcMiddleware.tag api.
+  added experimental `makeNewMiddleware` with fluent api.
+  remove HttpServerRequest requirement from checkJWTI
+
 ## 2.80.0
 
 ### Minor Changes

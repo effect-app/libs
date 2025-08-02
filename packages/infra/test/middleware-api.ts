@@ -59,15 +59,22 @@ class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", { dyna
   static dependsOn = [AllowAnonymous]
 }
 
-type DynamicMiddlewareMakerrsss = {
-  addDynamicMiddleware: (a: DynamicMiddlewareMaker) => DynamicMiddlewareMakerrsss // TODO: any of RequestContecxtMap, and track them, so remove the ones provided
-}
+type DynamicMiddlewareMakerrsss<
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Provided extends keyof RequestContextMap,
+  Middlewares extends Array<GenericMiddlewareMaker>
+> = keyof Omit<RequestContextMap, Provided> extends never ? "all middleware complete. todo"
+  : {
+    addDynamicMiddleware: <MW extends DynamicMiddlewareMaker>(
+      a: MW
+    ) => DynamicMiddlewareMakerrsss<RequestContextMap, Provided | MW["dynamic"]["key"], Middlewares> // TODO: any of RequestContecxtMap, and track them, so remove the ones provided
+  }
 
 declare const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() => <Middlewares extends Array<GenericMiddlewareMaker>>(
   ...middlewares: Middlewares
-) => DynamicMiddlewareMakerrsss
+) => DynamicMiddlewareMakerrsss<RequestContextMap, never, Middlewares>
 
 export const middleware = makeMiddleware<RequestContextMap>()(
   ...DefaultGenericMiddlewares

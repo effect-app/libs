@@ -479,6 +479,7 @@ type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
 
 type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
   readonly dynamic: RpcDynamic<Key, A>
+  readonly dependsOn?: NonEmptyReadonlyArray<TagClassDynamicAny<any>>
 }
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
@@ -503,6 +504,7 @@ export interface TagClassDynamicAny<RequestContext extends Record<string, RPCCon
   readonly requiredForClient: boolean
   readonly dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]>
   readonly wrap: boolean
+  readonly dependsOn?: any
 }
 
 export declare namespace TagClass {
@@ -649,6 +651,7 @@ export const Tag = <Self>() =>
   class extends RpcMiddleware.Tag<Self>()(id, options) {
     // TODO: move to TagClass.
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
+    static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined
     static readonly Default = Layer.scoped(this, opts.effect as any).pipe(
       Layer.provide([Layer.empty, ...opts.dependencies ?? []])
     )

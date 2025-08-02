@@ -102,28 +102,31 @@ class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", 
       }
     )
   })
-}) {}
+}) {
+}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class RequireRoles
-  extends Middleware.Tag<RequireRoles>()("RequireRoles", { dynamic: contextMap<RequestContextMap>()("requireRoles") })({
-    effect: Effect.gen(function*() {
-      yield* Some
-      return Effect.fnUntraced(
-        function*(options) {
-          // we don't know if the service will be provided or not, so we use option..
-          const userProfile = yield* Effect.serviceOption(UserProfile)
-          const { requireRoles } = options.config
-          if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
-            return yield* new UnauthorizedError({ message: "don't have the right roles" })
-          }
-          return Option.none<Context<never>>()
+class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
+  dynamic: contextMap<RequestContextMap>()("requireRoles"),
+  // had to move this in here, because once you put it manually as a readonly static property on the class,
+  // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
+  dependsOn: [AllowAnonymous]
+})({
+  effect: Effect.gen(function*() {
+    yield* Some
+    return Effect.fnUntraced(
+      function*(options) {
+        // we don't know if the service will be provided or not, so we use option..
+        const userProfile = yield* Effect.serviceOption(UserProfile)
+        const { requireRoles } = options.config
+        if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
+          return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }
-      )
-    })
+        return Option.none<Context<never>>()
+      }
+    )
   })
-{
-  static dependsOn = [AllowAnonymous]
+}) {
 }
 
 class Test extends Middleware.Tag<Test>()("Test", { dynamic: contextMap<RequestContextMap>()("test") })({
@@ -199,8 +202,8 @@ export const middleware3 = makeNewMiddleware<RequestContextMap>()(
   ...genericMiddlewares
 )
   .addDynamicMiddleware(AllowAnonymous)
-  .addDynamicMiddleware(Test)
   .addDynamicMiddleware(RequireRoles)
+  .addDynamicMiddleware(Test)
   .make()
 
 expectTypeOf(middleware3).toEqualTypeOf<typeof middleware2>()

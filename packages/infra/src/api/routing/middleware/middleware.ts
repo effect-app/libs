@@ -9,6 +9,7 @@ const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
+
 // Effect Rpc Middleware: Wrap
 export class RequestCacheMiddleware extends Effect.Service<RequestCacheMiddleware>()("RequestCacheMiddleware", {
   effect: Effect.gen(function*() {
@@ -36,10 +37,9 @@ export class ConfigureInterruptibility extends Effect.Service<ConfigureInterrupt
 // Effect Rpc Middleware: Wrap
 export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("MiddlewareLogger", {
   effect: Effect.gen(function*() {
-    return genericMiddleware(Effect.fnUntraced(function*({ headers, next, payload, rpc }) {
-      const devMode = yield* DevMode
-
-      return yield* Effect
+    const devMode = yield* DevMode
+    return genericMiddleware(({ headers, next, payload, rpc }) =>
+      Effect
         .annotateCurrentSpan(
           "requestInput",
           typeof payload === "object" && payload !== null
@@ -92,7 +92,7 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
           ),
           devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error"))
         )
-    }))
+    )
   })
 }) {}
 

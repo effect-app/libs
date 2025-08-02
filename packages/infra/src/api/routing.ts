@@ -405,8 +405,7 @@ export const makeRouter = <
                   handle(req, headers).pipe(
                     Effect.withSpan("Request." + meta.moduleName + "." + resource._tag, {
                       captureStackTrace: () => handler.stack
-                    }),
-                    Effect.provideService(DevMode, devMode)
+                    })
                   ),
                 meta.moduleName
               ),
@@ -469,7 +468,8 @@ export const makeRouter = <
           Layer.provide([
             ...dependencies ?? [],
             middleware.Default
-          ] as any) as any
+          ] as any) as any,
+          Layer.provide(Layer.succeed(DevMode, devMode))
         )
       ) as (Layer.Layer<
         Router,

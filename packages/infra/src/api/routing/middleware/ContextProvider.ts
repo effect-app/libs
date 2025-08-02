@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
 
 import { type HttpRouter } from "effect-app/http"

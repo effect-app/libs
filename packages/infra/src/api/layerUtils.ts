@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option } from "effect-app"
 import { InfraLogger } from "../logger.js"
 

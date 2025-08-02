@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.80.0
+
+### Minor Changes
+
+- 8cc79f2: remove http details from rpc api
+
 ## 2.79.0
 
 ### Minor Changes

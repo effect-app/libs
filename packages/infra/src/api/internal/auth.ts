@@ -11,9 +11,7 @@ import { auth, InsufficientScopeError, InvalidRequestError, InvalidTokenError, U
 type Config = Parameters<typeof auth>[0]
 export const checkJWTI = (config: Config) => {
   const mw = auth(config)
-  return Effect.gen(function*() {
-    const req = yield* HttpServerRequest.HttpServerRequest
-
+  return Effect.fnUntraced(function*(headers: HttpHeaders.Headers) {
     return yield* Effect.async<
       void,
       InsufficientScopeError | InvalidRequestError | InvalidTokenError | UnauthorizedError
@@ -31,7 +29,7 @@ export const checkJWTI = (config: Config) => {
           }
           return cb(Effect.die(err))
         }
-        const r = { headers: req.headers, query: {}, body: {}, is: () => false } // is("urlencoded")
+        const r = { headers, query: {}, body: {}, is: () => false } // is("urlencoded")
         try {
           mw(r as any, {} as any, next)
         } catch (e) {
@@ -46,7 +44,8 @@ export const checkJwt = (config: Config) => {
   const check = checkJWTI(config)
   return HttpMiddleware.make((app) =>
     Effect.gen(function*() {
-      const response = yield* check.pipe(Effect.catchAll((e) =>
+      const req = yield* HttpServerRequest.HttpServerRequest
+      const response = yield* check(req.headers).pipe(Effect.catchAll((e) =>
         Effect.succeed(
           HttpServerResponse.unsafeJson({ message: e.message }, {
             status: e.status,

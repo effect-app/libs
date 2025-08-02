@@ -6,11 +6,11 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { Class, TaggedError } from "effect-app/Schema"
-import { DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { contextMap, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
-class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
+export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   Class<UserProfile>("UserProfile")({
     id: S.String,
     roles: S.Array(S.String)
@@ -18,7 +18,7 @@ class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfi
 ) {
 }
 
-class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
+export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
   message: S.String
 }) {}
 
@@ -81,14 +81,16 @@ export type RequestContextMap = {
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
 
-class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", {
+class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
+  dynamic: contextMap<RequestContextMap>()("allowAnonymous")
+})({
   effect: Effect.gen(function*() {
-    return {
-      handle: Effect.fn(function*(opts: { allowAnonymous?: false }, headers: Record<string, string>) {
+    return Effect.fnUntraced(
+      function*(options) {
         yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
-        const isLoggedIn = !!headers["x-user"]
+        const isLoggedIn = !!options.headers["x-user"]
         if (!isLoggedIn) {
-          if (!opts.allowAnonymous) {
+          if (!options.config.allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
           return Option.none()
@@ -97,40 +99,38 @@ class AllowAnonymous extends Effect.Service<AllowAnonymous>()("AllowAnonymous", 
           UserProfile,
           { id: "whatever", roles: ["user", "manager"] }
         ))
-      })
-    }
+      }
+    )
   })
 }) {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class RequireRoles extends Effect.Service<RequireRoles>()("RequireRoles", {
-  effect: Effect.gen(function*() {
-    yield* Some
-    return {
-      handle: Effect.fn(
-        function*(cfg: { requireRoles?: readonly string[] }, _headers: Record<string, string>) {
+class RequireRoles
+  extends Middleware.Tag<RequireRoles>()("RequireRoles", { dynamic: contextMap<RequestContextMap>()("requireRoles") })({
+    effect: Effect.gen(function*() {
+      yield* Some
+      return Effect.fnUntraced(
+        function*(options) {
           // we don't know if the service will be provided or not, so we use option..
           const userProfile = yield* Effect.serviceOption(UserProfile)
-          const { requireRoles } = cfg
+          const { requireRoles } = options.config
           if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
             return yield* new UnauthorizedError({ message: "don't have the right roles" })
           }
           return Option.none<Context<never>>()
         }
       )
-    }
+    })
   })
-}) {
+{
   static dependsOn = [AllowAnonymous]
 }
 
-class Test extends Effect.Service<Test>()("Test", {
+class Test extends Middleware.Tag<Test>()("Test", { dynamic: contextMap<RequestContextMap>()("test") })({
   effect: Effect.gen(function*() {
-    return {
-      handle: Effect.fn(function*(_cfg, _headers) {
-        return Option.none<Context<never>>()
-      })
-    }
+    return Effect.fn(function*(_options) {
+      return Option.none<Context<never>>()
+    })
   })
 }) {}
 
@@ -194,6 +194,16 @@ const middleware2 = makeMiddleware<RequestContextMap>()({
     test: Test
   }
 })
+
+export const middleware3 = makeNewMiddleware<RequestContextMap>()(
+  ...genericMiddlewares
+)
+  .addDynamicMiddleware(AllowAnonymous)
+  .addDynamicMiddleware(Test)
+  .addDynamicMiddleware(RequireRoles)
+  .make()
+
+expectTypeOf(middleware3).toEqualTypeOf<typeof middleware2>()
 
 export type RequestConfig = {
   /** Disable authentication requirement */

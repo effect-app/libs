@@ -10,22 +10,24 @@ const reportRequestError = reportError("Request")
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 
-export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("RequestCacheMiddleware")({
+export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("RequestCacheMiddleware", { wrap: true })({
   effect: Effect.succeed((options) => options.next.pipe(Effect.provide(RequestCacheLayers)))
 }) {
 }
 
-export class ConfigureInterruptibility extends Tag<ConfigureInterruptibility>()("ConfigureInterruptibility")({
-  effect: Effect.succeed((options) =>
-    options.next.pipe(
-      // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
-      Effect.uninterruptible
+export class ConfigureInterruptibility
+  extends Tag<ConfigureInterruptibility>()("ConfigureInterruptibility", { wrap: true })({
+    effect: Effect.succeed((options) =>
+      options.next.pipe(
+        // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
+        Effect.uninterruptible
+      )
     )
-  )
-}) {
+  })
+{
 }
 
-export class MiddlewareLogger extends Tag<MiddlewareLogger>()("MiddlewareLogger")({
+export class MiddlewareLogger extends Tag<MiddlewareLogger>()("MiddlewareLogger", { wrap: true })({
   effect: Effect.gen(function*() {
     const devMode = yield* DevMode
     return ({ headers, next, payload, rpc }) =>

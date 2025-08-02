@@ -7,7 +7,7 @@ import { type Array, Context, Effect, Layer, Option, S } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { HttpServerRequest } from "effect-app/http"
 import { Class, TaggedError } from "effect-app/Schema"
-import { ContextProvider, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, mergeContextProviders, MergedContextProvider, Tag } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -33,78 +33,54 @@ export interface CTX {
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
+// // @effect-diagnostics-next-line missingEffectServiceDependency:off
+// export const someContextProvider = ContextProvider({
+//   effect: Effect.gen(function*() {
+//     yield* SomeService
+//     if (Math.random() > 0.5) return yield* new CustomError1()
+
+//     return Effect.gen(function*() {
+//       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+//       yield* HttpServerRequest.HttpServerRequest
+
+//       // not allowed
+//       // yield* SomeElse
+
+//       // currently the effectful context provider cannot trigger an error when building the per request context
+//       // if (Math.random() > 0.5) return yield* new CustomError2()
+
+//       return Context.make(Some, new Some({ a: 1 }))
+//     })
+//   })
+// })
+// export const someContextProviderGen = ContextProvider({
+//   effect: Effect.gen(function*() {
+//     yield* SomeService
+//     if (Math.random() > 0.5) return yield* new CustomError1()
+
+//     return function*() {
+//       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+//       yield* HttpServerRequest.HttpServerRequest
+
+//       // not allowed
+//       // yield* SomeElse
+
+//       // currently the effectful context provider cannot trigger an error when building the per request context
+//       // if (Math.random() > 0.5) return yield* new CustomError2()
+
+//       return Context.make(Some, new Some({ a: 1 }))
+//     }
+//   })
+// })
+// expectTypeOf(someContextProvider).toEqualTypeOf<typeof someContextProviderGen>()
+
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export const someContextProvider = ContextProvider({
+class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", { provides: Some })({
   effect: Effect.gen(function*() {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
-
-      // not allowed
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // if (Math.random() > 0.5) return yield* new CustomError2()
-
-      return Context.make(Some, new Some({ a: 1 }))
-    })
-  })
-})
-export const someContextProviderGen = ContextProvider({
-  effect: Effect.gen(function*() {
-    yield* SomeService
-    if (Math.random() > 0.5) return yield* new CustomError1()
-
-    return function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
-
-      // not allowed
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // if (Math.random() > 0.5) return yield* new CustomError2()
-
-      return Context.make(Some, new Some({ a: 1 }))
-    }
-  })
-})
-expectTypeOf(someContextProvider).toEqualTypeOf<typeof someContextProviderGen>()
-
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextProvider", {
-  effect: Effect.gen(function*() {
-    yield* SomeService
-    if (Math.random() > 0.5) return yield* new CustomError1()
-
-    return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
-      yield* HttpServerRequest.HttpServerRequest
-
-      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
-      yield* Effect.succeed("this is a generator")
-
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
-
-      return Context.make(Some, new Some({ a: 1 }))
-    })
-  })
-}) {}
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProviderGen extends Effect.Service<MyContextProviderGen>()("MyContextProviderGen", {
-  effect: Effect.gen(function*() {
-    yield* SomeService
-    if (Math.random() > 0.5) return yield* new CustomError1()
-
-    return function*() {
+    return Effect.fnUntraced(function*() {
       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
       yield* HttpServerRequest.HttpServerRequest
 
@@ -117,66 +93,91 @@ class MyContextProviderGen extends Effect.Service<MyContextProviderGen>()("MyCon
       // currently the effectful context provider cannot trigger an error when building the per request context
       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
       // if (Math.random() > 0.5) return yield* new CustomError2()
-      return Context.make(Some, new Some({ a: 1 }))
-    }
+
+      return new Some({ a: 1 })
+    })
   })
 }) {}
 
-const merged = mergeContextProviders(MyContextProvider)
-const mergedGen = mergeContextProviders(MyContextProviderGen)
+// // @effect-diagnostics-next-line missingEffectServiceDependency:off
+// class MyContextProviderGen extends Middleware.Tag<MyContextProviderGen>()("MyContextProviderGen", { provides: Some })({
+//   effect: Effect.gen(function*() {
+//     yield* SomeService
+//     if (Math.random() > 0.5) return yield* new CustomError1()
+
+//     return Effect.fnUntraced(function*() {
+//       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+//       yield* HttpServerRequest.HttpServerRequest
+
+//       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+//       yield* Effect.succeed("this is a generator")
+
+//       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+//       // yield* SomeElse
+
+//       // currently the effectful context provider cannot trigger an error when building the per request context
+//       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+//       // if (Math.random() > 0.5) return yield* new CustomError2()
+//       return new Some({ a: 1 })
+//     })
+//   })
+// }) {}
+
+// const merged = mergeContextProviders(MyContextProvider)
+// const mergedGen = mergeContextProviders(MyContextProviderGen)
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContextProvider2", {
+class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({
   effect: Effect.gen(function*() {
     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.gen(function*() {
+    return Effect.fnUntraced(function*() {
       // we test without dependencies, so that we end up with an R of never.
 
-      return Context.make(SomeElse, new SomeElse({ b: 2 }))
+      return new SomeElse({ b: 2 })
     })
   })
 }) {}
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2Gen extends Effect.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
-  effect: Effect.gen(function*() {
-    if (Math.random() > 0.5) return yield* new CustomError1()
+// // @effect-diagnostics-next-line missingEffectServiceDependency:off
+// class MyContextProvider2Gen extends Effect.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
+//   effect: Effect.gen(function*() {
+//     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return function*() {
-      // we test without dependencies, so that we end up with an R of never
+//     return function*() {
+//       // we test without dependencies, so that we end up with an R of never
 
-      return Context.make(SomeElse, new SomeElse({ b: 2 }))
-    }
-  })
-}) {}
+//       return new SomeElse({ b: 2 })
+//     }
+//   })
+// }) {}
 
-export const contextProvider2 = ContextProvider(merged)
-export const contextProvider3 = MergedContextProvider(MyContextProvider)
-expectTypeOf(contextProvider2).toEqualTypeOf<typeof someContextProvider>()
-expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
+// export const contextProvider2 = ContextProvider(merged)
+// export const contextProvider3 = MergedContextProvider(MyContextProvider)
+// expectTypeOf(contextProvider2).toEqualTypeOf<typeof someContextProvider>()
+// expectTypeOf(contextProvider3).toEqualTypeOf<typeof contextProvider2>()
 
-export const contextProvider2Gen = ContextProvider(mergedGen)
-export const contextProvider3Gen = MergedContextProvider(MyContextProviderGen)
-expectTypeOf(contextProvider2Gen).toEqualTypeOf<typeof someContextProvider>()
-expectTypeOf(contextProvider3Gen).toEqualTypeOf<typeof contextProvider2Gen>()
+// export const contextProvider2Gen = ContextProvider(mergedGen)
+// export const contextProvider3Gen = MergedContextProvider(MyContextProviderGen)
+// expectTypeOf(contextProvider2Gen).toEqualTypeOf<typeof someContextProvider>()
+// expectTypeOf(contextProvider3Gen).toEqualTypeOf<typeof contextProvider2Gen>()
 
-expectTypeOf(contextProvider2Gen).toEqualTypeOf<typeof contextProvider2>()
-expectTypeOf(contextProvider3Gen).toEqualTypeOf<typeof contextProvider3>()
+// expectTypeOf(contextProvider2Gen).toEqualTypeOf<typeof contextProvider2>()
+// expectTypeOf(contextProvider3Gen).toEqualTypeOf<typeof contextProvider3>()
 
 //
 
-const merged2 = mergeContextProviders(MyContextProvider, MyContextProvider2)
-export const contextProvider22 = ContextProvider(merged2)
-export const contextProvider23 = MergedContextProvider(MyContextProvider, MyContextProvider2)
-expectTypeOf(contextProvider23).toEqualTypeOf<typeof contextProvider22>()
+// const merged2 = mergeContextProviders(MyContextProvider, MyContextProvider2)
+// export const contextProvider22 = ContextProvider(merged2)
+// export const contextProvider23 = MergedContextProvider(MyContextProvider, MyContextProvider2)
+// expectTypeOf(contextProvider23).toEqualTypeOf<typeof contextProvider22>()
 
-const merged2Gen = mergeContextProviders(MyContextProviderGen, MyContextProvider2Gen)
-export const contextProvider22Gen = ContextProvider(merged2Gen)
-export const contextProvider23Gen = MergedContextProvider(MyContextProviderGen, MyContextProvider2Gen)
-expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider22Gen>()
+// const merged2Gen = mergeContextProviders(MyContextProviderGen, MyContextProvider2Gen)
+// export const contextProvider22Gen = ContextProvider(merged2Gen)
+// export const contextProvider23Gen = MergedContextProvider(MyContextProviderGen, MyContextProvider2Gen)
+// expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider22Gen>()
 
-expectTypeOf(contextProvider22Gen).toEqualTypeOf<typeof contextProvider22>()
-expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider23>()
+// expectTypeOf(contextProvider22Gen).toEqualTypeOf<typeof contextProvider22>()
+// expectTypeOf(contextProvider23Gen).toEqualTypeOf<typeof contextProvider23>()
 
 //
 
@@ -243,7 +244,8 @@ class Test extends Effect.Service<Test>()("Test", {
 }) {}
 
 export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
-  provides: SomeService
+  provides: SomeService,
+  wrap: true
 })({
   effect: Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
@@ -252,13 +254,10 @@ export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
 }) {
 }
 
-const contextProvider = MergedContextProvider(MyContextProvider2, MyContextProvider)
-
 // TODO: eventually it might be nice if we have total control over order somehow..
 // [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
 const middleware = makeMiddleware<RequestContextMap>()({
-  contextProvider,
-  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
+  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2, MyContextProvider],
   // genericMiddlewares: (_) =>
   // _
   //   .add(RequestCacheMiddleware)
@@ -294,7 +293,6 @@ const middleware = makeMiddleware<RequestContextMap>()({
 
 const middleware2 = makeMiddleware<RequestContextMap>()({
   // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
-  contextProvider,
   genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware],
   // or is the better api to use constructors outside, like how contextProvider is used now?
   dynamicMiddlewares: {

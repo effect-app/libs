@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.79.0
+
+### Minor Changes
+
+- f4b6d3d: improve: Align our Middleware with RPC Middleware. combine genericMiddleware with contextProvider.
+
 ## 2.78.8
 
 ### Patch Changes

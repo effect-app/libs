@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer, type NonEmptyReadonlyArray, Option, type Request, type S, type Scope } from "effect-app"
+import { Rpc, RpcMiddleware } from "@effect/rpc"
+import { type SuccessValue, type TagClass } from "@effect/rpc/RpcMiddleware"
+import { Console, Context, Effect, Layer, type NonEmptyReadonlyArray, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
-import { type HttpRouter } from "effect-app/http"
+import { type HttpHeaders, type HttpRouter } from "effect-app/http"
+import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
-import { type ContextProviderId, type ContextProviderShape } from "./ContextProvider.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 
@@ -91,16 +93,8 @@ type RequestContextMapProvider<RequestContextMap extends Record<string, RPCConte
 
 export interface MiddlewareMake<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the next, or raise errors.
-  //
-  // ContextProvider is a service that builds additional context for each request.
-  ContextProviderA, // what the context provider provides
-  ContextProviderR extends HttpRouter.HttpRouter.Provided, // what the context provider requires
-  MakeContextProviderE, // what the context provider construction can fail with
-  MakeContextProviderR, // what the context provider construction requires
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-  GenericMiddlewareProviders extends ReadonlyArray<
-    ContextTagWithDefault.Base<GenericMiddlewareMaker>
-  >,
+  GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middleware requires to be constructed
   MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
@@ -109,25 +103,30 @@ export interface MiddlewareMake<
   dynamicMiddlewares: DynamicMiddlewareProviders
   /** generic middlewares are those which follow the (next) => (input, headers) => pattern */
   genericMiddlewares: GenericMiddlewareProviders
-  /** static context providers */
-  contextProvider?: ContextTagWithDefault<
-    ContextProviderId,
-    ContextProviderShape<ContextProviderA, ContextProviderR>,
-    MakeContextProviderE,
-    MakeContextProviderR
-  >
 
   /* dependencies for the main middleware running just before the next is called */
   dependencies?: MiddlewareDependencies
   // this actually builds "the middleware", i.e. returns the augmented next factory when yielded...
   execute?: (
     maker: (
-      // MiddlewareR is set to ContextProviderA | HttpRouter.HttpRouter.Provided because that's what, at most
+      // MiddlewareR is set to GenericMiddlewareProviders | HttpRouter.HttpRouter.Provided because that's what, at most
       // a middleware can additionally require to get executed
-      cb: MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
-    ) => MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
+      cb: MakeRPCHandlerFactory<
+        RequestContextMap,
+        | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+        | HttpRouter.HttpRouter.Provided
+      >
+    ) => MakeRPCHandlerFactory<
+      RequestContextMap,
+      | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+      | HttpRouter.HttpRouter.Provided
+    >
   ) => Effect<
-    MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>,
+    MakeRPCHandlerFactory<
+      RequestContextMap,
+      | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+      | HttpRouter.HttpRouter.Provided
+    >,
     MakeMiddlewareE,
     MakeMiddlewareR | Scope // ...that's why MakeMiddlewareR is here
   >
@@ -137,7 +136,7 @@ export interface MiddlewareMakerId {
   _tag: "MiddlewareMaker"
 }
 
-export type Middleware<
+export type RouterMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
@@ -145,11 +144,11 @@ export type Middleware<
 > = ContextTagWithDefault<
   MiddlewareMakerId,
   {
+    _tag: "MiddlewareMaker"
     effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
   },
   MakeMiddlewareE,
-  MakeMiddlewareR,
-  "MiddlewareMaker"
+  MakeMiddlewareR
 >
 
 export type RequestContextMapErrors<RequestContextMap extends Record<string, RPCContextMap.Any>> = S.Schema.Type<
@@ -164,25 +163,13 @@ export const makeMiddleware =
   >() =>
   <
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends ReadonlyArray<
-      ContextTagWithDefault.Base<GenericMiddlewareMaker>
-    >,
+    GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
     MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
-    //
-    // ContextProvider is a service that builds additional context for each request.
-    ContextProviderA = never, // what the context provider provides
-    ContextProviderR extends HttpRouter.HttpRouter.Provided = never, // what the context provider requires
-    MakeContextProviderE = never, // what the context provider construction can fail with
-    MakeContextProviderR = never, // what the context provider construction requires
     MakeMiddlewareE = never, // what the middleware construction can fail with
     MakeMiddlewareR = never // what the middlware requires to be constructed
   >(
     make: MiddlewareMake<
       RequestContextMap,
-      ContextProviderA,
-      ContextProviderR,
-      MakeContextProviderE,
-      MakeContextProviderR,
       RequestContextProviders,
       GenericMiddlewareProviders,
       MakeMiddlewareE,
@@ -193,7 +180,10 @@ export const makeMiddleware =
     const MiddlewareMaker = Context.GenericTag<
       MiddlewareMakerId,
       {
-        effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
+        effect: RPCHandlerFactory<
+          RequestContextMap,
+          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+        >
         _tag: "MiddlewareMaker"
       }
     >(
@@ -211,58 +201,67 @@ export const makeMiddleware =
           generic: middlewares.effect,
           middleware: make.execute
             ? make.execute((
-              cb: MakeRPCHandlerFactory<RequestContextMap, HttpRouter.HttpRouter.Provided | ContextProviderA>
+              cb: MakeRPCHandlerFactory<
+                RequestContextMap,
+                HttpRouter.HttpRouter.Provided | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+              >
             ) => cb)
             : Effect.succeed<
-              MakeRPCHandlerFactory<RequestContextMap, ContextProviderA | HttpRouter.HttpRouter.Provided>
-            >((_schema, next) => (payload, headers) => next(payload, headers)),
-          contextProvider: make.contextProvider
-            ? make.contextProvider.pipe(Effect.map(Effect.map(Option.some)))
-            : Effect.succeed(Effect.succeed(Option.none())) // uses the middleware.contextProvider tag to get the context provider service
+              MakeRPCHandlerFactory<
+                RequestContextMap,
+                HttpRouter.HttpRouter.Provided | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+              >
+            >((_schema, next) => (payload, headers) => next(payload, headers))
         })
         .pipe(
-          Effect.map(({ contextProvider, dynamicMiddlewares, generic, middleware }) => ({
+          Effect.map(({ dynamicMiddlewares, generic, middleware }) => ({
             _tag: "MiddlewareMaker" as const,
-            effect: makeRpcEffect<RequestContextMap, ContextProviderA>()(
+            effect: makeRpcEffect<
+              RequestContextMap,
+              GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+            >()(
               (schema, next, moduleName) => {
                 const h = middleware(schema, next as any, moduleName)
                 return (payload, headers) =>
-                  Effect.gen(function*() {
-                    return yield* generic({
-                      payload,
-                      headers,
-                      rpc: { _tag: `${moduleName}.${payload._tag}` }, // todo: make moduleName part of the tag on S.Req creation.
-                      next: Effect.gen(function*() {
-                        yield* Effect.annotateCurrentSpan(
-                          "request.name",
-                          moduleName ? `${moduleName}.${payload._tag}` : payload._tag
-                        )
+                  Effect
+                    .gen(function*() {
+                      const gen = generic({
+                        payload,
+                        headers,
+                        clientId: 0, // TODO: get the clientId from the request context
+                        rpc: {
+                          ...Rpc.fromTaggedRequest(schema as any),
+                          // middlewares ? // todo: get from actual middleware flow?
+                          annotations: Context.empty(), // TODO //Annotations(schema as any),
+                          // successSchema: schema.success ?? Schema.Void,
+                          // errorSchema: schema.failure ?? Schema.Never,
+                          payloadSchema: schema,
+                          _tag: `${moduleName}.${payload._tag}`,
+                          key: `${moduleName}.${payload._tag}` /* ? */
+                          // clientId: 0 as number /* ? */
+                        }, // todo: make moduleName part of the tag on S.Req creation.
+                        next:
+                          // the contextProvider is an Effect that builds the context for the request
+                          // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
+                          dynamicMiddlewares(schema.config ?? {}, headers).pipe(
+                            Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
+                          ) as any
+                      })
+                      console.log({ gen })
 
-                        // the contextProvider is an Effect that builds the context for the request
-                        return yield* contextProvider.pipe(
-                          Effect.flatMap((contextProviderContext) =>
-                            // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
-                            dynamicMiddlewares(schema.config ?? {}, headers).pipe(
-                              Effect.flatMap((dynamicContext) =>
-                                h(payload, headers).pipe(Effect.provide(dynamicContext))
-                              ),
-                              Effect.provide(Option.getOrElse(contextProviderContext, () => Context.empty()))
-                            )
-                          )
-                        )
-                      }) as any
+                      return yield* gen
                     })
-                  }) as any // why?
+                    .pipe(Effect.onExit(Console.log)) as any // why?
               }
             )
-          }))
+          })),
+          Effect.onExit(Console.log)
         )
     )
 
     const dependencies = [
       ...(make.dependencies ? make.dependencies : []),
       ...(dynamicMiddlewares.dependencies as any),
-      ...(make.contextProvider?.Default ? [make.contextProvider.Default] : []),
       ...middlewares.dependencies
     ]
     const middlewareLayer = l
@@ -271,14 +270,12 @@ export const makeMiddleware =
       ) as Layer.Layer<
         MiddlewareMakerId,
         | MakeMiddlewareE // what the middleware construction can fail with
-        | LayerUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies>
-        | LayerUtils.GetLayersContext<typeof middlewares.dependencies> // what could go wrong when building the dynamic middleware provider
-        | MakeContextProviderE, // what could go wrong when building the context provider
+        | LayerUtils.GetLayersError<typeof dynamicMiddlewares.dependencies>
+        | LayerUtils.GetLayersError<typeof middlewares.dependencies>, // what could go wrong when building the dynamic middleware provider
         | LayerUtils.GetLayersContext<MiddlewareDependencies> // what's needed to build layers
         | LayerUtils.GetLayersContext<typeof middlewares.dependencies>
         | LayerUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what's needed to build dynamic middleware layers
         | Exclude<MakeMiddlewareR, LayerUtils.GetLayersSuccess<MiddlewareDependencies>> // what layers provides
-        | MakeContextProviderR // what's needed to build the contextProvider
       >
 
     return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
@@ -322,3 +319,90 @@ function makeRpcEffect<
     >
   ) => cb
 }
+
+// updated to support HttpRouter.HttpRouter.Provided
+export interface RpcMiddleware<Provides, E> {
+  (options: {
+    readonly clientId: number
+    readonly rpc: Rpc.AnyWithProps
+    readonly payload: unknown
+    readonly headers: HttpHeaders.Headers
+  }): Effect.Effect<Provides, E, HttpRouter.HttpRouter.Provided>
+}
+export interface RpcMiddlewareWrap<Provides, E> {
+  (options: {
+    readonly clientId: number
+    readonly rpc: Rpc.AnyWithProps
+    readonly payload: unknown
+    readonly headers: HttpHeaders.Headers
+    readonly next: Effect.Effect<SuccessValue, E, Provides | HttpRouter.HttpRouter.Provided>
+  }): Effect.Effect<SuccessValue, E, HttpRouter.HttpRouter.Provided>
+}
+
+type RpcOptionsOriginal = {
+  readonly wrap?: boolean
+  readonly optional?: boolean
+  readonly failure?: Schema.Schema.All
+  readonly provides?: Context.Tag<any, any>
+  readonly requiredForClient?: boolean
+}
+
+export const Tag = <Self>() =>
+<
+  const Name extends string,
+  const Options extends RpcOptionsOriginal
+>(
+  id: Name,
+  options?: Options | undefined
+) =>
+<E, R, L extends NonEmptyReadonlyArray<Layer.Layer.Any>>(opts: {
+  effect: Effect.Effect<
+    TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
+        TagClass.Provides<Options>,
+        TagClass.Failure<Options>
+      >
+      : RpcMiddleware<
+        TagClass.Service<Options>,
+        TagClass.FailureService<Options>
+      >,
+    E,
+    R
+  >
+  dependencies?: L
+}): RpcMiddleware.TagClass<Self, Name, Options> & {
+  Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
+} =>
+  class extends RpcMiddleware.Tag<Self>()(id, options) {
+    static readonly Default = Layer.scoped(this, opts.effect as any).pipe(
+      Layer.provide([Layer.empty, ...opts.dependencies ?? []])
+    )
+    static override [Unify.typeSymbol]?: unknown
+    static override [Unify.unifySymbol]?: TagUnify<typeof this>
+    static override [Unify.ignoreSymbol]?: TagUnifyIgnore
+  } as any
+
+// export const Tag = <Self>() =>
+// <
+//   const Name extends string,
+//   const Options extends Omit<RpcOptionsOriginal, "wrap">
+// >(
+//   id: Name,
+//   options?: Options | undefined
+// ) =>
+//   OurTag<Self>()(id, { ...options, wrap: true } as Options & { wrap: true }) as <
+//     E,
+//     R,
+//     L extends NonEmptyReadonlyArray<Layer.Layer.Any>
+//   >(opts: {
+//     effect: Effect.Effect<
+//       RpcMiddlewareWrap<
+//         RpcMiddleware.TagClass.Provides<Options>,
+//         RpcMiddleware.TagClass.Failure<Options>
+//       >,
+//       E,
+//       R
+//     >
+//     dependencies?: L
+//   }) => RpcMiddleware.TagClass<Self, Name, Options> & {
+//     Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
+//   }

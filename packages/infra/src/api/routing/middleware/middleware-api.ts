@@ -8,14 +8,14 @@ export const contextMap = <RequestContextMap>() => <K extends keyof RequestConte
 })
 
 type DynamicMiddlewareMakerrsss<
-  RequestContextMap extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContextMap,
+  RequestContext extends Record<string, RPCContextMap.Any>,
+  Provided extends keyof RequestContext,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>
-> = keyof Omit<RequestContextMap, Provided> extends never ? { make: () => "TODO" }
+> = keyof Omit<RequestContext, Provided> extends never ? { make: () => "TODO" }
   : {
-    addDynamicMiddleware: <MW extends DynamicMiddlewareMaker>(
+    addDynamicMiddleware: <MW extends DynamicMiddlewareMaker<RequestContext>>(
       a: MW
-    ) => DynamicMiddlewareMakerrsss<RequestContextMap, Provided | MW["dynamic"]["key"], Middlewares> // TODO: any of RequestContecxtMap, and track them, so remove the ones provided
+    ) => DynamicMiddlewareMakerrsss<RequestContext, Provided | MW["dynamic"]["key"], Middlewares> // TODO: any of RequestContecxtMap, and track them, so remove the ones provided
   }
 
 export const makeNewMiddleware: <

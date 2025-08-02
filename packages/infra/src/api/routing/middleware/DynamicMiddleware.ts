@@ -368,13 +368,15 @@ export interface RpcMiddlewareDynamic<A, E, Config> {
   }): Effect.Effect<Option.Option<Context.Context<A>>, E, Scope.Scope>
 }
 
-export interface TagClassDynamicAny extends Context.Tag<any, any> {
+export interface TagClassDynamicAny<RequestContext extends Record<string, RPCContextMap.Any>>
+  extends Context.Tag<any, any>
+{
   readonly [RpcMiddleware.TypeId]: RpcMiddleware.TypeId
   readonly optional: boolean
   readonly provides?: Context.Tag<any, any> | undefined
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
-  readonly dynamic: RpcDynamic<any, any>
+  readonly dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]>
   readonly wrap: boolean
 }
 

@@ -457,6 +457,8 @@ export declare namespace TagClass {
     readonly failure: FailureSchema<Options>
     readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
       : undefined
+    readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
+      : undefined
     readonly requiredForClient: RequiredForClient<Options>
     readonly wrap: Wrap<Options>
   }

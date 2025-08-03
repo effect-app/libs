@@ -88,11 +88,11 @@ class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", 
 })({
   effect: Effect.gen(function*() {
     return Effect.fnUntraced(
-      function*(options) {
+      function*({ config, headers }) {
         yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
-        const isLoggedIn = !!options.headers["x-user"]
+        const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
-          if (!options.config.allowAnonymous) {
+          if (!config.allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
           return Option.none()
@@ -117,10 +117,10 @@ class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
   effect: Effect.gen(function*() {
     yield* Some
     return Effect.fnUntraced(
-      function*(options) {
+      function*({ config }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
-        const { requireRoles } = options.config
+        const { requireRoles } = config
         if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
           return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }
@@ -133,7 +133,7 @@ class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
 
 class Test extends Middleware.Tag<Test>()("Test", { dynamic: contextMap<RequestContextMap>()("test") })({
   effect: Effect.gen(function*() {
-    return Effect.fn(function*(_options) {
+    return Effect.fn(function*() {
       return Option.none<Context<never>>()
     })
   })
@@ -145,10 +145,10 @@ export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
 })({
   effect: Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return (options) =>
+    return ({ next }) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* options.next.pipe(Effect.provideService(SomeService, null as any))
+        return yield* next.pipe(Effect.provideService(SomeService, null as any))
       })
   })
 }) {

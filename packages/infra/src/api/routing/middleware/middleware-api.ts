@@ -17,14 +17,17 @@ type DynamicMiddlewareMakerrsss<
 > = keyof Omit<RequestContext, Provided> extends never
   ? ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>>
   : {
-    addDynamicMiddleware: <MW extends DynamicMiddlewareMaker<RequestContext>>(
-      a: MW
+    addDynamicMiddleware: <MW extends NonEmptyReadonlyArray<DynamicMiddlewareMaker<RequestContext>>>(
+      ...middlewares: MW
     ) => DynamicMiddlewareMakerrsss<
       RequestContext,
-      Provided | MW["dynamic"]["key"],
+      Provided | MW[number]["dynamic"]["key"],
       Middlewares,
-      DynamicMiddlewareProviders & { [K in MW["dynamic"]["key"]]: MW }
-    > // TODO: any of RequestContecxtMap, and track them, so remove the ones provided
+      & DynamicMiddlewareProviders
+      & {
+        [K in keyof MW as MW[K] extends DynamicMiddlewareMaker<RequestContext> ? MW[K]["dynamic"]["key"] : never]: MW[K]
+      }
+    >
   }
 
 export const makeNewMiddleware: <
@@ -32,12 +35,14 @@ export const makeNewMiddleware: <
 >() => <Middlewares extends NonEmptyReadonlyArray<GenericMiddlewareMaker>>(
   ...genericMiddlewares: Middlewares
 ) => DynamicMiddlewareMakerrsss<RequestContextMap, never, Middlewares, never> = () => (...genericMiddlewares) => {
-  const dynamicMiddlewares: Record<keyof any, any> = {} as any
+  const dynamicMiddlewares: Record<string, any> = {} as any
   const make = makeMiddleware<any>()
   const it = {
-    addDynamicMiddleware: (a: any) => {
-      console.log("Adding dynamic middleware", a, a.dynamic, Object.keys(a))
-      ;(dynamicMiddlewares as any)[a.dynamic.key] = a
+    addDynamicMiddleware: (...middlewares: any[]) => {
+      for (const a of middlewares) {
+        console.log("Adding dynamic middleware", a, a.dynamic, Object.keys(a))
+        dynamicMiddlewares[a.dynamic.key] = a
+      }
       return Object.assign(make({ genericMiddlewares: genericMiddlewares as any, dynamicMiddlewares }), it)
     }
   }

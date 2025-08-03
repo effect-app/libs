@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.85.0
+
+### Minor Changes
+
+- 00bf1b7: allow multiple dynamic middleware at once
+
 ## 2.84.0
 
 ### Minor Changes

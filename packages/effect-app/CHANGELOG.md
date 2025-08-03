@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.51.0
+
+### Minor Changes
+
+- 54dd59a: cleanup NES
+
 ## 2.50.2
 
 ### Patch Changes

@@ -6,7 +6,7 @@ export interface MiddlewareM<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
-  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
+  DynamicMiddlewareProviders,
   // out MiddlewareR = never
   MiddlewareR = never
 > {
@@ -25,7 +25,7 @@ export interface Dynamic<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
-  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
+  DynamicMiddlewareProviders,
   out MiddlewareR
 > extends
   MiddlewareM<
@@ -77,17 +77,23 @@ type DynamicMiddlewareMakerrsss<
         RequestContext,
         Provided,
         Middlewares,
-        GetDynamicMiddleware<DynamicMiddlewareProviders, RequestContext>,
+        DynamicMiddlewareProviders,
         MiddlewareR
       >
   : MiddlewareM<
     RequestContext,
     Provided,
     Middlewares,
-    GetDynamicMiddleware<DynamicMiddlewareProviders, RequestContext>,
+    DynamicMiddlewareProviders,
     MiddlewareR
   >
-  : Dynamic<RequestContext, Provided, Middlewares, DynamicMiddlewareProviders, MiddlewareR>
+  : Dynamic<
+    RequestContext,
+    Provided,
+    Middlewares,
+    DynamicMiddlewareProviders,
+    MiddlewareR
+  >
 
 export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>

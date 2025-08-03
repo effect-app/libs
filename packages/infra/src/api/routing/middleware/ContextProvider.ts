@@ -87,9 +87,9 @@ export const mergeContextProviders = <
   effect: Effect.Effect<
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<EffectGenUtils.Success<Tag.Service<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Tag.Identifier<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<Tag.Service<TDeps[number]>>
+      EffectGenUtils.Context<Tag.Identifier<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
@@ -174,13 +174,13 @@ export const MergedContextProvider = <
     ContextProviderId,
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<EffectGenUtils.Success<Tag.Service<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Tag.Identifier<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<Tag.Service<TDeps[number]>>
+      EffectGenUtils.Context<Tag.Identifier<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     | Exclude<
-      Tag.Service<TDeps[number]>,
+      Tag.Identifier<TDeps[number]>,
       LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
     >
     | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>

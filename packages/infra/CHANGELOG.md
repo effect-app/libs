@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.84.0
+
+### Minor Changes
+
+- d4e66ee: drop make requirement
+
 ## 2.83.1
 
 ### Patch Changes

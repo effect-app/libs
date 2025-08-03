@@ -15,7 +15,7 @@ type DynamicMiddlewareMakerrsss<
   Middlewares extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>
 > = keyof Omit<RequestContext, Provided> extends never
-  ? { make: () => ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>> }
+  ? ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>>
   : {
     addDynamicMiddleware: <MW extends DynamicMiddlewareMaker<RequestContext>>(
       a: MW
@@ -38,9 +38,8 @@ export const makeNewMiddleware: <
     addDynamicMiddleware: (a: any) => {
       console.log("Adding dynamic middleware", a, a.dynamic, Object.keys(a))
       ;(dynamicMiddlewares as any)[a.dynamic.key] = a
-      return it
-    },
-    make: () => make({ genericMiddlewares: genericMiddlewares as any, dynamicMiddlewares })
+      return Object.assign(make({ genericMiddlewares: genericMiddlewares as any, dynamicMiddlewares }), it)
+    }
   }
-  return it
+  return it as any
 }

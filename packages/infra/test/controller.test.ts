@@ -210,7 +210,6 @@ export const middleware3 = makeNewMiddleware<RequestContextMap>()(
   .addDynamicMiddleware(AllowAnonymous)
   .addDynamicMiddleware(RequireRoles)
   .addDynamicMiddleware(Test)
-  .make()
 
 expectTypeOf(middleware3).toEqualTypeOf<typeof middleware2>()
 

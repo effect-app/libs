@@ -34,46 +34,30 @@ export interface MiddlewareDynamic<
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders,
   out MiddlewareR
-> extends
-  MiddlewareM<
+> {
+  // TODO: this still allows to mix both types of middleware but with bad typing result
+  // either have to block it, or implement the support properly.
+  middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
+    ...mw: MW
+  ): DynamicMiddlewareMakerrsss<
     RequestContext,
     Provided,
-    Middlewares,
+    [...Middlewares, ...MW],
     DynamicMiddlewareProviders,
-    MiddlewareR
+    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
   >
-{
-  middleware<MW extends NonEmptyArray<DynamicMiddlewareMaker<RequestContext>> | NonEmptyArray<GenericMiddlewareMaker>>(
+  middleware<MW extends NonEmptyArray<DynamicMiddlewareMaker<RequestContext>>>(
     ...mw: MW
-  ): MW extends NonEmptyArray<DynamicMiddlewareMaker<RequestContext>> ? DynamicMiddlewareMakerrsss<
-      RequestContext,
-      Provided | MW[number]["dynamic"]["key"],
-      Middlewares,
-      & DynamicMiddlewareProviders
-      & {
-        [K in keyof MW as MW[K] extends DynamicMiddlewareMaker<RequestContext> ? MW[K]["dynamic"]["key"] : never]: MW[K]
-      },
-      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-    >
-    : DynamicMiddlewareMakerrsss<
-      RequestContext,
-      Provided,
-      [...Middlewares, ...MW],
-      DynamicMiddlewareProviders,
-      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-    >
-  // addDynamicMiddleware: <MW extends NonEmptyReadonlyArray<DynamicMiddlewareMaker<RequestContext>>>(
-  //   ...middlewares: MW
-  // ) => DynamicMiddlewareMakerrsss<
-  //   RequestContext,
-  //   Provided | MW[number]["dynamic"]["key"],
-  //   Middlewares,
-  //   & DynamicMiddlewareProviders
-  //   & {
-  //     [K in keyof MW as MW[K] extends DynamicMiddlewareMaker<RequestContext> ? MW[K]["dynamic"]["key"] : never]: MW[K]
-  //   },
-  //   MiddlewareR // TODO GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
-  // > // GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+  ): DynamicMiddlewareMakerrsss<
+    RequestContext,
+    Provided | MW[number]["dynamic"]["key"],
+    Middlewares,
+    & DynamicMiddlewareProviders
+    & {
+      [U in MW[number] as U["dynamic"]["key"]]: U
+    },
+    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
+  >
 }
 
 type GetDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends

@@ -1,36 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
-import type { RequestContext } from "@effect-app/infra/RequestContext"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { type Array, Context, Effect, Layer, Option, S, Scope } from "effect-app"
-import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
-import { Class, TaggedError } from "effect-app/Schema"
-import { contextMap, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
+import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
+import { DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
-import { SomeService } from "./query.test.js"
-
-export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
-  Class<UserProfile>("UserProfile")({
-    id: S.String,
-    roles: S.Array(S.String)
-  })
-) {
-}
-
-export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
-  message: S.String
-}) {}
-
-export class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
-export class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
-
-export interface CTX {
-  context: RequestContext
-}
-
-export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
-export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
+import { AllowAnonymous, CustomError1, type RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", {
@@ -76,70 +52,8 @@ class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContext
 
 //
 
-export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
-  requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
-  test: RPCContextMap<never, typeof S.Never>
-}
-
 const Str = Context.GenericTag<"str", "str">("str")
 const Str2 = Context.GenericTag<"str2", "str">("str2")
-
-class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap<RequestContextMap>()("allowAnonymous")
-})({
-  effect: Effect.gen(function*() {
-    return Effect.fnUntraced(
-      function*({ config, headers }) {
-        yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
-        const isLoggedIn = !!headers["x-user"]
-        if (!isLoggedIn) {
-          if (!config.allowAnonymous) {
-            return yield* new NotLoggedInError({ message: "Not logged in" })
-          }
-          return Option.none()
-        }
-        return Option.some(Context.make(
-          UserProfile,
-          { id: "whatever", roles: ["user", "manager"] }
-        ))
-      }
-    )
-  })
-}) {
-}
-
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
-class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
-  dynamic: contextMap<RequestContextMap>()("requireRoles"),
-  // had to move this in here, because once you put it manually as a readonly static property on the class,
-  // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
-  dependsOn: [AllowAnonymous]
-})({
-  effect: Effect.gen(function*() {
-    yield* Some
-    return Effect.fnUntraced(
-      function*({ config }) {
-        // we don't know if the service will be provided or not, so we use option..
-        const userProfile = yield* Effect.serviceOption(UserProfile)
-        const { requireRoles } = config
-        if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
-          return yield* new UnauthorizedError({ message: "don't have the right roles" })
-        }
-        return Option.none<Context<never>>()
-      }
-    )
-  })
-}) {
-}
-
-class Test extends Middleware.Tag<Test>()("Test", { dynamic: contextMap<RequestContextMap>()("test") })({
-  effect: Effect.gen(function*() {
-    return Effect.fn(function*() {
-      return Option.none<Context<never>>()
-    })
-  })
-}) {}
 
 export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
   provides: SomeService,

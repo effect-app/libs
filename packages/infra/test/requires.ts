@@ -54,7 +54,7 @@ type DynamicMiddlewareMakerrsss<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
-  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
+  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext> = never,
   MiddlewareR = never
 > = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
       & ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>>
@@ -76,14 +76,13 @@ type DynamicMiddlewareMakerrsss<
 
 export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->() => <Middlewares extends ReadonlyArray<GenericMiddlewareMaker>>(
-  ...genericMiddlewares: Middlewares
-) => DynamicMiddlewareMakerrsss<RequestContextMap, never, Middlewares, never> = () => (...genericMiddlewares) => {
+>() => DynamicMiddlewareMakerrsss<RequestContextMap, never, [], never> = () => {
   const dynamicMiddlewares: Record<string, any> = {} as any
   const make = makeMiddleware<any>()
+  let genericMiddlewares: GenericMiddlewareMaker[] = []
   const it = {
     middleware: <MW extends GenericMiddlewareMaker>(mw: MW) => {
-      genericMiddlewares = [...genericMiddlewares, mw] as any
+      genericMiddlewares = [mw, ...genericMiddlewares] as any
       return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)
     },
     addDynamicMiddleware: (...middlewares: any[]) => {

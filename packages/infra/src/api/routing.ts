@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { determineMethod, isCommand } from "@effect-app/infra/api/routing/utils"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { type Array, Duration, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Request, S, Schedule, Schema, type Scope } from "effect-app"
+import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schedule, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -819,11 +819,3 @@ export type MakeHandlers<Make, Handlers extends Record<string, any>> = Make exte
  * @since 3.9.0
  */
 export type MakeDepsOut<Make> = Contravariant.Type<MakeDeps<Make>[Layer.LayerTypeId]["_ROut"]>
-
-export const RequestCacheLayers = Layer.mergeAll(
-  Layer.setRequestCache(
-    Request.makeCache({ capacity: 500, timeToLive: Duration.hours(8) })
-  ),
-  Layer.setRequestCaching(true),
-  Layer.setRequestBatching(true)
-)

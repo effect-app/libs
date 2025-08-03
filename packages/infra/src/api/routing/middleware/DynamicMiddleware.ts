@@ -94,10 +94,10 @@ export type RequestContextMapProvider<RequestContextMap extends Record<string, R
 export interface MiddlewareMake<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the next, or raise errors.
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-  GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
+  GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>,
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middleware requires to be constructed
-  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
+  MiddlewareDependencies extends ReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
 > {
   /* dynamic middlewares to be applied based on Request Configuration */
   dynamicMiddlewares: DynamicMiddlewareProviders
@@ -170,8 +170,8 @@ export const makeMiddleware =
   >() =>
   <
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
-    MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
+    GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>,
+    MiddlewareDependencies extends ReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     MakeMiddlewareE = never, // what the middleware construction can fail with
     MakeMiddlewareR = never // what the middlware requires to be constructed
   >(
@@ -295,7 +295,7 @@ export const makeMiddlewareBasic =
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>
+    GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
   >(
     make: MiddlewareMake<
       RequestContextMap,

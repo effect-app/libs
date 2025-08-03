@@ -39,6 +39,7 @@ export type DynamicMiddlewareMaker<RequestContext extends Record<string, RPCCont
   & { Default: Layer.Layer.Any } // todo; and Layer..
 
 export namespace GenericMiddlewareMaker {
+  export type ApplyServices<A extends TagClassAny, R> = Exclude<R, Provided<A>> | Required<A>
   export type Provided<T> = T extends TagClassAny
     ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
     : T extends { provides: ContextRepr } ? ContextRepr.Identifier<T["provides"]>

@@ -1,22 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option } from "effect-app"
+import { Context, Effect, type Layer, Option } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
 export namespace LayerUtils {
   export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
+    ReadonlyArray<Layer.Layer.Any> ? {
       [k in keyof Layers]: Layer.Layer.Success<Layers[k]>
     }[number]
     : never
 
   export type GetLayersContext<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
+    ReadonlyArray<Layer.Layer.Any> ? {
       [k in keyof Layers]: Layer.Layer.Context<Layers[k]>
     }[number]
     : never
 
   export type GetLayersError<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
+    ReadonlyArray<Layer.Layer.Any> ? {
       [k in keyof Layers]: Layer.Layer.Error<Layers[k]>
     }[number]
     : never

@@ -13,10 +13,32 @@ type DynamicMiddlewareMakerrsss<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
   Middlewares extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
-  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>
-> = keyof Omit<RequestContext, Provided> extends never
-  ? ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>>
+  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
+  // out MiddlewareR = never
+  MiddlewareR = never
+> = keyof Omit<RequestContext, Provided> extends never ?
+    & ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>>
+    & {
+      middleware: <MW extends GenericMiddlewareMaker>(
+        mw: MW
+      ) => DynamicMiddlewareMakerrsss<
+        RequestContext,
+        Provided,
+        [...Middlewares, MW],
+        DynamicMiddlewareProviders,
+        GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+      >
+    }
   : {
+    middleware: <MW extends GenericMiddlewareMaker>(
+      mw: MW
+    ) => DynamicMiddlewareMakerrsss<
+      RequestContext,
+      Provided,
+      Middlewares,
+      DynamicMiddlewareProviders,
+      GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+    >
     addDynamicMiddleware: <MW extends NonEmptyReadonlyArray<DynamicMiddlewareMaker<RequestContext>>>(
       ...middlewares: MW
     ) => DynamicMiddlewareMakerrsss<
@@ -26,8 +48,9 @@ type DynamicMiddlewareMakerrsss<
       & DynamicMiddlewareProviders
       & {
         [K in keyof MW as MW[K] extends DynamicMiddlewareMaker<RequestContext> ? MW[K]["dynamic"]["key"] : never]: MW[K]
-      }
-    >
+      },
+      MiddlewareR
+    > // GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
   }
 
 export const makeNewMiddleware: <
@@ -38,12 +61,16 @@ export const makeNewMiddleware: <
   const dynamicMiddlewares: Record<string, any> = {} as any
   const make = makeMiddleware<any>()
   const it = {
+    middleware: <MW extends GenericMiddlewareMaker>(mw: MW) => {
+      genericMiddlewares = [...genericMiddlewares, mw] as any
+      return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)
+    },
     addDynamicMiddleware: (...middlewares: any[]) => {
       for (const a of middlewares) {
         console.log("Adding dynamic middleware", a, a.dynamic, Object.keys(a))
         dynamicMiddlewares[a.dynamic.key] = a
       }
-      return Object.assign(make({ genericMiddlewares: genericMiddlewares as any, dynamicMiddlewares }), it)
+      return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)
     }
   }
   return it as any

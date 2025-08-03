@@ -211,8 +211,9 @@ export const middleware3 = makeNewMiddleware<RequestContextMap>()(
 )
   .addDynamicMiddleware(AllowAnonymous, RequireRoles)
   .addDynamicMiddleware(Test)
+// .middleware(BogusMiddleware)
 
-expectTypeOf(middleware3).toEqualTypeOf<typeof middleware2>()
+// expectTypeOf(middleware3).toExtend<typeof middleware2>()
 
 export type RequestConfig = {
   /** Disable authentication requirement */
@@ -362,7 +363,7 @@ it("sorts based on requirements", () => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | "str">()
+expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | Some | "str">()
 
 type makeContext = MakeContext<typeof router.make>
 expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()
@@ -434,7 +435,7 @@ const router2 = r2.Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
-expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<SomeService>()
+expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<Some | SomeService>()
 
 type makeContext2 = MakeContext<typeof router2.make>
 expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateError>()

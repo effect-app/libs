@@ -73,14 +73,6 @@
       "types": "./dist/NonEmptySet.d.ts",
       "default": "./dist/NonEmptySet.js"
     },
-    "./NonEmptySetAspects": {
-      "types": "./dist/NonEmptySetAspects.d.ts",
-      "default": "./dist/NonEmptySetAspects.js"
-    },
-    "./NonEmptySetBase": {
-      "types": "./dist/NonEmptySetBase.d.ts",
-      "default": "./dist/NonEmptySetBase.js"
-    },
     "./Operations": {
       "types": "./dist/Operations.d.ts",
       "default": "./dist/Operations.js"

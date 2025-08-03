@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 2.82.0
+
+### Minor Changes
+
+- c375351: fix: dependsOn for dynamicMiddleware.
+- 6e20474: feat: add provides: Context support
+
 ## 2.81.1
 
 ### Patch Changes

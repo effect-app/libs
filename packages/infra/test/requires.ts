@@ -1,3 +1,4 @@
+import { Array, Either } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
 import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, makeMiddleware, type makeMiddlewareBasic, type RequestContextMapProvider } from "../src/api/routing.js"
 
@@ -116,20 +117,30 @@ type DynamicMiddlewareMakerrsss<
 export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
-  const dynamicMiddlewares: Record<string, any> = {} as any
   const make = makeMiddleware<any>()
-  let genericMiddlewares: GenericMiddlewareMaker[] = []
+  let capturedMiddlewares: (DynamicMiddlewareMaker<any> | GenericMiddlewareMaker)[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
+        capturedMiddlewares = [mw, ...capturedMiddlewares]
         if (mw.dynamic) {
           console.log("Adding dynamic middleware", mw.key, mw.dynamic.key)
-          dynamicMiddlewares[mw.dynamic.key] = mw
         } else {
           console.log("Adding generic middleware", mw.key)
-          genericMiddlewares = [mw, ...genericMiddlewares] as any
         }
       }
+      const [genericMiddlewares, dyn] = Array.partitionMap(
+        capturedMiddlewares,
+        (mw) =>
+          "dynamic" in mw && mw.dynamic
+            ? Either.right(mw as DynamicMiddlewareMaker<any>)
+            : Either.left(mw as GenericMiddlewareMaker)
+      )
+      const dynamicMiddlewares = dyn.reduce(
+        (prev, cur) => ({ ...prev, [cur.dynamic.key]: cur }),
+        {} as Record<string, any>
+      )
+      // TODO: support dynamic and generic intertwined. treat them as one
       return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)
     }
   }

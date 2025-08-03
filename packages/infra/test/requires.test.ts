@@ -4,15 +4,13 @@ import { makeNewMiddleware, Middleware } from "../src/api/routing.js"
 import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
 
 export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
-  provides: Some,
-  wrap: true
+  provides: Some
 })({
   effect: Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return ({ next }) =>
+    return () =>
       Effect.gen(function*() {
-        // yield* Effect.context<"test-dep2">()
-        return yield* next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
+        return new Some({ a: 1 })
       })
   })
 }) {
@@ -34,7 +32,7 @@ export class SomeElseMiddleware extends Middleware.Tag<SomeElseMiddleware>()("So
 }
 
 export class RequiresSomeMiddleware extends Middleware.Tag<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
-  requires: Some,
+  requires: [Some],
   wrap: true
 })({
   effect: Effect.gen(function*() {

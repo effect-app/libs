@@ -18,6 +18,7 @@ export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
   readonly optional: boolean
   readonly provides?: Context.Tag<any, any> | ContextRepr | undefined
+  readonly requires?: Context.Tag<any, any> | ContextRepr | undefined
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
   readonly wrap: boolean
@@ -41,6 +42,12 @@ export namespace GenericMiddlewareMaker {
   export type Provided<T> = T extends TagClassAny
     ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
     : T extends { provides: ContextRepr } ? ContextRepr.Identifier<T["provides"]>
+    : never
+    : never
+
+  export type Required<T> = T extends TagClassAny
+    ? T extends { requires: Context.Tag<any, any> } ? Context.Tag.Identifier<T["requires"]>
+    : T extends { requires: ContextRepr } ? ContextRepr.Identifier<T["requires"]>
     : never
     : never
 }

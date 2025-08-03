@@ -20,13 +20,15 @@ export type ContextWithLayer<
   & (
     | ContextTagWithDefault<
       Id,
-      RpcMiddlewareDynamic<Service, Error, Config>,
+      // todo
+      RpcMiddlewareDynamic<Service, Error, any, Config>,
       LayerE,
       LayerR
     >
     | ContextTagWithDefault<
       Id,
-      RpcMiddlewareDynamic<Service, Error, Config>,
+      // todo
+      RpcMiddlewareDynamic<Service, Error, never, Config>,
       LayerE,
       LayerR
     >

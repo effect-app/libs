@@ -34,13 +34,15 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", {
-  provides: [Some]
+  provides: [Some],
+  requires: [SomeElse]
 })({
   effect: Effect.gen(function*() {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return Effect.fnUntraced(function*() {
+      yield* SomeElse
       // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
       yield* Scope.Scope
 

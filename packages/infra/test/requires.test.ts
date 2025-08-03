@@ -53,9 +53,8 @@ it("requires gets enforced", async () => {
   const middleware3 = makeNewMiddleware<RequestContextMap>()
     .middleware(RequiresSomeMiddleware)
     .middleware(SomeMiddleware)
-    .middleware(AllowAnonymous)
+    .middleware(AllowAnonymous, RequireRoles)
     .middleware(SomeElseMiddleware)
-    .middleware(RequireRoles)
     .middleware(Test)
 
   type LayerContext = Layer.Layer.Context<typeof middleware3["Default"]>
@@ -64,8 +63,9 @@ it("requires gets enforced", async () => {
   await Effect
     .gen(function*() {
       const mw = yield* middleware3
-      const mwM = mw.effect(Object.assign({}, S.Any, { config: {} }), (req) => Effect.void, "some-module")
-      const v = yield* mwM({}, { "x-user": "test-user" })
+      const mwM = mw.effect(Object.assign({}, S.Any, { config: {} }), (_req) => Effect.void, "some-module")
+      yield* mwM({}, { "x-user": "test-user" })
+      // console.log({ v })
     })
     .pipe(
       Effect.scoped,

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.86.0
+
+### Minor Changes
+
+- f30dfe3: support middleware `requires` and simplified api
+
 ## 2.85.0
 
 ### Minor Changes

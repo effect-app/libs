@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.83.0
+
+### Minor Changes
+
+- use NERA instead of fake ContextRepr
+
 ## 2.82.0
 
 ### Minor Changes

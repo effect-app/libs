@@ -2,6 +2,8 @@ import { type NonEmptyReadonlyArray } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
 import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, makeMiddleware, type makeMiddlewareBasic, type RequestContextMapProvider } from "../../routing.js"
 
+// TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
+// in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
 export const contextMap = <RequestContextMap>() => <K extends keyof RequestContextMap>(a: K) => ({
   key: a,
   settings: null as any as RequestContextMap[typeof a]

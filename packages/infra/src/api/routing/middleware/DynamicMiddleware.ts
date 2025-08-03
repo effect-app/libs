@@ -10,7 +10,7 @@ import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
-import { type ContextRepr, type GenericMiddlewareMaker, genericMiddlewareMaker, type GetContextRepr } from "./generic-middleware.js"
+import { type ContextRepr, type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 
 // module:
 //
@@ -468,7 +468,7 @@ type RpcOptionsOriginal = {
   readonly wrap?: boolean
   readonly optional?: boolean
   readonly failure?: Schema.Schema.All
-  readonly provides?: Context.Tag<any, any> | ContextRepr<any>
+  readonly provides?: Context.Tag<any, any> | ContextRepr
   readonly requiredForClient?: boolean
 }
 
@@ -517,9 +517,9 @@ export declare namespace TagClass {
     readonly optional?: false
   } ? Context.Tag.Identifier<Options["provides"]>
     : Options extends {
-      readonly provides: ContextRepr<any>
+      readonly provides: ContextRepr
       readonly optional?: false
-    } ? GetContextRepr<Options["provides"]>
+    } ? ContextRepr.Identifier<Options["provides"]>
     : never
 
   /**
@@ -529,7 +529,7 @@ export declare namespace TagClass {
   export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
     ? Context.Tag.Service<Options["provides"]>
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["service"]
-    : Options extends { readonly provides: ContextRepr<any> } ? Context.Context<GetContextRepr<Options["provides"]>>
+    : Options extends { readonly provides: ContextRepr } ? Context.Context<ContextRepr.Identifier<Options["provides"]>>
     : void
 
   /**
@@ -590,7 +590,7 @@ export declare namespace TagClass {
     readonly optional: Optional<Options>
     readonly failure: FailureSchema<Options>
     readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
-      : Options extends { readonly provides: ContextRepr<any> } ? Options["provides"]
+      : Options extends { readonly provides: ContextRepr } ? Options["provides"]
       : undefined
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined

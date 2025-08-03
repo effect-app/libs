@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope } from "effect-app"
 
 import { type HttpRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
@@ -120,7 +120,7 @@ export const ContextProvider = <
   MakeContextProviderE,
   MakeContextProviderR,
   ContextProviderR extends Scope.Scope,
-  Dependencies extends NonEmptyArray<Layer.Layer.Any>
+  Dependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>
 >(
   input: {
     effect: Effect<

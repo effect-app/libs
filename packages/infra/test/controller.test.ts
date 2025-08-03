@@ -6,7 +6,7 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { Class, TaggedError } from "effect-app/Schema"
-import { contextMap, ContextRepr, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { contextMap, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -34,7 +34,7 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", {
-  provides: ContextRepr<Some>()
+  provides: [Some]
 })({
   effect: Effect.gen(function*() {
     yield* SomeService

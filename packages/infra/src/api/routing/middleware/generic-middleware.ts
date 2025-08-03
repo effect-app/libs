@@ -1,23 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, type RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { type Array, Context, Effect, type Layer, type Schema, type Scope } from "effect-app"
+import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, type Schema, type Scope } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
+import { type Tag } from "effect/Context"
 import { InfraLogger } from "../../../logger.js"
 import { type TagClassDynamicAny } from "./DynamicMiddleware.js"
 
-// TODO: instead, consider support NonEmptyArray of Tags - so that we keep Identifiers and Services
-export interface ContextRepr<A> {
-  readonly A: A
+export type ContextRepr = NonEmptyReadonlyArray<Context.Tag<any, any>>
+export namespace ContextRepr {
+  export type Identifier<A> = A extends ContextRepr ? Tag.Identifier<A[number]> : never
+  export type Service<A> = A extends ContextRepr ? Tag.Service<A[number]> : never
 }
-export const ContextRepr = <A>(): ContextRepr<A> => ({ A: undefined as A })
-export type GetContextRepr<A> = A extends ContextRepr<infer B> ? B : never
 
 export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
   readonly optional: boolean
-  readonly provides?: Context.Tag<any, any> | ContextRepr<any> | undefined
+  readonly provides?: Context.Tag<any, any> | ContextRepr | undefined
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
   readonly wrap: boolean
@@ -40,7 +40,7 @@ export type DynamicMiddlewareMaker<RequestContext extends Record<string, RPCCont
 export namespace GenericMiddlewareMaker {
   export type Provided<T> = T extends TagClassAny
     ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
-    : T extends { provides: ContextRepr<any> } ? GetContextRepr<T["provides"]>
+    : T extends { provides: ContextRepr } ? ContextRepr.Identifier<T["provides"]>
     : never
     : never
 }

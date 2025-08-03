@@ -26,7 +26,7 @@ export interface Dynamic<
   Provided extends keyof RequestContext,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
-  out MiddlewareR = never
+  out MiddlewareR
 > extends
   MiddlewareM<
     RequestContext,
@@ -50,26 +50,41 @@ export interface Dynamic<
   > // GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
 }
 
+type GetDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends
+  RequestContextMapProvider<RequestContext> ? T : never
+
 type DynamicMiddlewareMakerrsss<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext = never,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
-  DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext> = never,
+  DynamicMiddlewareProviders = unknown,
   MiddlewareR = never
 > = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
-      & ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, []>>
+      & ReturnType<
+        typeof makeMiddlewareBasic<
+          RequestContext,
+          GetDynamicMiddleware<DynamicMiddlewareProviders, RequestContext>,
+          Middlewares
+        >
+      >
+      // & {
+      //   MiddlewareR: MiddlewareR
+      //   Provided: Provided
+      //   Middlewares: Middlewares
+      //   DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
+      // }
       & MiddlewareM<
         RequestContext,
         Provided,
         Middlewares,
-        DynamicMiddlewareProviders,
+        GetDynamicMiddleware<DynamicMiddlewareProviders, RequestContext>,
         MiddlewareR
       >
   : MiddlewareM<
     RequestContext,
     Provided,
     Middlewares,
-    DynamicMiddlewareProviders,
+    GetDynamicMiddleware<DynamicMiddlewareProviders, RequestContext>,
     MiddlewareR
   >
   : Dynamic<RequestContext, Provided, Middlewares, DynamicMiddlewareProviders, MiddlewareR>
@@ -87,7 +102,7 @@ export const makeNewMiddleware: <
     },
     addDynamicMiddleware: (...middlewares: any[]) => {
       for (const a of middlewares) {
-        console.log("Adding dynamic middleware", a, a.dynamic, Object.keys(a))
+        console.log("Adding dynamic middleware", a.key, a.dynamic.key)
         dynamicMiddlewares[a.dynamic.key] = a
       }
       return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)

@@ -67,7 +67,7 @@ export const makeNewMiddleware: <
     },
     addDynamicMiddleware: (...middlewares: any[]) => {
       for (const a of middlewares) {
-        console.log("Adding dynamic middleware", a, a.dynamic, Object.keys(a))
+        console.log("Adding dynamic middleware", a, a.dynamic.key, Object.keys(a))
         dynamicMiddlewares[a.dynamic.key] = a
       }
       return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)

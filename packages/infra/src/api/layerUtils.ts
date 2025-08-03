@@ -1,24 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option } from "effect-app"
+import { Context, Effect, type Layer, Option } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
 export namespace LayerUtils {
-  export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-      [k in keyof Layers]: Layer.Layer.Success<Layers[k]>
-    }[number]
+  export type GetLayersSuccess<Layers> = Layers extends ReadonlyArray<Layer.Layer.Any>
+    ? Layer.Layer.Success<Layers[number]>
     : never
 
-  export type GetLayersContext<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-      [k in keyof Layers]: Layer.Layer.Context<Layers[k]>
-    }[number]
+  export type GetLayersContext<Layers> = Layers extends ReadonlyArray<Layer.Layer.Any>
+    ? Layer.Layer.Context<Layers[number]>
     : never
 
-  export type GetLayersError<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-      [k in keyof Layers]: Layer.Layer.Error<Layers[k]>
-    }[number]
+  export type GetLayersError<Layers> = Layers extends ReadonlyArray<Layer.Layer.Any> ? Layer.Layer.Error<Layers[number]>
     : never
 }
 

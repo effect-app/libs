@@ -1,7 +1,7 @@
-import { it } from "@effect/vitest"
-import { Effect, S } from "effect-app"
+import { expectTypeOf, it } from "@effect/vitest"
+import { Effect, Layer, S } from "effect-app"
 import { Middleware } from "../src/api/routing.js"
-import { AllowAnonymous, type RequestContextMap, RequireRoles, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeService, Test } from "./fixtures.js"
 import { makeNewMiddleware } from "./requires.js"
 
 export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
@@ -43,15 +43,18 @@ it("requires gets enforced", async () => {
     .addDynamicMiddleware(RequireRoles)
     .addDynamicMiddleware(Test)
 
+  type LayerContext = Layer.Layer.Context<typeof middleware3["Default"]>
+  expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
+
   await Effect
     .gen(function*() {
       const mw = yield* middleware3
       const mwM = mw.effect(Object.assign({}, S.Any, { config: {} }), (req) => Effect.void, "some-module")
-      const v = yield* mwM({}, {})
+      const v = yield* mwM({}, { "x-user": "test-user" })
     })
     .pipe(
       Effect.scoped,
-      Effect.provide(middleware3.Default),
+      Effect.provide(middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))),
       Effect.runPromise
     )
 })

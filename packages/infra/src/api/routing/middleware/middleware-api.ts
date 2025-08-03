@@ -37,27 +37,25 @@ export interface MiddlewareDynamic<
 > {
   // TODO: this still allows to mix both types of middleware but with bad typing result
   // either have to block it, or implement the support properly.
-  middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
+  middleware<MW extends NonEmptyArray<DynamicMiddlewareMaker<RequestContext>> | NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): DynamicMiddlewareMakerrsss<
-    RequestContext,
-    Provided,
-    [...Middlewares, ...MW],
-    DynamicMiddlewareProviders,
-    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-  >
-  middleware<MW extends NonEmptyArray<DynamicMiddlewareMaker<RequestContext>>>(
-    ...mw: MW
-  ): DynamicMiddlewareMakerrsss<
-    RequestContext,
-    Provided | MW[number]["dynamic"]["key"],
-    Middlewares,
-    & DynamicMiddlewareProviders
-    & {
-      [U in MW[number] as U["dynamic"]["key"]]: U
-    },
-    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-  >
+  ): [MW] extends [NonEmptyArray<DynamicMiddlewareMaker<RequestContext>>] ? DynamicMiddlewareMakerrsss<
+      RequestContext,
+      Provided | MW[number]["dynamic"]["key"],
+      Middlewares,
+      & DynamicMiddlewareProviders
+      & {
+        [U in MW[number] as U["dynamic"]["key"]]: U
+      },
+      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
+    >
+    : DynamicMiddlewareMakerrsss<
+      RequestContext,
+      Provided,
+      [...Middlewares, ...MW],
+      DynamicMiddlewareProviders,
+      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
+    >
 }
 
 type GetDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends

@@ -10,7 +10,7 @@ import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
-import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
+import { type ContextRepr, type GenericMiddlewareMaker, genericMiddlewareMaker, type GetContextRepr } from "./generic-middleware.js"
 
 // module:
 //
@@ -468,7 +468,7 @@ type RpcOptionsOriginal = {
   readonly wrap?: boolean
   readonly optional?: boolean
   readonly failure?: Schema.Schema.All
-  readonly provides?: Context.Tag<any, any>
+  readonly provides?: Context.Tag<any, any> | ContextRepr<any>
   readonly requiredForClient?: boolean
 }
 
@@ -516,6 +516,10 @@ export declare namespace TagClass {
     readonly provides: Context.Tag<any, any>
     readonly optional?: false
   } ? Context.Tag.Identifier<Options["provides"]>
+    : Options extends {
+      readonly provides: ContextRepr<any>
+      readonly optional?: false
+    } ? GetContextRepr<Options["provides"]>
     : never
 
   /**
@@ -525,6 +529,7 @@ export declare namespace TagClass {
   export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
     ? Context.Tag.Service<Options["provides"]>
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["service"]
+    : Options extends { readonly provides: ContextRepr<any> } ? Context.Context<GetContextRepr<Options["provides"]>>
     : void
 
   /**
@@ -585,6 +590,7 @@ export declare namespace TagClass {
     readonly optional: Optional<Options>
     readonly failure: FailureSchema<Options>
     readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
+      : Options extends { readonly provides: ContextRepr<any> } ? Options["provides"]
       : undefined
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined
@@ -648,7 +654,7 @@ export const Tag = <Self>() =>
 }): TagClass<Self, Name, Options> & {
   Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
 } =>
-  class extends RpcMiddleware.Tag<Self>()(id, options) {
+  class extends RpcMiddleware.Tag<Self>()(id, options as any) {
     // TODO: move to TagClass.
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined

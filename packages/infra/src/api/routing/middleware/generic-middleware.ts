@@ -1,11 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, type RpcMiddleware } from "@effect/rpc"
-import { type SuccessValue, type TagClassAny } from "@effect/rpc/RpcMiddleware"
-import { type Array, Context, Effect, type Layer, type Scope } from "effect-app"
+import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
+import { type Array, Context, Effect, type Layer, type Schema, type Scope } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { InfraLogger } from "../../../logger.js"
 import { type TagClassDynamicAny } from "./DynamicMiddleware.js"
+
+// TODO: instead, consider support NonEmptyArray of Tags - so that we keep Identifiers and Services
+export interface ContextRepr<A> {
+  readonly A: A
+}
+export const ContextRepr = <A>(): ContextRepr<A> => ({ A: undefined as A })
+export type GetContextRepr<A> = A extends ContextRepr<infer B> ? B : never
+
+export interface TagClassAny extends Context.Tag<any, any> {
+  readonly [TypeId]: TypeId
+  readonly optional: boolean
+  readonly provides?: Context.Tag<any, any> | ContextRepr<any> | undefined
+  readonly failure: Schema.Schema.All
+  readonly requiredForClient: boolean
+  readonly wrap: boolean
+}
 
 export interface GenericMiddlewareOptions<E> {
   // Effect rpc middleware does not support changing payload or headers, but we do..
@@ -23,7 +39,9 @@ export type DynamicMiddlewareMaker<RequestContext extends Record<string, RPCCont
 
 export namespace GenericMiddlewareMaker {
   export type Provided<T> = T extends TagClassAny
-    ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]> : never
+    ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
+    : T extends { provides: ContextRepr<any> } ? GetContextRepr<T["provides"]>
+    : never
     : never
 }
 
@@ -64,17 +82,27 @@ export const genericMiddlewareMaker = <
               Effect.zipRight(Effect.matchEffect(middleware(options), {
                 onFailure: () => previous,
                 onSuccess: tag.provides !== undefined
-                  ? (value) => Effect.provideService(previous, tag.provides as any, value)
+                  ? (value) =>
+                    Context.isContext(value)
+                      ? Effect.provide(previous, value)
+                      : Effect.provideService(previous, tag.provides as any, value)
                   : (_) => previous
               }))
             )
           } else {
             const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
+            const previous = handler
             handler = InfraLogger.logDebug("Applying middleware " + tag.key).pipe(
               Effect.zipRight(
                 tag.provides !== undefined
-                  ? Effect.provideServiceEffect(handler, tag.provides as any, middleware(options))
-                  : Effect.zipRight(middleware(options), handler)
+                  ? middleware(options).pipe(
+                    Effect.flatMap((value) =>
+                      Context.isContext(value)
+                        ? Effect.provide(previous, value)
+                        : Effect.provideService(previous, tag.provides as any, value)
+                    )
+                  )
+                  : Effect.zipRight(middleware(options), previous)
               )
             )
           }

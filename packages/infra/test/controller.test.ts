@@ -6,7 +6,7 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { type Array, Context, Effect, Layer, Option, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, type RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { Class, TaggedError } from "effect-app/Schema"
-import { contextMap, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { contextMap, ContextRepr, DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { SomeService } from "./query.test.js"
 
@@ -33,7 +33,9 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", { provides: Some })({
+class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", {
+  provides: ContextRepr<Some>()
+})({
   effect: Effect.gen(function*() {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
@@ -52,7 +54,7 @@ class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextPr
       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return new Some({ a: 1 })
+      return Context.make(Some, new Some({ a: 1 }))
     })
   })
 }) {}

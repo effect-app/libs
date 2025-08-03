@@ -3,8 +3,7 @@
 import { expectTypeOf } from "@effect/vitest"
 import { Context, Effect, Scope } from "effect-app"
 import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/routing.js"
-import { CustomError1, Some, SomeElse } from "./controller.test.js"
-import { SomeService } from "./query.test.js"
+import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextProvider", {

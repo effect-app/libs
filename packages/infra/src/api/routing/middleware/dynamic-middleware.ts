@@ -20,13 +20,15 @@ export type ContextWithLayer<
   & (
     | ContextTagWithDefault<
       Id,
-      RpcMiddlewareDynamic<Service, Error, Config>,
+      // todo
+      RpcMiddlewareDynamic<Service, Error, any, Config>,
       LayerE,
       LayerR
     >
     | ContextTagWithDefault<
       Id,
-      RpcMiddlewareDynamic<Service, Error, Config>,
+      // todo
+      RpcMiddlewareDynamic<Service, Error, never, Config>,
       LayerE,
       LayerR
     >
@@ -84,7 +86,7 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
     ) => Effect.Effect<
       Context.Context<GetEffectContext<T, typeof options["config"]>>,
       Effect.Error<ReturnType<Tag.Service<TI[keyof TI]>>>,
-      Effect.Context<ReturnType<Tag.Identifier<TI[keyof TI]>>>
+      Effect.Context<ReturnType<Tag.Service<TI[keyof TI]>>>
     >,
     never,
     Tag.Identifier<{ [K in keyof TI]: TI[K] }[keyof TI]>

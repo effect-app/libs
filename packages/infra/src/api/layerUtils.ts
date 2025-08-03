@@ -7,19 +7,19 @@ export namespace LayerUtils {
     NonEmptyReadonlyArray<Layer.Layer.Any> ? {
       [k in keyof Layers]: Layer.Layer.Success<Layers[k]>
     }[number]
-    : never
+    : Layer.Layer.Success<Layers[number]>
 
   export type GetLayersContext<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
     NonEmptyReadonlyArray<Layer.Layer.Any> ? {
       [k in keyof Layers]: Layer.Layer.Context<Layers[k]>
     }[number]
-    : never
+    : Layer.Layer.Context<Layers[number]>
 
   export type GetLayersError<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
     NonEmptyReadonlyArray<Layer.Layer.Any> ? {
       [k in keyof Layers]: Layer.Layer.Error<Layers[k]>
     }[number]
-    : never
+    : Layer.Layer.Error<Layers[number]>
 }
 
 export type ContextTagWithDefault<Id, A, LayerE, LayerR> =

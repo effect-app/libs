@@ -94,10 +94,10 @@ export type RequestContextMapProvider<RequestContextMap extends Record<string, R
 export interface MiddlewareMake<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middleware provide dynamically to the next, or raise errors.
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-  GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
+  GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>,
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middleware requires to be constructed
-  MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
+  MiddlewareDependencies extends ReadonlyArray<Layer.Layer.Any> // layers provided for the middleware to be constructed
 > {
   /* dynamic middlewares to be applied based on Request Configuration */
   dynamicMiddlewares: DynamicMiddlewareProviders
@@ -170,8 +170,8 @@ export const makeMiddleware =
   >() =>
   <
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
-    MiddlewareDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
+    GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>,
+    MiddlewareDependencies extends ReadonlyArray<Layer.Layer.Any>, // layers provided for the middlware to be constructed
     MakeMiddlewareE = never, // what the middleware construction can fail with
     MakeMiddlewareR = never // what the middlware requires to be constructed
   >(
@@ -295,7 +295,7 @@ export const makeMiddlewareBasic =
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,
     RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends NonEmptyReadonlyArray<GenericMiddlewareMaker>
+    GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
   >(
     make: MiddlewareMake<
       RequestContextMap,
@@ -446,22 +446,22 @@ function makeRpcEffect<
 }
 
 // updated to support Scope.Scope
-export interface RpcMiddleware<Provides, E> {
+export interface RpcMiddleware<Provides, E, Requires> {
   (options: {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<Provides, E, Scope.Scope>
+  }): Effect.Effect<Provides, E, Scope.Scope | Requires>
 }
-export interface RpcMiddlewareWrap<Provides, E> {
+export interface RpcMiddlewareWrap<Provides, E, Requires> {
   (options: {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
-    readonly next: Effect.Effect<SuccessValue, E, Provides | Scope.Scope>
-  }): Effect.Effect<SuccessValue, E, Scope.Scope>
+    readonly next: Effect.Effect<SuccessValue, E, Provides | Scope.Scope | Requires>
+  }): Effect.Effect<SuccessValue, E, Scope.Scope | Requires>
 }
 
 type RpcOptionsOriginal = {
@@ -484,22 +484,23 @@ type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOpt
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
-export interface RpcMiddlewareDynamic<A, E, Config> {
+export interface RpcMiddlewareDynamic<A, E, R, Config> {
   (options: {
     readonly config: Config // todo
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<Option.Option<Context.Context<A>>, E, Scope.Scope>
+  }): Effect.Effect<Option.Option<Context.Context<A>>, E, Scope.Scope | R>
 }
 
 export interface TagClassDynamicAny<RequestContext extends Record<string, RPCContextMap.Any>>
   extends Context.Tag<any, any>
 {
   readonly [RpcMiddleware.TypeId]: RpcMiddleware.TypeId
-  readonly optional: boolean
-  readonly provides?: Context.Tag<any, any> | undefined
+  readonly optional: boolean // TODO: support optional vs required.. with required, we can eliminate the context..
+  //  readonly provides?: Context.Tag<any, any> | undefined
+  readonly requires?: Context.Tag<any, any> | ContextRepr | undefined
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
   readonly dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]>
@@ -520,6 +521,18 @@ export declare namespace TagClass {
       readonly provides: ContextRepr
       readonly optional?: false
     } ? ContextRepr.Identifier<Options["provides"]>
+    : never
+
+  /**
+   * @since 1.0.0
+   * @category models
+   */
+  export type Requires<Options> = Options extends {
+    readonly requires: Context.Tag<any, any>
+  } ? Context.Tag.Identifier<Options["requires"]>
+    : Options extends {
+      readonly requires: ContextRepr
+    } ? ContextRepr.Identifier<Options["requires"]>
     : never
 
   /**
@@ -592,6 +605,9 @@ export declare namespace TagClass {
     readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
       : Options extends { readonly provides: ContextRepr } ? Options["provides"]
       : undefined
+    readonly requires: Options extends { readonly requires: Context.Tag<any, any> } ? Options["requires"]
+      : Options extends { readonly requires: ContextRepr } ? Options["requires"]
+      : undefined
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined
     readonly requiredForClient: RequiredForClient<Options>
@@ -610,16 +626,19 @@ export interface TagClass<
     Options,
     TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
         TagClass.Provides<Options>,
+        TagClass.Requires<Options>,
         TagClass.Failure<Options>
       >
       : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
           TagClass.Service<Options>,
           TagClass.FailureService<Options>,
+          TagClass.Requires<Options>,
           { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
         >
       : RpcMiddleware<
         TagClass.Service<Options>,
-        TagClass.FailureService<Options>
+        TagClass.FailureService<Options>,
+        TagClass.Requires<Options>
       >
   >
 {}
@@ -636,16 +655,19 @@ export const Tag = <Self>() =>
   effect: Effect.Effect<
     TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
         TagClass.Provides<Options>,
-        TagClass.Failure<Options>
+        TagClass.Failure<Options>,
+        TagClass.Requires<Options>
       >
       : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
           TagClass.Service<Options>,
           TagClass.FailureService<Options>,
+          TagClass.Requires<Options>,
           { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
         >
       : RpcMiddleware<
         TagClass.Service<Options>,
-        TagClass.FailureService<Options>
+        TagClass.FailureService<Options>,
+        TagClass.Requires<Options>
       >,
     E,
     R

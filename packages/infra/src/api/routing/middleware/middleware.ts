@@ -1,12 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Context, Effect, ParseResult } from "effect-app"
+import { Cause, Context, Duration, Effect, Layer, ParseResult, Request } from "effect-app"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
-import { RequestCacheLayers, Tag } from "../../routing.js"
+import { Tag } from "../middleware.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
+
+export const RequestCacheLayers = Layer.mergeAll(
+  Layer.setRequestCache(
+    Request.makeCache({ capacity: 500, timeToLive: Duration.hours(8) })
+  ),
+  Layer.setRequestCaching(true),
+  Layer.setRequestBatching(true)
+)
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 

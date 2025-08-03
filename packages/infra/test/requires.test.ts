@@ -49,5 +49,9 @@ it("requires gets enforced", async () => {
       const mwM = mw.effect(Object.assign({}, S.Any, { config: {} }), (req) => Effect.void, "some-module")
       const v = yield* mwM({}, {})
     })
-    .pipe(Effect.provide(middleware3.Default), Effect.runPromise)
+    .pipe(
+      Effect.scoped,
+      Effect.provide(middleware3.Default),
+      Effect.runPromise
+    )
 })

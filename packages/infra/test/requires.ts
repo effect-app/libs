@@ -52,12 +52,12 @@ export interface Dynamic<
 
 type DynamicMiddlewareMakerrsss<
   RequestContext extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContext,
-  Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
+  Provided extends keyof RequestContext = never,
+  Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext> = never,
   MiddlewareR = never
 > = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
-      & ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>>
+      & ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, []>>
       & MiddlewareM<
         RequestContext,
         Provided,
@@ -76,7 +76,7 @@ type DynamicMiddlewareMakerrsss<
 
 export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->() => DynamicMiddlewareMakerrsss<RequestContextMap, never, [], never> = () => {
+>() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
   const dynamicMiddlewares: Record<string, any> = {} as any
   const make = makeMiddleware<any>()
   let genericMiddlewares: GenericMiddlewareMaker[] = []

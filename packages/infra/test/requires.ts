@@ -1,6 +1,6 @@
 import { type NonEmptyReadonlyArray } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
-import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, makeMiddleware, type RequestContextMapProvider } from "../src/api/routing.js"
+import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, makeMiddleware, type makeMiddlewareBasic, type RequestContextMapProvider } from "../src/api/routing.js"
 
 export interface MiddlewareM<
   RequestContext extends Record<string, RPCContextMap.Any>,
@@ -21,13 +21,12 @@ export interface MiddlewareM<
   >
 }
 
-interface Dynamic<
+export interface Dynamic<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
-  // out MiddlewareR = never
-  MiddlewareR = never
+  out MiddlewareR = never
 > extends
   MiddlewareM<
     RequestContext,
@@ -56,17 +55,23 @@ type DynamicMiddlewareMakerrsss<
   Provided extends keyof RequestContext,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
-  // out MiddlewareR = never
   MiddlewareR = never
-> = keyof Omit<RequestContext, Provided> extends never ?
-    & "happy"
-    & MiddlewareM<
-      RequestContext,
-      Provided,
-      Middlewares,
-      DynamicMiddlewareProviders,
-      MiddlewareR
-    >
+> = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
+      & ReturnType<typeof makeMiddlewareBasic<RequestContext, DynamicMiddlewareProviders, Middlewares>>
+      & MiddlewareM<
+        RequestContext,
+        Provided,
+        Middlewares,
+        DynamicMiddlewareProviders,
+        MiddlewareR
+      >
+  : MiddlewareM<
+    RequestContext,
+    Provided,
+    Middlewares,
+    DynamicMiddlewareProviders,
+    MiddlewareR
+  >
   : Dynamic<RequestContext, Provided, Middlewares, DynamicMiddlewareProviders, MiddlewareR>
 
 export const makeNewMiddleware: <

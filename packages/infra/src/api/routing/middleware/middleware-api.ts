@@ -12,7 +12,7 @@ export const contextMap = <RequestContextMap>() => <K extends keyof RequestConte
 type DynamicMiddlewareMakerrsss<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
-  Middlewares extends NonEmptyReadonlyArray<GenericMiddlewareMaker>,
+  Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders extends RequestContextMapProvider<RequestContext>,
   // out MiddlewareR = never
   MiddlewareR = never
@@ -55,7 +55,7 @@ type DynamicMiddlewareMakerrsss<
 
 export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->() => <Middlewares extends NonEmptyReadonlyArray<GenericMiddlewareMaker>>(
+>() => <Middlewares extends ReadonlyArray<GenericMiddlewareMaker>>(
   ...genericMiddlewares: Middlewares
 ) => DynamicMiddlewareMakerrsss<RequestContextMap, never, Middlewares, never> = () => (...genericMiddlewares) => {
   const dynamicMiddlewares: Record<string, any> = {} as any

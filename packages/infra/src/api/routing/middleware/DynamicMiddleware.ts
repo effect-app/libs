@@ -528,11 +528,9 @@ export declare namespace TagClass {
    */
   export type Requires<Options> = Options extends {
     readonly requires: Context.Tag<any, any>
-    readonly optional?: false
   } ? Context.Tag.Identifier<Options["requires"]>
     : Options extends {
       readonly requires: ContextRepr
-      readonly optional?: false
     } ? ContextRepr.Identifier<Options["requires"]>
     : never
 
@@ -605,6 +603,9 @@ export declare namespace TagClass {
     readonly failure: FailureSchema<Options>
     readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
       : Options extends { readonly provides: ContextRepr } ? Options["provides"]
+      : undefined
+    readonly requires: Options extends { readonly requires: Context.Tag<any, any> } ? Options["requires"]
+      : Options extends { readonly requires: ContextRepr } ? Options["requires"]
       : undefined
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined

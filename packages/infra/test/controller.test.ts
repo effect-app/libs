@@ -120,11 +120,10 @@ const middleware2 = makeMiddleware<RequestContextMap>()({
   }
 })
 
-export const middleware3 = makeNewMiddleware<RequestContextMap>()(
-  ...genericMiddlewares
-)
-  .addDynamicMiddleware(AllowAnonymous, RequireRoles)
-  .addDynamicMiddleware(Test)
+export const middleware3 = makeNewMiddleware<RequestContextMap>()
+  .middleware(...genericMiddlewares)
+  .middleware(AllowAnonymous, RequireRoles)
+  .middleware(Test)
 // .middleware(BogusMiddleware)
 
 // expectTypeOf(middleware3).toExtend<typeof middleware2>()

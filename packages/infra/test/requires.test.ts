@@ -1,8 +1,7 @@
 import { expectTypeOf, it } from "@effect/vitest"
 import { Effect, Layer, S } from "effect-app"
-import { Middleware } from "../src/api/routing.js"
+import { makeNewMiddleware, Middleware } from "../src/api/routing.js"
 import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
-import { makeNewMiddleware } from "./requires.js"
 
 export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
   provides: Some,

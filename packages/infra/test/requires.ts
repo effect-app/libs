@@ -35,18 +35,25 @@ export interface Dynamic<
     MiddlewareR
   >
 {
-  addDynamicMiddleware: <MW extends DynamicMiddlewareMaker<RequestContext>>(
+  middleware: <MW extends DynamicMiddlewareMaker<RequestContext> | GenericMiddlewareMaker>(
     mw: MW
-  ) => DynamicMiddlewareMakerrsss<
-    RequestContext,
-    Provided | MW["dynamic"]["key"],
-    Middlewares,
-    & DynamicMiddlewareProviders
-    & {
-      [K in MW["dynamic"]["key"]]: MW
-    },
-    GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
-  >
+  ) => MW extends DynamicMiddlewareMaker<RequestContext> ? DynamicMiddlewareMakerrsss<
+      RequestContext,
+      Provided | MW["dynamic"]["key"],
+      Middlewares,
+      & DynamicMiddlewareProviders
+      & {
+        [K in MW["dynamic"]["key"]]: MW
+      },
+      GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+    >
+    : DynamicMiddlewareMakerrsss<
+      RequestContext,
+      Provided,
+      [...Middlewares, MW],
+      DynamicMiddlewareProviders,
+      GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+    >
   // addDynamicMiddleware: <MW extends NonEmptyReadonlyArray<DynamicMiddlewareMaker<RequestContext>>>(
   //   ...middlewares: MW
   // ) => DynamicMiddlewareMakerrsss<
@@ -113,14 +120,15 @@ export const makeNewMiddleware: <
   const make = makeMiddleware<any>()
   let genericMiddlewares: GenericMiddlewareMaker[] = []
   const it = {
-    middleware: <MW extends GenericMiddlewareMaker>(mw: MW) => {
-      genericMiddlewares = [mw, ...genericMiddlewares] as any
-      return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)
-    },
-    addDynamicMiddleware: (...middlewares: any[]) => {
-      for (const a of middlewares) {
-        console.log("Adding dynamic middleware", a.key, a.dynamic.key)
-        dynamicMiddlewares[a.dynamic.key] = a
+    middleware: (...middlewares: any[]) => {
+      for (const mw of middlewares) {
+        if (mw.dynamic) {
+          console.log("Adding dynamic middleware", mw.key, mw.dynamic.key)
+          dynamicMiddlewares[mw.dynamic.key] = mw
+        } else {
+          console.log("Adding generic middleware", mw.key)
+          genericMiddlewares = [mw, ...genericMiddlewares] as any
+        }
       }
       return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)
     }

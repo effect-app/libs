@@ -54,10 +54,10 @@ it("requires gets enforced", async () => {
   const middleware3 = makeNewMiddleware<RequestContextMap>()
     .middleware(RequiresSomeMiddleware)
     .middleware(SomeMiddleware)
-    .addDynamicMiddleware(AllowAnonymous)
+    .middleware(AllowAnonymous)
     .middleware(SomeElseMiddleware)
-    .addDynamicMiddleware(RequireRoles)
-    .addDynamicMiddleware(Test)
+    .middleware(RequireRoles)
+    .middleware(Test)
 
   type LayerContext = Layer.Layer.Context<typeof middleware3["Default"]>
   expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()

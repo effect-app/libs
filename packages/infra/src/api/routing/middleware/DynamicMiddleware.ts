@@ -498,8 +498,9 @@ export interface TagClassDynamicAny<RequestContext extends Record<string, RPCCon
   extends Context.Tag<any, any>
 {
   readonly [RpcMiddleware.TypeId]: RpcMiddleware.TypeId
-  readonly optional: boolean
-  readonly provides?: Context.Tag<any, any> | undefined
+  readonly optional: boolean // TODO: support optional vs required.. with required, we can eliminate the context..
+  //  readonly provides?: Context.Tag<any, any> | undefined
+  readonly requires?: Context.Tag<any, any> | ContextRepr | undefined
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
   readonly dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]>

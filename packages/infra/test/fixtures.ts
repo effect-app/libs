@@ -21,11 +21,13 @@ export type RequestContextMap = {
 }
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap<RequestContextMap>()("allowAnonymous")
+  dynamic: contextMap<RequestContextMap>()("allowAnonymous"),
+  requires: SomeElse
 })({
   effect: Effect.gen(function*() {
     return Effect.fnUntraced(
       function*({ config, headers }) {
+        yield* SomeElse
         yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {

@@ -1,4 +1,3 @@
-import { type NonEmptyReadonlyArray } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
 import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, makeMiddleware, type makeMiddlewareBasic, type RequestContextMapProvider } from "../src/api/routing.js"
 
@@ -36,18 +35,30 @@ export interface Dynamic<
     MiddlewareR
   >
 {
-  addDynamicMiddleware: <MW extends NonEmptyReadonlyArray<DynamicMiddlewareMaker<RequestContext>>>(
-    ...middlewares: MW
+  addDynamicMiddleware: <MW extends DynamicMiddlewareMaker<RequestContext>>(
+    mw: MW
   ) => DynamicMiddlewareMakerrsss<
     RequestContext,
-    Provided | MW[number]["dynamic"]["key"],
+    Provided | MW["dynamic"]["key"],
     Middlewares,
     & DynamicMiddlewareProviders
     & {
-      [K in keyof MW as MW[K] extends DynamicMiddlewareMaker<RequestContext> ? MW[K]["dynamic"]["key"] : never]: MW[K]
+      [K in MW["dynamic"]["key"]]: MW
     },
-    MiddlewareR
-  > // GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+    GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+  >
+  // addDynamicMiddleware: <MW extends NonEmptyReadonlyArray<DynamicMiddlewareMaker<RequestContext>>>(
+  //   ...middlewares: MW
+  // ) => DynamicMiddlewareMakerrsss<
+  //   RequestContext,
+  //   Provided | MW[number]["dynamic"]["key"],
+  //   Middlewares,
+  //   & DynamicMiddlewareProviders
+  //   & {
+  //     [K in keyof MW as MW[K] extends DynamicMiddlewareMaker<RequestContext> ? MW[K]["dynamic"]["key"] : never]: MW[K]
+  //   },
+  //   MiddlewareR // TODO GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
+  // > // GenericMiddlewareMaker.ApplyServices<MW, MiddlewareR>
 }
 
 type GetDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends

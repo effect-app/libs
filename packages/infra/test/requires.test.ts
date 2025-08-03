@@ -1,11 +1,11 @@
 import { expectTypeOf, it } from "@effect/vitest"
 import { Effect, Layer, S } from "effect-app"
 import { Middleware } from "../src/api/routing.js"
-import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
 import { makeNewMiddleware } from "./requires.js"
 
 export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
-  provides: SomeService,
+  provides: Some,
   wrap: true
 })({
   effect: Effect.gen(function*() {
@@ -13,21 +13,36 @@ export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddle
     return ({ next }) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* next.pipe(Effect.provideService(SomeService, new SomeService({ a: 1 })))
+        return yield* next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
       })
   })
 }) {
 }
 
-export class RequiresSomeMiddleware extends Middleware.Tag<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
-  requires: SomeService,
+export class SomeElseMiddleware extends Middleware.Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
+  provides: SomeElse,
   wrap: true
 })({
   effect: Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
     return ({ next }) =>
       Effect.gen(function*() {
-        yield* SomeService
+        // yield* Effect.context<"test-dep2">()
+        return yield* next.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
+      })
+  })
+}) {
+}
+
+export class RequiresSomeMiddleware extends Middleware.Tag<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
+  requires: Some,
+  wrap: true
+})({
+  effect: Effect.gen(function*() {
+    // yield* Effect.context<"test-dep">()
+    return ({ next }) =>
+      Effect.gen(function*() {
+        yield* Some
         // yield* Effect.context<"test-dep2">()
         return yield* next
       })
@@ -40,6 +55,7 @@ it("requires gets enforced", async () => {
     .middleware(RequiresSomeMiddleware)
     .middleware(SomeMiddleware)
     .addDynamicMiddleware(AllowAnonymous)
+    .middleware(SomeElseMiddleware)
     .addDynamicMiddleware(RequireRoles)
     .addDynamicMiddleware(Test)
 

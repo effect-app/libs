@@ -143,7 +143,11 @@ export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
 })({
   effect: Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return (options) => options.next.pipe(Effect.provideService(SomeService, null as any))
+    return (options) =>
+      Effect.gen(function*() {
+        // yield* Effect.context<"test-dep2">()
+        return yield* options.next.pipe(Effect.provideService(SomeService, null as any))
+      })
   })
 }) {
 }

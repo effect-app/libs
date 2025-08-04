@@ -6,6 +6,7 @@ import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-m
 import { makeRpcEffect, type MiddlewareMakerId, type RPCHandlerFactory } from "./RouterMiddleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
+// adapter used when setting the dynamic prop on a middleware implementation
 export const contextMap = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Key extends keyof RequestContextMap
@@ -24,7 +25,7 @@ export interface MiddlewareM<
 > {
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): DynamicMiddlewareMakerrsss<
+  ): DynamicMiddlewareMakers<
     RequestContext,
     Provided,
     [...Middlewares, ...MW],
@@ -50,7 +51,7 @@ export interface MiddlewareDynamic<
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
   ): MW extends NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }>
-    ? DynamicMiddlewareMakerrsss<
+    ? DynamicMiddlewareMakers<
       RequestContext,
       // when one dynamic middleware depends on another, substract the key, to enforce the dependency to be provided after.
       Exclude<
@@ -64,7 +65,7 @@ export interface MiddlewareDynamic<
       },
       GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
     >
-    : DynamicMiddlewareMakerrsss<
+    : DynamicMiddlewareMakers<
       RequestContext,
       Provided,
       [...Middlewares, ...MW],
@@ -73,7 +74,7 @@ export interface MiddlewareDynamic<
     >
 }
 
-type DynamicMiddlewareMakerrsss<
+export type DynamicMiddlewareMakers<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext = never,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
@@ -110,7 +111,7 @@ type DynamicMiddlewareMakerrsss<
 
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
+>() => DynamicMiddlewareMakers<RequestContextMap> = () => {
   let allMiddleware: GenericMiddlewareMaker[] = []
   const it = {
     middleware: (...middlewares: any[]) => {

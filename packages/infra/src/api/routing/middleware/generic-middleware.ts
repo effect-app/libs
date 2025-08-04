@@ -1,23 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, type RpcMiddleware } from "@effect/rpc"
-import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type Schema, type Scope } from "effect-app"
+import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
+import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type Scope } from "effect-app"
 import { type ContextRepr, type RPCContextMap } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { InfraLogger } from "../../../logger.js"
-import { type RpcDynamic } from "./DynamicMiddleware.js"
-
-export interface TagClassAny extends Context.Tag<any, any> {
-  readonly [TypeId]: TypeId
-  readonly optional: boolean
-  readonly provides?: Context.Tag<any, any> | ContextRepr | undefined
-  readonly requires?: Context.Tag<any, any> | ContextRepr | undefined
-  readonly failure: Schema.Schema.All
-  readonly requiredForClient: boolean
-  readonly wrap: boolean
-  readonly dynamic?: RpcDynamic<any, any> | undefined
-  readonly dependsOn?: any
-}
+import { type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
 export interface GenericMiddlewareOptions<E> {
   // Effect rpc middleware does not support changing payload or headers, but we do..
@@ -51,8 +39,6 @@ export namespace GenericMiddlewareMaker {
     : never
     : never
 }
-
-export const genericMiddleware = (i: GenericMiddlewareMaker) => i
 
 export const genericMiddlewareMaker = <
   T extends Array<GenericMiddlewareMaker>
@@ -115,14 +101,6 @@ export const genericMiddlewareMaker = <
                 )
               )
             )
-            // const moreContext = Context.isContext(ctx) ? Option.some(ctx) : ctx
-            // yield* InfraLogger.logDebug(
-            //   "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
-            //   Option.map(moreContext, (c) => (c as any).toJSON().services)
-            // )
-            // if (moreContext.value) {
-            //   context = Context.merge(context, moreContext.value)
-            // }
           } else {
             const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
             const previous = handler

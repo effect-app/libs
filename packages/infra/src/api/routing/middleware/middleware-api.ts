@@ -120,7 +120,7 @@ type DynamicMiddlewareMakerrsss<
       MiddlewareR
     >
 
-export const makeNewMiddleware: <
+export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
   let capturedMiddlewares: GenericMiddlewareMaker[] = []

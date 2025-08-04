@@ -4,7 +4,7 @@ import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, type Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { DefaultGenericMiddlewares, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewares, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, CustomError1, type RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
@@ -76,7 +76,7 @@ const genericMiddlewares = [
   MyContextProvider2
 ] as const
 
-const middleware = makeNewMiddleware<RequestContextMap>()
+const middleware = makeMiddleware<RequestContextMap>()
   .middleware(MyContextProvider)
   .middleware(
     AllowAnonymous,
@@ -86,12 +86,12 @@ const middleware = makeNewMiddleware<RequestContextMap>()
   .middleware(...genericMiddlewares)
 // dependencies: [Layer.effect(Str2, Str)],
 
-const middleware2 = makeNewMiddleware<RequestContextMap>()
+const middleware2 = makeMiddleware<RequestContextMap>()
   .middleware(MyContextProvider)
   .middleware(AllowAnonymous, RequireRoles, Test)
   .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
 
-export const middleware3 = makeNewMiddleware<RequestContextMap>()
+export const middleware3 = makeMiddleware<RequestContextMap>()
   .middleware(...genericMiddlewares)
   .middleware(AllowAnonymous, RequireRoles)
   .middleware(Test)

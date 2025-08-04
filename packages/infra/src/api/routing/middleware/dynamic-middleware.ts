@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type ContextTagWithDefault } from "../../layerUtils.js"
-import { type RpcMiddlewareDynamicNormal, type RpcMiddlewareDynamicWrap } from "./DynamicMiddleware.js"
+import { type RpcMiddlewareDynamicNormal, type RpcMiddlewareDynamicWrap } from "./RpcMiddleware.js"
 
 export type RpcMiddlewareDynamic<A, E, R, Config> = [A] extends [void] ? RpcMiddlewareDynamicWrap<E, R, Config>
   : RpcMiddlewareDynamicNormal<A, E, R, Config>

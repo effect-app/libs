@@ -75,6 +75,9 @@ export const genericMiddlewareMaker = <
       //     middlewares
       //   )) as any
 
+      // TODO: tree sort dynamic middlewares?
+      // or should we just handle it on the type level?
+
       return <E>(
         options: GenericMiddlewareOptions<E>
       ) => {

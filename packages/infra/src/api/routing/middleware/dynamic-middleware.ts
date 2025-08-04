@@ -6,7 +6,10 @@ import { type HttpHeaders } from "effect-app/http"
 import { typedValuesOf } from "effect-app/utils"
 import { type ContextTagWithDefault, mergeContexts } from "../../layerUtils.js"
 import { sort } from "../tsort.js"
-import { type RpcMiddlewareDynamic } from "./DynamicMiddleware.js"
+import { type RpcMiddlewareDynamicNormal, type RpcMiddlewareDynamicWrap } from "./DynamicMiddleware.js"
+
+export type RpcMiddlewareDynamic<A, E, R, Config> = [A] extends [void] ? RpcMiddlewareDynamicWrap<E, R, Config>
+  : RpcMiddlewareDynamicNormal<A, E, R, Config>
 
 export type ContextWithLayer<
   Config,

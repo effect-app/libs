@@ -36,10 +36,7 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
           }
           return Option.none()
         }
-        return Option.some(Context.make(
-          UserProfile,
-          { id: "whatever", roles: ["user", "manager"] }
-        ))
+        return Option.some(new UserProfile({ id: "whatever", roles: ["user", "manager"] }))
       }
     )
   })
@@ -49,6 +46,8 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
   dynamic: contextMap<RequestContextMap>()("requireRoles"),
+  wrap: true,
+  // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
   // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
   dependsOn: [AllowAnonymous]
@@ -56,24 +55,27 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
   effect: Effect.gen(function*() {
     yield* Some
     return Effect.fnUntraced(
-      function*({ config }) {
+      function*({ config, next }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
         const { requireRoles } = config
         if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
           return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }
-        return Option.none<Context<never>>()
+        return yield* next
       }
     )
   })
 }) {
 }
 
-export class Test extends Middleware.Tag<Test>()("Test", { dynamic: contextMap<RequestContextMap>()("test") })({
+export class Test extends Middleware.Tag<Test>()("Test", {
+  wrap: true,
+  dynamic: contextMap<RequestContextMap>()("test")
+})({
   effect: Effect.gen(function*() {
-    return Effect.fn(function*() {
-      return Option.none<Context<never>>()
+    return Effect.fn(function*({ next }) {
+      return yield* next
     })
   })
 }) {}

@@ -55,7 +55,8 @@ it("requires gets enforced", async () => {
     .middleware(SomeElseMiddleware)
     .middleware(Test)
 
-  type LayerContext = Layer.Layer.Context<typeof middleware3["Default"]>
+  type Default = typeof middleware3["Default"]
+  type LayerContext = Layer.Layer.Context<Default>
   expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
 
   await Effect

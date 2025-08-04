@@ -4,10 +4,11 @@ import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, makeMiddlewar
 
 // TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
 // in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
-export const contextMap = <RequestContextMap>() => <K extends keyof RequestContextMap>(a: K) => ({
-  key: a,
-  settings: null as any as RequestContextMap[typeof a]
-})
+export const contextMap =
+  <RequestContextMap extends Record<string, RPCContextMap.Any>>() => <K extends keyof RequestContextMap>(a: K) => ({
+    key: a,
+    settings: null as any as RequestContextMap[typeof a]
+  })
 
 export interface MiddlewareM<
   RequestContext extends Record<string, RPCContextMap.Any>,

@@ -484,14 +484,33 @@ type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOpt
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
-export interface RpcMiddlewareDynamic<A, E, R, Config> {
+export interface RpcMiddlewareDynamicWrap<E, R, Config> {
+  (options: {
+    readonly next: Effect.Effect<SuccessValue, E, Scope.Scope | R>
+    readonly config: Config // todo
+    readonly clientId: number
+    readonly rpc: Rpc.AnyWithProps
+    readonly payload: unknown
+    readonly headers: HttpHeaders.Headers
+  }): Effect.Effect<
+    SuccessValue,
+    E,
+    Scope.Scope | R
+  >
+}
+
+export interface RpcMiddlewareDynamicNormal<A, E, R, Config> {
   (options: {
     readonly config: Config // todo
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<Option.Option<Context.Context<A>>, E, Scope.Scope | R>
+  }): Effect.Effect<
+    Option.Option<A extends NonEmptyReadonlyArray<any> ? Context.Context<A> : A>,
+    E,
+    Scope.Scope | R
+  >
 }
 
 export interface TagClassDynamicAny<RequestContext extends Record<string, RPCContextMap.Any>>
@@ -541,7 +560,8 @@ export declare namespace TagClass {
    */
   export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
     ? Context.Tag.Service<Options["provides"]>
-    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["service"]
+    : Options extends { readonly dynamic: RpcDynamic<any, infer A> }
+      ? Options extends { wrap: true } ? void : A["service"]
     : Options extends { readonly provides: ContextRepr } ? Context.Context<ContextRepr.Identifier<Options["provides"]>>
     : void
 
@@ -624,16 +644,21 @@ export interface TagClass<
     Self,
     Name,
     Options,
-    TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
-        TagClass.Provides<Options>,
-        TagClass.Requires<Options>,
-        TagClass.Failure<Options>
-      >
-      : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
-          TagClass.Service<Options>,
+    Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,
           TagClass.Requires<Options>,
           { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
+        >
+      : RpcMiddlewareDynamicNormal<
+        TagClass.Service<Options>,
+        TagClass.FailureService<Options>,
+        TagClass.Requires<Options>,
+        { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
+      >
+      : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
+          TagClass.Provides<Options>,
+          TagClass.Requires<Options>,
+          TagClass.Failure<Options>
         >
       : RpcMiddleware<
         TagClass.Service<Options>,
@@ -653,16 +678,21 @@ export const Tag = <Self>() =>
 ) =>
 <E, R, L extends NonEmptyReadonlyArray<Layer.Layer.Any>>(opts: {
   effect: Effect.Effect<
-    TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
-        TagClass.Provides<Options>,
-        TagClass.Failure<Options>,
-        TagClass.Requires<Options>
-      >
-      : Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
-          TagClass.Service<Options>,
+    Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,
           TagClass.Requires<Options>,
           { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
+        >
+      : RpcMiddlewareDynamicNormal<
+        TagClass.Service<Options>,
+        TagClass.FailureService<Options>,
+        TagClass.Requires<Options>,
+        { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
+      >
+      : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
+          TagClass.Provides<Options>,
+          TagClass.Failure<Options>,
+          TagClass.Requires<Options>
         >
       : RpcMiddleware<
         TagClass.Service<Options>,

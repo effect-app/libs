@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.87.1
+
+### Patch Changes
+
+- remove debug
+
 ## 2.87.0
 
 ### Minor Changes

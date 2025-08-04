@@ -1,7 +1,6 @@
 import { Rpc } from "@effect/rpc"
 import { Context, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
-import { type Simplify } from "effect-app/Types"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 import { makeRpcEffect, type MiddlewareMakerId, type RPCHandlerFactory } from "./RouterMiddleware.js"
@@ -82,12 +81,6 @@ type DynamicMiddlewareMakerrsss<
   DynamicMiddlewareProviders = unknown,
   MiddlewareR = never
 > = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
-      & {
-        MiddlewareR: MiddlewareR
-        Provided: Provided
-        Middlewares: Middlewares
-        DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
-      }
       & ReturnType<
         typeof makeMiddlewareBasic<
           RequestContext,
@@ -101,34 +94,20 @@ type DynamicMiddlewareMakerrsss<
         DynamicMiddlewareProviders,
         MiddlewareR
       >
-  :
-    & {
-      MiddlewareR: MiddlewareR
-      Provided: Provided
-      Middlewares: Middlewares
-      DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
-    }
-    & MiddlewareM<
-      RequestContext,
-      Provided,
-      Middlewares,
-      DynamicMiddlewareProviders,
-      MiddlewareR
-    >
-  :
-    & {
-      MiddlewareR: MiddlewareR
-      Provided: Provided
-      Middlewares: Middlewares
-      DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
-    }
-    & MiddlewareDynamic<
-      RequestContext,
-      Provided,
-      Middlewares,
-      DynamicMiddlewareProviders,
-      MiddlewareR
-    >
+  : MiddlewareM<
+    RequestContext,
+    Provided,
+    Middlewares,
+    DynamicMiddlewareProviders,
+    MiddlewareR
+  >
+  : MiddlewareDynamic<
+    RequestContext,
+    Provided,
+    Middlewares,
+    DynamicMiddlewareProviders,
+    MiddlewareR
+  >
 
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>

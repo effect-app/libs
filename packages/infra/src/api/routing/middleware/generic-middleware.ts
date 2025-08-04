@@ -29,9 +29,6 @@ export interface GenericMiddlewareOptions<E> {
 }
 
 export type GenericMiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
-export type DynamicMiddlewareMaker<RequestContext extends Record<string, RPCContextMap.Any>> =
-  & TagClassAny
-  & { Default: Layer.Layer.Any } // todo; and Layer..
 
 export type IsDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends
   { dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> } ? true

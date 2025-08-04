@@ -1,8 +1,9 @@
 import { Rpc } from "@effect/rpc"
 import { Context, Effect, Layer, type NonEmptyArray } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
+import { type Simplify } from "effect-app/Types"
 import { type LayerUtils } from "../../layerUtils.js"
-import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, genericMiddlewareMaker, makeRpcEffect, type MiddlewareMakerId, type RequestContextMapProvider, type RpcDynamic, type RPCHandlerFactory } from "../../routing.js"
+import { type GenericMiddlewareMaker, genericMiddlewareMaker, makeRpcEffect, type MiddlewareMakerId, type RpcDynamic, type RPCHandlerFactory } from "../../routing.js"
 
 // TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
 // in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
@@ -63,9 +64,6 @@ export interface MiddlewareDynamic<
     >
 }
 
-type GetDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends
-  RequestContextMapProvider<RequestContext> ? T : never
-
 type DynamicMiddlewareMakerrsss<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext = never,
@@ -73,6 +71,12 @@ type DynamicMiddlewareMakerrsss<
   DynamicMiddlewareProviders = unknown,
   MiddlewareR = never
 > = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
+      & {
+        MiddlewareR: MiddlewareR
+        Provided: Provided
+        Middlewares: Middlewares
+        DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
+      }
       & ReturnType<
         typeof makeMiddlewareBasic<
           RequestContext,
@@ -80,12 +84,6 @@ type DynamicMiddlewareMakerrsss<
           Middlewares
         >
       >
-      // & {
-      //   MiddlewareR: MiddlewareR
-      //   Provided: Provided
-      //   Middlewares: Middlewares
-      //   DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
-      // }
       & MiddlewareM<
         RequestContext,
         Provided,
@@ -93,25 +91,39 @@ type DynamicMiddlewareMakerrsss<
         DynamicMiddlewareProviders,
         MiddlewareR
       >
-  : MiddlewareM<
-    RequestContext,
-    Provided,
-    Middlewares,
-    DynamicMiddlewareProviders,
-    MiddlewareR
-  >
-  : MiddlewareDynamic<
-    RequestContext,
-    Provided,
-    Middlewares,
-    DynamicMiddlewareProviders,
-    MiddlewareR
-  >
+  :
+    & {
+      MiddlewareR: MiddlewareR
+      Provided: Provided
+      Middlewares: Middlewares
+      DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
+    }
+    & MiddlewareM<
+      RequestContext,
+      Provided,
+      Middlewares,
+      DynamicMiddlewareProviders,
+      MiddlewareR
+    >
+  :
+    & {
+      MiddlewareR: MiddlewareR
+      Provided: Provided
+      Middlewares: Middlewares
+      DynamicMiddlewareProviders: Simplify<DynamicMiddlewareProviders>
+    }
+    & MiddlewareDynamic<
+      RequestContext,
+      Provided,
+      Middlewares,
+      DynamicMiddlewareProviders,
+      MiddlewareR
+    >
 
 export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
-  let capturedMiddlewares: (DynamicMiddlewareMaker<any> | GenericMiddlewareMaker)[] = []
+  let capturedMiddlewares: GenericMiddlewareMaker[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
@@ -192,9 +204,6 @@ export const makeMiddlewareBasic =
         )
     )
 
-    const dependencies = [
-      ...middlewares.dependencies
-    ]
     const middlewareLayer = l
       .pipe(
         Layer.provide(middlewares.dependencies as any)

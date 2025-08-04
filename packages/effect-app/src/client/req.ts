@@ -59,7 +59,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RPCContext
         : key extends keyof T ? T[key] extends true ? never : key
         : key
     ]: // TODO: or as an Optional available?
-      RequestContextMap[key]["service"]
+      AnyService.Identifier<RequestContextMap[key]["service"]>
   }
   // normal: contextActivation is true => add if explicitly set to true
   & {
@@ -68,7 +68,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RPCContext
         : key extends keyof T ? T[key] extends true ? key : never
         : never
     ]: // TODO: or as an Optional available?
-      RequestContextMap[key]["service"]
+      AnyService.Identifier<RequestContextMap[key]["service"]>
   }
 >
 

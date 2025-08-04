@@ -2,10 +2,10 @@
 import { type Rpc, type RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
 import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type Scope } from "effect-app"
-import { type ContextRepr, type RPCContextMap } from "effect-app/client"
+import { type ContextRepr } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { InfraLogger } from "../../../logger.js"
-import { type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
+import { type TagClassAny } from "./RpcMiddleware.js"
 
 export interface GenericMiddlewareOptions<E> {
   // Effect rpc middleware does not support changing payload or headers, but we do..
@@ -17,10 +17,6 @@ export interface GenericMiddlewareOptions<E> {
 }
 
 export type GenericMiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
-
-export type IsDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends
-  { dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> } ? true
-  : false
 
 export namespace GenericMiddlewareMaker {
   export type ApplyServices<A extends TagClassAny, R> = Exclude<R, Provided<A>> | Required<A>

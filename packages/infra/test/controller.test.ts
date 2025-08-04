@@ -255,22 +255,11 @@ expectTypeOf({} as makeContext).toEqualTypeOf<
 >()
 
 const router2 = r2.Router(Something)({
-  dependencies: [
-    SomethingRepo.Default,
-    SomethingService.Default,
-    SomethingService2.Default
-  ],
   *effect(match) {
-    const repo = yield* SomethingRepo
-    const smth = yield* SomethingService
-    const smth2 = yield* SomethingService2
-
     // this gets catched in 'routes' type
     if (Math.random() > 0.5) {
       return yield* new InvalidStateError("ciao")
     }
-
-    console.log({ repo, smth, smth2 })
 
     return match({
       Eff: () =>
@@ -322,6 +311,4 @@ expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<Some | SomeServ
 
 type makeContext2 = MakeContext<typeof router2.make>
 expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateError>()
-expectTypeOf({} as makeContext2).toEqualTypeOf<
-  SomethingService | SomethingRepo | SomethingService2
->()
+expectTypeOf({} as makeContext2).toEqualTypeOf<never>()

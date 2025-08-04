@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect, type Request, type S, type Schema, type Scope } from "effect-app"
+import { type Effect, type Request, type S, type Scope } from "effect-app"
 import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault } from "../../layerUtils.js"

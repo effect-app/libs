@@ -6,14 +6,13 @@ import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-m
 import { makeRpcEffect, type MiddlewareMakerId, type RPCHandlerFactory } from "./RouterMiddleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
-// TODO: don't expect service when it's wrap/never
-// perhaps RequestContextMap should be an object, instead of an interface, so that we don't need to provide anything here
-export const contextMap =
-  <RequestContextMap extends Record<string, RPCContextMap.Any>>() =>
-  <K extends keyof RequestContextMap>(a: K, service: RequestContextMap[K]["service"]) => ({
-    key: a,
-    settings: { service } as any as RequestContextMap[typeof a]
-  })
+export const contextMap = <
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Key extends keyof RequestContextMap
+>(rcm: RequestContextMap, key: Key) => ({
+  key,
+  settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
+})
 
 export interface MiddlewareM<
   RequestContext extends Record<string, RPCContextMap.Any>,

@@ -6,16 +6,6 @@ import { type Tag } from "../Context.js"
 import { type Context, type NonEmptyReadonlyArray, S } from "../internal/lib.js"
 import { type Values } from "../utils.js"
 
-/**
- * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
- * Unless explicitly configured as `true`.
- */
-export type RPCContextMap<Service, E> = {
-  service: Service
-  error: E
-  contextActivation: true
-}
-
 export type ContextTagArray = NonEmptyReadonlyArray<Context.Tag<any, any>>
 export namespace ContextTagArray {
   export type Identifier<A> = A extends ContextTagArray ? Tag.Identifier<A[number]> : never
@@ -34,11 +24,15 @@ export namespace AnyService {
     : never
 }
 
-export declare namespace RPCContextMap {
-  export type Custom<Service extends AnyService, E, Custom> = {
+export namespace RPCContextMap {
+  /**
+   * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
+   * Unless explicitly configured as `true`.
+   */
+  export type RPCContextMap<Service, E> = {
     service: Service
     error: E
-    contextActivation: Custom
+    contextActivation: true
   }
 
   /**
@@ -51,11 +45,45 @@ export declare namespace RPCContextMap {
     contextActivation: false
   }
 
+  export type Custom<Service extends AnyService, E, C> = {
+    service: Service
+    error: E
+    contextActivation: C
+  }
+
   export type Any = {
     service: AnyService
     error: S.Schema.All
     contextActivation: any
   }
+
+  export const make = <Service extends AnyService, E>(
+    service: Service,
+    error: E
+  ): RPCContextMap<Service, E> => ({
+    service,
+    error,
+    contextActivation: true
+  })
+
+  export const makeInverted = <Service extends AnyService, E>(
+    service: Service,
+    error: E
+  ): Inverted<Service, E> => ({
+    service,
+    error,
+    contextActivation: false
+  })
+
+  export const makeCustom = <Service extends AnyService, E, C>(
+    service: Service,
+    error: E,
+    contextActivation: C
+  ): Custom<Service, E, C> => ({
+    service,
+    error,
+    contextActivation
+  })
 }
 
 export type GetEffectContext<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<

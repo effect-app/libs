@@ -91,7 +91,6 @@ type DynamicMiddlewareMakerrsss<
       & ReturnType<
         typeof makeMiddlewareBasic<
           RequestContext,
-          // DynamicMiddlewareProviders,
           Middlewares
         >
       >
@@ -134,14 +133,14 @@ type DynamicMiddlewareMakerrsss<
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
-  let capturedMiddlewares: GenericMiddlewareMaker[] = []
+  let allMiddleware: GenericMiddlewareMaker[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
-        capturedMiddlewares = [mw, ...capturedMiddlewares]
+        allMiddleware = [mw, ...allMiddleware]
       }
       // TODO: support dynamic and generic intertwined. treat them as one
-      return Object.assign(makeMiddlewareBasic<any, any>(...capturedMiddlewares), it)
+      return Object.assign(makeMiddlewareBasic<any, any>(...allMiddleware), it)
     }
   }
   return it as any
@@ -194,14 +193,8 @@ export const makeMiddlewareBasic =
                         clientId: 0, // TODO: get the clientId from the request context
                         rpc: {
                           ...Rpc.fromTaggedRequest(schema as any),
-                          // middlewares ? // todo: get from actual middleware flow?
-                          annotations: Context.empty(), // TODO //Annotations(schema as any),
-                          // successSchema: schema.success ?? Schema.Void,
-                          // errorSchema: schema.failure ?? Schema.Never,
-                          payloadSchema: schema,
-                          _tag: `${moduleName}.${payload._tag}`,
-                          key: `${moduleName}.${payload._tag}` /* ? */
-                          // clientId: 0 as number /* ? */
+                          key: `${moduleName}.${payload._tag}`,
+                          _tag: `${moduleName}.${payload._tag}`
                         }
                       }
                       return yield* generic({

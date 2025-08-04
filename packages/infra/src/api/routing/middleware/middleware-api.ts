@@ -1,6 +1,8 @@
-import { Array, Either, type NonEmptyArray } from "effect-app"
+import { Rpc } from "@effect/rpc"
+import { Context, Effect, Layer, type NonEmptyArray } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
-import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, makeMiddleware, type makeMiddlewareBasic, type RequestContextMapProvider } from "../../routing.js"
+import { type LayerUtils } from "../../layerUtils.js"
+import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, genericMiddlewareMaker, makeRpcEffect, type MiddlewareMakerId, type RequestContextMapProvider, type RpcDynamic, type RPCHandlerFactory } from "../../routing.js"
 
 // TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
 // in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
@@ -38,12 +40,13 @@ export interface MiddlewareDynamic<
 > {
   // TODO: this still allows to mix both types of middleware but with bad typing result
   // either have to block it, or implement the support properly.
-  middleware<MW extends NonEmptyArray<DynamicMiddlewareMaker<RequestContext>> | NonEmptyArray<GenericMiddlewareMaker>>(
+  middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): [MW] extends [NonEmptyArray<DynamicMiddlewareMaker<RequestContext>>] ? DynamicMiddlewareMakerrsss<
+  ): [MW] extends [NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }>]
+    ? DynamicMiddlewareMakerrsss<
       RequestContext,
       Provided | MW[number]["dynamic"]["key"],
-      Middlewares,
+      [...Middlewares, ...MW],
       & DynamicMiddlewareProviders
       & {
         [U in MW[number] as U["dynamic"]["key"]]: U
@@ -72,7 +75,7 @@ type DynamicMiddlewareMakerrsss<
       & ReturnType<
         typeof makeMiddlewareBasic<
           RequestContext,
-          GetDynamicMiddleware<DynamicMiddlewareProviders, RequestContext>,
+          // DynamicMiddlewareProviders,
           Middlewares
         >
       >
@@ -107,7 +110,6 @@ type DynamicMiddlewareMakerrsss<
 export const makeNewMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
-  const make = makeMiddleware<any>()
   let capturedMiddlewares: (DynamicMiddlewareMaker<any> | GenericMiddlewareMaker)[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
@@ -119,20 +121,92 @@ export const makeNewMiddleware: <
           console.log("Adding generic middleware", mw.key)
         }
       }
-      const [genericMiddlewares, dyn] = Array.partitionMap(
-        capturedMiddlewares,
-        (mw) =>
-          "dynamic" in mw && mw.dynamic
-            ? Either.right(mw as DynamicMiddlewareMaker<any>)
-            : Either.left(mw as GenericMiddlewareMaker)
-      )
-      const dynamicMiddlewares = dyn.reduce(
-        (prev, cur) => ({ ...prev, [cur.dynamic.key]: cur }),
-        {} as Record<string, any>
-      )
       // TODO: support dynamic and generic intertwined. treat them as one
-      return Object.assign(make({ genericMiddlewares, dynamicMiddlewares }), it)
+      return Object.assign(makeMiddlewareBasic<any, any>(...capturedMiddlewares), it)
     }
   }
   return it as any
 }
+
+export const makeMiddlewareBasic =
+  // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
+  <
+    RequestContextMap extends Record<string, RPCContextMap.Any>,
+    // RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
+    GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
+  >(
+    ...make: GenericMiddlewareProviders
+  ) => {
+    const MiddlewareMaker = Context.GenericTag<
+      MiddlewareMakerId,
+      {
+        effect: RPCHandlerFactory<
+          RequestContextMap,
+          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+        >
+        _tag: "MiddlewareMaker"
+      }
+    >(
+      "MiddlewareMaker"
+    )
+
+    // const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
+    const middlewares = genericMiddlewareMaker(...make)
+
+    const l = Layer.scoped(
+      MiddlewareMaker,
+      middlewares
+        .effect
+        .pipe(
+          Effect.map((generic) => ({
+            _tag: "MiddlewareMaker" as const,
+            effect: makeRpcEffect<
+              RequestContextMap,
+              GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+            >()(
+              (schema, next, moduleName) => {
+                return (payload, headers) =>
+                  Effect
+                    .gen(function*() {
+                      const basic = {
+                        config: schema.config ?? {},
+                        payload,
+                        headers,
+                        clientId: 0, // TODO: get the clientId from the request context
+                        rpc: {
+                          ...Rpc.fromTaggedRequest(schema as any),
+                          // middlewares ? // todo: get from actual middleware flow?
+                          annotations: Context.empty(), // TODO //Annotations(schema as any),
+                          // successSchema: schema.success ?? Schema.Void,
+                          // errorSchema: schema.failure ?? Schema.Never,
+                          payloadSchema: schema,
+                          _tag: `${moduleName}.${payload._tag}`,
+                          key: `${moduleName}.${payload._tag}` /* ? */
+                          // clientId: 0 as number /* ? */
+                        }
+                      }
+                      return yield* generic({
+                        ...basic,
+                        next: next as any
+                      })
+                    }) as any // why?
+              }
+            )
+          }))
+        )
+    )
+
+    const dependencies = [
+      ...middlewares.dependencies
+    ]
+    const middlewareLayer = l
+      .pipe(
+        Layer.provide(middlewares.dependencies as any)
+      ) as Layer.Layer<
+        MiddlewareMakerId,
+        LayerUtils.GetLayersError<typeof middlewares.dependencies>, // what could go wrong when building the dynamic middleware provider
+        LayerUtils.GetLayersContext<typeof middlewares.dependencies>
+      >
+
+    return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
+  }

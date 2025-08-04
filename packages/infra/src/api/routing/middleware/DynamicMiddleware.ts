@@ -10,7 +10,7 @@ import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
-import { type ContextRepr, type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
+import { type ContextRepr, type GenericMiddlewareMaker, genericMiddlewareMaker, type TagClassAny } from "./generic-middleware.js"
 
 // module:
 //
@@ -290,124 +290,8 @@ export const makeMiddleware =
     return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
   }
 
-export const makeMiddlewareBasic =
-  // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
-  <
-    RequestContextMap extends Record<string, RPCContextMap.Any>,
-    RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
-    GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
-  >(
-    make: MiddlewareMake<
-      RequestContextMap,
-      RequestContextProviders,
-      GenericMiddlewareProviders,
-      never,
-      never,
-      never
-    >
-  ) => {
-    const MiddlewareMaker = Context.GenericTag<
-      MiddlewareMakerId,
-      {
-        effect: RPCHandlerFactory<
-          RequestContextMap,
-          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-        >
-        _tag: "MiddlewareMaker"
-      }
-    >(
-      "MiddlewareMaker"
-    )
-
-    const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
-    const middlewares = genericMiddlewareMaker(...make.genericMiddlewares)
-
-    const l = Layer.scoped(
-      MiddlewareMaker,
-      Effect
-        .all({
-          dynamicMiddlewares: dynamicMiddlewares.effect,
-          generic: middlewares.effect,
-          middleware: make.execute
-            ? make.execute((
-              cb: MakeRPCHandlerFactory<
-                RequestContextMap,
-                Scope.Scope | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-              >
-            ) => cb)
-            : Effect.succeed<
-              MakeRPCHandlerFactory<
-                RequestContextMap,
-                Scope.Scope | GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-              >
-            >((_schema, next) => (payload, headers) => next(payload, headers))
-        })
-        .pipe(
-          Effect.map(({ dynamicMiddlewares, generic, middleware }) => ({
-            _tag: "MiddlewareMaker" as const,
-            effect: makeRpcEffect<
-              RequestContextMap,
-              GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-            >()(
-              (schema, next, moduleName) => {
-                const h = middleware(schema, next as any, moduleName)
-                return (payload, headers) =>
-                  Effect
-                    .gen(function*() {
-                      const basic = {
-                        config: schema.config ?? {},
-                        payload,
-                        headers,
-                        clientId: 0, // TODO: get the clientId from the request context
-                        rpc: {
-                          ...Rpc.fromTaggedRequest(schema as any),
-                          // middlewares ? // todo: get from actual middleware flow?
-                          annotations: Context.empty(), // TODO //Annotations(schema as any),
-                          // successSchema: schema.success ?? Schema.Void,
-                          // errorSchema: schema.failure ?? Schema.Never,
-                          payloadSchema: schema,
-                          _tag: `${moduleName}.${payload._tag}`,
-                          key: `${moduleName}.${payload._tag}` /* ? */
-                          // clientId: 0 as number /* ? */
-                        }
-                      }
-                      return yield* generic({
-                        ...basic,
-                        next:
-                          // the contextProvider is an Effect that builds the context for the request
-                          // the dynamicMiddlewares is an Effect that builds the dynamiuc context for the request
-                          dynamicMiddlewares(basic).pipe(
-                            Effect.flatMap((dynamicContext) => h(payload, headers).pipe(Effect.provide(dynamicContext)))
-                          ) as any
-                      })
-                    }) as any // why?
-              }
-            )
-          }))
-        )
-    )
-
-    const dependencies = [
-      ...(make.dependencies ? make.dependencies : []),
-      ...(dynamicMiddlewares.dependencies),
-      ...middlewares.dependencies
-    ]
-    const middlewareLayer = l
-      .pipe(
-        Layer.provide(dependencies as any)
-      ) as Layer.Layer<
-        MiddlewareMakerId,
-        | LayerUtils.GetLayersError<typeof dynamicMiddlewares.dependencies>
-        | LayerUtils.GetLayersError<typeof middlewares.dependencies>, // what could go wrong when building the dynamic middleware provider
-        | LayerUtils.GetLayersContext<typeof middlewares.dependencies>
-        | LayerUtils.GetLayersContext<typeof dynamicMiddlewares.dependencies> // what's needed to build dynamic middleware layers
-      >
-
-    return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
-  }
-
 // it just provides the right types without cluttering the implementation with them
-function makeRpcEffect<
+export function makeRpcEffect<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   ContextProviderA
 >() {
@@ -472,14 +356,14 @@ type RpcOptionsOriginal = {
   readonly requiredForClient?: boolean
 }
 
-type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
+export type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
   key: Key
   settings: A
 }
 
 type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
   readonly dynamic: RpcDynamic<Key, A>
-  readonly dependsOn?: NonEmptyReadonlyArray<TagClassDynamicAny<any>>
+  readonly dependsOn?: NonEmptyReadonlyArray<TagClassAny>
 }
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
@@ -511,20 +395,6 @@ export interface RpcMiddlewareDynamicNormal<A, E, R, Config> {
     E,
     Scope.Scope | R
   >
-}
-
-export interface TagClassDynamicAny<RequestContext extends Record<string, RPCContextMap.Any>>
-  extends Context.Tag<any, any>
-{
-  readonly [RpcMiddleware.TypeId]: RpcMiddleware.TypeId
-  readonly optional: boolean // TODO: support optional vs required.. with required, we can eliminate the context..
-  //  readonly provides?: Context.Tag<any, any> | undefined
-  readonly requires?: Context.Tag<any, any> | ContextRepr | undefined
-  readonly failure: Schema.Schema.All
-  readonly requiredForClient: boolean
-  readonly dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]>
-  readonly wrap: boolean
-  readonly dependsOn?: any
 }
 
 export declare namespace TagClass {

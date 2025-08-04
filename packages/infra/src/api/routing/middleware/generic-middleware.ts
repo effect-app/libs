@@ -6,7 +6,7 @@ import { type RPCContextMap } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { type Tag } from "effect/Context"
 import { InfraLogger } from "../../../logger.js"
-import { type TagClassDynamicAny } from "./DynamicMiddleware.js"
+import { type RpcDynamic } from "./DynamicMiddleware.js"
 
 export type ContextRepr = NonEmptyReadonlyArray<Context.Tag<any, any>>
 export namespace ContextRepr {
@@ -22,6 +22,8 @@ export interface TagClassAny extends Context.Tag<any, any> {
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
   readonly wrap: boolean
+  readonly dynamic?: RpcDynamic<any, any> | undefined
+  readonly dependsOn?: any
 }
 
 export interface GenericMiddlewareOptions<E> {
@@ -35,8 +37,12 @@ export interface GenericMiddlewareOptions<E> {
 
 export type GenericMiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
 export type DynamicMiddlewareMaker<RequestContext extends Record<string, RPCContextMap.Any>> =
-  & TagClassDynamicAny<RequestContext>
+  & TagClassAny
   & { Default: Layer.Layer.Any } // todo; and Layer..
+
+export type IsDynamicMiddleware<T, RequestContext extends Record<string, RPCContextMap.Any>> = T extends
+  { dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> } ? true
+  : false
 
 export namespace GenericMiddlewareMaker {
   export type ApplyServices<A extends TagClassAny, R> = Exclude<R, Provided<A>> | Required<A>

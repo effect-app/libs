@@ -25,14 +25,14 @@
     "lodash": "4.17.21"
   },
   "peerDependencies": {
-    "effect": "^3.17.4"
+    "effect": "^3.17.5"
   },
   "devDependencies": {
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.20",
-    "effect": "^3.17.4",
+    "effect": "^3.17.5",
     "madge": "8.0.0",
     "typescript": "^5.9.2"
   },

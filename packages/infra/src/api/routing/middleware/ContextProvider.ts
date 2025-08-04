@@ -1,4 +1,5 @@
-import { Context, Effect, Layer, type NonEmptyArray, pipe, type Scope } from "effect-app"
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope } from "effect-app"
 
 import { type HttpRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
@@ -25,12 +26,12 @@ export namespace EffectGenUtils {
     : never
 }
 
-// the context provider provides additional stuff
-export type ContextProviderShape<ContextProviderA, ContextProviderR extends HttpRouter.HttpRouter.Provided> = Effect<
-  Context.Context<ContextProviderA>,
-  never, // no errors are allowed
-  ContextProviderR
->
+// // the context provider provides additional stuff
+// export type ContextProviderShape<ContextProviderA, ContextProviderR> = Effect<
+//   Context.Context<ContextProviderA>,
+//   never, // no errors are allowed
+//   ContextProviderR
+// >
 
 export interface ContextProviderId {
   _tag: "ContextProvider"
@@ -49,6 +50,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // actual type in that position, I just wanna set the overall structure
   [K in keyof TDeps]: TDeps[K] extends //
   // E = never => the context provided cannot trigger errors
+  // TODO: remove HttpRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope?
   //  _R extends HttpRouter.HttpRouter.Provided => the context provided can only have what HttpRouter.Provided provides as requirements
   (
     ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
@@ -85,9 +87,9 @@ export const mergeContextProviders = <
   effect: Effect.Effect<
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<EffectGenUtils.Success<Tag.Service<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Tag.Identifier<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<Tag.Service<TDeps[number]>>
+      EffectGenUtils.Context<Tag.Identifier<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
@@ -117,8 +119,8 @@ export const ContextProvider = <
   ContextProviderA,
   MakeContextProviderE,
   MakeContextProviderR,
-  ContextProviderR extends HttpRouter.HttpRouter.Provided,
-  Dependencies extends NonEmptyArray<Layer.Layer.Any>
+  ContextProviderR extends Scope.Scope,
+  Dependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>
 >(
   input: {
     effect: Effect<
@@ -172,13 +174,13 @@ export const MergedContextProvider = <
     ContextProviderId,
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<EffectGenUtils.Success<Tag.Service<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Tag.Identifier<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<Tag.Service<TDeps[number]>>
+      EffectGenUtils.Context<Tag.Identifier<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     | Exclude<
-      Tag.Service<TDeps[number]>,
+      Tag.Identifier<TDeps[number]>,
       LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
     >
     | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>

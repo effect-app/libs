@@ -1,48 +1,48 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Context, Effect, ParseResult } from "effect-app"
+import { Cause, Context, Duration, Effect, Layer, ParseResult, Request } from "effect-app"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
-import { genericMiddleware, RequestCacheLayers } from "../../routing.js"
+import { Tag } from "./RpcMiddleware.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
 
+export const RequestCacheLayers = Layer.mergeAll(
+  Layer.setRequestCache(
+    Request.makeCache({ capacity: 500, timeToLive: Duration.hours(8) })
+  ),
+  Layer.setRequestCaching(true),
+  Layer.setRequestBatching(true)
+)
+
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
-// Effect Rpc Middleware: Wrap
-export class RequestCacheMiddleware extends Effect.Service<RequestCacheMiddleware>()("RequestCacheMiddleware", {
-  effect: Effect.gen(function*() {
-    return genericMiddleware(Effect.fnUntraced(function*(options) {
-      return yield* options.next.pipe(Effect.provide(RequestCacheLayers))
-    }))
+
+export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("RequestCacheMiddleware", { wrap: true })({
+  effect: Effect.succeed(({ next }) => next.pipe(Effect.provide(RequestCacheLayers)))
+}) {
+}
+
+export class ConfigureInterruptibility
+  extends Tag<ConfigureInterruptibility>()("ConfigureInterruptibility", { wrap: true })({
+    effect: Effect.succeed(({ next }) =>
+      next.pipe(
+        // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
+        Effect.uninterruptible
+      )
+    )
   })
-}) {}
+{
+}
 
-// Effect Rpc Middleware: Wrap
-export class ConfigureInterruptibility extends Effect.Service<ConfigureInterruptibility>()(
-  "ConfigureInterruptibility",
-  {
-    effect: Effect.gen(function*() {
-      return genericMiddleware(Effect.fnUntraced(function*(options) {
-        return yield* options.next.pipe(
-          // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
-          Effect.uninterruptible
-        )
-      }))
-    })
-  }
-) {}
-
-// Effect Rpc Middleware: Wrap
-export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("MiddlewareLogger", {
+export class MiddlewareLogger extends Tag<MiddlewareLogger>()("MiddlewareLogger", { wrap: true })({
   effect: Effect.gen(function*() {
-    return genericMiddleware(Effect.fnUntraced(function*({ headers, next, payload, rpc }) {
-      const devMode = yield* DevMode
-
-      return yield* Effect
-        .annotateCurrentSpan(
-          "requestInput",
-          typeof payload === "object" && payload !== null
+    const devMode = yield* DevMode
+    return ({ headers, next, payload, rpc }) =>
+      Effect
+        .annotateCurrentSpan({
+          "request.name": rpc._tag,
+          "requestInput": typeof payload === "object" && payload !== null
             ? Object.entries(payload).reduce((prev, [key, value]: [string, unknown]) => {
               prev[key] = key === "password"
                 ? "<redacted>"
@@ -60,7 +60,7 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
               return prev
             }, {} as Record<string, string | number | boolean>)
             : payload
-        )
+        })
         .pipe(
           // can't use andThen due to some being a function and effect
           Effect.zipRight(next),
@@ -92,9 +92,9 @@ export class MiddlewareLogger extends Effect.Service<MiddlewareLogger>()("Middle
           ),
           devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error"))
         )
-    }))
   })
-}) {}
+}) {
+}
 
 export const DefaultGenericMiddlewares = [
   RequestCacheMiddleware,

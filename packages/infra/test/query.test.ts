@@ -1,13 +1,14 @@
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-app"
+import { Effect, flow, Layer, Option, pipe, S, Struct } from "effect-app"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, count, make, one, or, order, page, project, type QueryEnd, type QueryProjection, type QueryWhere, toFilter, where } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
+import { SomeService } from "./fixtures.js"
 
 const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
 const num = S.Struct({ _tag: S.Literal("number"), value: S.Number })
@@ -24,9 +25,6 @@ export declare namespace Something {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface Encoded extends S.Schema.Encoded<typeof Something> {}
 }
-
-const MakeSomeService = Effect.succeed({ a: 1 })
-export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
 const q = make<Something.Encoded>()
   .pipe( // provided automatically inside Repo.q2()

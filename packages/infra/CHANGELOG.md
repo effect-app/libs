@@ -1,5 +1,92 @@
 # @effect-app/infra
 
+## 2.87.2
+
+### Patch Changes
+
+- 6d43e93: fix Router empty dependencies support
+
+## 2.87.1
+
+### Patch Changes
+
+- remove debug
+
+## 2.87.0
+
+### Minor Changes
+
+- 99cf15f: unify middleware api
+
+### Patch Changes
+
+- Updated dependencies [99cf15f]
+  - effect-app@2.52.0
+
+## 2.86.0
+
+### Minor Changes
+
+- f30dfe3: support middleware `requires` and simplified api
+
+## 2.85.0
+
+### Minor Changes
+
+- 00bf1b7: allow multiple dynamic middleware at once
+
+## 2.84.0
+
+### Minor Changes
+
+- d4e66ee: drop make requirement
+
+## 2.83.1
+
+### Patch Changes
+
+- Updated dependencies [54dd59a]
+  - effect-app@2.51.0
+
+## 2.83.0
+
+### Minor Changes
+
+- use NERA instead of fake ContextRepr
+
+## 2.82.0
+
+### Minor Changes
+
+- c375351: fix: dependsOn for dynamicMiddleware.
+- 6e20474: feat: add provides: Context support
+
+## 2.81.1
+
+### Patch Changes
+
+- a33dd24: cleanupy
+
+## 2.81.0
+
+### Minor Changes
+
+- e9ce960: improve: make dynamic middleware with the same RpcMiddleware.tag api.
+  added experimental `makeNewMiddleware` with fluent api.
+  remove HttpServerRequest requirement from checkJWTI
+
+## 2.80.0
+
+### Minor Changes
+
+- 8cc79f2: remove http details from rpc api
+
+## 2.79.0
+
+### Minor Changes
+
+- f4b6d3d: improve: Align our Middleware with RPC Middleware. combine genericMiddleware with contextProvider.
+
 ## 2.78.8
 
 ### Patch Changes

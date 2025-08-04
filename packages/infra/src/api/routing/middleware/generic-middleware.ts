@@ -1,44 +1,113 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Array, Effect } from "effect-app"
-import { type HttpHeaders, type HttpRouter } from "effect-app/http"
-import { type ContextTagWithDefault } from "../../layerUtils.js"
+import { type Rpc, type RpcMiddleware } from "@effect/rpc"
+import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
+import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type Scope } from "effect-app"
+import { type ContextRepr } from "effect-app/client"
+import { type HttpHeaders } from "effect-app/http"
+import { InfraLogger } from "../../../logger.js"
+import { type TagClassAny } from "./RpcMiddleware.js"
 
-export interface GenericMiddlewareOptions<A, E> {
+export interface GenericMiddlewareOptions<E> {
   // Effect rpc middleware does not support changing payload or headers, but we do..
-  readonly next: Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+  readonly next: Effect.Effect<SuccessValue, E, Scope.Scope>
   readonly payload: unknown
   readonly headers: HttpHeaders.Headers
-  // readonly clientId: number
-  readonly rpc: { _tag: string } // Rpc.AnyWithProps
+  readonly clientId: number
+  readonly rpc: Rpc.AnyWithProps
 }
 
-export type GenericMiddlewareMaker = <A, E>(
-  options: GenericMiddlewareOptions<A, E>
-) => Effect.Effect<A, E, HttpRouter.HttpRouter.Provided>
+export type GenericMiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
 
-export const genericMiddleware = (i: GenericMiddlewareMaker) => i
+export namespace GenericMiddlewareMaker {
+  export type ApplyServices<A extends TagClassAny, R> = Exclude<R, Provided<A>> | Required<A>
+  export type ApplyManyServices<A extends NonEmptyReadonlyArray<TagClassAny>, R> =
+    | Exclude<R, { [K in keyof A]: Provided<A[K]> }[number]>
+    | { [K in keyof A]: Required<A[K]> }[number]
+  export type Provided<T> = T extends TagClassAny
+    ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
+    : T extends { provides: ContextRepr } ? ContextRepr.Identifier<T["provides"]>
+    : never
+    : never
+
+  export type Required<T> = T extends TagClassAny
+    ? T extends { requires: Context.Tag<any, any> } ? Context.Tag.Identifier<T["requires"]>
+    : T extends { requires: ContextRepr } ? ContextRepr.Identifier<T["requires"]>
+    : never
+    : never
+}
 
 export const genericMiddlewareMaker = <
-  T extends Array<
-    ContextTagWithDefault.Base<GenericMiddlewareMaker>
-  >
+  T extends Array<GenericMiddlewareMaker>
 >(...middlewares: T): {
   dependencies: { [K in keyof T]: T[K]["Default"] }
-  effect: Effect.Effect<GenericMiddlewareMaker>
+  effect: Effect.Effect<RpcMiddleware.RpcMiddlewareWrap<any, any>>
 } => {
+  // we want to run them in reverse order
+  middlewares = middlewares.toReversed() as any
   return {
     dependencies: middlewares.map((_) => _.Default),
     effect: Effect.gen(function*() {
-      const middlewaresInstances = yield* Effect.all(middlewares)
-
-      return <A, E>(
-        options: GenericMiddlewareOptions<A, E>
+      const context = yield* Effect.context()
+      return <E>(
+        options: GenericMiddlewareOptions<E>
       ) => {
-        let next = options.next
-        for (const middleware of (middlewaresInstances as any[]).toReversed()) {
-          next = middleware({ ...options, next })
+        let handler = options.next
+        // copied from RpcMiddleare
+        for (const tag of middlewares) {
+          if (tag.wrap) {
+            const middleware = Context.unsafeGet(context, tag)
+            handler = InfraLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+              Effect.zipRight(middleware({ ...options, next: handler }))
+            ) as any
+          } else if (tag.optional) {
+            const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
+            const previous = handler
+            handler = InfraLogger.logDebug("Applying middleware optional " + tag.key).pipe(
+              Effect.zipRight(Effect.matchEffect(middleware(options), {
+                onFailure: () => previous,
+                onSuccess: tag.provides !== undefined
+                  ? (value) =>
+                    Context.isContext(value)
+                      ? Effect.provide(previous, value)
+                      : Effect.provideService(previous, tag.provides as any, value)
+                  : (_) => previous
+              }))
+            )
+          } else if (tag.dynamic) {
+            const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
+            const previous = handler
+            handler = InfraLogger.logDebug("Applying middleware dynamic " + tag.key, tag.dynamic).pipe(
+              Effect.zipRight(
+                middleware(options).pipe(
+                  Effect.flatMap((value) =>
+                    Option.isSome(value)
+                      ? Context.isContext(value.value)
+                        ? Effect.provide(previous, value.value)
+                        : Effect.provideService(previous, tag.dynamic!.settings.service!, /* TODO */ value.value)
+                      : previous
+                  )
+                )
+              )
+            )
+          } else {
+            const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
+            const previous = handler
+            handler = InfraLogger.logDebug("Applying middleware " + tag.key).pipe(
+              Effect.zipRight(
+                tag.provides !== undefined
+                  ? middleware(options).pipe(
+                    Effect.flatMap((value) =>
+                      Context.isContext(value)
+                        ? Effect.provide(previous, value)
+                        : Effect.provideService(previous, tag.provides as any, value)
+                    )
+                  )
+                  : Effect.zipRight(middleware(options), previous)
+              )
+            )
+          }
         }
-        return next
+        return handler
       }
     })
   } as any

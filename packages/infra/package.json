@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "2.78.8",
+  "version": "2.87.2",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -41,7 +41,7 @@
     "@effect/experimental": "^0.54.3",
     "@effect/platform": "^0.90.0",
     "@effect/rpc-http": "^0.52.4",
-    "@effect/rpc": "^0.68.1",
+    "@effect/rpc": "^0.68.2",
     "@effect/sql": "^0.44.0",
     "@effect/vitest": "^0.25.0",
     "@sendgrid/helpers": "^8.0.0",
@@ -51,7 +51,7 @@
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^3.17.4",
+    "effect": "^3.17.5",
     "express": "^5.1.0"
   },
   "typesVersions": {
@@ -306,9 +306,13 @@
       "types": "./dist/api/routing/middleware/ContextProvider.d.ts",
       "default": "./dist/api/routing/middleware/ContextProvider.js"
     },
-    "./api/routing/middleware/DynamicMiddleware": {
-      "types": "./dist/api/routing/middleware/DynamicMiddleware.d.ts",
-      "default": "./dist/api/routing/middleware/DynamicMiddleware.js"
+    "./api/routing/middleware/RouterMiddleware": {
+      "types": "./dist/api/routing/middleware/RouterMiddleware.d.ts",
+      "default": "./dist/api/routing/middleware/RouterMiddleware.js"
+    },
+    "./api/routing/middleware/RpcMiddleware": {
+      "types": "./dist/api/routing/middleware/RpcMiddleware.d.ts",
+      "default": "./dist/api/routing/middleware/RpcMiddleware.js"
     },
     "./api/routing/middleware/dynamic-middleware": {
       "types": "./dist/api/routing/middleware/dynamic-middleware.d.ts",
@@ -321,6 +325,10 @@
     "./api/routing/middleware/middleware": {
       "types": "./dist/api/routing/middleware/middleware.d.ts",
       "default": "./dist/api/routing/middleware/middleware.js"
+    },
+    "./api/routing/middleware/middleware-api": {
+      "types": "./dist/api/routing/middleware/middleware-api.d.ts",
+      "default": "./dist/api/routing/middleware/middleware-api.js"
     },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",

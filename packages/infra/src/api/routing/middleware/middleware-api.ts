@@ -15,6 +15,8 @@ export const contextMap = <
   settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
 })
 
+// the following implements sort of builder pattern
+
 export interface MiddlewareM<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
@@ -25,7 +27,7 @@ export interface MiddlewareM<
 > {
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): DynamicMiddlewareMakers<
+  ): MiddlewaresBuilder<
     RequestContext,
     Provided,
     [...Middlewares, ...MW],
@@ -50,10 +52,9 @@ export interface MiddlewareDynamic<
 > {
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): MW extends NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }>
-    ? DynamicMiddlewareMakers<
+  ): MW extends NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }> ? MiddlewaresBuilder<
       RequestContext,
-      // when one dynamic middleware depends on another, substract the key, to enforce the dependency to be provided after.
+      // when one dynamic middleware depends on another, substract the key, to enforce the dependency to be provided after
       Exclude<
         Provided | MW[number]["dynamic"]["key"],
         { [K in keyof MW]: GetDependsOnKeys<MW[K]> }[number]
@@ -65,7 +66,7 @@ export interface MiddlewareDynamic<
       },
       GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
     >
-    : DynamicMiddlewareMakers<
+    : MiddlewaresBuilder<
       RequestContext,
       Provided,
       [...Middlewares, ...MW],
@@ -74,7 +75,7 @@ export interface MiddlewareDynamic<
     >
 }
 
-export type DynamicMiddlewareMakers<
+export type MiddlewaresBuilder<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext = never,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
@@ -111,7 +112,7 @@ export type DynamicMiddlewareMakers<
 
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->() => DynamicMiddlewareMakers<RequestContextMap> = () => {
+>() => MiddlewaresBuilder<RequestContextMap> = () => {
   let allMiddleware: GenericMiddlewareMaker[] = []
   const it = {
     middleware: (...middlewares: any[]) => {

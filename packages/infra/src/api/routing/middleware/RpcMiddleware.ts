@@ -4,12 +4,12 @@
 import { type Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
 import { type Context, type Effect, Layer, type NonEmptyReadonlyArray, type Option, type S, type Schema, type Scope, Unify } from "effect-app"
-import type { AnyService, ContextRepr, RPCContextMap } from "effect-app/client/req"
+import type { AnyService, ContextTagArray, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import { type LayerUtils } from "../../layerUtils.js"
 
-// updated to support Scope.Scope
+// updated to support Scope.Scope and Requires
 export interface RpcMiddleware<Provides, E, Requires> {
   (options: {
     readonly clientId: number
@@ -47,7 +47,7 @@ export type DependsOn = {
   readonly dependsOn: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
 
-type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
+interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> extends RpcOptionsOriginal {
   readonly dynamic: RpcDynamic<Key, A>
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
@@ -86,8 +86,8 @@ export interface RpcMiddlewareDynamicNormal<A, E, R, Config> {
 export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
   readonly optional: boolean
-  readonly provides?: Context.Tag<any, any> | ContextRepr | undefined
-  readonly requires?: Context.Tag<any, any> | ContextRepr | undefined
+  readonly provides?: Context.Tag<any, any> | ContextTagArray | undefined
+  readonly requires?: Context.Tag<any, any> | ContextTagArray | undefined
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
   readonly wrap: boolean
@@ -105,9 +105,9 @@ export declare namespace TagClass {
     readonly optional?: false
   } ? Context.Tag.Identifier<Options["provides"]>
     : Options extends {
-      readonly provides: ContextRepr
+      readonly provides: ContextTagArray
       readonly optional?: false
-    } ? ContextRepr.Identifier<Options["provides"]>
+    } ? ContextTagArray.Identifier<Options["provides"]>
     : never
 
   /**
@@ -118,8 +118,8 @@ export declare namespace TagClass {
     readonly requires: Context.Tag<any, any>
   } ? Context.Tag.Identifier<Options["requires"]>
     : Options extends {
-      readonly requires: ContextRepr
-    } ? ContextRepr.Identifier<Options["requires"]>
+      readonly requires: ContextTagArray
+    } ? ContextTagArray.Identifier<Options["requires"]>
     : never
 
   /**
@@ -130,7 +130,8 @@ export declare namespace TagClass {
     ? Context.Tag.Service<Options["provides"]>
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> }
       ? Options extends { wrap: true } ? void : AnyService.Bla<A["service"]>
-    : Options extends { readonly provides: ContextRepr } ? Context.Context<ContextRepr.Identifier<Options["provides"]>>
+    : Options extends { readonly provides: ContextTagArray }
+      ? Context.Context<ContextTagArray.Identifier<Options["provides"]>>
     : void
 
   /**
@@ -191,10 +192,10 @@ export declare namespace TagClass {
     readonly optional: Optional<Options>
     readonly failure: FailureSchema<Options>
     readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
-      : Options extends { readonly provides: ContextRepr } ? Options["provides"]
+      : Options extends { readonly provides: ContextTagArray } ? Options["provides"]
       : undefined
     readonly requires: Options extends { readonly requires: Context.Tag<any, any> } ? Options["requires"]
-      : Options extends { readonly requires: ContextRepr } ? Options["requires"]
+      : Options extends { readonly requires: ContextTagArray } ? Options["requires"]
       : undefined
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined

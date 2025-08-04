@@ -16,20 +16,20 @@ export type RPCContextMap<Service, E> = {
   contextActivation: true
 }
 
-export type ContextRepr = NonEmptyReadonlyArray<Context.Tag<any, any>>
-export namespace ContextRepr {
-  export type Identifier<A> = A extends ContextRepr ? Tag.Identifier<A[number]> : never
-  export type Service<A> = A extends ContextRepr ? Tag.Service<A[number]> : never
+export type ContextTagArray = NonEmptyReadonlyArray<Context.Tag<any, any>>
+export namespace ContextTagArray {
+  export type Identifier<A> = A extends ContextTagArray ? Tag.Identifier<A[number]> : never
+  export type Service<A> = A extends ContextTagArray ? Tag.Service<A[number]> : never
 }
-export type AnyService = Context.Tag<any, any> | ContextRepr
+export type AnyService = Context.Tag<any, any> | ContextTagArray
 export namespace AnyService {
-  export type Bla<A> = A extends ContextRepr ? Context.Context<ContextRepr.Identifier<A>>
+  export type Bla<A> = A extends ContextTagArray ? Context.Context<ContextTagArray.Identifier<A>>
     : A extends Context.Tag<any, any> ? Tag.Service<A>
     : never
-  export type Identifier<A> = A extends ContextRepr ? ContextRepr.Identifier<A>
+  export type Identifier<A> = A extends ContextTagArray ? ContextTagArray.Identifier<A>
     : A extends Context.Tag<any, any> ? Tag.Identifier<A>
     : never
-  export type Service<A> = A extends ContextRepr ? ContextRepr.Service<A>
+  export type Service<A> = A extends ContextTagArray ? ContextTagArray.Service<A>
     : A extends Context.Tag<any, any> ? Tag.Service<A>
     : never
 }

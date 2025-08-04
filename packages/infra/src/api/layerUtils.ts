@@ -35,25 +35,11 @@ export namespace ContextTagWithDefault {
 export type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
 
 export const mergeContexts = Effect.fnUntraced(
-  function*<T extends readonly { maker: any; handle: Effect<Context<any>> }[]>(makers: T) {
+  function*<T extends readonly { maker: any; handle: Effect<Context<any> | Option<Context<any>>> }[]>(makers: T) {
     let context = Context.empty()
     for (const mw of makers) {
-      const moreContext = yield* mw.handle.pipe(Effect.provide(context))
-      yield* InfraLogger.logDebug(
-        "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
-        (moreContext as any).toJSON().services
-      )
-      context = Context.merge(context, moreContext)
-    }
-    return context as Context.Context<Effect.Success<T[number]["handle"]>>
-  }
-)
-
-export const mergeOptionContexts = Effect.fnUntraced(
-  function*<T extends readonly { maker: any; handle: Effect<Option<Context<any>>> }[]>(makers: T) {
-    let context = Context.empty()
-    for (const mw of makers) {
-      const moreContext = yield* mw.handle.pipe(Effect.provide(context))
+      const ctx = yield* mw.handle.pipe(Effect.provide(context))
+      const moreContext = Context.isContext(ctx) ? Option.some(ctx) : ctx
       yield* InfraLogger.logDebug(
         "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
         Option.map(moreContext, (c) => (c as any).toJSON().services)
@@ -62,6 +48,6 @@ export const mergeOptionContexts = Effect.fnUntraced(
         context = Context.merge(context, moreContext.value)
       }
     }
-    return context
+    return context as Context.Context<Effect.Success<T[number]["handle"]>>
   }
 )

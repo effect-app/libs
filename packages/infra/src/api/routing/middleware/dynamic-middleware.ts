@@ -4,7 +4,7 @@ import { type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect-app/Context"
 import { type HttpHeaders } from "effect-app/http"
 import { typedValuesOf } from "effect-app/utils"
-import { type ContextTagWithDefault, mergeOptionContexts } from "../../layerUtils.js"
+import { type ContextTagWithDefault, mergeContexts } from "../../layerUtils.js"
 import { sort } from "../tsort.js"
 import { type RpcMiddlewareDynamic } from "./DynamicMiddleware.js"
 
@@ -69,7 +69,7 @@ export const implementMiddleware = <T extends Record<string, RPCContextMap.Any>>
     const makers = yield* Effect.all(sorted)
     return Effect.fnUntraced(
       function*(options: { config: { [K in keyof T]?: T[K]["contextActivation"] }; headers: HttpHeaders.Headers }) {
-        const ctx = yield* mergeOptionContexts(
+        const ctx = yield* mergeContexts(
           Array.map(
             makers,
             (_, i) => ({ maker: sorted[i], handle: (_ as any)(options) as any }) as any

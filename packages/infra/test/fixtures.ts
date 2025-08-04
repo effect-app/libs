@@ -15,13 +15,13 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
+  allowAnonymous: RPCContextMap.Inverted<[typeof UserProfile], typeof NotLoggedInError>
   requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
   test: RPCContextMap<never, typeof S.Never>
 }
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap<RequestContextMap>()("allowAnonymous"),
+  dynamic: contextMap<RequestContextMap>()("allowAnonymous", [UserProfile]),
   requires: SomeElse
 })({
   effect: Effect.gen(function*() {
@@ -36,10 +36,15 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
           }
           return Option.none()
         }
-        return Option.some(Context.make(
-          UserProfile,
-          { id: "whatever", roles: ["user", "manager"] }
-        ))
+        return Option.some(
+          Context.make(
+            UserProfile,
+            new UserProfile({
+              id: "whatever",
+              roles: ["user", ...headers["x-is-manager"] === "true" ? ["manager"] : []]
+            })
+          )
+        )
       }
     )
   })
@@ -48,7 +53,9 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
-  dynamic: contextMap<RequestContextMap>()("requireRoles"),
+  dynamic: contextMap<RequestContextMap>()("requireRoles", null as never), // TODO
+  wrap: true,
+  // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
   // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
   dependsOn: [AllowAnonymous]
@@ -56,24 +63,34 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
   effect: Effect.gen(function*() {
     yield* Some
     return Effect.fnUntraced(
-      function*({ config }) {
+      function*({ config, next }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
         const { requireRoles } = config
+        console.dir(
+          {
+            userProfile,
+            requireRoles
+          },
+          { depth: 5 }
+        )
         if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
           return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }
-        return Option.none<Context<never>>()
+        return yield* next
       }
     )
   })
 }) {
 }
 
-export class Test extends Middleware.Tag<Test>()("Test", { dynamic: contextMap<RequestContextMap>()("test") })({
+export class Test extends Middleware.Tag<Test>()("Test", {
+  wrap: true,
+  dynamic: contextMap<RequestContextMap>()("test", null as never) // TODO
+})({
   effect: Effect.gen(function*() {
-    return Effect.fn(function*() {
-      return Option.none<Context<never>>()
+    return Effect.fn(function*({ next }) {
+      return yield* next
     })
   })
 }) {}

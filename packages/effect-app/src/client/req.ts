@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { S } from "../internal/lib.js"
+import { type Tag } from "../Context.js"
+import { type Context, type NonEmptyReadonlyArray, S } from "../internal/lib.js"
 import { type Values } from "../utils.js"
 
 /**
@@ -15,8 +16,26 @@ export type RPCContextMap<Service, E> = {
   contextActivation: true
 }
 
+export type ContextRepr = NonEmptyReadonlyArray<Context.Tag<any, any>>
+export namespace ContextRepr {
+  export type Identifier<A> = A extends ContextRepr ? Tag.Identifier<A[number]> : never
+  export type Service<A> = A extends ContextRepr ? Tag.Service<A[number]> : never
+}
+export type AnyService = Context.Tag<any, any> | ContextRepr
+export namespace AnyService {
+  export type Bla<A> = A extends ContextRepr ? Context.Context<ContextRepr.Identifier<A>>
+    : A extends Context.Tag<any, any> ? Tag.Service<A>
+    : never
+  export type Identifier<A> = A extends ContextRepr ? ContextRepr.Identifier<A>
+    : A extends Context.Tag<any, any> ? Tag.Identifier<A>
+    : never
+  export type Service<A> = A extends ContextRepr ? ContextRepr.Service<A>
+    : A extends Context.Tag<any, any> ? Tag.Service<A>
+    : never
+}
+
 export declare namespace RPCContextMap {
-  export type Custom<Service, E, Custom> = {
+  export type Custom<Service extends AnyService, E, Custom> = {
     service: Service
     error: E
     contextActivation: Custom
@@ -26,14 +45,14 @@ export declare namespace RPCContextMap {
    * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect Context.
    * Unless explicitly omitted.
    */
-  export type Inverted<Service, E> = {
+  export type Inverted<Service extends AnyService, E> = {
     service: Service
     error: E
     contextActivation: false
   }
 
   export type Any = {
-    service: any
+    service: AnyService
     error: S.Schema.All
     contextActivation: any
   }
@@ -47,7 +66,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RPCContext
         : key extends keyof T ? T[key] extends true ? never : key
         : key
     ]: // TODO: or as an Optional available?
-      RequestContextMap[key]["service"]
+      AnyService.Identifier<RequestContextMap[key]["service"]>
   }
   // normal: contextActivation is true => add if explicitly set to true
   & {
@@ -56,7 +75,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RPCContext
         : key extends keyof T ? T[key] extends true ? key : never
         : never
     ]: // TODO: or as an Optional available?
-      RequestContextMap[key]["service"]
+      AnyService.Identifier<RequestContextMap[key]["service"]>
   }
 >
 

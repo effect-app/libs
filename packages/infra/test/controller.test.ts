@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, Layer, S, Scope } from "effect-app"
+import { Context, Effect, type Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { DefaultGenericMiddlewares, implementMiddleware, makeMiddleware, makeNewMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewares, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, CustomError1, type RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
@@ -53,13 +53,13 @@ class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContext
 //
 
 const Str = Context.GenericTag<"str", "str">("str")
-const Str2 = Context.GenericTag<"str2", "str">("str2")
 
 export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
   provides: SomeService,
   wrap: true
 })({
   effect: Effect.gen(function*() {
+    yield* Str
     // yield* Effect.context<"test-dep">()
     return ({ next }) =>
       Effect.gen(function*() {
@@ -72,61 +72,31 @@ export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
 
 const genericMiddlewares = [
   ...DefaultGenericMiddlewares,
-  // BogusMiddleware,
-  MyContextProvider2,
-  MyContextProvider
+  BogusMiddleware,
+  MyContextProvider2
 ] as const
 
-// TODO: eventually it might be nice if we have total control over order somehow..
-// [ AddRequestNameToSpanContext, RequestCacheContext, UninterruptibleMiddleware, Dynamic(or individual, AllowAnonymous, RequireRoles, Test - or whichever order) ]
-const middleware = makeMiddleware<RequestContextMap>()({
-  genericMiddlewares,
+const middleware = makeMiddleware<RequestContextMap>()
+  .middleware(MyContextProvider)
+  .middleware(
+    RequireRoles,
+    Test
+  )
+  .middleware(AllowAnonymous)
+  .middleware(...genericMiddlewares)
+// dependencies: [Layer.effect(Str2, Str)],
 
-  dynamicMiddlewares: {
-    requireRoles: RequireRoles,
-    allowAnonymous: AllowAnonymous,
-    test: Test
-  },
+const middleware2 = makeMiddleware<RequestContextMap>()
+  .middleware(MyContextProvider)
+  .middleware(RequireRoles, Test)
+  .middleware(AllowAnonymous)
+  .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
 
-  dependencies: [Layer.effect(Str2, Str)],
-  execute: (maker) =>
-    Effect.gen(function*() {
-      return maker(
-        (_schema, handler) => (req, headers) =>
-          // contextProvider and dynamicMiddlewares are already provided here.
-          // aka this runs "last"
-          Effect
-            .gen(function*() {
-              // you can use only HttpRouter.HttpRouter.Provided here as additional context
-              // and what ContextProvider provides too
-              // const someElse = yield* SomeElse
-              yield* Some // provided by ContextProvider
-              yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
-
-              return yield* handler(req, headers)
-            })
-      )
-    })
-})
-
-const middleware2 = makeMiddleware<RequestContextMap>()({
-  // TODO: I guess it makes sense to support just passing array of context providers too, like dynamicMiddlewares?
-  genericMiddlewares: [...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2, MyContextProvider],
-  // or is the better api to use constructors outside, like how contextProvider is used now?
-  dynamicMiddlewares: {
-    requireRoles: RequireRoles,
-    allowAnonymous: AllowAnonymous,
-    test: Test
-  }
-})
-
-export const middleware3 = makeNewMiddleware<RequestContextMap>()
+export const middleware3 = makeMiddleware<RequestContextMap>()
   .middleware(...genericMiddlewares)
   .middleware(AllowAnonymous, RequireRoles)
   .middleware(Test)
-// .middleware(BogusMiddleware)
-
-// expectTypeOf(middleware3).toExtend<typeof middleware2>()
+  .middleware(BogusMiddleware)
 
 export type RequestConfig = {
   /** Disable authentication requirement */
@@ -348,16 +318,10 @@ const router2 = r2.Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
-expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<Some | SomeService>()
+expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<Some | SomeService | "str">()
 
 type makeContext2 = MakeContext<typeof router2.make>
 expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateError>()
 expectTypeOf({} as makeContext2).toEqualTypeOf<
   SomethingService | SomethingRepo | SomethingService2
 >()
-
-export const dynamicMiddlewares = implementMiddleware<RequestContextMap>()({
-  requireRoles: RequireRoles,
-  allowAnonymous: AllowAnonymous,
-  test: Test
-})

@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.87.0
+
+### Minor Changes
+
+- 99cf15f: unify middleware api
+
+### Patch Changes
+
+- Updated dependencies [99cf15f]
+  - effect-app@2.52.0
+
 ## 2.86.0
 
 ### Minor Changes

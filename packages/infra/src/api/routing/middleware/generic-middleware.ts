@@ -52,14 +52,6 @@ export const genericMiddlewareMaker = <
     dependencies: middlewares.map((_) => _.Default),
     effect: Effect.gen(function*() {
       const context = yield* Effect.context()
-      // const middlewares: readonly (RpcMiddlewareWrap<any, any> | RpcMiddleware.RpcMiddleware<any, any>)[] =
-      //   (yield* Effect.all(
-      //     middlewares
-      //   )) as any
-
-      // TODO: tree sort dynamic middlewares?
-      // or should we just handle it on the type level?
-
       return <E>(
         options: GenericMiddlewareOptions<E>
       ) => {
@@ -69,7 +61,7 @@ export const genericMiddlewareMaker = <
           if (tag.wrap) {
             const middleware = Context.unsafeGet(context, tag)
             handler = InfraLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
-              Effect.zipRight(middleware({ ...options, next: handler as any }))
+              Effect.zipRight(middleware({ ...options, next: handler }))
             ) as any
           } else if (tag.optional) {
             const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>

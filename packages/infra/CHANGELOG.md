@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.87.2
+
+### Patch Changes
+
+- 6d43e93: fix Router empty dependencies support
+
 ## 2.87.1
 
 ### Patch Changes

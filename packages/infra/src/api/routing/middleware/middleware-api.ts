@@ -87,7 +87,7 @@ export type MiddlewaresBuilder<
   MiddlewareR = never
 > =
   //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
-  // MiddlewareR is never when all the required services from generic middlewares are provided
+  // MiddlewareR is never when all the required services from generic & dynamic middlewares are provided
   keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ?
         & ReturnType<
           typeof makeMiddlewareBasic<
@@ -127,9 +127,11 @@ export const makeMiddleware: <
         allMiddleware = [mw, ...allMiddleware]
       }
       // TODO: support dynamic and generic intertwined. treat them as one
-      return allMiddleware.filter((m) => !!m.dynamic).length === Object.keys(rcm).length
-        ? Object.assign(makeMiddlewareBasic<any, any>(...allMiddleware), it)
-        : it
+      return allMiddleware.filter((m) => !!m.dynamic).length !== Object.keys(rcm).length
+        // for sure, until all the dynamic middlewares are provided it's non sensical to call makeMiddlewareBasic
+        ? it
+        // actually, we don't know yet if MiddlewareR is never, but we can't easily check it at runtime
+        : Object.assign(makeMiddlewareBasic<any, any>(...allMiddleware), it)
     }
   }
   return it as any

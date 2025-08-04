@@ -168,7 +168,6 @@ export const makeMiddlewareBasic =
       "MiddlewareMaker"
     )
 
-    // const dynamicMiddlewares = implementMiddleware<RequestContextMap>()(make.dynamicMiddlewares)
     const middlewares = genericMiddlewareMaker(...make)
 
     const l = Layer.scoped(

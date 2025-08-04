@@ -7,9 +7,10 @@ import { type DynamicMiddlewareMaker, type GenericMiddlewareMaker, genericMiddle
 // TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
 // in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
 export const contextMap =
-  <RequestContextMap extends Record<string, RPCContextMap.Any>>() => <K extends keyof RequestContextMap>(a: K) => ({
+  <RequestContextMap extends Record<string, RPCContextMap.Any>>() =>
+  <K extends keyof RequestContextMap>(a: K, service: RequestContextMap[K]["service"]) => ({
     key: a,
-    settings: null as any as RequestContextMap[typeof a]
+    settings: { service } as any as RequestContextMap[typeof a]
   })
 
 export interface MiddlewareM<
@@ -115,11 +116,6 @@ export const makeNewMiddleware: <
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
         capturedMiddlewares = [mw, ...capturedMiddlewares]
-        if (mw.dynamic) {
-          console.log("Adding dynamic middleware", mw.key, mw.dynamic.key)
-        } else {
-          console.log("Adding generic middleware", mw.key)
-        }
       }
       // TODO: support dynamic and generic intertwined. treat them as one
       return Object.assign(makeMiddlewareBasic<any, any>(...capturedMiddlewares), it)
@@ -187,7 +183,7 @@ export const makeMiddlewareBasic =
                       }
                       return yield* generic({
                         ...basic,
-                        next: next as any
+                        next: next(payload, headers) as any
                       })
                     }) as any // why?
               }

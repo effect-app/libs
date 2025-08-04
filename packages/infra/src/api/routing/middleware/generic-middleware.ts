@@ -1,18 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, type RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, type Schema, type Scope } from "effect-app"
-import { type RPCContextMap } from "effect-app/client"
+import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type Schema, type Scope } from "effect-app"
+import { type ContextRepr, type RPCContextMap } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
-import { type Tag } from "effect/Context"
 import { InfraLogger } from "../../../logger.js"
 import { type RpcDynamic } from "./DynamicMiddleware.js"
-
-export type ContextRepr = NonEmptyReadonlyArray<Context.Tag<any, any>>
-export namespace ContextRepr {
-  export type Identifier<A> = A extends ContextRepr ? Tag.Identifier<A[number]> : never
-  export type Service<A> = A extends ContextRepr ? Tag.Service<A[number]> : never
-}
 
 export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
@@ -92,13 +85,13 @@ export const genericMiddlewareMaker = <
         for (const tag of middlewares) {
           if (tag.wrap) {
             const middleware = Context.unsafeGet(context, tag)
-            handler = InfraLogger.logDebug("Applying middleware " + tag.key).pipe(
+            handler = InfraLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
               Effect.zipRight(middleware({ ...options, next: handler as any }))
             ) as any
           } else if (tag.optional) {
             const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
             const previous = handler
-            handler = InfraLogger.logDebug("Applying middleware " + tag.key).pipe(
+            handler = InfraLogger.logDebug("Applying middleware optional " + tag.key).pipe(
               Effect.zipRight(Effect.matchEffect(middleware(options), {
                 onFailure: () => previous,
                 onSuccess: tag.provides !== undefined
@@ -109,6 +102,30 @@ export const genericMiddlewareMaker = <
                   : (_) => previous
               }))
             )
+          } else if (tag.dynamic) {
+            const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
+            const previous = handler
+            handler = InfraLogger.logDebug("Applying middleware dynamic " + tag.key, tag.dynamic).pipe(
+              Effect.zipRight(
+                middleware(options).pipe(
+                  Effect.flatMap((value) =>
+                    Option.isSome(value)
+                      ? Context.isContext(value.value)
+                        ? Effect.provide(previous, value.value)
+                        : Effect.provideService(previous, tag.dynamic!.settings.service!, /* TODO */ value.value)
+                      : previous
+                  )
+                )
+              )
+            )
+            // const moreContext = Context.isContext(ctx) ? Option.some(ctx) : ctx
+            // yield* InfraLogger.logDebug(
+            //   "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
+            //   Option.map(moreContext, (c) => (c as any).toJSON().services)
+            // )
+            // if (moreContext.value) {
+            //   context = Context.merge(context, moreContext.value)
+            // }
           } else {
             const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
             const previous = handler

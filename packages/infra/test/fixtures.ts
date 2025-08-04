@@ -15,13 +15,13 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<UserProfile, typeof NotLoggedInError>
+  allowAnonymous: RPCContextMap.Inverted<typeof UserProfile, typeof NotLoggedInError>
   requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
   test: RPCContextMap<never, typeof S.Never>
 }
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap<RequestContextMap>()("allowAnonymous"),
+  dynamic: contextMap<RequestContextMap>()("allowAnonymous", UserProfile),
   requires: SomeElse
 })({
   effect: Effect.gen(function*() {
@@ -45,7 +45,7 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
-  dynamic: contextMap<RequestContextMap>()("requireRoles"),
+  dynamic: contextMap<RequestContextMap>()("requireRoles", null as never), // TODO
   wrap: true,
   // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
@@ -71,7 +71,7 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
 
 export class Test extends Middleware.Tag<Test>()("Test", {
   wrap: true,
-  dynamic: contextMap<RequestContextMap>()("test")
+  dynamic: contextMap<RequestContextMap>()("test", null as never) // TODO
 })({
   effect: Effect.gen(function*() {
     return Effect.fn(function*({ next }) {

@@ -4,13 +4,13 @@
 import { Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
 import { Context, Effect, Layer, type NonEmptyReadonlyArray, type Option, type Request, type S, type Schema, type Scope, Unify } from "effect-app"
-import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
+import type { AnyService, ContextRepr, GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault, type LayerUtils } from "../../layerUtils.js"
 import { type ContextWithLayer, implementMiddleware } from "./dynamic-middleware.js"
-import { type ContextRepr, type GenericMiddlewareMaker, genericMiddlewareMaker, type TagClassAny } from "./generic-middleware.js"
+import { type GenericMiddlewareMaker, genericMiddlewareMaker, type TagClassAny } from "./generic-middleware.js"
 
 // module:
 //
@@ -352,7 +352,7 @@ type RpcOptionsOriginal = {
   readonly wrap?: boolean
   readonly optional?: boolean
   readonly failure?: Schema.Schema.All
-  readonly provides?: Context.Tag<any, any> | ContextRepr
+  readonly provides?: AnyService
   readonly requiredForClient?: boolean
 }
 
@@ -431,7 +431,7 @@ export declare namespace TagClass {
   export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
     ? Context.Tag.Service<Options["provides"]>
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> }
-      ? Options extends { wrap: true } ? void : A["service"]
+      ? Options extends { wrap: true } ? void : AnyService.Service<A["service"]>
     : Options extends { readonly provides: ContextRepr } ? Context.Context<ContextRepr.Identifier<Options["provides"]>>
     : void
 

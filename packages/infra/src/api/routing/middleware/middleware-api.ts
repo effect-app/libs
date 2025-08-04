@@ -7,8 +7,8 @@ import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-m
 import { makeRpcEffect, type MiddlewareMakerId, type RPCHandlerFactory } from "./RouterMiddleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
-// TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
-// in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
+// TODO: don't expect service when it's wrap/never
+// perhaps RequestContextMap should be an object, instead of an interface, so that we don't need to provide anything here
 export const contextMap =
   <RequestContextMap extends Record<string, RPCContextMap.Any>>() =>
   <K extends keyof RequestContextMap>(a: K, service: RequestContextMap[K]["service"]) => ({

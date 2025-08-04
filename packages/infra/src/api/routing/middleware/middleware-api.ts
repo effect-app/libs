@@ -1,9 +1,9 @@
 import { Rpc } from "@effect/rpc"
-import { Context, Effect, Layer, type NonEmptyArray } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
 import { type Simplify } from "effect-app/Types"
 import { type LayerUtils } from "../../layerUtils.js"
-import { type GenericMiddlewareMaker, genericMiddlewareMaker, makeRpcEffect, type MiddlewareMakerId, type RpcDynamic, type RPCHandlerFactory } from "../../routing.js"
+import { type GenericMiddlewareMaker, genericMiddlewareMaker, makeRpcEffect, type MiddlewareMakerId, type RpcDynamic, type RPCHandlerFactory, type TagClassAny } from "../../routing.js"
 
 // TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
 // in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
@@ -33,6 +33,14 @@ export interface MiddlewareM<
   >
 }
 
+type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> }
+  ? {
+    [K in keyof MW["dependsOn"]]: MW["dependsOn"][K] extends { dynamic: RpcDynamic<any, any> }
+      ? MW["dependsOn"][K]["dynamic"]["key"]
+      : never
+  }[keyof MW["dependsOn"]]
+  : never
+
 export interface MiddlewareDynamic<
   RequestContext extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContext,
@@ -40,14 +48,16 @@ export interface MiddlewareDynamic<
   DynamicMiddlewareProviders,
   out MiddlewareR
 > {
-  // TODO: this still allows to mix both types of middleware but with bad typing result
-  // either have to block it, or implement the support properly.
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): [MW] extends [NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }>]
+  ): MW extends NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }>
     ? DynamicMiddlewareMakerrsss<
       RequestContext,
-      Provided | MW[number]["dynamic"]["key"],
+      // when one dynamic middleware depends on another, substract the key, to enforce the dependency to be provided after.
+      Exclude<
+        Provided | MW[number]["dynamic"]["key"],
+        { [K in keyof MW]: GetDependsOnKeys<MW[K]> }[number]
+      >,
       [...Middlewares, ...MW],
       & DynamicMiddlewareProviders
       & {

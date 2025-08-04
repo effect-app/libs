@@ -43,7 +43,7 @@ export type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
 
 type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
   readonly dynamic: RpcDynamic<Key, A>
-  readonly dependsOn?: NonEmptyReadonlyArray<TagClassAny>
+  readonly dependsOn?: NonEmptyReadonlyArray<TagClassAny> | undefined
 }
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
@@ -192,6 +192,7 @@ export declare namespace TagClass {
       : undefined
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined
+    readonly dependsOn: Options extends RpcOptionsDynamic<any, any> ? Options["dependsOn"] : undefined
     readonly requiredForClient: RequiredForClient<Options>
     readonly wrap: Wrap<Options>
   }

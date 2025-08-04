@@ -36,7 +36,15 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
           }
           return Option.none()
         }
-        return Option.some(Context.make(UserProfile, new UserProfile({ id: "whatever", roles: ["user", "manager"] })))
+        return Option.some(
+          Context.make(
+            UserProfile,
+            new UserProfile({
+              id: "whatever",
+              roles: ["user", ...headers["x-is-manager"] === "true" ? ["manager"] : []]
+            })
+          )
+        )
       }
     )
   })
@@ -59,6 +67,14 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
         const { requireRoles } = config
+        console.dir(
+          {
+            userProfile,
+            requireRoles,
+            moo: userProfile.value?.roles?.some((role) => requireRoles && requireRoles.includes(role))
+          },
+          { depth: 5 }
+        )
         if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
           return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }

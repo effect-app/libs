@@ -52,7 +52,8 @@ it("requires gets enforced", async () => {
   const middleware3 = makeMiddleware<RequestContextMap>()
     .middleware(RequiresSomeMiddleware)
     .middleware(SomeMiddleware)
-    .middleware(AllowAnonymous, RequireRoles)
+    .middleware(RequireRoles)
+    .middleware(AllowAnonymous)
     .middleware(SomeElseMiddleware)
     .middleware(Test)
 
@@ -60,16 +61,15 @@ it("requires gets enforced", async () => {
   type LayerContext = Layer.Layer.Context<Default>
   expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
 
-  console.log("1")
   await Effect
     .gen(function*() {
       const mw = yield* middleware3
       const mwM = mw.effect(
-        Object.assign({}, S.Any, { config: {} }),
+        Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
         (_req) => Effect.void,
         "some-module"
       )
-      yield* mwM({}, { "x-user": "test-user" })
+      yield* mwM({}, { "x-user": "test-user", "x-is-manager": "true" })
       // console.log({ v })
     })
     .pipe(
@@ -78,7 +78,6 @@ it("requires gets enforced", async () => {
       Effect.runPromise
     )
 
-  console.log("2")
   expect(
     await Effect
       .gen(function*() {

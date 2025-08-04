@@ -276,7 +276,6 @@ export const Tag = <Self>() =>
   Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
 } =>
   class extends RpcMiddleware.Tag<Self>()(id, options as any) {
-    // TODO: move to TagClass.
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined
     static readonly Default = Layer.scoped(this, opts.effect as any).pipe(
@@ -286,29 +285,3 @@ export const Tag = <Self>() =>
     static override [Unify.unifySymbol]?: TagUnify<typeof this>
     static override [Unify.ignoreSymbol]?: TagUnifyIgnore
   } as any
-
-// export const Tag = <Self>() =>
-// <
-//   const Name extends string,
-//   const Options extends Omit<RpcOptionsOriginal, "wrap">
-// >(
-//   id: Name,
-//   options?: Options | undefined
-// ) =>
-//   OurTag<Self>()(id, { ...options, wrap: true } as Options & { wrap: true }) as <
-//     E,
-//     R,
-//     L extends NonEmptyReadonlyArray<Layer.Layer.Any>
-//   >(opts: {
-//     effect: Effect.Effect<
-//       RpcMiddlewareWrap<
-//         RpcMiddleware.TagClass.Provides<Options>,
-//         RpcMiddleware.TagClass.Failure<Options>
-//       >,
-//       E,
-//       R
-//     >
-//     dependencies?: L
-//   }) => RpcMiddleware.TagClass<Self, Name, Options> & {
-//     Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
-//   }

@@ -1,6 +1,6 @@
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Effect, Either, Layer, S } from "effect-app"
-import { UnauthorizedError } from "effect-app/client"
+import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
 import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
 
@@ -53,9 +53,10 @@ it("requires gets enforced", async () => {
     .middleware(RequiresSomeMiddleware)
     .middleware(SomeMiddleware)
     .middleware(RequireRoles)
-    .middleware(AllowAnonymous)
+    .middleware(AllowAnonymous, Test)
     .middleware(SomeElseMiddleware)
-    .middleware(Test)
+
+  const layer = middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))
 
   type Default = typeof middleware3["Default"]
   type LayerContext = Layer.Layer.Context<Default>
@@ -70,13 +71,68 @@ it("requires gets enforced", async () => {
         "some-module"
       )
       yield* mwM({}, { "x-user": "test-user", "x-is-manager": "true" })
-      // console.log({ v })
     })
     .pipe(
       Effect.scoped,
-      Effect.provide(middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))),
+      Effect.provide(layer),
       Effect.runPromise
     )
+
+  await Effect
+    .gen(function*() {
+      const mw = yield* middleware3
+      const mwM = mw.effect(
+        Object.assign({}, S.Any, { config: { allowAnonymous: true } }),
+        (_req) => Effect.void,
+        "some-module"
+      )
+      yield* mwM({}, {})
+    })
+    .pipe(
+      Effect.scoped,
+      Effect.provide(layer),
+      Effect.runPromise
+    )
+
+  expect(
+    await Effect
+      .gen(function*() {
+        const mw = yield* middleware3
+        const mwM = mw.effect(
+          Object.assign({}, S.Any, { config: {} }),
+          (_req) => Effect.void,
+          "some-module"
+        )
+        yield* mwM({}, {})
+      })
+      .pipe(
+        Effect.scoped,
+        Effect.provide(layer),
+        Effect.either,
+        Effect.runPromise
+      )
+  )
+    .toEqual(Either.left(new NotLoggedInError()))
+
+  expect(
+    await Effect
+      .gen(function*() {
+        const mw = yield* middleware3
+        const mwM = mw.effect(
+          Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
+          (_req) => Effect.void,
+          "some-module"
+        )
+        yield* mwM({}, {})
+      })
+      .pipe(
+        Effect.scoped,
+        Effect.provide(layer),
+        Effect.either,
+        Effect.runPromise
+      )
+  )
+    .toEqual(Either.left(new NotLoggedInError()))
 
   expect(
     await Effect
@@ -88,11 +144,10 @@ it("requires gets enforced", async () => {
           "some-module"
         )
         yield* mwM({}, { "x-user": "test-user" })
-        // console.log({ v })
       })
       .pipe(
         Effect.scoped,
-        Effect.provide(middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))),
+        Effect.provide(layer),
         Effect.either,
         Effect.runPromise
       )

@@ -79,16 +79,17 @@ const genericMiddlewares = [
 const middleware = makeMiddleware<RequestContextMap>()
   .middleware(MyContextProvider)
   .middleware(
-    AllowAnonymous,
     RequireRoles,
     Test
   )
+  .middleware(AllowAnonymous)
   .middleware(...genericMiddlewares)
 // dependencies: [Layer.effect(Str2, Str)],
 
 const middleware2 = makeMiddleware<RequestContextMap>()
   .middleware(MyContextProvider)
-  .middleware(AllowAnonymous, RequireRoles, Test)
+  .middleware(RequireRoles, Test)
+  .middleware(AllowAnonymous)
   .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
 
 export const middleware3 = makeMiddleware<RequestContextMap>()

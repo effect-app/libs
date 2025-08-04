@@ -41,9 +41,15 @@ export type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
   settings: A
 }
 
+export type AnyDynamic = { dynamic: RpcDynamic<any, any> }
+
+export type DependsOn = {
+  readonly dependsOn: NonEmptyReadonlyArray<AnyDynamic> | undefined
+}
+
 type RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> = RpcOptionsOriginal & {
   readonly dynamic: RpcDynamic<Key, A>
-  readonly dependsOn?: NonEmptyReadonlyArray<TagClassAny> | undefined
+  readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
@@ -86,7 +92,7 @@ export interface TagClassAny extends Context.Tag<any, any> {
   readonly requiredForClient: boolean
   readonly wrap: boolean
   readonly dynamic?: RpcDynamic<any, any> | undefined
-  readonly dependsOn?: any
+  readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
 
 export declare namespace TagClass {
@@ -192,7 +198,7 @@ export declare namespace TagClass {
       : undefined
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined
-    readonly dependsOn: Options extends RpcOptionsDynamic<any, any> ? Options["dependsOn"] : undefined
+    readonly dependsOn: Options extends DependsOn ? Options["dependsOn"] : undefined
     readonly requiredForClient: RequiredForClient<Options>
     readonly wrap: Wrap<Options>
   }

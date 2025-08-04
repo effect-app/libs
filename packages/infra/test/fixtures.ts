@@ -70,8 +70,7 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
         console.dir(
           {
             userProfile,
-            requireRoles,
-            moo: userProfile.value?.roles?.some((role) => requireRoles && requireRoles.includes(role))
+            requireRoles
           },
           { depth: 5 }
         )

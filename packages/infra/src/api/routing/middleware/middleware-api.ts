@@ -3,7 +3,9 @@ import { Context, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray 
 import { type RPCContextMap } from "effect-app/client"
 import { type Simplify } from "effect-app/Types"
 import { type LayerUtils } from "../../layerUtils.js"
-import { type GenericMiddlewareMaker, genericMiddlewareMaker, makeRpcEffect, type MiddlewareMakerId, type RpcDynamic, type RPCHandlerFactory, type TagClassAny } from "../../routing.js"
+import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
+import { makeRpcEffect, type MiddlewareMakerId, type RPCHandlerFactory } from "./RouterMiddleware.js"
+import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
 // TODO: ContextMap should be physical Tag (so typeof Tag), so that we can retrieve Identifier and Service separately.
 // in Service classes and TagId, the Id and Service are the same, but don't have to be in classic Tag or GenericTag.
@@ -35,8 +37,7 @@ export interface MiddlewareM<
 
 type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> }
   ? {
-    [K in keyof MW["dependsOn"]]: MW["dependsOn"][K] extends { dynamic: RpcDynamic<any, any> }
-      ? MW["dependsOn"][K]["dynamic"]["key"]
+    [K in keyof MW["dependsOn"]]: MW["dependsOn"][K] extends AnyDynamic ? MW["dependsOn"][K]["dynamic"]["key"]
       : never
   }[keyof MW["dependsOn"]]
   : never

@@ -87,6 +87,7 @@ export type MiddlewaresBuilder<
   MiddlewareR = never
 > =
   //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
+  // MiddlewareR is never when all the required services from generic middlewares are provided
   keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ?
         & ReturnType<
           typeof makeMiddlewareBasic<
@@ -118,7 +119,7 @@ export type MiddlewaresBuilder<
 
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->() => MiddlewaresBuilder<RequestContextMap> = () => {
+>(rcm: RequestContextMap) => MiddlewaresBuilder<RequestContextMap> = (rcm) => {
   let allMiddleware: GenericMiddlewareMaker[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
@@ -126,7 +127,9 @@ export const makeMiddleware: <
         allMiddleware = [mw, ...allMiddleware]
       }
       // TODO: support dynamic and generic intertwined. treat them as one
-      return Object.assign(makeMiddlewareBasic<any, any>(...allMiddleware), it)
+      return allMiddleware.filter((m) => !!m.dynamic).length === Object.keys(rcm).length
+        ? Object.assign(makeMiddlewareBasic<any, any>(...allMiddleware), it)
+        : it
     }
   }
   return it as any

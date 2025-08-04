@@ -2,7 +2,7 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
-import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
+import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
 
 export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
   provides: Some
@@ -49,7 +49,7 @@ export class RequiresSomeMiddleware extends Middleware.Tag<RequiresSomeMiddlewar
 }
 
 it("requires gets enforced", async () => {
-  const middleware3 = makeMiddleware<RequestContextMap>()
+  const middleware3 = makeMiddleware(RequestContextMap)
     .middleware(RequiresSomeMiddleware)
     .middleware(SomeMiddleware)
     .middleware(RequireRoles)

@@ -16,7 +16,7 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 
 // TODO: null as never sucks
 // TODO: why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
-const RequestContextMap = {
+export const RequestContextMap = {
   allowAnonymous: RPCContextMap.makeInverted([UserProfile], NotLoggedInError),
   requireRoles: RPCContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),
   test: RPCContextMap.make(null as never, S.Never)

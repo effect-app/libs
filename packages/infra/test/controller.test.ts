@@ -6,7 +6,7 @@ import { Context, Effect, type Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
-import { AllowAnonymous, CustomError1, type RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, CustomError1, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", {
@@ -76,23 +76,23 @@ const genericMiddlewares = [
   MyContextProvider2
 ] as const
 
-const middleware = makeMiddleware<RequestContextMap>()
+const middleware = makeMiddleware(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(
     RequireRoles,
     Test
   )
+  // AllowAnonymous provided after RequireRoles so that RequireRoles can access what AllowAnonymous provides
   .middleware(AllowAnonymous)
   .middleware(...genericMiddlewares)
-// dependencies: [Layer.effect(Str2, Str)],
 
-const middleware2 = makeMiddleware<RequestContextMap>()
+const middleware2 = makeMiddleware(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(RequireRoles, Test)
   .middleware(AllowAnonymous)
   .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
 
-export const middleware3 = makeMiddleware<RequestContextMap>()
+export const middleware3 = makeMiddleware(RequestContextMap)
   .middleware(...genericMiddlewares)
   .middleware(AllowAnonymous, RequireRoles)
   .middleware(Test)

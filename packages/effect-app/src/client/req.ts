@@ -23,8 +23,15 @@ export namespace ContextRepr {
 }
 export type AnyService = Context.Tag<any, any> | ContextRepr
 export namespace AnyService {
-  export type Identifier<A> = A extends Context.Tag<any, any> ? Tag.Identifier<A> : ContextRepr.Identifier<A>
-  export type Service<A> = A extends Context.Tag<any, any> ? Tag.Service<A> : ContextRepr.Service<A>
+  export type Bla<A> = A extends ContextRepr ? Context.Context<ContextRepr.Identifier<A>>
+    : A extends Context.Tag<any, any> ? Tag.Service<A>
+    : never
+  export type Identifier<A> = A extends ContextRepr ? ContextRepr.Identifier<A>
+    : A extends Context.Tag<any, any> ? Tag.Identifier<A>
+    : never
+  export type Service<A> = A extends ContextRepr ? ContextRepr.Service<A>
+    : A extends Context.Tag<any, any> ? Tag.Service<A>
+    : never
 }
 
 export declare namespace RPCContextMap {

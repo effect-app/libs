@@ -71,7 +71,7 @@ export interface RpcMiddlewareDynamicNormal<A, E, R, Config> {
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
   }): Effect.Effect<
-    Option.Option<A extends NonEmptyReadonlyArray<any> ? Context.Context<A> : A>,
+    Option.Option<A>,
     E,
     Scope.Scope | R
   >
@@ -123,7 +123,7 @@ export declare namespace TagClass {
   export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
     ? Context.Tag.Service<Options["provides"]>
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> }
-      ? Options extends { wrap: true } ? void : AnyService.Service<A["service"]>
+      ? Options extends { wrap: true } ? void : AnyService.Bla<A["service"]>
     : Options extends { readonly provides: ContextRepr } ? Context.Context<ContextRepr.Identifier<Options["provides"]>>
     : void
 

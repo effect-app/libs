@@ -3,7 +3,7 @@ import { Cause, Context, Duration, Effect, Layer, ParseResult, Request } from "e
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
-import { Tag } from "../middleware.js"
+import { Tag } from "./RpcMiddleware.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")

@@ -15,13 +15,13 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<typeof UserProfile, typeof NotLoggedInError>
+  allowAnonymous: RPCContextMap.Inverted<[typeof UserProfile], typeof NotLoggedInError>
   requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
   test: RPCContextMap<never, typeof S.Never>
 }
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap<RequestContextMap>()("allowAnonymous", UserProfile),
+  dynamic: contextMap<RequestContextMap>()("allowAnonymous", [UserProfile]),
   requires: SomeElse
 })({
   effect: Effect.gen(function*() {
@@ -36,7 +36,7 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
           }
           return Option.none()
         }
-        return Option.some(new UserProfile({ id: "whatever", roles: ["user", "manager"] }))
+        return Option.some(Context.make(UserProfile, new UserProfile({ id: "whatever", roles: ["user", "manager"] })))
       }
     )
   })

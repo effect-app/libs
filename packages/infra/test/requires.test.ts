@@ -1,5 +1,6 @@
-import { expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, S } from "effect-app"
+import { expect, expectTypeOf, it } from "@effect/vitest"
+import { Effect, Either, Layer, S } from "effect-app"
+import { UnauthorizedError } from "effect-app/client"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
 import { AllowAnonymous, type RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
 
@@ -59,10 +60,15 @@ it("requires gets enforced", async () => {
   type LayerContext = Layer.Layer.Context<Default>
   expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
 
+  console.log("1")
   await Effect
     .gen(function*() {
       const mw = yield* middleware3
-      const mwM = mw.effect(Object.assign({}, S.Any, { config: {} }), (_req) => Effect.void, "some-module")
+      const mwM = mw.effect(
+        Object.assign({}, S.Any, { config: {} }),
+        (_req) => Effect.void,
+        "some-module"
+      )
       yield* mwM({}, { "x-user": "test-user" })
       // console.log({ v })
     })
@@ -71,4 +77,26 @@ it("requires gets enforced", async () => {
       Effect.provide(middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))),
       Effect.runPromise
     )
+
+  console.log("2")
+  expect(
+    await Effect
+      .gen(function*() {
+        const mw = yield* middleware3
+        const mwM = mw.effect(
+          Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
+          (_req) => Effect.void,
+          "some-module"
+        )
+        yield* mwM({}, { "x-user": "test-user" })
+        // console.log({ v })
+      })
+      .pipe(
+        Effect.scoped,
+        Effect.provide(middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))),
+        Effect.either,
+        Effect.runPromise
+      )
+  )
+    .toEqual(Either.left(new UnauthorizedError({ message: "don't have the right roles" })))
 })

@@ -22,7 +22,8 @@ const RequestContextMap = {
   test: RPCContextMap.make(null as never, S.Never)
 } as const
 
-export type RequestContextMap = typeof RequestContextMap
+type _RequestContextMap = typeof RequestContextMap
+export interface RequestContextMap extends _RequestContextMap {}
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
   dynamic: contextMap(RequestContextMap, "allowAnonymous"),

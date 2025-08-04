@@ -46,7 +46,7 @@ export const genericMiddlewareMaker = <
   dependencies: { [K in keyof T]: T[K]["Default"] }
   effect: Effect.Effect<RpcMiddleware.RpcMiddlewareWrap<any, any>>
 } => {
-  // we want to run them in reverse order
+  // we want to run them in reverse order because latter middlewares will provide context to former ones
   middlewares = middlewares.toReversed() as any
 
   return {

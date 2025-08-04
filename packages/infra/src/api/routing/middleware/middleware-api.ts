@@ -9,8 +9,8 @@ import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddlew
 // adapter used when setting the dynamic prop on a middleware implementation
 export const contextMap = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
-  Key extends keyof RequestContextMap
->(rcm: RequestContextMap, key: Key) => ({
+  Key extends (keyof RequestContextMap) & string
+>(rcm: RequestContextMap, key: Key): RpcDynamic<Key, RequestContextMap[Key]> => ({
   key,
   settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
 })
@@ -18,8 +18,8 @@ export const contextMap = <
 // the following implements sort of builder pattern
 
 export interface MiddlewareM<
-  RequestContext extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContext,
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Provided extends keyof RequestContextMap,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders,
   // out MiddlewareR = never
@@ -28,7 +28,7 @@ export interface MiddlewareM<
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
   ): MiddlewaresBuilder<
-    RequestContext,
+    RequestContextMap,
     Provided,
     [...Middlewares, ...MW],
     DynamicMiddlewareProviders,
@@ -36,6 +36,7 @@ export interface MiddlewareM<
   >
 }
 
+// it's for dynamic middlewares
 type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> }
   ? {
     [K in keyof MW["dependsOn"]]: MW["dependsOn"][K] extends AnyDynamic ? MW["dependsOn"][K]["dynamic"]["key"]
@@ -43,72 +44,77 @@ type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsO
   }[keyof MW["dependsOn"]]
   : never
 
+type FilterInDynamicMiddlewares<
+  MW extends ReadonlyArray<GenericMiddlewareMaker>,
+  RequestContextMap extends Record<string, RPCContextMap.Any>
+> = {
+  [K in keyof MW]: MW[K] extends { dynamic: RpcDynamic<any, RequestContextMap[keyof RequestContextMap]> } ? MW[K]
+    : never
+}
+
 export interface MiddlewareDynamic<
-  RequestContext extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContext,
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Provided extends keyof RequestContextMap,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders,
   out MiddlewareR
 > {
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): MW extends NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }> ? MiddlewaresBuilder<
-      RequestContext,
-      // when one dynamic middleware depends on another, substract the key, to enforce the dependency to be provided after
-      Exclude<
-        Provided | MW[number]["dynamic"]["key"],
-        { [K in keyof MW]: GetDependsOnKeys<MW[K]> }[number]
-      >,
-      [...Middlewares, ...MW],
-      & DynamicMiddlewareProviders
-      & {
-        [U in MW[number] as U["dynamic"]["key"]]: U
-      },
-      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-    >
-    : MiddlewaresBuilder<
-      RequestContext,
-      Provided,
-      [...Middlewares, ...MW],
-      DynamicMiddlewareProviders,
-      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-    >
+  ): MiddlewaresBuilder<
+    RequestContextMap,
+    // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
+    // (if already provided, it would have to be re-provided anyway, so better to provide it after)
+    Exclude<
+      Provided | FilterInDynamicMiddlewares<MW, RequestContextMap>[number]["dynamic"]["key"],
+      // whole MW is fine here because only dynamic middlewares will have 'dependsOn' prop
+      { [K in keyof MW]: GetDependsOnKeys<MW[K]> }[number]
+    >,
+    [...Middlewares, ...MW],
+    & DynamicMiddlewareProviders
+    & {
+      [U in FilterInDynamicMiddlewares<MW, RequestContextMap>[number] as U["dynamic"]["key"]]: U
+    },
+    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
+  >
 }
 
 export type MiddlewaresBuilder<
-  RequestContext extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContext = never,
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Provided extends keyof RequestContextMap = never,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
   DynamicMiddlewareProviders = unknown,
   MiddlewareR = never
-> = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
-      & ReturnType<
-        typeof makeMiddlewareBasic<
-          RequestContext,
-          Middlewares
+> =
+  //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
+  keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ?
+        & ReturnType<
+          typeof makeMiddlewareBasic<
+            RequestContextMap,
+            Middlewares
+          >
         >
-      >
-      & MiddlewareM<
-        RequestContext,
-        Provided,
-        Middlewares,
-        DynamicMiddlewareProviders,
-        MiddlewareR
-      >
-  : MiddlewareM<
-    RequestContext,
-    Provided,
-    Middlewares,
-    DynamicMiddlewareProviders,
-    MiddlewareR
-  >
-  : MiddlewareDynamic<
-    RequestContext,
-    Provided,
-    Middlewares,
-    DynamicMiddlewareProviders,
-    MiddlewareR
-  >
+        & MiddlewareM<
+          RequestContextMap,
+          Provided,
+          Middlewares,
+          DynamicMiddlewareProviders,
+          MiddlewareR
+        >
+    : MiddlewareM<
+      RequestContextMap,
+      Provided,
+      Middlewares,
+      DynamicMiddlewareProviders,
+      MiddlewareR
+    >
+    : MiddlewareDynamic<
+      RequestContextMap,
+      Provided,
+      Middlewares,
+      DynamicMiddlewareProviders,
+      MiddlewareR
+    >
 
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
@@ -126,7 +132,7 @@ export const makeMiddleware: <
   return it as any
 }
 
-export const makeMiddlewareBasic =
+const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,

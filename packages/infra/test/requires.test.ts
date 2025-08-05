@@ -1,4 +1,4 @@
-import { expect, expectTypeOf, it } from "@effect/vitest"
+import { describe, expect, expectTypeOf, it } from "@effect/vitest"
 import { Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
@@ -60,129 +60,121 @@ export class RequiresSomeMiddleware extends Middleware.Tag<RequiresSomeMiddlewar
 }) {
 }
 
-it("requires gets enforced", async () => {
-  const middleware3 = makeMiddleware(RequestContextMap)
-    .middleware(RequiresSomeMiddleware)
-    .middleware(SomeMiddleware)
-    .middleware(RequireRoles)
-    .middleware(AllowAnonymous, Test)
-    .middleware(SomeElseMiddleware)
+const middleware3 = makeMiddleware(RequestContextMap)
+  .middleware(RequiresSomeMiddleware)
+  .middleware(SomeMiddleware)
+  .middleware(RequireRoles)
+  .middleware(AllowAnonymous, Test)
+  .middleware(SomeElseMiddleware)
 
-  const _middlewareSideways = makeMiddleware(RequestContextMap)
-    .middleware(RequiresSomeMiddleware)
-    .middleware(SomeMiddleware)
-    .middleware(RequireRoles, AllowAnonymous, Test)
-    .middleware(SomeElseMiddleware)
+const _middlewareSideways = makeMiddleware(RequestContextMap)
+  .middleware(RequiresSomeMiddleware)
+  .middleware(SomeMiddleware)
+  .middleware(RequireRoles, AllowAnonymous, Test)
+  .middleware(SomeElseMiddleware)
 
-  const _middlewareSidewaysFully = makeMiddleware(RequestContextMap)
-    .middleware(RequiresSomeMiddleware, SomeMiddleware, RequireRoles, AllowAnonymous, Test, SomeElseMiddleware)
+const _middlewareSidewaysFully = makeMiddleware(RequestContextMap)
+  .middleware(RequiresSomeMiddleware, SomeMiddleware, RequireRoles, AllowAnonymous, Test, SomeElseMiddleware)
 
-  const _middleware3Bis = makeMiddleware(RequestContextMap)
-    .middleware(RequiresSomeMiddleware)
-    .middleware(SomeMiddlewareWrap)
-    .middleware(RequireRoles)
-    .middleware(AllowAnonymous, Test)
-    .middleware(SomeElseMiddleware)
+const _middleware3Bis = makeMiddleware(RequestContextMap)
+  .middleware(RequiresSomeMiddleware)
+  .middleware(SomeMiddlewareWrap)
+  .middleware(RequireRoles)
+  .middleware(AllowAnonymous, Test)
+  .middleware(SomeElseMiddleware)
 
-  expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
-  expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
-  expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
+expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
+expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
+expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
 
-  const layer = middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))
+const layer = middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))
 
-  type Default = typeof middleware3["Default"]
-  type LayerContext = Layer.Layer.Context<Default>
-  expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
+type Default = typeof middleware3["Default"]
+type LayerContext = Layer.Layer.Context<Default>
+expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
 
-  await Effect
-    .gen(function*() {
-      const mw = yield* middleware3
-      const mwM = mw.effect(
-        Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
-        (_req) => Effect.void,
-        "some-module"
+const testSuite = async (_mw: typeof middleware3) =>
+  describe("middleware" + _mw, () => {
+    it("works", async () => {
+      Effect
+        .gen(function*() {
+          const mw = yield* _mw
+          const mwM = mw.effect(
+            Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
+            (_req) => Effect.void,
+            "some-module"
+          )
+          yield* mwM({}, { "x-user": "test-user", "x-is-manager": "true" })
+        })
+        .pipe(
+          Effect.scoped,
+          Effect.provide(layer),
+          Effect.runPromise
+        )
+
+      expect(
+        await Effect
+          .gen(function*() {
+            const mw = yield* _mw
+            const mwM = mw.effect(
+              Object.assign({}, S.Any, { config: {} }),
+              (_req) => Effect.void,
+              "some-module"
+            )
+            yield* mwM({}, {})
+          })
+          .pipe(
+            Effect.scoped,
+            Effect.provide(layer),
+            Effect.either,
+            Effect.runPromise
+          )
       )
-      yield* mwM({}, { "x-user": "test-user", "x-is-manager": "true" })
+        .toEqual(Either.left(new NotLoggedInError()))
+
+      expect(
+        await Effect
+          .gen(function*() {
+            const mw = yield* _mw
+            const mwM = mw.effect(
+              Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
+              (_req) => Effect.void,
+              "some-module"
+            )
+            yield* mwM({}, {})
+          })
+          .pipe(
+            Effect.scoped,
+            Effect.provide(layer),
+            Effect.either,
+            Effect.runPromise
+          )
+      )
+        .toEqual(Either.left(new NotLoggedInError()))
+
+      expect(
+        await Effect
+          .gen(function*() {
+            const mw = yield* _mw
+            const mwM = mw.effect(
+              Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
+              (_req) => Effect.void,
+              "some-module"
+            )
+            yield* mwM({}, { "x-user": "test-user" })
+          })
+          .pipe(
+            Effect.scoped,
+            Effect.provide(layer),
+            Effect.either,
+            Effect.runPromise
+          )
+      )
+        .toEqual(Either.left(new UnauthorizedError({ message: "don't have the right roles" })))
     })
-    .pipe(
-      Effect.scoped,
-      Effect.provide(layer),
-      Effect.runPromise
-    )
+  })
 
-  await Effect
-    .gen(function*() {
-      const mw = yield* middleware3
-      const mwM = mw.effect(
-        Object.assign({}, S.Any, { config: { allowAnonymous: true } }),
-        (_req) => Effect.void,
-        "some-module"
-      )
-      yield* mwM({}, {})
-    })
-    .pipe(
-      Effect.scoped,
-      Effect.provide(layer),
-      Effect.runPromise
-    )
-
-  expect(
-    await Effect
-      .gen(function*() {
-        const mw = yield* middleware3
-        const mwM = mw.effect(
-          Object.assign({}, S.Any, { config: {} }),
-          (_req) => Effect.void,
-          "some-module"
-        )
-        yield* mwM({}, {})
-      })
-      .pipe(
-        Effect.scoped,
-        Effect.provide(layer),
-        Effect.either,
-        Effect.runPromise
-      )
-  )
-    .toEqual(Either.left(new NotLoggedInError()))
-
-  expect(
-    await Effect
-      .gen(function*() {
-        const mw = yield* middleware3
-        const mwM = mw.effect(
-          Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
-          (_req) => Effect.void,
-          "some-module"
-        )
-        yield* mwM({}, {})
-      })
-      .pipe(
-        Effect.scoped,
-        Effect.provide(layer),
-        Effect.either,
-        Effect.runPromise
-      )
-  )
-    .toEqual(Either.left(new NotLoggedInError()))
-
-  expect(
-    await Effect
-      .gen(function*() {
-        const mw = yield* middleware3
-        const mwM = mw.effect(
-          Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
-          (_req) => Effect.void,
-          "some-module"
-        )
-        yield* mwM({}, { "x-user": "test-user" })
-      })
-      .pipe(
-        Effect.scoped,
-        Effect.provide(layer),
-        Effect.either,
-        Effect.runPromise
-      )
-  )
-    .toEqual(Either.left(new UnauthorizedError({ message: "don't have the right roles" })))
-})
+testSuite(middleware3)
+testSuite(_middleware3Bis)
+testSuite(_middlewareSideways)
+testSuite(_middlewareSidewaysFully)

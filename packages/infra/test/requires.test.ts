@@ -17,6 +17,18 @@ export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddle
 }) {
 }
 
+// functionally equivalent to the one above
+export class SomeMiddlewareWrap extends Middleware.Tag<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
+  provides: Some,
+  wrap: true
+})({
+  effect: Effect.gen(function*() {
+    // yield* Effect.context<"test-dep">()
+    return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
+  })
+}) {
+}
+
 export class SomeElseMiddleware extends Middleware.Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
   provides: SomeElse,
   wrap: true
@@ -55,6 +67,15 @@ it("requires gets enforced", async () => {
     .middleware(RequireRoles)
     .middleware(AllowAnonymous, Test)
     .middleware(SomeElseMiddleware)
+
+  const _middleware3Bis = makeMiddleware(RequestContextMap)
+    .middleware(RequiresSomeMiddleware)
+    .middleware(SomeMiddlewareWrap)
+    .middleware(RequireRoles)
+    .middleware(AllowAnonymous, Test)
+    .middleware(SomeElseMiddleware)
+
+  expectTypeOf(middleware3).toEqualTypeOf<typeof _middleware3Bis>()
 
   const layer = middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))
 

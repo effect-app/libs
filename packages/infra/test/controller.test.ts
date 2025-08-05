@@ -76,7 +76,7 @@ const genericMiddlewares = [
   MyContextProvider2
 ] as const
 
-const middleware = makeMiddleware(RequestContextMap)
+const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(
     RequireRoles,
@@ -86,13 +86,13 @@ const middleware = makeMiddleware(RequestContextMap)
   .middleware(AllowAnonymous)
   .middleware(...genericMiddlewares)
 
-const middleware2 = makeMiddleware(RequestContextMap)
+const middleware2 = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(RequireRoles, Test)
   .middleware(AllowAnonymous)
   .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
 
-export const middleware3 = makeMiddleware(RequestContextMap)
+export const middleware3 = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(...genericMiddlewares)
   .middleware(AllowAnonymous, RequireRoles)
   .middleware(Test)

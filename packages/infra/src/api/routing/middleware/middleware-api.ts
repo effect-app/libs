@@ -17,24 +17,6 @@ export const contextMap = <
 
 // the following implements sort of builder pattern
 // we don't support sideways elimination of dependencies, only downwards
-export interface MiddlewareM<
-  RequestContextMap extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContextMap,
-  Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
-  DynamicMiddlewareProviders,
-  // out MiddlewareR = never
-  MiddlewareR = never
-> {
-  middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
-    ...mw: MW
-  ): MiddlewaresBuilder<
-    RequestContextMap,
-    Provided,
-    [...Middlewares, ...MW],
-    DynamicMiddlewareProviders,
-    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-  >
-}
 
 // it's for dynamic middlewares
 type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> }
@@ -88,21 +70,13 @@ export type MiddlewaresBuilder<
 > =
   //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
   // MiddlewareR is never when all the required services from generic & dynamic middlewares are provided
-  keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ?
-        & ReturnType<
-          typeof makeMiddlewareBasic<
-            RequestContextMap,
-            Middlewares
-          >
-        >
-        & MiddlewareM<
+  keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ? ReturnType<
+        typeof makeMiddlewareBasic<
           RequestContextMap,
-          Provided,
-          Middlewares,
-          DynamicMiddlewareProviders,
-          MiddlewareR
+          Middlewares
         >
-    : MiddlewareM<
+      >
+    : MiddlewareDynamic<
       RequestContextMap,
       Provided,
       Middlewares,

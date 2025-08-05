@@ -157,7 +157,6 @@ const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,
-    // RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
     GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
   >(
     _rcm: RequestContextMap,

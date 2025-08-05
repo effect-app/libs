@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { expectTypeOf } from "@effect/vitest"
+import { expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Scope } from "effect-app"
 import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/routing.js"
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"

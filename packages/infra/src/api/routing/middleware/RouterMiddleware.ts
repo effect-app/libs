@@ -6,6 +6,7 @@ import type { GetEffectContext, RPCContextMap } from "effect-app/client/req"
 import type * as EffectRequest from "effect/Request"
 import { type ContextTagWithDefault } from "../../layerUtils.js"
 import { type ContextWithLayer } from "./dynamic-middleware.js"
+import { type MiddlewareMaker, type MiddlewareMakerId } from "./middleware-api.js"
 
 // module:
 //
@@ -86,10 +87,6 @@ export type RequestContextMapProvider<RequestContextMap extends Record<string, R
   >
 }
 
-export interface MiddlewareMakerId {
-  _tag: "MiddlewareMaker"
-}
-
 export type RouterMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
@@ -97,10 +94,7 @@ export type RouterMiddleware<
   ContextProviderA // what the context provider provides
 > = ContextTagWithDefault<
   MiddlewareMakerId,
-  {
-    _tag: "MiddlewareMaker"
-    effect: RPCHandlerFactory<RequestContextMap, ContextProviderA>
-  },
+  MiddlewareMaker<RPCHandlerFactory<RequestContextMap, ContextProviderA>>,
   MakeMiddlewareE,
   MakeMiddlewareR
 >

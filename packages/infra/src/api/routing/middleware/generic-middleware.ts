@@ -72,7 +72,8 @@ export const genericMiddlewareMaker = <
               Effect.zipRight(middleware({ ...options, next: handler }))
             ) as any
           } else if (tag.optional) {
-            // use the tag to get the middleware from context (it might not be there)
+            // use the tag to get the middleware from context
+            // if the middleware fails to run, we will ignore the error
             const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
 
             const previous = handler

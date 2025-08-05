@@ -3,7 +3,7 @@ import { Context, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray 
 import { type RPCContextMap } from "effect-app/client"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
-import { makeRpcEffect, type MiddlewareMakerId, type RPCHandlerFactory } from "./RouterMiddleware.js"
+import { makeRpcEffect, type RPCHandlerFactory } from "./RouterMiddleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
 // adapter used when setting the dynamic prop on a middleware implementation
@@ -16,7 +16,7 @@ export const contextMap = <
 })
 
 // the following implements sort of builder pattern
-
+// we don't support sideways elimination of dependencies, only downwards
 export interface MiddlewareM<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContextMap,
@@ -124,18 +124,34 @@ export const makeMiddleware: <
   const it = {
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
+        // recall that we run middlewares in reverse order
         allMiddleware = [mw, ...allMiddleware]
       }
-      // TODO: support dynamic and generic intertwined. treat them as one
       return allMiddleware.filter((m) => !!m.dynamic).length !== Object.keys(rcm).length
         // for sure, until all the dynamic middlewares are provided it's non sensical to call makeMiddlewareBasic
         ? it
         // actually, we don't know yet if MiddlewareR is never, but we can't easily check it at runtime
-        : Object.assign(makeMiddlewareBasic<any, any>(...allMiddleware), it)
+        : Object.assign(makeMiddlewareBasic<any, any>(rcm, ...allMiddleware), it)
     }
   }
   return it as any
 }
+
+//
+export const MiddlewareMakerTag = "MiddlewareMaker" as const
+
+export interface MiddlewareMaker<E> {
+  readonly effect: E
+  readonly _tag: typeof MiddlewareMakerTag
+}
+
+export type MiddlewareMakerId = Pick<MiddlewareMaker<any>, "_tag">
+
+export const buildMiddlewareMaker = <E>(eff: E) =>
+  ({
+    _tag: MiddlewareMakerTag,
+    effect: eff
+  }) satisfies MiddlewareMaker<E>
 
 const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
@@ -144,21 +160,22 @@ const makeMiddlewareBasic =
     // RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
     GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
   >(
+    _rcm: RequestContextMap,
     ...make: GenericMiddlewareProviders
   ) => {
     const MiddlewareMaker = Context.GenericTag<
       MiddlewareMakerId,
-      {
-        effect: RPCHandlerFactory<
+      MiddlewareMaker<
+        RPCHandlerFactory<
           RequestContextMap,
           GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
         >
-        _tag: "MiddlewareMaker"
-      }
+      >
     >(
-      "MiddlewareMaker"
+      MiddlewareMakerTag
     )
 
+    // reverse middlewares and wrap one after the other
     const middlewares = genericMiddlewareMaker(...make)
 
     const l = Layer.scoped(
@@ -166,16 +183,16 @@ const makeMiddlewareBasic =
       middlewares
         .effect
         .pipe(
-          Effect.map((generic) => ({
-            _tag: "MiddlewareMaker" as const,
-            effect: makeRpcEffect<
+          Effect.map((generic) => (buildMiddlewareMaker(
+            makeRpcEffect<
               RequestContextMap,
               GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
             >()(
-              (schema, next, moduleName) => {
+              (schema, handler, moduleName) => {
                 return (payload, headers) =>
                   Effect
                     .gen(function*() {
+                      // will be propagated to all the wrapped middlewares
                       const basic = {
                         config: schema.config ?? {},
                         payload,
@@ -189,12 +206,12 @@ const makeMiddlewareBasic =
                       }
                       return yield* generic({
                         ...basic,
-                        next: next(payload, headers) as any
+                        next: handler(payload, headers) as any
                       })
-                    }) as any // why?
+                    }) as any // why? because: Type 'SuccessValue' is not assignable to type 'Success<Req>' :P
               }
             )
-          }))
+          )))
         )
     )
 
@@ -203,9 +220,11 @@ const makeMiddlewareBasic =
         Layer.provide(middlewares.dependencies as any)
       ) as Layer.Layer<
         MiddlewareMakerId,
-        LayerUtils.GetLayersError<typeof middlewares.dependencies>, // what could go wrong when building the dynamic middleware provider
+        // what could go wrong when building the dynamic middleware provider
+        LayerUtils.GetLayersError<typeof middlewares.dependencies>,
         LayerUtils.GetLayersContext<typeof middlewares.dependencies>
       >
 
+    // add to the tag a default implementation
     return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
   }

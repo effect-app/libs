@@ -68,6 +68,15 @@ it("requires gets enforced", async () => {
     .middleware(AllowAnonymous, Test)
     .middleware(SomeElseMiddleware)
 
+  const _middlewareSideways = makeMiddleware(RequestContextMap)
+    .middleware(RequiresSomeMiddleware)
+    .middleware(SomeMiddleware)
+    .middleware(RequireRoles, AllowAnonymous, Test)
+    .middleware(SomeElseMiddleware)
+
+  const _middlewareSidewaysFully = makeMiddleware(RequestContextMap)
+    .middleware(RequiresSomeMiddleware, SomeMiddleware, RequireRoles, AllowAnonymous, Test, SomeElseMiddleware)
+
   const _middleware3Bis = makeMiddleware(RequestContextMap)
     .middleware(RequiresSomeMiddleware)
     .middleware(SomeMiddlewareWrap)
@@ -75,7 +84,9 @@ it("requires gets enforced", async () => {
     .middleware(AllowAnonymous, Test)
     .middleware(SomeElseMiddleware)
 
-  expectTypeOf(middleware3).toEqualTypeOf<typeof _middleware3Bis>()
+  expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
+  expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
+  expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
 
   const layer = middleware3.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))
 

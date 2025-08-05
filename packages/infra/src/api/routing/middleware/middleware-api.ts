@@ -71,7 +71,7 @@ export interface BuildingMiddleware<
   Provided extends keyof RequestContextMap,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders,
-  out MiddlewareR
+  out MiddlewareR extends { _tag: string } = never
 > {
   middleware<MWs extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MWs
@@ -95,6 +95,12 @@ export interface BuildingMiddleware<
       Res["middlewareR"]
     >
     : never
+
+  // helps debugging what are the missing requirements (type only)
+  missing: {
+    missingDynamicMiddlewares: Exclude<keyof RequestContextMap, Provided>
+    missingContext: MiddlewareR
+  }
 }
 
 export type MiddlewaresBuilder<
@@ -102,7 +108,7 @@ export type MiddlewaresBuilder<
   Provided extends keyof RequestContextMap = never,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
   DynamicMiddlewareProviders = unknown,
-  MiddlewareR = never
+  MiddlewareR extends { _tag: string } = never
 > =
   //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
   // MiddlewareR is never when all the required services from generic & dynamic middlewares are provided

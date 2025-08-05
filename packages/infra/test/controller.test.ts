@@ -97,8 +97,21 @@ const middlewareBis = makeMiddleware<RequestContextMap>(RequestContextMap)
 
 expectTypeOf(middleware).toEqualTypeOf<typeof middlewareBis>()
 
-// testing more sideways elimination
-const middlewareTris = makeMiddleware<RequestContextMap>(RequestContextMap)
+const middlewareTrisWip = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(
+    MyContextProvider,
+    RequireRoles,
+    Test
+  )
+  .missing
+
+expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
+  missingDynamicMiddlewares: "allowAnonymous"
+  missingContext: SomeElse
+}>()
+
+// testing more sideways elimination]
+const middlewareQuater = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(
     MyContextProvider,
     RequireRoles,
@@ -107,7 +120,7 @@ const middlewareTris = makeMiddleware<RequestContextMap>(RequestContextMap)
     ...genericMiddlewares
   )
 
-expectTypeOf(middleware).toEqualTypeOf<typeof middlewareTris>()
+expectTypeOf(middleware).toEqualTypeOf<typeof middlewareQuater>()
 
 const middleware2 = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)

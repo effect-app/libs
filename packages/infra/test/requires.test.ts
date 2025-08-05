@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from "@effect/vitest"
 import { Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
-import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElse, Test } from "./fixtures.js"
+import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
 export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
   provides: Some
@@ -89,14 +89,14 @@ expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
 
 type Default = typeof middleware3["Default"]
 type LayerContext = Layer.Layer.Context<Default>
-expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
+expectTypeOf({} as LayerContext).toEqualTypeOf<SomeService>()
 
 const testSuite = async (_mw: typeof middleware3) =>
   describe("middleware" + _mw, () => {
-    it(
+    it.effect(
       "works",
       Effect.fn(function*() {
-        const layer = _mw.Default.pipe(Layer.provide(Layer.succeed(Some, new Some({ a: 1 }))))
+        const layer = _mw.Default.pipe(Layer.provide(SomeService.toLayer()))
         yield* Effect
           .gen(function*() {
             const mw = yield* _mw

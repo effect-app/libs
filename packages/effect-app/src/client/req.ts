@@ -6,39 +6,33 @@ import { type Tag } from "../Context.js"
 import { type Context, type NonEmptyReadonlyArray, S } from "../internal/lib.js"
 import { type Values } from "../utils.js"
 
-/**
- * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
- * Unless explicitly configured as `true`.
- */
-export type RPCContextMap<Service, E> = {
-  service: Service
-  error: E
-  contextActivation: true
+export type ContextTagArray = NonEmptyReadonlyArray<Context.Tag<any, any>>
+export namespace ContextTagArray {
+  export type Identifier<A> = A extends ContextTagArray ? Tag.Identifier<A[number]> : never
+  export type Service<A> = A extends ContextTagArray ? Tag.Service<A[number]> : never
 }
-
-export type ContextRepr = NonEmptyReadonlyArray<Context.Tag<any, any>>
-export namespace ContextRepr {
-  export type Identifier<A> = A extends ContextRepr ? Tag.Identifier<A[number]> : never
-  export type Service<A> = A extends ContextRepr ? Tag.Service<A[number]> : never
-}
-export type AnyService = Context.Tag<any, any> | ContextRepr
+export type AnyService = Context.Tag<any, any> | ContextTagArray
 export namespace AnyService {
-  export type Bla<A> = A extends ContextRepr ? Context.Context<ContextRepr.Identifier<A>>
+  export type Bla<A> = A extends ContextTagArray ? Context.Context<ContextTagArray.Identifier<A>>
     : A extends Context.Tag<any, any> ? Tag.Service<A>
     : never
-  export type Identifier<A> = A extends ContextRepr ? ContextRepr.Identifier<A>
+  export type Identifier<A> = A extends ContextTagArray ? ContextTagArray.Identifier<A>
     : A extends Context.Tag<any, any> ? Tag.Identifier<A>
     : never
-  export type Service<A> = A extends ContextRepr ? ContextRepr.Service<A>
+  export type Service<A> = A extends ContextTagArray ? ContextTagArray.Service<A>
     : A extends Context.Tag<any, any> ? Tag.Service<A>
     : never
 }
 
-export declare namespace RPCContextMap {
-  export type Custom<Service extends AnyService, E, Custom> = {
+export namespace RPCContextMap {
+  /**
+   * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
+   * Unless explicitly configured as `true`.
+   */
+  export type RPCContextMap<Service, E> = {
     service: Service
     error: E
-    contextActivation: Custom
+    contextActivation: true
   }
 
   /**
@@ -51,11 +45,45 @@ export declare namespace RPCContextMap {
     contextActivation: false
   }
 
+  export type Custom<Service extends AnyService, E, C> = {
+    service: Service
+    error: E
+    contextActivation: C
+  }
+
   export type Any = {
     service: AnyService
     error: S.Schema.All
     contextActivation: any
   }
+
+  export const make = <Service extends AnyService, E>(
+    service: Service,
+    error: E
+  ): RPCContextMap<Service, E> => ({
+    service,
+    error,
+    contextActivation: true
+  })
+
+  export const makeInverted = <Service extends AnyService, E>(
+    service: Service,
+    error: E
+  ): Inverted<Service, E> => ({
+    service,
+    error,
+    contextActivation: false
+  })
+
+  export const makeCustom = <Service extends AnyService, E, C>(
+    service: Service,
+    error: E,
+    contextActivation: C
+  ): Custom<Service, E, C> => ({
+    service,
+    error,
+    contextActivation
+  })
 }
 
 export type GetEffectContext<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<

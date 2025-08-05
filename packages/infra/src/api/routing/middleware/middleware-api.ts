@@ -3,37 +3,22 @@ import { Context, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray 
 import { type RPCContextMap } from "effect-app/client"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
-import { makeRpcEffect, type MiddlewareMakerId, type RPCHandlerFactory } from "./RouterMiddleware.js"
+import { makeRpcEffect, type RPCHandlerFactory } from "./RouterMiddleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
-// TODO: don't expect service when it's wrap/never
-// perhaps RequestContextMap should be an object, instead of an interface, so that we don't need to provide anything here
-export const contextMap =
-  <RequestContextMap extends Record<string, RPCContextMap.Any>>() =>
-  <K extends keyof RequestContextMap>(a: K, service: RequestContextMap[K]["service"]) => ({
-    key: a,
-    settings: { service } as any as RequestContextMap[typeof a]
-  })
+// adapter used when setting the dynamic prop on a middleware implementation
+export const contextMap = <
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Key extends (keyof RequestContextMap) & string
+>(rcm: RequestContextMap, key: Key): RpcDynamic<Key, RequestContextMap[Key]> => ({
+  key,
+  settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
+})
 
-export interface MiddlewareM<
-  RequestContext extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContext,
-  Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
-  DynamicMiddlewareProviders,
-  // out MiddlewareR = never
-  MiddlewareR = never
-> {
-  middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
-    ...mw: MW
-  ): DynamicMiddlewareMakerrsss<
-    RequestContext,
-    Provided,
-    [...Middlewares, ...MW],
-    DynamicMiddlewareProviders,
-    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-  >
-}
+// the following implements sort of builder pattern
+// we don't support sideways elimination of dependencies, only downwards
 
+// it's for dynamic middlewares
 type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> }
   ? {
     [K in keyof MW["dependsOn"]]: MW["dependsOn"][K] extends AnyDynamic ? MW["dependsOn"][K]["dynamic"]["key"]
@@ -41,112 +26,129 @@ type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsO
   }[keyof MW["dependsOn"]]
   : never
 
-export interface MiddlewareDynamic<
-  RequestContext extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContext,
+type FilterInDynamicMiddlewares<
+  MW extends ReadonlyArray<GenericMiddlewareMaker>,
+  RequestContextMap extends Record<string, RPCContextMap.Any>
+> = {
+  [K in keyof MW]: MW[K] extends { dynamic: RpcDynamic<any, RequestContextMap[keyof RequestContextMap]> } ? MW[K]
+    : never
+}
+
+export interface BuildingMiddleware<
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Provided extends keyof RequestContextMap,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
   DynamicMiddlewareProviders,
   out MiddlewareR
 > {
   middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
     ...mw: MW
-  ): MW extends NonEmptyArray<{ dynamic: RpcDynamic<any, RequestContext[keyof RequestContext]> }>
-    ? DynamicMiddlewareMakerrsss<
-      RequestContext,
-      // when one dynamic middleware depends on another, substract the key, to enforce the dependency to be provided after.
-      Exclude<
-        Provided | MW[number]["dynamic"]["key"],
-        { [K in keyof MW]: GetDependsOnKeys<MW[K]> }[number]
-      >,
-      [...Middlewares, ...MW],
-      & DynamicMiddlewareProviders
-      & {
-        [U in MW[number] as U["dynamic"]["key"]]: U
-      },
-      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-    >
-    : DynamicMiddlewareMakerrsss<
-      RequestContext,
-      Provided,
-      [...Middlewares, ...MW],
-      DynamicMiddlewareProviders,
-      GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-    >
+  ): MiddlewaresBuilder<
+    RequestContextMap,
+    // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
+    // (if already provided, it would have to be re-provided anyway, so better to provide it after)
+    Exclude<
+      Provided | FilterInDynamicMiddlewares<MW, RequestContextMap>[number]["dynamic"]["key"],
+      // whole MW is fine here because only dynamic middlewares will have 'dependsOn' prop
+      { [K in keyof MW]: GetDependsOnKeys<MW[K]> }[number]
+    >,
+    [...Middlewares, ...MW],
+    & DynamicMiddlewareProviders
+    & {
+      [U in FilterInDynamicMiddlewares<MW, RequestContextMap>[number] as U["dynamic"]["key"]]: U
+    },
+    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
+  >
 }
 
-type DynamicMiddlewareMakerrsss<
-  RequestContext extends Record<string, RPCContextMap.Any>,
-  Provided extends keyof RequestContext = never,
+export type MiddlewaresBuilder<
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Provided extends keyof RequestContextMap = never,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
   DynamicMiddlewareProviders = unknown,
   MiddlewareR = never
-> = keyof Omit<RequestContext, Provided> extends never ? [MiddlewareR] extends [never] ?
-      & ReturnType<
+> =
+  //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
+  // MiddlewareR is never when all the required services from generic & dynamic middlewares are provided
+  keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ? ReturnType<
         typeof makeMiddlewareBasic<
-          RequestContext,
+          RequestContextMap,
           Middlewares
         >
       >
-      & MiddlewareM<
-        RequestContext,
-        Provided,
-        Middlewares,
-        DynamicMiddlewareProviders,
-        MiddlewareR
-      >
-  : MiddlewareM<
-    RequestContext,
-    Provided,
-    Middlewares,
-    DynamicMiddlewareProviders,
-    MiddlewareR
-  >
-  : MiddlewareDynamic<
-    RequestContext,
-    Provided,
-    Middlewares,
-    DynamicMiddlewareProviders,
-    MiddlewareR
-  >
+    : BuildingMiddleware<
+      RequestContextMap,
+      Provided,
+      Middlewares,
+      DynamicMiddlewareProviders,
+      MiddlewareR
+    >
+    : BuildingMiddleware<
+      RequestContextMap,
+      Provided,
+      Middlewares,
+      DynamicMiddlewareProviders,
+      MiddlewareR
+    >
 
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->() => DynamicMiddlewareMakerrsss<RequestContextMap> = () => {
+>(rcm: RequestContextMap) => MiddlewaresBuilder<RequestContextMap> = (rcm) => {
   let allMiddleware: GenericMiddlewareMaker[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
+        // recall that we run middlewares in reverse order
         allMiddleware = [mw, ...allMiddleware]
       }
-      // TODO: support dynamic and generic intertwined. treat them as one
-      return Object.assign(makeMiddlewareBasic<any, any>(...allMiddleware), it)
+      return allMiddleware.filter((m) => !!m.dynamic).length !== Object.keys(rcm).length
+        // for sure, until all the dynamic middlewares are provided it's non sensical to call makeMiddlewareBasic
+        ? it
+        // actually, we don't know yet if MiddlewareR is never, but we can't easily check it at runtime
+        : Object.assign(makeMiddlewareBasic<any, any>(rcm, ...allMiddleware), it)
     }
   }
   return it as any
 }
 
-export const makeMiddlewareBasic =
+//
+export const MiddlewareMakerTag = "MiddlewareMaker" as const
+
+export interface MiddlewareMaker<E> {
+  readonly effect: E
+  readonly _tag: typeof MiddlewareMakerTag
+}
+
+export type MiddlewareMakerId = Pick<MiddlewareMaker<any>, "_tag">
+
+export const buildMiddlewareMaker = <E>(eff: E) =>
+  ({
+    _tag: MiddlewareMakerTag,
+    effect: eff
+  }) satisfies MiddlewareMaker<E>
+
+const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,
-    // RequestContextProviders extends RequestContextMapProvider<RequestContextMap>, // how to resolve the dynamic middleware
     GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
   >(
+    _rcm: RequestContextMap,
     ...make: GenericMiddlewareProviders
   ) => {
     const MiddlewareMaker = Context.GenericTag<
       MiddlewareMakerId,
-      {
-        effect: RPCHandlerFactory<
+      MiddlewareMaker<
+        RPCHandlerFactory<
           RequestContextMap,
           GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
         >
-        _tag: "MiddlewareMaker"
-      }
+      >
     >(
-      "MiddlewareMaker"
+      MiddlewareMakerTag
     )
 
+    // reverse middlewares and wrap one after the other
     const middlewares = genericMiddlewareMaker(...make)
 
     const l = Layer.scoped(
@@ -154,16 +156,16 @@ export const makeMiddlewareBasic =
       middlewares
         .effect
         .pipe(
-          Effect.map((generic) => ({
-            _tag: "MiddlewareMaker" as const,
-            effect: makeRpcEffect<
+          Effect.map((generic) => (buildMiddlewareMaker(
+            makeRpcEffect<
               RequestContextMap,
               GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
             >()(
-              (schema, next, moduleName) => {
+              (schema, handler, moduleName) => {
                 return (payload, headers) =>
                   Effect
                     .gen(function*() {
+                      // will be propagated to all the wrapped middlewares
                       const basic = {
                         config: schema.config ?? {},
                         payload,
@@ -177,12 +179,12 @@ export const makeMiddlewareBasic =
                       }
                       return yield* generic({
                         ...basic,
-                        next: next(payload, headers) as any
+                        next: handler(payload, headers) as any
                       })
-                    }) as any // why?
+                    }) as any // why? because: Type 'SuccessValue' is not assignable to type 'Success<Req>' :P
               }
             )
-          }))
+          )))
         )
     )
 
@@ -191,9 +193,11 @@ export const makeMiddlewareBasic =
         Layer.provide(middlewares.dependencies as any)
       ) as Layer.Layer<
         MiddlewareMakerId,
-        LayerUtils.GetLayersError<typeof middlewares.dependencies>, // what could go wrong when building the dynamic middleware provider
+        // what could go wrong when building the dynamic middleware provider
+        LayerUtils.GetLayersError<typeof middlewares.dependencies>,
         LayerUtils.GetLayersContext<typeof middlewares.dependencies>
       >
 
+    // add to the tag a default implementation
     return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
   }

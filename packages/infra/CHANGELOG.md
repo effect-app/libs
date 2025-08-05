@@ -167,7 +167,7 @@
 ### Minor Changes
 
 - 6490adf: add "generic middleware"
-- 0fc2abc: extract ConfigureInterruptibility
+- 0fc2abc: extract ConfigureInterruptibilityMiddleware
 
 ### Patch Changes
 

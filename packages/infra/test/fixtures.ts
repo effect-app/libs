@@ -1,5 +1,5 @@
 import { Context, Effect, Option, S, Scope } from "effect-app"
-import { NotLoggedInError, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { NotLoggedInError, RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { TaggedError } from "effect-app/Schema"
 import { contextMap, Middleware } from "../src/api/routing.js"
 
@@ -14,14 +14,19 @@ export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("Us
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
-export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<[typeof UserProfile], typeof NotLoggedInError>
-  requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
-  test: RPCContextMap<never, typeof S.Never>
-}
+// TODO: null as never sucks
+// TODO: why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
+export const RequestContextMap = {
+  allowAnonymous: RPCContextMap.makeInverted([UserProfile], NotLoggedInError),
+  requireRoles: RPCContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),
+  test: RPCContextMap.make(null as never, S.Never)
+} as const
+
+type _RequestContextMap = typeof RequestContextMap
+export interface RequestContextMap extends _RequestContextMap {}
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap<RequestContextMap>()("allowAnonymous", [UserProfile]),
+  dynamic: contextMap(RequestContextMap, "allowAnonymous"),
   requires: SomeElse
 })({
   effect: Effect.gen(function*() {
@@ -51,9 +56,10 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
 }) {
 }
 
+// TODO: don't expect service when it's wrap
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
-  dynamic: contextMap<RequestContextMap>()("requireRoles", null as never), // TODO
+  dynamic: contextMap(RequestContextMap, "requireRoles"),
   wrap: true,
   // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
@@ -84,9 +90,10 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
 }) {
 }
 
+// TODO: don't expect service when it's wrap
 export class Test extends Middleware.Tag<Test>()("Test", {
   wrap: true,
-  dynamic: contextMap<RequestContextMap>()("test", null as never) // TODO
+  dynamic: contextMap(RequestContextMap, "test")
 })({
   effect: Effect.gen(function*() {
     return Effect.fn(function*({ next }) {

@@ -1,4 +1,4 @@
-import { expectTypeOf, expectTypeOf, it } from "@effect/vitest"
+import { expectTypeOf, it } from "@effect/vitest"
 import { type Layer } from "effect"
 import { type LayerUtils } from "../src/api/layerUtils.js"
 

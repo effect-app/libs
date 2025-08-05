@@ -96,7 +96,7 @@ expectTypeOf({} as LayerContext).toEqualTypeOf<Some>()
 const testSuite = async (_mw: typeof middleware3) =>
   describe("middleware" + _mw, () => {
     it("works", async () => {
-      Effect
+      await Effect
         .gen(function*() {
           const mw = yield* _mw
           const mwM = mw.effect(

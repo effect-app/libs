@@ -15,7 +15,10 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 
 // TODO: null as never sucks
-// TODO: why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
+// why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
+// [] requires return Context, non [] requires return the Service instance
+//
+// consider if we want to support Context of one Service
 export const RequestContextMap = {
   allowAnonymous: RPCContextMap.makeInverted([UserProfile], NotLoggedInError),
   requireRoles: RPCContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),

@@ -16,7 +16,7 @@ export const contextMap = <
 })
 
 // the following implements sort of builder pattern
-// we don't support sideways elimination of dependencies, only downwards
+// we support both sideways and upwards elimination of dependencies
 
 // it's for dynamic middlewares
 type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> }
@@ -27,12 +27,44 @@ type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsO
   : never
 
 type FilterInDynamicMiddlewares<
-  MW extends ReadonlyArray<GenericMiddlewareMaker>,
+  MWs extends ReadonlyArray<GenericMiddlewareMaker>,
   RequestContextMap extends Record<string, RPCContextMap.Any>
 > = {
-  [K in keyof MW]: MW[K] extends { dynamic: RpcDynamic<any, RequestContextMap[keyof RequestContextMap]> } ? MW[K]
+  [K in keyof MWs]: MWs[K] extends { dynamic: RpcDynamic<any, RequestContextMap[keyof RequestContextMap]> } ? MWs[K]
     : never
 }
+
+type RecursiveHandleMWsSideways<
+  MWs,
+  R extends {
+    rcm: Record<string, RPCContextMap.Any>
+    provided: keyof R["rcm"] // that's fine
+    middlewares: ReadonlyArray<GenericMiddlewareMaker>
+    dmp: any
+    middlewareR: any
+  }
+> = MWs extends [
+  infer F extends GenericMiddlewareMaker,
+  ...infer Rest extends ReadonlyArray<GenericMiddlewareMaker>
+] ? RecursiveHandleMWsSideways<Rest, {
+    rcm: R["rcm"]
+    // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
+    // (if already provided, it would have to be re-provided anyway, so better to provide it after)
+    provided: Exclude<
+      R["provided"] | FilterInDynamicMiddlewares<[F], R["rcm"]>[number]["dynamic"]["key"],
+      // F is fine here because only dynamic middlewares will have 'dependsOn' prop
+      GetDependsOnKeys<F>
+    >
+    middlewares: [...R["middlewares"], F]
+    dmp: [FilterInDynamicMiddlewares<[F], R["rcm"]>[number]] extends [never] ? R["dmp"]
+      :
+        & R["dmp"]
+        & {
+          [U in FilterInDynamicMiddlewares<[F], R["rcm"]>[number] as U["dynamic"]["key"]]: U
+        }
+    middlewareR: GenericMiddlewareMaker.ApplyManyServices<[F], R["middlewareR"]>
+  }>
+  : R
 
 export interface BuildingMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
@@ -41,24 +73,28 @@ export interface BuildingMiddleware<
   DynamicMiddlewareProviders,
   out MiddlewareR
 > {
-  middleware<MW extends NonEmptyArray<GenericMiddlewareMaker>>(
-    ...mw: MW
-  ): MiddlewaresBuilder<
-    RequestContextMap,
-    // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
-    // (if already provided, it would have to be re-provided anyway, so better to provide it after)
-    Exclude<
-      Provided | FilterInDynamicMiddlewares<MW, RequestContextMap>[number]["dynamic"]["key"],
-      // whole MW is fine here because only dynamic middlewares will have 'dependsOn' prop
-      { [K in keyof MW]: GetDependsOnKeys<MW[K]> }[number]
-    >,
-    [...Middlewares, ...MW],
-    & DynamicMiddlewareProviders
-    & {
-      [U in FilterInDynamicMiddlewares<MW, RequestContextMap>[number] as U["dynamic"]["key"]]: U
-    },
-    GenericMiddlewareMaker.ApplyManyServices<MW, MiddlewareR>
-  >
+  middleware<MWs extends NonEmptyArray<GenericMiddlewareMaker>>(
+    ...mw: MWs
+  ): RecursiveHandleMWsSideways<MWs, {
+    rcm: RequestContextMap
+    provided: Provided
+    middlewares: Middlewares
+    dmp: DynamicMiddlewareProviders
+    middlewareR: MiddlewareR
+  }> extends infer Res extends {
+    rcm: RequestContextMap
+    provided: keyof RequestContextMap
+    middlewares: ReadonlyArray<GenericMiddlewareMaker>
+    dmp: any
+    middlewareR: any
+  } ? MiddlewaresBuilder<
+      Res["rcm"],
+      Res["provided"],
+      Res["middlewares"],
+      Res["dmp"],
+      Res["middlewareR"]
+    >
+    : never
 }
 
 export type MiddlewaresBuilder<

@@ -86,6 +86,29 @@ const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(AllowAnonymous)
   .middleware(...genericMiddlewares)
 
+const middlewareBis = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(MyContextProvider)
+  .middleware(
+    RequireRoles,
+    Test
+  )
+  // testing sideways elimination
+  .middleware(AllowAnonymous, ...genericMiddlewares)
+
+expectTypeOf(middleware).toEqualTypeOf<typeof middlewareBis>()
+
+// testing more sideways elimination
+const middlewareTris = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(
+    MyContextProvider,
+    RequireRoles,
+    Test,
+    AllowAnonymous,
+    ...genericMiddlewares
+  )
+
+expectTypeOf(middleware).toEqualTypeOf<typeof middlewareTris>()
+
 const middleware2 = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(RequireRoles, Test)

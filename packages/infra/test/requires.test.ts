@@ -91,7 +91,7 @@ type Default = typeof middleware3["Default"]
 type LayerContext = Layer.Layer.Context<Default>
 expectTypeOf({} as LayerContext).toEqualTypeOf<SomeService>()
 
-const testSuite = async (_mw: typeof middleware3) =>
+const testSuite = (_mw: typeof middleware3) =>
   describe("middleware" + _mw, () => {
     it.effect(
       "works",

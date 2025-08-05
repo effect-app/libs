@@ -34,7 +34,7 @@ type FilterInDynamicMiddlewares<
     : never
 }
 
-export interface MiddlewareDynamic<
+export interface BuildingMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContextMap,
   Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
@@ -76,14 +76,14 @@ export type MiddlewaresBuilder<
           Middlewares
         >
       >
-    : MiddlewareDynamic<
+    : BuildingMiddleware<
       RequestContextMap,
       Provided,
       Middlewares,
       DynamicMiddlewareProviders,
       MiddlewareR
     >
-    : MiddlewareDynamic<
+    : BuildingMiddleware<
       RequestContextMap,
       Provided,
       Middlewares,

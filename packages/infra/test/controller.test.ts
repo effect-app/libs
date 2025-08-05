@@ -55,7 +55,6 @@ class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContext
 const Str = Context.GenericTag<"str", "str">("str")
 
 export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
-  provides: SomeService,
   wrap: true
 })({
   effect: Effect.gen(function*() {
@@ -64,7 +63,7 @@ export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
     return ({ next }) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* next.pipe(Effect.provideService(SomeService, null as any))
+        return yield* next
       })
   })
 }) {
@@ -85,6 +84,42 @@ const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
   // AllowAnonymous provided after RequireRoles so that RequireRoles can access what AllowAnonymous provides
   .middleware(AllowAnonymous)
   .middleware(...genericMiddlewares)
+
+const middlewareBis = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(MyContextProvider)
+  .middleware(
+    RequireRoles,
+    Test
+  )
+  // testing sideways elimination
+  .middleware(AllowAnonymous, ...genericMiddlewares)
+
+expectTypeOf(middleware).toEqualTypeOf<typeof middlewareBis>()
+
+const middlewareTrisWip = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(
+    MyContextProvider,
+    RequireRoles,
+    Test
+  )
+  .missing
+
+expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
+  missingDynamicMiddlewares: "allowAnonymous"
+  missingContext: SomeElse
+}>()
+
+// testing more sideways elimination]
+const middlewareQuater = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(
+    MyContextProvider,
+    RequireRoles,
+    Test,
+    AllowAnonymous,
+    ...genericMiddlewares
+  )
+
+expectTypeOf(middleware).toEqualTypeOf<typeof middlewareQuater>()
 
 const middleware2 = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)
@@ -246,7 +281,7 @@ it("sorts based on requirements", () => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | Some | "str">()
+expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | "str">()
 
 type makeContext = MakeContext<typeof router.make>
 expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()
@@ -307,7 +342,7 @@ const router2 = r2.Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
-expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<Some | SomeService | "str">()
+expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<SomeService | "str">()
 
 type makeContext2 = MakeContext<typeof router2.make>
 expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateError>()

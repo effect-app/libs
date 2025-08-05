@@ -13,9 +13,14 @@ export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("Us
 
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
+const MakeSomeService = Effect.succeed({ a: 1 })
+export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
 // TODO: null as never sucks
-// TODO: why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
+// why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
+// [] requires return Context, non [] requires return the Service instance
+//
+// consider if we want to support Context of one Service
 export const RequestContextMap = {
   allowAnonymous: RPCContextMap.makeInverted([UserProfile], NotLoggedInError),
   requireRoles: RPCContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),
@@ -67,7 +72,7 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
   dependsOn: [AllowAnonymous]
 })({
   effect: Effect.gen(function*() {
-    yield* Some
+    yield* SomeService
     return Effect.fnUntraced(
       function*({ config, next }) {
         // we don't know if the service will be provided or not, so we use option..
@@ -104,6 +109,3 @@ export class Test extends Middleware.Tag<Test>()("Test", {
 
 export class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
 export class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
-
-const MakeSomeService = Effect.succeed({ a: 1 })
-export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}

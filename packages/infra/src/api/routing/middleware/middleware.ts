@@ -23,8 +23,8 @@ export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("Reque
 }) {
 }
 
-export class ConfigureInterruptibility
-  extends Tag<ConfigureInterruptibility>()("ConfigureInterruptibility", { wrap: true })({
+export class ConfigureInterruptibilityMiddleware
+  extends Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware", { wrap: true })({
     effect: Effect.succeed(({ next }) =>
       next.pipe(
         // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
@@ -35,7 +35,7 @@ export class ConfigureInterruptibility
 {
 }
 
-export class MiddlewareLogger extends Tag<MiddlewareLogger>()("MiddlewareLogger", { wrap: true })({
+export class LoggerMiddleware extends Tag<LoggerMiddleware>()("LoggerMiddleware", { wrap: true })({
   effect: Effect.gen(function*() {
     const devMode = yield* DevMode
     return ({ headers, next, payload, rpc }) =>
@@ -98,6 +98,6 @@ export class MiddlewareLogger extends Tag<MiddlewareLogger>()("MiddlewareLogger"
 
 export const DefaultGenericMiddlewares = [
   RequestCacheMiddleware,
-  ConfigureInterruptibility,
-  MiddlewareLogger
+  ConfigureInterruptibilityMiddleware,
+  LoggerMiddleware
 ] as const

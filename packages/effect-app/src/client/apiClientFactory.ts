@@ -114,7 +114,13 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
     TheClient,
     RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
   >() {
-    static layer = Layer.scoped(TheClient, RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }))
+    static layer = Layer.scoped(
+      TheClient,
+      Effect.map(
+        RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }),
+        (cl) => (cl as any)[meta.moduleName] as any
+      )
+    )
   }
 }
 
@@ -174,7 +180,7 @@ const makeApiClientFactory = Effect
               })
 
               const fields = Struct.omit(Request.fields, "_tag")
-              const requestAttr = `${meta.moduleName}.${h._tag}`
+              const requestAttr = h._tag
               // @ts-expect-error doc
               prev[cur] = Object.keys(fields).length === 0
                 ? {

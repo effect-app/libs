@@ -342,7 +342,7 @@ export const makeRouter = <
       MakeE,
       MakeR,
       THandlers extends {
-        // import to keep them separate via | for type checking!!
+        // important to keep them separate via | for type checking!!
         [K in keyof RequestModules]: AnyHandler<Resource[K]>
       },
       MakeDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
@@ -384,8 +384,7 @@ export const makeRouter = <
                   Effect.withSpan("Request." + resource._tag, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
-                ),
-              meta.moduleName
+                )
             ] as const
             return acc
           }, {} as any) as {

@@ -1,10 +1,9 @@
-import { RpcMiddleware } from "@effect/rpc"
 import { type AnyWithProps } from "@effect/rpc/Rpc"
-import { Context, Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
+import { Context, type Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
-import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
+import { type AnyDynamic, type RpcDynamic, Tag, type TagClassAny } from "./RpcMiddleware.js"
 
 // adapter used when setting the dynamic prop on a middleware implementation
 export const contextMap = <
@@ -161,20 +160,9 @@ export const makeMiddleware: <
 }
 
 //
-export const MiddlewareMakerTag = "MiddlewareMaker" as const
-
-export interface MiddlewareMaker<E> {
-  readonly effect: E
-  readonly _tag: typeof MiddlewareMakerTag
+export interface MiddlewareMakerId {
+  readonly _id: unique symbol
 }
-
-export type MiddlewareMakerId = Pick<MiddlewareMaker<any>, "_tag">
-
-export const buildMiddlewareMaker = <E>(eff: E) =>
-  ({
-    _tag: MiddlewareMakerTag,
-    effect: eff
-  }) satisfies MiddlewareMaker<E>
 
 const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
@@ -185,36 +173,27 @@ const makeMiddlewareBasic =
     _rcm: RequestContextMap,
     ...make: GenericMiddlewareProviders
   ) => {
-    const MiddlewareMaker = RpcMiddleware.Tag<MiddlewareMakerId>()("MiddlewareMaker", {
-      provides: null as unknown as Context.Tag<
-        GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>,
-        GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-      >,
-      wrap: true
-    })
-
     // reverse middlewares and wrap one after the other
     const middlewares = genericMiddlewareMaker(...make)
 
-    const l = Layer.scoped(
-      MiddlewareMaker,
-      middlewares
-        .effect as any
-    )
+    const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
+      provides: null as unknown as [
+        Context.Tag<
+          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>,
+          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+        >
+      ],
+      wrap: true
+    })(middlewares as any)
 
-    const middlewareLayer = l
-      .pipe(
-        Layer.provide(middlewares.dependencies as any)
-      ) as Layer.Layer<
+    // add to the tag a default implementation
+    return Object.assign(MiddlewareMaker, {
+      Default: MiddlewareMaker.Default as Layer.Layer<
         MiddlewareMakerId,
         // what could go wrong when building the dynamic middleware provider
         LayerUtils.GetLayersError<typeof middlewares.dependencies>,
         LayerUtils.GetLayersContext<typeof middlewares.dependencies>
-      >
-
-    // add to the tag a default implementation
-    return Object.assign(MiddlewareMaker, {
-      Default: middlewareLayer,
+      >,
       requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
         "RequestContextConfig"
       )

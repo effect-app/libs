@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Context, type S } from "effect-app"
+import { type Context, type Layer, type S } from "effect-app"
 import type { GetContextConfig, RPCContextMap } from "effect-app/client/req"
-import { type ContextTagWithDefault } from "../../layerUtils.js"
-import { type MiddlewareMaker, type MiddlewareMakerId } from "./middleware-api.js"
-import { type RpcMiddlewareWrap, type TagClassAny } from "./RpcMiddleware.js"
+import { type MiddlewareMakerId } from "./middleware-api.js"
+import { type TagClass } from "./RpcMiddleware.js"
 
 // module:
 //
@@ -16,14 +15,15 @@ export type RouterMiddleware<
   MakeMiddlewareR, // what the middlware requires to be constructed
   ContextProviderA // what the context provider provides
 > =
-  & ContextTagWithDefault<
+  & TagClass<
     MiddlewareMakerId,
-    MiddlewareMaker<RpcMiddlewareWrap<ContextProviderA, never, never>>, // TODO: Provides/Requires, whatever/errors
-    MakeMiddlewareE,
-    MakeMiddlewareR
+    "MiddlewareMaker",
+    { wrap: true; provides: [Context.Tag<ContextProviderA, ContextProviderA>] }
   >
-  & TagClassAny
-  & { requestContext: Context.Tag<"RequestContext", GetContextConfig<RequestContextMap>> }
+  & {
+    Default: Layer.Layer<MiddlewareMakerId, MakeMiddlewareE, MakeMiddlewareR>
+    requestContext: Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+  }
 
 export type RequestContextMapErrors<RequestContextMap extends Record<string, RPCContextMap.Any>> = S.Schema.Type<
   RequestContextMap[keyof RequestContextMap]["error"]

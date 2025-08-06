@@ -54,11 +54,11 @@ interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> ext
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
-export interface RpcMiddlewareDynamicWrap<E, R, Config> {
+export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
   (options: {
     readonly next: Effect.Effect<SuccessValue, E, Scope.Scope | R>
     readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps
+    readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
   }): Effect.Effect<
@@ -68,10 +68,10 @@ export interface RpcMiddlewareDynamicWrap<E, R, Config> {
   >
 }
 
-export interface RpcMiddlewareDynamicNormal<A, E, R, Config> {
+export interface RpcMiddlewareDynamicNormal<A, E, R, _Config> {
   (options: {
     readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps
+    readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
   }): Effect.Effect<

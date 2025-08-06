@@ -5,47 +5,7 @@ import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
-import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
-
-export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
-  provides: Some
-})({
-  effect: Effect.gen(function*() {
-    // yield* Effect.context<"test-dep">()
-    return () =>
-      Effect.gen(function*() {
-        return new Some({ a: 1 })
-      })
-  })
-}) {
-}
-
-// functionally equivalent to the one above
-export class SomeMiddlewareWrap extends Middleware.Tag<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
-  provides: Some,
-  wrap: true
-})({
-  effect: Effect.gen(function*() {
-    // yield* Effect.context<"test-dep">()
-    return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
-  })
-}) {
-}
-
-export class SomeElseMiddleware extends Middleware.Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
-  provides: SomeElse,
-  wrap: true
-})({
-  effect: Effect.gen(function*() {
-    // yield* Effect.context<"test-dep">()
-    return ({ next }) =>
-      Effect.gen(function*() {
-        // yield* Effect.context<"test-dep2">()
-        return yield* next.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
-      })
-  })
-}) {
-}
+import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeElseMiddleware, SomeMiddleware, SomeMiddlewareWrap, SomeService, Test } from "./fixtures.js"
 
 export class RequiresSomeMiddleware extends Middleware.Tag<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
   requires: [Some],

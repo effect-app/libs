@@ -16,6 +16,46 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
+export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
+  provides: Some
+})({
+  effect: Effect.gen(function*() {
+    // yield* Effect.context<"test-dep">()
+    return () =>
+      Effect.gen(function*() {
+        return new Some({ a: 1 })
+      })
+  })
+}) {
+}
+
+// functionally equivalent to the one above
+export class SomeMiddlewareWrap extends Middleware.Tag<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
+  provides: Some,
+  wrap: true
+})({
+  effect: Effect.gen(function*() {
+    // yield* Effect.context<"test-dep">()
+    return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
+  })
+}) {
+}
+
+export class SomeElseMiddleware extends Middleware.Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
+  provides: SomeElse,
+  wrap: true
+})({
+  effect: Effect.gen(function*() {
+    // yield* Effect.context<"test-dep">()
+    return ({ next }) =>
+      Effect.gen(function*() {
+        // yield* Effect.context<"test-dep2">()
+        return yield* next.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
+      })
+  })
+}) {
+}
+
 const requestConfig = getConfig<RequestContextMap>()
 
 // TODO: null as never sucks

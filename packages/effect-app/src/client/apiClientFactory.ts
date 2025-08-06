@@ -89,21 +89,26 @@ export const getMeta = <M extends Requests>(resource: M) => {
   return meta as M["meta"]
 }
 
-export const makeRpcGroup = <M extends Requests>(resource: M) => {
+export const makeRpcGroup = <M extends Requests, const ModuleName extends string>(
+  resource: M,
+  moduleName: ModuleName
+) => {
   const filtered = getFiltered(resource)
   type newM = typeof filtered
 
-  const rpcs = RpcGroup.make(
-    ...typedValuesOf(filtered).map((_) => {
-      return Rpc.fromTaggedRequest(_ as any)
-    })
-  ) as RpcGroup.RpcGroup<RpcHandlers<newM>[keyof newM]>
+  const rpcs = RpcGroup
+    .make(
+      ...typedValuesOf(filtered).map((_) => {
+        return Rpc.fromTaggedRequest(_ as any)
+      })
+    )
+    .prefix(`${moduleName}.`) as RpcGroup.RpcGroup<RpcHandlers<newM>[keyof newM]>
   return rpcs
 }
 
 const makeRpcTag = <M extends Requests>(resource: M) => {
-  const rpcs = makeRpcGroup(resource)
   const meta = getMeta(resource)
+  const rpcs = makeRpcGroup(resource, meta.moduleName)
 
   return class TheClient extends Context.Tag(`RpcClient.${meta.moduleName}`)<
     TheClient,
@@ -169,7 +174,7 @@ const makeApiClientFactory = Effect
               })
 
               const fields = Struct.omit(Request.fields, "_tag")
-              const requestAttr = h._tag
+              const requestAttr = `${meta.moduleName}.${h._tag}`
               // @ts-expect-error doc
               prev[cur] = Object.keys(fields).length === 0
                 ? {

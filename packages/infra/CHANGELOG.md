@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.91.2
+
+### Patch Changes
+
+- 60ed182: one way
+
 ## 2.91.1
 
 ### Patch Changes

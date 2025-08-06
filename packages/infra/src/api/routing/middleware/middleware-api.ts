@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Context, type Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
@@ -5,7 +6,7 @@ import { type LayerUtils } from "../../layerUtils.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, Tag, type TagClassAny } from "./RpcMiddleware.js"
 
-// adapter used when setting the dynamic prop on a middleware implementation
+/** Adapter used when setting the dynamic prop on a middleware implementation */
 export const contextMap = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Key extends (keyof RequestContextMap) & string
@@ -14,6 +15,7 @@ export const contextMap = <
   settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
 })
 
+/** Retrieves RequestContextConfig out of the RPC annotations */
 export const getConfig = <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() =>
@@ -194,6 +196,7 @@ const makeMiddlewareBasic =
         LayerUtils.GetLayersError<typeof middlewares.dependencies>,
         LayerUtils.GetLayersContext<typeof middlewares.dependencies>
       >,
+      // tag to be used to retrieve the RequestContextConfig from RPC annotations
       requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
         "RequestContextConfig"
       )

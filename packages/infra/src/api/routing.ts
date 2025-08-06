@@ -348,16 +348,18 @@ export const makeRouter = <
       MakeDependencies extends NonEmptyReadonlyArray<Layer.Layer.Any> | never[]
     >(
       dependencies: MakeDependencies,
-      make: Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
+      make: (
+        match: any
+      ) => Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
       type Router = RouterShape<Resource>
       const layer = Effect
         .gen(function*() {
-          make = (make as any)[Symbol.toStringTag] === "GeneratorFunction"
+          const finalMake = ((make as any)[Symbol.toStringTag] === "GeneratorFunction"
             ? Effect.fnUntraced(make as any)(router3) as any
-            : make
+            : make(router3) as any) as Effect<THandlers, MakeE, MakeR>
 
-          const controllers = yield* make
+          const controllers = yield* finalMake
 
           // return make.pipe(Effect.map((c) => controllers(c, dependencies)))
           const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {
@@ -510,7 +512,7 @@ export const makeRouter = <
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
-          effect: Effect<
+          effect: (match: typeof router3) => Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
             any
@@ -542,7 +544,7 @@ export const makeRouter = <
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
-          effect: Effect<
+          effect: (match: typeof router3) => Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
             any
@@ -574,7 +576,7 @@ export const makeRouter = <
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
-          effect: Effect<
+          effect: (match: typeof router3) => Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
             any
@@ -606,7 +608,7 @@ export const makeRouter = <
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
-          effect: Effect<
+          effect: (match: typeof router3) => Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
             any
@@ -638,7 +640,7 @@ export const makeRouter = <
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
-          effect: Effect<
+          effect: (match: typeof router3) => Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
             any
@@ -705,10 +707,10 @@ export const makeRouter = <
         const Make extends {
           dependencies: [
             ...Make["dependencies"],
-            ...Exclude<Effect.Context<Make["effect"]>, MakeDepsOut<Make>> extends never ? []
-              : [Layer.Layer<Exclude<Effect.Context<Make["effect"]>, MakeDepsOut<Make>>, never, never>]
+            ...Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>> extends never ? []
+              : [Layer.Layer<Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>>, never, never>]
           ]
-          effect: Effect<
+          effect: (match: typeof router3) => Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
             any
@@ -771,14 +773,16 @@ export type MakeDeps<Make> = Make extends { readonly dependencies: ReadonlyArray
   ? Make["dependencies"][number]
   : never
 
-export type MakeErrors<Make> = Make extends { readonly effect: Effect<infer _A, infer E, infer _R> } ? E
+export type MakeErrors<Make> = Make extends { readonly effect: (_: any) => Effect<infer _A, infer E, infer _R> } ? E
+  : Make extends { readonly effect: (_: any) => Effect<infer _A, never, infer _R> } ? never
   : Make extends
     { readonly effect: (_: any) => Generator<YieldWrap<Effect<infer _A, never, infer _R>>, infer _A, infer _2> } ? never
   : Make extends
     { readonly effect: (_: any) => Generator<YieldWrap<Effect<infer _A, infer E, infer _R>>, infer _A, infer _2> } ? E
   : never
 
-export type MakeContext<Make> = Make extends { readonly effect: Effect<infer _A, infer _E, infer R> } ? R
+export type MakeContext<Make> = Make extends { readonly effect: (_: any) => Effect<infer _A, infer _E, infer R> } ? R
+  : Make extends { readonly effect: (_: any) => Effect<infer _A, infer _E, never> } ? never
   : Make extends
     { readonly effect: (_: any) => Generator<YieldWrap<Effect<infer _A, infer _E, never>>, infer _A, infer _2> } ? never
   : Make extends
@@ -786,8 +790,8 @@ export type MakeContext<Make> = Make extends { readonly effect: Effect<infer _A,
   : never
 
 export type MakeHandlers<Make, Handlers extends Record<string, any>> = Make extends
-  { readonly effect: Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
-  ? Effect.Success<Make["effect"]>
+  { readonly effect: (_: any) => Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
+  ? Effect.Success<ReturnType<Make["effect"]>>
   : Make extends { readonly effect: (_: any) => Generator<YieldWrap<any>, infer S, infer _R> } ? S
   : never
 

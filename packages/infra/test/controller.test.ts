@@ -237,7 +237,7 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
   })
 }) {}
 
-export const { Router, matchAll, matchFor } = makeRouter(middleware, true)
+export const { Router, matchAll } = makeRouter(middleware, true)
 
 export const r2 = makeRouter(middleware2, true)
 
@@ -259,6 +259,52 @@ const router = Router(Something)({
 
     console.log({ repo, smth, smth2 })
 
+    return match({
+      Eff: () =>
+        Effect
+          .gen(function*() {
+            const some = yield* Some
+            return yield* Effect.logInfo("Some", some)
+          }),
+
+      *Gen() {
+        const some = yield* Some
+        return yield* Effect.logInfo("Some", some)
+      },
+      *GetSomething(req) {
+        console.log(req.id)
+
+        const _b = yield* Effect.succeed(false)
+        if (_b) {
+          //   expected errors here because RequestError is not a valid error for controllers
+          // yield* new RequestError(1 as any)
+          // return yield* new RequestError(1 as any)
+        }
+        if (Math.random() > 0.5) {
+          return yield* Effect.succeed("12")
+        }
+        if (!_b) {
+          return yield* new UnauthorizedError()
+        } else {
+          // expected an error here because a boolean is not a string
+          // return _b
+          return "12"
+        }
+      },
+      DoSomething: {
+        *raw() {
+          return yield* Effect.succeed(undefined)
+        }
+      },
+      GetSomething2: {
+        raw: Some.use(() => Effect.succeed("12"))
+      }
+    })
+  }
+})
+
+const router5 = Router(Something)({
+  *effect(match) {
     return match({
       Eff: () =>
         Effect

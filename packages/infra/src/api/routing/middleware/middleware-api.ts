@@ -3,7 +3,7 @@ import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Context, type Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type LayerUtils } from "../../layerUtils.js"
-import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
+import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, Tag, type TagClassAny } from "./RpcMiddleware.js"
 
 /** Adapter used when setting the dynamic prop on a middleware implementation */
@@ -27,15 +27,14 @@ export const getConfig = <
 // we support both sideways and upwards elimination of dependencies
 
 // it's for dynamic middlewares
-type GetDependsOnKeys<MW extends GenericMiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> }
-  ? {
+type GetDependsOnKeys<MW extends MiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> } ? {
     [K in keyof MW["dependsOn"]]: MW["dependsOn"][K] extends AnyDynamic ? MW["dependsOn"][K]["dynamic"]["key"]
       : never
   }[keyof MW["dependsOn"]]
   : never
 
 type FilterInDynamicMiddlewares<
-  MWs extends ReadonlyArray<GenericMiddlewareMaker>,
+  MWs extends ReadonlyArray<MiddlewareMaker>,
   RequestContextMap extends Record<string, RPCContextMap.Any>
 > = {
   [K in keyof MWs]: MWs[K] extends { dynamic: RpcDynamic<any, RequestContextMap[keyof RequestContextMap]> } ? MWs[K]
@@ -47,13 +46,13 @@ type RecursiveHandleMWsSideways<
   R extends {
     rcm: Record<string, RPCContextMap.Any>
     provided: keyof R["rcm"] // that's fine
-    middlewares: ReadonlyArray<GenericMiddlewareMaker>
+    middlewares: ReadonlyArray<MiddlewareMaker>
     dmp: any
     middlewareR: any
   }
 > = MWs extends [
-  infer F extends GenericMiddlewareMaker,
-  ...infer Rest extends ReadonlyArray<GenericMiddlewareMaker>
+  infer F extends MiddlewareMaker,
+  ...infer Rest extends ReadonlyArray<MiddlewareMaker>
 ] ? RecursiveHandleMWsSideways<Rest, {
     rcm: R["rcm"]
     // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
@@ -70,18 +69,18 @@ type RecursiveHandleMWsSideways<
         & {
           [U in FilterInDynamicMiddlewares<[F], R["rcm"]>[number] as U["dynamic"]["key"]]: U
         }
-    middlewareR: GenericMiddlewareMaker.ApplyManyServices<[F], R["middlewareR"]>
+    middlewareR: MiddlewareMaker.ApplyManyServices<[F], R["middlewareR"]>
   }>
   : R
 
 export interface BuildingMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContextMap,
-  Middlewares extends ReadonlyArray<GenericMiddlewareMaker>,
+  Middlewares extends ReadonlyArray<MiddlewareMaker>,
   DynamicMiddlewareProviders,
   out MiddlewareR extends { _tag: string } = never
 > {
-  middleware<MWs extends NonEmptyArray<GenericMiddlewareMaker>>(
+  middleware<MWs extends NonEmptyArray<MiddlewareMaker>>(
     ...mw: MWs
   ): RecursiveHandleMWsSideways<MWs, {
     rcm: RequestContextMap
@@ -92,7 +91,7 @@ export interface BuildingMiddleware<
   }> extends infer Res extends {
     rcm: RequestContextMap
     provided: keyof RequestContextMap
-    middlewares: ReadonlyArray<GenericMiddlewareMaker>
+    middlewares: ReadonlyArray<MiddlewareMaker>
     dmp: any
     middlewareR: any
   } ? MiddlewaresBuilder<
@@ -114,7 +113,7 @@ export interface BuildingMiddleware<
 export type MiddlewaresBuilder<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContextMap = never,
-  Middlewares extends ReadonlyArray<GenericMiddlewareMaker> = [],
+  Middlewares extends ReadonlyArray<MiddlewareMaker> = [],
   DynamicMiddlewareProviders = unknown,
   MiddlewareR extends { _tag: string } = never
 > =
@@ -144,7 +143,7 @@ export type MiddlewaresBuilder<
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >(rcm: RequestContextMap) => MiddlewaresBuilder<RequestContextMap> = (rcm) => {
-  let allMiddleware: GenericMiddlewareMaker[] = []
+  let allMiddleware: MiddlewareMaker[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
@@ -170,31 +169,31 @@ const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,
-    GenericMiddlewareProviders extends ReadonlyArray<GenericMiddlewareMaker>
+    MiddlewareProviders extends ReadonlyArray<MiddlewareMaker>
   >(
     _rcm: RequestContextMap,
-    ...make: GenericMiddlewareProviders
+    ...make: MiddlewareProviders
   ) => {
     // reverse middlewares and wrap one after the other
-    const middlewares = genericMiddlewareMaker(...make)
+    const middleware = middlewareMaker(...make)
 
     const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
       provides: null as unknown as [
         Context.Tag<
-          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>,
-          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+          MiddlewareMaker.Provided<MiddlewareProviders[number]>,
+          MiddlewareMaker.Provided<MiddlewareProviders[number]>
         >
       ],
       wrap: true
-    })(middlewares as any)
+    })(middleware)
 
     // add to the tag a default implementation
     return Object.assign(MiddlewareMaker, {
       Default: MiddlewareMaker.Default as Layer.Layer<
         MiddlewareMakerId,
         // what could go wrong when building the dynamic middleware provider
-        LayerUtils.GetLayersError<typeof middlewares.dependencies>,
-        LayerUtils.GetLayersContext<typeof middlewares.dependencies>
+        LayerUtils.GetLayersError<typeof middleware.dependencies>,
+        LayerUtils.GetLayersContext<typeof middleware.dependencies>
       >,
       // tag to be used to retrieve the RequestContextConfig from RPC annotations
       requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(

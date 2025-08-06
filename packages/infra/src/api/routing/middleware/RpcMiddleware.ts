@@ -244,7 +244,7 @@ export const Tag = <Self>() =>
   id: Name,
   options?: Options | undefined
 ) =>
-<E, R, L extends NonEmptyReadonlyArray<Layer.Layer.Any>>(opts: {
+<E, R, L extends ReadonlyArray<Layer.Layer.Any>>(opts: {
   effect: Effect.Effect<
     Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,

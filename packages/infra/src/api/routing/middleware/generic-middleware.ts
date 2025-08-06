@@ -34,9 +34,10 @@ export const middlewareMaker = <
 >(...middlewares: MiddlewareProviders): {
   dependencies: { [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }
   effect: Effect.Effect<
-    RpcMiddleware.RpcMiddlewareWrap<
+    RpcMiddlewareWrap<
       Scope.Scope | MiddlewareMaker.Provided<MiddlewareProviders[number]>,
-      never
+      never,
+      never // TODO: ?? MiddlewareMaker.Required<MiddlewareProviders[number]>
     >
   >
 } => {

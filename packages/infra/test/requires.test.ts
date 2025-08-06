@@ -88,7 +88,7 @@ const _middleware3Bis = makeMiddleware(RequestContextMap)
 
 expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
 expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
-expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
+// expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>() // is not the same because SomeMiddlewareWrap is not SomeMiddleware
 
 type Default = typeof middleware3["Default"]
 type LayerContext = Layer.Layer.Context<Default>

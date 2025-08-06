@@ -157,12 +157,6 @@ export const middlewareMaker = <
           }
         }
         return handler
-
-        // return handler as Effect.Effect<
-        //   RpcMiddleware.SuccessValue,
-        //   never,
-        //   Scope.Scope
-        // >
       }
     })
   } as any

@@ -55,8 +55,8 @@ export interface AddAction<Actions extends AnyRequestModule, Accum extends Recor
 namespace RequestTypes {
   export const DECODED = "d" as const
   export type DECODED = typeof DECODED
-  export const TYPE = "raw" as const
-  export type TYPE = typeof TYPE
+  export const RAW = "raw" as const
+  export type RAW = typeof RAW
 }
 type RequestType = typeof RequestTypes[keyof typeof RequestTypes]
 
@@ -157,7 +157,7 @@ export type RouteMatcher<
       /**
        * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
        */
-      raw: Match<Resource, RequestContextMap, RequestTypes.TYPE, Key>
+      raw: Match<Resource, RequestContextMap, RequestTypes.RAW, Key>
     }
 }
 
@@ -238,9 +238,9 @@ export const makeRouter = <
     type HandlersDecoded<Action extends AnyRequestModule> = Handlers<Action, RequestTypes.DECODED>
 
     type HandlersRaw<Action extends AnyRequestModule> =
-      | { raw: HandlerWithInputGen<Action, RequestTypes.TYPE> }
-      | { raw: HandlerWithInputEff<Action, RequestTypes.TYPE> }
-      | { raw: HandlerEff<Action, RequestTypes.TYPE> }
+      | { raw: HandlerWithInputGen<Action, RequestTypes.RAW> }
+      | { raw: HandlerWithInputEff<Action, RequestTypes.RAW> }
+      | { raw: HandlerEff<Action, RequestTypes.RAW> }
 
     type AnyHandlers<Action extends AnyRequestModule> = HandlersRaw<Action> | HandlersDecoded<Action>
 
@@ -287,13 +287,13 @@ export const makeRouter = <
                 ? class {
                   static request = rsc[cur]
                   static stack = stack
-                  static _tag = RequestTypes.TYPE
+                  static _tag = RequestTypes.RAW
                   static handler = () => handlerImpl
                 }
                 : class {
                   static request = rsc[cur]
                   static stack = stack
-                  static _tag = RequestTypes.TYPE
+                  static _tag = RequestTypes.RAW
                   static handler = handlerImpl
                 }
             }
@@ -322,7 +322,7 @@ export const makeRouter = <
     ) => {
       [K in keyof Impl & keyof FilterRequestModules<Resource>]: Handler<
         FilterRequestModules<Resource>[K],
-        Impl[K] extends { raw: any } ? RequestTypes.TYPE : RequestTypes.DECODED,
+        Impl[K] extends { raw: any } ? RequestTypes.RAW : RequestTypes.DECODED,
         Exclude<
           Exclude<
             // retrieves context R from the actual implementation of the handler
@@ -389,7 +389,7 @@ export const makeRouter = <
                 Effect.interruptible(handler.handler(req, headers) as any)
 
             acc[cur] = [
-              handler._tag === RequestTypes.TYPE
+              handler._tag === RequestTypes.RAW
                 ? class extends (resource as any) {
                   static success = S.encodedSchema(resource.success)
                   get [Schema.symbolSerializable]() {

@@ -804,21 +804,24 @@ export type MakeDeps<Make> = Make extends { readonly dependencies: ReadonlyArray
   ? Make["dependencies"][number]
   : never
 
-export type MakeErrors<Make> = Make extends { readonly effect: Effect<any, infer E, any> } ? E
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, infer E, any>>, any, any> } ? E
+export type MakeErrors<Make> = Make extends { readonly effect: Effect<infer _A, infer E, infer _R> } ? E
+  : Make extends
+    { readonly effect: (_: any) => Generator<YieldWrap<Effect<infer _A, never, infer _R>>, infer _A, infer _2> } ? never
+  : Make extends
+    { readonly effect: (_: any) => Generator<YieldWrap<Effect<infer _A, infer E, infer _R>>, infer _A, infer _2> } ? E
   : never
 
-export type MakeContext<Make> = Make extends { readonly effect: Effect<any, any, infer R> } ? R
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, any, infer R>>, any, any> } ? R
+export type MakeContext<Make> = Make extends { readonly effect: Effect<infer _A, infer _E, infer R> } ? R
+  : Make extends
+    { readonly effect: (_: any) => Generator<YieldWrap<Effect<infer _A, infer _E, never>>, infer _A, infer _2> } ? never
+  : Make extends
+    { readonly effect: (_: any) => Generator<YieldWrap<Effect<infer _A, infer _E, infer R>>, infer _A, infer _2> } ? R
   : never
 
 export type MakeHandlers<Make, Handlers extends Record<string, any>> = Make extends
   { readonly effect: Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
   ? Effect.Success<Make["effect"]>
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<any>, infer S, any> } ? S
+  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<any>, infer S, infer _R> } ? S
   : never
 
-/**
- * @since 3.9.0
- */
 export type MakeDepsOut<Make> = Contravariant.Type<MakeDeps<Make>[Layer.LayerTypeId]["_ROut"]>

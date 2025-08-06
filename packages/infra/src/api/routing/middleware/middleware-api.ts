@@ -1,9 +1,9 @@
-import { Rpc } from "@effect/rpc"
-import { Context, Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
-import { type RPCContextMap } from "effect-app/client"
+import { RpcMiddleware } from "@effect/rpc"
+import { type AnyWithProps } from "@effect/rpc/Rpc"
+import { Context, Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
+import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type GenericMiddlewareMaker, genericMiddlewareMaker } from "./generic-middleware.js"
-import { makeRpcEffect, type RPCHandlerFactory } from "./RouterMiddleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 
 // adapter used when setting the dynamic prop on a middleware implementation
@@ -14,6 +14,13 @@ export const contextMap = <
   key,
   settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
 })
+
+export const getConfig = <
+  RequestContextMap extends Record<string, RPCContextMap.Any>
+>() =>
+(rpc: AnyWithProps): GetContextConfig<RequestContextMap> => {
+  return Context.unsafeGet(rpc.annotations, Context.GenericTag("RequestContextConfig"))
+}
 
 // the following implements sort of builder pattern
 // we support both sideways and upwards elimination of dependencies
@@ -178,17 +185,25 @@ const makeMiddlewareBasic =
     _rcm: RequestContextMap,
     ...make: GenericMiddlewareProviders
   ) => {
-    const MiddlewareMaker = Context.GenericTag<
-      MiddlewareMakerId,
-      MiddlewareMaker<
-        RPCHandlerFactory<
-          RequestContextMap,
-          GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-        >
-      >
-    >(
-      MiddlewareMakerTag
-    )
+    // const MiddlewareMaker = Context.GenericTag<
+    //   MiddlewareMakerId,
+    //   MiddlewareMaker<
+    //     RPCHandlerFactory<
+    //       RequestContextMap,
+    //       GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+    //     >
+    //   >
+    // >(
+    //   MiddlewareMakerTag
+    // )
+
+    const MiddlewareMaker = RpcMiddleware.Tag<MiddlewareMakerId>()("MiddlewareMaker", {
+      provides: null as unknown as Context.Tag<
+        GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>,
+        GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
+      >,
+      wrap: true
+    })
 
     // reverse middlewares and wrap one after the other
     const middlewares = genericMiddlewareMaker(...make)
@@ -196,34 +211,7 @@ const makeMiddlewareBasic =
     const l = Layer.scoped(
       MiddlewareMaker,
       middlewares
-        .effect
-        .pipe(
-          Effect.map((generic) => (buildMiddlewareMaker(
-            makeRpcEffect<
-              RequestContextMap,
-              GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-            >()(
-              (schema, handler) => {
-                return (payload, headers) =>
-                  Effect
-                    .gen(function*() {
-                      // will be propagated to all the wrapped middlewares
-                      const basic = {
-                        config: schema.config ?? {},
-                        payload,
-                        headers,
-                        clientId: 0, // TODO: get the clientId from the request context
-                        rpc: Rpc.fromTaggedRequest(schema as any)
-                      }
-                      return yield* generic({
-                        ...basic,
-                        next: handler(payload, headers) as any
-                      })
-                    }) as any // why? because: Type 'SuccessValue' is not assignable to type 'Success<Req>' :P
-              }
-            )
-          )))
-        )
+        .effect as any
     )
 
     const middlewareLayer = l
@@ -237,5 +225,10 @@ const makeMiddlewareBasic =
       >
 
     // add to the tag a default implementation
-    return Object.assign(MiddlewareMaker, { Default: middlewareLayer })
+    return Object.assign(MiddlewareMaker, {
+      Default: middlewareLayer,
+      requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
+        "RequestContextConfig"
+      )
+    })
   }

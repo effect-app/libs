@@ -1,7 +1,7 @@
 import { Context, Effect, Option, S, Scope } from "effect-app"
 import { NotLoggedInError, RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { TaggedError } from "effect-app/Schema"
-import { contextMap, Middleware } from "../src/api/routing.js"
+import { contextMap, getConfig, Middleware } from "../src/api/routing.js"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({
@@ -15,6 +15,8 @@ export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<So
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
+
+const requestConfig = getConfig<RequestContextMap>()
 
 // TODO: null as never sucks
 // why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
@@ -36,12 +38,12 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
 })({
   effect: Effect.gen(function*() {
     return Effect.fnUntraced(
-      function*({ config, headers }) {
+      function*({ headers, rpc }) {
         yield* SomeElse
         yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
-          if (!config.allowAnonymous) {
+          if (!requestConfig(rpc).allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
           return Option.none()
@@ -74,10 +76,10 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
   effect: Effect.gen(function*() {
     yield* SomeService
     return Effect.fnUntraced(
-      function*({ config, next }) {
+      function*({ next, rpc }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
-        const { requireRoles } = config
+        const { requireRoles } = requestConfig(rpc)
         console.dir(
           {
             userProfile,

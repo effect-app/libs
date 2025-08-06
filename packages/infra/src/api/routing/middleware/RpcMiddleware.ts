@@ -57,7 +57,6 @@ export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? tru
 export interface RpcMiddlewareDynamicWrap<E, R, Config> {
   (options: {
     readonly next: Effect.Effect<SuccessValue, E, Scope.Scope | R>
-    readonly config: Config // todo
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
@@ -71,7 +70,6 @@ export interface RpcMiddlewareDynamicWrap<E, R, Config> {
 
 export interface RpcMiddlewareDynamicNormal<A, E, R, Config> {
   (options: {
-    readonly config: Config // todo
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown

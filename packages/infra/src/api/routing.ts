@@ -400,15 +400,12 @@ export const makeRouter = <
                   }
                 } as any
                 : resource,
-              rpc.effect(
-                resource,
-                (req, headers) =>
-                  handle(req, headers).pipe(
-                    Effect.withSpan("Request." + resource._tag, {
-                      captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
-                    })
-                  )
-              ),
+              (payload: any, headers: any) =>
+                handle(payload, headers).pipe(
+                  Effect.withSpan("Request." + resource._tag, {
+                    captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
+                  })
+                ),
               meta.moduleName
             ] as const
             return acc
@@ -433,10 +430,11 @@ export const makeRouter = <
           const rpcs = RpcGroup
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
-                return Rpc.fromTaggedRequest(resource)
+                return Rpc.fromTaggedRequest(resource).annotate(middleware.requestContext, resource.config ?? {})
               })
             )
             .prefix(`${meta.moduleName}.`)
+            .middleware(middleware as any)
           const rpcLayer = rpcs.toLayer(Effect.gen(function*() {
             return typedValuesOf(mapped).reduce((acc, [resource, handler]) => {
               acc[`${meta.moduleName}.${resource._tag}`] = handler

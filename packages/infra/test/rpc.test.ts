@@ -1,6 +1,5 @@
 import { FetchHttpClient } from "@effect/platform"
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "@effect/rpc"
-import { layerProtocolHttp } from "@effect/rpc/RpcClient"
+import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "@effect/rpc"
 import { expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { S } from "effect-app"
@@ -33,12 +32,16 @@ it.scoped(
       expect(user).toBe("awesome")
     },
     Effect.provide(
-      layerProtocolHttp({ url: "http://localhost:3000" }).pipe(
-        Layer.provide(RpcSerialization.layerJson),
-        Layer.provide(FetchHttpClient.layer),
-        Layer.provide(impl)
-        // Layer.provide(middleware.Default.pipe(Layer.provide(SomeService.toLayer())))
-      )
+      Layer
+        .mergeAll(
+          RpcServer.layerProtocolHttp({ path: "/rpc" }).pipe(Layer.provide(impl)),
+          // TODO: actual http server
+          RpcClient.layerProtocolHttp({ url: "http://localhost:3000/rpc" }).pipe(
+            Layer.provide(FetchHttpClient.layer)
+            // Layer.provide(middleware.Default.pipe(Layer.provide(SomeService.toLayer())))
+          )
+        )
+        .pipe(Layer.provide(RpcSerialization.layerJson))
     )
   )
 )

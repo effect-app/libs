@@ -45,13 +45,17 @@ export namespace MiddlewareMaker {
 
 export const middlewareMaker = <
   MiddlewareProviders extends ReadonlyArray<MiddlewareMaker>
->(...middlewares: MiddlewareProviders): {
+>(middlewares: MiddlewareProviders): {
   dependencies: { [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }
   effect: Effect.Effect<
     RpcMiddlewareWrap<
       MiddlewareMaker.ManyProvided<MiddlewareProviders>,
       MiddlewareMaker.ManyErrors<MiddlewareProviders>,
-      MiddlewareMaker.ManyRequired<MiddlewareProviders>
+      Exclude<
+        MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+        MiddlewareMaker.ManyProvided<MiddlewareProviders>
+      > extends never ? never
+        : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
     >
   >
 } => {

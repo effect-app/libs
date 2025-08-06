@@ -225,8 +225,8 @@ export interface TagClass<
       >
       : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
           TagClass.Provides<Options>,
-          TagClass.Requires<Options>,
-          TagClass.Failure<Options>
+          TagClass.Failure<Options>,
+          TagClass.Requires<Options>
         >
       : RpcMiddleware<
         TagClass.Service<Options>,
@@ -272,7 +272,11 @@ export const Tag = <Self>() =>
   >
   dependencies?: L
 }): TagClass<Self, Name, Options> & {
-  Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
+  Default: Layer.Layer<
+    Self,
+    E | LayerUtils.GetLayersError<L>,
+    Exclude<R, LayerUtils.GetLayersSuccess<L>> | LayerUtils.GetLayersContext<L>
+  >
 } =>
   class extends RpcMiddleware.Tag<Self>()(id, options as any) {
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined

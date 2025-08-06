@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type AnyWithProps } from "@effect/rpc/Rpc"
-import { Context, type Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
+import { Context, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
-import { type LayerUtils } from "../../layerUtils.js"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, Tag, type TagClassAny } from "./RpcMiddleware.js"
 
@@ -165,6 +164,9 @@ export interface MiddlewareMakerId {
   readonly _id: unique symbol
 }
 
+// TODO: actually end up with [Tag<A, A>, Tag<B, B>, ...]
+type MakeTags<A> = Context.Tag<A, A>
+
 const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
@@ -175,39 +177,43 @@ const makeMiddlewareBasic =
     ...make: MiddlewareProviders
   ) => {
     // reverse middlewares and wrap one after the other
-    const middleware = middlewareMaker(...make)
+    const middleware = middlewareMaker(make)
 
     const failures = make.map((_) => _.failure).filter(Boolean)
     const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
+    const requires = make
+      .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
+      .filter((_) => !provides.includes(_))
 
     const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
-      failure: failures.length > 0
+      failure: (failures.length > 0
         ? S.Union(...failures)
-        : S.Never as unknown as S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
-      requires: null as unknown as [
-        Context.Tag<
+        : S.Never) as unknown as S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
+      requires: (requires.length > 0
+        ? requires
+        : undefined) as unknown as Exclude<
           MiddlewareMaker.ManyRequired<MiddlewareProviders>,
-          MiddlewareMaker.ManyRequired<MiddlewareProviders>
-        >
-      ],
-      // TODO{ [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["provides"] },
-      provides: provides as unknown as [
-        Context.Tag<
-          MiddlewareMaker.ManyProvided<MiddlewareProviders>,
           MiddlewareMaker.ManyProvided<MiddlewareProviders>
-        >
-      ],
+        > extends never ? never : [
+          MakeTags<
+            Exclude<
+              MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+              MiddlewareMaker.ManyProvided<MiddlewareProviders>
+            >
+          >
+        ],
+      provides: (provides.length > 0
+        ? provides
+        : undefined) as unknown as MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? never : [
+          MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>>
+        ],
       wrap: true
-    })(middleware)
+    })(
+      middleware
+    ) // TODO
 
     // add to the tag a default implementation
     return Object.assign(MiddlewareMaker, {
-      Default: MiddlewareMaker.Default as Layer.Layer<
-        MiddlewareMakerId,
-        // what could go wrong when building the dynamic middleware provider
-        LayerUtils.GetLayersError<typeof middleware.dependencies>,
-        LayerUtils.GetLayersContext<typeof middleware.dependencies>
-      >,
       // tag to be used to retrieve the RequestContextConfig from RPC annotations
       requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
         "RequestContextConfig"

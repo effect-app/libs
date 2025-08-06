@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.89.2
+
+### Patch Changes
+
+- d2776fb: fix dumb layer issues
+
 ## 2.89.1
 
 ### Patch Changes

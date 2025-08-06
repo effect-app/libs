@@ -1,3 +1,4 @@
+/** @effect-diagnostics overriddenSchemaConstructor:skip-file */
 import { TaggedError } from "effect-app/Schema"
 import { makeFiberFailure } from "effect/Runtime"
 import { Cause, S } from "../internal/lib.js"

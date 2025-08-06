@@ -203,7 +203,7 @@ const makeMiddlewareBasic =
               RequestContextMap,
               GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
             >()(
-              (schema, handler, moduleName) => {
+              (schema, handler) => {
                 return (payload, headers) =>
                   Effect
                     .gen(function*() {
@@ -213,11 +213,7 @@ const makeMiddlewareBasic =
                         payload,
                         headers,
                         clientId: 0, // TODO: get the clientId from the request context
-                        rpc: {
-                          ...Rpc.fromTaggedRequest(schema as any),
-                          key: `${moduleName}.${payload._tag}`,
-                          _tag: `${moduleName}.${payload._tag}`
-                        }
+                        rpc: Rpc.fromTaggedRequest(schema as any)
                       }
                       return yield* generic({
                         ...basic,

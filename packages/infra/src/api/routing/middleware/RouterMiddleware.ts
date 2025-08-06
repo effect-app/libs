@@ -28,8 +28,7 @@ export type RPCHandlerFactory<
     EffectRequest.Request.Success<Req>,
     EffectRequest.Request.Error<Req>,
     HandlerR
-  >,
-  moduleName: string
+  >
 ) => (
   req: Req,
   headers: any

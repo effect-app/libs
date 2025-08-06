@@ -404,11 +404,10 @@ export const makeRouter = <
                 resource,
                 (req, headers) =>
                   handle(req, headers).pipe(
-                    Effect.withSpan("Request." + meta.moduleName + "." + resource._tag, {
-                      captureStackTrace: () => handler.stack
+                    Effect.withSpan("Request." + resource._tag, {
+                      captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                     })
-                  ),
-                meta.moduleName
+                  )
               ),
               meta.moduleName
             ] as const
@@ -431,16 +430,18 @@ export const makeRouter = <
             ]
           }
 
-          const rpcs = RpcGroup.make(
-            ...typedValuesOf(mapped).map(([resource]) => {
-              return Rpc.fromTaggedRequest(resource)
-            })
-          )
+          const rpcs = RpcGroup
+            .make(
+              ...typedValuesOf(mapped).map(([resource]) => {
+                return Rpc.fromTaggedRequest(resource)
+              })
+            )
+            .prefix(`${meta.moduleName}.`)
           const rpcLayer = rpcs.toLayer(Effect.gen(function*() {
             return typedValuesOf(mapped).reduce((acc, [resource, handler]) => {
-              acc[resource._tag] = handler
+              acc[`${meta.moduleName}.${resource._tag}`] = handler
               return acc
-            }, {} as Record<string, any>)
+            }, {} as Record<string, any>) as any // TODO
           })) as unknown as Layer<
             { [K in keyof RequestModules]: Rpc.Handler<K> },
             | Layer.Error<typeof middleware.Default>

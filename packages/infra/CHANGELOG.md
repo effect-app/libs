@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.91.0
+
+### Minor Changes
+
+- a660b08: cleanup legacy. move interruption/retryability to middleware
+
 ## 2.90.1
 
 ### Patch Changes

@@ -58,7 +58,6 @@ export const genericMiddlewareMaker = <
       return <E>(
         options: GenericMiddlewareOptions<E>
       ) => {
-        console.dir({ options })
         // we start with the actual handler
         let handler = options.next
 

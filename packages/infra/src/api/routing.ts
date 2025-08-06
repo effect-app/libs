@@ -2,9 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { determineMethod, isCommand } from "@effect-app/infra/api/routing/utils"
 import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
-import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schedule, Schema, type Scope } from "effect-app"
+import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -15,11 +14,6 @@ import { type LayerUtils } from "./layerUtils.js"
 import { DevMode, type RouterMiddleware } from "./routing/middleware.js"
 
 export * from "./routing/middleware.js"
-
-// retry just once on optimistic concurrency exceptions
-const optimisticConcurrencySchedule = Schedule.once.pipe(
-  Schedule.intersect(Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException"))
-)
 
 // it's the result of extending S.Req setting success, config
 // it's a schema plus some metadata
@@ -380,14 +374,6 @@ export const makeRouter = <
             const handler = controllers[cur as keyof typeof controllers]
             const resource = rsc[cur]
 
-            const method = determineMethod(String(cur), resource)
-
-            const handle = isCommand(method)
-              ? (req: S.Schema.Type<AnyRequestModule>, headers: HttpHeaders.Headers) =>
-                Effect.retry(handler.handler(req, headers) as any, optimisticConcurrencySchedule)
-              : (req: S.Schema.Type<AnyRequestModule>, headers: HttpHeaders.Headers) =>
-                Effect.interruptible(handler.handler(req, headers) as any)
-
             acc[cur] = [
               handler._tag === RequestTypes.TYPE
                 ? class extends (resource as any) {
@@ -404,7 +390,7 @@ export const makeRouter = <
                 } as any
                 : resource,
               (payload: any, headers: any) =>
-                handle(payload, headers).pipe(
+                (handler.handler(payload, headers) as Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan("Request." + resource._tag, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })

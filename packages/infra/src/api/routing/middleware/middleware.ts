@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Context, Duration, Effect, Layer, ParseResult, Request } from "effect-app"
+import { Cause, Context, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect-app"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
+import { determineMethod, isCommand } from "../utils.js"
 import { Tag } from "./RpcMiddleware.js"
 
 const logRequestError = logError("Request")
@@ -23,14 +24,32 @@ export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("Reque
 }) {
 }
 
+// retry just once on optimistic concurrency exceptions
+const optimisticConcurrencySchedule = Schedule.once.pipe(
+  Schedule.intersect(Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException"))
+)
+
 export class ConfigureInterruptibilityMiddleware
   extends Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware", { wrap: true })({
-    effect: Effect.succeed(({ next }) =>
-      next.pipe(
-        // TODO: make this depend on query/command, and consider if middleware also should be affected. right now it's not.
-        Effect.uninterruptible
-      )
-    )
+    effect: Effect.gen(function*() {
+      const cache = new Map()
+      const getCached = (key: string, schema: Schema.Schema.Any) => {
+        const existing = cache.get(key)
+        if (existing) return existing
+        const n = determineMethod(key, schema)
+        cache.set(key, n)
+        return n
+      }
+      return ({ next, rpc }) => {
+        const method = getCached(rpc._tag, rpc.payloadSchema)
+
+        next = isCommand(method)
+          ? Effect.retry(Effect.uninterruptible(next), optimisticConcurrencySchedule)
+          : Effect.interruptible(next)
+
+        return next
+      }
+    })
   })
 {
 }

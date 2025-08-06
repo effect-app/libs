@@ -167,13 +167,17 @@ export const makeRouter = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   MakeMiddlewareE,
   MakeMiddlewareR,
-  ContextProviderA
+  ContextProviderA,
+  ContextProviderE,
+  ContextProviderR
 >(
   middleware: RouterMiddleware<
     RequestContextMap,
     MakeMiddlewareE,
     MakeMiddlewareR,
-    ContextProviderA
+    ContextProviderA,
+    ContextProviderE,
+    ContextProviderR
   >,
   devMode: boolean
 ) => {

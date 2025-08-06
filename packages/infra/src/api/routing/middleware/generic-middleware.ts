@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
-import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type Scope } from "effect-app"
+import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type S, type Scope } from "effect-app"
 import { type ContextTagArray } from "effect-app/client"
 import { InfraLogger } from "../../../logger.js"
 import { type RpcMiddlewareWrap, type TagClassAny } from "./RpcMiddleware.js"
@@ -16,9 +16,23 @@ export namespace MiddlewareMaker {
     | Exclude<R, { [K in keyof A]: Provided<A[K]> }[number]>
     | { [K in keyof A]: Required<A[K]> }[number]
 
+  export type ManyProvided<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Provided<A[K]> }[number]
+    : Provided<A[number]>
+  export type ManyRequired<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Required<A[K]> }[number]
+    : Required<A[number]>
+  export type ManyErrors<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Errors<A[K]> }[number]
+    : Errors<A[number]>
+
   export type Provided<T> = T extends TagClassAny
     ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
     : T extends { provides: ContextTagArray } ? ContextTagArray.Identifier<T["provides"]>
+    : never
+    : never
+
+  export type Errors<T> = T extends TagClassAny ? T extends { failure: S.Schema.Any } ? S.Schema.Type<T["failure"]>
     : never
     : never
 
@@ -35,9 +49,9 @@ export const middlewareMaker = <
   dependencies: { [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }
   effect: Effect.Effect<
     RpcMiddlewareWrap<
-      MiddlewareMaker.Provided<MiddlewareProviders[number]>,
-      never,
-      never // TODO: ?? MiddlewareMaker.Required<MiddlewareProviders[number]>
+      MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+      MiddlewareMaker.ManyErrors<MiddlewareProviders>,
+      MiddlewareMaker.ManyRequired<MiddlewareProviders>
     >
   >
 } => {
@@ -53,7 +67,7 @@ export const middlewareMaker = <
       return (
         options: Parameters<
           RpcMiddlewareWrap<
-            MiddlewareMaker.Provided<MiddlewareProviders[number]>,
+            MiddlewareMaker.ManyProvided<MiddlewareProviders>,
             never,
             Scope.Scope
           >

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type AnyWithProps } from "@effect/rpc/Rpc"
-import { Context, type Layer, type NonEmptyArray, type NonEmptyReadonlyArray } from "effect-app"
+import { Context, type Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
@@ -177,11 +177,24 @@ const makeMiddlewareBasic =
     // reverse middlewares and wrap one after the other
     const middleware = middlewareMaker(...make)
 
+    const failures = make.map((_) => _.failure).filter(Boolean)
+    const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
+
     const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
-      provides: null as unknown as [
+      failure: failures.length > 0
+        ? S.Union(...failures)
+        : S.Never as unknown as S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
+      requires: null as unknown as [
         Context.Tag<
-          MiddlewareMaker.Provided<MiddlewareProviders[number]>,
-          MiddlewareMaker.Provided<MiddlewareProviders[number]>
+          MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+          MiddlewareMaker.ManyRequired<MiddlewareProviders>
+        >
+      ],
+      // TODO{ [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["provides"] },
+      provides: provides as unknown as [
+        Context.Tag<
+          MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+          MiddlewareMaker.ManyProvided<MiddlewareProviders>
         >
       ],
       wrap: true

@@ -13,12 +13,19 @@ export type RouterMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
-  ContextProviderA // what the context provider provides
+  ContextProviderA, // what the context provider provides
+  ContextProviderE, // what the context provider may fail with
+  ContextProviderR // what the context provider may error with
 > =
   & TagClass<
     MiddlewareMakerId,
     "MiddlewareMaker",
-    { wrap: true; provides: [Context.Tag<ContextProviderA, ContextProviderA>] }
+    {
+      wrap: true
+      provides: [Context.Tag<ContextProviderA, ContextProviderA>]
+      requires: [Context.Tag<ContextProviderR, ContextProviderR>]
+      failure: ContextProviderE
+    }
   >
   & {
     Default: Layer.Layer<MiddlewareMakerId, MakeMiddlewareE, MakeMiddlewareR>

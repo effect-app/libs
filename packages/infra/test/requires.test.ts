@@ -1,6 +1,9 @@
+import { Rpc } from "@effect/rpc"
+import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
 import { describe, expect, expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, Either, Layer } from "effect-app"
+import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
+import { HttpHeaders } from "effect-app/http"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
 import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
@@ -91,16 +94,23 @@ type Default = typeof middleware3["Default"]
 type LayerContext = Layer.Layer.Context<Default>
 expectTypeOf({} as LayerContext).toEqualTypeOf<SomeService>()
 
+class TestRequest extends S.TaggedRequest<Test>("Test")("Test", {
+  payload: {},
+  success: S.Void,
+  failure: S.Never
+}) {}
+
 const testSuite = (_mw: typeof middleware3) =>
   describe("middleware" + _mw, () => {
     it.effect(
       "works",
       Effect.fn(function*() {
         const defaultReq = {
-          headers: {},
+          headers: HttpHeaders.unsafeFromRecord({}),
+          payload: { _tag: "Test" },
           clientId: 0,
-          rpc: { _tag: "Test", key: "test", annotations: Context.make(_mw.requestContext, {}) },
-          next: Effect.void
+          rpc: { ...Rpc.fromTaggedRequest(TestRequest), annotations: Context.make(_mw.requestContext, {}) },
+          next: Effect.void as unknown as Effect<SuccessValue, never, any>
         }
         const layer = _mw.Default.pipe(Layer.provide(SomeService.toLayer()))
         yield* Effect

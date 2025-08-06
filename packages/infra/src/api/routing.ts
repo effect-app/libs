@@ -370,7 +370,6 @@ export const makeRouter = <
             : make
 
           const controllers = yield* make
-          const rpc = yield* middleware
 
           // return make.pipe(Effect.map((c) => controllers(c, dependencies)))
           const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {

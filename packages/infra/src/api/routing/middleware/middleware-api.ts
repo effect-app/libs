@@ -185,18 +185,6 @@ const makeMiddlewareBasic =
     _rcm: RequestContextMap,
     ...make: GenericMiddlewareProviders
   ) => {
-    // const MiddlewareMaker = Context.GenericTag<
-    //   MiddlewareMakerId,
-    //   MiddlewareMaker<
-    //     RPCHandlerFactory<
-    //       RequestContextMap,
-    //       GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>
-    //     >
-    //   >
-    // >(
-    //   MiddlewareMakerTag
-    // )
-
     const MiddlewareMaker = RpcMiddleware.Tag<MiddlewareMakerId>()("MiddlewareMaker", {
       provides: null as unknown as Context.Tag<
         GenericMiddlewareMaker.Provided<GenericMiddlewareProviders[number]>,

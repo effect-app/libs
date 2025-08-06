@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.90.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+### Patch Changes
+
+- Updated dependencies [0f2b2cf]
+  - effect-app@2.54.0
+
 ## 2.89.3
 
 ### Patch Changes

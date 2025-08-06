@@ -303,52 +303,6 @@ const router = Router(Something)({
   }
 })
 
-const router5 = Router(Something)({
-  *effect(match) {
-    return match({
-      Eff: () =>
-        Effect
-          .gen(function*() {
-            const some = yield* Some
-            return yield* Effect.logInfo("Some", some)
-          }),
-
-      *Gen() {
-        const some = yield* Some
-        return yield* Effect.logInfo("Some", some)
-      },
-      *GetSomething(req) {
-        console.log(req.id)
-
-        const _b = yield* Effect.succeed(false)
-        if (_b) {
-          //   expected errors here because RequestError is not a valid error for controllers
-          // yield* new RequestError(1 as any)
-          // return yield* new RequestError(1 as any)
-        }
-        if (Math.random() > 0.5) {
-          return yield* Effect.succeed("12")
-        }
-        if (!_b) {
-          return yield* new UnauthorizedError()
-        } else {
-          // expected an error here because a boolean is not a string
-          // return _b
-          return "12"
-        }
-      },
-      DoSomething: {
-        *raw() {
-          return yield* Effect.succeed(undefined)
-        }
-      },
-      GetSomething2: {
-        raw: Some.use(() => Effect.succeed("12"))
-      }
-    })
-  }
-})
-
 it("sorts based on requirements", () => {
   const input = [RequireRoles, AllowAnonymous, Test]
   const sorted = sort(input)

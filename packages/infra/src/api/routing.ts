@@ -297,16 +297,6 @@ export const makeRouter = <
       {} as RouteMatcher<RequestContextMap, Resource>
     )
 
-    const router: AddAction<RequestModules[keyof RequestModules]> = {
-      accum: {},
-      add(a: any) {
-        ;(this.accum as any)[a.request._tag] = a
-        ;(this as any)[a.request._tag] = a
-        if (Object.keys(this.accum).length === Object.keys(requestModules).length) return this.accum as any
-        return this as any
-      }
-    }
-
     const router3: <
       const Impl extends {
         [K in keyof FilterRequestModules<Resource>]: AnyHandlers<Resource[K]>
@@ -488,16 +478,12 @@ export const makeRouter = <
               Effect<
                 any,
                 any,
-                Make["strict"] extends false ? any
-                  : Make extends { dependencies: Array<Layer.Layer.Any> } ? MakeDepsOut<Make>
-                  : any
+                any
               >
             >,
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any
           >
-
-          strict?: boolean
           /** @deprecated */
           readonly ಠ_ಠ: never
         }
@@ -528,11 +514,8 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            Make["strict"] extends false ? any
-              : Make extends { dependencies: Array<Layer.Layer.Any> } ? MakeDepsOut<Make>
-              : any
+            any
           >
-          strict?: boolean
           /** @deprecated */
           readonly ಠ_ಠ: never
         }
@@ -563,9 +546,8 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            Make["strict"] extends false ? any : MakeDepsOut<Make>
+            any
           >
-          strict?: boolean
           /** @deprecated */
           readonly ಠ_ಠ: never
         }
@@ -596,9 +578,8 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            Make["strict"] extends false ? any : MakeDepsOut<Make>
+            any
           >
-          strict?: boolean
           /** @deprecated */
           readonly ಠ_ಠ: never
         }
@@ -629,9 +610,8 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            MakeDepsOut<Make>
+            any
           >
-          strict?: boolean
           /** @deprecated */
           readonly ಠ_ಠ: never
         }
@@ -662,9 +642,8 @@ export const makeRouter = <
           effect: Effect<
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any,
-            MakeDepsOut<Make>
+            any
           >
-          strict?: boolean
         }
       >(
         make: Make
@@ -695,16 +674,12 @@ export const makeRouter = <
               Effect<
                 any,
                 any,
-                Make["strict"] extends false ? any
-                  : Make extends { dependencies: Array<Layer.Layer.Any> } ? MakeDepsOut<Make>
-                  : any
+                any
               >
             >,
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any
           >
-
-          strict?: boolean
         }
       >(
         make: Make
@@ -739,7 +714,6 @@ export const makeRouter = <
             any,
             any
           >
-          strict?: boolean
         }
       >(
         make: Make
@@ -762,10 +736,10 @@ export const makeRouter = <
         make: Make
       }
     } =
-      ((make: { dependencies: any; effect: any; strict?: any }) =>
+      ((make: { dependencies: any; effect: any }) =>
         Object.assign(makeRoutes(make.dependencies, make.effect), { make })) as any
 
-    return Object.assign(effect, routeMatcher, { router, router3 })
+    return effect
   }
 
   function matchAll<
@@ -790,12 +764,6 @@ export const makeRouter = <
 
   return {
     matchAll,
-    matchFor: <
-      const ModuleName extends string,
-      const Resource extends Record<string, any>
-    >(
-      rsc: Resource & { meta: { moduleName: ModuleName } }
-    ) => matchFor(rsc).router3,
     Router: matchFor
   }
 }

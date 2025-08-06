@@ -4,7 +4,7 @@ import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope } 
 import { type HttpRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
 import { type YieldWrap } from "effect/Utils"
-import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "../../layerUtils.js"
+import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "./layerUtils.js"
 
 export namespace EffectGenUtils {
   export type Success<EG> = EG extends Effect<infer A, infer _E, infer _R> ? A

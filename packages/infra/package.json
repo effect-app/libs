@@ -278,6 +278,10 @@
       "types": "./dist/adapters/redis-client.d.ts",
       "default": "./dist/adapters/redis-client.js"
     },
+    "./api/ContextProvider": {
+      "types": "./dist/api/ContextProvider.d.ts",
+      "default": "./dist/api/ContextProvider.js"
+    },
     "./api/codec": {
       "types": "./dist/api/codec.d.ts",
       "default": "./dist/api/codec.js"
@@ -301,10 +305,6 @@
     "./api/routing/middleware": {
       "types": "./dist/api/routing/middleware.d.ts",
       "default": "./dist/api/routing/middleware.js"
-    },
-    "./api/routing/middleware/ContextProvider": {
-      "types": "./dist/api/routing/middleware/ContextProvider.d.ts",
-      "default": "./dist/api/routing/middleware/ContextProvider.js"
     },
     "./api/routing/middleware/RouterMiddleware": {
       "types": "./dist/api/routing/middleware/RouterMiddleware.d.ts",

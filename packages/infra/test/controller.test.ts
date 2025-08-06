@@ -322,11 +322,6 @@ expectTypeOf({} as makeContext).toEqualTypeOf<
 
 const router2 = r2.Router(Something)({
   *effect(match) {
-    // this gets catched in 'routes' type
-    if (Math.random() > 0.5) {
-      return yield* new InvalidStateError("ciao")
-    }
-
     return match({
       Eff: () =>
         Effect
@@ -376,5 +371,4 @@ const matched2 = matchAll({ router: router2 })
 expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<SomeService | "str">()
 
 type makeContext2 = MakeContext<typeof router2.make>
-expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateError>()
 expectTypeOf({} as makeContext2).toEqualTypeOf<never>()

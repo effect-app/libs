@@ -509,164 +509,164 @@ export const makeRouter = <
         // just for type testing purposes
         make: Make
       }
-      <
-        const Make extends {
-          dependencies?: Array<Layer.Layer.Any>
-          effect: (match: typeof router3) => Effect<
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any,
-            any
-          >
-          /** @deprecated */
-          readonly ಠ_ಠ: never
-        }
-      >(
-        make: Make
-      ): {
-        moduleName: ModuleName
+      // <
+      //   const Make extends {
+      //     dependencies?: Array<Layer.Layer.Any>
+      //     effect: (match: typeof router3) => Effect<
+      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
+      //       any,
+      //       any
+      //     >
+      //     /** @deprecated */
+      //     readonly ಠ_ಠ: never
+      //   }
+      // >(
+      //   make: Make
+      // ): {
+      //   moduleName: ModuleName
 
-        routes: Layer.Layer<
-          RouterShape<Resource>,
-          | MakeErrors<Make>
-          | Service.MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
-          | Service.MakeDepsIn<Make>
-          | Layer.Context<typeof middleware.Default>
-          | Exclude<
-            MakeContext<Make>,
-            MakeDepsOut<Make>
-          >
-        >
+      //   routes: Layer.Layer<
+      //     RouterShape<Resource>,
+      //     | MakeErrors<Make>
+      //     | Service.MakeDepsE<Make>
+      //     | Layer.Error<typeof middleware.Default>,
+      //     | Service.MakeDepsIn<Make>
+      //     | Layer.Context<typeof middleware.Default>
+      //     | Exclude<
+      //       MakeContext<Make>,
+      //       MakeDepsOut<Make>
+      //     >
+      //   >
 
-        // just for type testing purposes
-        make: Make
-      }
-      <
-        const Make extends {
-          dependencies?: Array<Layer.Layer.Any>
-          effect: (match: typeof router3) => Effect<
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any,
-            any
-          >
-          /** @deprecated */
-          readonly ಠ_ಠ: never
-        }
-      >(
-        make: Make
-      ): {
-        moduleName: ModuleName
+      //   // just for type testing purposes
+      //   make: Make
+      // }
+      // <
+      //   const Make extends {
+      //     dependencies?: Array<Layer.Layer.Any>
+      //     effect: (match: typeof router3) => Effect<
+      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
+      //       any,
+      //       any
+      //     >
+      //     /** @deprecated */
+      //     readonly ಠ_ಠ: never
+      //   }
+      // >(
+      //   make: Make
+      // ): {
+      //   moduleName: ModuleName
 
-        routes: Layer.Layer<
-          RouterShape<Resource>,
-          | MakeErrors<Make>
-          | Service.MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
-          | Service.MakeDepsIn<Make>
-          | Layer.Context<typeof middleware.Default>
-          | Exclude<
-            MakeContext<Make>,
-            MakeDepsOut<Make>
-          >
-        >
+      //   routes: Layer.Layer<
+      //     RouterShape<Resource>,
+      //     | MakeErrors<Make>
+      //     | Service.MakeDepsE<Make>
+      //     | Layer.Error<typeof middleware.Default>,
+      //     | Service.MakeDepsIn<Make>
+      //     | Layer.Context<typeof middleware.Default>
+      //     | Exclude<
+      //       MakeContext<Make>,
+      //       MakeDepsOut<Make>
+      //     >
+      //   >
 
-        // just for type testing purposes
-        make: Make
-      }
-      <
-        const Make extends {
-          dependencies?: Array<Layer.Layer.Any>
-          effect: (match: typeof router3) => Effect<
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any,
-            any
-          >
-          /** @deprecated */
-          readonly ಠ_ಠ: never
-        }
-      >(
-        make: Make
-      ): {
-        moduleName: ModuleName
+      //   // just for type testing purposes
+      //   make: Make
+      // }
+      // <
+      //   const Make extends {
+      //     dependencies?: Array<Layer.Layer.Any>
+      //     effect: (match: typeof router3) => Effect<
+      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
+      //       any,
+      //       any
+      //     >
+      //     /** @deprecated */
+      //     readonly ಠ_ಠ: never
+      //   }
+      // >(
+      //   make: Make
+      // ): {
+      //   moduleName: ModuleName
 
-        routes: Layer.Layer<
-          RouterShape<Resource>,
-          | MakeErrors<Make>
-          | Service.MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
-          | Service.MakeDepsIn<Make>
-          | Layer.Context<typeof middleware.Default>
-          | Exclude<
-            MakeContext<Make>,
-            MakeDepsOut<Make>
-          >
-        >
+      //   routes: Layer.Layer<
+      //     RouterShape<Resource>,
+      //     | MakeErrors<Make>
+      //     | Service.MakeDepsE<Make>
+      //     | Layer.Error<typeof middleware.Default>,
+      //     | Service.MakeDepsIn<Make>
+      //     | Layer.Context<typeof middleware.Default>
+      //     | Exclude<
+      //       MakeContext<Make>,
+      //       MakeDepsOut<Make>
+      //     >
+      //   >
 
-        // just for type testing purposes
-        make: Make
-      }
-      <
-        const Make extends {
-          dependencies?: Array<Layer.Layer.Any>
-          effect: (match: typeof router3) => Effect<
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any,
-            any
-          >
-          /** @deprecated */
-          readonly ಠ_ಠ: never
-        }
-      >(
-        make: Make
-      ): {
-        moduleName: ModuleName
+      //   // just for type testing purposes
+      //   make: Make
+      // }
+      // <
+      //   const Make extends {
+      //     dependencies?: Array<Layer.Layer.Any>
+      //     effect: (match: typeof router3) => Effect<
+      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
+      //       any,
+      //       any
+      //     >
+      //     /** @deprecated */
+      //     readonly ಠ_ಠ: never
+      //   }
+      // >(
+      //   make: Make
+      // ): {
+      //   moduleName: ModuleName
 
-        routes: Layer.Layer<
-          RouterShape<Resource>,
-          | MakeErrors<Make>
-          | Service.MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
-          | Service.MakeDepsIn<Make>
-          | Layer.Context<typeof middleware.Default>
-          | Exclude<
-            MakeContext<Make>,
-            MakeDepsOut<Make>
-          >
-        >
+      //   routes: Layer.Layer<
+      //     RouterShape<Resource>,
+      //     | MakeErrors<Make>
+      //     | Service.MakeDepsE<Make>
+      //     | Layer.Error<typeof middleware.Default>,
+      //     | Service.MakeDepsIn<Make>
+      //     | Layer.Context<typeof middleware.Default>
+      //     | Exclude<
+      //       MakeContext<Make>,
+      //       MakeDepsOut<Make>
+      //     >
+      //   >
 
-        // just for type testing purposes
-        make: Make
-      }
-      <
-        const Make extends {
-          dependencies?: Array<Layer.Layer.Any>
-          effect: (match: typeof router3) => Effect<
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any,
-            any
-          >
-        }
-      >(
-        make: Make
-      ): {
-        moduleName: ModuleName
+      //   // just for type testing purposes
+      //   make: Make
+      // }
+      // <
+      //   const Make extends {
+      //     dependencies?: Array<Layer.Layer.Any>
+      //     effect: (match: typeof router3) => Effect<
+      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
+      //       any,
+      //       any
+      //     >
+      //   }
+      // >(
+      //   make: Make
+      // ): {
+      //   moduleName: ModuleName
 
-        routes: Layer.Layer<
-          RouterShape<Resource>,
-          | MakeErrors<Make>
-          | Service.MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
-          | Service.MakeDepsIn<Make>
-          | Layer.Context<typeof middleware.Default>
-          | Exclude<
-            MakeContext<Make>,
-            MakeDepsOut<Make>
-          >
-        >
+      //   routes: Layer.Layer<
+      //     RouterShape<Resource>,
+      //     | MakeErrors<Make>
+      //     | Service.MakeDepsE<Make>
+      //     | Layer.Error<typeof middleware.Default>,
+      //     | Service.MakeDepsIn<Make>
+      //     | Layer.Context<typeof middleware.Default>
+      //     | Exclude<
+      //       MakeContext<Make>,
+      //       MakeDepsOut<Make>
+      //     >
+      //   >
 
-        // just for type testing purposes
-        make: Make
-      }
+      //   // just for type testing purposes
+      //   make: Make
+      // }
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
@@ -703,39 +703,34 @@ export const makeRouter = <
         // just for type testing purposes
         make: Make
       }
-      <
-        const Make extends {
-          dependencies: [
-            ...Make["dependencies"],
-            ...Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>> extends never ? []
-              : [Layer.Layer<Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>>, never, never>]
-          ]
-          effect: (match: typeof router3) => Effect<
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any,
-            any
-          >
-        }
-      >(
-        make: Make
-      ): {
-        moduleName: ModuleName
-        Router: HttpRouter.HttpRouter.TagClass<
-          RouterShape<Resource>,
-          `${ModuleName}Router`,
-          never,
-          never
-        > // | Exclude<
-        //   RPCRouteR<
-        //     { [K in keyof Filter<Resource>]: Rpc.Rpc<Resource[K], Effect.Context<ReturnType<THandlers[K]["handler"]>>> }[keyof Filter<Resource>]
-        //   >,
-        //   Scope.Scope
-        // >
-        routes: any
+      // <
+      //   const Make extends {
+      //     dependencies: [
+      //       ...Make["dependencies"],
+      //       ...Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>> extends never ? []
+      //         : [Layer.Layer<Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>>, never, never>]
+      //     ]
+      //     effect: (match: typeof router3) => Effect<
+      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
+      //       any,
+      //       any
+      //     >
+      //   }
+      // >(
+      //   make: Make
+      // ): {
+      //   moduleName: ModuleName
+      //   Router: HttpRouter.HttpRouter.TagClass<
+      //     RouterShape<Resource>,
+      //     `${ModuleName}Router`,
+      //     never,
+      //     never
+      //   >
+      //   routes: any
 
-        // just for type testing purposes
-        make: Make
-      }
+      //   // just for type testing purposes
+      //   make: Make
+      // }
     } =
       ((make: { dependencies: any; effect: any }) =>
         Object.assign(makeRoutes(make.dependencies, make.effect), { make })) as any
@@ -773,22 +768,25 @@ export type MakeDeps<Make> = Make extends { readonly dependencies: ReadonlyArray
   ? Make["dependencies"][number]
   : never
 
-export type MakeErrors<Make> = Make extends { readonly effect: (_: any) => Effect<any, infer E, any> } ? E
+export type MakeErrors<Make> = /*Make extends { readonly effect: (_: any) => Effect<any, infer E, any> } ? E
   : Make extends { readonly effect: (_: any) => Effect<any, never, any> } ? never
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, never, any>>, any, any> } ? never
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, infer E, any>>, any, any> } ? E
-  : never
+  : */
+  Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, never, any>>, any, any> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, infer E, any>>, any, any> } ? E
+    : never
 
-export type MakeContext<Make> = Make extends { readonly effect: (_: any) => Effect<any, any, infer R> } ? R
+export type MakeContext<Make> = /*Make extends { readonly effect: (_: any) => Effect<any, any, infer R> } ? R
   : Make extends { readonly effect: (_: any) => Effect<any, any, never> } ? never
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, any, never>>, any, any> } ? never
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, any, infer R>>, any, any> } ? R
-  : never
+  : */
+  Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, any, never>>, any, any> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, any, infer R>>, any, any> } ? R
+    : never
 
-export type MakeHandlers<Make, Handlers extends Record<string, any>> = Make extends
+export type MakeHandlers<Make, _Handlers extends Record<string, any>> = /*Make extends
   { readonly effect: (_: any) => Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
   ? Effect.Success<ReturnType<Make["effect"]>>
-  : Make extends { readonly effect: (_: any) => Generator<YieldWrap<any>, infer S, any> } ? S
-  : never
+  : */
+  Make extends { readonly effect: (_: any) => Generator<YieldWrap<any>, infer S, any> } ? S
+    : never
 
 export type MakeDepsOut<Make> = Contravariant.Type<MakeDeps<Make>[Layer.LayerTypeId]["_ROut"]>

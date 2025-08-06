@@ -247,7 +247,7 @@ const router = Router(Something)({
     SomethingService.Default,
     SomethingService2.Default
   ],
-  effect: Effect.fnUntraced(function*(match) {
+  *effect(match) {
     const repo = yield* SomethingRepo
     const smth = yield* SomethingService
     const smth2 = yield* SomethingService2
@@ -300,7 +300,7 @@ const router = Router(Something)({
         raw: Some.use(() => Effect.succeed("12"))
       }
     })
-  })
+  }
 })
 
 it("sorts based on requirements", () => {

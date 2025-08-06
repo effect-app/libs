@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, type Layer, S, Scope } from "effect-app"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
@@ -36,6 +36,38 @@ class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextPr
     })
   })
 }) {}
+
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
+class MyContextProvider3 extends Middleware.Tag<MyContextProvider3>()("MyContextProvider3", {
+  provides: [Some],
+  requires: [SomeElse]
+})({
+  dependencies: [Layer.effect(SomeService, SomeService.make)],
+  effect: Effect.gen(function*() {
+    yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
+
+    return Effect.fnUntraced(function*() {
+      yield* SomeElse
+      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      yield* Scope.Scope
+
+      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+      yield* Effect.succeed("this is a generator")
+
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // yield* SomeElse
+
+      // currently the effectful context provider cannot trigger an error when building the per request context
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // if (Math.random() > 0.5) return yield* new CustomError2()
+
+      return Context.make(Some, new Some({ a: 1 }))
+    })
+  })
+}) {}
+
+expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProvider3, CustomError1, never>>()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({

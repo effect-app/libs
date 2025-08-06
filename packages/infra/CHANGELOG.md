@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 2.88.0
+
+### Minor Changes
+
+- bda3435: add sideways elimination when building middlewares
+
+### Patch Changes
+
+- 244f84d: various improvements, documentation
+- Updated dependencies [244f84d]
+  - effect-app@2.52.1
+
 ## 2.87.2
 
 ### Patch Changes

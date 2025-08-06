@@ -44,9 +44,9 @@ export namespace MiddlewareMaker {
 }
 
 export const middlewareMaker = <
-  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker>
+  MiddlewareProviders extends NonEmptyReadonlyArray<MiddlewareMaker>
 >(middlewares: MiddlewareProviders): {
-  dependencies: { [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }
+  dependencies?: { [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] } | undefined
   effect: Effect.Effect<
     RpcMiddlewareWrap<
       MiddlewareMaker.ManyProvided<MiddlewareProviders>,

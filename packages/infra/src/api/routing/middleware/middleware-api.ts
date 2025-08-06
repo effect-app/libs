@@ -75,7 +75,7 @@ type RecursiveHandleMWsSideways<
 export interface BuildingMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContextMap,
-  Middlewares extends ReadonlyArray<MiddlewareMaker>,
+  Middlewares extends NonEmptyReadonlyArray<MiddlewareMaker>,
   DynamicMiddlewareProviders,
   out MiddlewareR extends { _tag: string } = never
 > {
@@ -90,13 +90,13 @@ export interface BuildingMiddleware<
   }> extends infer Res extends {
     rcm: RequestContextMap
     provided: keyof RequestContextMap
-    middlewares: ReadonlyArray<MiddlewareMaker>
+    middlewares: NonEmptyReadonlyArray<MiddlewareMaker>
     dmp: any
     middlewareR: any
   } ? MiddlewaresBuilder<
       Res["rcm"],
-      Res["provided"],
       Res["middlewares"],
+      Res["provided"],
       Res["dmp"],
       Res["middlewareR"]
     >
@@ -111,8 +111,8 @@ export interface BuildingMiddleware<
 
 export type MiddlewaresBuilder<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Middlewares extends NonEmptyReadonlyArray<MiddlewareMaker> = never,
   Provided extends keyof RequestContextMap = never,
-  Middlewares extends ReadonlyArray<MiddlewareMaker> = [],
   DynamicMiddlewareProviders = unknown,
   MiddlewareR extends { _tag: string } = never
 > =
@@ -166,7 +166,7 @@ const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,
-    MiddlewareProviders extends ReadonlyArray<MiddlewareMaker>
+    MiddlewareProviders extends NonEmptyReadonlyArray<MiddlewareMaker>
   >(
     _rcm: RequestContextMap,
     ...make: MiddlewareProviders

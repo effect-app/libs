@@ -246,7 +246,7 @@ export const Tag = <Self>() =>
   id: Name,
   options?: Options | undefined
 ) =>
-<E, R, L extends ReadonlyArray<Layer.Layer.Any>>(opts: {
+<E, R, L extends NonEmptyReadonlyArray<Layer.Layer.Any>>(opts: {
   effect: Effect.Effect<
     Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,
@@ -277,7 +277,7 @@ export const Tag = <Self>() =>
   Default: Layer.Layer<
     Self,
     E | LayerUtils.GetLayersError<L>,
-    Exclude<R, LayerUtils.GetLayersSuccess<L>> | LayerUtils.GetLayersContext<L>
+    R
   >
 } =>
   class extends RpcMiddleware.Tag<Self>()(id, options as any) {

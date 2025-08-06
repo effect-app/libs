@@ -97,6 +97,8 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
 }) {
 }
 
+type A = typeof RequireRoles["Default"]
+
 // TODO: don't expect service when it's wrap
 export class Test extends Middleware.Tag<Test>()("Test", {
   wrap: true,

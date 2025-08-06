@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Context, type Layer, type S } from "effect-app"
+import { type Context, type Layer } from "effect-app"
 import type { GetContextConfig, RPCContextMap } from "effect-app/client/req"
 import { type MiddlewareMakerId } from "./middleware-api.js"
 import { type TagClass } from "./RpcMiddleware.js"
@@ -15,7 +15,7 @@ export type RouterMiddleware<
   MakeMiddlewareR, // what the middlware requires to be constructed
   ContextProviderA, // what the context provider provides
   ContextProviderE, // what the context provider may fail with
-  ContextProviderR // what the context provider may error with
+  ContextProviderR // what the context provider requires
 > =
   & TagClass<
     MiddlewareMakerId,
@@ -31,7 +31,3 @@ export type RouterMiddleware<
     Default: Layer.Layer<MiddlewareMakerId, MakeMiddlewareE, MakeMiddlewareR>
     requestContext: Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
   }
-
-export type RequestContextMapErrors<RequestContextMap extends Record<string, RPCContextMap.Any>> = S.Schema.Type<
-  RequestContextMap[keyof RequestContextMap]["error"]
->

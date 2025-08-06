@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.91.1
+
+### Patch Changes
+
+- 920840a: try to reduce union complexity
+
 ## 2.91.0
 
 ### Minor Changes

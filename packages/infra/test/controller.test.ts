@@ -237,7 +237,7 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
   })
 }) {}
 
-export const { Router, matchAll, matchFor } = makeRouter(middleware, true)
+export const { Router, matchAll } = makeRouter(middleware, true)
 
 export const r2 = makeRouter(middleware2, true)
 
@@ -247,7 +247,7 @@ const router = Router(Something)({
     SomethingService.Default,
     SomethingService2.Default
   ],
-  *effect(match) {
+  effect: Effect.fnUntraced(function*(match) {
     const repo = yield* SomethingRepo
     const smth = yield* SomethingService
     const smth2 = yield* SomethingService2
@@ -300,7 +300,7 @@ const router = Router(Something)({
         raw: Some.use(() => Effect.succeed("12"))
       }
     })
-  }
+  })
 })
 
 it("sorts based on requirements", () => {

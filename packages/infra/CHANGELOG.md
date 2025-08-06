@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.89.0
+
+### Minor Changes
+
+- 5c51597: refactor Middleware to run as RPC middleware
+
+### Patch Changes
+
+- Updated dependencies [5c51597]
+  - effect-app@2.53.0
+
 ## 2.88.0
 
 ### Minor Changes

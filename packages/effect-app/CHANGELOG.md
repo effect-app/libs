@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.53.0
+
+### Minor Changes
+
+- 5c51597: refactor Middleware to run as RPC middleware
+
 ## 2.52.1
 
 ### Patch Changes

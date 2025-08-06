@@ -22,8 +22,8 @@ export type RouterMiddleware<
     "MiddlewareMaker",
     {
       wrap: true
-      provides: [Context.Tag<ContextProviderA, ContextProviderA>]
-      requires: [Context.Tag<ContextProviderR, ContextProviderR>]
+      provides: [Context.Tag<ContextProviderA, ContextProviderA>] // ContextProviderA extends never ? never : [Context.Tag<ContextProviderA, ContextProviderA>] // TODO: Tag<A>, Tag<B>
+      requires: [Context.Tag<ContextProviderR, ContextProviderR>] // ContextProviderE extends never ? never : [Context.Tag<ContextProviderR, ContextProviderR>] // TODO: Tag<A>, Tag<B>
       failure: ContextProviderE
     }
   >

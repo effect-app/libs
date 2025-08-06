@@ -138,7 +138,8 @@ export declare namespace TagClass {
    */
   export type FailureSchema<Options> = Options extends
     { readonly failure: Schema.Schema.All; readonly optional?: false } ? Options["failure"]
-    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]
+    // actually not, the Failure depends on Dynamic Middleware Configuration!
+    // : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]
     : typeof Schema.Never
 
   /**
@@ -147,6 +148,7 @@ export declare namespace TagClass {
    */
   export type Failure<Options> = Options extends
     { readonly failure: Schema.Schema<infer _A, infer _I, infer _R>; readonly optional?: false } ? _A
+    // actually not, the Failure depends on Dynamic Middleware Configuration!
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
     : never
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type AnyWithProps } from "@effect/rpc/Rpc"
-import { Context, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
+import { Context, type Effect, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, Tag, type TagClassAny } from "./RpcMiddleware.js"
@@ -188,7 +188,8 @@ const makeMiddlewareBasic =
     const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
       failure: (failures.length > 0
         ? S.Union(...failures)
-        : S.Never) as unknown as S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
+        : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
+          : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
       requires: (requires.length > 0
         ? requires
         : undefined) as unknown as Exclude<
@@ -209,8 +210,15 @@ const makeMiddlewareBasic =
         ],
       wrap: true
     })(
-      middleware
-    ) // TODO
+      middleware as {
+        dependencies: typeof middleware["dependencies"]
+        effect: Effect<
+          any, // TODO: why ?
+          Effect.Error<typeof middleware["effect"]>,
+          Effect.Context<typeof middleware["effect"]>
+        >
+      }
+    )
 
     // add to the tag a default implementation
     return Object.assign(MiddlewareMaker, {

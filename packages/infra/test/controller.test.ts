@@ -76,23 +76,22 @@ const genericMiddlewares = [
 ] as const
 
 const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
-  .middleware(MyContextProvider)
   .middleware(
     RequireRoles,
     Test
   )
   // AllowAnonymous provided after RequireRoles so that RequireRoles can access what AllowAnonymous provides
   .middleware(AllowAnonymous)
+  .middleware(MyContextProvider)
   .middleware(...genericMiddlewares)
 
 const middlewareBis = makeMiddleware<RequestContextMap>(RequestContextMap)
-  .middleware(MyContextProvider)
   .middleware(
     RequireRoles,
     Test
   )
   // testing sideways elimination
-  .middleware(AllowAnonymous, ...genericMiddlewares)
+  .middleware(AllowAnonymous, MyContextProvider, ...genericMiddlewares)
 
 expectTypeOf(middleware).toEqualTypeOf<typeof middlewareBis>()
 
@@ -112,10 +111,10 @@ expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
 // testing more sideways elimination]
 const middlewareQuater = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(
-    MyContextProvider,
     RequireRoles,
     Test,
     AllowAnonymous,
+    MyContextProvider,
     ...genericMiddlewares
   )
 

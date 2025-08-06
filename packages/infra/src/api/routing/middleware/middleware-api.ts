@@ -116,28 +116,23 @@ export type MiddlewaresBuilder<
   DynamicMiddlewareProviders = unknown,
   MiddlewareR extends { _tag: string } = never
 > =
-  //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
+  & BuildingMiddleware<
+    RequestContextMap,
+    Provided,
+    Middlewares,
+    DynamicMiddlewareProviders,
+    MiddlewareR
+  >
+  & //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
   // MiddlewareR is never when all the required services from generic & dynamic middlewares are provided
-  keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ? ReturnType<
+  (keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ? ReturnType<
         typeof makeMiddlewareBasic<
           RequestContextMap,
           Middlewares
         >
       >
-    : BuildingMiddleware<
-      RequestContextMap,
-      Provided,
-      Middlewares,
-      DynamicMiddlewareProviders,
-      MiddlewareR
-    >
-    : BuildingMiddleware<
-      RequestContextMap,
-      Provided,
-      Middlewares,
-      DynamicMiddlewareProviders,
-      MiddlewareR
-    >
+    : {}
+    : {})
 
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>

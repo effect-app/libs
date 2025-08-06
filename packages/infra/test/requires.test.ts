@@ -1,6 +1,9 @@
+import { Rpc } from "@effect/rpc"
+import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
 import { describe, expect, expectTypeOf, it } from "@effect/vitest"
-import { Effect, Either, Layer, S } from "effect-app"
+import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
+import { HttpHeaders } from "effect-app/http"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
 import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
@@ -91,21 +94,35 @@ type Default = typeof middleware3["Default"]
 type LayerContext = Layer.Layer.Context<Default>
 expectTypeOf({} as LayerContext).toEqualTypeOf<SomeService>()
 
+class TestRequest extends S.TaggedRequest<Test>("Test")("Test", {
+  payload: {},
+  success: S.Void,
+  failure: S.Never
+}) {}
+
 const testSuite = (_mw: typeof middleware3) =>
   describe("middleware" + _mw, () => {
     it.effect(
       "works",
       Effect.fn(function*() {
+        const defaultReq = {
+          headers: HttpHeaders.unsafeFromRecord({}),
+          payload: { _tag: "Test" },
+          clientId: 0,
+          rpc: { ...Rpc.fromTaggedRequest(TestRequest), annotations: Context.make(_mw.requestContext, {}) },
+          next: Effect.void as unknown as Effect<SuccessValue, never, any>
+        }
         const layer = _mw.Default.pipe(Layer.provide(SomeService.toLayer()))
         yield* Effect
           .gen(function*() {
             const mw = yield* _mw
-            const mwM = mw.effect(
-              Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
-              (_req) => Effect.void,
-              "some-module"
+            const mwM = mw(
+              Object.assign({ ...defaultReq }, {
+                headers: { "x-user": "test-user", "x-is-manager": "true" },
+                rpc: { ...defaultReq.rpc, annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] }) }
+              })
             )
-            yield* mwM({}, { "x-user": "test-user", "x-is-manager": "true" })
+            yield* mwM
           })
           .pipe(
             Effect.scoped,
@@ -116,12 +133,10 @@ const testSuite = (_mw: typeof middleware3) =>
           yield* Effect
             .gen(function*() {
               const mw = yield* _mw
-              const mwM = mw.effect(
-                Object.assign({}, S.Any, { config: {} }),
-                (_req) => Effect.void,
-                "some-module"
+              const mwM = mw(
+                Object.assign({ ...defaultReq }, {})
               )
-              yield* mwM({}, {})
+              yield* mwM
             })
             .pipe(
               Effect.scoped,
@@ -135,12 +150,15 @@ const testSuite = (_mw: typeof middleware3) =>
           yield* Effect
             .gen(function*() {
               const mw = yield* _mw
-              const mwM = mw.effect(
-                Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
-                (_req) => Effect.void,
-                "some-module"
+              const mwM = mw(
+                Object.assign({ ...defaultReq }, {
+                  rpc: {
+                    ...defaultReq.rpc,
+                    annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] })
+                  }
+                })
               )
-              yield* mwM({}, {})
+              yield* mwM
             })
             .pipe(
               Effect.scoped,
@@ -154,12 +172,15 @@ const testSuite = (_mw: typeof middleware3) =>
           yield* Effect
             .gen(function*() {
               const mw = yield* _mw
-              const mwM = mw.effect(
-                Object.assign({}, S.Any, { config: { requireRoles: ["manager"] } }),
-                (_req) => Effect.void,
-                "some-module"
+              const mwM = mw(
+                Object.assign({ ...defaultReq }, { headers: { "x-user": "test-user" } }, {
+                  rpc: {
+                    ...defaultReq.rpc,
+                    annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] })
+                  }
+                })
               )
-              yield* mwM({}, { "x-user": "test-user" })
+              yield* mwM
             })
             .pipe(
               Effect.scoped,

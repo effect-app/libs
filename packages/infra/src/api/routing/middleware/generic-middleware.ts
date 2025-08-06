@@ -1,35 +1,38 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Rpc, type RpcMiddleware } from "@effect/rpc"
-import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
-import { type Array, Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type Scope } from "effect-app"
+import { type RpcMiddleware } from "@effect/rpc"
+import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type S, type Scope } from "effect-app"
 import { type ContextTagArray } from "effect-app/client"
-import { type HttpHeaders } from "effect-app/http"
 import { InfraLogger } from "../../../logger.js"
-import { type TagClassAny } from "./RpcMiddleware.js"
+import { type RpcMiddlewareWrap, type TagClassAny } from "./RpcMiddleware.js"
 
 // Effect rpc middleware does not support changing payload or headers, but we do..
 
-// it's like an Effect/rpc wrap middleware, but with fixed R to Scope.Scope
-export interface GenericMiddlewareOptions<E> {
-  readonly clientId: number
-  readonly rpc: Rpc.AnyWithProps
-  readonly payload: unknown
-  readonly headers: HttpHeaders.Headers
-  readonly next: Effect.Effect<SuccessValue, E, Scope.Scope>
-}
+export type MiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
 
-export type GenericMiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
-
-export namespace GenericMiddlewareMaker {
+export namespace MiddlewareMaker {
   export type ApplyServices<A extends TagClassAny, R> = Exclude<R, Provided<A>> | Required<A>
 
   export type ApplyManyServices<A extends NonEmptyReadonlyArray<TagClassAny>, R> =
     | Exclude<R, { [K in keyof A]: Provided<A[K]> }[number]>
     | { [K in keyof A]: Required<A[K]> }[number]
 
+  export type ManyProvided<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Provided<A[K]> }[number]
+    : Provided<A[number]>
+  export type ManyRequired<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Required<A[K]> }[number]
+    : Required<A[number]>
+  export type ManyErrors<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Errors<A[K]> }[number]
+    : Errors<A[number]>
+
   export type Provided<T> = T extends TagClassAny
     ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
     : T extends { provides: ContextTagArray } ? ContextTagArray.Identifier<T["provides"]>
+    : never
+    : never
+
+  export type Errors<T> = T extends TagClassAny ? T extends { failure: S.Schema.Any } ? S.Schema.Type<T["failure"]>
     : never
     : never
 
@@ -40,11 +43,21 @@ export namespace GenericMiddlewareMaker {
     : never
 }
 
-export const genericMiddlewareMaker = <
-  T extends Array<GenericMiddlewareMaker>
->(...middlewares: T): {
-  dependencies: { [K in keyof T]: T[K]["Default"] }
-  effect: Effect.Effect<RpcMiddleware.RpcMiddlewareWrap<any, any>>
+export const middlewareMaker = <
+  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker>
+>(middlewares: MiddlewareProviders): {
+  dependencies: { [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }
+  effect: Effect.Effect<
+    RpcMiddlewareWrap<
+      MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+      MiddlewareMaker.ManyErrors<MiddlewareProviders>,
+      Exclude<
+        MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+        MiddlewareMaker.ManyProvided<MiddlewareProviders>
+      > extends never ? never
+        : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
+    >
+  >
 } => {
   // we want to run them in reverse order because latter middlewares will provide context to former ones
   middlewares = middlewares.toReversed() as any
@@ -55,8 +68,14 @@ export const genericMiddlewareMaker = <
       const context = yield* Effect.context()
 
       // returns a Effect/RpcMiddlewareWrap with Scope in requirements
-      return <E>(
-        options: GenericMiddlewareOptions<E>
+      return (
+        options: Parameters<
+          RpcMiddlewareWrap<
+            MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+            never,
+            Scope.Scope
+          >
+        >[0]
       ) => {
         // we start with the actual handler
         let handler = options.next
@@ -113,7 +132,7 @@ export const genericMiddlewareMaker = <
                   )
                 )
               )
-            )
+            ) as any
           } else {
             // use the tag to get the middleware from context
             const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
@@ -134,10 +153,9 @@ export const genericMiddlewareMaker = <
                   )
                   : Effect.zipRight(middleware(options), previous)
               )
-            )
+            ) as any
           }
         }
-
         return handler
       }
     })

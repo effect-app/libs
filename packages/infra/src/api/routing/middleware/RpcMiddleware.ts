@@ -54,12 +54,11 @@ interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> ext
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
-export interface RpcMiddlewareDynamicWrap<E, R, Config> {
+export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
   (options: {
     readonly next: Effect.Effect<SuccessValue, E, Scope.Scope | R>
-    readonly config: Config // todo
     readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps
+    readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
   }): Effect.Effect<
@@ -69,11 +68,10 @@ export interface RpcMiddlewareDynamicWrap<E, R, Config> {
   >
 }
 
-export interface RpcMiddlewareDynamicNormal<A, E, R, Config> {
+export interface RpcMiddlewareDynamicNormal<A, E, R, _Config> {
   (options: {
-    readonly config: Config // todo
     readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps
+    readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
   }): Effect.Effect<
@@ -140,7 +138,8 @@ export declare namespace TagClass {
    */
   export type FailureSchema<Options> = Options extends
     { readonly failure: Schema.Schema.All; readonly optional?: false } ? Options["failure"]
-    : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]
+    // actually not, the Failure depends on Dynamic Middleware Configuration!
+    // : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]
     : typeof Schema.Never
 
   /**
@@ -149,6 +148,7 @@ export declare namespace TagClass {
    */
   export type Failure<Options> = Options extends
     { readonly failure: Schema.Schema<infer _A, infer _I, infer _R>; readonly optional?: false } ? _A
+    // actually not, the Failure depends on Dynamic Middleware Configuration!
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
     : never
 
@@ -227,8 +227,8 @@ export interface TagClass<
       >
       : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
           TagClass.Provides<Options>,
-          TagClass.Requires<Options>,
-          TagClass.Failure<Options>
+          TagClass.Failure<Options>,
+          TagClass.Requires<Options>
         >
       : RpcMiddleware<
         TagClass.Service<Options>,
@@ -246,7 +246,7 @@ export const Tag = <Self>() =>
   id: Name,
   options?: Options | undefined
 ) =>
-<E, R, L extends NonEmptyReadonlyArray<Layer.Layer.Any>>(opts: {
+<E, R, L extends ReadonlyArray<Layer.Layer.Any>>(opts: {
   effect: Effect.Effect<
     Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,
@@ -274,7 +274,11 @@ export const Tag = <Self>() =>
   >
   dependencies?: L
 }): TagClass<Self, Name, Options> & {
-  Default: Layer.Layer<Self, E | LayerUtils.GetLayersError<L>, Exclude<R, LayerUtils.GetLayersSuccess<L>>>
+  Default: Layer.Layer<
+    Self,
+    E | LayerUtils.GetLayersError<L>,
+    Exclude<R, LayerUtils.GetLayersSuccess<L>> | LayerUtils.GetLayersContext<L>
+  >
 } =>
   class extends RpcMiddleware.Tag<Self>()(id, options as any) {
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined

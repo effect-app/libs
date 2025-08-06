@@ -86,6 +86,10 @@ export namespace RPCContextMap {
   })
 }
 
+export type GetContextConfig<RequestContextMap extends Record<string, RPCContextMap.Any>> = {
+  [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"]
+}
+
 export type GetEffectContext<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<
   // inverted: contextActivation is false => remove if explicitly set to true (like allowAnonymous: true disables auth and auth service and related errors)
   & {

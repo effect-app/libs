@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Scope } from "effect-app"
-import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/routing.js"
+import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/ContextProvider.js"
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off

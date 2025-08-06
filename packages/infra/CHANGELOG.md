@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.89.1
+
+### Patch Changes
+
+- 85c5d7b: you should always be able to control middleware order, even if everything required has been provided
+
 ## 2.89.0
 
 ### Minor Changes

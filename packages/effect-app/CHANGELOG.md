@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.53.1
+
+### Patch Changes
+
+- fa2c8d0: fix prefix
+
 ## 2.53.0
 
 ### Minor Changes

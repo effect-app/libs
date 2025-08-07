@@ -16,7 +16,7 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
-export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddleware", {
+export class SomeMiddleware extends Middleware.TagService<SomeMiddleware>()("SomeMiddleware", {
   provides: Some
 })({
   effect: Effect.gen(function*() {
@@ -30,7 +30,7 @@ export class SomeMiddleware extends Middleware.Tag<SomeMiddleware>()("SomeMiddle
 }
 
 // functionally equivalent to the one above
-export class SomeMiddlewareWrap extends Middleware.Tag<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
+export class SomeMiddlewareWrap extends Middleware.TagService<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
   provides: Some,
   wrap: true
 })({
@@ -41,7 +41,7 @@ export class SomeMiddlewareWrap extends Middleware.Tag<SomeMiddlewareWrap>()("So
 }) {
 }
 
-export class SomeElseMiddleware extends Middleware.Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
+export class SomeElseMiddleware extends Middleware.TagService<SomeElseMiddleware>()("SomeElseMiddleware", {
   provides: SomeElse,
   wrap: true
 })({
@@ -72,7 +72,7 @@ export const RequestContextMap = {
 type _RequestContextMap = typeof RequestContextMap
 export interface RequestContextMap extends _RequestContextMap {}
 
-export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
+export class AllowAnonymous extends Middleware.TagService<AllowAnonymous>()("AllowAnonymous", {
   dynamic: contextMap(RequestContextMap, "allowAnonymous"),
   requires: SomeElse
 })({
@@ -105,7 +105,7 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
 
 // TODO: don't expect service when it's wrap
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
+export class RequireRoles extends Middleware.TagService<RequireRoles>()("RequireRoles", {
   dynamic: contextMap(RequestContextMap, "requireRoles"),
   wrap: true,
   // wrap: true,
@@ -138,7 +138,7 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
 }
 
 // TODO: don't expect service when it's wrap
-export class Test extends Middleware.Tag<Test>()("Test", {
+export class Test extends Middleware.TagService<Test>()("Test", {
   wrap: true,
   dynamic: contextMap(RequestContextMap, "test")
 })({

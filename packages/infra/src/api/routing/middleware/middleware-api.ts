@@ -3,7 +3,7 @@ import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Context, type Effect, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
-import { type AnyDynamic, type RpcDynamic, Tag, type TagClassAny } from "./RpcMiddleware.js"
+import { type AnyDynamic, type RpcDynamic, type TagClassAny, TagService } from "./RpcMiddleware.js"
 
 /** Adapter used when setting the dynamic prop on a middleware implementation */
 export const contextMap = <
@@ -180,7 +180,7 @@ const makeMiddlewareBasic =
       .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
       .filter((_) => !provides.includes(_))
 
-    const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
+    const MiddlewareMaker = TagService<MiddlewareMakerId>()("MiddlewareMaker", {
       failure: (failures.length > 0
         ? S.Union(...failures)
         : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never

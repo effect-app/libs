@@ -333,6 +333,10 @@
       "types": "./dist/api/routing/middleware/middleware-api.d.ts",
       "default": "./dist/api/routing/middleware/middleware-api.js"
     },
+    "./api/routing/middleware/middleware-native": {
+      "types": "./dist/api/routing/middleware/middleware-native.d.ts",
+      "default": "./dist/api/routing/middleware/middleware-native.js"
+    },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",
       "default": "./dist/api/routing/schema/jwt.js"

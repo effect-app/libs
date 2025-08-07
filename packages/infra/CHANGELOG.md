@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.92.0
+
+### Minor Changes
+
+- f88f046: sentry 10
+
 ## 2.91.3
 
 ### Patch Changes

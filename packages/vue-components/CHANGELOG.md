@@ -1,5 +1,16 @@
 # @effect-app/vue-components
 
+## 0.12.0
+
+### Minor Changes
+
+- f88f046: sentry 10
+
+### Patch Changes
+
+- Updated dependencies [f88f046]
+  - @effect-app/vue@2.48.0
+
 ## 0.11.2
 
 ### Patch Changes

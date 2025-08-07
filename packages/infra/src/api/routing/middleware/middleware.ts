@@ -4,7 +4,7 @@ import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { determineMethod, isCommand } from "../utils.js"
-import { Tag } from "./RpcMiddleware.js"
+import { TagService } from "./RpcMiddleware.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
@@ -19,9 +19,11 @@ export const RequestCacheLayers = Layer.mergeAll(
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 
-export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("RequestCacheMiddleware", { wrap: true })({
-  effect: Effect.succeed(({ next }) => next.pipe(Effect.provide(RequestCacheLayers)))
-}) {
+export class RequestCacheMiddleware
+  extends TagService<RequestCacheMiddleware>()("RequestCacheMiddleware", { wrap: true })({
+    effect: Effect.succeed(({ next }) => next.pipe(Effect.provide(RequestCacheLayers)))
+  })
+{
 }
 
 // retry just once on optimistic concurrency exceptions
@@ -30,7 +32,7 @@ const optimisticConcurrencySchedule = Schedule.once.pipe(
 )
 
 export class ConfigureInterruptibilityMiddleware
-  extends Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware", { wrap: true })({
+  extends TagService<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware", { wrap: true })({
     effect: Effect.gen(function*() {
       const cache = new Map()
       const getCached = (key: string, schema: Schema.Schema.Any) => {
@@ -54,7 +56,7 @@ export class ConfigureInterruptibilityMiddleware
 {
 }
 
-export class LoggerMiddleware extends Tag<LoggerMiddleware>()("LoggerMiddleware", { wrap: true })({
+export class LoggerMiddleware extends TagService<LoggerMiddleware>()("LoggerMiddleware", { wrap: true })({
   effect: Effect.gen(function*() {
     const devMode = yield* DevMode
     return ({ headers, next, payload, rpc }) =>

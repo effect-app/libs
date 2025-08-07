@@ -238,7 +238,11 @@ export interface TagClass<
   >
 {}
 
-export const Tag = <Self>() =>
+/**
+ * @deprecated - RPC groups are defined centrally and re-used between server and client,
+ * so layer implementation details should not be mixed.
+ */
+export const TagService = <Self>() =>
 <
   const Name extends string,
   const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>

@@ -4,7 +4,7 @@ import { expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { S } from "effect-app"
 import { DefaultGenericMiddlewares, makeMiddleware } from "../src/api/routing.js"
-import { AllowAnonymous, RequestContextMap, RequireRoles, SomeElseMiddleware, SomeMiddleware, SomeMiddleware, Test } from "./fixtures.js"
+import { AllowAnonymous, RequestContextMap, RequireRoles, SomeElseMiddleware, SomeMiddleware, Test } from "./fixtures.js"
 
 const middleware = makeMiddleware(RequestContextMap)
   .middleware(RequireRoles)
@@ -15,8 +15,8 @@ const middleware = makeMiddleware(RequestContextMap)
 const UserRpcs = RpcGroup
   .make()
   .add(Rpc.make("getUser", { success: S.Literal("awesome") }))
-// TODO: Needs multi-tag support etc..
-// .middleware(middleware)
+  // TODO: Needs multi-tag support etc..
+  .middleware(middleware)
 
 const impl = UserRpcs.toLayer({
   getUser: (_payload, _headers) => Effect.succeed("awesome")

@@ -40,7 +40,7 @@
     "@azure/service-bus": "^7.9.5",
     "@effect/experimental": "^0.54.3",
     "@effect/platform": "^0.90.0",
-    "@effect/rpc": "^0.68.2",
+    "@effect/rpc": "^0.68.3",
     "@effect/sql": "^0.44.0",
     "@effect/vitest": "^0.25.0",
     "@sendgrid/helpers": "^8.0.0",

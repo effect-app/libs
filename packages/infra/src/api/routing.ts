@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
+import { Rpc, RpcGroup, RpcServer } from "@effect-app/infra/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders, HttpRouter } from "effect-app/http"

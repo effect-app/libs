@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type RpcMiddleware } from "@effect/rpc"
+import { type RpcMiddleware } from "@effect-app/infra/rpc"
 import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type S, type Scope } from "effect-app"
 import { type ContextTagArray } from "effect-app/client"
 import { InfraLogger } from "../../../logger.js"

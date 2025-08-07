@@ -1,5 +1,5 @@
-import { Rpc } from "@effect/rpc"
-import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
+import { Rpc } from "@effect-app/infra/rpc"
+import { type SuccessValue } from "@effect-app/infra/rpc/RpcMiddleware"
 import { describe, expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"

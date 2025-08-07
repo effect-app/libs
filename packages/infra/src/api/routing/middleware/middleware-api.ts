@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type AnyWithProps } from "@effect/rpc/Rpc"
+import { type AnyWithProps } from "@effect-app/infra/rpc/Rpc"
 import { Context, type Effect, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
@@ -163,7 +163,7 @@ export interface MiddlewareMakerId {
 // TODO: actually end up with [Tag<A, A>, Tag<B, B>, ...]
 type MakeTags<A> = Context.Tag<A, A>
 
-const makeMiddlewareBasic =
+export const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
     RequestContextMap extends Record<string, RPCContextMap.Any>,

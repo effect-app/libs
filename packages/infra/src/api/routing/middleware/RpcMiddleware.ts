@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Rpc, RpcMiddleware } from "@effect/rpc"
-import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
+import { type Rpc, RpcMiddleware } from "@effect-app/infra/rpc"
+import { type SuccessValue, type TypeId } from "@effect-app/infra/rpc/RpcMiddleware"
 import { type Context, type Effect, type NonEmptyReadonlyArray, type Option, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { AnyService, ContextTagArray, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"

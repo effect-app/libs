@@ -393,6 +393,54 @@
       "types": "./dist/rateLimit.d.ts",
       "default": "./dist/rateLimit.js"
     },
+    "./rpc/Rpc": {
+      "types": "./dist/rpc/Rpc.d.ts",
+      "default": "./dist/rpc/Rpc.js"
+    },
+    "./rpc/RpcClient": {
+      "types": "./dist/rpc/RpcClient.d.ts",
+      "default": "./dist/rpc/RpcClient.js"
+    },
+    "./rpc/RpcClientError": {
+      "types": "./dist/rpc/RpcClientError.d.ts",
+      "default": "./dist/rpc/RpcClientError.js"
+    },
+    "./rpc/RpcGroup": {
+      "types": "./dist/rpc/RpcGroup.d.ts",
+      "default": "./dist/rpc/RpcGroup.js"
+    },
+    "./rpc/RpcMessage": {
+      "types": "./dist/rpc/RpcMessage.d.ts",
+      "default": "./dist/rpc/RpcMessage.js"
+    },
+    "./rpc/RpcMiddleware": {
+      "types": "./dist/rpc/RpcMiddleware.d.ts",
+      "default": "./dist/rpc/RpcMiddleware.js"
+    },
+    "./rpc/RpcSchema": {
+      "types": "./dist/rpc/RpcSchema.d.ts",
+      "default": "./dist/rpc/RpcSchema.js"
+    },
+    "./rpc/RpcSerialization": {
+      "types": "./dist/rpc/RpcSerialization.d.ts",
+      "default": "./dist/rpc/RpcSerialization.js"
+    },
+    "./rpc/RpcServer": {
+      "types": "./dist/rpc/RpcServer.d.ts",
+      "default": "./dist/rpc/RpcServer.js"
+    },
+    "./rpc/RpcTest": {
+      "types": "./dist/rpc/RpcTest.d.ts",
+      "default": "./dist/rpc/RpcTest.js"
+    },
+    "./rpc/RpcWorker": {
+      "types": "./dist/rpc/RpcWorker.d.ts",
+      "default": "./dist/rpc/RpcWorker.js"
+    },
+    "./rpc": {
+      "types": "./dist/rpc/index.d.ts",
+      "default": "./dist/rpc/index.js"
+    },
     "./test": {
       "types": "./dist/test.d.ts",
       "default": "./dist/test.js"

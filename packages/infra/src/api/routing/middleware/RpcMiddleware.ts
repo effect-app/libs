@@ -3,11 +3,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { type Context, type Effect, Layer, type NonEmptyReadonlyArray, type Option, type S, type Schema, type Scope, Unify } from "effect-app"
+import { type Context, type Effect, type NonEmptyReadonlyArray, type Option, type S, type Schema, type Scope, Unify } from "effect-app"
 import type { AnyService, ContextTagArray, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
-import { type Service } from "effect/Effect"
 
 // updated to support Scope.Scope and Requires
 export interface RpcMiddleware<Provides, E, Requires> {
@@ -28,7 +27,7 @@ export interface RpcMiddlewareWrap<Provides, E, Requires> {
   }): Effect.Effect<SuccessValue, E, Scope.Scope | Requires>
 }
 
-type RpcOptionsOriginal = {
+export type RpcOptionsOriginal = {
   readonly wrap?: boolean
   readonly optional?: boolean
   readonly failure?: Schema.Schema.All
@@ -47,7 +46,7 @@ export type DependsOn = {
   readonly dependsOn: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
 
-interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> extends RpcOptionsOriginal {
+export interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> extends RpcOptionsOriginal {
   readonly dynamic: RpcDynamic<Key, A>
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
@@ -238,67 +237,17 @@ export interface TagClass<
   >
 {}
 
-/**
- * @deprecated - RPC groups are defined centrally and re-used between server and client,
- * so layer implementation details should not be mixed.
- */
-export const TagService = <Self>() =>
+export const Tag = <Self>() =>
 <
   const Name extends string,
   const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>
 >(
   id: Name,
   options?: Options | undefined
-) =>
-<
-  LayerOpts extends {
-    effect: Effect.Effect<
-      Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
-            TagClass.FailureService<Options>,
-            TagClass.Requires<Options>,
-            { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
-          >
-        : RpcMiddlewareDynamicNormal<
-          TagClass.Service<Options>,
-          TagClass.FailureService<Options>,
-          TagClass.Requires<Options>,
-          { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
-        >
-        : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
-            TagClass.Provides<Options>,
-            TagClass.Failure<Options>,
-            TagClass.Requires<Options>
-          >
-        : RpcMiddleware<
-          TagClass.Service<Options>,
-          TagClass.FailureService<Options>,
-          TagClass.Requires<Options>
-        >,
-      any,
-      any
-    >
-    // TODO: we really should only support NonEmtyReadonlyArray because ReadonlyArray fucks up once you have a Layer.empty in the list, as the whole thing resolves to never
-    dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any> | ReadonlyArray<Layer.Layer.Any>
-  }
->(opts: LayerOpts): TagClass<Self, Name, Options> & {
-  Default: Layer.Layer<
-    Self,
-    | (LayerOpts extends { effect: Effect<infer _A, infer _E, infer _R> } ? _E
-      : never)
-    | Service.MakeDepsE<LayerOpts>,
-    | Exclude<
-      LayerOpts extends { effect: Effect<infer _A, infer _E, infer _R> } ? _R : never,
-      Service.MakeDepsOut<LayerOpts>
-    >
-    | Service.MakeDepsIn<LayerOpts>
-  >
-} =>
+): TagClass<Self, Name, Options> =>
   class extends RpcMiddleware.Tag<Self>()(id, options as any) {
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined
-    static readonly Default = Layer.scoped(this, opts.effect as any).pipe(
-      Layer.provide([Layer.empty, ...opts.dependencies ?? []])
-    )
     static override [Unify.typeSymbol]?: unknown
     static override [Unify.unifySymbol]?: TagUnify<typeof this>
     static override [Unify.ignoreSymbol]?: TagUnifyIgnore

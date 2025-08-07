@@ -3,7 +3,8 @@ import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Context, type Effect, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
-import { type AnyDynamic, type RpcDynamic, type TagClassAny, TagService } from "./RpcMiddleware.js"
+import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
+import { TagService } from "./RpcMiddlewareX.js"
 
 /** Adapter used when setting the dynamic prop on a middleware implementation */
 export const contextMap = <

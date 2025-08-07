@@ -5,9 +5,9 @@ import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
-import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeElseMiddleware, SomeMiddleware, SomeMiddlewareWrap, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeMiddleware, SomeMiddlewareWrap, SomeService, Test } from "./fixtures.js"
 
-export class RequiresSomeMiddleware extends Middleware.Tag<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
+export class RequiresSomeMiddleware extends Middleware.TagService<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
   requires: [Some],
   wrap: true
 })({

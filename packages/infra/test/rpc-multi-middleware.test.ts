@@ -3,6 +3,7 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "@effect/r
 import { expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { S } from "effect-app"
+import { type RPCContextMap } from "effect-app/client"
 import { DefaultGenericMiddlewares, makeMiddleware } from "../src/api/routing.js"
 import { AllowAnonymous, RequestContextMap, RequireRoles, SomeElseMiddleware, SomeMiddleware, Test } from "./fixtures.js"
 
@@ -21,6 +22,17 @@ const middleware = makeMiddleware(RequestContextMap)
 const UserRpcs = RpcGroup
   .make()
   .add(Rpc.make("getUser", { success: S.Literal("awesome") }))
+
+// alternatively consider group.serverMiddleware? hmmm
+const toLayerWithMiddleware =
+  <Group extends RpcGroup.RpcGroup<any>>(group: Group) =>
+  <RequestContextMap extends Record<string, RPCContextMap.Any>>(
+    // middleware here can actually be Server Only middleware.
+    middleware: any
+  ) =>
+  (impl: any) => {
+    return group.middleware(middleware).toLayer(impl)
+  }
 
 // const impl = UserRpcs.toLayerWithMiddleware(middleware)({
 // but instead of locking the implementation Context to Scope | DynamicMiddleware | Provided, we would instead bubble up non provided context to the Layer Requirements?

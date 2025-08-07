@@ -4,7 +4,7 @@ import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { determineMethod, isCommand } from "../utils.js"
-import { TagService } from "./RpcMiddleware.js"
+import { TagService } from "./RpcMiddlewareX.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")

@@ -12,6 +12,12 @@ const middleware = makeMiddleware(RequestContextMap)
   .middleware(SomeElseMiddleware, SomeMiddleware)
   .middleware(...DefaultGenericMiddlewares)
 
+// basically, what do we want.
+// we want to create a ServerMiddleware, which is not available on the client, it can provide: [], and require: [] and is wrap:tru
+// then we want to build a Layer for it, so makeMiddleware should be (RequestContextMap, ServerTag).
+// rpcGroup.middleware(ServerTag)
+// rpcGroup.toLayer().pipe(Layer.provide(middlewareLayer))
+
 const UserRpcs = RpcGroup
   .make()
   .add(Rpc.make("getUser", { success: S.Literal("awesome") }))

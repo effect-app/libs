@@ -21,12 +21,20 @@ const middleware = makeMiddleware(RequestContextMap)
 const UserRpcs = RpcGroup
   .make()
   .add(Rpc.make("getUser", { success: S.Literal("awesome") }))
-  // TODO: Needs multi-tag support etc..
-  .middleware(middleware)
 
-const impl = UserRpcs.toLayer({
-  getUser: (_payload, _headers) => Effect.succeed("awesome")
-})
+// const impl = UserRpcs.toLayerWithMiddleware(middleware)({
+// but instead of locking the implementation Context to Scope | DynamicMiddleware | Provided, we would instead bubble up non provided context to the Layer Requirements?
+// or re-consider. it is kind of a nice feature to have local error reporting of missed Context...
+Effect
+  .gen(function*() {
+    // layer deps...
+    // TODO: impl toLayerWithMiddleware on UserRpcs.
+    const impl = toLayerWithMiddleware(UserRpcs)(middleware)({
+      getUser: (_payload, _headers) => Effect.succeed("awesome")
+    })
+    return impl
+  })
+  .pipe(Layer.unwrapEffect)
 
 it.scoped(
   "works",

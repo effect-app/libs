@@ -313,10 +313,6 @@
       "types": "./dist/api/routing/middleware/RpcMiddleware.d.ts",
       "default": "./dist/api/routing/middleware/RpcMiddleware.js"
     },
-    "./api/routing/middleware/dynamic-middleware": {
-      "types": "./dist/api/routing/middleware/dynamic-middleware.d.ts",
-      "default": "./dist/api/routing/middleware/dynamic-middleware.js"
-    },
     "./api/routing/middleware/generic-middleware": {
       "types": "./dist/api/routing/middleware/generic-middleware.d.ts",
       "default": "./dist/api/routing/middleware/generic-middleware.js"

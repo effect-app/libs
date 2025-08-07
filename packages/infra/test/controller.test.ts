@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter, TypeTestId } from "@effect-app/infra/api/routing"
+import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
@@ -132,8 +133,7 @@ const middlewareTrisWip = makeMiddleware<RequestContextMap>(RequestContextMap)
     MyContextProvider,
     RequireRoles,
     Test
-  )
-  .missing
+  )[TypeTestId]
 
 expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
   missingDynamicMiddlewares: "allowAnonymous"
@@ -312,10 +312,12 @@ it("sorts based on requirements", () => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | "str">()
+expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<
+  RpcSerialization.RpcSerialization | SomeService | "str"
+>()
 
-type makeContext = MakeContext<typeof router.make>
-expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()
+type makeContext = MakeContext<typeof router[TypeTestId]>
+expectTypeOf({} as MakeErrors<typeof router[TypeTestId]>).toEqualTypeOf<InvalidStateError>()
 expectTypeOf({} as makeContext).toEqualTypeOf<
   SomethingService | SomethingRepo | SomethingService2
 >()
@@ -368,7 +370,9 @@ const router2 = r2.Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
-expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<SomeService | "str">()
+expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<
+  RpcSerialization.RpcSerialization | SomeService | "str"
+>()
 
-type makeContext2 = MakeContext<typeof router2.make>
+type makeContext2 = MakeContext<typeof router2[TypeTestId]>
 expectTypeOf({} as makeContext2).toEqualTypeOf<never>()

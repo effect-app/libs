@@ -1,5 +1,70 @@
 # @effect-app/vue
 
+## 2.49.1
+
+### Patch Changes
+
+- Updated dependencies [dd30471]
+  - effect-app@2.54.3
+
+## 2.49.0
+
+### Minor Changes
+
+- 1960261: switch to @effect-atom from rx.
+
+## 2.48.0
+
+### Minor Changes
+
+- f88f046: sentry 10
+
+## 2.47.2
+
+### Patch Changes
+
+- Updated dependencies [79ffd88]
+  - effect-app@2.54.2
+
+## 2.47.1
+
+### Patch Changes
+
+- Updated dependencies [9f90266]
+  - effect-app@2.54.1
+
+## 2.47.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+### Patch Changes
+
+- Updated dependencies [0f2b2cf]
+  - effect-app@2.54.0
+
+## 2.46.8
+
+### Patch Changes
+
+- Updated dependencies [fa2c8d0]
+  - effect-app@2.53.1
+
+## 2.46.7
+
+### Patch Changes
+
+- Updated dependencies [5c51597]
+  - effect-app@2.53.0
+
+## 2.46.6
+
+### Patch Changes
+
+- Updated dependencies [244f84d]
+  - effect-app@2.52.1
+
 ## 2.46.5
 
 ### Patch Changes

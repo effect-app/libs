@@ -2,6 +2,10 @@
 import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
+// TODO: These LayerUtils are flaky, like in dependencies as a readonly array, it breaks when there are two entries
+// we should look at Service.MakeDeps[E/RIn/ROut] etc.
+// and in general make sure `dependencies` are NonEmptyReadonlyArrays, so they infer to consts.
+
 export namespace LayerUtils {
   export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
     NonEmptyReadonlyArray<Layer.Layer.Any> ? {

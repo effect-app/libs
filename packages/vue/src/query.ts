@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import * as Result from "@effect-rx/rx/Result"
+import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"

@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "2.87.2",
+  "version": "2.92.1",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -18,10 +18,10 @@
   "devDependencies": {
     "@azure/cosmos": "^4.5.0",
     "@azure/service-bus": "^7.9.5",
-    "@sentry/node": "9.14.0",
-    "@sentry/opentelemetry": "9.14.0",
+    "@sentry/node": "10.2.0",
+    "@sentry/opentelemetry": "10.2.0",
     "@types/express": "^5.0.3",
-    "@types/node": "~24.1.0",
+    "@types/node": "~24.2.0",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.7",
@@ -40,18 +40,17 @@
     "@azure/service-bus": "^7.9.5",
     "@effect/experimental": "^0.54.3",
     "@effect/platform": "^0.90.0",
-    "@effect/rpc-http": "^0.52.4",
-    "@effect/rpc": "^0.68.2",
+    "@effect/rpc": "^0.68.3",
     "@effect/sql": "^0.44.0",
     "@effect/vitest": "^0.25.0",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.5",
-    "@sentry/node": "9.14.0",
-    "@sentry/opentelemetry": "9.14.0",
+    "@sentry/node": "10.2.0",
+    "@sentry/opentelemetry": "10.2.0",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^3.17.5",
+    "effect": "^3.17.6",
     "express": "^5.1.0"
   },
   "typesVersions": {
@@ -278,6 +277,10 @@
       "types": "./dist/adapters/redis-client.d.ts",
       "default": "./dist/adapters/redis-client.js"
     },
+    "./api/ContextProvider": {
+      "types": "./dist/api/ContextProvider.d.ts",
+      "default": "./dist/api/ContextProvider.js"
+    },
     "./api/codec": {
       "types": "./dist/api/codec.d.ts",
       "default": "./dist/api/codec.js"
@@ -301,10 +304,6 @@
     "./api/routing/middleware": {
       "types": "./dist/api/routing/middleware.d.ts",
       "default": "./dist/api/routing/middleware.js"
-    },
-    "./api/routing/middleware/ContextProvider": {
-      "types": "./dist/api/routing/middleware/ContextProvider.d.ts",
-      "default": "./dist/api/routing/middleware/ContextProvider.js"
     },
     "./api/routing/middleware/RouterMiddleware": {
       "types": "./dist/api/routing/middleware/RouterMiddleware.d.ts",

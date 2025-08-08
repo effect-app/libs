@@ -1,5 +1,47 @@
 # @effect-app/prelude
 
+## 2.54.3
+
+### Patch Changes
+
+- dd30471: improve
+
+## 2.54.2
+
+### Patch Changes
+
+- 79ffd88: updates
+
+## 2.54.1
+
+### Patch Changes
+
+- 9f90266: fix prefix namespace
+
+## 2.54.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+## 2.53.1
+
+### Patch Changes
+
+- fa2c8d0: fix prefix
+
+## 2.53.0
+
+### Minor Changes
+
+- 5c51597: refactor Middleware to run as RPC middleware
+
+## 2.52.1
+
+### Patch Changes
+
+- 244f84d: various improvements, documentation
+
 ## 2.52.0
 
 ### Minor Changes

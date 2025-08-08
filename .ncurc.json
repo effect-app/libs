@@ -9,7 +9,6 @@
     "@types/redis",
     "react-hook-form",
     "eslint-plugin-codegen",
-    "@sentry/*",
     "@tanstack/*"
   ],
   "dep": [

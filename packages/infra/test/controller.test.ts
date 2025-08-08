@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, type Layer, S, Scope } from "effect-app"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
-import { AllowAnonymous, CustomError1, type RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, CustomError1, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", {
@@ -38,6 +38,38 @@ class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextPr
 }) {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
+class MyContextProvider3 extends Middleware.Tag<MyContextProvider3>()("MyContextProvider3", {
+  provides: [Some],
+  requires: [SomeElse]
+})({
+  dependencies: [Layer.effect(SomeService, SomeService.make)],
+  effect: Effect.gen(function*() {
+    yield* SomeService
+    if (Math.random() > 0.5) return yield* new CustomError1()
+
+    return Effect.fnUntraced(function*() {
+      yield* SomeElse
+      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      yield* Scope.Scope
+
+      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+      yield* Effect.succeed("this is a generator")
+
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // yield* SomeElse
+
+      // currently the effectful context provider cannot trigger an error when building the per request context
+      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+      // if (Math.random() > 0.5) return yield* new CustomError2()
+
+      return Context.make(Some, new Some({ a: 1 }))
+    })
+  })
+}) {}
+
+expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProvider3, CustomError1, never>>()
+
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({
   effect: Effect.gen(function*() {
     if (Math.random() > 0.5) return yield* new CustomError1()
@@ -55,7 +87,6 @@ class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContext
 const Str = Context.GenericTag<"str", "str">("str")
 
 export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
-  provides: SomeService,
   wrap: true
 })({
   effect: Effect.gen(function*() {
@@ -64,7 +95,7 @@ export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
     return ({ next }) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* next.pipe(Effect.provideService(SomeService, null as any))
+        return yield* next
       })
   })
 }) {
@@ -76,23 +107,58 @@ const genericMiddlewares = [
   MyContextProvider2
 ] as const
 
-const middleware = makeMiddleware<RequestContextMap>()
-  .middleware(MyContextProvider)
+const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(
     RequireRoles,
     Test
   )
+  // AllowAnonymous provided after RequireRoles so that RequireRoles can access what AllowAnonymous provides
   .middleware(AllowAnonymous)
+  .middleware(MyContextProvider)
   .middleware(...genericMiddlewares)
-// dependencies: [Layer.effect(Str2, Str)],
 
-const middleware2 = makeMiddleware<RequestContextMap>()
+const middlewareBis = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(
+    RequireRoles,
+    Test
+  )
+  // testing sideways elimination
+  .middleware(AllowAnonymous, MyContextProvider, ...genericMiddlewares)
+
+expectTypeOf(middleware).toEqualTypeOf<typeof middlewareBis>()
+
+const middlewareTrisWip = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(
+    MyContextProvider,
+    RequireRoles,
+    Test
+  )
+  .missing
+
+expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
+  missingDynamicMiddlewares: "allowAnonymous"
+  missingContext: SomeElse
+}>()
+
+// testing more sideways elimination]
+const middlewareQuater = makeMiddleware<RequestContextMap>(RequestContextMap)
+  .middleware(
+    RequireRoles,
+    Test,
+    AllowAnonymous,
+    MyContextProvider,
+    ...genericMiddlewares
+  )
+
+expectTypeOf(middleware).toEqualTypeOf<typeof middlewareQuater>()
+
+const middleware2 = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(RequireRoles, Test)
   .middleware(AllowAnonymous)
   .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
 
-export const middleware3 = makeMiddleware<RequestContextMap>()
+export const middleware3 = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(...genericMiddlewares)
   .middleware(AllowAnonymous, RequireRoles)
   .middleware(Test)
@@ -171,7 +237,7 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
   })
 }) {}
 
-export const { Router, matchAll, matchFor } = makeRouter(middleware, true)
+export const { Router, matchAll } = makeRouter(middleware, true)
 
 export const r2 = makeRouter(middleware2, true)
 
@@ -246,7 +312,7 @@ it("sorts based on requirements", () => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | Some | "str">()
+expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<SomeService | "str">()
 
 type makeContext = MakeContext<typeof router.make>
 expectTypeOf({} as MakeErrors<typeof router.make>).toEqualTypeOf<InvalidStateError>()
@@ -256,11 +322,6 @@ expectTypeOf({} as makeContext).toEqualTypeOf<
 
 const router2 = r2.Router(Something)({
   *effect(match) {
-    // this gets catched in 'routes' type
-    if (Math.random() > 0.5) {
-      return yield* new InvalidStateError("ciao")
-    }
-
     return match({
       Eff: () =>
         Effect
@@ -307,8 +368,7 @@ const router2 = r2.Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
-expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<Some | SomeService | "str">()
+expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<SomeService | "str">()
 
 type makeContext2 = MakeContext<typeof router2.make>
-expectTypeOf({} as MakeErrors<typeof router2.make>).toEqualTypeOf<InvalidStateError>()
 expectTypeOf({} as makeContext2).toEqualTypeOf<never>()

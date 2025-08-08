@@ -1,7 +1,7 @@
 import { Context, Effect, Option, S, Scope } from "effect-app"
-import { NotLoggedInError, type RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { NotLoggedInError, RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { TaggedError } from "effect-app/Schema"
-import { contextMap, Middleware } from "../src/api/routing.js"
+import { contextMap, getConfig, Middleware } from "../src/api/routing.js"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({
@@ -13,25 +13,37 @@ export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("Us
 
 export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
 export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
+const MakeSomeService = Effect.succeed({ a: 1 })
+export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
-export type RequestContextMap = {
-  allowAnonymous: RPCContextMap.Inverted<[typeof UserProfile], typeof NotLoggedInError>
-  requireRoles: RPCContextMap.Custom<never, typeof UnauthorizedError, Array<string>>
-  test: RPCContextMap<never, typeof S.Never>
-}
+const requestConfig = getConfig<RequestContextMap>()
+
+// TODO: null as never sucks
+// why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
+// [] requires return Context, non [] requires return the Service instance
+//
+// consider if we want to support Context of one Service
+export const RequestContextMap = {
+  allowAnonymous: RPCContextMap.makeInverted([UserProfile], NotLoggedInError),
+  requireRoles: RPCContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),
+  test: RPCContextMap.make(null as never, S.Never)
+} as const
+
+type _RequestContextMap = typeof RequestContextMap
+export interface RequestContextMap extends _RequestContextMap {}
 
 export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap<RequestContextMap>()("allowAnonymous", [UserProfile]),
+  dynamic: contextMap(RequestContextMap, "allowAnonymous"),
   requires: SomeElse
 })({
   effect: Effect.gen(function*() {
     return Effect.fnUntraced(
-      function*({ config, headers }) {
+      function*({ headers, rpc }) {
         yield* SomeElse
         yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
-          if (!config.allowAnonymous) {
+          if (!requestConfig(rpc).allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
           return Option.none()
@@ -51,9 +63,10 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
 }) {
 }
 
+// TODO: don't expect service when it's wrap
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles", {
-  dynamic: contextMap<RequestContextMap>()("requireRoles", null as never), // TODO
+  dynamic: contextMap(RequestContextMap, "requireRoles"),
   wrap: true,
   // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
@@ -61,12 +74,12 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
   dependsOn: [AllowAnonymous]
 })({
   effect: Effect.gen(function*() {
-    yield* Some
+    yield* SomeService
     return Effect.fnUntraced(
-      function*({ config, next }) {
+      function*({ next, rpc }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
-        const { requireRoles } = config
+        const { requireRoles } = requestConfig(rpc)
         console.dir(
           {
             userProfile,
@@ -84,9 +97,10 @@ export class RequireRoles extends Middleware.Tag<RequireRoles>()("RequireRoles",
 }) {
 }
 
+// TODO: don't expect service when it's wrap
 export class Test extends Middleware.Tag<Test>()("Test", {
   wrap: true,
-  dynamic: contextMap<RequestContextMap>()("test", null as never) // TODO
+  dynamic: contextMap(RequestContextMap, "test")
 })({
   effect: Effect.gen(function*() {
     return Effect.fn(function*({ next }) {
@@ -97,6 +111,3 @@ export class Test extends Middleware.Tag<Test>()("Test", {
 
 export class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
 export class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
-
-const MakeSomeService = Effect.succeed({ a: 1 })
-export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}

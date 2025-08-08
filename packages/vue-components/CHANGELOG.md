@@ -1,5 +1,83 @@
 # @effect-app/vue-components
 
+## 0.12.2
+
+### Patch Changes
+
+- Updated dependencies [dd30471]
+  - effect-app@2.54.3
+  - @effect-app/vue@2.49.1
+
+## 0.12.1
+
+### Patch Changes
+
+- Updated dependencies [1960261]
+  - @effect-app/vue@2.49.0
+
+## 0.12.0
+
+### Minor Changes
+
+- f88f046: sentry 10
+
+### Patch Changes
+
+- Updated dependencies [f88f046]
+  - @effect-app/vue@2.48.0
+
+## 0.11.2
+
+### Patch Changes
+
+- Updated dependencies [79ffd88]
+  - effect-app@2.54.2
+  - @effect-app/vue@2.47.2
+
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [9f90266]
+  - effect-app@2.54.1
+  - @effect-app/vue@2.47.1
+
+## 0.11.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+### Patch Changes
+
+- Updated dependencies [0f2b2cf]
+  - effect-app@2.54.0
+  - @effect-app/vue@2.47.0
+
+## 0.10.8
+
+### Patch Changes
+
+- Updated dependencies [fa2c8d0]
+  - effect-app@2.53.1
+  - @effect-app/vue@2.46.8
+
+## 0.10.7
+
+### Patch Changes
+
+- Updated dependencies [5c51597]
+  - effect-app@2.53.0
+  - @effect-app/vue@2.46.7
+
+## 0.10.6
+
+### Patch Changes
+
+- Updated dependencies [244f84d]
+  - effect-app@2.52.1
+  - @effect-app/vue@2.46.6
+
 ## 0.10.5
 
 ### Patch Changes

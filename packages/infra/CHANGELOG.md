@@ -1,5 +1,104 @@
 # @effect-app/infra
 
+## 2.92.1
+
+### Patch Changes
+
+- Updated dependencies [dd30471]
+  - effect-app@2.54.3
+
+## 2.92.0
+
+### Minor Changes
+
+- f88f046: sentry 10
+
+## 2.91.3
+
+### Patch Changes
+
+- 79ffd88: updates
+- Updated dependencies [79ffd88]
+  - effect-app@2.54.2
+
+## 2.91.2
+
+### Patch Changes
+
+- 60ed182: one way
+
+## 2.91.1
+
+### Patch Changes
+
+- 920840a: try to reduce union complexity
+
+## 2.91.0
+
+### Minor Changes
+
+- a660b08: cleanup legacy. move interruption/retryability to middleware
+
+## 2.90.1
+
+### Patch Changes
+
+- Updated dependencies [9f90266]
+  - effect-app@2.54.1
+
+## 2.90.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+### Patch Changes
+
+- Updated dependencies [0f2b2cf]
+  - effect-app@2.54.0
+
+## 2.89.3
+
+### Patch Changes
+
+- Updated dependencies [fa2c8d0]
+  - effect-app@2.53.1
+
+## 2.89.2
+
+### Patch Changes
+
+- d2776fb: fix dumb layer issues
+
+## 2.89.1
+
+### Patch Changes
+
+- 85c5d7b: you should always be able to control middleware order, even if everything required has been provided
+
+## 2.89.0
+
+### Minor Changes
+
+- 5c51597: refactor Middleware to run as RPC middleware
+
+### Patch Changes
+
+- Updated dependencies [5c51597]
+  - effect-app@2.53.0
+
+## 2.88.0
+
+### Minor Changes
+
+- bda3435: add sideways elimination when building middlewares
+
+### Patch Changes
+
+- 244f84d: various improvements, documentation
+- Updated dependencies [244f84d]
+  - effect-app@2.52.1
+
 ## 2.87.2
 
 ### Patch Changes
@@ -167,7 +266,7 @@
 ### Minor Changes
 
 - 6490adf: add "generic middleware"
-- 0fc2abc: extract ConfigureInterruptibility
+- 0fc2abc: extract ConfigureInterruptibilityMiddleware
 
 ### Patch Changes
 

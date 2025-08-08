@@ -23,12 +23,15 @@ const onlyStringsAst = (ast: AST.AST): boolean => {
   return ast.propertySignatures.every((_) => astAssignableToString(_.type))
 }
 
-const onlyStrings = (schema: S.Schema<any, any, any> & { fields?: S.Struct.Fields }): boolean => {
+const onlyStrings = (schema: Schema.Any & { fields?: S.Struct.Fields }): boolean => {
   if ("fields" in schema && schema.fields) return onlyStringsAst(S.Struct(schema.fields).ast) // only one level..
   return onlyStringsAst(schema.ast)
 }
 
-export const determineMethod = (actionName: string, schema: Schema<any, any, any>) => {
+export const determineMethod = (fullName: string, schema: Schema.Any) => {
+  const bits = fullName.split(".")
+  const actionName = bits[bits.length - 1]!
+
   if (get.some((_) => actionName.startsWith(_))) {
     return { _tag: "query", method: onlyStrings(schema) ? "GET" as const : "POST" } as const
   }

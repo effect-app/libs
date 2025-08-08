@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as Result from "@effect-rx/rx/Result"
+import * as Result from "@effect-atom/atom/Result"
 import type { InitialDataFunction, QueryObserverResult, RefetchOptions, UseQueryReturnType } from "@tanstack/vue-query"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"

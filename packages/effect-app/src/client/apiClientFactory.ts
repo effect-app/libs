@@ -89,27 +89,46 @@ export const getMeta = <M extends Requests>(resource: M) => {
   return meta as M["meta"]
 }
 
-export const makeRpcGroup = <M extends Requests>(resource: M) => {
+export const makeRpcGroupFromRequestsAndModuleName = <M extends Requests, const ModuleName extends string>(
+  resource: M,
+  moduleName: ModuleName
+) => {
   const filtered = getFiltered(resource)
   type newM = typeof filtered
-
-  const rpcs = RpcGroup.make(
-    ...typedValuesOf(filtered).map((_) => {
-      return Rpc.fromTaggedRequest(_ as any)
-    })
-  ) as RpcGroup.RpcGroup<RpcHandlers<newM>[keyof newM]>
+  const rpcs = RpcGroup
+    .make(
+      ...typedValuesOf(filtered).map((_) => {
+        return Rpc.fromTaggedRequest(_ as any)
+      })
+    )
+    .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<
+      Rpc.Prefixed<RpcHandlers<newM>[keyof newM], `${ModuleName}.`>
+    >
   return rpcs
 }
 
+export const makeRpcGroup = <
+  M extends Requests,
+  const ModuleName extends string
+>(
+  resource: M & { meta: { moduleName: ModuleName } }
+) => makeRpcGroupFromRequestsAndModuleName(resource, resource.meta.moduleName)
+
 const makeRpcTag = <M extends Requests>(resource: M) => {
-  const rpcs = makeRpcGroup(resource)
   const meta = getMeta(resource)
+  const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName)
 
   return class TheClient extends Context.Tag(`RpcClient.${meta.moduleName}`)<
     TheClient,
     RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
   >() {
-    static layer = Layer.scoped(TheClient, RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }))
+    static layer = Layer.scoped(
+      TheClient,
+      Effect.map(
+        RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }),
+        (cl) => (cl as any)[meta.moduleName] as any
+      )
+    )
   }
 }
 

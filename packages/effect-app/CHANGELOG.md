@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.54.3
+
+### Patch Changes
+
+- dd30471: improve
+
 ## 2.54.2
 
 ### Patch Changes

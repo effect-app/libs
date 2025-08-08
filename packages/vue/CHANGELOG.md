@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.49.0
+
+### Minor Changes
+
+- 1960261: switch to @effect-atom from rx.
+
 ## 2.48.0
 
 ### Minor Changes

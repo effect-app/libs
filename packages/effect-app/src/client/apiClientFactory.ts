@@ -89,26 +89,34 @@ export const getMeta = <M extends Requests>(resource: M) => {
   return meta as M["meta"]
 }
 
-export const makeRpcGroup = <M extends Requests, const ModuleName extends string>(
+export const makeRpcGroupFromRequestsAndModuleName = <M extends Requests, const ModuleName extends string>(
   resource: M,
   moduleName: ModuleName
 ) => {
   const filtered = getFiltered(resource)
   type newM = typeof filtered
-
   const rpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
         return Rpc.fromTaggedRequest(_ as any)
       })
     )
-    .prefix(`${moduleName}.`) as RpcGroup.RpcGroup<RpcHandlers<newM>[keyof newM]>
+    .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<
+      Rpc.Prefixed<RpcHandlers<newM>[keyof newM], `${ModuleName}.`>
+    >
   return rpcs
 }
 
+export const makeRpcGroup = <
+  M extends Requests,
+  const ModuleName extends string
+>(
+  resource: M & { meta: { moduleName: ModuleName } }
+) => makeRpcGroupFromRequestsAndModuleName(resource, resource.meta.moduleName)
+
 const makeRpcTag = <M extends Requests>(resource: M) => {
   const meta = getMeta(resource)
-  const rpcs = makeRpcGroup(resource, meta.moduleName)
+  const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName)
 
   return class TheClient extends Context.Tag(`RpcClient.${meta.moduleName}`)<
     TheClient,

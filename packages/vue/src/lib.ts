@@ -5,7 +5,7 @@ import type { ClientForOptions, RequestHandler, RequestHandlerWithInput, TaggedR
 import type { MaybeRefOrGetter, ShallowRef } from "vue"
 import { reportError } from "./errorReporter.js"
 
-export * as Result from "@effect-rx/rx/Result"
+export * as Result from "@effect-atom/atom/Result"
 
 const reportRuntimeError_ = reportError("Runtime")
 

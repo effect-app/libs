@@ -33,33 +33,42 @@ class RequestName extends Context.Reference<RequestName>()("RequestName", {
   defaultValue: () => ({ requestName: "Unspecified", moduleName: "Error" })
 }) {}
 
-const makeProtocol = (config: ApiConfig) =>
-  Effect
-    .gen(function*() {
-      const baseClient = yield* HttpClient.HttpClient
-      const client = baseClient.pipe(
-        HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
-        HttpClient.mapRequest(
-          HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => HashMap.empty())))
-        ),
-        HttpClient.mapRequestEffect((req) =>
-          RequestName.pipe(
-            Effect.map((ctx) =>
-              flow(
-                HttpClientRequest.appendUrlParam("action", ctx.requestName),
-                HttpClientRequest.appendUrl("/" + ctx.moduleName)
-              )(req)
+export const HttpClientLayer = (config: ApiConfig) =>
+  Layer.effect(
+    HttpClient.HttpClient,
+    Effect
+      .gen(function*() {
+        const baseClient = yield* HttpClient.HttpClient
+        const client = baseClient.pipe(
+          HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
+          HttpClient.mapRequest(
+            HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => HashMap.empty())))
+          ),
+          HttpClient.mapRequestEffect((req) =>
+            RequestName.pipe(
+              Effect.map((ctx) =>
+                flow(
+                  HttpClientRequest.appendUrlParam("action", ctx.requestName),
+                  HttpClientRequest.appendUrl("/" + ctx.moduleName)
+                )(req)
+              )
             )
           )
         )
-      )
+        return client
+      })
+  )
 
-      return Layer.mergeAll(
-        RpcSerialization.layerJson,
-        Layer.succeed(HttpClient.HttpClient, client)
-      )
-    })
-    .pipe(Layer.unwrapEffect)
+export const HttpClientFromConfigLayer = DefaultApiConfig.pipe(
+  Effect.map(HttpClientLayer),
+  Layer.unwrapEffect
+)
+
+export const RpcSerializationLayer = (config: ApiConfig) =>
+  Layer.mergeAll(
+    RpcSerialization.layerJson,
+    HttpClientLayer(config)
+  )
 
 type RpcHandlers<M extends Requests> = {
   [K in keyof M]: Rpc.Rpc<M[K]["_tag"], M[K], M[K]["success"], M[K]["failure"]>
@@ -284,7 +293,7 @@ export class ApiClientFactory
   extends Context.TagId("ApiClientFactory")<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()
 {
   static readonly layer = (config: ApiConfig) =>
-    this.toLayerScoped(makeApiClientFactory).pipe(Layer.provide(makeProtocol(config)))
+    this.toLayerScoped(makeApiClientFactory).pipe(Layer.provide(RpcSerializationLayer(config)))
   static readonly layerFromConfig = DefaultApiConfig.pipe(Effect.map(this.layer), Layer.unwrapEffect)
 
   static readonly makeFor =

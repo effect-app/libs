@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.92.2
+
+### Patch Changes
+
+- 74dd551: fix Request span name
+
 ## 2.92.1
 
 ### Patch Changes

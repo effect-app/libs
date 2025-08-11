@@ -8,7 +8,7 @@ import { constant, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
-import { computed, type ComputedRef, type Ref, ref, type ShallowRef, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, type ShallowRef, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { getRuntime, reportRuntimeError } from "./lib.js"
@@ -852,6 +852,12 @@ export const makeClient = <Locale extends string, R>(
       argOrOptions,
       { ...options, suspense: true } // experimental_prefetchInRender: true }
     )
+
+    const isMounted = ref(true)
+    onBeforeUnmount(() => {
+      isMounted.value = false
+    })
+
     // @effect-diagnostics effect/missingEffectError:off
     return Effect.gen(function*() {
       // we want to throw on error so that we can catch cancelled error and skip handling it
@@ -867,7 +873,7 @@ export const makeClient = <Locale extends string, R>(
             : Effect.die(err.error))
       )
       const result = resultRef.value
-      if (Result.isInitial(result)) {
+      if (Result.isInitial(result) && isMounted.value) {
         console.error("Internal Error: Promise should be resolved already", {
           self,
           argOrOptions,

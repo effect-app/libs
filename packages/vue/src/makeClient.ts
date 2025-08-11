@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Result from "@effect-atom/atom/Result"
-import type { InitialDataFunction, QueryObserverResult, RefetchOptions, UseQueryReturnType } from "@tanstack/vue-query"
+import { type InitialDataFunction, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
@@ -865,15 +865,17 @@ export const makeClient = <Locale extends string, R>(
       // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
       const r = yield* Effect.tryPromise(() => uqrt.suspense()).pipe(
         Effect.catchTag("UnknownException", (err) =>
-          Runtime
-              .isFiberFailure(
-                err.error
-              )
+          Runtime.isFiberFailure(err.error)
             ? Effect.failCause(err.error[Runtime.FiberFailureCauseId])
+            : isCancelledError(err.error)
+            ? Effect.interrupt
             : Effect.die(err.error))
       )
+      if (!isMounted.value) {
+        return yield* Effect.interrupt
+      }
       const result = resultRef.value
-      if (Result.isInitial(result) && isMounted.value) {
+      if (Result.isInitial(result)) {
         console.error("Internal Error: Promise should be resolved already", {
           self,
           argOrOptions,

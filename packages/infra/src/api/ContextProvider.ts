@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope } from "effect-app"
 
-import { type HttpRouter } from "effect-app/http"
+import { type HttpLayerRouter } from "effect-app/http"
 import { type Tag } from "effect/Context"
 import { type YieldWrap } from "effect/Utils"
 import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "./layerUtils.js"
@@ -50,12 +50,14 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // actual type in that position, I just wanna set the overall structure
   [K in keyof TDeps]: TDeps[K] extends //
   // E = never => the context provided cannot trigger errors
-  // TODO: remove HttpRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope?
-  //  _R extends HttpRouter.HttpRouter.Provided => the context provided can only have what HttpRouter.Provided provides as requirements
+  // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope?
+  //  _R extends HttpLayerRouter.Provided => the context provided can only have what HttpLayerRouter.Provided provides as requirements
   (
     ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
-  ) ? [_R] extends [HttpRouter.HttpRouter.Provided] ? TDeps[K]
-    : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"]["_tag"]}'s returned effect can have`
+  ) ? [_R] extends [HttpLayerRouter.Provided] ? TDeps[K]
+    : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
+      "_tag"
+    ]}'s returned effect can have`
     : TDeps[K] extends (
       ContextTagWithDefault.Base<
         & (() => Generator<
@@ -68,8 +70,8 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
     ) // [_YW] extends [never] if no yield* is used and just some context is returned
       ? [_YW] extends [never] ? TDeps[K]
       : [_YW] extends [YieldWrap<Effect<infer _2, never, infer _R>>]
-        ? [_R] extends [HttpRouter.HttpRouter.Provided] ? TDeps[K]
-        : `HttpRouter.HttpRouter.Provided is the only requirement ${TDeps[K]["Service"][
+        ? [_R] extends [HttpLayerRouter.Provided] ? TDeps[K]
+        : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
           "_tag"
         ]}'s returned effect can have`
       : "WTF are you yielding man?"

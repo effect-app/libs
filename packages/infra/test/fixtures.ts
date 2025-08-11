@@ -40,7 +40,7 @@ export class AllowAnonymous extends Middleware.Tag<AllowAnonymous>()("AllowAnony
     return Effect.fnUntraced(
       function*({ headers, rpc }) {
         yield* SomeElse
-        yield* Scope.Scope // provided by HttpRouter.HttpRouter.Provided
+        yield* Scope.Scope // provided by HttpLayerRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
           if (!requestConfig(rpc).allowAnonymous) {

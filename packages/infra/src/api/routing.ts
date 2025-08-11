@@ -383,7 +383,7 @@ export const makeRouter = <
                 : resource,
               (payload: any, headers: any) =>
                 (handler.handler(payload, headers) as Effect<unknown, unknown, unknown>).pipe(
-                  Effect.withSpan("Request." + resource._tag, {
+                  Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
                 )

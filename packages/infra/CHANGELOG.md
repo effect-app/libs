@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 2.92.3
+
+### Patch Changes
+
+- 8653771: add more useful logging
+
 ## 2.92.2
 
 ### Patch Changes

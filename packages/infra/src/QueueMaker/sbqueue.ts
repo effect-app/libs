@@ -2,8 +2,7 @@ import { Tracer } from "effect"
 import { Cause, Effect, flow, S } from "effect-app"
 import type { StringId } from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
-import { type TagClass } from "effect/Context"
-import { type Receiver, type Sender } from "../adapters/ServiceBus.js"
+import { Receiver, Sender } from "../adapters/ServiceBus.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
@@ -13,14 +12,8 @@ export function makeServiceBusQueue<
   Evt extends { id: StringId; _tag: string },
   DrainEvt extends { id: StringId; _tag: string },
   EvtE,
-  DrainEvtE,
-  QueueId,
-  QueueKey extends string,
-  QueueDrainId,
-  QueueDrainKey extends string
+  DrainEvtE
 >(
-  queue: TagClass<QueueId, QueueKey, Sender>,
-  queueDrain: TagClass<QueueDrainId, QueueDrainKey, Receiver>,
   schema: S.Schema<Evt, EvtE>,
   drainSchema: S.Schema<DrainEvt, DrainEvtE>
 ) {
@@ -32,8 +25,8 @@ export function makeServiceBusQueue<
   const parseDrain = flow(S.decodeUnknown(drainW), Effect.orDie)
 
   return Effect.gen(function*() {
-    const sender = yield* queue
-    const receiver = yield* queueDrain
+    const sender = yield* Sender
+    const receiver = yield* Receiver
     const silenceAndReportError = reportNonInterruptedFailure({ name: receiver.name })
     const reportError = reportNonInterruptedFailureCause({ name: receiver.name })
 

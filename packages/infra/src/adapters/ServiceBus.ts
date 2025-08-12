@@ -184,6 +184,9 @@ export const ReceiverTag = <Id>() => <Key extends string>(queueName: Key) => {
   })
 }
 
+export const SenderReceiver = (queue: string, queueDrain?: string) =>
+  Layer.mergeAll(Sender.layer(queue), Receiver.layer(queueDrain ?? queue))
+
 export interface MessageHandlers<RMsg, RErr> {
   /**
    * Handler that processes messages from service bus.

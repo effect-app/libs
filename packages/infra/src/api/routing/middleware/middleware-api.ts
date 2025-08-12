@@ -2,6 +2,7 @@
 import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Context, type Effect, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
+import { type TypeTestId } from "../../routing.js"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, Tag, type TagClassAny } from "./RpcMiddleware.js"
 
@@ -103,7 +104,7 @@ export interface BuildingMiddleware<
     : never
 
   // helps debugging what are the missing requirements (type only)
-  missing: {
+  readonly [TypeTestId]: {
     missingDynamicMiddlewares: Exclude<keyof RequestContextMap, Provided>
     missingContext: MiddlewareR
   }

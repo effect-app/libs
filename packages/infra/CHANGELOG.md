@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.94.0
+
+### Minor Changes
+
+- db2b575: switch to new HttpLayerRouter
+
+### Patch Changes
+
+- Updated dependencies [db2b575]
+  - effect-app@2.56.0
+
 ## 2.93.0
 
 ### Minor Changes

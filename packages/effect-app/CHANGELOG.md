@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.56.0
+
+### Minor Changes
+
+- db2b575: switch to new HttpLayerRouter
+
 ## 2.55.0
 
 ### Minor Changes

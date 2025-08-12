@@ -1,9 +1,9 @@
-import type {} from "@azure/service-bus"
 import { Tracer } from "effect"
-import { Cause, Effect, flow, Layer, S } from "effect-app"
+import { Cause, Effect, flow, S } from "effect-app"
 import type { StringId } from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
-import { LiveSender, LiveServiceBusClient, Sender, ServiceBusReceiverFactory, subscribe } from "../adapters/ServiceBus.js"
+import { type TagClass } from "effect/Context"
+import { type Receiver, type Sender } from "../adapters/ServiceBus.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
@@ -13,10 +13,12 @@ export function makeServiceBusQueue<
   Evt extends { id: StringId; _tag: string },
   DrainEvt extends { id: StringId; _tag: string },
   EvtE,
-  DrainEvtE
+  DrainEvtE,
+  Queue extends TagClass<any, any, Sender>,
+  QueueDrain extends TagClass<any, any, Receiver>
 >(
-  queueName: string,
-  queueDrainName: string,
+  queue: Queue,
+  queueDrain: QueueDrain,
   schema: S.Schema<Evt, EvtE>,
   drainSchema: S.Schema<DrainEvt, DrainEvtE>
 ) {
@@ -28,10 +30,10 @@ export function makeServiceBusQueue<
   const parseDrain = flow(S.decodeUnknown(drainW), Effect.orDie)
 
   return Effect.gen(function*() {
-    const s = yield* Sender
-    const receiver = yield* ServiceBusReceiverFactory
-    const silenceAndReportError = reportNonInterruptedFailure({ name: "ServiceBusQueue.drain." + queueDrainName })
-    const reportError = reportNonInterruptedFailureCause({ name: "ServiceBusQueue.drain." + queueDrainName })
+    const sender = yield* queue
+    const receiver = yield* queueDrain
+    const silenceAndReportError = reportNonInterruptedFailure({ name: queueDrain.key })
+    const reportError = reportNonInterruptedFailureCause({ name: queueDrain.key })
 
     // TODO: or do async?
     // This will make sure that the host receives the error (MainFiberSet.join), who will then interrupt everything and commence a shutdown and restart of app
@@ -54,7 +56,7 @@ export function makeServiceBusQueue<
                   Effect
                     .flatMap(({ body, meta }) => {
                       let effect = InfraLogger
-                        .logDebug(`[${queueDrainName}] Processing incoming message`)
+                        .logDebug(`[${queueDrain.key}] Processing incoming message`)
                         .pipe(
                           Effect.annotateLogs({
                             body: pretty(body),
@@ -70,12 +72,12 @@ export function makeServiceBusQueue<
                             setupRequestContextWithCustomSpan(
                               _,
                               meta,
-                              `queue.drain: ${queueDrainName}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
+                              `queue.drain: ${queueDrain.key}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
                               {
                                 captureStackTrace: false,
                                 kind: "consumer",
                                 attributes: {
-                                  "queue.name": queueDrainName,
+                                  "queue.name": queueDrain.key,
                                   "queue.sessionId": sessionId,
                                   "queue.input": body
                                 }
@@ -95,16 +97,16 @@ export function makeServiceBusQueue<
                 )
             }
 
-            return yield* subscribe({
-              processMessage: (x) => processMessage(x.body).pipe(Effect.uninterruptible),
-              processError: (err) => reportQueueError(Cause.fail(err.error))
-              // Deferred.completeWith(
-              //   deferred,
-              //   reportFatalQueueError(Cause.fail(err.error))
-              //     .pipe(Effect.andThen(Effect.fail(err.error)))
-              // )
-            }, sessionId)
-              .pipe(Effect.provideService(ServiceBusReceiverFactory, receiver))
+            return yield* receiver
+              .subscribe({
+                processMessage: (x) => processMessage(x.body).pipe(Effect.uninterruptible),
+                processError: (err) => reportQueueError(Cause.fail(err.error))
+                // Deferred.completeWith(
+                //   deferred,
+                //   reportFatalQueueError(Cause.fail(err.error))
+                //     .pipe(Effect.andThen(Effect.fail(err.error)))
+                // )
+              }, sessionId)
           })
           // .pipe(Effect.andThen(Deferred.await(deferred).pipe(Effect.orDie))),
           .pipe(
@@ -115,35 +117,25 @@ export function makeServiceBusQueue<
         Effect
           .gen(function*() {
             const requestContext = yield* getRequestContext
-            return yield* Effect
-              .promise((abortSignal) =>
-                s.sendMessages(
-                  messages.map((m) => ({
-                    body: JSON.stringify(
-                      S.encodeSync(wireSchema)({
-                        body: m,
-                        meta: requestContext
-                      })
-                    ),
-                    messageId: m.id, /* correllationid: requestId */
-                    contentType: "application/json",
-                    sessionId: "sessionId" in m ? m.sessionId : undefined
-                  })),
-                  { abortSignal }
-                )
-              )
+            return yield* sender.sendMessages(
+              messages.map((m) => ({
+                body: JSON.stringify(
+                  S.encodeSync(wireSchema)({
+                    body: m,
+                    meta: requestContext
+                  })
+                ),
+                messageId: m.id, /* correllationid: requestId */
+                contentType: "application/json",
+                sessionId: "sessionId" in m ? m.sessionId as string : undefined as unknown as string // TODO: optional
+              }))
+            )
           })
-          .pipe(Effect.withSpan("queue.publish: " + queueName, {
+          .pipe(Effect.withSpan("queue.publish: " + queue.key, {
             captureStackTrace: false,
             kind: "producer",
             attributes: { "message_tags": messages.map((_) => _._tag) }
           }))
     } satisfies QueueBase<Evt, DrainEvt>
   })
-}
-
-export function makeServiceBusLayers(url: string, queueName: string, queueDrainName: string) {
-  return Layer.merge(ServiceBusReceiverFactory.Live(queueDrainName), LiveSender(queueName)).pipe(
-    Layer.provide(LiveServiceBusClient(url))
-  )
 }

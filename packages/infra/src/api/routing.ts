@@ -355,7 +355,13 @@ export const makeRouter = <
         match: any
       ) => Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
-      const routes = Effect
+      const dependenciesL = Layer.mergeAll(...dependencies as any) as Layer.Layer<
+        LayerUtils.GetLayersSuccess<MakeDependencies>,
+        LayerUtils.GetLayersError<MakeDependencies>,
+        LayerUtils.GetLayersContext<MakeDependencies>
+      >
+
+      const layer = Effect
         .gen(function*() {
           const finalMake = ((make as any)[Symbol.toStringTag] === "GeneratorFunction"
             ? Effect.fnUntraced(make as any)(router3) as any
@@ -420,11 +426,6 @@ export const makeRouter = <
             .prefix(`${meta.moduleName}.`)
             .middleware(middleware as any)
 
-          const dependenciesL = Layer.mergeAll(...dependencies as any) as Layer.Layer<
-            LayerUtils.GetLayersSuccess<MakeDependencies>,
-            LayerUtils.GetLayersError<MakeDependencies>,
-            LayerUtils.GetLayersContext<MakeDependencies>
-          >
           const rpc = rpcs
             .toLayer(Effect.gen(function*() {
               return typedValuesOf(mapped).reduce((acc, [resource, handler]) => {
@@ -437,18 +438,10 @@ export const makeRouter = <
               RPCRouteR<typeof mapped[keyof typeof mapped]>
             >
 
-          const rpcLayer = rpc.pipe(
-            Layer.provide(dependenciesL) // these should be provided to rpcLayer
-          )
-
           return RpcServer
             .layer(rpcs, { spanPrefix: "RpcServer." + meta.moduleName })
+            .pipe(Layer.provide(rpc))
             .pipe(
-              Layer.provide([
-                rpcLayer,
-                middleware.Default // this should be provided to the RpcServer.layer, interestingly enough..
-              ]),
-              Layer.provide(Layer.succeed(DevMode, devMode)),
               Layer.provideMerge(
                 RpcServer.layerProtocolHttp(
                   { path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}`, routerTag: Router }
@@ -457,6 +450,14 @@ export const makeRouter = <
             )
         })
         .pipe(Layer.unwrapEffect)
+
+      const routes = layer.pipe(
+        Layer.provide([
+          dependenciesL,
+          middleware.Default
+        ]),
+        Layer.provide(Layer.succeed(DevMode, devMode))
+      )
 
       // Effect.Effect<HttpRouter.HttpRouter<unknown, HttpRouter.HttpRouter.DefaultServices>, never, UserRouter>
 

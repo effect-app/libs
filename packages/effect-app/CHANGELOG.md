@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 2.55.0
+
+### Minor Changes
+
+- 37eb29a: improve ServiceBus api
+
 ## 2.54.3
 
 ### Patch Changes

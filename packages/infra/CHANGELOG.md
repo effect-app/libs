@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 2.93.0
+
+### Minor Changes
+
+- 37eb29a: improve ServiceBus api
+
+### Patch Changes
+
+- Updated dependencies [37eb29a]
+  - effect-app@2.55.0
+
 ## 2.92.3
 
 ### Patch Changes

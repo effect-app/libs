@@ -260,7 +260,9 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
       }
       toLayerScoped: {
         (): Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
-        <E, R>(eff: Effect.Effect<Context.TagClassShape<any, any>, E, R>): Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
+        <E, R>(
+          eff: Effect.Effect<Omit<Id, keyof Context.TagClassShape<any, any>>, E, R>
+        ): Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
       }
       of: (service: Context.TagClassShape<any, any>) => Id
       make: Effect.Effect<Id, E, R>

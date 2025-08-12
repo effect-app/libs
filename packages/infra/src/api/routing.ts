@@ -5,7 +5,7 @@
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
-import { type HttpHeaders, HttpRouter } from "effect-app/http"
+import { type HttpHeaders } from "effect-app/http"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Service } from "effect/Effect"
 import type { Contravariant } from "effect/Types"
@@ -157,8 +157,6 @@ export type RouteMatcher<
       raw: Match<Resource, RequestContextMap, RequestTypes.RAW, Key>
     }
 }
-
-export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
 
 export const makeRouter = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
@@ -439,15 +437,13 @@ export const makeRouter = <
             >
 
           return RpcServer
-            .layer(rpcs, { spanPrefix: "RpcServer." + meta.moduleName })
+            .layerHttpRouter({
+              spanPrefix: "RpcServer." + meta.moduleName,
+              group: rpcs,
+              path: ("/rpc/" + meta.moduleName) as `/${typeof meta.moduleName}`,
+              protocol: "http"
+            })
             .pipe(Layer.provide(rpc))
-            .pipe(
-              Layer.provideMerge(
-                RpcServer.layerProtocolHttp(
-                  { path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}`, routerTag: Router }
-                )
-              )
-            )
         })
         .pipe(Layer.unwrapEffect)
 
@@ -458,8 +454,6 @@ export const makeRouter = <
         ]),
         Layer.provide(Layer.succeed(DevMode, devMode))
       )
-
-      // Effect.Effect<HttpRouter.HttpRouter<unknown, HttpRouter.HttpRouter.DefaultServices>, never, UserRouter>
 
       return {
         moduleName: meta.moduleName,

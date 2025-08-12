@@ -20,7 +20,7 @@ class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextPr
 
     return Effect.fnUntraced(function*() {
       yield* SomeElse
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 
       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
@@ -50,7 +50,7 @@ class MyContextProvider3 extends Middleware.Tag<MyContextProvider3>()("MyContext
 
     return Effect.fnUntraced(function*() {
       yield* SomeElse
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 
       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")

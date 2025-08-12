@@ -12,7 +12,7 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 
       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
@@ -63,7 +63,7 @@ class MyContextProviderGen extends Effect.Service<MyContextProviderGen>()("MyCon
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 
       yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
@@ -87,7 +87,7 @@ export const someContextProvider = ContextProvider({
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 
       // not allowed
@@ -106,7 +106,7 @@ export const someContextProviderGen = ContextProvider({
     if (Math.random() > 0.5) return yield* new CustomError1()
 
     return function*() {
-      // the only requirements you can have are the one provided by HttpRouter.HttpRouter.Provided
+      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
 
       // not allowed

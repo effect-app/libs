@@ -55,7 +55,7 @@ export class Sender extends Context.TagId("Sender")<Sender, {
     options?: Omit<OperationOptionsBase, "abortSignal"> | undefined
   ) => Effect.Effect<void, never, never>
 }>() {
-  static readonly layer = (name: string) => this.toLayer(makeSender(name))
+  static readonly layer = (name: string) => this.toLayerScoped(makeSender(name))
 }
 
 export const SenderTag = <Id>() => <Key extends string>(queueName: Key) => {

@@ -34,8 +34,8 @@ export function makeServiceBusQueue<
   return Effect.gen(function*() {
     const sender = yield* queue
     const receiver = yield* queueDrain
-    const silenceAndReportError = reportNonInterruptedFailure({ name: queueDrain.key })
-    const reportError = reportNonInterruptedFailureCause({ name: queueDrain.key })
+    const silenceAndReportError = reportNonInterruptedFailure({ name: receiver.name })
+    const reportError = reportNonInterruptedFailureCause({ name: receiver.name })
 
     // TODO: or do async?
     // This will make sure that the host receives the error (MainFiberSet.join), who will then interrupt everything and commence a shutdown and restart of app
@@ -58,7 +58,7 @@ export function makeServiceBusQueue<
                   Effect
                     .flatMap(({ body, meta }) => {
                       let effect = InfraLogger
-                        .logDebug(`[${queueDrain.key}] Processing incoming message`)
+                        .logDebug(`[${receiver.name}] Processing incoming message`)
                         .pipe(
                           Effect.annotateLogs({
                             body: pretty(body),
@@ -74,12 +74,12 @@ export function makeServiceBusQueue<
                             setupRequestContextWithCustomSpan(
                               _,
                               meta,
-                              `queue.drain: ${queueDrain.key}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
+                              `queue.drain: ${receiver.name}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
                               {
                                 captureStackTrace: false,
                                 kind: "consumer",
                                 attributes: {
-                                  "queue.name": queueDrain.key,
+                                  "queue.name": receiver.name,
                                   "queue.sessionId": sessionId,
                                   "queue.input": body
                                 }
@@ -133,7 +133,7 @@ export function makeServiceBusQueue<
               }))
             )
           })
-          .pipe(Effect.withSpan("queue.publish: " + queue.key, {
+          .pipe(Effect.withSpan("queue.publish: " + sender.name, {
             captureStackTrace: false,
             kind: "producer",
             attributes: { "message_tags": messages.map((_) => _._tag) }

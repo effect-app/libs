@@ -43,7 +43,7 @@ export interface Sender {
   ) => Effect.Effect<void, never, never>
 }
 
-export const SenderTag = <Id>() => <Key extends string>(queueName: Key) => {
+export const makeSenderTag = <Id, Key extends string>(queueName: Key) => {
   const tag = Context.Tag(`ServiceBus.Sender.${queueName}`)<
     Id,
     Sender
@@ -67,6 +67,18 @@ export const SenderTag = <Id>() => <Key extends string>(queueName: Key) => {
   })
 }
 
+const senderMap = new Map<string, any>()
+
+export const SenderTag = <Id>() => <Key extends string>(queueName: Key): ReturnType<typeof makeSenderTag<Id, Key>> => {
+  if (senderMap.has(queueName)) {
+    return senderMap.get(queueName)
+  }
+
+  const tag = makeSenderTag<Id, Key>(queueName)
+  senderMap.set(queueName, tag)
+  return tag
+}
+
 export interface Receiver {
   make: (waitTillEmpty: Effect<void>) => Effect<ServiceBusReceiver, never, Scope>
   makeSession: (sessionId: string, waitTillEmpty: Effect<void>) => Effect<ServiceBusReceiver, never, Scope>
@@ -76,7 +88,8 @@ export interface Receiver {
   ): Effect.Effect<void, never, Scope.Scope | RMsg | RErr>
 }
 
-export const ReceiverTag = <Id>() => <Key extends string>(queueName: Key) => {
+const receiverMap = new Map<string, any>()
+const makeReceiverTag = <Id, Key extends string>(queueName: Key) => {
   const tag = Context.Tag(`ServiceBus.Receiver.${queueName}`)<Id, Receiver>()
 
   return Object.assign(tag, {
@@ -172,6 +185,16 @@ export const ReceiverTag = <Id>() => <Key extends string>(queueName: Key) => {
     )
   })
 }
+export const ReceiverTag =
+  <Id>() => <Key extends string>(queueName: Key): ReturnType<typeof makeReceiverTag<Id, Key>> => {
+    if (receiverMap.has(queueName)) {
+      return receiverMap.get(queueName)
+    }
+
+    const tag = makeReceiverTag<Id, Key>(queueName)
+    receiverMap.set(queueName, tag)
+    return tag
+  }
 
 export interface MessageHandlers<RMsg, RErr> {
   /**

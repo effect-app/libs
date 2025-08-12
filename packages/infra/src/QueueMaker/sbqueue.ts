@@ -14,11 +14,13 @@ export function makeServiceBusQueue<
   DrainEvt extends { id: StringId; _tag: string },
   EvtE,
   DrainEvtE,
-  Queue extends TagClass<any, any, Sender>,
-  QueueDrain extends TagClass<any, any, Receiver>
+  QueueId,
+  QueueKey extends string,
+  QueueDrainId,
+  QueueDrainKey extends string
 >(
-  queue: Queue,
-  queueDrain: QueueDrain,
+  queue: TagClass<QueueId, QueueKey, Sender>,
+  queueDrain: TagClass<QueueDrainId, QueueDrainKey, Receiver>,
   schema: S.Schema<Evt, EvtE>,
   drainSchema: S.Schema<DrainEvt, DrainEvtE>
 ) {

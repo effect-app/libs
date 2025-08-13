@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 3.0.0
+
+### Major Changes
+
+- 3e4c45d: feat: Add new @effect/rpc Dynamic and Global Middleware, based on effect-app Router
+
+### Patch Changes
+
+- Updated dependencies [3e4c45d]
+  - effect-app@3.0.0
+
 ## 2.94.0
 
 ### Minor Changes

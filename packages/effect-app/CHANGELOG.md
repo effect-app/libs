@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.0
+
+### Major Changes
+
+- 3e4c45d: feat: Add new @effect/rpc Dynamic and Global Middleware, based on effect-app Router
+
 ## 2.56.0
 
 ### Minor Changes

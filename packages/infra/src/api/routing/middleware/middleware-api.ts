@@ -4,6 +4,7 @@ import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Tag } from "@effect/rpc/RpcMiddleware"
 import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S, type Schema } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
+import { typedValuesOf } from "effect-app/utils"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type TypeTestId } from "../../routing.js"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
@@ -257,19 +258,23 @@ export const makeMiddleware = <
       readonly primaryKey?: [Payload] extends [Schema.Struct.Fields]
         ? ((payload: Schema.Simplify<Schema.Struct.Type<NoInfer<Payload>>>) => string)
         : never
-    }):
-      & Rpc.Rpc<
-        Tag,
-        Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
-        Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
-        Stream extends true ? typeof Schema.Never : Error
-      >
-      & { config: Config } =>
-    {
+    }): // TODO: enhance `Error`. type based on config.
+    & Rpc.Rpc<
+      Tag,
+      Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+      Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
+      Stream extends true ? typeof Schema.Never : Error
+    >
+    & { config: Config } => {
       const config = options?.config ?? {} as Config
       // TODO: based on the config, we must enhance (union) or set failures.
 
-      const rpc = Rpc.make(tag, options)
+      const error = options?.error
+      console.log("wtf", typedValuesOf(rcm), rcm)
+      const errors = typedValuesOf(rcm).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
+      const newError = error ? S.Union(error, ...errors) : S.Union(...errors)
+
+      const rpc = Rpc.make(tag, { ...options, error: newError })
 
       return Object.assign(rpc.annotate(requestContext, config), { config })
     },

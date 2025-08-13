@@ -3,7 +3,7 @@ import { NodeHttpServer } from "@effect/platform-node"
 import { type Rpc, RpcClient, RpcGroup, type RpcMiddleware, RpcSerialization, RpcServer, RpcTest } from "@effect/rpc"
 import { type HandlersContext, type HandlersFrom } from "@effect/rpc/RpcGroup"
 import { expect, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
+import { Console, Effect, Layer } from "effect"
 import { S, type Scope } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
 import { HttpLayerRouter } from "effect-app/http"
@@ -94,9 +94,8 @@ const impl = Effect
 const middlwareLayer = middleware
   .Default
   .pipe(Layer.provide(SomeService.toLayer()))
+
 // for RpcTest.makeClient. make sure to use UserRpcsServer..
-// errors are shit in TestMode "internal server error", instead of something useful
-// or hmm, actually also in RealLayer :/
 export const RpcTestLayer = Layer
   .mergeAll(
     impl,
@@ -122,20 +121,16 @@ export const RpcRealLayer = Layer
   )
   .pipe(Layer.provide(RpcSerialization.layerJson))
 
-it.layer(
-  RpcTestLayer
-)(
-  (it) =>
-    it.scoped(
-      "works",
-      Effect.fnUntraced(
-        function*() {
-          const userClient = yield* RpcTest.makeClient(UserRpcsServer) // RpcTest.makeClient(UserRpcsServer) // RpcClient.make(UserRpcs)
+it.scopedLive(
+  "works",
+  Effect.fnUntraced(
+    function*() {
+      const userClient = yield* RpcTest.makeClient(UserRpcsServer) // RpcTest.makeClient(UserRpcsServer) // RpcClient.make(UserRpcs)
 
-          const user = yield* userClient.getUser()
-          expect(user).toBe("awesome")
-        }
-        // Effect.onExit((_) => Console.dir(_, { depth: 10 }))
-      )
-    )
+      const user = yield* userClient.getUser()
+      expect(user).toBe("awesome")
+    },
+    Effect.provide(RpcTestLayer),
+    Effect.onExit((_) => Console.dir(_, { depth: 10 }))
+  )
 )

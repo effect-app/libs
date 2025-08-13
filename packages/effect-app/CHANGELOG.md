@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.1
+
+### Patch Changes
+
+- 74c28d1: move common rpc out of infra
+
 ## 3.0.0
 
 ### Major Changes

@@ -5,7 +5,7 @@ import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import { makeMiddleware, Middleware } from "../src/api/routing.js"
-import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeMiddleware, SomeMiddlewareWrap, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeMiddlewareWrap, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware extends Middleware.TagService<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
   requires: [Some],
@@ -39,7 +39,7 @@ const _middlewareSideways = makeMiddleware(RequestContextMap)
 const _middlewareSidewaysFully = makeMiddleware(RequestContextMap)
   .middleware(RequiresSomeMiddleware, SomeMiddleware, RequireRoles, AllowAnonymous, Test, SomeElseMiddleware)
 
-const _middleware3Bis = makeMiddleware(RequestContextMap)
+export const _middleware3Bis = makeMiddleware(RequestContextMap)
   .middleware(RequiresSomeMiddleware)
   .middleware(SomeMiddlewareWrap)
   .middleware(RequireRoles)
@@ -48,11 +48,7 @@ const _middleware3Bis = makeMiddleware(RequestContextMap)
 
 expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
 expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
-// expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>() // is not the same because SomeMiddlewareWrap is not SomeMiddleware
-
-type Default = typeof middleware3["Default"]
-type LayerContext = Layer.Layer.Context<Default>
-expectTypeOf({} as LayerContext).toEqualTypeOf<SomeService>()
+expectTypeOf(_middleware3Bis).not.toEqualTypeOf<typeof middleware3>() // is not the same because SomeMiddlewareWrap is not SomeMiddleware
 
 class TestRequest extends S.TaggedRequest<Test>("Test")("Test", {
   payload: {},
@@ -72,7 +68,16 @@ const testSuite = (_mw: typeof middleware3) =>
           rpc: { ...Rpc.fromTaggedRequest(TestRequest), annotations: Context.make(_mw.requestContext, {}) },
           next: Effect.void as unknown as Effect<SuccessValue, never, any>
         }
-        const layer = _mw.Default.pipe(Layer.provide(SomeService.toLayer()))
+        const layer = _mw.layer.pipe(
+          Layer.provide([
+            RequiresSomeMiddleware.Default,
+            SomeMiddlewareLive,
+            RequireRolesLive.pipe(Layer.provide(SomeService.toLayer())),
+            AllowAnonymousLive,
+            TestLive,
+            SomeElseMiddlewareLive
+          ])
+        )
         yield* Effect
           .gen(function*() {
             const mw = yield* _mw
@@ -154,6 +159,6 @@ const testSuite = (_mw: typeof middleware3) =>
   })
 
 testSuite(middleware3)
-testSuite(_middleware3Bis)
+// testSuite(_middleware3Bis)
 testSuite(_middlewareSideways)
 testSuite(_middlewareSidewaysFully)

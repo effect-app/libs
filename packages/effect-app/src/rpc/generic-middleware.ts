@@ -4,7 +4,7 @@ import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type S
 import { type ContextTagArray, type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect/Context"
 import { type Simplify } from "effect/Types"
-import { InfraLogger } from "../../../logger.js"
+import { PreludeLogger } from "../logger.js"
 import { type MakeTags, type MiddlewareMakerId } from "./middleware-api.js"
 import { type RpcMiddlewareWrap, type TagClassAny } from "./RpcMiddleware.js"
 
@@ -123,7 +123,7 @@ export const middlewareMaker = <
           const middleware = Context.unsafeGet(context, tag)
 
           // wrap the current handler, allowing the middleware to run before and after it
-          handler = InfraLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+          handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
             Effect.zipRight(middleware({ ...options, next: handler }))
           ) as any
         } else if (tag.optional) {
@@ -136,7 +136,7 @@ export const middlewareMaker = <
           // set the previous handler to run after the middleware
           // if the middleware is not present, we just return the previous handler
           // otherwise the middleware will provide some context to be provided to the previous handler
-          handler = InfraLogger.logDebug("Applying middleware optional " + tag.key).pipe(
+          handler = PreludeLogger.logDebug("Applying middleware optional " + tag.key).pipe(
             Effect.zipRight(Effect.matchEffect(middleware(options), {
               onFailure: () => previous,
               onSuccess: tag.provides !== undefined
@@ -156,7 +156,7 @@ export const middlewareMaker = <
           // set the previous handler to run after the middleware
           // we do expect the middleware to be present, but the context might not be available
           // if it is, we provide it to the previous handler
-          handler = InfraLogger.logDebug("Applying middleware dynamic " + tag.key, tag.dynamic).pipe(
+          handler = PreludeLogger.logDebug("Applying middleware dynamic " + tag.key, tag.dynamic).pipe(
             Effect.zipRight(
               middleware(options).pipe(
                 Effect.flatMap((o) =>
@@ -177,7 +177,7 @@ export const middlewareMaker = <
 
           // set the previous handler to run after the middleware
           // we do expect both the middleware and the context to be present
-          handler = InfraLogger.logDebug("Applying middleware " + tag.key).pipe(
+          handler = PreludeLogger.logDebug("Applying middleware " + tag.key).pipe(
             Effect.zipRight(
               tag.provides !== undefined
                 ? middleware(options).pipe(

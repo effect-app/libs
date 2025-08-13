@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Option, S, Scope } from "effect-app"
 import { NotLoggedInError, RPCContextMap, UnauthorizedError } from "effect-app/client"
+import { contextMap, getConfig, Tag } from "effect-app/rpc"
 import { TaggedError } from "effect-app/Schema"
-import { contextMap, getConfig, Tag } from "../src/api/routing.js"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({

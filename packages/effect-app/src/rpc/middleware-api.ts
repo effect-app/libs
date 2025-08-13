@@ -7,7 +7,7 @@ import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyA
 import { type GetContextConfig, type GetEffectContext, type RPCContextMap } from "effect-app/client"
 import { typedValuesOf } from "effect-app/utils"
 import { type ReadonlyMailbox } from "effect/Mailbox"
-import { type TypeTestId } from "../../routing.js"
+import { type TypeTestId } from "../TypeTest.js"
 import { type MiddlewareMaker, middlewareMaker, type RequestContextTag } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 

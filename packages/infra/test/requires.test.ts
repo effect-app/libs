@@ -4,10 +4,10 @@ import { describe, expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
-import { makeMiddleware, Middleware } from "../src/api/routing.js"
+import { makeMiddleware, TagService } from "effect-app/rpc"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeMiddlewareWrap, SomeService, Test, TestLive } from "./fixtures.js"
 
-export class RequiresSomeMiddleware extends Middleware.TagService<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
+export class RequiresSomeMiddleware extends TagService<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
   requires: [Some],
   wrap: true
 })({

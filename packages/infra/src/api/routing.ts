@@ -6,22 +6,16 @@ import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
+import { DevMode } from "effect-app/rpc"
+import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Service } from "effect/Effect"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { type LayerUtils } from "./layerUtils.js"
-import { DevMode, type RouterMiddleware } from "./routing/middleware.js"
+import { type RouterMiddleware } from "./routing/middleware.js"
 
 export * from "./routing/middleware.js"
-
-// Nice way to underline types that are only there for type testing, not for production use
-// sadly with unique symbols we get weird issues in app projects.
-// api/src/X/PackList.Controllers.ts:21:1 - error TS4082: Default export of the module has or is using private name 'TypeTestId'
-// export const TypeTestId: unique symbol = Symbol.for("@effect/infra/type-test")
-// export type TypeTestId = typeof TypeTestId
-export const TypeTestId = "@effect-app/infra/type-test" as const
-export type TypeTestId = typeof TypeTestId
 
 // it's the result of extending S.Req setting success, config
 // it's a schema plus some metadata

@@ -309,29 +309,9 @@
       "types": "./dist/api/routing/middleware/RouterMiddleware.d.ts",
       "default": "./dist/api/routing/middleware/RouterMiddleware.js"
     },
-    "./api/routing/middleware/RpcMiddleware": {
-      "types": "./dist/api/routing/middleware/RpcMiddleware.d.ts",
-      "default": "./dist/api/routing/middleware/RpcMiddleware.js"
-    },
-    "./api/routing/middleware/RpcMiddlewareX": {
-      "types": "./dist/api/routing/middleware/RpcMiddlewareX.d.ts",
-      "default": "./dist/api/routing/middleware/RpcMiddlewareX.js"
-    },
-    "./api/routing/middleware/generic-middleware": {
-      "types": "./dist/api/routing/middleware/generic-middleware.d.ts",
-      "default": "./dist/api/routing/middleware/generic-middleware.js"
-    },
     "./api/routing/middleware/middleware": {
       "types": "./dist/api/routing/middleware/middleware.d.ts",
       "default": "./dist/api/routing/middleware/middleware.js"
-    },
-    "./api/routing/middleware/middleware-api": {
-      "types": "./dist/api/routing/middleware/middleware-api.d.ts",
-      "default": "./dist/api/routing/middleware/middleware-api.js"
-    },
-    "./api/routing/middleware/middleware-native": {
-      "types": "./dist/api/routing/middleware/middleware-native.d.ts",
-      "default": "./dist/api/routing/middleware/middleware-native.js"
     },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",

@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { type MakeContext, type MakeErrors, makeRouter, TypeTestId } from "@effect-app/infra/api/routing"
+import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { DefaultGenericMiddlewaresLive, makeMiddleware, Middleware, TagService } from "../src/api/routing/middleware.js"
-import { DefaultGenericMiddlewares } from "../src/api/routing/middleware/middleware-native.js"
+import { DefaultGenericMiddlewares, makeMiddleware, TagService } from "effect-app/rpc"
+import { TypeTestId } from "effect-app/TypeTest"
+import { DefaultGenericMiddlewaresLive } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Middleware.TagService<MyContextProvider>()("MyContextProvider", {
+class MyContextProvider extends TagService<MyContextProvider>()("MyContextProvider", {
   provides: [Some],
   requires: [SomeElse]
 })({
@@ -40,7 +41,7 @@ class MyContextProvider extends Middleware.TagService<MyContextProvider>()("MyCo
 }) {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider3 extends Middleware.TagService<MyContextProvider3>()("MyContextProvider3", {
+class MyContextProvider3 extends TagService<MyContextProvider3>()("MyContextProvider3", {
   provides: [Some],
   requires: [SomeElse]
 })({
@@ -72,19 +73,17 @@ class MyContextProvider3 extends Middleware.TagService<MyContextProvider3>()("My
 expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProvider3, CustomError1, never>>()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2
-  extends Middleware.TagService<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({
-    effect: Effect.gen(function*() {
-      if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider2 extends TagService<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({
+  effect: Effect.gen(function*() {
+    if (Math.random() > 0.5) return yield* new CustomError1()
 
-      return Effect.fnUntraced(function*() {
-        // we test without dependencies, so that we end up with an R of never.
+    return Effect.fnUntraced(function*() {
+      // we test without dependencies, so that we end up with an R of never.
 
-        return new SomeElse({ b: 2 })
-      })
+      return new SomeElse({ b: 2 })
     })
   })
-{}
+}) {}
 
 //
 

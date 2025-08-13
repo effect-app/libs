@@ -1,14 +1,12 @@
 import { Cause, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
+import * as MiddlewareNative from "effect-app/rpc/middleware-native"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { determineMethod, isCommand } from "../utils.js"
-import * as MiddlewareNative from "./middleware-native.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
-
-export { DevMode } from "./middleware-native.js"
 
 export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestCache(

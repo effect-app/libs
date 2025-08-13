@@ -144,6 +144,10 @@
       "types": "./dist/Tag.d.ts",
       "default": "./dist/Tag.js"
     },
+    "./TypeTest": {
+      "types": "./dist/TypeTest.d.ts",
+      "default": "./dist/TypeTest.js"
+    },
     "./Types": {
       "types": "./dist/Types.d.ts",
       "default": "./dist/Types.js"
@@ -215,6 +219,30 @@
     "./logger": {
       "types": "./dist/logger.d.ts",
       "default": "./dist/logger.js"
+    },
+    "./rpc": {
+      "types": "./dist/rpc.d.ts",
+      "default": "./dist/rpc.js"
+    },
+    "./rpc/RpcMiddleware": {
+      "types": "./dist/rpc/RpcMiddleware.d.ts",
+      "default": "./dist/rpc/RpcMiddleware.js"
+    },
+    "./rpc/RpcMiddlewareX": {
+      "types": "./dist/rpc/RpcMiddlewareX.d.ts",
+      "default": "./dist/rpc/RpcMiddlewareX.js"
+    },
+    "./rpc/generic-middleware": {
+      "types": "./dist/rpc/generic-middleware.d.ts",
+      "default": "./dist/rpc/generic-middleware.js"
+    },
+    "./rpc/middleware-api": {
+      "types": "./dist/rpc/middleware-api.d.ts",
+      "default": "./dist/rpc/middleware-api.js"
+    },
+    "./rpc/middleware-native": {
+      "types": "./dist/rpc/middleware-native.d.ts",
+      "default": "./dist/rpc/middleware-native.js"
     },
     "./transform": {
       "types": "./dist/transform.d.ts",

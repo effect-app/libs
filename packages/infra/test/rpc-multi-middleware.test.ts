@@ -21,24 +21,17 @@ const UserRpcs = middlewareGroup(middleware)(RpcGroup
   .make(
     middleware.rpc("getUser", {
       success: S.Literal("awesome")
-      // config: { allowAnonymous: true }
     }),
     middleware.rpc("doSomething", {
       success: S.Literal("also-awesome"),
       config: { allowAnonymous: true }
-    }),
-    middleware.rpc("doSomethingElse", {
-      success: S.Literal("also-awesome2"),
-      config: { allowAnonymous: true }
     })
   ))
 
-// but compared to effect-app Router, instead of locking the implementation Context to Scope | DynamicMiddleware | Provided, we would instead bubble up non provided context to the Layer Requirements?
-// or re-consider. it is kind of a nice feature to have local error reporting of missed Context...
 const impl = Effect
   .gen(function*() {
     const impl = UserRpcs
-      .toLayer({
+      .toLayerDynamic({
         getUser: Effect.fn(function*(_payload, _headers) {
           yield* Some
           yield* UserProfile // we only access it while protected by allowAnonymous: false
@@ -47,9 +40,6 @@ const impl = Effect
         doSomething: Effect.fn(function*() {
           console.log(yield* Effect.serviceOption(UserProfile)) // we access it optionally, while allowAnonymous: true
           return "also-awesome" as const
-        }),
-        doSomethingElse: Effect.fn(function*() {
-          return "also-awesome2" as const
         })
       })
     return impl
@@ -58,16 +48,17 @@ const impl = Effect
 
 expectTypeOf<Layer.Layer.Context<typeof impl>>().toEqualTypeOf<never>()
 
-const badImpl = Effect
+const UserRpcsBad = middlewareGroup(middleware)(RpcGroup
+  .make(
+    middleware.rpc("doSomethingElse", {
+      success: S.Literal("also-awesome2"),
+      config: { allowAnonymous: true }
+    })
+  ))
+export const badImpl = Effect
   .gen(function*() {
-    const impl = UserRpcs
-      .toLayer({
-        getUser: Effect.fn(function*(_payload, _headers) {
-          return "awesome" as const
-        }),
-        doSomething: Effect.fn(function*() {
-          return "also-awesome" as const
-        }),
+    const impl = UserRpcsBad
+      .toLayerDynamic({
         doSomethingElse: Effect.fn(function*() {
           console.log(yield* UserProfile) // bad boy! allowAnonymous: false, so `UserProfile` must fall through to the Layer R.
           return "also-awesome2" as const

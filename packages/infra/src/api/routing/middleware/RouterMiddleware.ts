@@ -28,6 +28,7 @@ export type RouterMiddleware<
     }
   >
   & {
-    Default: Layer.Layer<MiddlewareMakerId, MakeMiddlewareE, MakeMiddlewareR>
-    requestContext: Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+    readonly Default: Layer.Layer<MiddlewareMakerId, MakeMiddlewareE, MakeMiddlewareR>
+    readonly requestContext: Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+    readonly requestContextMap: RequestContextMap
   }

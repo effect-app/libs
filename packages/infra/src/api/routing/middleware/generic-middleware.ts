@@ -41,6 +41,7 @@ export interface MiddlewareMaker<
 {
   readonly layer: Layer.Layer<MiddlewareMakerId, never, Tag.Identifier<MiddlewareProviders[number]>>
   readonly requestContext: RequestContextTag<RequestContextMap>
+  readonly requestContextMap: RequestContextMap
 }
 
 export interface RequestContextTag<RequestContextMap extends Record<string, RPCContextMap.Any>>

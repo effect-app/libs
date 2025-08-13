@@ -11,22 +11,13 @@ import { createServer } from "http"
 import { DefaultGenericMiddlewares, makeMiddleware, type RequestContextTag } from "../src/api/routing.js"
 import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeMiddlewareWrap, SomeService, Test, UserProfile } from "./fixtures.js"
 
-// todo; make middleware should only accept the middleware tags
-// so that the implementation can be provided just on the server!
+// todo; make middleware should only accept the middleware tags - without implementation!
+// so that the implementation can be provided just on the server! and the `middleware` object reused between server and client!
 const middleware = makeMiddleware(RequestContextMap)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
   .middleware(SomeElseMiddleware, SomeMiddlewareWrap)
   .middleware(...DefaultGenericMiddlewares)
-
-// type A<T> = T extends RpcMiddleware.TagClass<infer Self, infer Name, infer Options>
-//   ? { self: Self; name: Name; options: Options }
-//   : never
-
-// type C<T extends RpcMiddleware.TagClass<any, any, any>> = T extends RpcMiddleware.TagClass<infer Self, any, any>
-//   ? { self: Self; name: any }
-//   : never
-// type B = C<typeof middleware>
 
 // basically, what do we want.
 // we want to create a ServerMiddleware, which is not available on the client, it can provide: [], and require: [] and is wrap:tru

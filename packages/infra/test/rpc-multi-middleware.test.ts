@@ -1,13 +1,7 @@
-// basically, what do we want.
-// we want to create a ServerMiddleware, which is not available on the client, it can provide: [], and require: [] and is wrap:tru
-// then we want to build a Layer for it, so makeMiddleware should be (RequestContextMap, ServerTag).
-// rpcGroup.middleware(ServerTag)
-// rpcGroup.toLayer().pipe(Layer.provide(middlewareLayer))
-
 import { FetchHttpClient } from "@effect/platform"
 import { NodeHttpServer } from "@effect/platform-node"
 import { RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "@effect/rpc"
-import { expect, it } from "@effect/vitest"
+import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Console, Effect, Either, Layer } from "effect"
 import { S } from "effect-app"
 import { NotLoggedInError } from "effect-app/client"
@@ -47,21 +41,43 @@ const impl = Effect
       .toLayer({
         getUser: Effect.fn(function*(_payload, _headers) {
           yield* Some
-          yield* UserProfile
+          yield* UserProfile // we only access it while protected by allowAnonymous: false
           return "awesome" as const
         }),
         doSomething: Effect.fn(function*() {
-          console.log(yield* Effect.serviceOption(UserProfile))
+          console.log(yield* Effect.serviceOption(UserProfile)) // we access it optionally, while allowAnonymous: true
           return "also-awesome" as const
         }),
         doSomethingElse: Effect.fn(function*() {
-          console.log(yield* UserProfile)
           return "also-awesome2" as const
         })
       })
     return impl
   })
   .pipe(Layer.unwrapEffect)
+
+expectTypeOf<Layer.Layer.Context<typeof impl>>().toEqualTypeOf<never>()
+
+const badImpl = Effect
+  .gen(function*() {
+    const impl = UserRpcs
+      .toLayer({
+        getUser: Effect.fn(function*(_payload, _headers) {
+          return "awesome" as const
+        }),
+        doSomething: Effect.fn(function*() {
+          return "also-awesome" as const
+        }),
+        doSomethingElse: Effect.fn(function*() {
+          console.log(yield* UserProfile) // bad boy! allowAnonymous: false, so `UserProfile` must fall through to the Layer R.
+          return "also-awesome2" as const
+        })
+      })
+    return impl
+  })
+  .pipe(Layer.unwrapEffect)
+
+expectTypeOf<Layer.Layer.Context<typeof badImpl>>().toEqualTypeOf<UserProfile>()
 
 const middlwareLayer = middleware
   .layer
@@ -121,20 +137,6 @@ it.scopedLive(
 
       const user = yield* userClient.doSomething().pipe(Effect.onExit((_) => Console.dir(_, { depth: 10 })))
       expect(user).toBe("also-awesome")
-    },
-    Effect.provide(RpcTestLayer)
-  )
-)
-
-it.scopedLive(
-  "allow anonymous, so UserProfile may not be eliminated",
-  Effect.fnUntraced(
-    function*() {
-      const userClient = yield* RpcTest.makeClient(UserRpcs) // RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)
-
-      const user = yield* userClient.doSomethingElse().pipe(Effect.onExit((_) => Console.dir(_, { depth: 10 })))
-      expect(user).toBe(new NotLoggedInError())
-      // TODO: shouldn't compile, the layer should have error because UserProfile is not eliminated, and therefore ends up as Layer dep
     },
     Effect.provide(RpcTestLayer)
   )

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.0.2
+
+### Patch Changes
+
+- 64745d0: just layers
+
 ## 3.0.1
 
 ### Patch Changes

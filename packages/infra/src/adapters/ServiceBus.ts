@@ -134,10 +134,11 @@ const makeReceiver = (name: string) =>
                 }
               })
           )
+
         yield* Effect.acquireRelease(
           Effect
-            .sync(() =>
-              r
+            .sync(() => {
+              const s = r
                 .subscribe({
                   processError: (err) =>
                     runEffect(
@@ -150,13 +151,14 @@ const makeReceiver = (name: string) =>
                   processMessage: (msg) => runEffect(hndlr.processMessage(msg))
                   // DO NOT CATCH ERRORS here as they should return to the queue!
                 })
-            )
+              return { close: Effect.promise(() => s.close()) }
+            })
             .pipe(withSpanAndLog(`ServiceBus.subscription.create ${sessionId}`)),
           (subscription) =>
-            Effect.promise(() => subscription.close()).pipe(
+            subscription.close.pipe(
               withSpanAndLog(`ServiceBus.subscription.close ${sessionId}`)
             )
-        )
+        ) as Effect<void, never, Scope> // wth is going on here
       })
     }
   })

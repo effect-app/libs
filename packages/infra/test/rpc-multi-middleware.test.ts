@@ -68,7 +68,14 @@ const toLayerWithMiddleware =
 
 const UserRpcs = RpcGroup
   .make(
-    middleware.rpc("getUser", { success: S.Literal("awesome"), config: { allowAnonymous: true } })
+    middleware.rpc("getUser", {
+      success: S.Literal("awesome")
+      // config: { allowAnonymous: true }
+    }),
+    middleware.rpc("doSomething", {
+      success: S.Literal("also-awesome"),
+      config: { allowAnonymous: true }
+    })
   )
 
 // TODO: the client RpcGroup also has to be adapted together with the server, to add dynamic middleware error schemas depending on Configuration.
@@ -85,6 +92,9 @@ const impl = Effect
           yield* Some
           yield* UserProfile
           return "awesome" as const
+        }),
+        doSomething: Effect.fn(function*() {
+          return "also-awesome" as const
         })
       })
     return impl

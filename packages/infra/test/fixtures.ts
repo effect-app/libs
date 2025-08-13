@@ -20,11 +20,9 @@ export class SomeMiddleware extends Middleware.TagService<SomeMiddleware>()("Som
   provides: Some
 })({
   effect: Effect.gen(function*() {
-    console.log("SomeMiddlewareWrap")
     // yield* Effect.context<"test-dep">()
     return () =>
       Effect.gen(function*() {
-        console.log("somemiddlewarewrap dude")
         return new Some({ a: 1 })
       })
   })
@@ -37,7 +35,6 @@ export class SomeMiddlewareWrap extends Middleware.TagService<SomeMiddlewareWrap
   wrap: true
 })({
   effect: Effect.gen(function*() {
-    console.log("SomeMiddlewareWrap")
     // yield* Effect.context<"test-dep">()
     return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
   })
@@ -49,7 +46,6 @@ export class SomeElseMiddleware extends Middleware.TagService<SomeElseMiddleware
   wrap: true
 })({
   effect: Effect.gen(function*() {
-    console.log("SomeElseMiddewalre")
     // yield* Effect.context<"test-dep">()
     return ({ next }) =>
       Effect.gen(function*() {

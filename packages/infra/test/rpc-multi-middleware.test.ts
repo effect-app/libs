@@ -1,12 +1,9 @@
-import { FetchHttpClient, HttpLayerRouter } from "@effect/platform"
-import { NodeHttpServer } from "@effect/platform-node"
-import { type Rpc, RpcClient, RpcGroup, type RpcMiddleware, RpcSerialization, RpcServer } from "@effect/rpc"
+import { type Rpc, RpcGroup, type RpcMiddleware, RpcTest } from "@effect/rpc"
 import { type HandlersContext, type HandlersFrom } from "@effect/rpc/RpcGroup"
 import { expect, it } from "@effect/vitest"
-import { Console, Effect, Layer } from "effect"
+import { Effect, Layer } from "effect"
 import { S, type Scope } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
-import { createServer } from "http"
 import { DefaultGenericMiddlewares, makeMiddleware, type RequestContextTag } from "../src/api/routing.js"
 import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeMiddlewareWrap, SomeService, Test } from "./fixtures.js"
 
@@ -41,12 +38,12 @@ const toLayerWithMiddleware =
     middleware: RpcMiddleware.TagClassAny & { requestContext: RequestContextTag<RequestContextMap> }
   ) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  <Group extends RpcGroup.RpcGroup<any>>(group: Group) => {
+  <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) => {
     const middlewaredGroup = group.middleware(middleware)
     const toLayerOriginal = middlewaredGroup.toLayer.bind(middlewaredGroup)
     return Object.assign(middlewaredGroup, {
       toLayer: <
-        Handlers extends HandlersFrom<RpcGroup.Rpcs<Group>>,
+        Handlers extends HandlersFrom<R>,
         EX = never,
         RX = never
       >(
@@ -55,12 +52,12 @@ const toLayerWithMiddleware =
           | Effect.Effect<Handlers, EX, RX>
         // todo: remove provides types and handle dynamic middleware based on config.
       ): Layer.Layer<
-        Rpc.ToHandler<RpcGroup.Rpcs<Group>>,
+        Rpc.ToHandler<R>,
         EX,
         | Exclude<RX, Scope>
-        | HandlersContext<RpcGroup.Rpcs<Group>, Handlers>
+        | HandlersContext<R, Handlers>
       > => {
-        return toLayerOriginal(build)
+        return toLayerOriginal(build as any) as any // ??
       }
     })
   }
@@ -83,6 +80,7 @@ const impl = Effect
       .toLayer({
         getUser: Effect.fn(function*(_payload, _headers) {
           yield* Some
+          // yield* UserProfile
           return "awesome" as const
         })
       })
@@ -90,41 +88,43 @@ const impl = Effect
   })
   .pipe(Layer.unwrapEffect)
 
-it.scopedLive(
-  "works",
-  Effect.fnUntraced(
-    function*() {
-      const userClient = yield* RpcClient.make(UserRpcs) // RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)
+it.layer( // for RpcTest.makeClient. make sure to use UserRpcsServer..
+  Layer
+    .mergeAll(
+      impl,
+      middleware
+        .Default
+        .pipe(Layer.provide(SomeService.toLayer()))
+    )
+  // Layer
+  //   .mergeAll(
+  //     HttpLayerRouter
+  //       .serve(
+  //         RpcServer
+  //           .layerHttpRouter({ group: UserRpcsServer, path: "/rpc", protocol: "http" })
+  //           .pipe(Layer.provide(impl))
+  //           .pipe(Layer.provide(middleware.Default.pipe(Layer.provide(SomeService.toLayer()))))
+  //       )
+  //       .pipe(Layer.provide(NodeHttpServer.layer(() => createServer(), { port: 5918 }))),
+  //     RpcClient
+  //       .layerProtocolHttp({ url: "http://localhost:5918/rpc" })
+  //       .pipe(
+  //         Layer.provide(FetchHttpClient.layer)
+  //       )
+  //   )
+  //   .pipe(Layer.provide(RpcSerialization.layerJson))
+)(
+  (it) =>
+    it.scoped(
+      "works",
+      Effect.fnUntraced(
+        function*() {
+          const userClient = yield* RpcTest.makeClient(UserRpcsServer as unknown as typeof UserRpcs) // RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)
 
-      const user = yield* userClient.getUser()
-      expect(user).toBe("awesome")
-    },
-    Effect.provide(
-      // Layer
-      //   .mergeAll(
-      //     impl,
-      //     middleware
-      //       .Default
-      //       .pipe(Layer.provide(SomeService.toLayer()))
-      //   )
-      Layer
-        .mergeAll(
-          HttpLayerRouter
-            .serve(
-              RpcServer
-                .layerHttpRouter({ group: UserRpcsServer, path: "/rpc", protocol: "http" })
-                .pipe(Layer.provide(impl))
-                .pipe(Layer.provide(middleware.Default.pipe(Layer.provide(SomeService.toLayer()))))
-            )
-            .pipe(Layer.provide(NodeHttpServer.layer(() => createServer(), { port: 5918 }))),
-          RpcClient
-            .layerProtocolHttp({ url: "http://localhost:5918/rpc" })
-            .pipe(
-              Layer.provide(FetchHttpClient.layer)
-            )
-        )
-        .pipe(Layer.provide(RpcSerialization.layerJson))
-    ),
-    Effect.onExit((_) => Console.dir(_, { depth: 10 }))
-  )
+          const user = yield* userClient.getUser()
+          expect(user).toBe("awesome")
+        }
+        // Effect.onExit((_) => Console.dir(_, { depth: 10 }))
+      )
+    )
 )

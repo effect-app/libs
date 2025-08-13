@@ -1,7 +1,7 @@
-import { Context, Effect, Option, S, Scope } from "effect-app"
+import { Context, Effect, Layer, Option, S, Scope } from "effect-app"
 import { NotLoggedInError, RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { TaggedError } from "effect-app/Schema"
-import { contextMap, getConfig, Middleware } from "../src/api/routing.js"
+import { contextMap, getConfig, Tag } from "../src/api/routing.js"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({
@@ -16,36 +16,44 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
-export class SomeMiddleware extends Middleware.TagService<SomeMiddleware>()("SomeMiddleware", {
+export class SomeMiddleware extends Tag<SomeMiddleware>()("SomeMiddleware", {
   provides: Some
-})({
-  effect: Effect.gen(function*() {
+}) {}
+
+export const SomeMiddlewareLive = Layer.effect(
+  SomeMiddleware,
+  Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
     return () =>
       Effect.gen(function*() {
         return new Some({ a: 1 })
       })
   })
+)
+
+// functionally equivalent to the one above
+export class SomeMiddlewareWrap extends Tag<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
+  provides: Some,
+  wrap: true
 }) {
 }
 
-// functionally equivalent to the one above
-export class SomeMiddlewareWrap extends Middleware.TagService<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
-  provides: Some,
-  wrap: true
-})({
-  effect: Effect.gen(function*() {
+export const SomeMiddlewareWrapLive = Layer.effect(
+  SomeMiddlewareWrap,
+  Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
     return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
   })
-}) {
-}
+)
 
-export class SomeElseMiddleware extends Middleware.TagService<SomeElseMiddleware>()("SomeElseMiddleware", {
+export class SomeElseMiddleware extends Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
   provides: SomeElse,
   wrap: true
-})({
-  effect: Effect.gen(function*() {
+}) {}
+
+export const SomeElseMiddlewareLive = Layer.effect(
+  SomeElseMiddleware,
+  Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
     return ({ next }) =>
       Effect.gen(function*() {
@@ -53,8 +61,7 @@ export class SomeElseMiddleware extends Middleware.TagService<SomeElseMiddleware
         return yield* next.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
       })
   })
-}) {
-}
+)
 
 const requestConfig = getConfig<RequestContextMap>()
 
@@ -72,11 +79,14 @@ export const RequestContextMap = {
 type _RequestContextMap = typeof RequestContextMap
 export interface RequestContextMap extends _RequestContextMap {}
 
-export class AllowAnonymous extends Middleware.TagService<AllowAnonymous>()("AllowAnonymous", {
+export class AllowAnonymous extends Tag<AllowAnonymous>()("AllowAnonymous", {
   dynamic: contextMap(RequestContextMap, "allowAnonymous"),
   requires: SomeElse
-})({
-  effect: Effect.gen(function*() {
+}) {}
+
+export const AllowAnonymousLive = Layer.effect(
+  AllowAnonymous,
+  Effect.gen(function*() {
     return Effect.fnUntraced(
       function*({ headers, rpc }) {
         yield* SomeElse
@@ -100,20 +110,22 @@ export class AllowAnonymous extends Middleware.TagService<AllowAnonymous>()("All
       }
     )
   })
-}) {
-}
+)
 
 // TODO: don't expect service when it's wrap
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class RequireRoles extends Middleware.TagService<RequireRoles>()("RequireRoles", {
+export class RequireRoles extends Tag<RequireRoles>()("RequireRoles", {
   dynamic: contextMap(RequestContextMap, "requireRoles"),
   wrap: true,
   // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
   // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
   dependsOn: [AllowAnonymous]
-})({
-  effect: Effect.gen(function*() {
+}) {}
+
+export const RequireRolesLive = Layer.effect(
+  RequireRoles,
+  Effect.gen(function*() {
     yield* SomeService
     return Effect.fnUntraced(
       function*({ next, rpc }) {
@@ -134,20 +146,22 @@ export class RequireRoles extends Middleware.TagService<RequireRoles>()("Require
       }
     )
   })
-}) {
-}
+)
 
 // TODO: don't expect service when it's wrap
-export class Test extends Middleware.TagService<Test>()("Test", {
+export class Test extends Tag<Test>()("Test", {
   wrap: true,
   dynamic: contextMap(RequestContextMap, "test")
-})({
-  effect: Effect.gen(function*() {
+}) {}
+
+export const TestLive = Layer.effect(
+  Test,
+  Effect.gen(function*() {
     return Effect.fn(function*({ next }) {
       return yield* next
     })
   })
-}) {}
+)
 
 export class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
 export class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}

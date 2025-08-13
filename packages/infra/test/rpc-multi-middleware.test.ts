@@ -13,11 +13,10 @@ import { S } from "effect-app"
 import { NotLoggedInError } from "effect-app/client"
 import { HttpLayerRouter } from "effect-app/http"
 import { createServer } from "http"
-import { DefaultGenericMiddlewares, makeMiddleware, middlewareGroup } from "../src/api/routing.js"
-import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeMiddlewareWrap, SomeService, Test, UserProfile } from "./fixtures.js"
+import { DefaultGenericMiddlewaresLive, makeMiddleware, middlewareGroup } from "../src/api/routing.js"
+import { DefaultGenericMiddlewares } from "../src/api/routing/middleware/middleware-native.js"
+import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddlewareWrap, SomeMiddlewareWrapLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
 
-// todo; make middleware should only accept the middleware tags - without implementation!
-// so that the implementation can be provided just on the server! and the `middleware` object reused between server and client!
 const middleware = makeMiddleware(RequestContextMap)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
@@ -65,8 +64,17 @@ const impl = Effect
   .pipe(Layer.unwrapEffect)
 
 const middlwareLayer = middleware
-  .Default
-  .pipe(Layer.provide(SomeService.toLayer()))
+  .layer
+  .pipe(
+    Layer.provide([
+      DefaultGenericMiddlewaresLive,
+      SomeElseMiddlewareLive,
+      SomeMiddlewareWrapLive,
+      TestLive,
+      RequireRolesLive.pipe(Layer.provide(SomeService.toLayer())),
+      AllowAnonymousLive
+    ])
+  )
 
 export const RpcTestLayer = Layer
   .mergeAll(
@@ -74,7 +82,6 @@ export const RpcTestLayer = Layer
     middlwareLayer
   )
 
-// TODO: why end up with R=any?
 export const RpcRealLayer = Layer
   .mergeAll(
     HttpLayerRouter

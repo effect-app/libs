@@ -6,7 +6,6 @@ import { Tag } from "@effect/rpc/RpcMiddleware"
 import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S, type Schema, type Scope } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { typedValuesOf } from "effect-app/utils"
-import { type LayerUtils } from "../../layerUtils.js"
 import { type TypeTestId } from "../../routing.js"
 import { type MiddlewareMaker, middlewareMaker, type RequestContextTag } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
@@ -208,26 +207,19 @@ const makeMiddlewareBasic =
       wrap: true
     })
 
-    const dependencies = Layer.mergeAll(...(middleware.dependencies ?? [Layer.empty]) as any) as Layer.Layer<
-      LayerUtils.GetLayersSuccess<typeof middleware.dependencies>,
-      LayerUtils.GetLayersError<typeof middleware.dependencies>,
-      LayerUtils.GetLayersContext<typeof middleware.dependencies>
-    >
-
-    const Default = Layer
+    const layer = Layer
       .scoped(
         MiddlewareMaker,
-        middleware.effect as Effect<
+        middleware as Effect<
           any, // TODO: why ?
-          Effect.Error<typeof middleware["effect"]>,
-          Effect.Context<typeof middleware["effect"]>
+          Effect.Error<typeof middleware>,
+          Effect.Context<typeof middleware>
         >
       )
-      .pipe(Layer.provide(dependencies))
 
     // add to the tag a default implementation
     return Object.assign(MiddlewareMaker, {
-      Default,
+      layer,
       // tag to be used to retrieve the RequestContextConfig from RPC annotations
       requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
         "RequestContextConfig"
@@ -275,7 +267,7 @@ export const makeMiddleware = <
       const errors = typedValuesOf(rcm).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
       const newError = error ? S.Union(error, ...errors) : S.Union(...errors)
 
-      const rpc = Rpc.make(tag, { ...options, error: newError })
+      const rpc = Rpc.make(tag, { ...options, error: newError }) as any
 
       return Object.assign(rpc.annotate(requestContext, config), { config })
     },
@@ -297,9 +289,14 @@ export const makeMiddleware = <
 // alternatively consider group.serverMiddleware? hmmm
 export const middlewareGroup =
   // Middleware extends TagClass<any, any, { wrap: true }
-  <RequestContextMap extends Record<string, RPCContextMap.Any>>(
+  <
+    RequestContextMap extends Record<string, RPCContextMap.Any>,
+    Middleware extends Context.Tag<MiddlewareMakerId, any> & RpcMiddleware.TagClassAny & {
+      requestContext: RequestContextTag<RequestContextMap>
+    }
+  >(
     // middleware here can actually be Server Only middleware.
-    middleware: RpcMiddleware.TagClassAny & { requestContext: RequestContextTag<RequestContextMap> }
+    middleware: Middleware
   ) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) => {
@@ -315,6 +312,7 @@ export const middlewareGroup =
           | Handlers
           | Effect.Effect<Handlers, EX, RX>
         // todo: remove provides types and handle dynamic middleware based on config.
+        // via some custom HandlersContext and HandlerContext probably
       ): Layer.Layer<
         Rpc.ToHandler<R>,
         EX,

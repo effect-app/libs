@@ -15,3 +15,9 @@ export class ConfigureInterruptibilityMiddleware
 {}
 
 export class LoggerMiddleware extends RpcMiddleware.Tag<LoggerMiddleware>()("LoggerMiddleware", { wrap: true }) {}
+
+export const DefaultGenericMiddlewares = [
+  RequestCacheMiddleware,
+  ConfigureInterruptibilityMiddleware,
+  LoggerMiddleware
+] as const

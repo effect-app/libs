@@ -87,7 +87,9 @@ export namespace RPCContextMap {
 }
 
 export type GetContextConfig<RequestContextMap extends Record<string, RPCContextMap.Any>> = {
-  [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"]
+  [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"] extends true ? false
+    : RequestContextMap[K]["contextActivation"] extends false ? true
+    : RequestContextMap[K]["contextActivation"]
 }
 
 export type GetEffectContext<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<

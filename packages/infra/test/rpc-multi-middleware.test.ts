@@ -1,16 +1,21 @@
-import { Rpc, RpcGroup, type RpcMiddleware, RpcSerialization, RpcTest } from "@effect/rpc"
+import { FetchHttpClient, HttpLayerRouter } from "@effect/platform"
+import { NodeHttpServer } from "@effect/platform-node"
+import { type Rpc, RpcClient, RpcGroup, type RpcMiddleware, RpcSerialization, RpcServer } from "@effect/rpc"
 import { type HandlersContext, type HandlersFrom } from "@effect/rpc/RpcGroup"
 import { expect, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
+import { Console, Effect, Layer } from "effect"
 import { S, type Scope } from "effect-app"
 import { type RPCContextMap } from "effect-app/client"
+import { createServer } from "http"
 import { DefaultGenericMiddlewares, makeMiddleware, type RequestContextTag } from "../src/api/routing.js"
-import { AllowAnonymous, RequestContextMap, RequireRoles, SomeElseMiddleware, SomeMiddleware, Test } from "./fixtures.js"
+import { AllowAnonymous, RequestContextMap, RequireRoles, Some, SomeElseMiddleware, SomeMiddlewareWrap, SomeService, Test } from "./fixtures.js"
 
+// todo; make middleware should only accept the middleware tags
+// so that the implementation can be provided just on the server!
 const middleware = makeMiddleware(RequestContextMap)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
-  .middleware(SomeElseMiddleware, SomeMiddleware)
+  .middleware(SomeElseMiddleware, SomeMiddlewareWrap)
   .middleware(...DefaultGenericMiddlewares)
 
 // type A<T> = T extends RpcMiddleware.TagClass<infer Self, infer Name, infer Options>
@@ -28,10 +33,6 @@ const middleware = makeMiddleware(RequestContextMap)
 // rpcGroup.middleware(ServerTag)
 // rpcGroup.toLayer().pipe(Layer.provide(middlewareLayer))
 
-const UserRpcs = RpcGroup
-  .make()
-  .add(Rpc.make("getUser", { success: S.Literal("awesome") }))
-
 // alternatively consider group.serverMiddleware? hmmm
 const toLayerWithMiddleware =
   // Middleware extends TagClass<any, any, { wrap: true }
@@ -40,64 +41,90 @@ const toLayerWithMiddleware =
     middleware: RpcMiddleware.TagClassAny & { requestContext: RequestContextTag<RequestContextMap> }
   ) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  <Group extends RpcGroup.RpcGroup<any>>(group: Group) =>
-  <
-    Handlers extends HandlersFrom<RpcGroup.Rpcs<Group>>,
-    EX = never,
-    RX = never
-  >(
-    build:
-      | Handlers
-      | Effect.Effect<Handlers, EX, RX>
-  ): Layer.Layer<
-    Rpc.ToHandler<RpcGroup.Rpcs<Group>>,
-    EX,
-    | Exclude<RX, Scope>
-    | HandlersContext<RpcGroup.Rpcs<Group>, Handlers>
-  > => {
-    return group.middleware(middleware).toLayer(build)
+  <Group extends RpcGroup.RpcGroup<any>>(group: Group) => {
+    const middlewaredGroup = group.middleware(middleware)
+    const toLayerOriginal = middlewaredGroup.toLayer.bind(middlewaredGroup)
+    return Object.assign(middlewaredGroup, {
+      toLayer: <
+        Handlers extends HandlersFrom<RpcGroup.Rpcs<Group>>,
+        EX = never,
+        RX = never
+      >(
+        build:
+          | Handlers
+          | Effect.Effect<Handlers, EX, RX>
+        // todo: remove provides types and handle dynamic middleware based on config.
+      ): Layer.Layer<
+        Rpc.ToHandler<RpcGroup.Rpcs<Group>>,
+        EX,
+        | Exclude<RX, Scope>
+        | HandlersContext<RpcGroup.Rpcs<Group>, Handlers>
+      > => {
+        return toLayerOriginal(build)
+      }
+    })
   }
+
+const UserRpcs = RpcGroup
+  .make(
+    middleware.rpc("getUser", { success: S.Literal("awesome"), config: { allowAnonymous: true } })
+  )
+
+// TODO: the client RpcGroup also has to be adapted together with the server, to add dynamic middleware errors depending on Configuration.
+const makeServerGroup = toLayerWithMiddleware(middleware)
+const UserRpcsServer = makeServerGroup(UserRpcs)
 
 // const impl = toLayerWithMiddleware(UserRpcs)(middleware)
 // but instead of locking the implementation Context to Scope | DynamicMiddleware | Provided, we would instead bubble up non provided context to the Layer Requirements?
 // or re-consider. it is kind of a nice feature to have local error reporting of missed Context...
 const impl = Effect
   .gen(function*() {
-    // layer deps...
-    // TODO: impl toLayerWithMiddleware on UserRpcs.
-    const impl = toLayerWithMiddleware(middleware)(UserRpcs)({
-      getUser: (_payload, _headers) => Effect.succeed("awesome")
-    })
+    const impl = UserRpcsServer
+      .toLayer({
+        getUser: Effect.fn(function*(_payload, _headers) {
+          yield* Some
+          return "awesome" as const
+        })
+      })
     return impl
   })
   .pipe(Layer.unwrapEffect)
 
-it.scoped(
+it.scopedLive(
   "works",
   Effect.fnUntraced(
     function*() {
-      const userClient = yield* RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)
+      const userClient = yield* RpcClient.make(UserRpcs) // RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)
 
       const user = yield* userClient.getUser()
       expect(user).toBe("awesome")
     },
     Effect.provide(
-      impl
-        // Layer
-        //   .mergeAll(
-        // HttpLayerRouter
-        //   .serve(
-        //     RpcServer.layerHttpRouter({ group: UserRpcs, path: "/rpc", protocol: "http" }).pipe(Layer.provide(impl))
-        //   )
-        //   .pipe(Layer.provide(NodeHttpServer.layer(() => createServer(), { port: 5918 }))),
-        // RpcClient
-        //   .layerProtocolHttp({ url: "http://localhost:5918/rpc" })
-        //   .pipe(
-        //     Layer.provide(FetchHttpClient.layer)
-        //     // Layer.provide(middleware.Default.pipe(Layer.provide(SomeService.toLayer())))
-        //   )
-
+      // Layer
+      //   .mergeAll(
+      //     impl,
+      //     middleware
+      //       .Default
+      //       .pipe(Layer.provide(SomeService.toLayer()))
+      //   )
+      Layer
+        .mergeAll(
+          HttpLayerRouter
+            .serve(
+              RpcServer
+                .layerHttpRouter({ group: UserRpcsServer, path: "/rpc", protocol: "http" })
+                .pipe(Layer.provide(impl))
+                .pipe(Layer.provide(middleware.Default.pipe(Layer.provide(SomeService.toLayer()))))
+            )
+            .pipe(Layer.provide(NodeHttpServer.layer(() => createServer(), { port: 5918 }))),
+          RpcClient
+            .layerProtocolHttp({ url: "http://localhost:5918/rpc" })
+            .pipe(
+              Layer.provide(FetchHttpClient.layer)
+            )
+        )
         .pipe(Layer.provide(RpcSerialization.layerJson))
-    )
+    ),
+    Effect.onExit((_) => Console.dir(_, { depth: 10 }))
   )
 )

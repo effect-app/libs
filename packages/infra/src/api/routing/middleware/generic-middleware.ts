@@ -108,6 +108,7 @@ export const middlewareMaker = <
     dependencies: middlewares.map((_) => _.Default),
     effect: Effect.gen(function*() {
       const context = yield* Effect.context()
+      console.log("MiddlewareMaker effect", middlewares.map((_) => _.key))
 
       // returns a Effect/RpcMiddlewareWrap with Scope in requirements
       return (
@@ -119,14 +120,17 @@ export const middlewareMaker = <
           >
         >[0]
       ) => {
+        console.log("MiddlewareMaker context", middlewares.map((_) => _.key))
         // we start with the actual handler
         let handler = options.next
 
         // inspired from Effect/RpcMiddleware
         for (const tag of middlewares) {
+          console.log("MiddlewareMaker tag", tag.key, tag)
           if (tag.wrap) {
             // use the tag to get the middleware from context
             const middleware = Context.unsafeGet(context, tag)
+            console.log({ middleware })
 
             // wrap the current handler, allowing the middleware to run before and after it
             handler = InfraLogger.logDebug("Applying middleware wrap " + tag.key).pipe(

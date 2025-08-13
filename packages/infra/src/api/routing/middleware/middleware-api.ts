@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Rpc, type RpcSchema } from "@effect/rpc"
 import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Tag } from "@effect/rpc/RpcMiddleware"
-import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
+import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S, type Schema } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type TypeTestId } from "../../routing.js"
@@ -16,12 +17,13 @@ export const contextMap = <
   settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
 })
 
+const tag = Context.GenericTag("RequestContextConfig")
 /** Retrieves RequestContextConfig out of the RPC annotations */
 export const getConfig = <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >() =>
 (rpc: AnyWithProps): GetContextConfig<RequestContextMap> => {
-  return Context.unsafeGet(rpc.annotations, Context.GenericTag("RequestContextConfig"))
+  return Context.getOrElse(rpc.annotations, tag as any, () => ({}))
 }
 
 // the following implements sort of builder pattern
@@ -81,6 +83,31 @@ export interface BuildingMiddleware<
   DynamicMiddlewareProviders,
   out MiddlewareR extends { _tag: string } = never
 > {
+  rpc: <
+    const Tag extends string,
+    Payload extends Schema.Schema.Any | Schema.Struct.Fields = typeof Schema.Void,
+    Success extends Schema.Schema.Any = typeof Schema.Void,
+    Error extends Schema.Schema.All = typeof Schema.Never,
+    const Stream extends boolean = false,
+    Config extends GetContextConfig<RequestContextMap> = {}
+  >(tag: Tag, options?: {
+    readonly payload?: Payload
+    readonly success?: Success
+    readonly error?: Error
+    readonly stream?: Stream
+    readonly config?: Config
+    readonly primaryKey?: [Payload] extends [Schema.Struct.Fields]
+      ? ((payload: Schema.Simplify<Schema.Struct.Type<NoInfer<Payload>>>) => string)
+      : never
+  }) =>
+    & Rpc.Rpc<
+      Tag,
+      Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+      Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
+      Stream extends true ? typeof Schema.Never : Error
+    >
+    & { config: Config }
+
   middleware<MWs extends NonEmptyArray<MiddlewareMaker.Any>>(
     ...mw: MWs
   ): RecursiveHandleMWsSideways<MWs, {
@@ -186,7 +213,7 @@ const makeMiddlewareBasic =
     >
 
     const Default = Layer
-      .effect(
+      .scoped(
         MiddlewareMaker,
         middleware.effect as Effect<
           any, // TODO: why ?
@@ -206,11 +233,43 @@ const makeMiddlewareBasic =
     })
   }
 
-export const makeMiddleware: <
+export const makeMiddleware = <
   RequestContextMap extends Record<string, RPCContextMap.Any>
->(rcm: RequestContextMap) => MiddlewaresBuilder<RequestContextMap> = (rcm) => {
+>(rcm: RequestContextMap): MiddlewaresBuilder<RequestContextMap> => {
   let allMiddleware: MiddlewareMaker.Any[] = []
+  const requestContext = Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
+    "RequestContextConfig"
+  )
   const it = {
+    rpc: <
+      const Tag extends string,
+      Payload extends Schema.Schema.Any | Schema.Struct.Fields = typeof Schema.Void,
+      Success extends Schema.Schema.Any = typeof Schema.Void,
+      Error extends Schema.Schema.All = typeof Schema.Never,
+      const Stream extends boolean = false,
+      Config extends GetContextConfig<RequestContextMap> = {}
+    >(tag: Tag, options?: {
+      readonly payload?: Payload
+      readonly success?: Success
+      readonly error?: Error
+      readonly stream?: Stream
+      readonly config?: Config
+      readonly primaryKey?: [Payload] extends [Schema.Struct.Fields]
+        ? ((payload: Schema.Simplify<Schema.Struct.Type<NoInfer<Payload>>>) => string)
+        : never
+    }):
+      & Rpc.Rpc<
+        Tag,
+        Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+        Stream extends true ? RpcSchema.Stream<Success, Error> : Success,
+        Stream extends true ? typeof Schema.Never : Error
+      >
+      & { config: Config } =>
+    {
+      const rpc = Rpc.make(tag, options)
+      const config = options?.config ?? {} as Config
+      return Object.assign(rpc.annotate(requestContext, config), { config })
+    },
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
         // recall that we run middlewares in reverse order

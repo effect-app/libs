@@ -36,7 +36,7 @@ const optimisticConcurrencySchedule = Schedule.once.pipe(
 
 export class ConfigureInterruptibilityMiddleware extends MiddlewareNative.ConfigureInterruptibilityMiddleware {
   static readonly Default = Layer.effect(
-    MiddlewareNative.RequestCacheMiddleware,
+    MiddlewareNative.ConfigureInterruptibilityMiddleware,
     Effect.gen(function*() {
       const cache = new Map()
       const getCached = (key: string, schema: Schema.Schema.Any) => {

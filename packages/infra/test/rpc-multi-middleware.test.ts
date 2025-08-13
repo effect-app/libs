@@ -3,9 +3,9 @@ import { NodeHttpServer } from "@effect/platform-node"
 import { type Rpc, RpcClient, RpcGroup, type RpcMiddleware, RpcSerialization, RpcServer, RpcTest } from "@effect/rpc"
 import { type HandlersContext, type HandlersFrom } from "@effect/rpc/RpcGroup"
 import { expect, it } from "@effect/vitest"
-import { Console, Effect, Layer } from "effect"
+import { Console, Effect, Either, Layer } from "effect"
 import { S, type Scope } from "effect-app"
-import { type RPCContextMap } from "effect-app/client"
+import { NotLoggedInError, type RPCContextMap } from "effect-app/client"
 import { HttpLayerRouter } from "effect-app/http"
 import { createServer } from "http"
 import { DefaultGenericMiddlewares, makeMiddleware, type RequestContextTag } from "../src/api/routing.js"
@@ -75,6 +75,10 @@ const UserRpcs = RpcGroup
     middleware.rpc("doSomething", {
       success: S.Literal("also-awesome"),
       config: { allowAnonymous: true }
+    }),
+    middleware.rpc("doSomethingElse", {
+      success: S.Literal("also-awesome2"),
+      config: { allowAnonymous: true }
     })
   )
 
@@ -94,7 +98,12 @@ const impl = Effect
           return "awesome" as const
         }),
         doSomething: Effect.fn(function*() {
+          console.log(yield* Effect.serviceOption(UserProfile))
           return "also-awesome" as const
+        }),
+        doSomethingElse: Effect.fn(function*() {
+          console.log(yield* UserProfile)
+          return "also-awesome2" as const
         })
       })
     return impl
@@ -132,15 +141,41 @@ export const RpcRealLayer = Layer
   .pipe(Layer.provide(RpcSerialization.layerJson))
 
 it.scopedLive(
-  "works",
+  "require login",
   Effect.fnUntraced(
     function*() {
       const userClient = yield* RpcTest.makeClient(UserRpcsServer) // RpcTest.makeClient(UserRpcsServer) // RpcClient.make(UserRpcs)
 
-      const user = yield* userClient.getUser()
-      expect(user).toBe("awesome")
+      const user = yield* Effect.either(userClient.getUser().pipe(Effect.onExit((_) => Console.dir(_, { depth: 10 }))))
+      expect(user).toStrictEqual(Either.left(new NotLoggedInError("Not logged in")))
     },
-    Effect.provide(RpcTestLayer),
-    Effect.onExit((_) => Console.dir(_, { depth: 10 }))
+    Effect.provide(RpcTestLayer)
+  )
+)
+
+it.scopedLive(
+  "allow anonymous", // but make sure UserProfile is not eliminated when accessed!
+  Effect.fnUntraced(
+    function*() {
+      const userClient = yield* RpcTest.makeClient(UserRpcsServer) // RpcTest.makeClient(UserRpcsServer) // RpcClient.make(UserRpcs)
+
+      const user = yield* userClient.doSomething().pipe(Effect.onExit((_) => Console.dir(_, { depth: 10 })))
+      expect(user).toBe("also-awesome")
+    },
+    Effect.provide(RpcTestLayer)
+  )
+)
+
+it.scopedLive(
+  "allow anonymous, so UserProfile may not be eliminated", // but make sure UserProfile is not eliminated when accessed!
+  Effect.fnUntraced(
+    function*() {
+      const userClient = yield* RpcTest.makeClient(UserRpcsServer) // RpcTest.makeClient(UserRpcsServer) // RpcClient.make(UserRpcs)
+
+      const user = yield* userClient.doSomethingElse().pipe(Effect.onExit((_) => Console.dir(_, { depth: 10 })))
+      expect(user).toBe(new NotLoggedInError())
+      // TODO: shouldn't compile, the layer should have error because UserProfile is not eliminated, and therefore ends up as Layer dep
+    },
+    Effect.provide(RpcTestLayer)
   )
 )

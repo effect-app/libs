@@ -266,8 +266,11 @@ export const makeMiddleware = <
       >
       & { config: Config } =>
     {
-      const rpc = Rpc.make(tag, options)
       const config = options?.config ?? {} as Config
+      // TODO: based on the config, we must enhance (union) or set failures.
+
+      const rpc = Rpc.make(tag, options)
+
       return Object.assign(rpc.annotate(requestContext, config), { config })
     },
     middleware: (...middlewares: any[]) => {

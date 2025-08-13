@@ -449,10 +449,7 @@ export const makeRouter = <
         Layer.provide(Layer.succeed(DevMode, devMode))
       )
 
-      return {
-        moduleName: meta.moduleName,
-        routes
-      }
+      return routes
     }
 
     const effect: {
@@ -476,10 +473,8 @@ export const makeRouter = <
         }
       >(
         make: Make
-      ): {
-        moduleName: ModuleName
-
-        routes: Layer.Layer<
+      ):
+        & Layer.Layer<
           never,
           | MakeErrors<Make>
           | Service.MakeDepsE<Make>
@@ -492,10 +487,10 @@ export const makeRouter = <
           >
           | RpcSerialization.RpcSerialization
         >
-
-        // just for type testing purposes
-        [TypeTestId]: Make
-      }
+        & {
+          // just for type testing purposes
+          [TypeTestId]: Make
+        }
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
@@ -513,10 +508,8 @@ export const makeRouter = <
         }
       >(
         make: Make
-      ): {
-        moduleName: ModuleName
-
-        routes: Layer.Layer<
+      ):
+        & Layer.Layer<
           never,
           | MakeErrors<Make>
           | Service.MakeDepsE<Make>
@@ -529,10 +522,10 @@ export const makeRouter = <
           >
           | RpcSerialization.RpcSerialization
         >
-
-        // just for type testing purposes
-        readonly [TypeTestId]: Make
-      }
+        & {
+          // just for type testing purposes
+          readonly [TypeTestId]: Make
+        }
     } =
       ((make: { dependencies: any; effect: any }) =>
         Object.assign(makeRoutes(make.dependencies, make.effect), { make })) as any
@@ -542,20 +535,17 @@ export const makeRouter = <
 
   function matchAll<
     T extends {
-      [key: string]: {
-        routes: Layer.Layer<never, any, any>
-        moduleName: string
-      }
+      [key: string]: Layer.Layer<never, any, any>
     }
   >(
     handlers: T
   ) {
     const routers = typedValuesOf(handlers)
 
-    return Layer.mergeAll(...routers.map((_) => _.routes) as [any]) as unknown as Layer.Layer<
+    return Layer.mergeAll(...routers as [any]) as unknown as Layer.Layer<
       never,
-      Layer.Layer.Error<typeof handlers[keyof typeof handlers]["routes"]>,
-      Layer.Layer.Context<typeof handlers[keyof typeof handlers]["routes"]>
+      Layer.Layer.Error<typeof handlers[keyof typeof handlers]>,
+      Layer.Layer.Context<typeof handlers[keyof typeof handlers]>
     >
   }
 

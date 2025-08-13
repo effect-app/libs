@@ -1,3 +1,9 @@
+// basically, what do we want.
+// we want to create a ServerMiddleware, which is not available on the client, it can provide: [], and require: [] and is wrap:tru
+// then we want to build a Layer for it, so makeMiddleware should be (RequestContextMap, ServerTag).
+// rpcGroup.middleware(ServerTag)
+// rpcGroup.toLayer().pipe(Layer.provide(middlewareLayer))
+
 import { FetchHttpClient } from "@effect/platform"
 import { NodeHttpServer } from "@effect/platform-node"
 import { RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "@effect/rpc"
@@ -18,12 +24,6 @@ const middleware = makeMiddleware(RequestContextMap)
   .middleware(SomeElseMiddleware, SomeMiddlewareWrap)
   .middleware(...DefaultGenericMiddlewares)
 
-// basically, what do we want.
-// we want to create a ServerMiddleware, which is not available on the client, it can provide: [], and require: [] and is wrap:tru
-// then we want to build a Layer for it, so makeMiddleware should be (RequestContextMap, ServerTag).
-// rpcGroup.middleware(ServerTag)
-// rpcGroup.toLayer().pipe(Layer.provide(middlewareLayer))
-
 const UserRpcs = middlewareGroup(middleware)(RpcGroup
   .make(
     middleware.rpc("getUser", {
@@ -40,7 +40,7 @@ const UserRpcs = middlewareGroup(middleware)(RpcGroup
     })
   ))
 
-// but instead of locking the implementation Context to Scope | DynamicMiddleware | Provided, we would instead bubble up non provided context to the Layer Requirements?
+// but compared to effect-app Router, instead of locking the implementation Context to Scope | DynamicMiddleware | Provided, we would instead bubble up non provided context to the Layer Requirements?
 // or re-consider. it is kind of a nice feature to have local error reporting of missed Context...
 const impl = Effect
   .gen(function*() {
@@ -68,14 +68,13 @@ const middlwareLayer = middleware
   .Default
   .pipe(Layer.provide(SomeService.toLayer()))
 
-// for RpcTest.makeClient. make sure to use UserRpcs..
 export const RpcTestLayer = Layer
   .mergeAll(
     impl,
     middlwareLayer
   )
 
-// TODO: why end up with any?
+// TODO: why end up with R=any?
 export const RpcRealLayer = Layer
   .mergeAll(
     HttpLayerRouter
@@ -108,7 +107,7 @@ it.scopedLive(
 )
 
 it.scopedLive(
-  "allow anonymous", // but make sure UserProfile is not eliminated when accessed!
+  "allow anonymous, optional UserProfile",
   Effect.fnUntraced(
     function*() {
       const userClient = yield* RpcTest.makeClient(UserRpcs) // RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)
@@ -121,7 +120,7 @@ it.scopedLive(
 )
 
 it.scopedLive(
-  "allow anonymous, so UserProfile may not be eliminated", // but make sure UserProfile is not eliminated when accessed!
+  "allow anonymous, so UserProfile may not be eliminated",
   Effect.fnUntraced(
     function*() {
       const userClient = yield* RpcTest.makeClient(UserRpcs) // RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)

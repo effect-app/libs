@@ -14,7 +14,7 @@
   "devDependencies": {
     "@types/node": "~24.2.0",
     "json5": "^2.2.3",
-    "typescript": "^5.8.3",
+    "typescript": "~5.8.3",
     "vitest": "^3.2.4"
   },
   "typesVersions": {

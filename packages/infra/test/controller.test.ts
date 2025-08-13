@@ -5,10 +5,10 @@ import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { makeMiddleware, Middleware, TagService } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewaresLive, makeMiddleware, Middleware, TagService } from "../src/api/routing/middleware.js"
 import { DefaultGenericMiddlewares } from "../src/api/routing/middleware/middleware-native.js"
 import { sort } from "../src/api/routing/tsort.js"
-import { AllowAnonymous, CustomError1, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends Middleware.TagService<MyContextProvider>()("MyContextProvider", {
@@ -109,6 +109,12 @@ const genericMiddlewares = [
   ...DefaultGenericMiddlewares,
   BogusMiddleware,
   MyContextProvider2
+] as const
+
+const genericMiddlewaresLive = [
+  DefaultGenericMiddlewaresLive,
+  BogusMiddleware.Default,
+  MyContextProvider2.Default
 ] as const
 
 const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
@@ -240,9 +246,25 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
   })
 }) {}
 
-export const { Router, matchAll } = makeRouter(middleware, true)
+const MiddlewaresLive = [
+  RequireRolesLive,
+  TestLive,
+  AllowAnonymousLive,
+  MyContextProvider.Default,
+  ...genericMiddlewaresLive
+] as const
 
-export const r2 = makeRouter(middleware2, true)
+export const { Router, matchAll } = makeRouter(
+  Object.assign(middleware, {
+    Default: middleware.layer.pipe(Layer.provide(MiddlewaresLive))
+  }),
+  true
+)
+
+export const r2 = makeRouter(
+  Object.assign(middleware, { Default: middleware2.layer.pipe(Layer.provide(MiddlewaresLive)) }),
+  true
+)
 
 const router = Router(Something)({
   dependencies: [

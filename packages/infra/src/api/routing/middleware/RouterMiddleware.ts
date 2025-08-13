@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { type RpcMiddleware } from "@effect/rpc"
 import { type Context, type Layer } from "effect-app"
 import type { GetContextConfig, RPCContextMap } from "effect-app/client/req"
 import { type MiddlewareMakerId } from "./middleware-api.js"
-import { type TagClass } from "./RpcMiddleware.js"
-
 // module:
 //
 
@@ -15,15 +14,16 @@ export type RouterMiddleware<
   MakeMiddlewareR, // what the middlware requires to be constructed
   ContextProviderA, // what the context provider provides
   ContextProviderE, // what the context provider may fail with
-  ContextProviderR // what the context provider requires
+  _ContextProviderR // what the context provider requires
 > =
-  & TagClass<
+  & RpcMiddleware.TagClass<
     MiddlewareMakerId,
     "MiddlewareMaker",
     {
       wrap: true
-      provides: [Context.Tag<ContextProviderA, ContextProviderA>] // ContextProviderA extends never ? never : [Context.Tag<ContextProviderA, ContextProviderA>] // TODO: Tag<A>, Tag<B>
-      requires: [Context.Tag<ContextProviderR, ContextProviderR>] // ContextProviderE extends never ? never : [Context.Tag<ContextProviderR, ContextProviderR>] // TODO: Tag<A>, Tag<B>
+      // provides: [Context.Tag<ContextProviderA, ContextProviderA>] // ContextProviderA extends never ? never : [Context.Tag<ContextProviderA, ContextProviderA>] // TODO: Tag<A>, Tag<B>
+      provides: Context.Tag<ContextProviderA, ContextProviderA>
+      // requires: [Context.Tag<ContextProviderR, ContextProviderR>] // ContextProviderE extends never ? never : [Context.Tag<ContextProviderR, ContextProviderR>] // TODO: Tag<A>, Tag<B>
       failure: ContextProviderE
     }
   >

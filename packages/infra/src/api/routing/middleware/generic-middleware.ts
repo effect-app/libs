@@ -19,7 +19,7 @@ export interface MiddlewareMaker<
     "MiddlewareMaker",
     Simplify<
       & { readonly wrap: true }
-      & Exclude<
+      & (Exclude<
         MiddlewareMaker.ManyRequired<MiddlewareProviders>,
         MiddlewareMaker.ManyProvided<MiddlewareProviders>
       > extends never ? {} : {
@@ -29,11 +29,13 @@ export interface MiddlewareMaker<
             MiddlewareMaker.ManyProvided<MiddlewareProviders>
           >
         >
-      } & MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? {}
-      : {
-        readonly failure: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
-      } & MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
-      : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> }
+      })
+      & (MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? {}
+        : {
+          readonly failure: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
+        })
+      & (MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
+        : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> })
     >
   >
 {

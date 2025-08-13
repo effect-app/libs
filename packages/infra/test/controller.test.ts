@@ -5,12 +5,13 @@ import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { DefaultGenericMiddlewares, makeMiddleware, Middleware, Tag } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewaresLive, makeMiddleware, Middleware, TagService } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewares } from "../src/api/routing/middleware/middleware-native.js"
 import { sort } from "../src/api/routing/tsort.js"
-import { AllowAnonymous, CustomError1, RequestContextMap, RequireRoles, Some, SomeElse, SomeService, Test } from "./fixtures.js"
+import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextProvider", {
+class MyContextProvider extends Middleware.TagService<MyContextProvider>()("MyContextProvider", {
   provides: [Some],
   requires: [SomeElse]
 })({
@@ -39,7 +40,7 @@ class MyContextProvider extends Middleware.Tag<MyContextProvider>()("MyContextPr
 }) {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider3 extends Middleware.Tag<MyContextProvider3>()("MyContextProvider3", {
+class MyContextProvider3 extends Middleware.TagService<MyContextProvider3>()("MyContextProvider3", {
   provides: [Some],
   requires: [SomeElse]
 })({
@@ -71,23 +72,25 @@ class MyContextProvider3 extends Middleware.Tag<MyContextProvider3>()("MyContext
 expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProvider3, CustomError1, never>>()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2 extends Middleware.Tag<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({
-  effect: Effect.gen(function*() {
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider2
+  extends Middleware.TagService<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({
+    effect: Effect.gen(function*() {
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.fnUntraced(function*() {
-      // we test without dependencies, so that we end up with an R of never.
+      return Effect.fnUntraced(function*() {
+        // we test without dependencies, so that we end up with an R of never.
 
-      return new SomeElse({ b: 2 })
+        return new SomeElse({ b: 2 })
+      })
     })
   })
-}) {}
+{}
 
 //
 
 const Str = Context.GenericTag<"str", "str">("str")
 
-export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {
+export class BogusMiddleware extends TagService<BogusMiddleware>()("BogusMiddleware", {
   wrap: true
 })({
   effect: Effect.gen(function*() {
@@ -106,6 +109,12 @@ const genericMiddlewares = [
   ...DefaultGenericMiddlewares,
   BogusMiddleware,
   MyContextProvider2
+] as const
+
+const genericMiddlewaresLive = [
+  DefaultGenericMiddlewaresLive,
+  BogusMiddleware.Default,
+  MyContextProvider2.Default
 ] as const
 
 const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
@@ -237,9 +246,25 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
   })
 }) {}
 
-export const { Router, matchAll } = makeRouter(middleware, true)
+const MiddlewaresLive = [
+  RequireRolesLive,
+  TestLive,
+  AllowAnonymousLive,
+  MyContextProvider.Default,
+  ...genericMiddlewaresLive
+] as const
 
-export const r2 = makeRouter(middleware2, true)
+export const { Router, matchAll } = makeRouter(
+  Object.assign(middleware, {
+    Default: middleware.layer.pipe(Layer.provide(MiddlewaresLive))
+  }),
+  true
+)
+
+export const r2 = makeRouter(
+  Object.assign(middleware, { Default: middleware2.layer.pipe(Layer.provide(MiddlewaresLive)) }),
+  true
+)
 
 const router = Router(Something)({
   dependencies: [

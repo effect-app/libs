@@ -1,13 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Context, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect-app"
+import { Cause, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { determineMethod, isCommand } from "../utils.js"
-import { Tag } from "./RpcMiddleware.js"
+import * as MiddlewareNative from "./middleware-native.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
+
+export { DevMode } from "./middleware-native.js"
 
 export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestCache(
@@ -17,46 +18,43 @@ export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestBatching(true)
 )
 
-export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
-
-export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("RequestCacheMiddleware", { wrap: true })({
-  effect: Effect.succeed(({ next }) => next.pipe(Effect.provide(RequestCacheLayers)))
-}) {
-}
+export const RequestCacheMiddlewareLive = Layer.succeed(
+  MiddlewareNative.RequestCacheMiddleware,
+  ({ next }) => next.pipe(Effect.provide(RequestCacheLayers))
+)
 
 // retry just once on optimistic concurrency exceptions
 const optimisticConcurrencySchedule = Schedule.once.pipe(
   Schedule.intersect(Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException"))
 )
 
-export class ConfigureInterruptibilityMiddleware
-  extends Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware", { wrap: true })({
-    effect: Effect.gen(function*() {
-      const cache = new Map()
-      const getCached = (key: string, schema: Schema.Schema.Any) => {
-        const existing = cache.get(key)
-        if (existing) return existing
-        const n = determineMethod(key, schema)
-        cache.set(key, n)
-        return n
-      }
-      return ({ next, rpc }) => {
-        const method = getCached(rpc._tag, rpc.payloadSchema)
+export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
+  MiddlewareNative.ConfigureInterruptibilityMiddleware,
+  Effect.gen(function*() {
+    const cache = new Map()
+    const getCached = (key: string, schema: Schema.Schema.Any) => {
+      const existing = cache.get(key)
+      if (existing) return existing
+      const n = determineMethod(key, schema)
+      cache.set(key, n)
+      return n
+    }
+    return ({ next, rpc }) => {
+      const method = getCached(rpc._tag, rpc.payloadSchema)
 
-        next = isCommand(method)
-          ? Effect.retry(Effect.uninterruptible(next), optimisticConcurrencySchedule)
-          : Effect.interruptible(next)
+      next = isCommand(method)
+        ? Effect.retry(Effect.uninterruptible(next), optimisticConcurrencySchedule)
+        : Effect.interruptible(next)
 
-        return next
-      }
-    })
+      return next
+    }
   })
-{
-}
+)
 
-export class LoggerMiddleware extends Tag<LoggerMiddleware>()("LoggerMiddleware", { wrap: true })({
-  effect: Effect.gen(function*() {
-    const devMode = yield* DevMode
+export const LoggerMiddlewareLive = Layer.effect(
+  MiddlewareNative.LoggerMiddleware,
+  Effect.gen(function*() {
+    const devMode = yield* MiddlewareNative.DevMode
     return ({ headers, next, payload, rpc }) =>
       Effect
         .annotateCurrentSpan({
@@ -112,11 +110,10 @@ export class LoggerMiddleware extends Tag<LoggerMiddleware>()("LoggerMiddleware"
           devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error"))
         )
   })
-}) {
-}
+)
 
-export const DefaultGenericMiddlewares = [
-  RequestCacheMiddleware,
-  ConfigureInterruptibilityMiddleware,
-  LoggerMiddleware
-] as const
+export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
+  RequestCacheMiddlewareLive,
+  ConfigureInterruptibilityMiddlewareLive,
+  LoggerMiddlewareLive
+)

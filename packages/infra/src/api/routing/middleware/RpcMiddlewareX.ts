@@ -45,8 +45,7 @@ export const TagService = <Self>() =>
       any,
       any
     >
-    // TODO: we really should only support NonEmtyReadonlyArray because ReadonlyArray fucks up once you have a Layer.empty in the list, as the whole thing resolves to never
-    dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any> | ReadonlyArray<Layer.Layer.Any>
+    dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any>
   }
 >(opts: LayerOpts): TagClass<Self, Name, Options> & {
   Default: Layer.Layer<

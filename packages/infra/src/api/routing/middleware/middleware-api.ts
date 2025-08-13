@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type AnyWithProps } from "@effect/rpc/Rpc"
-import { Context, type Effect, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
+import { Tag } from "@effect/rpc/RpcMiddleware"
+import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
+import { type LayerUtils } from "../../layerUtils.js"
 import { type TypeTestId } from "../../routing.js"
 import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
-import { TagService } from "./RpcMiddlewareX.js"
-
 /** Adapter used when setting the dynamic prop on a middleware implementation */
 export const contextMap = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
@@ -28,14 +28,14 @@ export const getConfig = <
 // we support both sideways and upwards elimination of dependencies
 
 // it's for dynamic middlewares
-type GetDependsOnKeys<MW extends MiddlewareMaker> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> } ? {
+type GetDependsOnKeys<MW extends MiddlewareMaker.Any> = MW extends { dependsOn: NonEmptyReadonlyArray<TagClassAny> } ? {
     [K in keyof MW["dependsOn"]]: MW["dependsOn"][K] extends AnyDynamic ? MW["dependsOn"][K]["dynamic"]["key"]
       : never
   }[keyof MW["dependsOn"]]
   : never
 
 type FilterInDynamicMiddlewares<
-  MWs extends ReadonlyArray<MiddlewareMaker>,
+  MWs extends ReadonlyArray<MiddlewareMaker.Any>,
   RequestContextMap extends Record<string, RPCContextMap.Any>
 > = {
   [K in keyof MWs]: MWs[K] extends { dynamic: RpcDynamic<any, RequestContextMap[keyof RequestContextMap]> } ? MWs[K]
@@ -47,13 +47,13 @@ type RecursiveHandleMWsSideways<
   R extends {
     rcm: Record<string, RPCContextMap.Any>
     provided: keyof R["rcm"] // that's fine
-    middlewares: ReadonlyArray<MiddlewareMaker>
+    middlewares: ReadonlyArray<MiddlewareMaker.Any>
     dmp: any
     middlewareR: any
   }
 > = MWs extends [
-  infer F extends MiddlewareMaker,
-  ...infer Rest extends ReadonlyArray<MiddlewareMaker>
+  infer F extends MiddlewareMaker.Any,
+  ...infer Rest extends ReadonlyArray<MiddlewareMaker.Any>
 ] ? RecursiveHandleMWsSideways<Rest, {
     rcm: R["rcm"]
     // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
@@ -77,11 +77,11 @@ type RecursiveHandleMWsSideways<
 export interface BuildingMiddleware<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContextMap,
-  Middlewares extends ReadonlyArray<MiddlewareMaker>,
+  Middlewares extends ReadonlyArray<MiddlewareMaker.Any>,
   DynamicMiddlewareProviders,
   out MiddlewareR extends { _tag: string } = never
 > {
-  middleware<MWs extends NonEmptyArray<MiddlewareMaker>>(
+  middleware<MWs extends NonEmptyArray<MiddlewareMaker.Any>>(
     ...mw: MWs
   ): RecursiveHandleMWsSideways<MWs, {
     rcm: RequestContextMap
@@ -92,7 +92,7 @@ export interface BuildingMiddleware<
   }> extends infer Res extends {
     rcm: RequestContextMap
     provided: keyof RequestContextMap
-    middlewares: ReadonlyArray<MiddlewareMaker>
+    middlewares: ReadonlyArray<MiddlewareMaker.Any>
     dmp: any
     middlewareR: any
   } ? MiddlewaresBuilder<
@@ -114,7 +114,7 @@ export interface BuildingMiddleware<
 export type MiddlewaresBuilder<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
   Provided extends keyof RequestContextMap = never,
-  Middlewares extends ReadonlyArray<MiddlewareMaker> = [],
+  Middlewares extends ReadonlyArray<MiddlewareMaker.Any> = [],
   DynamicMiddlewareProviders = unknown,
   MiddlewareR extends { _tag: string } = never
 > =
@@ -127,19 +127,89 @@ export type MiddlewaresBuilder<
   >
   & //  keyof Omit<RequestContextMap, Provided> extends never is true when all the dynamic middlewares are provided
   // MiddlewareR is never when all the required services from generic & dynamic middlewares are provided
-  (keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ? ReturnType<
-        typeof makeMiddlewareBasic<
-          RequestContextMap,
-          Middlewares
-        >
+  (keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ? MiddlewareMaker<
+        RequestContextMap,
+        Middlewares
       >
     : {}
     : {})
 
+const makeMiddlewareBasic =
+  // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
+  <
+    RequestContextMap extends Record<string, RPCContextMap.Any>,
+    MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
+  >(
+    _rcm: RequestContextMap,
+    ...make: MiddlewareProviders
+  ) => {
+    // reverse middlewares and wrap one after the other
+    const middleware = middlewareMaker(make)
+
+    const failures = make.map((_) => _.failure).filter(Boolean)
+    const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
+    const requires = make
+      .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
+      .filter((_) => !provides.includes(_))
+
+    const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
+      failure: (failures.length > 0
+        ? S.Union(...failures)
+        : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
+          : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
+      requires: (requires.length > 0
+        ? requires
+        : undefined) as unknown as Exclude<
+          MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+          MiddlewareMaker.ManyProvided<MiddlewareProviders>
+        > extends never ? never : [
+          MakeTags<
+            Exclude<
+              MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+              MiddlewareMaker.ManyProvided<MiddlewareProviders>
+            >
+          >
+        ],
+      provides: (provides.length > 0
+        ? provides
+        : undefined) as unknown as MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? never /*[
+          MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>>
+        ]*/
+          : MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>>, // keep compatible with current RpcMiddleware
+      wrap: true
+    })
+
+    const dependencies = Layer.mergeAll(...(middleware.dependencies ?? [Layer.empty]) as any) as Layer.Layer<
+      LayerUtils.GetLayersSuccess<typeof middleware.dependencies>,
+      LayerUtils.GetLayersError<typeof middleware.dependencies>,
+      LayerUtils.GetLayersContext<typeof middleware.dependencies>
+    >
+
+    const Default = Layer
+      .effect(
+        MiddlewareMaker,
+        middleware.effect as Effect<
+          any, // TODO: why ?
+          Effect.Error<typeof middleware["effect"]>,
+          Effect.Context<typeof middleware["effect"]>
+        >
+      )
+      .pipe(Layer.provide(dependencies))
+
+    // add to the tag a default implementation
+    return Object.assign(MiddlewareMaker, {
+      Default,
+      // tag to be used to retrieve the RequestContextConfig from RPC annotations
+      requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
+        "RequestContextConfig"
+      )
+    })
+  }
+
 export const makeMiddleware: <
   RequestContextMap extends Record<string, RPCContextMap.Any>
 >(rcm: RequestContextMap) => MiddlewaresBuilder<RequestContextMap> = (rcm) => {
-  let allMiddleware: MiddlewareMaker[] = []
+  let allMiddleware: MiddlewareMaker.Any[] = []
   const it = {
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
@@ -162,66 +232,4 @@ export interface MiddlewareMakerId {
 }
 
 // TODO: actually end up with [Tag<A, A>, Tag<B, B>, ...]
-type MakeTags<A> = Context.Tag<A, A>
-
-const makeMiddlewareBasic =
-  // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
-  <
-    RequestContextMap extends Record<string, RPCContextMap.Any>,
-    MiddlewareProviders extends ReadonlyArray<MiddlewareMaker>
-  >(
-    _rcm: RequestContextMap,
-    ...make: MiddlewareProviders
-  ) => {
-    // reverse middlewares and wrap one after the other
-    const middleware = middlewareMaker(make)
-
-    const failures = make.map((_) => _.failure).filter(Boolean)
-    const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
-    const requires = make
-      .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
-      .filter((_) => !provides.includes(_))
-
-    const MiddlewareMaker = TagService<MiddlewareMakerId>()("MiddlewareMaker", {
-      failure: (failures.length > 0
-        ? S.Union(...failures)
-        : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
-          : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
-      requires: (requires.length > 0
-        ? requires
-        : undefined) as unknown as Exclude<
-          MiddlewareMaker.ManyRequired<MiddlewareProviders>,
-          MiddlewareMaker.ManyProvided<MiddlewareProviders>
-        > extends never ? never : [
-          MakeTags<
-            Exclude<
-              MiddlewareMaker.ManyRequired<MiddlewareProviders>,
-              MiddlewareMaker.ManyProvided<MiddlewareProviders>
-            >
-          >
-        ],
-      provides: (provides.length > 0
-        ? provides
-        : undefined) as unknown as MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? never : [
-          MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>>
-        ],
-      wrap: true
-    })(
-      middleware as {
-        dependencies: typeof middleware["dependencies"]
-        effect: Effect<
-          any, // TODO: why ?
-          Effect.Error<typeof middleware["effect"]>,
-          Effect.Context<typeof middleware["effect"]>
-        >
-      }
-    )
-
-    // add to the tag a default implementation
-    return Object.assign(MiddlewareMaker, {
-      // tag to be used to retrieve the RequestContextConfig from RPC annotations
-      requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
-        "RequestContextConfig"
-      )
-    })
-  }
+export type MakeTags<A> = Context.Tag<A, A>

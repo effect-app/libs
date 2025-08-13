@@ -1,15 +1,57 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
 import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type S, type Scope } from "effect-app"
-import { type ContextTagArray } from "effect-app/client"
+import { type ContextTagArray, type GetContextConfig, type RPCContextMap } from "effect-app/client"
+import { type Simplify } from "effect/Types"
 import { InfraLogger } from "../../../logger.js"
+import { type LayerUtils } from "../../layerUtils.js"
+import { type MakeTags, type MiddlewareMakerId } from "./middleware-api.js"
 import { type RpcMiddlewareWrap, type TagClassAny } from "./RpcMiddleware.js"
 
 // Effect rpc middleware does not support changing payload or headers, but we do..
 
-export type MiddlewareMaker = TagClassAny & { Default: Layer.Layer.Any } // todo; and Layer..
+export interface MiddlewareMaker<
+  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
+> extends
+  RpcMiddleware.TagClass<
+    MiddlewareMakerId,
+    "MiddlewareMaker",
+    Simplify<
+      { readonly wrap: true } & MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? {} : {
+        readonly failure: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
+      } & MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
+      : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> }
+    >
+  > // TODO
+// readonly requires: Exclude<
+//   MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+//   MiddlewareMaker.ManyProvided<MiddlewareProviders>
+// > extends never ? never
+//   : [
+//     MakeTags<
+//       Exclude<
+//         MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+//         MiddlewareMaker.ManyProvided<MiddlewareProviders>
+//       >
+//     >
+//   ]>
+{
+  readonly Default: Layer.Layer<
+    MiddlewareMakerId,
+    LayerUtils.GetLayersError<{ [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }>,
+    LayerUtils.GetLayersContext<{ [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }>
+  >
+  readonly requestContext: RequestContextTag<RequestContextMap>
+}
+
+export interface RequestContextTag<RequestContextMap extends Record<string, RPCContextMap.Any>>
+  extends Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+{}
 
 export namespace MiddlewareMaker {
+  export type Any = TagClassAny & { Default: Layer.Layer.Any }
+
   export type ApplyServices<A extends TagClassAny, R> = Exclude<R, Provided<A>> | Required<A>
 
   export type ApplyManyServices<A extends NonEmptyReadonlyArray<TagClassAny>, R> =
@@ -44,7 +86,7 @@ export namespace MiddlewareMaker {
 }
 
 export const middlewareMaker = <
-  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker>
+  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
 >(middlewares: MiddlewareProviders): {
   dependencies: { [K in keyof MiddlewareProviders]: MiddlewareProviders[K]["Default"] }
   effect: Effect.Effect<

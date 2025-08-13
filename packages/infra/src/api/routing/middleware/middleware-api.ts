@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, type RpcSchema } from "@effect/rpc"
+import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "@effect/rpc"
 import { type AnyWithProps } from "@effect/rpc/Rpc"
+import { type HandlersContext, type HandlersFrom } from "@effect/rpc/RpcGroup"
 import { Tag } from "@effect/rpc/RpcMiddleware"
-import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S, type Schema } from "effect-app"
+import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S, type Schema, type Scope } from "effect-app"
 import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { typedValuesOf } from "effect-app/utils"
 import { type LayerUtils } from "../../layerUtils.js"
 import { type TypeTestId } from "../../routing.js"
-import { type MiddlewareMaker, middlewareMaker } from "./generic-middleware.js"
+import { type MiddlewareMaker, middlewareMaker, type RequestContextTag } from "./generic-middleware.js"
 import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 /** Adapter used when setting the dynamic prop on a middleware implementation */
 export const contextMap = <
@@ -292,6 +293,38 @@ export const makeMiddleware = <
   }
   return it as any
 }
+
+// alternatively consider group.serverMiddleware? hmmm
+export const middlewareGroup =
+  // Middleware extends TagClass<any, any, { wrap: true }
+  <RequestContextMap extends Record<string, RPCContextMap.Any>>(
+    // middleware here can actually be Server Only middleware.
+    middleware: RpcMiddleware.TagClassAny & { requestContext: RequestContextTag<RequestContextMap> }
+  ) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) => {
+    const middlewaredGroup = group.middleware(middleware)
+    const toLayerOriginal = middlewaredGroup.toLayer.bind(middlewaredGroup)
+    return Object.assign(middlewaredGroup, {
+      toLayer: <
+        Handlers extends HandlersFrom<R>,
+        EX = never,
+        RX = never
+      >(
+        build:
+          | Handlers
+          | Effect.Effect<Handlers, EX, RX>
+        // todo: remove provides types and handle dynamic middleware based on config.
+      ): Layer.Layer<
+        Rpc.ToHandler<R>,
+        EX,
+        | Exclude<RX, Scope>
+        | HandlersContext<R, Handlers>
+      > => {
+        return toLayerOriginal(build as any) as any // ??
+      }
+    })
+  }
 
 //
 export interface MiddlewareMakerId {

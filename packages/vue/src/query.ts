@@ -55,7 +55,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     const handler = q.handler
     const options = {
       ..._options,
-      enabled: _options.enabled ? (() => _options.enabled!) : undefined
+      enabled: _options.enabled == void 0 ? undefined : (() => _options.enabled!)
     }
     const r = useQuery<unknown, KnownFiberFailure<E>, A>(
       Effect.isEffect(handler)

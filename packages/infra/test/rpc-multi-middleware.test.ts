@@ -17,56 +17,49 @@ const middleware = makeMiddleware(RequestContextMap)
   .middleware(SomeElseMiddleware, SomeMiddleware)
   .middleware(...DefaultGenericMiddlewares)
 
-const UserRpcs = middlewareGroup(middleware)(RpcGroup
-  .make(
+const UserRpcs = middlewareGroup(middleware)(
+  RpcGroup.make(
     middleware.rpc("getUser", {
       success: S.Literal("awesome")
     }),
     middleware.rpc("doSomething", {
       success: S.Literal("also-awesome"),
-      config: { allowAnonymous: true }
+      config: { allowAnonymous: true } // type safe config based on `RequestContextMap`
     })
-  ))
+  )
+)
 
-const impl = Effect
-  .gen(function*() {
-    const impl = UserRpcs
-      .toLayerDynamic({
-        getUser: Effect.fn(function*(_payload, _headers) {
-          yield* Some
-          yield* UserProfile // we only access it while protected by allowAnonymous: false
-          return "awesome" as const
-        }),
-        doSomething: Effect.fn(function*() {
-          console.log(yield* Effect.serviceOption(UserProfile)) // we access it optionally, while allowAnonymous: true
-          return "also-awesome" as const
-        })
-      })
-    return impl
+const impl = UserRpcs
+  .toLayerDynamic({
+    getUser: Effect.fn(function*(_payload, _headers) {
+      yield* Some
+      yield* UserProfile // we only access it while protected by allowAnonymous: false
+      return "awesome" as const
+    }),
+    doSomething: Effect.fn(function*() {
+      console.log(yield* Effect.serviceOption(UserProfile)) // we access it optionally, while allowAnonymous: true
+      return "also-awesome" as const
+    })
   })
-  .pipe(Layer.unwrapEffect)
 
 expectTypeOf<Layer.Layer.Context<typeof impl>>().toEqualTypeOf<never>()
 
-const UserRpcsBad = middlewareGroup(middleware)(RpcGroup
-  .make(
+const UserRpcsBad = middlewareGroup(middleware)(
+  RpcGroup.make(
     middleware.rpc("doSomethingElse", {
       success: S.Literal("also-awesome2"),
       config: { allowAnonymous: true }
     })
-  ))
-export const badImpl = Effect
-  .gen(function*() {
-    const impl = UserRpcsBad
-      .toLayerDynamic({
-        doSomethingElse: Effect.fn(function*() {
-          console.log(yield* UserProfile) // bad boy! allowAnonymous: false, so `UserProfile` must fall through to the Layer R.
-          return "also-awesome2" as const
-        })
-      })
-    return impl
+  )
+)
+
+export const badImpl = UserRpcsBad
+  .toLayerDynamic({
+    doSomethingElse: Effect.fn(function*() {
+      console.log(yield* UserProfile) // bad boy! allowAnonymous: false, so `UserProfile` must fall through to the Layer R.
+      return "also-awesome2" as const
+    })
   })
-  .pipe(Layer.unwrapEffect)
 
 expectTypeOf<Layer.Layer.Context<typeof badImpl>>().toEqualTypeOf<UserProfile>()
 

@@ -21,10 +21,10 @@ The middleware generally runs globally, but it's behaviour depends on configurat
 
 For instance, `AllowAnonymous`, with a default of `false`, would either provide a `UserProfile` service, or fail with a `NotLoggedInError`.
 therefore `UserProfile` is eliminated from a handler implementing that rpc.
-If the RPC however opts out and species: `allowAnonymous: true`, the `UserProfile` service is no longer eliminated from the handler,
+If the RPC however opts out and specifies: `allowAnonymous: true`, the `UserProfile` service is no longer eliminated from the handler,
 and thus one has to use `Effect.serviceOption(UserProfile)` instead, to not get a type error.
 
-For instance, `RequireRoles` would by default require a `manager` role, but can be opted out from per RPC, perhaps lowering to `user` or `anonymous` role.ks
+For instance, `RequireRoles` would by default require a `manager` role, but can be opted out from per RPC, perhaps lowering to `user` or `anonymous` role.
 
 ### Create RPCGroups and Handlers from a common set of Middleware
 

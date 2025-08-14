@@ -8,16 +8,15 @@ import { makeMiddleware, TagService } from "effect-app/rpc"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware extends TagService<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
-  requires: [Some],
-  wrap: true
+  requires: [Some]
 })({
   effect: Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return ({ next }) =>
+    return (effect) =>
       Effect.gen(function*() {
         yield* Some
         // yield* Effect.context<"test-dep2">()
-        return yield* next
+        return yield* effect
       })
   })
 }) {

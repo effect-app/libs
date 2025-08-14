@@ -20,7 +20,7 @@ class MyContextProvider extends TagService<MyContextProvider>()("MyContextProvid
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.fnUntraced(function*() {
+    return Effect.fnUntraced(function*(effect) {
       yield* SomeElse
       // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
@@ -35,7 +35,7 @@ class MyContextProvider extends TagService<MyContextProvider>()("MyContextProvid
       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return Context.make(Some, new Some({ a: 1 }))
+      return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
     })
   })
 }) {}
@@ -50,7 +50,7 @@ class MyContextProvider3 extends TagService<MyContextProvider3>()("MyContextProv
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.fnUntraced(function*() {
+    return Effect.fnUntraced(function*(effect) {
       yield* SomeElse
       // the only requirements you can have are the one provided by HttpLayerRouter.Provided
       yield* Scope.Scope
@@ -65,7 +65,7 @@ class MyContextProvider3 extends TagService<MyContextProvider3>()("MyContextProv
       // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return Context.make(Some, new Some({ a: 1 }))
+      return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
     })
   })
 }) {}
@@ -77,10 +77,10 @@ class MyContextProvider2 extends TagService<MyContextProvider2>()("MyContextProv
   effect: Effect.gen(function*() {
     if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.fnUntraced(function*() {
+    return Effect.fnUntraced(function*(effect) {
       // we test without dependencies, so that we end up with an R of never.
 
-      return new SomeElse({ b: 2 })
+      return yield* Effect.provideService(effect, SomeElse, new SomeElse({ b: 2 }))
     })
   })
 }) {}
@@ -89,16 +89,14 @@ class MyContextProvider2 extends TagService<MyContextProvider2>()("MyContextProv
 
 const Str = Context.GenericTag<"str", "str">("str")
 
-export class BogusMiddleware extends TagService<BogusMiddleware>()("BogusMiddleware", {
-  wrap: true
-})({
+export class BogusMiddleware extends TagService<BogusMiddleware>()("BogusMiddleware", {})({
   effect: Effect.gen(function*() {
     yield* Str
     // yield* Effect.context<"test-dep">()
-    return ({ next }) =>
+    return (effect) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* next
+        return yield* effect
       })
   })
 }) {

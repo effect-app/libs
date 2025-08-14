@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
 import * as MiddlewareNative from "effect-app/rpc/middleware-native"
 import { pretty } from "effect-app/utils"
@@ -18,7 +19,7 @@ export const RequestCacheLayers = Layer.mergeAll(
 
 export const RequestCacheMiddlewareLive = Layer.succeed(
   MiddlewareNative.RequestCacheMiddleware,
-  ({ next }) => next.pipe(Effect.provide(RequestCacheLayers))
+  (effect) => effect.pipe(Effect.provide(RequestCacheLayers))
 )
 
 // retry just once on optimistic concurrency exceptions
@@ -37,14 +38,14 @@ export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
       cache.set(key, n)
       return n
     }
-    return ({ next, rpc }) => {
+    return (effect, { rpc }) => {
       const method = getCached(rpc._tag, rpc.payloadSchema)
 
-      next = isCommand(method)
-        ? Effect.retry(Effect.uninterruptible(next), optimisticConcurrencySchedule)
-        : Effect.interruptible(next)
+      effect = isCommand(method)
+        ? Effect.retry(Effect.uninterruptible(effect), optimisticConcurrencySchedule)
+        : Effect.interruptible(effect)
 
-      return next
+      return effect
     }
   })
 )
@@ -53,7 +54,7 @@ export const LoggerMiddlewareLive = Layer.effect(
   MiddlewareNative.LoggerMiddleware,
   Effect.gen(function*() {
     const devMode = yield* MiddlewareNative.DevMode
-    return ({ headers, next, payload, rpc }) =>
+    return (effect, { headers, payload, rpc }) =>
       Effect
         .annotateCurrentSpan({
           "request.name": rpc._tag,
@@ -78,7 +79,7 @@ export const LoggerMiddlewareLive = Layer.effect(
         })
         .pipe(
           // can't use andThen due to some being a function and effect
-          Effect.zipRight(next),
+          Effect.zipRight(effect),
           // TODO: support ParseResult if the error channel of the request allows it.. but who would want that?
           Effect.catchAll((_) => ParseResult.isParseError(_) ? Effect.die(_) : Effect.fail(_)),
           Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),

@@ -27,7 +27,7 @@ export const SomeMiddlewareLive = Layer.effect(
   SomeMiddleware,
   Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
+    return (effect) => effect.pipe(Effect.provideService(Some, new Some({ a: 1 })))
   })
 )
 
@@ -40,10 +40,10 @@ export const SomeElseMiddlewareLive = Layer.effect(
   SomeElseMiddleware,
   Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return ({ next }) =>
+    return (effect) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* next.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
+        return yield* effect.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
       })
   })
 )
@@ -74,7 +74,7 @@ export const AllowAnonymousLive = Layer.effect(
   AllowAnonymous,
   Effect.gen(function*() {
     return Effect.fnUntraced(
-      function*({ headers, next, rpc }) {
+      function*(effect, { headers, rpc }) {
         yield* SomeElse
         yield* Scope.Scope // provided by HttpLayerRouter.Provided
         const isLoggedIn = !!headers["x-user"]
@@ -82,10 +82,10 @@ export const AllowAnonymousLive = Layer.effect(
           if (!requestConfig(rpc).allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
-          return yield* next
+          return yield* effect
         }
         return yield* Effect.provideService(
-          next,
+          effect,
           UserProfile,
           new UserProfile({
             id: "whatever",
@@ -113,7 +113,7 @@ export const RequireRolesLive = Layer.effect(
   Effect.gen(function*() {
     yield* SomeService
     return Effect.fnUntraced(
-      function*({ next, rpc }) {
+      function*(effect, { rpc }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
         const { requireRoles } = requestConfig(rpc)
@@ -127,7 +127,7 @@ export const RequireRolesLive = Layer.effect(
         if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
           return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }
-        return yield* next
+        return yield* effect
       }
     )
   })
@@ -142,8 +142,8 @@ export class Test extends Tag<Test>()("Test", {
 export const TestLive = Layer.effect(
   Test,
   Effect.gen(function*() {
-    return Effect.fn(function*({ next }) {
-      return yield* next
+    return Effect.fn(function*(effect) {
+      return yield* effect
     })
   })
 )

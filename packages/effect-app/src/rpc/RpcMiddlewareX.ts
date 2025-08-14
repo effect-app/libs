@@ -4,7 +4,7 @@
 import { type Effect, Layer, type NonEmptyReadonlyArray, Unify } from "effect-app"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import { type Service } from "effect/Effect"
-import { type RpcMiddleware, type RpcMiddlewareDynamicNormal, type RpcMiddlewareDynamicWrap, type RpcMiddlewareWrap, type RpcOptionsDynamic, type RpcOptionsOriginal, Tag, type TagClass } from "./RpcMiddleware.js"
+import { type RpcMiddlewareDynamicWrap, type RpcMiddlewareWrap, type RpcOptionsDynamic, type RpcOptionsOriginal, Tag, type TagClass } from "./RpcMiddleware.js"
 
 /**
  * @deprecated - RPC groups are defined centrally and re-used between server and client,
@@ -21,25 +21,14 @@ export const TagService = <Self>() =>
 <
   LayerOpts extends {
     effect: Effect.Effect<
-      Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
-            TagClass.FailureService<Options>,
-            TagClass.Requires<Options>,
-            { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
-          >
-        : RpcMiddlewareDynamicNormal<
-          TagClass.Service<Options>,
+      Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,
           TagClass.Requires<Options>,
           { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
         >
-        : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
-            TagClass.Provides<Options>,
-            TagClass.Failure<Options>,
-            TagClass.Requires<Options>
-          >
-        : RpcMiddleware<
-          TagClass.Service<Options>,
-          TagClass.FailureService<Options>,
+        : RpcMiddlewareWrap<
+          TagClass.Provides<Options>,
+          TagClass.Failure<Options>,
           TagClass.Requires<Options>
         >,
       any,

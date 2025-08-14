@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.0.4
+
+### Patch Changes
+
+- 0d114ad: cleanup
+
 ## 3.0.3
 
 ### Patch Changes

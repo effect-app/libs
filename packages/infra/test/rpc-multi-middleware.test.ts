@@ -9,12 +9,12 @@ import { HttpLayerRouter } from "effect-app/http"
 import { DefaultGenericMiddlewares, makeMiddleware, middlewareGroup } from "effect-app/rpc"
 import { createServer } from "http"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing.js"
-import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddlewareWrap, SomeMiddlewareWrapLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
+import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
 
 const middleware = makeMiddleware(RequestContextMap)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
-  .middleware(SomeElseMiddleware, SomeMiddlewareWrap)
+  .middleware(SomeElseMiddleware, SomeMiddleware)
   .middleware(...DefaultGenericMiddlewares)
 
 const UserRpcs = middlewareGroup(middleware)(RpcGroup
@@ -76,7 +76,7 @@ const middlwareLayer = middleware
     Layer.provide([
       DefaultGenericMiddlewaresLive,
       SomeElseMiddlewareLive,
-      SomeMiddlewareWrapLive,
+      SomeMiddlewareLive,
       TestLive,
       RequireRolesLive.pipe(Layer.provide(SomeService.toLayer())),
       AllowAnonymousLive

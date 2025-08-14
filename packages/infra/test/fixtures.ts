@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, S, Scope } from "effect-app"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { NotLoggedInError, RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { contextMap, getConfig, Tag } from "effect-app/rpc"
 import { TaggedError } from "effect-app/Schema"
@@ -16,49 +16,28 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
-export class SomeMiddleware extends Tag<SomeMiddleware>()("SomeMiddleware", {
-  provides: Some
-}) {}
+// functionally equivalent to the one above
+export class SomeMiddleware extends Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware", {}) {
+}
 
 export const SomeMiddlewareLive = Layer.effect(
   SomeMiddleware,
   Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return () =>
-      Effect.gen(function*() {
-        return new Some({ a: 1 })
-      })
+    return (effect) => effect.pipe(Effect.provideService(Some, new Some({ a: 1 })))
   })
 )
 
-// functionally equivalent to the one above
-export class SomeMiddlewareWrap extends Tag<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
-  provides: Some,
-  wrap: true
-}) {
-}
-
-export const SomeMiddlewareWrapLive = Layer.effect(
-  SomeMiddlewareWrap,
-  Effect.gen(function*() {
-    // yield* Effect.context<"test-dep">()
-    return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
-  })
-)
-
-export class SomeElseMiddleware extends Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
-  provides: SomeElse,
-  wrap: true
-}) {}
+export class SomeElseMiddleware extends Tag<SomeElseMiddleware, { provides: SomeElse }>()("SomeElseMiddleware", {}) {}
 
 export const SomeElseMiddlewareLive = Layer.effect(
   SomeElseMiddleware,
   Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return ({ next }) =>
+    return (effect) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* next.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
+        return yield* effect.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
       })
   })
 )
@@ -79,16 +58,15 @@ export const RequestContextMap = {
 type _RequestContextMap = typeof RequestContextMap
 export interface RequestContextMap extends _RequestContextMap {}
 
-export class AllowAnonymous extends Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap(RequestContextMap, "allowAnonymous"),
-  requires: SomeElse
+export class AllowAnonymous extends Tag<AllowAnonymous, { requires: SomeElse }>()("AllowAnonymous", {
+  dynamic: contextMap(RequestContextMap, "allowAnonymous")
 }) {}
 
 export const AllowAnonymousLive = Layer.effect(
   AllowAnonymous,
   Effect.gen(function*() {
     return Effect.fnUntraced(
-      function*({ headers, rpc }) {
+      function*(effect, { headers, rpc }) {
         yield* SomeElse
         yield* Scope.Scope // provided by HttpLayerRouter.Provided
         const isLoggedIn = !!headers["x-user"]
@@ -96,16 +74,15 @@ export const AllowAnonymousLive = Layer.effect(
           if (!requestConfig(rpc).allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
-          return Option.none()
+          return yield* effect
         }
-        return Option.some(
-          Context.make(
-            UserProfile,
-            new UserProfile({
-              id: "whatever",
-              roles: ["user", ...headers["x-is-manager"] === "true" ? ["manager"] : []]
-            })
-          )
+        return yield* Effect.provideService(
+          effect,
+          UserProfile,
+          new UserProfile({
+            id: "whatever",
+            roles: ["user", ...headers["x-is-manager"] === "true" ? ["manager"] : []]
+          })
         )
       }
     )
@@ -116,8 +93,6 @@ export const AllowAnonymousLive = Layer.effect(
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends Tag<RequireRoles>()("RequireRoles", {
   dynamic: contextMap(RequestContextMap, "requireRoles"),
-  wrap: true,
-  // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
   // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
   dependsOn: [AllowAnonymous]
@@ -128,7 +103,7 @@ export const RequireRolesLive = Layer.effect(
   Effect.gen(function*() {
     yield* SomeService
     return Effect.fnUntraced(
-      function*({ next, rpc }) {
+      function*(effect, { rpc }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
         const { requireRoles } = requestConfig(rpc)
@@ -142,7 +117,7 @@ export const RequireRolesLive = Layer.effect(
         if (requireRoles && !userProfile.value?.roles?.some((role) => requireRoles.includes(role))) {
           return yield* new UnauthorizedError({ message: "don't have the right roles" })
         }
-        return yield* next
+        return yield* effect
       }
     )
   })
@@ -150,15 +125,14 @@ export const RequireRolesLive = Layer.effect(
 
 // TODO: don't expect service when it's wrap
 export class Test extends Tag<Test>()("Test", {
-  wrap: true,
   dynamic: contextMap(RequestContextMap, "test")
 }) {}
 
 export const TestLive = Layer.effect(
   Test,
   Effect.gen(function*() {
-    return Effect.fn(function*({ next }) {
-      return yield* next
+    return Effect.fn(function*(effect) {
+      return yield* effect
     })
   })
 )

@@ -4,13 +4,19 @@
 import { type Effect, Layer, type NonEmptyReadonlyArray, Unify } from "effect-app"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import { type Service } from "effect/Effect"
-import { type RpcMiddleware, type RpcMiddlewareDynamicNormal, type RpcMiddlewareDynamicWrap, type RpcMiddlewareWrap, type RpcOptionsDynamic, type RpcOptionsOriginal, Tag, type TagClass } from "./RpcMiddleware.js"
+import { type RpcMiddlewareDynamicWrap, type RpcMiddlewareWrap, type RpcOptionsDynamic, type RpcOptionsOriginal, Tag, type TagClass } from "./RpcMiddleware.js"
 
 /**
  * @deprecated - RPC groups are defined centrally and re-used between server and client,
  * so layer implementation details should not be mixed.
  */
-export const TagService = <Self>() =>
+export const TagService = <
+  Self,
+  Config extends {
+    requires?: any
+    provides?: any
+  } = { requires: never; provides: never }
+>() =>
 <
   const Name extends string,
   const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>
@@ -21,33 +27,22 @@ export const TagService = <Self>() =>
 <
   LayerOpts extends {
     effect: Effect.Effect<
-      Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
-            TagClass.FailureService<Options>,
-            TagClass.Requires<Options>,
-            { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
-          >
-        : RpcMiddlewareDynamicNormal<
-          TagClass.Service<Options>,
+      Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,
-          TagClass.Requires<Options>,
+          "requires" extends keyof Config ? Config["requires"] : never,
           { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
         >
-        : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
-            TagClass.Provides<Options>,
-            TagClass.Failure<Options>,
-            TagClass.Requires<Options>
-          >
-        : RpcMiddleware<
-          TagClass.Service<Options>,
-          TagClass.FailureService<Options>,
-          TagClass.Requires<Options>
+        : RpcMiddlewareWrap<
+          "provides" extends keyof Config ? Config["provides"] : never,
+          TagClass.Failure<Options>,
+          "requires" extends keyof Config ? Config["requires"] : never
         >,
       any,
       any
     >
     dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any>
   }
->(opts: LayerOpts): TagClass<Self, Name, Options> & {
+>(opts: LayerOpts): TagClass<Self, Name, Options, Config> & {
   Default: Layer.Layer<
     Self,
     | (LayerOpts extends { effect: Effect<infer _A, infer _E, infer _R> } ? _E

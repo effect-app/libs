@@ -3,35 +3,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { type Context, type Effect, type NonEmptyReadonlyArray, type Option, type S, type Schema, type Scope, Unify } from "effect-app"
-import type { AnyService, ContextTagArray, RPCContextMap } from "effect-app/client/req"
+import { type Context, type Effect, type NonEmptyReadonlyArray, type S, type Schema, type Scope, Unify } from "effect-app"
+import type { ContextTagArray, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 
-// updated to support Scope.Scope and Requires
-export interface RpcMiddleware<Provides, E, Requires> {
-  (options: {
-    readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps
-    readonly payload: unknown
-    readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<Provides, E, Scope.Scope | Requires>
-}
+// updated to support Scope.Scope and Requires, and `options.next` is now just effect
 export interface RpcMiddlewareWrap<Provides, E, Requires> {
-  (options: {
+  (effect: Effect.Effect<SuccessValue, E, Provides | Scope.Scope | Requires>, options: {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
-    readonly next: Effect.Effect<SuccessValue, E, Provides | Scope.Scope | Requires>
   }): Effect.Effect<SuccessValue, E, Scope.Scope | Requires>
 }
 
 export type RpcOptionsOriginal = {
-  readonly wrap?: boolean
   readonly optional?: boolean
   readonly failure?: Schema.Schema.All
-  readonly provides?: AnyService
   readonly requiredForClient?: boolean
 }
 
@@ -54,8 +43,7 @@ export interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.A
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
 export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
-  (options: {
-    readonly next: Effect.Effect<SuccessValue, E, Scope.Scope | R>
+  (effect: Effect.Effect<SuccessValue, E, Scope.Scope | R>, options: {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
     readonly payload: unknown
@@ -67,27 +55,14 @@ export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
   >
 }
 
-export interface RpcMiddlewareDynamicNormal<A, E, R, _Config> {
-  (options: {
-    readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
-    readonly payload: unknown
-    readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<
-    Option.Option<A>,
-    E,
-    Scope.Scope | R
-  >
-}
-
 export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
   readonly optional: boolean
-  readonly provides?: Context.Tag<any, any> | ContextTagArray | undefined
-  readonly requires?: Context.Tag<any, any> | ContextTagArray | undefined
+  readonly provides: any
+  readonly requires: any
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
-  readonly wrap: boolean
+  readonly wrap: true
   readonly dynamic?: RpcDynamic<any, any> | undefined
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
@@ -118,18 +93,6 @@ export declare namespace TagClass {
       readonly requires: ContextTagArray
     } ? ContextTagArray.Identifier<Options["requires"]>
     : never
-
-  /**
-   * @since 1.0.0
-   * @category models
-   */
-  export type Service<Options> = Options extends { readonly provides: Context.Tag<any, any> }
-    ? Context.Tag.Service<Options["provides"]>
-    : Options extends { readonly dynamic: RpcDynamic<any, infer A> }
-      ? Options extends { wrap: true } ? void : AnyService.Bla<A["service"]>
-    : Options extends { readonly provides: ContextTagArray }
-      ? Context.Context<ContextTagArray.Identifier<Options["provides"]>>
-    : void
 
   /**
    * @since 1.0.0
@@ -185,67 +148,74 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export interface Base<Self, Name extends string, Options, Service> extends Context.Tag<Self, Service> {
+  export interface Base<
+    Self,
+    Name extends string,
+    Options,
+    Service,
+    Config extends {
+      requires?: any
+      provides?: any
+    }
+  > extends Context.Tag<Self, Service> {
     new(_: never): Context.TagClassShape<Name, Service>
     readonly [TypeId]: TypeId
     readonly optional: Optional<Options>
     readonly failure: FailureSchema<Options>
-    readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
-      : Options extends { readonly provides: ContextTagArray } ? Options["provides"]
-      : undefined
-    readonly requires: Options extends { readonly requires: Context.Tag<any, any> } ? Options["requires"]
-      : Options extends { readonly requires: ContextTagArray } ? Options["requires"]
-      : undefined
+    readonly provides: "provides" extends keyof Config ? Config["provides"] : never
+    readonly requires: "requires" extends keyof Config ? Config["requires"] : never
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined
     readonly dependsOn: Options extends DependsOn ? Options["dependsOn"] : undefined
     readonly requiredForClient: RequiredForClient<Options>
-    readonly wrap: Wrap<Options>
+    readonly wrap: true
   }
 }
 
 export interface TagClass<
   Self,
   Name extends string,
-  Options
+  Options,
+  Config extends {
+    requires?: any
+    provides?: any
+  } = { requires: never; provides: never }
 > extends
   TagClass.Base<
     Self,
     Name,
     Options,
-    Options extends RpcOptionsDynamic<any, any> ? TagClass.Wrap<Options> extends true ? RpcMiddlewareDynamicWrap<
-          TagClass.FailureService<Options>,
-          TagClass.Requires<Options>,
-          { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
-        >
-      : RpcMiddlewareDynamicNormal<
-        TagClass.Service<Options>,
+    Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamicWrap<
         TagClass.FailureService<Options>,
-        TagClass.Requires<Options>,
+        "requires" extends keyof Config ? Config["requires"] : never,
         { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
       >
-      : TagClass.Wrap<Options> extends true ? RpcMiddlewareWrap<
-          TagClass.Provides<Options>,
-          TagClass.Failure<Options>,
-          TagClass.Requires<Options>
-        >
-      : RpcMiddleware<
-        TagClass.Service<Options>,
-        TagClass.FailureService<Options>,
-        TagClass.Requires<Options>
-      >
+      : RpcMiddlewareWrap<
+        "provides" extends keyof Config ? Config["provides"] : never,
+        TagClass.Failure<Options>,
+        "requires" extends keyof Config ? Config["requires"] : never
+      >,
+    Config
   >
 {}
 
-export const Tag = <Self>() =>
+export const Tag = <
+  Self,
+  Config extends {
+    requires?: any
+    provides?: any
+  } = { requires: never; provides: never }
+>() =>
 <
   const Name extends string,
   const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>
 >(
   id: Name,
   options?: Options | undefined
-): TagClass<Self, Name, Options> =>
-  class extends RpcMiddleware.Tag<Self>()(id, options as any) {
+): TagClass<Self, Name, Options, Config> =>
+  class extends RpcMiddleware.Tag<Self>()(id, options) {
+    static readonly requires: "requires" extends keyof Config ? Config["requires"] : never
+    static override readonly provides: "provides" extends keyof Config ? Config["provides"] : never
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined
     static override [Unify.typeSymbol]?: unknown

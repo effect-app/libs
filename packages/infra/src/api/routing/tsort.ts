@@ -39,7 +39,7 @@ export function tsort(edges) {
   return sorted
 }
 
-export const createEdges = <T extends { dependsOn?: readonly any[] }>(dep: readonly T[]) => {
+export const createEdges = <T extends { dependsOn?: readonly any[] | undefined }>(dep: readonly T[]) => {
   const result = []
   dep.forEach((key) => {
     key.dependsOn?.forEach((n) => {
@@ -49,7 +49,7 @@ export const createEdges = <T extends { dependsOn?: readonly any[] }>(dep: reado
   return result
 }
 
-export const sort = <T>(dep: readonly (T & { dependsOn?: readonly any[] })[]): readonly T[] => {
+export const sort = <T>(dep: readonly (T & { dependsOn?: readonly any[] | undefined })[]): readonly T[] => {
   const edges = createEdges(dep)
   const result = tsort(edges)
   return result.concat(dep.filter((v) => !result.includes(v)))

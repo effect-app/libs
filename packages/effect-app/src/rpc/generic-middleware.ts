@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
-import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type S, type Scope } from "effect-app"
-import { type ContextTagArray, type GetContextConfig, type RPCContextMap } from "effect-app/client"
+import { Context, Effect, type Layer, type NonEmptyReadonlyArray, type S } from "effect-app"
+import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect/Context"
 import { type Simplify } from "effect/Types"
 import { PreludeLogger } from "../logger.js"
@@ -67,9 +67,7 @@ export namespace MiddlewareMaker {
     ? { [K in keyof A]: Errors<A[K]> }[number]
     : Errors<A[number]>
 
-  export type Provided<T> = T extends TagClassAny
-    ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
-    : T extends { provides: ContextTagArray } ? ContextTagArray.Identifier<T["provides"]>
+  export type Provided<T> = T extends TagClassAny ? T extends { provides: infer _P } ? _P
     : never
     : never
 
@@ -77,9 +75,7 @@ export namespace MiddlewareMaker {
     : never
     : never
 
-  export type Required<T> = T extends TagClassAny
-    ? T extends { requires: Context.Tag<any, any> } ? Context.Tag.Identifier<T["requires"]>
-    : T extends { requires: ContextTagArray } ? ContextTagArray.Identifier<T["requires"]>
+  export type Required<T> = T extends TagClassAny ? T extends { requires: infer _R } ? _R
     : never
     : never
 }
@@ -105,92 +101,26 @@ export const middlewareMaker = <
 
     // returns a Effect/RpcMiddlewareWrap with Scope in requirements
     return (
-      options: Parameters<
-        RpcMiddlewareWrap<
+      _options: Parameters<
+        RpcMiddleware.RpcMiddlewareWrap<
           MiddlewareMaker.ManyProvided<MiddlewareProviders>,
-          never,
-          Scope.Scope
+          never
         >
       >[0]
     ) => {
+      const { next, ...options } = _options
       // we start with the actual handler
-      let handler = options.next
+      let handler = next
 
       // inspired from Effect/RpcMiddleware
       for (const tag of middlewares) {
-        if (tag.wrap) {
-          // use the tag to get the middleware from context
-          const middleware = Context.unsafeGet(context, tag)
+        // use the tag to get the middleware from context
+        const middleware = Context.unsafeGet(context, tag)
 
-          // wrap the current handler, allowing the middleware to run before and after it
-          handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
-            Effect.zipRight(middleware({ ...options, next: handler }))
-          ) as any
-        } else if (tag.optional) {
-          // use the tag to get the middleware from context
-          // if the middleware fails to run, we will ignore the error
-          const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
-
-          const previous = handler
-
-          // set the previous handler to run after the middleware
-          // if the middleware is not present, we just return the previous handler
-          // otherwise the middleware will provide some context to be provided to the previous handler
-          handler = PreludeLogger.logDebug("Applying middleware optional " + tag.key).pipe(
-            Effect.zipRight(Effect.matchEffect(middleware(options), {
-              onFailure: () => previous,
-              onSuccess: tag.provides !== undefined
-                ? (value) =>
-                  Context.isContext(value)
-                    ? Effect.provide(previous, value)
-                    : Effect.provideService(previous, tag.provides as any, value)
-                : (_) => previous
-            }))
-          )
-        } else if (tag.dynamic) {
-          // use the tag to get the middleware from context
-          const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
-
-          const previous = handler
-
-          // set the previous handler to run after the middleware
-          // we do expect the middleware to be present, but the context might not be available
-          // if it is, we provide it to the previous handler
-          handler = PreludeLogger.logDebug("Applying middleware dynamic " + tag.key, tag.dynamic).pipe(
-            Effect.zipRight(
-              middleware(options).pipe(
-                Effect.flatMap((o) =>
-                  Option.isSome(o)
-                    ? Context.isContext(o.value)
-                      ? Effect.provide(previous, o.value)
-                      : Effect.provideService(previous, tag.dynamic!.settings.service!, /* TODO */ o.value)
-                    : previous
-                )
-              )
-            )
-          ) as any
-        } else {
-          // use the tag to get the middleware from context
-          const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
-
-          const previous = handler
-
-          // set the previous handler to run after the middleware
-          // we do expect both the middleware and the context to be present
-          handler = PreludeLogger.logDebug("Applying middleware " + tag.key).pipe(
-            Effect.zipRight(
-              tag.provides !== undefined
-                ? middleware(options).pipe(
-                  Effect.flatMap((value) =>
-                    Context.isContext(value)
-                      ? Effect.provide(previous, value)
-                      : Effect.provideService(previous, tag.provides as any, value)
-                  )
-                )
-                : Effect.zipRight(middleware(options), previous)
-            )
-          ) as any
-        }
+        // wrap the current handler, allowing the middleware to run before and after it
+        handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+          Effect.zipRight(middleware(handler, options))
+        ) as any
       }
       return handler
     }

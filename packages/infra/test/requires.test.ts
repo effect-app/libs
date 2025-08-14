@@ -5,22 +5,20 @@ import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import { makeMiddleware, TagService } from "effect-app/rpc"
-import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeMiddlewareWrap, SomeService, Test, TestLive } from "./fixtures.js"
+import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
-export class RequiresSomeMiddleware extends TagService<RequiresSomeMiddleware>()("RequiresSomeMiddleware", {
-  requires: [Some],
-  wrap: true
-})({
-  effect: Effect.gen(function*() {
-    // yield* Effect.context<"test-dep">()
-    return ({ next }) =>
-      Effect.gen(function*() {
+export class RequiresSomeMiddleware
+  extends TagService<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware", {})({
+    effect: Effect.gen(function*() {
+      // yield* Effect.context<"test-dep">()
+      return Effect.fnUntraced(function*(effect) {
         yield* Some
         // yield* Effect.context<"test-dep2">()
-        return yield* next
+        return yield* effect
       })
+    })
   })
-}) {
+{
 }
 
 const middleware3 = makeMiddleware(RequestContextMap)
@@ -41,14 +39,14 @@ const _middlewareSidewaysFully = makeMiddleware(RequestContextMap)
 
 export const _middleware3Bis = makeMiddleware(RequestContextMap)
   .middleware(RequiresSomeMiddleware)
-  .middleware(SomeMiddlewareWrap)
+  .middleware(SomeMiddleware)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
   .middleware(SomeElseMiddleware)
 
 expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
 expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
-expectTypeOf(_middleware3Bis).not.toEqualTypeOf<typeof middleware3>() // is not the same because SomeMiddlewareWrap is not SomeMiddleware
+expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
 
 class TestRequest extends S.TaggedRequest<Test>("Test")("Test", {
   payload: {},

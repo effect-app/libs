@@ -6,12 +6,18 @@ import { type Tag } from "../Context.js"
 import { type Context, type NonEmptyReadonlyArray, S } from "../internal/lib.js"
 import { type Values } from "../utils.js"
 
+/** @deprecated just use Service Identifier Union */
 export type ContextTagArray = NonEmptyReadonlyArray<Context.Tag<any, any>>
+
+/** @deprecated just use Service Identifier Union */
 export namespace ContextTagArray {
   export type Identifier<A> = A extends ContextTagArray ? Tag.Identifier<A[number]> : never
   export type Service<A> = A extends ContextTagArray ? Tag.Service<A[number]> : never
 }
+
+/** @deprecated just use Service Identifier Union */
 export type AnyService = Context.Tag<any, any> | ContextTagArray
+/** @deprecated just use Service Identifier Union */
 export namespace AnyService {
   export type Bla<A> = A extends ContextTagArray ? Context.Context<ContextTagArray.Identifier<A>>
     : A extends Context.Tag<any, any> ? Tag.Service<A>

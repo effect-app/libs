@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, S, Scope } from "effect-app"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { NotLoggedInError, RPCContextMap, UnauthorizedError } from "effect-app/client"
 import { contextMap, getConfig, Tag } from "effect-app/rpc"
 import { TaggedError } from "effect-app/Schema"
@@ -16,30 +16,15 @@ export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 
 const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
-export class SomeMiddleware extends Tag<SomeMiddleware>()("SomeMiddleware", {
-  provides: Some
-}) {}
-
-export const SomeMiddlewareLive = Layer.effect(
-  SomeMiddleware,
-  Effect.gen(function*() {
-    // yield* Effect.context<"test-dep">()
-    return () =>
-      Effect.gen(function*() {
-        return new Some({ a: 1 })
-      })
-  })
-)
-
 // functionally equivalent to the one above
-export class SomeMiddlewareWrap extends Tag<SomeMiddlewareWrap>()("SomeMiddlewareWrap", {
+export class SomeMiddleware extends Tag<SomeMiddleware>()("SomeMiddleware", {
   provides: Some,
   wrap: true
 }) {
 }
 
-export const SomeMiddlewareWrapLive = Layer.effect(
-  SomeMiddlewareWrap,
+export const SomeMiddlewareLive = Layer.effect(
+  SomeMiddleware,
   Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
     return ({ next }) => next.pipe(Effect.provideService(Some, new Some({ a: 1 })))
@@ -81,14 +66,15 @@ export interface RequestContextMap extends _RequestContextMap {}
 
 export class AllowAnonymous extends Tag<AllowAnonymous>()("AllowAnonymous", {
   dynamic: contextMap(RequestContextMap, "allowAnonymous"),
-  requires: SomeElse
+  requires: SomeElse,
+  wrap: true
 }) {}
 
 export const AllowAnonymousLive = Layer.effect(
   AllowAnonymous,
   Effect.gen(function*() {
     return Effect.fnUntraced(
-      function*({ headers, rpc }) {
+      function*({ headers, next, rpc }) {
         yield* SomeElse
         yield* Scope.Scope // provided by HttpLayerRouter.Provided
         const isLoggedIn = !!headers["x-user"]
@@ -96,16 +82,15 @@ export const AllowAnonymousLive = Layer.effect(
           if (!requestConfig(rpc).allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
-          return Option.none()
+          return yield* next
         }
-        return Option.some(
-          Context.make(
-            UserProfile,
-            new UserProfile({
-              id: "whatever",
-              roles: ["user", ...headers["x-is-manager"] === "true" ? ["manager"] : []]
-            })
-          )
+        return yield* Effect.provideService(
+          next,
+          UserProfile,
+          new UserProfile({
+            id: "whatever",
+            roles: ["user", ...headers["x-is-manager"] === "true" ? ["manager"] : []]
+          })
         )
       }
     )

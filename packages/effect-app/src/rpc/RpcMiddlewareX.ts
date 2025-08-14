@@ -29,20 +29,20 @@ export const TagService = <
     effect: Effect.Effect<
       Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamicWrap<
           TagClass.FailureService<Options>,
-          TagClass.Requires<Options>,
+          "requires" extends keyof Config ? Config["requires"] : never,
           { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
         >
         : RpcMiddlewareWrap<
-          TagClass.Provides<Options>,
+          "provides" extends keyof Config ? Config["provides"] : never,
           TagClass.Failure<Options>,
-          TagClass.Requires<Options>
+          "requires" extends keyof Config ? Config["requires"] : never
         >,
       any,
       any
     >
     dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any>
   }
->(opts: LayerOpts): TagClass<Self, Name, Options> & {
+>(opts: LayerOpts): TagClass<Self, Name, Options, Config> & {
   Default: Layer.Layer<
     Self,
     | (LayerOpts extends { effect: Effect<infer _A, infer _E, infer _R> } ? _E

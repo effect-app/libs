@@ -12,10 +12,10 @@ import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends TagService<MyContextProvider>()("MyContextProvider", {
-  provides: [Some],
-  requires: [SomeElse]
-})({
+class MyContextProvider extends TagService<MyContextProvider, {
+  provides: Some
+  requires: SomeElse
+}>()("MyContextProvider", {})({
   effect: Effect.gen(function*() {
     yield* SomeService
     if (Math.random() > 0.5) return yield* new CustomError1()
@@ -41,10 +41,10 @@ class MyContextProvider extends TagService<MyContextProvider>()("MyContextProvid
 }) {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider3 extends TagService<MyContextProvider3>()("MyContextProvider3", {
-  provides: [Some],
-  requires: [SomeElse]
-})({
+class MyContextProvider3 extends TagService<MyContextProvider3, {
+  provides: Some
+  requires: SomeElse
+}>()("MyContextProvider3", {})({
   dependencies: [Layer.effect(SomeService, SomeService.make)],
   effect: Effect.gen(function*() {
     yield* SomeService
@@ -73,7 +73,7 @@ class MyContextProvider3 extends TagService<MyContextProvider3>()("MyContextProv
 expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProvider3, CustomError1, never>>()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2 extends TagService<MyContextProvider2>()("MyContextProvider2", { provides: SomeElse })({
+class MyContextProvider2 extends TagService<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2", {})({
   effect: Effect.gen(function*() {
     if (Math.random() > 0.5) return yield* new CustomError1()
 

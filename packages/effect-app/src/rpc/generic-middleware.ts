@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
 import { Context, Effect, type Layer, type NonEmptyReadonlyArray, type S } from "effect-app"
-import { type ContextTagArray, type GetContextConfig, type RPCContextMap } from "effect-app/client"
+import { type GetContextConfig, type RPCContextMap } from "effect-app/client"
 import { type Tag } from "effect/Context"
 import { type Simplify } from "effect/Types"
 import { PreludeLogger } from "../logger.js"
@@ -67,9 +67,7 @@ export namespace MiddlewareMaker {
     ? { [K in keyof A]: Errors<A[K]> }[number]
     : Errors<A[number]>
 
-  export type Provided<T> = T extends TagClassAny
-    ? T extends { provides: Context.Tag<any, any> } ? Context.Tag.Identifier<T["provides"]>
-    : T extends { provides: ContextTagArray } ? ContextTagArray.Identifier<T["provides"]>
+  export type Provided<T> = T extends TagClassAny ? T extends { provides: infer _P } ? _P
     : never
     : never
 
@@ -77,9 +75,7 @@ export namespace MiddlewareMaker {
     : never
     : never
 
-  export type Required<T> = T extends TagClassAny
-    ? T extends { requires: Context.Tag<any, any> } ? Context.Tag.Identifier<T["requires"]>
-    : T extends { requires: ContextTagArray } ? ContextTagArray.Identifier<T["requires"]>
+  export type Required<T> = T extends TagClassAny ? T extends { requires: infer _R } ? _R
     : never
     : never
 }

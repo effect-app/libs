@@ -17,10 +17,7 @@ const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
 // functionally equivalent to the one above
-export class SomeMiddleware extends Tag<SomeMiddleware>()("SomeMiddleware", {
-  provides: Some,
-  wrap: true
-}) {
+export class SomeMiddleware extends Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware", {}) {
 }
 
 export const SomeMiddlewareLive = Layer.effect(
@@ -31,10 +28,7 @@ export const SomeMiddlewareLive = Layer.effect(
   })
 )
 
-export class SomeElseMiddleware extends Tag<SomeElseMiddleware>()("SomeElseMiddleware", {
-  provides: SomeElse,
-  wrap: true
-}) {}
+export class SomeElseMiddleware extends Tag<SomeElseMiddleware, { provides: SomeElse }>()("SomeElseMiddleware", {}) {}
 
 export const SomeElseMiddlewareLive = Layer.effect(
   SomeElseMiddleware,
@@ -64,10 +58,8 @@ export const RequestContextMap = {
 type _RequestContextMap = typeof RequestContextMap
 export interface RequestContextMap extends _RequestContextMap {}
 
-export class AllowAnonymous extends Tag<AllowAnonymous>()("AllowAnonymous", {
-  dynamic: contextMap(RequestContextMap, "allowAnonymous"),
-  requires: SomeElse,
-  wrap: true
+export class AllowAnonymous extends Tag<AllowAnonymous, { requires: SomeElse }>()("AllowAnonymous", {
+  dynamic: contextMap(RequestContextMap, "allowAnonymous")
 }) {}
 
 export const AllowAnonymousLive = Layer.effect(
@@ -101,8 +93,6 @@ export const AllowAnonymousLive = Layer.effect(
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends Tag<RequireRoles>()("RequireRoles", {
   dynamic: contextMap(RequestContextMap, "requireRoles"),
-  wrap: true,
-  // wrap: true,
   // had to move this in here, because once you put it manually as a readonly static property on the class,
   // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
   dependsOn: [AllowAnonymous]
@@ -135,7 +125,6 @@ export const RequireRolesLive = Layer.effect(
 
 // TODO: don't expect service when it's wrap
 export class Test extends Tag<Test>()("Test", {
-  wrap: true,
   dynamic: contextMap(RequestContextMap, "test")
 }) {}
 

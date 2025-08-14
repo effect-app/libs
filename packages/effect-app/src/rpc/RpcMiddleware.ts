@@ -4,7 +4,7 @@
 import { type Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
 import { type Context, type Effect, type NonEmptyReadonlyArray, type S, type Schema, type Scope, Unify } from "effect-app"
-import type { AnyService, ContextTagArray, RPCContextMap } from "effect-app/client/req"
+import type { ContextTagArray, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 
@@ -21,8 +21,6 @@ export interface RpcMiddlewareWrap<Provides, E, Requires> {
 export type RpcOptionsOriginal = {
   readonly optional?: boolean
   readonly failure?: Schema.Schema.All
-  readonly provides?: AnyService
-  readonly requires?: AnyService
   readonly requiredForClient?: boolean
 }
 
@@ -60,8 +58,8 @@ export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
 export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
   readonly optional: boolean
-  readonly provides?: Context.Tag<any, any> | ContextTagArray | undefined
-  readonly requires?: Context.Tag<any, any> | ContextTagArray | undefined
+  readonly provides: any
+  readonly requires: any
   readonly failure: Schema.Schema.All
   readonly requiredForClient: boolean
   readonly wrap: true
@@ -150,17 +148,22 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export interface Base<Self, Name extends string, Options, Service> extends Context.Tag<Self, Service> {
+  export interface Base<
+    Self,
+    Name extends string,
+    Options,
+    Service,
+    Config extends {
+      requires?: any
+      provides?: any
+    }
+  > extends Context.Tag<Self, Service> {
     new(_: never): Context.TagClassShape<Name, Service>
     readonly [TypeId]: TypeId
     readonly optional: Optional<Options>
     readonly failure: FailureSchema<Options>
-    readonly provides: Options extends { readonly provides: Context.Tag<any, any> } ? Options["provides"]
-      : Options extends { readonly provides: ContextTagArray } ? Options["provides"]
-      : undefined
-    readonly requires: Options extends { readonly requires: Context.Tag<any, any> } ? Options["requires"]
-      : Options extends { readonly requires: ContextTagArray } ? Options["requires"]
-      : undefined
+    readonly provides: "provides" extends keyof Config ? Config["provides"] : never
+    readonly requires: "requires" extends keyof Config ? Config["requires"] : never
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
       : undefined
     readonly dependsOn: Options extends DependsOn ? Options["dependsOn"] : undefined
@@ -172,7 +175,11 @@ export declare namespace TagClass {
 export interface TagClass<
   Self,
   Name extends string,
-  Options
+  Options,
+  Config extends {
+    requires?: any
+    provides?: any
+  } = { requires: never; provides: never }
 > extends
   TagClass.Base<
     Self,
@@ -180,14 +187,15 @@ export interface TagClass<
     Options,
     Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamicWrap<
         TagClass.FailureService<Options>,
-        TagClass.Requires<Options>,
+        "requires" extends keyof Config ? Config["requires"] : never,
         { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
       >
       : RpcMiddlewareWrap<
-        TagClass.Provides<Options>,
+        "provides" extends keyof Config ? Config["provides"] : never,
         TagClass.Failure<Options>,
-        TagClass.Requires<Options>
-      >
+        "requires" extends keyof Config ? Config["requires"] : never
+      >,
+    Config
   >
 {}
 
@@ -204,8 +212,10 @@ export const Tag = <
 >(
   id: Name,
   options?: Options | undefined
-): TagClass<Self, Name, Options & { wrap: true }> =>
-  class extends RpcMiddleware.Tag<Self>()(id, { ...options as any, wrap: true }) {
+): TagClass<Self, Name, Options, Config> =>
+  class extends RpcMiddleware.Tag<Self>()(id, options) {
+    static readonly requires: "requires" extends keyof Config ? Config["requires"] : never
+    static override readonly provides: "provides" extends keyof Config ? Config["provides"] : never
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined
     static override [Unify.typeSymbol]?: unknown

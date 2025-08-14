@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
-import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
+import { type HttpLayerRouter } from "effect-app/http"
 import { DefaultGenericMiddlewares, makeMiddleware, TagService } from "effect-app/rpc"
 import { TypeTestId } from "effect-app/TypeTest"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing/middleware.js"
@@ -335,7 +335,7 @@ it("sorts based on requirements", () => {
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
 expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<
-  RpcSerialization.RpcSerialization | SomeService | "str"
+  SomeService | "str" | HttpLayerRouter.HttpRouter
 >()
 
 type makeContext = MakeContext<typeof router[TypeTestId]>
@@ -393,7 +393,7 @@ const router2 = r2.Router(Something)({
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
 expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<
-  RpcSerialization.RpcSerialization | SomeService | "str"
+  SomeService | "str" | HttpLayerRouter.HttpRouter
 >()
 
 type makeContext2 = MakeContext<typeof router2[TypeTestId]>

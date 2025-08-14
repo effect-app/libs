@@ -38,6 +38,7 @@ export const HttpClientLayer = (config: ApiConfig) =>
     HttpClient.HttpClient,
     Effect
       .gen(function*() {
+        // TODO: make these just part of the RpcClient
         const baseClient = yield* HttpClient.HttpClient
         const client = baseClient.pipe(
           HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
@@ -48,8 +49,7 @@ export const HttpClientLayer = (config: ApiConfig) =>
             RequestName.pipe(
               Effect.map((ctx) =>
                 flow(
-                  HttpClientRequest.appendUrlParam("action", ctx.requestName),
-                  HttpClientRequest.appendUrl("/" + ctx.moduleName)
+                  HttpClientRequest.appendUrlParam("action", `${ctx.moduleName}.${ctx.requestName}`)
                 )(req)
               )
             )
@@ -162,9 +162,7 @@ const makeApiClientFactory = Effect
           Layer.provide(Layer.succeed(ApiClientFactory, makeClientForCached as any)),
           Layer.provide(
             RpcClient
-              .layerProtocolHttp({
-                url: "" // why not here set meta.moduleName as root?
-              })
+              .layerProtocolHttp({ url: "" })
               .pipe(
                 Layer.provideMerge(Layer.succeedContext(ctx))
               )

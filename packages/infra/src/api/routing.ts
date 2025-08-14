@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
+import { Rpc, RpcGroup, RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
@@ -431,12 +431,7 @@ export const makeRouter = <
             >
 
           return RpcServer
-            .layerHttpRouter({
-              spanPrefix: "RpcServer." + meta.moduleName,
-              group: rpcs,
-              path: ("/rpc/" + meta.moduleName) as `/${typeof meta.moduleName}`,
-              protocol: "http"
-            })
+            .layer(rpcs)
             .pipe(Layer.provide(rpc))
         })
         .pipe(Layer.unwrapEffect)
@@ -485,7 +480,7 @@ export const makeRouter = <
             MakeContext<Make>,
             MakeDepsOut<Make>
           >
-          | RpcSerialization.RpcSerialization
+          | RpcServer.Protocol
         >
         & {
           // just for type testing purposes
@@ -541,12 +536,19 @@ export const makeRouter = <
     handlers: T
   ) {
     const routers = typedValuesOf(handlers)
-
-    return Layer.mergeAll(...routers as [any]) as unknown as Layer.Layer<
+    let l = Layer.empty
+    for (const router of routers.toReversed()) {
+      l = Layer.provideMerge(l, router) as any
+    }
+    return (l as unknown as Layer.Layer<
       never,
       Layer.Layer.Error<typeof handlers[keyof typeof handlers]>,
       Layer.Layer.Context<typeof handlers[keyof typeof handlers]>
-    >
+    >)
+      .pipe(
+        Layer.provide(RpcServer.layerProtocolHttpRouter({ path: "/rpc" })),
+        Layer.provide(RpcSerialization.layerJson)
+      )
   }
 
   return {

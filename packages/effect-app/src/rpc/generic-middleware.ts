@@ -105,49 +105,26 @@ export const middlewareMaker = <
 
     // returns a Effect/RpcMiddlewareWrap with Scope in requirements
     return (
-      options: Parameters<
+      _options: Parameters<
         RpcMiddleware.RpcMiddlewareWrap<
           MiddlewareMaker.ManyProvided<MiddlewareProviders>,
           never
         >
       >[0]
     ) => {
+      const { next, ...options } = _options
       // we start with the actual handler
-      let handler = options.next
+      let handler = next
 
       // inspired from Effect/RpcMiddleware
       for (const tag of middlewares) {
-        // if (tag.dynamic) {
-        //   // use the tag to get the middleware from context
-        //   const middleware = Context.unsafeGet(context, tag) as RpcMiddleware.RpcMiddleware<any, any>
-
-        //   const previous = handler
-
-        //   // set the previous handler to run after the middleware
-        //   // we do expect the middleware to be present, but the context might not be available
-        //   // if it is, we provide it to the previous handler
-        //   handler = PreludeLogger.logDebug("Applying middleware dynamic " + tag.key, tag.dynamic).pipe(
-        //     Effect.zipRight(
-        //       middleware(options).pipe(
-        //         Effect.flatMap((o) =>
-        //           Option.isSome(o)
-        //             ? Context.isContext(o.value)
-        //               ? Effect.provide(previous, o.value)
-        //               : Effect.provideService(previous, tag.dynamic!.settings.service!, /* TODO */ o.value)
-        //             : previous
-        //         )
-        //       )
-        //     )
-        //   ) as any
-        // } else {
         // use the tag to get the middleware from context
         const middleware = Context.unsafeGet(context, tag)
 
         // wrap the current handler, allowing the middleware to run before and after it
         handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
-          Effect.zipRight(middleware(handler, { ...options, next: handler }))
+          Effect.zipRight(middleware(handler, options))
         ) as any
-        // }
       }
       return handler
     }

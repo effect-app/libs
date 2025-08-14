@@ -57,19 +57,6 @@ export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
   >
 }
 
-// export interface RpcMiddlewareDynamicNormal<A, E, R, _Config> {
-//   (options: {
-//     readonly clientId: number
-//     readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
-//     readonly payload: unknown
-//     readonly headers: HttpHeaders.Headers
-//   }): Effect.Effect<
-//     Option.Option<A>,
-//     E,
-//     Scope.Scope | R
-//   >
-// }
-
 export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
   readonly optional: boolean
@@ -204,7 +191,13 @@ export interface TagClass<
   >
 {}
 
-export const Tag = <Self>() =>
+export const Tag = <
+  Self,
+  Config extends {
+    requires?: any
+    provides?: any
+  } = { requires: never; provides: never }
+>() =>
 <
   const Name extends string,
   const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>

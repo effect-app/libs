@@ -10,7 +10,13 @@ import { type RpcMiddlewareDynamicWrap, type RpcMiddlewareWrap, type RpcOptionsD
  * @deprecated - RPC groups are defined centrally and re-used between server and client,
  * so layer implementation details should not be mixed.
  */
-export const TagService = <Self>() =>
+export const TagService = <
+  Self,
+  Config extends {
+    requires?: any
+    provides?: any
+  } = { requires: never; provides: never }
+>() =>
 <
   const Name extends string,
   const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>

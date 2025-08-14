@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type InitialDataFunction, type QueryKey, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
@@ -18,11 +18,8 @@ export interface QueryObserverOptionsCustom<
   TError = Error,
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
-  TPageParam = never
-> extends
-  Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey, TPageParam>, "queryKey" | "queryFn">
-{}
+  TQueryKey extends QueryKey = QueryKey
+> extends Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn"> {}
 
 export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
   readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>
@@ -38,7 +35,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       | RequestHandlerWithInput<I, A, E, R, Request>
       | RequestHandler<A, E, R, Request>,
     arg?: I | WatchSource<I>,
-    _options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
+    options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
   ) => {
     const runPromise = Runtime.runPromise(getRuntime(runtime))
     const arr = arg
@@ -53,10 +50,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       : ref(arg)
     const queryKey = makeQueryKey(q)
     const handler = q.handler
-    const options = {
-      ..._options,
-      enabled: _options.enabled == undefined ? undefined : (() => _options.enabled!)
-    }
+
     const r = useQuery<unknown, KnownFiberFailure<E>, A>(
       Effect.isEffect(handler)
         ? {

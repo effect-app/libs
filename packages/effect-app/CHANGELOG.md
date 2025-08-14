@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.2
+
+### Patch Changes
+
+- 88bb989: align dynamic/global middleware with V4
+
 ## 3.0.1
 
 ### Patch Changes

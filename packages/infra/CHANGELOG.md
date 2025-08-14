@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.3
+
+### Patch Changes
+
+- 88bb989: align dynamic/global middleware with V4
+- Updated dependencies [88bb989]
+  - effect-app@3.0.2
+
 ## 3.0.2
 
 ### Patch Changes

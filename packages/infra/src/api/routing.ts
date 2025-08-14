@@ -347,7 +347,6 @@ export const makeRouter = <
         match: any
       ) => Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
-      console.log({ dependencies, make })
       const dependenciesL = (dependencies ? Layer.mergeAll(...dependencies as any) : Layer.empty) as Layer.Layer<
         LayerUtils.GetLayersSuccess<MakeDependencies>,
         LayerUtils.GetLayersError<MakeDependencies>,

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.50.6
+
+### Patch Changes
+
+- 4995794: fix query.ts enabled options
+
 ## 2.50.5
 
 ### Patch Changes

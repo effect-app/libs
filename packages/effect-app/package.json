@@ -196,9 +196,9 @@
       "types": "./dist/client/errors.d.ts",
       "default": "./dist/client/errors.js"
     },
-    "./client/req": {
-      "types": "./dist/client/req.d.ts",
-      "default": "./dist/client/req.js"
+    "./client/makeClient": {
+      "types": "./dist/client/makeClient.d.ts",
+      "default": "./dist/client/makeClient.js"
     },
     "./faker": {
       "types": "./dist/faker.d.ts",
@@ -220,9 +220,21 @@
       "types": "./dist/logger.d.ts",
       "default": "./dist/logger.js"
     },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "default": "./dist/middleware.js"
+    },
     "./rpc": {
       "types": "./dist/rpc.d.ts",
       "default": "./dist/rpc.js"
+    },
+    "./rpc/MiddlewareMaker": {
+      "types": "./dist/rpc/MiddlewareMaker.d.ts",
+      "default": "./dist/rpc/MiddlewareMaker.js"
+    },
+    "./rpc/RpcContextMap": {
+      "types": "./dist/rpc/RpcContextMap.d.ts",
+      "default": "./dist/rpc/RpcContextMap.js"
     },
     "./rpc/RpcMiddleware": {
       "types": "./dist/rpc/RpcMiddleware.d.ts",
@@ -232,17 +244,9 @@
       "types": "./dist/rpc/RpcMiddlewareX.d.ts",
       "default": "./dist/rpc/RpcMiddlewareX.js"
     },
-    "./rpc/generic-middleware": {
-      "types": "./dist/rpc/generic-middleware.d.ts",
-      "default": "./dist/rpc/generic-middleware.js"
-    },
-    "./rpc/middleware-api": {
-      "types": "./dist/rpc/middleware-api.d.ts",
-      "default": "./dist/rpc/middleware-api.js"
-    },
-    "./rpc/middleware-native": {
-      "types": "./dist/rpc/middleware-native.d.ts",
-      "default": "./dist/rpc/middleware-native.js"
+    "./rpc/RpcX": {
+      "types": "./dist/rpc/RpcX.d.ts",
+      "default": "./dist/rpc/RpcX.js"
     },
     "./transform": {
       "types": "./dist/transform.d.ts",
@@ -279,15 +283,17 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tspc --build",
+    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
+    "build:tsc-src": "pnpm clean-dist && effect-app-cli packagejson tsc --build ./tsconfig.src.json",
+    "build:src": "pnpm build:tsc-src && cp -f ./src/internal/Prelude.* ./dist/internal",
     "build": "pnpm build:tsc && cp -f ./src/internal/Prelude.* ./dist/internal",
-    "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tspc -w",
+    "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",
     "clean-dist": "sh ../../scripts/clean-dist.sh",
     "circular": "pnpm circular:src && pnpm circular:dist",
     "circular:src": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "circular:dist": "madge --circular --extensions js ./dist",
-    "compile": "NODE_OPTIONS=--max-old-space-size=6144 tspc --noEmit",
+    "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
     "autofix": "pnpm lint --fix",

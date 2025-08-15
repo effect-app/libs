@@ -6,91 +6,100 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
-import { makeMiddleware, TagService } from "effect-app/rpc"
+import { makeMiddleware, Tag } from "effect-app/rpc"
 import { TypeTestId } from "effect-app/TypeTest"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends TagService<MyContextProvider, {
-  provides: Some
-  requires: SomeElse
-}>()("MyContextProvider", {})({
-  effect: Effect.gen(function*() {
-    yield* SomeService
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider extends Context.DefineService(
+  Tag<MyContextProvider, {
+    provides: Some
+    requires: SomeElse
+  }>()("MyContextProvider", {}),
+  {
+    effect: Effect.gen(function*() {
+      yield* SomeService
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.fnUntraced(function*(effect) {
-      yield* SomeElse
-      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
-      yield* Scope.Scope
+      return Effect.fnUntraced(function*(effect) {
+        yield* SomeElse
+        // the only requirements you can have are the one provided by HttpLayerRouter.Provided
+        yield* Scope.Scope
 
-      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
-      yield* Effect.succeed("this is a generator")
+        yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+        yield* Effect.succeed("this is a generator")
 
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
+        // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+        // yield* SomeElse
 
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
+        // currently the effectful context provider cannot trigger an error when building the per request context
+        // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+        // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+        return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+      })
     })
-  })
-}) {}
+  }
+) {}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider3 extends TagService<MyContextProvider3, {
-  provides: Some
-  requires: SomeElse
-}>()("MyContextProvider3", {})({
-  dependencies: [Layer.effect(SomeService, SomeService.make)],
-  effect: Effect.gen(function*() {
-    yield* SomeService
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider3 extends Context.DefineService(
+  Tag<MyContextProvider3, {
+    provides: Some
+    requires: SomeElse
+  }>()("MyContextProvider3", {}),
+  {
+    dependencies: [Layer.effect(SomeService, SomeService.make)],
+    effect: Effect.gen(function*() {
+      yield* SomeService
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.fnUntraced(function*(effect) {
-      yield* SomeElse
-      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
-      yield* Scope.Scope
+      return Effect.fnUntraced(function*(effect) {
+        yield* SomeElse
+        // the only requirements you can have are the one provided by HttpLayerRouter.Provided
+        yield* Scope.Scope
 
-      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
-      yield* Effect.succeed("this is a generator")
+        yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+        yield* Effect.succeed("this is a generator")
 
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
+        // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+        // yield* SomeElse
 
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
+        // currently the effectful context provider cannot trigger an error when building the per request context
+        // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
+        // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+        return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+      })
     })
-  })
-}) {}
+  }
+) {}
 
 expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProvider3, CustomError1, never>>()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2 extends TagService<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2", {})({
-  effect: Effect.gen(function*() {
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider2 extends Context.DefineService(
+  Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2", {}),
+  {
+    effect: Effect.gen(function*() {
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.fnUntraced(function*(effect) {
-      // we test without dependencies, so that we end up with an R of never.
+      return Effect.fnUntraced(function*(effect) {
+        // we test without dependencies, so that we end up with an R of never.
 
-      return yield* Effect.provideService(effect, SomeElse, new SomeElse({ b: 2 }))
+        return yield* Effect.provideService(effect, SomeElse, new SomeElse({ b: 2 }))
+      })
     })
-  })
-}) {}
+  }
+) {}
 
 //
 
 const Str = Context.GenericTag<"str", "str">("str")
 
-export class BogusMiddleware extends TagService<BogusMiddleware>()("BogusMiddleware", {})({
+export class BogusMiddleware extends Context.DefineService(Tag<BogusMiddleware>()("BogusMiddleware", {}), {
   effect: Effect.gen(function*() {
     yield* Str
     // yield* Effect.context<"test-dep">()

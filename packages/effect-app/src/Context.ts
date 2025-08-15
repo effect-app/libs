@@ -6,7 +6,9 @@
  */
 
 import { Effect, Layer, type Scope } from "effect"
+import { type NonEmptyReadonlyArray } from "effect/Array"
 import * as Context from "effect/Context"
+import { type Service } from "effect/Effect"
 
 export * from "effect/Context"
 
@@ -287,3 +289,56 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
 
   return proxify(assignTag<Id, Id>(key, creationError)(c))<Id, ServiceImpl>()
 }
+
+export const ServiceDef = <Tag extends Context.Tag<any, any>>(self: Tag) =>
+<A>() =>
+<
+  LayerOpts extends {
+    effect: Effect.Effect<
+      A,
+      any,
+      any
+    >
+    dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any>
+  }
+>(opts: LayerOpts): Layer.Layer<
+  Tag,
+  | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
+    : never)
+  | Service.MakeDepsE<LayerOpts>,
+  | Exclude<
+    LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
+    Service.MakeDepsOut<LayerOpts>
+  >
+  | Service.MakeDepsIn<LayerOpts>
+> =>
+  Layer.scoped(self, opts.effect as any).pipe(
+    Layer.provide([Layer.empty, ...opts.dependencies ?? []])
+  ) as any
+
+export const DefineService = <
+  Tag extends Context.TagClass<any, any, any>,
+  LayerOpts extends {
+    effect: Effect.Effect<
+      Context.Tag.Service<Tag>,
+      any,
+      any
+    >
+    dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any>
+  }
+>(tag: Tag, opts: LayerOpts): Tag & {
+  Default: Layer.Layer<
+    Context.Tag.Identifier<Tag>,
+    | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
+      : never)
+    | Service.MakeDepsE<LayerOpts>,
+    | Exclude<
+      LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
+      Service.MakeDepsOut<LayerOpts>
+    >
+    | Service.MakeDepsIn<LayerOpts>
+  >
+} =>
+  class extends (tag as any) {
+    static readonly Default = ServiceDef<Tag>(tag)<Context.Tag.Service<Tag>>()(opts)
+  } as any

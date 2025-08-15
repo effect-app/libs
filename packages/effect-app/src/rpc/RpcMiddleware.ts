@@ -9,7 +9,7 @@ import { type NonEmptyReadonlyArray } from "effect/Array"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import { type RpcContextMap } from "./RpcContextMap.js"
 
-// updated to support Scope.Scope and Requires, and `options.next` is now just effect
+// updated to support Scope.Scope and Requires
 export interface RpcMiddlewareWrap<Provides, E, Requires> {
   (effect: Effect.Effect<SuccessValue, E, Provides | Scope.Scope | Requires>, options: {
     readonly clientId: number
@@ -43,10 +43,10 @@ export interface RpcOptionsDynamic<Key extends string, A extends RpcContextMap.A
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
-export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
+export interface RpcMiddlewareDynamic<E, R, _Config> {
   (effect: Effect.Effect<SuccessValue, E, Scope.Scope | R>, options: {
     readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
+    readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
   }): Effect.Effect<
@@ -154,7 +154,7 @@ export interface TagClass<
     Self,
     Name,
     Options,
-    Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamicWrap<
+    Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
         TagClass.FailureService<Options>,
         "requires" extends keyof Config ? Config["requires"] : never,
         { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }

@@ -3,10 +3,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { type Context, type Effect, type NonEmptyReadonlyArray, type S, type Schema, type Scope, Unify } from "effect-app"
-import type { ContextTagArray, RPCContextMap } from "effect-app/client/req"
+import { type Context, type Effect, type Schema, type Schema as S, type Scope, Unify } from "effect"
 import { type HttpHeaders } from "effect-app/http"
+import { type NonEmptyReadonlyArray } from "effect/Array"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
+import { type RPCContextMap } from "./RpcContextMap.js"
 
 // updated to support Scope.Scope and Requires, and `options.next` is now just effect
 export interface RpcMiddlewareWrap<Provides, E, Requires> {
@@ -72,32 +73,6 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export type Provides<Options> = Options extends {
-    readonly provides: Context.Tag<any, any>
-    readonly optional?: false
-  } ? Context.Tag.Identifier<Options["provides"]>
-    : Options extends {
-      readonly provides: ContextTagArray
-      readonly optional?: false
-    } ? ContextTagArray.Identifier<Options["provides"]>
-    : never
-
-  /**
-   * @since 1.0.0
-   * @category models
-   */
-  export type Requires<Options> = Options extends {
-    readonly requires: Context.Tag<any, any>
-  } ? Context.Tag.Identifier<Options["requires"]>
-    : Options extends {
-      readonly requires: ContextTagArray
-    } ? ContextTagArray.Identifier<Options["requires"]>
-    : never
-
-  /**
-   * @since 1.0.0
-   * @category models
-   */
   export type FailureSchema<Options> = Options extends
     { readonly failure: Schema.Schema.All; readonly optional?: false } ? Options["failure"]
     // actually not, the Failure depends on Dynamic Middleware Configuration!
@@ -137,12 +112,6 @@ export declare namespace TagClass {
    * @category models
    */
   export type RequiredForClient<Options> = Options extends { readonly requiredForClient: true } ? true : false
-
-  /**
-   * @since 1.0.0
-   * @category models
-   */
-  export type Wrap<Options> = Options extends { readonly wrap: true } ? true : false
 
   /**
    * @since 1.0.0

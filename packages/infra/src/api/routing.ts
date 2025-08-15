@@ -4,9 +4,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
-import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
-import { DevMode } from "effect-app/rpc"
+import { DevMode } from "effect-app/middleware"
+import { type GetEffectContext, type GetEffectError, type RPCContextMap } from "effect-app/rpc"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Service } from "effect/Effect"

@@ -3,8 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
 import { type Context, type Layer } from "effect-app"
-import type { GetContextConfig, RPCContextMap } from "effect-app/client/req"
-import { type MiddlewareMakerId } from "effect-app/rpc"
+import { type GetContextConfig, type MiddlewareMakerId, type RPCContextMap } from "effect-app/rpc"
 // module:
 //
 

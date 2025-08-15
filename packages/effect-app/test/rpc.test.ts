@@ -1,4 +1,4 @@
-import { makeRpcClient } from "../src/client/req.js"
+import { makeRpcClient } from "../src/client.js"
 import { S } from "../src/index.js"
 
 const { TaggedRequest } = makeRpcClient({})

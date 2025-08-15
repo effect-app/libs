@@ -1,32 +1,94 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "@effect/rpc"
-import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { type HandlersFrom } from "@effect/rpc/RpcGroup"
-import { Tag } from "@effect/rpc/RpcMiddleware"
-import { Context, type Effect, Layer, type NonEmptyArray, type NonEmptyReadonlyArray, S, type Schema, type Scope, type Stream } from "effect-app"
-import { type GetContextConfig, type GetEffectContext, type RPCContextMap } from "effect-app/client"
-import { typedValuesOf } from "effect-app/utils"
-import { type ReadonlyMailbox } from "effect/Mailbox"
+import { Context, Effect, Layer, type Schema, Schema as S } from "effect"
+import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
+import { type Tag } from "effect/Context"
+import { type Scope } from "effect/Scope"
+import { type Simplify } from "effect/Types"
+import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
-import { type MiddlewareMaker, middlewareMaker, type RequestContextTag } from "./generic-middleware.js"
-import { type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
+import { typedValuesOf } from "../utils.js"
+import { type GetContextConfig, type RPCContextMap } from "./RpcContextMap.js"
+import { type AnyDynamic, type RpcDynamic, type RpcMiddlewareWrap, type TagClassAny } from "./RpcMiddleware.js"
+import * as RpcMiddlewareX from "./RpcMiddleware.js"
+import { type AddMiddleware, type HandlersContext } from "./RpcX.js"
 
-/** Adapter used when setting the dynamic prop on a middleware implementation */
-export const contextMap = <
+export interface MiddlewareMakerId {
+  readonly _id: unique symbol
+}
+
+// adapter for v3 rpc middleware provides
+type MakeTags<A> = Context.Tag<A, A>
+
+export interface MiddlewareMaker<
   RequestContextMap extends Record<string, RPCContextMap.Any>,
-  Key extends (keyof RequestContextMap) & string
->(rcm: RequestContextMap, key: Key): RpcDynamic<Key, RequestContextMap[Key]> => ({
-  key,
-  settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
-})
+  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
+> extends
+  RpcMiddleware.TagClass<
+    MiddlewareMakerId,
+    "MiddlewareMaker",
+    Simplify<
+      & { readonly wrap: true }
+      & (Exclude<
+        MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+        MiddlewareMaker.ManyProvided<MiddlewareProviders>
+      > extends never ? {} : {
+        readonly requires: MakeTags<
+          Exclude<
+            MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+            MiddlewareMaker.ManyProvided<MiddlewareProviders>
+          >
+        >
+      })
+      & (MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? {}
+        : {
+          readonly failure: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
+        })
+      & (MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
+        : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> })
+    >
+  >
+{
+  readonly layer: Layer.Layer<MiddlewareMakerId, never, Tag.Identifier<MiddlewareProviders[number]>>
+  readonly requestContext: RequestContextTag<RequestContextMap>
+  readonly requestContextMap: RequestContextMap
+}
 
-const tag = Context.GenericTag("RequestContextConfig")
-/** Retrieves RequestContextConfig out of the RPC annotations */
-export const getConfig = <
-  RequestContextMap extends Record<string, RPCContextMap.Any>
->() =>
-(rpc: AnyWithProps): GetContextConfig<RequestContextMap> => {
-  return Context.getOrElse(rpc.annotations, tag as any, () => ({}))
+export interface RequestContextTag<RequestContextMap extends Record<string, RPCContextMap.Any>>
+  extends Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+{}
+
+export namespace MiddlewareMaker {
+  export type Any = TagClassAny
+
+  export type ApplyServices<A extends TagClassAny, R> = Exclude<R, Provided<A>> | Required<A>
+
+  export type ApplyManyServices<A extends NonEmptyReadonlyArray<TagClassAny>, R> =
+    | Exclude<R, { [K in keyof A]: Provided<A[K]> }[number]>
+    | { [K in keyof A]: Required<A[K]> }[number]
+
+  export type ManyProvided<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Provided<A[K]> }[number]
+    : Provided<A[number]>
+  export type ManyRequired<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Required<A[K]> }[number]
+    : Required<A[number]>
+  export type ManyErrors<A extends ReadonlyArray<TagClassAny>> = A extends NonEmptyReadonlyArray<TagClassAny>
+    ? { [K in keyof A]: Errors<A[K]> }[number]
+    : Errors<A[number]>
+
+  export type Provided<T> = T extends TagClassAny ? T extends { provides: infer _P } ? _P
+    : never
+    : never
+
+  export type Errors<T> = T extends TagClassAny ? T extends { failure: S.Schema.Any } ? S.Schema.Type<T["failure"]>
+    : never
+    : never
+
+  export type Required<T> = T extends TagClassAny ? T extends { requires: infer _R } ? _R
+    : never
+    : never
 }
 
 // the following implements sort of builder pattern
@@ -182,7 +244,7 @@ const makeMiddlewareBasic =
       .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
       .filter((_) => !provides.includes(_))
 
-    const MiddlewareMaker = Tag<MiddlewareMakerId>()("MiddlewareMaker", {
+    const MiddlewareMaker = RpcMiddlewareX.Tag<MiddlewareMakerId>()("MiddlewareMaker", {
       failure: (failures.length > 0
         ? S.Union(...failures)
         : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
@@ -210,10 +272,10 @@ const makeMiddlewareBasic =
     const layer = Layer
       .scoped(
         MiddlewareMaker,
-        middleware as Effect<
+        middleware as Effect.Effect<
           any, // TODO: why ?
-          Effect.Error<typeof middleware>,
-          Effect.Context<typeof middleware>
+          Effect.Effect.Error<typeof middleware>,
+          Effect.Effect.Context<typeof middleware>
         >
       )
 
@@ -290,25 +352,6 @@ export const makeMiddleware = <
   return it as any
 }
 
-// customised version of Rpc.AddMiddleware, so that we don't loose the `config`...
-// not needed if there's official support in Rpc.Rpc.
-export type AddMiddleware<R extends Rpc.Any, Middleware extends RpcMiddleware.TagClassAny> = R extends Rpc.Rpc<
-  infer _Tag,
-  infer _Payload,
-  infer _Success,
-  infer _Error,
-  infer _Middleware
-> ?
-    & Rpc.Rpc<
-      _Tag,
-      _Payload,
-      _Success,
-      _Error,
-      _Middleware | Middleware
-    >
-    & { readonly config: R extends { readonly config: infer _C } ? _C : never }
-  : never
-
 // alternatively consider group.serverMiddleware? hmmm
 export const middlewareGroup = <
   RequestContextMap extends Record<string, RPCContextMap.Any>,
@@ -343,62 +386,49 @@ export const middlewareGroup = <
   })
 }
 
-// customized versions to handle dynamically eliminated context.
-export type HandlersContext<Rpcs extends Rpc.Any, Handlers> = keyof Handlers extends infer K
-  ? K extends keyof Handlers & string ? HandlerContext<Rpcs, K, Handlers[K]> : never
-  : never
+const middlewareMaker = <
+  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
+>(middlewares: MiddlewareProviders): Effect.Effect<
+  RpcMiddlewareWrap<
+    MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+    MiddlewareMaker.ManyErrors<MiddlewareProviders>,
+    Exclude<
+      MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+      MiddlewareMaker.ManyProvided<MiddlewareProviders>
+    > extends never ? never
+      : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
+  >
+> => {
+  // we want to run them in reverse order because latter middlewares will provide context to former ones
+  middlewares = middlewares.toReversed() as any
 
-export type HandlerContext<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends
-  [true] ? Handler extends (...args: any) =>
-    | Stream.Stream<infer _A, infer _E, infer _R>
-    | Rpc.Fork<Stream.Stream<infer _A, infer _E, infer _R>>
-    | Effect.Effect<
-      ReadonlyMailbox<infer _A, infer _E>,
-      infer _EX,
-      infer _R
-    >
-    | Rpc.Fork<
-      Effect.Effect<
-        ReadonlyMailbox<infer _A, infer _E>,
-        infer _EX,
-        infer _R
-      >
-    > ? Exclude<ExcludeProvides<_R, Rpcs, K>, Scope>
-  : never
-  : Handler extends (
-    ...args: any
-  ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Fork<Effect.Effect<infer _A, infer _E, infer _R>>
-    ? ExcludeProvides<_R, Rpcs, K>
-  : never
+  return Effect.gen(function*() {
+    const context = yield* Effect.context()
 
-// new
-export type ExtractDynamicallyProvides<R extends Rpc.Any, Tag extends string> = R extends
-  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
-    readonly requestContextMap: infer _RC
-  } ? _RC extends Record<string, RPCContextMap.Any> // ? GetEffectContext<_RC, { allowAnonymous: false }>
-      ? R extends { readonly config: infer _C } ? GetEffectContext<_RC, _C>
-      : GetEffectContext<_RC, {}>
-    : never
-  : never
-  : never
+    // returns a Effect/RpcMiddlewareWrap with Scope in requirements
+    return (
+      _options: Parameters<
+        RpcMiddleware.RpcMiddlewareWrap<
+          MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+          never
+        >
+      >[0]
+    ) => {
+      const { next, ...options } = _options
+      // we start with the actual handler
+      let handler = next
 
-export type ExtractProvides<R extends Rpc.Any, Tag extends string> = R extends
-  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
-    readonly provides: Context.Tag<infer _I, infer _S>
-  } ? _I
-  : never
-  : never
+      // inspired from Effect/RpcMiddleware
+      for (const tag of middlewares) {
+        // use the tag to get the middleware from context
+        const middleware = Context.unsafeGet(context, tag)
 
-export type ExcludeProvides<Env, R extends Rpc.Any, Tag extends string> = Exclude<
-  Env,
-  // customisation is down here.
-  ExtractProvides<R, Tag> | ExtractDynamicallyProvides<R, Tag>
->
-
-//
-export interface MiddlewareMakerId {
-  readonly _id: unique symbol
+        // wrap the current handler, allowing the middleware to run before and after it
+        handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+          Effect.zipRight(middleware(handler, options))
+        ) as any
+      }
+      return handler
+    }
+  }) as any
 }
-
-// TODO: actually end up with [Tag<A, A>, Tag<B, B>, ...] once `provides: []` is implemented
-export type MakeTags<A> = Context.Tag<A, A>

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
-import * as MiddlewareNative from "effect-app/rpc/middleware-native"
+import { ConfigureInterruptibilityMiddleware, DevMode, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
@@ -18,7 +18,7 @@ export const RequestCacheLayers = Layer.mergeAll(
 )
 
 export const RequestCacheMiddlewareLive = Layer.succeed(
-  MiddlewareNative.RequestCacheMiddleware,
+  RequestCacheMiddleware,
   (effect) => effect.pipe(Effect.provide(RequestCacheLayers))
 )
 
@@ -28,7 +28,7 @@ const optimisticConcurrencySchedule = Schedule.once.pipe(
 )
 
 export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
-  MiddlewareNative.ConfigureInterruptibilityMiddleware,
+  ConfigureInterruptibilityMiddleware,
   Effect.gen(function*() {
     const cache = new Map()
     const getCached = (key: string, schema: Schema.Schema.Any) => {
@@ -51,9 +51,9 @@ export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
 )
 
 export const LoggerMiddlewareLive = Layer.effect(
-  MiddlewareNative.LoggerMiddleware,
+  LoggerMiddleware,
   Effect.gen(function*() {
-    const devMode = yield* MiddlewareNative.DevMode
+    const devMode = yield* DevMode
     return (effect, { headers, payload, rpc }) =>
       Effect
         .annotateCurrentSpan({

@@ -3,12 +3,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
 import { type Context, type Layer } from "effect-app"
-import { type GetContextConfig, type MiddlewareMakerId, type RPCContextMap } from "effect-app/rpc"
+import { type GetContextConfig, type MiddlewareMakerId, type RpcContextMap } from "effect-app/rpc"
 // module:
 //
 
 export type RouterMiddleware<
-  RequestContextMap extends Record<string, RPCContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
+  RequestContextMap extends Record<string, RpcContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
   MakeMiddlewareE, // what the middleware construction can fail with
   MakeMiddlewareR, // what the middlware requires to be constructed
   ContextProviderA, // what the context provider provides

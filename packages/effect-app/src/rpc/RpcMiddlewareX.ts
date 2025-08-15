@@ -7,7 +7,7 @@ import { type Service } from "effect/Effect"
 import { type RpcMiddlewareDynamicWrap, type RpcMiddlewareWrap, type RpcOptionsDynamic, type RpcOptionsOriginal, Tag, type TagClass } from "./RpcMiddleware.js"
 
 /**
- * @deprecated - RPC groups are defined centrally and re-used between server and client,
+ * @deprecated - Rpc groups are defined centrally and re-used between server and client,
  * so layer implementation details should not be mixed.
  */
 export const TagService = <

@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { contextMap, getConfig, RPCContextMap, Tag } from "effect-app/rpc"
+import { contextMap, getConfig, RpcContextMap, Tag } from "effect-app/rpc"
 import { TaggedError } from "effect-app/Schema"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -50,9 +50,9 @@ const requestConfig = getConfig<RequestContextMap>()
 //
 // consider if we want to support Context of one Service
 export const RequestContextMap = {
-  allowAnonymous: RPCContextMap.makeInverted([UserProfile], NotLoggedInError),
-  requireRoles: RPCContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),
-  test: RPCContextMap.make(null as never, S.Never)
+  allowAnonymous: RpcContextMap.makeInverted([UserProfile], NotLoggedInError),
+  requireRoles: RpcContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),
+  test: RpcContextMap.make(null as never, S.Never)
 } as const
 
 type _RequestContextMap = typeof RequestContextMap

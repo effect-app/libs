@@ -1,5 +1,5 @@
 import { S } from "../internal/lib.js"
-import { type GetEffectError, type RPCContextMap } from "../rpc.js"
+import { type GetEffectError, type RpcContextMap } from "../rpc.js"
 import { AST } from "../Schema.js"
 
 // TODO: Fix error types... (?)
@@ -31,7 +31,7 @@ const ForceVoid: S.Schema<void> = S.transform(S.Any, S.Void, { decode: () => voi
 
 export const makeRpcClient = <
   RequestConfig extends object,
-  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  RequestContextMap extends Record<string, RpcContextMap.Any>,
   GeneralErrors extends S.Schema.All = never
 >(
   errors: { [K in keyof RequestContextMap]: RequestContextMap[K]["error"] },

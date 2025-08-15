@@ -10,7 +10,7 @@ import { type RpcDynamic } from "./RpcMiddleware.js"
 
 /** Adapter used when setting the dynamic prop on a middleware implementation */
 export const contextMap = <
-  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  RequestContextMap extends Record<string, RpcContextMap.Any>,
   Key extends (keyof RequestContextMap) & string
 >(rcm: RequestContextMap, key: Key): RpcDynamic<Key, RequestContextMap[Key]> => ({
   key,
@@ -18,9 +18,9 @@ export const contextMap = <
 })
 
 const tag = Context.GenericTag("RequestContextConfig")
-/** Retrieves RequestContextConfig out of the RPC annotations */
+/** Retrieves RequestContextConfig out of the Rpc annotations */
 export const getConfig = <
-  RequestContextMap extends Record<string, RPCContextMap.Any>
+  RequestContextMap extends Record<string, RpcContextMap.Any>
 >() =>
 (rpc: AnyWithProps): GetContextConfig<RequestContextMap> => {
   return Context.getOrElse(rpc.annotations, tag as any, () => ({}))
@@ -52,12 +52,12 @@ export namespace AnyService {
     : never
 }
 
-export namespace RPCContextMap {
+export namespace RpcContextMap {
   /**
    * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
    * Unless explicitly configured as `true`.
    */
-  export type RPCContextMap<Service, E> = {
+  export type RpcContextMap<Service, E> = {
     service: Service
     error: E
     contextActivation: true
@@ -88,7 +88,7 @@ export namespace RPCContextMap {
   export const make = <Service extends AnyService, E>(
     service: Service,
     error: E
-  ): RPCContextMap<Service, E> => ({
+  ): RpcContextMap<Service, E> => ({
     service,
     error,
     contextActivation: true
@@ -114,13 +114,13 @@ export namespace RPCContextMap {
   })
 }
 
-export type GetContextConfig<RequestContextMap extends Record<string, RPCContextMap.Any>> = {
+export type GetContextConfig<RequestContextMap extends Record<string, RpcContextMap.Any>> = {
   [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"] extends true ? false
     : RequestContextMap[K]["contextActivation"] extends false ? true
     : RequestContextMap[K]["contextActivation"]
 }
 
-export type GetEffectContext<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<
+export type GetEffectContext<RequestContextMap extends Record<string, RpcContextMap.Any>, T> = Values<
   // inverted: contextActivation is false => remove if explicitly set to true (like allowAnonymous: true disables auth and auth service and related errors)
   & {
     [
@@ -141,7 +141,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RPCContext
   }
 >
 
-export type GetEffectError<RequestContextMap extends Record<string, RPCContextMap.Any>, T> = Values<
+export type GetEffectError<RequestContextMap extends Record<string, RpcContextMap.Any>, T> = Values<
   // inverted: contextActivation is false => remove if explicitly set to true (like allowAnonymous: true disables auth and auth service and related errors)
   & {
     [

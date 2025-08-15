@@ -3,7 +3,7 @@
 import { type Rpc, type RpcMiddleware } from "@effect/rpc"
 import { type Context, type Effect, type Scope, type Stream } from "effect"
 import { type ReadonlyMailbox } from "effect/Mailbox"
-import { type GetEffectContext, type RPCContextMap } from "./RpcContextMap.js"
+import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.js"
 
 // not needed if there's official support in Rpc.Rpc.
 export type AddMiddleware<R extends Rpc.Any, Middleware extends RpcMiddleware.TagClassAny> = R extends Rpc.Rpc<
@@ -55,7 +55,7 @@ export type HandlerContext<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler
 export type ExtractDynamicallyProvides<R extends Rpc.Any, Tag extends string> = R extends
   Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
     readonly requestContextMap: infer _RC
-  } ? _RC extends Record<string, RPCContextMap.Any> // ? GetEffectContext<_RC, { allowAnonymous: false }>
+  } ? _RC extends Record<string, RpcContextMap.Any> // ? GetEffectContext<_RC, { allowAnonymous: false }>
       ? R extends { readonly config: infer _C } ? GetEffectContext<_RC, _C>
       : GetEffectContext<_RC, {}>
     : never

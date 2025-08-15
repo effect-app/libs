@@ -7,7 +7,7 @@ import { type Context, type Effect, type Schema, type Schema as S, type Scope, U
 import { type HttpHeaders } from "effect-app/http"
 import { type NonEmptyReadonlyArray } from "effect/Array"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
-import { type RPCContextMap } from "./RpcContextMap.js"
+import { type RpcContextMap } from "./RpcContextMap.js"
 
 // updated to support Scope.Scope and Requires, and `options.next` is now just effect
 export interface RpcMiddlewareWrap<Provides, E, Requires> {
@@ -25,7 +25,7 @@ export type RpcOptionsOriginal = {
   readonly requiredForClient?: boolean
 }
 
-export type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
+export type RpcDynamic<Key extends string, A extends RpcContextMap.Any> = {
   key: Key
   settings: A
 }
@@ -36,7 +36,7 @@ export type DependsOn = {
   readonly dependsOn: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
 
-export interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> extends RpcOptionsOriginal {
+export interface RpcOptionsDynamic<Key extends string, A extends RpcContextMap.Any> extends RpcOptionsOriginal {
   readonly dynamic: RpcDynamic<Key, A>
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }

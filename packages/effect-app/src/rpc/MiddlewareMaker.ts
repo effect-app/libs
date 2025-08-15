@@ -10,7 +10,7 @@ import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
 import { typedValuesOf } from "../utils.js"
 import { type GetContextConfig, type RpcContextMap } from "./RpcContextMap.js"
-import { type AnyDynamic, type RpcDynamic, type RpcMiddlewareWrap, type TagClassAny } from "./RpcMiddleware.js"
+import { type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
 import { type AddMiddleware, type HandlersContext } from "./RpcX.js"
 
@@ -226,6 +226,53 @@ export type MiddlewaresBuilder<
     : {}
     : {})
 
+const middlewareMaker = <
+  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
+>(middlewares: MiddlewareProviders): Effect.Effect<
+  RpcMiddlewareV4<
+    MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+    MiddlewareMaker.ManyErrors<MiddlewareProviders>,
+    Exclude<
+      MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+      MiddlewareMaker.ManyProvided<MiddlewareProviders>
+    > extends never ? never
+      : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
+  >
+> => {
+  // we want to run them in reverse order because latter middlewares will provide context to former ones
+  middlewares = middlewares.toReversed() as any
+
+  return Effect.gen(function*() {
+    const context = yield* Effect.context()
+
+    // returns a Effect/RpcMiddlewareV4 with Scope in requirements
+    return (
+      _options: Parameters<
+        RpcMiddleware.RpcMiddlewareWrap<
+          MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+          never
+        >
+      >[0]
+    ) => {
+      const { next, ...options } = _options
+      // we start with the actual handler
+      let handler = next
+
+      // inspired from Effect/RpcMiddleware
+      for (const tag of middlewares) {
+        // use the tag to get the middleware from context
+        const middleware = Context.unsafeGet(context, tag)
+
+        // wrap the current handler, allowing the middleware to run before and after it
+        handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+          Effect.zipRight(middleware(handler, options))
+        ) as any
+      }
+      return handler
+    }
+  }) as any
+}
+
 const makeMiddlewareBasic =
   // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
   <
@@ -384,51 +431,4 @@ export const middlewareGroup = <
       return toLayerOriginal(build as any) as any // ??
     }
   })
-}
-
-const middlewareMaker = <
-  MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
->(middlewares: MiddlewareProviders): Effect.Effect<
-  RpcMiddlewareWrap<
-    MiddlewareMaker.ManyProvided<MiddlewareProviders>,
-    MiddlewareMaker.ManyErrors<MiddlewareProviders>,
-    Exclude<
-      MiddlewareMaker.ManyRequired<MiddlewareProviders>,
-      MiddlewareMaker.ManyProvided<MiddlewareProviders>
-    > extends never ? never
-      : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
-  >
-> => {
-  // we want to run them in reverse order because latter middlewares will provide context to former ones
-  middlewares = middlewares.toReversed() as any
-
-  return Effect.gen(function*() {
-    const context = yield* Effect.context()
-
-    // returns a Effect/RpcMiddlewareWrap with Scope in requirements
-    return (
-      _options: Parameters<
-        RpcMiddleware.RpcMiddlewareWrap<
-          MiddlewareMaker.ManyProvided<MiddlewareProviders>,
-          never
-        >
-      >[0]
-    ) => {
-      const { next, ...options } = _options
-      // we start with the actual handler
-      let handler = next
-
-      // inspired from Effect/RpcMiddleware
-      for (const tag of middlewares) {
-        // use the tag to get the middleware from context
-        const middleware = Context.unsafeGet(context, tag)
-
-        // wrap the current handler, allowing the middleware to run before and after it
-        handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
-          Effect.zipRight(middleware(handler, options))
-        ) as any
-      }
-      return handler
-    }
-  }) as any
 }

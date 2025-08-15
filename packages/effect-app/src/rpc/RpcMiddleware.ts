@@ -9,8 +9,8 @@ import { type NonEmptyReadonlyArray } from "effect/Array"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import { type RpcContextMap } from "./RpcContextMap.js"
 
-// updated to support Scope.Scope and Requires
-export interface RpcMiddlewareWrap<Provides, E, Requires> {
+// updated to support Scope.Scope and follow V4: Provides/Requires as Identifiers instead of Tag, wrap is default
+export interface RpcMiddlewareV4<Provides, E, Requires> {
   (effect: Effect.Effect<SuccessValue, E, Provides | Scope.Scope | Requires>, options: {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
@@ -159,7 +159,7 @@ export interface TagClass<
         "requires" extends keyof Config ? Config["requires"] : never,
         { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
       >
-      : RpcMiddlewareWrap<
+      : RpcMiddlewareV4<
         "provides" extends keyof Config ? Config["provides"] : never,
         TagClass.Failure<Options>,
         "requires" extends keyof Config ? Config["requires"] : never

@@ -842,8 +842,6 @@ export function isNativeTuple<A>(a: A): a is RemoveNonArray<A> {
 
 export const mutable: { <A>(a: A, deep: true): DeepMutable<A>; <A>(a: A): Mutable<A> } = identity
 
-export type Values<T extends Record<any, any>> = T[keyof T]
-
 /**
  * Recursively removes all elements assignable to type `E` from tuple `T`.
  *

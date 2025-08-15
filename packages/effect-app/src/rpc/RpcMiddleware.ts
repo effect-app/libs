@@ -3,13 +3,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Rpc, RpcMiddleware } from "@effect/rpc"
 import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
-import { type Context, type Effect, type NonEmptyReadonlyArray, type S, type Schema, type Scope, Unify } from "effect-app"
-import type { ContextTagArray, RPCContextMap } from "effect-app/client/req"
+import { type Context, type Effect, type Schema, type Schema as S, type Scope, type Stream, Unify } from "effect"
 import { type HttpHeaders } from "effect-app/http"
+import { type NonEmptyReadonlyArray } from "effect/Array"
 import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
+import { type ReadonlyMailbox } from "effect/Mailbox"
+import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.js"
 
-// updated to support Scope.Scope and Requires, and `options.next` is now just effect
-export interface RpcMiddlewareWrap<Provides, E, Requires> {
+// updated to support Scope.Scope and follow V4: Provides/Requires as Identifiers instead of Tag, wrap is default
+export interface RpcMiddlewareV4<Provides, E, Requires> {
   (effect: Effect.Effect<SuccessValue, E, Provides | Scope.Scope | Requires>, options: {
     readonly clientId: number
     readonly rpc: Rpc.AnyWithProps
@@ -24,7 +26,7 @@ export type RpcOptionsOriginal = {
   readonly requiredForClient?: boolean
 }
 
-export type RpcDynamic<Key extends string, A extends RPCContextMap.Any> = {
+export type RpcDynamic<Key extends string, A extends RpcContextMap.Any> = {
   key: Key
   settings: A
 }
@@ -35,17 +37,17 @@ export type DependsOn = {
   readonly dependsOn: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
 
-export interface RpcOptionsDynamic<Key extends string, A extends RPCContextMap.Any> extends RpcOptionsOriginal {
+export interface RpcOptionsDynamic<Key extends string, A extends RpcContextMap.Any> extends RpcOptionsOriginal {
   readonly dynamic: RpcDynamic<Key, A>
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
-export interface RpcMiddlewareDynamicWrap<E, R, _Config> {
+export interface RpcMiddlewareDynamic<E, R, _Config> {
   (effect: Effect.Effect<SuccessValue, E, Scope.Scope | R>, options: {
     readonly clientId: number
-    readonly rpc: Rpc.AnyWithProps // TODO & { annotations: Context.Context<RequestContextMap<Config>> }
+    readonly rpc: Rpc.AnyWithProps
     readonly payload: unknown
     readonly headers: HttpHeaders.Headers
   }): Effect.Effect<
@@ -68,32 +70,6 @@ export interface TagClassAny extends Context.Tag<any, any> {
 }
 
 export declare namespace TagClass {
-  /**
-   * @since 1.0.0
-   * @category models
-   */
-  export type Provides<Options> = Options extends {
-    readonly provides: Context.Tag<any, any>
-    readonly optional?: false
-  } ? Context.Tag.Identifier<Options["provides"]>
-    : Options extends {
-      readonly provides: ContextTagArray
-      readonly optional?: false
-    } ? ContextTagArray.Identifier<Options["provides"]>
-    : never
-
-  /**
-   * @since 1.0.0
-   * @category models
-   */
-  export type Requires<Options> = Options extends {
-    readonly requires: Context.Tag<any, any>
-  } ? Context.Tag.Identifier<Options["requires"]>
-    : Options extends {
-      readonly requires: ContextTagArray
-    } ? ContextTagArray.Identifier<Options["requires"]>
-    : never
-
   /**
    * @since 1.0.0
    * @category models
@@ -142,12 +118,6 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export type Wrap<Options> = Options extends { readonly wrap: true } ? true : false
-
-  /**
-   * @since 1.0.0
-   * @category models
-   */
   export interface Base<
     Self,
     Name extends string,
@@ -185,12 +155,12 @@ export interface TagClass<
     Self,
     Name,
     Options,
-    Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamicWrap<
+    Options extends RpcOptionsDynamic<any, any> ? RpcMiddlewareDynamic<
         TagClass.FailureService<Options>,
         "requires" extends keyof Config ? Config["requires"] : never,
         { [K in Options["dynamic"]["key"]]?: Options["dynamic"]["settings"]["contextActivation"] }
       >
-      : RpcMiddlewareWrap<
+      : RpcMiddlewareV4<
         "provides" extends keyof Config ? Config["provides"] : never,
         TagClass.Failure<Options>,
         "requires" extends keyof Config ? Config["requires"] : never
@@ -222,3 +192,73 @@ export const Tag = <
     static override [Unify.unifySymbol]?: TagUnify<typeof this>
     static override [Unify.ignoreSymbol]?: TagUnifyIgnore
   } as any
+
+// not needed if there's official support in Rpc.Rpc.
+export type AddMiddleware<R extends Rpc.Any, Middleware extends RpcMiddleware.TagClassAny> = R extends Rpc.Rpc<
+  infer _Tag,
+  infer _Payload,
+  infer _Success,
+  infer _Error,
+  infer _Middleware
+> ?
+    & Rpc.Rpc<
+      _Tag,
+      _Payload,
+      _Success,
+      _Error,
+      _Middleware | Middleware
+    >
+    & { readonly config: R extends { readonly config: infer _C } ? _C : never }
+  : never
+
+// customized versions to handle dynamically eliminated context.
+export type HandlersContext<Rpcs extends Rpc.Any, Handlers> = keyof Handlers extends infer K
+  ? K extends keyof Handlers & string ? HandlerContext<Rpcs, K, Handlers[K]> : never
+  : never
+
+export type HandlerContext<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends
+  [true] ? Handler extends (...args: any) =>
+    | Stream.Stream<infer _A, infer _E, infer _R>
+    | Rpc.Fork<Stream.Stream<infer _A, infer _E, infer _R>>
+    | Effect.Effect<
+      ReadonlyMailbox<infer _A, infer _E>,
+      infer _EX,
+      infer _R
+    >
+    | Rpc.Fork<
+      Effect.Effect<
+        ReadonlyMailbox<infer _A, infer _E>,
+        infer _EX,
+        infer _R
+      >
+    > ? Exclude<ExcludeProvides<_R, Rpcs, K>, Scope.Scope>
+  : never
+  : Handler extends (
+    ...args: any
+  ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Fork<Effect.Effect<infer _A, infer _E, infer _R>>
+    ? ExcludeProvides<_R, Rpcs, K>
+  : never
+
+// new
+export type ExtractDynamicallyProvides<R extends Rpc.Any, Tag extends string> = R extends
+  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
+    readonly requestContextMap: infer _RC
+  } ? _RC extends Record<string, RpcContextMap.Any> // ? GetEffectContext<_RC, { allowAnonymous: false }>
+      ? R extends { readonly config: infer _C } ? GetEffectContext<_RC, _C>
+      : GetEffectContext<_RC, {}>
+    : never
+  : never
+  : never
+
+export type ExtractProvides<R extends Rpc.Any, Tag extends string> = R extends
+  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
+    readonly provides: Context.Tag<infer _I, infer _S>
+  } ? _I
+  : never
+  : never
+
+export type ExcludeProvides<Env, R extends Rpc.Any, Tag extends string> = Exclude<
+  Env,
+  // customisation is down here.
+  ExtractProvides<R, Tag> | ExtractDynamicallyProvides<R, Tag>
+>

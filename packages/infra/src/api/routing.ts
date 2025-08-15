@@ -4,9 +4,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
-import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
 import { type HttpHeaders } from "effect-app/http"
-import { DevMode } from "effect-app/rpc"
+import { DevMode } from "effect-app/middleware"
+import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Service } from "effect/Effect"
@@ -93,7 +93,7 @@ type FilterRequestModules<T> = {
   [K in keyof T as T[K] extends AnyRequestModule ? K : never]: T[K]
 }
 
-type RPCRouteR<
+type RpcRouteR<
   T extends [any, (req: any, headers: HttpHeaders.Headers) => Effect<any, any, any>]
 > = T extends [
   any,
@@ -153,7 +153,7 @@ export type RouteMatcher<
 }
 
 export const makeRouter = <
-  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  RequestContextMap extends Record<string, RpcContextMap.Any>,
   MakeMiddlewareE,
   MakeMiddlewareR,
   ContextProviderA,
@@ -427,7 +427,7 @@ export const makeRouter = <
             })) as unknown as Layer<
               { [K in keyof RequestModules]: Rpc.Handler<K> },
               MakeE,
-              RPCRouteR<typeof mapped[keyof typeof mapped]>
+              RpcRouteR<typeof mapped[keyof typeof mapped]>
             >
 
           return RpcServer

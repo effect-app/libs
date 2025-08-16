@@ -407,7 +407,7 @@ export const makeRouter = <
             ]
           }
 
-          const rpcs = RpcGroup
+          const group = RpcGroup
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
                 return Rpc
@@ -418,7 +418,7 @@ export const makeRouter = <
             .prefix(`${meta.moduleName}.`)
             .middleware(middleware as any)
 
-          const rpc = rpcs
+          const rpc = group
             .toLayer(Effect.gen(function*() {
               return typedValuesOf(mapped).reduce((acc, [resource, handler]) => {
                 acc[`${meta.moduleName}.${resource._tag}`] = handler
@@ -433,21 +433,22 @@ export const makeRouter = <
           return RpcServer
             .layerHttpRouter({
               spanPrefix: "RpcServer." + meta.moduleName,
-              group: rpcs,
+              group,
               path: ("/rpc/" + meta.moduleName) as `/${typeof meta.moduleName}`,
               protocol: "http"
             })
             .pipe(Layer.provide(rpc))
         })
-        .pipe(Layer.unwrapEffect)
+        .pipe(
+          Layer.unwrapEffect,
+          Layer.provide([
+            dependenciesL,
+            middleware.Default
+          ]),
+          Layer.provide(Layer.succeed(DevMode, devMode))
+        )
 
-      const routes = layer.pipe(
-        Layer.provide([
-          dependenciesL,
-          middleware.Default
-        ]),
-        Layer.provide(Layer.succeed(DevMode, devMode))
-      )
+      const routes = layer
 
       return routes
     }

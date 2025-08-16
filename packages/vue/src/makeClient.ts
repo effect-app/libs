@@ -213,7 +213,7 @@ export const makeClient = <Locale extends string, R>(
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) =>
     tapHandler(
-      _useUnsafeMutation(self, options),
+      _useUnsafeMutation(self as any, options),
       Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
     ) as any
 

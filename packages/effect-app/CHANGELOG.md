@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.3
+
+### Patch Changes
+
+- c31423a: cleanup rpc
+
 ## 3.0.2
 
 ### Patch Changes

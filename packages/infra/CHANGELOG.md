@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 3.0.5
+
+### Patch Changes
+
+- c31423a: cleanup rpc
+- 715dd12: fix: missing span for useUnsafeMutation
+- Updated dependencies [c31423a]
+  - effect-app@3.0.3
+
 ## 3.0.4
 
 ### Patch Changes

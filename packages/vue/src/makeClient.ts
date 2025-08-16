@@ -199,8 +199,23 @@ export const makeClient = <Locale extends string, R>(
   const _useUnsafeMutation = makeMutation()
   const _useSafeQuery = makeQuery(runtime)
 
-  const __useUnsafeMutation: typeof _useUnsafeMutation = (self: any) =>
-    tapHandler(self, Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })) as any
+  const __useUnsafeMutation: {
+    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandlerWithInput<I, A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2, I>
+    ): (i: I) => Effect<A2, E2, R2>
+    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandler<A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2>
+    ): Effect<A2, E2, R2>
+  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+    options?: MutationOptions<A, E, R, A2, E2, R2, I>
+  ) =>
+    tapHandler(
+      _useUnsafeMutation(self, options),
+      Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
+    ) as any
 
   /**
    * Effect results are converted to Exit, so errors are ignored by default.

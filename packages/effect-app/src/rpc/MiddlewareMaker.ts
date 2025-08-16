@@ -10,9 +10,8 @@ import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
 import { typedValuesOf } from "../utils.js"
 import { type GetContextConfig, type RpcContextMap } from "./RpcContextMap.js"
-import { type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
+import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
-import { type AddMiddleware, type HandlersContext } from "./RpcX.js"
 
 export interface MiddlewareMakerId {
   readonly _id: unique symbol
@@ -426,7 +425,7 @@ export const middlewareGroup = <
       Rpc.ToHandler<RN>,
       EX,
       | Exclude<RX, Scope>
-      | HandlersContext<RN, Handlers>
+      | RpcMiddlewareX.HandlersContext<RN, Handlers>
     > => {
       return toLayerOriginal(build as any) as any // ??
     }

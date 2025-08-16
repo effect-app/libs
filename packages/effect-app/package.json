@@ -240,10 +240,6 @@
       "types": "./dist/rpc/RpcMiddleware.d.ts",
       "default": "./dist/rpc/RpcMiddleware.js"
     },
-    "./rpc/RpcX": {
-      "types": "./dist/rpc/RpcX.d.ts",
-      "default": "./dist/rpc/RpcX.js"
-    },
     "./transform": {
       "types": "./dist/transform.d.ts",
       "default": "./dist/transform.js"

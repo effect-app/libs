@@ -199,6 +199,9 @@ export const makeClient = <Locale extends string, R>(
   const _useUnsafeMutation = makeMutation()
   const _useSafeQuery = makeQuery(runtime)
 
+  const __useUnsafeMutation: typeof _useUnsafeMutation = (self: any) =>
+    tapHandler(self, Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })) as any
+
   /**
    * Effect results are converted to Exit, so errors are ignored by default.
    * you should use the result ref to render errors!
@@ -906,7 +909,7 @@ export const makeClient = <Locale extends string, R>(
     buildFormFromSchema: _buildFormFromSchema,
     useSafeQuery: _useSafeQuery,
     useSafeMutation: _useSafeMutation,
-    useUnsafeMutation: _useUnsafeMutation,
+    useUnsafeMutation: __useUnsafeMutation,
     useSafeSuspenseQuery
   }
 }

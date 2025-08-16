@@ -81,8 +81,7 @@ export function makeRepoInternal<
           const decode = flow(S.decode(schema), provideRctx)
           const decodeMany = flow(
             S.decode(S.Array(schema)),
-            provideRctx,
-            Effect.withSpan("decodeMany", { captureStackTrace: false })
+            provideRctx
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)

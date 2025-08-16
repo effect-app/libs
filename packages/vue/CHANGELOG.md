@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.50.7
+
+### Patch Changes
+
+- 715dd12: fix: missing span for useUnsafeMutation
+- Updated dependencies [c31423a]
+  - effect-app@3.0.3
+
 ## 2.50.6
 
 ### Patch Changes

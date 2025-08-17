@@ -178,7 +178,7 @@ export const Tag = <
 >() =>
 <
   const Name extends string,
-  const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any>
+  const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any> = {}
 >(
   id: Name,
   options?: Options | undefined

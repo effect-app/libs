@@ -17,7 +17,7 @@ class MyContextProvider extends Context.DefineService(
   RpcX.Tag<MyContextProvider, {
     provides: Some
     requires: SomeElse
-  }>()("MyContextProvider", {}),
+  }>()("MyContextProvider"),
   {
     effect: Effect.gen(function*() {
       yield* SomeService
@@ -51,7 +51,7 @@ class MyContextProvider3 extends Context.DefineService(
   RpcX.Tag<MyContextProvider3, {
     provides: Some
     requires: SomeElse
-  }>()("MyContextProvider3", {}),
+  }>()("MyContextProvider3"),
   {
     dependencies: [Layer.effect(SomeService, SomeService.make)],
     effect: Effect.gen(function*() {
@@ -83,7 +83,7 @@ expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProv
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2 extends Context.DefineService(
-  RpcX.Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2", {}),
+  RpcX.Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2"),
   {
     effect: Effect.gen(function*() {
       if (Math.random() > 0.5) return yield* new CustomError1()
@@ -101,7 +101,7 @@ class MyContextProvider2 extends Context.DefineService(
 
 const Str = Context.GenericTag<"str", "str">("str")
 
-export class BogusMiddleware extends Context.DefineService(RpcX.Tag<BogusMiddleware>()("BogusMiddleware", {}), {
+export class BogusMiddleware extends Context.DefineService(RpcX.Tag<BogusMiddleware>()("BogusMiddleware"), {
   effect: Effect.gen(function*() {
     yield* Str
     // yield* Effect.context<"test-dep">()

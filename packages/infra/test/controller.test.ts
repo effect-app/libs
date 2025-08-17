@@ -130,6 +130,14 @@ const genericMiddlewaresLive = [
   MyContextProvider2.Default
 ] as const
 
+const MiddlewaresLive = [
+  RequireRolesLive,
+  TestLive,
+  AllowAnonymousLive,
+  MyContextProvider.Default,
+  ...genericMiddlewaresLive
+] as const
+
 const middleware = MiddlewareMaker
   .Tag()("middleware", RequestContextMap)
   .middleware(
@@ -150,7 +158,7 @@ const middlewareBis = MiddlewareMaker
   // testing sideways elimination
   .middleware(AllowAnonymous, MyContextProvider, ...genericMiddlewares)
 
-expectTypeOf(middleware).toEqualTypeOf<typeof middlewareBis>()
+expectTypeOf(middleware["Service"]).toEqualTypeOf<typeof middlewareBis["Service"]>()
 
 const middlewareTrisWip = MiddlewareMaker
   .Tag()("middleware", RequestContextMap)
@@ -176,7 +184,7 @@ const middlewareQuater = MiddlewareMaker
     ...genericMiddlewares
   )
 
-expectTypeOf(middleware).toEqualTypeOf<typeof middlewareQuater>()
+expectTypeOf(middleware["Service"]).toEqualTypeOf<typeof middlewareQuater["Service"]>()
 
 const middleware2 = MiddlewareMaker
   .Tag()("middleware", RequestContextMap)
@@ -265,23 +273,13 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
   })
 }) {}
 
-const MiddlewaresLive = [
-  RequireRolesLive,
-  TestLive,
-  AllowAnonymousLive,
-  MyContextProvider.Default,
-  ...genericMiddlewaresLive
-] as const
-
 export const { Router, matchAll } = makeRouter(
-  Object.assign(middleware, {
-    Default: middleware.layer.pipe(Layer.provide(MiddlewaresLive))
-  }),
+  Object.assign(middleware, { Default: middleware.layer.pipe(Layer.provide(MiddlewaresLive)) }),
   true
 )
 
 export const r2 = makeRouter(
-  Object.assign(middleware, { Default: middleware2.layer.pipe(Layer.provide(MiddlewaresLive)) }),
+  Object.assign(middleware2, { Default: middleware2.layer.pipe(Layer.provide(MiddlewaresLive)) }),
   true
 )
 

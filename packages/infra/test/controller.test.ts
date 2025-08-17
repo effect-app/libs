@@ -42,7 +42,9 @@ class MyContextProvider extends Context.DefineService(
       })
     })
   }
-) {}
+) {
+  static but_why = "???" // remove me and life rocks
+}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider3 extends Context.DefineService(

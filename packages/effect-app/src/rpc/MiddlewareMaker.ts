@@ -117,28 +117,30 @@ type RecursiveHandleMWsSideways<
     dmp: any
     middlewareR: any
   }
-> = MWs extends [
-  infer F extends MiddlewareMaker.Any,
-  ...infer Rest extends ReadonlyArray<MiddlewareMaker.Any>
-] ? RecursiveHandleMWsSideways<Rest, {
-    rcm: R["rcm"]
-    // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
-    // (if already provided, it would have to be re-provided anyway, so better to provide it after)
-    provided: Exclude<
-      R["provided"] | FilterInDynamicMiddlewares<[F], R["rcm"]>[number]["dynamic"]["key"],
-      // F is fine here because only dynamic middlewares will have 'dependsOn' prop
-      GetDependsOnKeys<F>
-    >
-    middlewares: [...R["middlewares"], F]
-    dmp: [FilterInDynamicMiddlewares<[F], R["rcm"]>[number]] extends [never] ? R["dmp"]
-      :
-        & R["dmp"]
-        & {
-          [U in FilterInDynamicMiddlewares<[F], R["rcm"]>[number] as U["dynamic"]["key"]]: U
-        }
-    middlewareR: MiddlewareMaker.ApplyManyServices<[F], R["middlewareR"]>
-  }>
-  : R
+> = MWs extends [] ? R
+  : MWs extends [infer F, ...infer Rest extends ReadonlyArray<any>]
+    ? F extends MiddlewareMaker.Any ? RecursiveHandleMWsSideways<Rest, {
+        rcm: R["rcm"]
+        // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
+        // (if already provided, it would have to be re-provided anyway, so better to provide it after)
+        provided: Exclude<
+          R["provided"] | FilterInDynamicMiddlewares<[F], R["rcm"]>[number]["dynamic"]["key"],
+          // F is fine here because only dynamic middlewares will have 'dependsOn' prop
+          GetDependsOnKeys<F>
+        >
+        middlewares: [...R["middlewares"], F]
+        dmp: [FilterInDynamicMiddlewares<[F], R["rcm"]>[number]] extends [never] ? R["dmp"]
+          :
+            & R["dmp"]
+            & {
+              [U in FilterInDynamicMiddlewares<[F], R["rcm"]>[number] as U["dynamic"]["key"]]: U
+            }
+        middlewareR: MiddlewareMaker.ApplyManyServices<[F], R["middlewareR"]>
+      }>
+      // TypeScript inference fails when checking F extends MiddlewareMaker.Any during F's inference
+      // if F is a class with static properties - deferring the check avoids this limitation
+    : `Absurd: F must extend MiddlewareMaker.Any`
+  : never
 
 export interface BuildingMiddleware<
   RequestContextMap extends Record<string, RpcContextMap.Any>,

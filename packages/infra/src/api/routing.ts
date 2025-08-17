@@ -6,7 +6,7 @@ import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import { type HttpHeaders } from "effect-app/http"
 import { DevMode } from "effect-app/middleware"
-import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc"
+import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Service } from "effect/Effect"
@@ -153,6 +153,8 @@ export type RouteMatcher<
 }
 
 export const makeRouter = <
+  Self,
+  Id extends string,
   RequestContextMap extends Record<string, RpcContextMap.Any>,
   MakeMiddlewareE,
   MakeMiddlewareR,
@@ -161,6 +163,8 @@ export const makeRouter = <
   ContextProviderR
 >(
   middleware: RouterMiddleware<
+    Self,
+    Id,
     RequestContextMap,
     MakeMiddlewareE,
     MakeMiddlewareR,

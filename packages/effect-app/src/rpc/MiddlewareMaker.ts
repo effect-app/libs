@@ -21,12 +21,13 @@ type MakeTags<A> = Context.Tag<A, A>
 
 export interface MiddlewareMaker<
   Self,
+  Id extends string,
   RequestContextMap extends Record<string, RpcContextMap.Any>,
   MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
 > extends
   RpcMiddleware.TagClass<
     Self,
-    "MiddlewareMaker",
+    Id,
     Simplify<
       & { readonly wrap: true }
       & (Exclude<
@@ -112,6 +113,7 @@ type RecursiveHandleMWsSideways<
   MWs,
   R extends {
     self: any
+    id: string
     rcm: Record<string, RpcContextMap.Any>
     provided: keyof R["rcm"] // that's fine
     middlewares: ReadonlyArray<MiddlewareMaker.Any>
@@ -122,6 +124,7 @@ type RecursiveHandleMWsSideways<
   : MWs extends [infer F, ...infer Rest extends ReadonlyArray<any>]
     ? F extends MiddlewareMaker.Any ? RecursiveHandleMWsSideways<Rest, {
         self: R["self"]
+        id: R["id"]
         rcm: R["rcm"]
         // when one dynamic middleware depends on another, subtract the key to enforce the dependency to be provided after
         // (if already provided, it would have to be re-provided anyway, so better to provide it after)
@@ -146,6 +149,7 @@ type RecursiveHandleMWsSideways<
 
 export interface BuildingMiddleware<
   Self,
+  Id extends string,
   RequestContextMap extends Record<string, RpcContextMap.Any>,
   Provided extends keyof RequestContextMap,
   Middlewares extends ReadonlyArray<MiddlewareMaker.Any>,
@@ -181,6 +185,7 @@ export interface BuildingMiddleware<
     ...mw: MWs
   ): RecursiveHandleMWsSideways<MWs, {
     self: Self
+    id: Id
     rcm: RequestContextMap
     provided: Provided
     middlewares: Middlewares
@@ -188,6 +193,7 @@ export interface BuildingMiddleware<
     middlewareR: MiddlewareR
   }> extends infer Res extends {
     self: any
+    id: string
     rcm: RequestContextMap
     provided: keyof RequestContextMap
     middlewares: ReadonlyArray<MiddlewareMaker.Any>
@@ -195,6 +201,7 @@ export interface BuildingMiddleware<
     middlewareR: any
   } ? MiddlewaresBuilder<
       Res["self"],
+      Res["id"],
       Res["rcm"],
       Res["provided"],
       Res["middlewares"],
@@ -212,6 +219,7 @@ export interface BuildingMiddleware<
 
 export type MiddlewaresBuilder<
   Self,
+  Id extends string,
   RequestContextMap extends Record<string, RpcContextMap.Any>,
   Provided extends keyof RequestContextMap = never,
   Middlewares extends ReadonlyArray<MiddlewareMaker.Any> = [],
@@ -220,6 +228,7 @@ export type MiddlewaresBuilder<
 > =
   & BuildingMiddleware<
     Self,
+    Id,
     RequestContextMap,
     Provided,
     Middlewares,
@@ -230,6 +239,7 @@ export type MiddlewaresBuilder<
   // MiddlewareR is never when all the required services from generic & dynamic middlewares are provided
   (keyof Omit<RequestContextMap, Provided> extends never ? [MiddlewareR] extends [never] ? MiddlewareMaker<
         Self,
+        Id,
         RequestContextMap,
         Middlewares
       >
@@ -353,7 +363,7 @@ export const Tag = <Self>() =>
 <
   const Id extends string,
   RequestContextMap extends Record<string, RpcContextMap.Any>
->(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, RequestContextMap> => {
+>(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap> => {
   let allMiddleware: MiddlewareMaker.Any[] = []
   const requestContext = Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
     "RequestContextConfig"
@@ -408,7 +418,7 @@ export const Tag = <Self>() =>
         // for sure, until all the dynamic middlewares are provided it's non sensical to call makeMiddlewareBasic
         ? it
         // actually, we don't know yet if MiddlewareR is never, but we can't easily check it at runtime
-        : Object.assign(makeMiddlewareBasic<Self>()<any, any, any>(id, rcm, ...allMiddleware), it)
+        : Object.assign(makeMiddlewareBasic<Self>()<Id, any, any>(id, rcm, ...allMiddleware), it)
     }
   }
   return it as any

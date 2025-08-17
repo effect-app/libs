@@ -159,7 +159,8 @@ export const makeRouter = <
   MakeMiddlewareR,
   ContextProviderA,
   ContextProviderE,
-  ContextProviderR
+  ContextProviderR,
+  RequestContextId
 >(
   middleware: RouterMiddleware<
     Self,
@@ -168,7 +169,8 @@ export const makeRouter = <
     MakeMiddlewareR,
     ContextProviderA,
     ContextProviderE,
-    ContextProviderR
+    ContextProviderR,
+    RequestContextId
   >,
   devMode: boolean
 ) => {

@@ -154,7 +154,6 @@ export type RouteMatcher<
 
 export const makeRouter = <
   Self,
-  Id extends string,
   RequestContextMap extends Record<string, RpcContextMap.Any>,
   MakeMiddlewareE,
   MakeMiddlewareR,
@@ -164,7 +163,6 @@ export const makeRouter = <
 >(
   middleware: RouterMiddleware<
     Self,
-    Id,
     RequestContextMap,
     MakeMiddlewareE,
     MakeMiddlewareR,

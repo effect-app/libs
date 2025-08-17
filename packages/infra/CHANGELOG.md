@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.7
+
+### Patch Changes
+
+- 182ca78: improve: MiddlewareMaker is a Tag with Self so we can extend it from class.
+- Updated dependencies [182ca78]
+  - effect-app@3.0.5
+
 ## 3.0.6
 
 ### Patch Changes

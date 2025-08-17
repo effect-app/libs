@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.5
+
+### Patch Changes
+
+- 182ca78: improve: MiddlewareMaker is a Tag with Self so we can extend it from class.
+
 ## 3.0.4
 
 ### Patch Changes

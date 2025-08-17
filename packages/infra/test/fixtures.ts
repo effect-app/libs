@@ -17,7 +17,7 @@ const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
 // functionally equivalent to the one above
-export class SomeMiddleware extends Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware", {}) {
+export class SomeMiddleware extends Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware") {
 }
 
 export const SomeMiddlewareLive = Layer.effect(
@@ -28,7 +28,7 @@ export const SomeMiddlewareLive = Layer.effect(
   })
 )
 
-export class SomeElseMiddleware extends Tag<SomeElseMiddleware, { provides: SomeElse }>()("SomeElseMiddleware", {}) {}
+export class SomeElseMiddleware extends Tag<SomeElseMiddleware, { provides: SomeElse }>()("SomeElseMiddleware") {}
 
 export const SomeElseMiddlewareLive = Layer.effect(
   SomeElseMiddleware,

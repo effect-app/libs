@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.8
+
+### Patch Changes
+
+- 868eab6: cleanup
+- Updated dependencies [868eab6]
+  - effect-app@3.0.6
+
 ## 3.0.7
 
 ### Patch Changes

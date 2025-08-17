@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.6
+
+### Patch Changes
+
+- 868eab6: cleanup
+
 ## 3.0.5
 
 ### Patch Changes

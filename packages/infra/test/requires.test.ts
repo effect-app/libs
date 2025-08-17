@@ -8,7 +8,7 @@ import * as RpcX from "effect-app/rpc"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware
-  extends RpcX.Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware", {})
+  extends RpcX.Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware")
 {
   static Default = Layer.make(this, {
     *make() {

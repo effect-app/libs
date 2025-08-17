@@ -17,6 +17,8 @@ export type RouterMiddleware<
   _ContextProviderR // what the context provider requires
 > =
   & Effect<RpcMiddlewareWrap<ContextProviderA, ContextProviderE>, never, Self>
+  // makes error because of TagUnify :/
+  // Context.Tag<Self, RpcMiddlewareWrap<ContextProviderA, ContextProviderE>>
   & {
     readonly Default: Layer.Layer<Self, MakeMiddlewareE, MakeMiddlewareR>
     readonly requestContext: Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>

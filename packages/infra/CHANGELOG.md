@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.9
+
+### Patch Changes
+
+- d42afe6: cleanup
+- Updated dependencies [d42afe6]
+  - effect-app@3.0.7
+
 ## 3.0.8
 
 ### Patch Changes

@@ -8,7 +8,7 @@ import * as RpcX from "effect-app/rpc"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware extends Context.DefineService(
-  RpcX.Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware", {}),
+  RpcX.Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware"),
   {
     effect: Effect.gen(function*() {
       // yield* Effect.context<"test-dep">()

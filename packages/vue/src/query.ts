@@ -4,22 +4,25 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type InitialDataFunction, type QueryKey, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryOptions, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type Enabled, type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
-import { computed, type ComputedRef, ref, type ShallowRef, shallowRef, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, type MaybeRefOrGetter, ref, type ShallowRef, shallowRef, watch, type WatchSource } from "vue"
 import { getRuntime, makeQueryKey, reportRuntimeError } from "./lib.js"
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface QueryObserverOptionsCustom<
   TQueryFnData = unknown,
   TError = Error,
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> extends Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn"> {}
+> extends
+  Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn" | "enabled">
+{
+  enabled?: MaybeRefOrGetter<boolean | undefined> | (() => Enabled<TQueryFnData, TError, TQueryData, TQueryKey>)
+}
 
 export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
   readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>

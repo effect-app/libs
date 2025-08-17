@@ -83,7 +83,7 @@ expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<
 >()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2 extends Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2", {}) {
+class MyContextProvider2 extends Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2") {
   static Default = Layer.make(this, {
     *make() {
       if (Math.random() > 0.5) return yield* new CustomError1()

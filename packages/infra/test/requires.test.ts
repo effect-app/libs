@@ -7,19 +7,19 @@ import { HttpHeaders } from "effect-app/http"
 import { makeMiddleware, Tag } from "effect-app/rpc"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
-export class RequiresSomeMiddleware extends Context.DefineService(
-  Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware", {}),
-  {
-    effect: Effect.gen(function*() {
+export class RequiresSomeMiddleware
+  extends Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware", {})
+{
+  static Default = Layer.make(this, {
+    *make() {
       // yield* Effect.context<"test-dep">()
       return Effect.fnUntraced(function*(effect) {
         yield* Some
         // yield* Effect.context<"test-dep2">()
         return yield* effect
       })
-    })
-  }
-) {
+    }
+  })
 }
 
 const middleware3 = makeMiddleware(RequestContextMap)

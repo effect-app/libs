@@ -68,6 +68,10 @@
       "types": "./dist/Inputify.type.d.ts",
       "default": "./dist/Inputify.type.js"
     },
+    "./Layer": {
+      "types": "./dist/Layer.d.ts",
+      "default": "./dist/Layer.js"
+    },
     "./NonEmptySet": {
       "types": "./dist/NonEmptySet.d.ts",
       "default": "./dist/NonEmptySet.js"
@@ -255,6 +259,10 @@
     "./utils/extend": {
       "types": "./dist/utils/extend.d.ts",
       "default": "./dist/utils/extend.js"
+    },
+    "./utils/gen": {
+      "types": "./dist/utils/gen.d.ts",
+      "default": "./dist/utils/gen.js"
     },
     "./utils/logLevel": {
       "types": "./dist/utils/logLevel.d.ts",

@@ -316,6 +316,7 @@ export const ServiceDef = <Tag extends Context.Tag<any, any>>(self: Tag) =>
     Layer.provide([Layer.empty, ...opts.dependencies ?? []])
   ) as any
 
+/** @deprecated; use `static Default = Layer.make(this, { effect, dependencies })` instead */
 export const DefineService = <
   Tag extends Context.TagClass<any, any, any>,
   LayerOpts extends {

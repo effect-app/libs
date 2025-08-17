@@ -13,13 +13,12 @@ import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Context.DefineService(
-  Tag<MyContextProvider, {
-    provides: Some
-    requires: SomeElse
-  }>()("MyContextProvider", {}),
-  {
-    effect: Effect.gen(function*() {
+class MyContextProvider extends Tag<MyContextProvider, {
+  provides: Some
+  requires: SomeElse
+}>()("MyContextProvider", {}) {
+  static Default = Layer.make(this, {
+    *make() {
       yield* SomeService
       if (Math.random() > 0.5) return yield* new CustomError1()
 
@@ -40,21 +39,19 @@ class MyContextProvider extends Context.DefineService(
 
         return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
       })
-    })
-  }
-) {
+    }
+  })
   static but_why = "???" // remove me and life rocks
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider3 extends Context.DefineService(
-  Tag<MyContextProvider3, {
-    provides: Some
-    requires: SomeElse
-  }>()("MyContextProvider3", {}),
-  {
+class MyContextProvider3 extends Tag<MyContextProvider3, {
+  provides: Some
+  requires: SomeElse
+}>()("MyContextProvider3", {}) {
+  static Default = Layer.make(this, {
     dependencies: [Layer.effect(SomeService, SomeService.make)],
-    effect: Effect.gen(function*() {
+    *make() {
       yield* SomeService
       if (Math.random() > 0.5) return yield* new CustomError1()
 
@@ -75,17 +72,20 @@ class MyContextProvider3 extends Context.DefineService(
 
         return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
       })
-    })
-  }
-) {}
+    }
+  })
+}
 
-expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<Layer.Layer<MyContextProvider3, CustomError1, never>>()
+expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<
+  Layer.Layer<MyContextProvider3, CustomError1, never> & {
+    withoutDependencies: Layer.Layer<MyContextProvider3, CustomError1, SomeService>
+  }
+>()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2 extends Context.DefineService(
-  Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2", {}),
-  {
-    effect: Effect.gen(function*() {
+class MyContextProvider2 extends Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2", {}) {
+  static Default = Layer.make(this, {
+    *make() {
       if (Math.random() > 0.5) return yield* new CustomError1()
 
       return Effect.fnUntraced(function*(effect) {
@@ -93,25 +93,26 @@ class MyContextProvider2 extends Context.DefineService(
 
         return yield* Effect.provideService(effect, SomeElse, new SomeElse({ b: 2 }))
       })
-    })
-  }
-) {}
+    }
+  })
+}
 
 //
 
 const Str = Context.GenericTag<"str", "str">("str")
 
-export class BogusMiddleware extends Context.DefineService(Tag<BogusMiddleware>()("BogusMiddleware", {}), {
-  effect: Effect.gen(function*() {
-    yield* Str
-    // yield* Effect.context<"test-dep">()
-    return (effect) =>
-      Effect.gen(function*() {
-        // yield* Effect.context<"test-dep2">()
-        return yield* effect
-      })
+export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {}) {
+  static Default = Layer.make(this, {
+    *make() {
+      yield* Str
+      // yield* Effect.context<"test-dep">()
+      return (effect) =>
+        Effect.gen(function*() {
+          // yield* Effect.context<"test-dep2">()
+          return yield* effect
+        })
+    }
   })
-}) {
 }
 
 const genericMiddlewares = [

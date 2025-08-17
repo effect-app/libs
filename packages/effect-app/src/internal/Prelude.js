@@ -11,7 +11,7 @@ export * as Equivalence from "effect/Equivalence";
 export * as Exit from "effect/Exit";
 export * as FiberRef from "effect/FiberRef";
 export * as HashMap from "effect/HashMap";
-export * as Layer from "effect/Layer";
+export * as Layer from "effect-app/Layer";
 export * as Option from "effect/Option";
 export * as Order from "effect/Order";
 export * as Ref from "effect/Ref";

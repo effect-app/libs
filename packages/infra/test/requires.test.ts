@@ -5,10 +5,11 @@ import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import * as RpcX from "effect-app/rpc"
+import { MiddlewareMaker } from "effect-app/rpc"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware
-  extends RpcX.Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware")
+  extends RpcX.RpcMiddleware.Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware")
 {
   static Default = Layer.make(this, {
     *make() {
@@ -22,27 +23,27 @@ export class RequiresSomeMiddleware
   })
 }
 
-const middleware3 = RpcX
-  .makeMiddleware(RequestContextMap)
+const middleware3 = MiddlewareMaker
+  .Tag()("middleware", RequestContextMap)
   .middleware(RequiresSomeMiddleware)
   .middleware(SomeMiddleware)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
   .middleware(SomeElseMiddleware)
 
-const _middlewareSideways = RpcX
-  .makeMiddleware(RequestContextMap)
+const _middlewareSideways = MiddlewareMaker
+  .Tag()("middleware", RequestContextMap)
   .middleware(RequiresSomeMiddleware)
   .middleware(SomeMiddleware)
   .middleware(RequireRoles, AllowAnonymous, Test)
   .middleware(SomeElseMiddleware)
 
-const _middlewareSidewaysFully = RpcX
-  .makeMiddleware(RequestContextMap)
+const _middlewareSidewaysFully = MiddlewareMaker
+  .Tag()("middleware", RequestContextMap)
   .middleware(RequiresSomeMiddleware, SomeMiddleware, RequireRoles, AllowAnonymous, Test, SomeElseMiddleware)
 
-export const _middleware3Bis = RpcX
-  .makeMiddleware(RequestContextMap)
+export const _middleware3Bis = MiddlewareMaker
+  .Tag()("middleware", RequestContextMap)
   .middleware(RequiresSomeMiddleware)
   .middleware(SomeMiddleware)
   .middleware(RequireRoles)

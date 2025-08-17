@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { contextMap, getConfig, RpcContextMap, Tag } from "effect-app/rpc"
+import { RpcX } from "effect-app/rpc"
+import { contextMap, getConfig, RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { TaggedError } from "effect-app/Schema"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -17,7 +18,7 @@ const MakeSomeService = Effect.succeed({ a: 1 })
 export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
 // functionally equivalent to the one above
-export class SomeMiddleware extends Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware") {
+export class SomeMiddleware extends RpcX.RpcMiddleware.Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware") {
 }
 
 export const SomeMiddlewareLive = Layer.effect(
@@ -28,7 +29,9 @@ export const SomeMiddlewareLive = Layer.effect(
   })
 )
 
-export class SomeElseMiddleware extends Tag<SomeElseMiddleware, { provides: SomeElse }>()("SomeElseMiddleware") {}
+export class SomeElseMiddleware
+  extends RpcX.RpcMiddleware.Tag<SomeElseMiddleware, { provides: SomeElse }>()("SomeElseMiddleware")
+{}
 
 export const SomeElseMiddlewareLive = Layer.effect(
   SomeElseMiddleware,
@@ -58,7 +61,7 @@ export const RequestContextMap = {
 type _RequestContextMap = typeof RequestContextMap
 export interface RequestContextMap extends _RequestContextMap {}
 
-export class AllowAnonymous extends Tag<AllowAnonymous, { requires: SomeElse }>()("AllowAnonymous", {
+export class AllowAnonymous extends RpcX.RpcMiddleware.Tag<AllowAnonymous, { requires: SomeElse }>()("AllowAnonymous", {
   dynamic: contextMap(RequestContextMap, "allowAnonymous")
 }) {}
 
@@ -91,7 +94,7 @@ export const AllowAnonymousLive = Layer.effect(
 
 // TODO: don't expect service when it's wrap
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class RequireRoles extends Tag<RequireRoles>()("RequireRoles", {
+export class RequireRoles extends RpcX.RpcMiddleware.Tag<RequireRoles>()("RequireRoles", {
   dynamic: contextMap(RequestContextMap, "requireRoles"),
   // had to move this in here, because once you put it manually as a readonly static property on the class,
   // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
@@ -124,7 +127,7 @@ export const RequireRolesLive = Layer.effect(
 )
 
 // TODO: don't expect service when it's wrap
-export class Test extends Tag<Test>()("Test", {
+export class Test extends RpcX.RpcMiddleware.Tag<Test>()("Test", {
   dynamic: contextMap(RequestContextMap, "test")
 }) {}
 

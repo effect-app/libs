@@ -1,5 +1,5 @@
 import { S } from "../internal/lib.js"
-import { type GetEffectError, type RpcContextMap } from "../rpc.js"
+import { type GetEffectError, type RpcContextMap } from "../rpc/RpcContextMap.js"
 import { AST } from "../Schema.js"
 
 // TODO: Fix error types... (?)

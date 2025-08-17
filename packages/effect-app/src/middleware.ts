@@ -1,16 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Context } from "effect-app"
-import { Middleware } from "./rpc.js"
+import { RpcX } from "./rpc.js"
 
 export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
 
-export class RequestCacheMiddleware extends Middleware.Tag<RequestCacheMiddleware>()("RequestCacheMiddleware") {}
-
-export class ConfigureInterruptibilityMiddleware
-  extends Middleware.Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware")
+export class RequestCacheMiddleware
+  extends RpcX.RpcMiddleware.Tag<RequestCacheMiddleware>()("RequestCacheMiddleware")
 {}
 
-export class LoggerMiddleware extends Middleware.Tag<LoggerMiddleware>()("LoggerMiddleware") {}
+export class ConfigureInterruptibilityMiddleware
+  extends RpcX.RpcMiddleware.Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware")
+{}
+
+export class LoggerMiddleware extends RpcX.RpcMiddleware.Tag<LoggerMiddleware>()("LoggerMiddleware") {}
 
 export const DefaultGenericMiddlewares = [
   RequestCacheMiddleware,

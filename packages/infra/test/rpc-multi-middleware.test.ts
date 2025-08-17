@@ -7,16 +7,19 @@ import { S } from "effect-app"
 import { NotLoggedInError } from "effect-app/client"
 import { HttpLayerRouter } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
-import { makeMiddleware, middlewareGroup } from "effect-app/rpc"
+import { MiddlewareMaker } from "effect-app/rpc"
+import { middlewareGroup } from "effect-app/rpc/MiddlewareMaker"
 import { createServer } from "http"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
 
-const middleware = makeMiddleware(RequestContextMap)
+class middleware extends MiddlewareMaker
+  .Tag<middleware>()("MiddlewareMaker", RequestContextMap)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
   .middleware(SomeElseMiddleware, SomeMiddleware)
   .middleware(...DefaultGenericMiddlewares)
+{}
 
 const UserRpcs = middlewareGroup(middleware)(
   RpcGroup.make(

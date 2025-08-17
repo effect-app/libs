@@ -12,7 +12,6 @@ import { type Span } from "effect/Tracer"
 import { computed, type ComputedRef, type MaybeRefOrGetter, ref, type ShallowRef, shallowRef, watch, type WatchSource } from "vue"
 import { getRuntime, makeQueryKey, reportRuntimeError } from "./lib.js"
 
-// Custom type that properly handles the enabled option for Vue Query
 export interface QueryObserverOptionsCustom<
   TQueryFnData = unknown,
   TError = Error,

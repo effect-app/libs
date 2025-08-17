@@ -16,7 +16,7 @@ import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, Re
 class MyContextProvider extends Tag<MyContextProvider, {
   provides: Some
   requires: SomeElse
-}>()("MyContextProvider", {}) {
+}>()("MyContextProvider") {
   static Default = Layer.make(this, {
     *make() {
       yield* SomeService
@@ -48,7 +48,7 @@ class MyContextProvider extends Tag<MyContextProvider, {
 class MyContextProvider3 extends Tag<MyContextProvider3, {
   provides: Some
   requires: SomeElse
-}>()("MyContextProvider3", {}) {
+}>()("MyContextProvider3") {
   static Default = Layer.make(this, {
     dependencies: [Layer.effect(SomeService, SomeService.make)],
     *make() {
@@ -101,7 +101,7 @@ class MyContextProvider2 extends Tag<MyContextProvider2, { provides: SomeElse }>
 
 const Str = Context.GenericTag<"str", "str">("str")
 
-export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware", {}) {
+export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware") {
   static Default = Layer.make(this, {
     *make() {
       yield* Str

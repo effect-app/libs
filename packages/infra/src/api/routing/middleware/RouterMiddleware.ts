@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RpcMiddleware } from "@effect/rpc"
 import { type Context, type Layer } from "effect-app"
-import { type MiddlewareMakerId } from "effect-app/rpc/MiddlewareMaker"
 import { type GetContextConfig, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 // module:
 //
@@ -30,7 +29,7 @@ export type RouterMiddleware<
     }
   >
   & {
-    readonly Default: Layer.Layer<MiddlewareMakerId, MakeMiddlewareE, MakeMiddlewareR>
+    readonly Default: Layer.Layer<Self, MakeMiddlewareE, MakeMiddlewareR>
     readonly requestContext: Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
     readonly requestContextMap: RequestContextMap
   }

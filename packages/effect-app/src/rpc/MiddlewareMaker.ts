@@ -12,10 +12,6 @@ import { type GetContextConfig, type RpcContextMap } from "./RpcContextMap.js"
 import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
 
-export interface MiddlewareMakerId {
-  readonly _id: unique symbol
-}
-
 // adapter for v3 rpc middleware provides
 type MakeTags<A> = Context.Tag<A, A>
 

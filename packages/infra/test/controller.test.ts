@@ -138,8 +138,8 @@ const MiddlewaresLive = [
   ...genericMiddlewaresLive
 ] as const
 
-const middleware = MiddlewareMaker
-  .Tag()("middleware", RequestContextMap)
+class middleware extends MiddlewareMaker
+  .Tag<middleware>()("middleware", RequestContextMap)
   .middleware(
     RequireRoles,
     Test
@@ -148,6 +148,10 @@ const middleware = MiddlewareMaker
   .middleware(AllowAnonymous)
   .middleware(MyContextProvider)
   .middleware(...genericMiddlewares)
+{
+  static Default = this.layer.pipe(Layer.provide(MiddlewaresLive))
+  // static override [Unify.unifySymbol]?: TagUnify<typeof middleware> // why we need this?
+}
 
 const middlewareBis = MiddlewareMaker
   .Tag()("middleware", RequestContextMap)
@@ -274,7 +278,7 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
 }) {}
 
 export const { Router, matchAll } = makeRouter(
-  Object.assign(middleware, { Default: middleware.layer.pipe(Layer.provide(MiddlewaresLive)) }),
+  middleware,
   true
 )
 

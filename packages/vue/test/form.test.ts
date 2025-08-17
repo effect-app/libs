@@ -1,9 +1,7 @@
-import { Effect } from "effect-app"
-import { S } from "effect-app"
-import type { DiscriminatedUnionFieldInfo, FieldInfo, NestedFieldInfo, UnionFieldInfo } from "../src/form.js"
-import { buildFieldInfoFromFieldsRoot } from "../src/form.js"
+import { Effect, S } from "effect-app"
+import { buildFieldInfoFromFieldsRoot, type DiscriminatedUnionFieldInfo, type FieldInfo, type NestedFieldInfo, type UnionFieldInfo } from "../src/form.js"
 
-export class NestedSchema extends S.Class<NestedSchema>()({
+export class NestedSchema extends S.Class<NestedSchema>("NestedSchema")({
   shallow: S.String,
   nested: S.Struct({
     deep: S.NonEmptyString,
@@ -14,11 +12,11 @@ export class NestedSchema extends S.Class<NestedSchema>()({
   age: S.propertySignature(S.Struct({ nfs: S.NumberFromString.pipe(S.compose(S.PositiveInt)) }))
 }) {}
 
-export class SchemaContainsClass extends S.Class<SchemaContainsClass>()({
+export class SchemaContainsClass extends S.Class<SchemaContainsClass>("SchemaContainsClass")({
   inner: NestedSchema
 }) {}
 
-export class UnionSchema extends S.Class<UnionSchema>()({
+export class UnionSchema extends S.Class<UnionSchema>("UnionSchema")({
   generalUnion: S.Union(S.String, S.Struct({ unionNested: NestedSchema })),
   structsUnion: S.Union(NestedSchema, SchemaContainsClass),
   optional: S.optional(S.String),
@@ -57,7 +55,7 @@ const TriangleStruct = S.Struct({
 const ShapeWithStructs = S.Union(CircleStruct, SquareStruct, TriangleStruct)
 const ShapeWithClasses = S.Union(Circle, Square, Triangle)
 
-export class ShapeContainer extends S.Class<ShapeContainer>()({
+export class ShapeContainer extends S.Class<ShapeContainer>("ShapeContainer")({
   shapeWithStruct: ShapeWithStructs,
   shapeWithClasses: ShapeWithClasses
 }) {}

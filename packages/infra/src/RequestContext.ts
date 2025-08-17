@@ -10,7 +10,7 @@ export class LocaleRef extends Context.Reference<LocaleRef>()("Locale", { defaul
 export class RequestContext extends S.ExtendedClass<
   RequestContext,
   RequestContext.Encoded
->()({
+>("RequestContext")({
   span: S.Struct({
     traceId: S.String,
     spanId: S.String,

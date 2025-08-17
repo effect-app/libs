@@ -20,12 +20,16 @@ import type {
   FieldValidators,
   NestedKeyOf,
   TypeOverride,
+  FormType,
+  MetaRecord,
 } from "./OmegaFormStuff"
 import type { InputProps } from "./InputProps"
 import OmegaInput from "./OmegaInput.vue"
-import { OmegaFormKey } from "./useOmegaForm" // Import the injection key
+import { OmegaFormKey } from "./useOmegaForm"
 
-const form = inject(OmegaFormKey)
+const form = inject(OmegaFormKey) as FormType<From, To> & {
+  meta: MetaRecord<To>
+}
 if (!form) {
   throw new Error("OmegaFormInput must be used within an OmegaForm context")
 }

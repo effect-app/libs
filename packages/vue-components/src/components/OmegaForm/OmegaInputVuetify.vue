@@ -4,8 +4,9 @@
     @focusout="$emit('blur', $event)"
     @focusin="$emit('focus', $event)"
   >
-    <v-checkbox
-      v-if="inputProps.type === 'boolean'"
+    <component
+      :is="inputProps.type === 'boolean' ? 'v-checkbox' : 'v-switch'"
+      v-if="inputProps.type === 'boolean' || inputProps.type === 'switch'"
       :id="inputProps.id"
       :name="inputProps.name"
       :label="inputProps.label"
@@ -46,8 +47,9 @@
       :model-value="vuetifyValue"
       @update:model-value="inputProps.field.handleChange"
     />
-    <v-text-field
-      v-if="inputProps.type === 'number'"
+    <component
+      :is="inputProps.type === 'range' ? 'v-slider' : 'v-text-field'"
+      v-if="inputProps.type === 'number' || inputProps.type === 'range'"
       :id="inputProps.id"
       :required="inputProps.required"
       :min="inputProps.min"
@@ -61,7 +63,11 @@
       :model-value="vuetifyValue"
       @update:model-value="
         (e: any) => {
-          inputProps.field.handleChange(Number(e))
+          if (e || e === 0) {
+            inputProps.field.handleChange(Number(e))
+          } else {
+            inputProps.field.handleChange(undefined)
+          }
         }
       "
     />

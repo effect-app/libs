@@ -1,5 +1,215 @@
 # @effect-app/prelude
 
+## 3.0.4
+
+### Patch Changes
+
+- bc68d9f: feat: introduce Layer.make as alternative to Context.ProvideService
+
+## 3.0.3
+
+### Patch Changes
+
+- c31423a: cleanup rpc
+
+## 3.0.2
+
+### Patch Changes
+
+- 88bb989: align dynamic/global middleware with V4
+
+## 3.0.1
+
+### Patch Changes
+
+- 74c28d1: move common rpc out of infra
+
+## 3.0.0
+
+### Major Changes
+
+- 3e4c45d: feat: Add new @effect/rpc Dynamic and Global Middleware, based on effect-app Router
+
+## 2.56.0
+
+### Minor Changes
+
+- db2b575: switch to new HttpLayerRouter
+
+## 2.55.0
+
+### Minor Changes
+
+- 37eb29a: improve ServiceBus api
+
+## 2.54.3
+
+### Patch Changes
+
+- dd30471: improve
+
+## 2.54.2
+
+### Patch Changes
+
+- 79ffd88: updates
+
+## 2.54.1
+
+### Patch Changes
+
+- 9f90266: fix prefix namespace
+
+## 2.54.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+## 2.53.1
+
+### Patch Changes
+
+- fa2c8d0: fix prefix
+
+## 2.53.0
+
+### Minor Changes
+
+- 5c51597: refactor Middleware to run as RPC middleware
+
+## 2.52.1
+
+### Patch Changes
+
+- 244f84d: various improvements, documentation
+
+## 2.52.0
+
+### Minor Changes
+
+- 99cf15f: unify middleware api
+
+## 2.51.0
+
+### Minor Changes
+
+- 54dd59a: cleanup NES
+
+## 2.50.2
+
+### Patch Changes
+
+- 0d33085: fix dts freak
+
+## 2.50.1
+
+### Patch Changes
+
+- build fix
+
+## 2.50.0
+
+### Minor Changes
+
+- 0a82e7f: update packages
+
+## 2.49.0
+
+### Minor Changes
+
+- a36ceed: feat: composable dynamic middleware
+
+## 2.48.0
+
+### Minor Changes
+
+- 8bb246b: cleanup and document router/middleware
+
+## 2.47.2
+
+### Patch Changes
+
+- fup
+
+## 2.47.1
+
+### Patch Changes
+
+- fup
+
+## 2.47.0
+
+### Minor Changes
+
+- d29cb1b: refactor: drop optional identifier for Schema classes.
+
+## 2.46.1
+
+### Patch Changes
+
+- b095bb5: tscp
+
+## 2.46.0
+
+### Minor Changes
+
+- ba4ad65: update packages; drop ServiceStrict in favour of language-service
+
+## 2.45.0
+
+### Minor Changes
+
+- 2c217ce: update packages
+
+## 2.44.0
+
+### Minor Changes
+
+- 55da9e7: improve: Router supports contextProvider through middleware, replacing flawed requestLayers
+
+## 2.43.3
+
+### Patch Changes
+
+- b771967: update packages
+
+## 2.43.2
+
+### Patch Changes
+
+- aec6960: fix complex ast tagged union
+
+## 2.43.1
+
+### Patch Changes
+
+- a2e1e1e: improve jsonschema of Email
+
+## 2.43.0
+
+### Minor Changes
+
+- eac9c67: update packages
+
+## 2.42.1
+
+### Patch Changes
+
+- 49d93a5: update packages
+
+## 2.42.0
+
+### Minor Changes
+
+- ba96171: improve Cosmos errors
+
+## 2.41.0
+
+### Minor Changes
+
+- b1d4af4: housekeeping: update packages
+
 ## 2.40.1
 
 ### Patch Changes

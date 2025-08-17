@@ -9,6 +9,7 @@
   >
     <template #default="{ field }: { field: OmegaFieldInternalApi<To> }">
       <OmegaInternalInput
+        v-if="meta"
         :field="field"
         :label="label"
         :options="options"
@@ -25,8 +26,9 @@
 </template>
 
 <script setup lang="ts" generic="From, To">
-import { computed } from "vue"
+import { computed, inject, type Ref } from "vue"
 import {
+  type FieldMeta,
   generateInputStandardSchemaFromFieldMeta,
   type OmegaInputProps,
 } from "./OmegaFormStuff"
@@ -39,7 +41,15 @@ defineOptions({
   inheritAttrs: false,
 })
 
+const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
+  "getMetaFromArray",
+  null,
+)
+
 const meta = computed(() => {
+  if (getMetaFromArray?.value && getMetaFromArray.value(props.name)) {
+    return getMetaFromArray.value(props.name)
+  }
   return props.form.meta[props.name]
 })
 

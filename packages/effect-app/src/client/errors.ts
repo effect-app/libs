@@ -1,3 +1,4 @@
+/** @effect-diagnostics overriddenSchemaConstructor:skip-file */
 import { TaggedError } from "effect-app/Schema"
 import { makeFiberFailure } from "effect/Runtime"
 import { Cause, S } from "../internal/lib.js"
@@ -108,10 +109,11 @@ export class OptimisticConcurrencyException extends TaggedError<OptimisticConcur
   { message: S.String }
 ) {
   readonly details?: OptimisticConcurrencyDetails
+  readonly raw?: unknown
   constructor(
     args:
       | OptimisticConcurrencyDetails
-      | (S.Struct.Constructor<typeof OptimisticConcurrencyException.fields> & { cause?: unknown }),
+      | (S.Struct.Constructor<typeof OptimisticConcurrencyException.fields> & { cause?: unknown; raw?: unknown }),
     disableValidation?: boolean
   ) {
     super("message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` }, disableValidation)

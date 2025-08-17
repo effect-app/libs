@@ -17,7 +17,7 @@ import type * as EQ from "effect/Equivalence";
 import type * as EX from "effect/Exit";
 import type * as FR from "effect/FiberRef";
 import type * as HM from "effect/HashMap";
-import type * as LAYER from "effect/Layer";
+import type * as LAYER from "effect-app/Layer";
 import type * as O from "effect/Option";
 import type * as ORD from "effect/Order";
 import type * as REF from "effect/Ref";
@@ -34,7 +34,7 @@ export declare namespace Effect {
 }
 export type Effect<out A, out E = never, out R = never> = EFFECT.Effect<A, E, R>;
 export declare namespace Layer {
-    export * from "effect/Layer";
+    export * from "effect-app/Layer";
     export type Success<T extends Layer<never, any, any>> = LAYER.Layer.Success<T>;
     export type Error<T extends Layer<never, any, any>> = LAYER.Layer.Error<T>;
     export type Context<T extends Layer<never, any, any>> = LAYER.Layer.Context<T>;

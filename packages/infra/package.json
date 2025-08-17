@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "2.55.2",
+  "version": "3.0.6",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -9,45 +9,48 @@
     "cross-fetch": "^4.1.0",
     "effect-app": "workspace:*",
     "express-oauth2-jwt-bearer": "^1.6.1",
-    "fast-check": "~4.1.1",
+    "fast-check": "~4.2.0",
     "path-parser": "^6.1.0",
     "proper-lockfile": "^4.1.2",
     "pure-rand": "7.0.1",
-    "query-string": "^9.1.2"
+    "query-string": "^9.2.2"
   },
   "devDependencies": {
-    "@azure/cosmos": "^4.3.0",
+    "@azure/cosmos": "^4.5.0",
     "@azure/service-bus": "^7.9.5",
-    "@sentry/node": "^9.16.1",
-    "@types/express": "^5.0.1",
-    "@types/node": "~22.15.16",
+    "@sentry/node": "10.2.0",
+    "@sentry/opentelemetry": "10.2.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "~24.2.0",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.7",
     "express": "^5.1.0",
     "jwks-rsa": "2.1.4",
     "jwt-decode": "^4.0.0",
-    "mongodb": "6.16.0",
+    "mongodb": "6.18.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
     "strip-ansi": "^7.1.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.3"
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "@azure/cosmos": "^4.3.0",
+    "@azure/cosmos": "^4.5.0",
     "@azure/service-bus": "^7.9.5",
-    "@effect/experimental": "^0.44.20",
-    "@effect/platform": "^0.80.20",
-    "@effect/rpc-http": "^0.52.4",
-    "@effect/rpc": "^0.56.8",
-    "@effect/sql": "^0.33.20",
-    "@effect/vitest": "^0.21.3",
+    "@effect/experimental": "^0.54.3",
+    "@effect/platform": "^0.90.0",
+    "@effect/rpc": "^0.68.3",
+    "@effect/sql": "^0.44.0",
+    "@effect/vitest": "^0.25.0",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.5",
+    "@sentry/node": "10.2.0",
+    "@sentry/opentelemetry": "10.2.0",
+    "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^3.14.20",
+    "effect": "^3.17.6",
     "express": "^5.1.0"
   },
   "typesVersions": {
@@ -274,9 +277,17 @@
       "types": "./dist/adapters/redis-client.d.ts",
       "default": "./dist/adapters/redis-client.js"
     },
+    "./api/ContextProvider": {
+      "types": "./dist/api/ContextProvider.d.ts",
+      "default": "./dist/api/ContextProvider.js"
+    },
     "./api/codec": {
       "types": "./dist/api/codec.d.ts",
       "default": "./dist/api/codec.js"
+    },
+    "./api/layerUtils": {
+      "types": "./dist/api/layerUtils.d.ts",
+      "default": "./dist/api/layerUtils.js"
     },
     "./api/middlewares": {
       "types": "./dist/api/middlewares.d.ts",
@@ -290,13 +301,25 @@
       "types": "./dist/api/routing.d.ts",
       "default": "./dist/api/routing.js"
     },
-    "./api/routing/DynamicMiddleware": {
-      "types": "./dist/api/routing/DynamicMiddleware.d.ts",
-      "default": "./dist/api/routing/DynamicMiddleware.js"
+    "./api/routing/middleware": {
+      "types": "./dist/api/routing/middleware.d.ts",
+      "default": "./dist/api/routing/middleware.js"
+    },
+    "./api/routing/middleware/RouterMiddleware": {
+      "types": "./dist/api/routing/middleware/RouterMiddleware.d.ts",
+      "default": "./dist/api/routing/middleware/RouterMiddleware.js"
+    },
+    "./api/routing/middleware/middleware": {
+      "types": "./dist/api/routing/middleware/middleware.d.ts",
+      "default": "./dist/api/routing/middleware/middleware.js"
     },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",
       "default": "./dist/api/routing/schema/jwt.js"
+    },
+    "./api/routing/tsort": {
+      "types": "./dist/api/routing/tsort.d.ts",
+      "default": "./dist/api/routing/tsort.js"
     },
     "./api/routing/utils": {
       "types": "./dist/api/routing/utils.d.ts",
@@ -379,7 +402,7 @@
     "client": "node --experimental-specifier-resolution=node -r source-map-support/register ./dist/client.bin.js",
     "ncu": "ncu",
     "pub": "pnpm prepublish && npm publish --access public",
-    "prepublish": "pnpm build && cp -f ./tsconfig.json ./tsconfig.json.bak && node ../../scripts/mergeTsConfig.cjs ./tsconfig.json",
+    "prepublish": "pnpm build && cp -f ./tsconfig.json ./tsconfig.json.bak && node ../../scripts/mergeTsConfig.mjs ./tsconfig.json",
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "gitHead": "bd8e27eea3eff97db8739d577d67e7336c078d28",

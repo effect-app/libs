@@ -1,5 +1,771 @@
 # @effect-app/infra
 
+## 3.0.6
+
+### Patch Changes
+
+- bc68d9f: feat: introduce Layer.make as alternative to Context.ProvideService
+- Updated dependencies [bc68d9f]
+  - effect-app@3.0.4
+
+## 3.0.5
+
+### Patch Changes
+
+- c31423a: cleanup rpc
+- 715dd12: fix: missing span for useUnsafeMutation
+- Updated dependencies [c31423a]
+  - effect-app@3.0.3
+
+## 3.0.4
+
+### Patch Changes
+
+- 0d114ad: cleanup
+
+## 3.0.3
+
+### Patch Changes
+
+- 88bb989: align dynamic/global middleware with V4
+- Updated dependencies [88bb989]
+  - effect-app@3.0.2
+
+## 3.0.2
+
+### Patch Changes
+
+- 64745d0: just layers
+
+## 3.0.1
+
+### Patch Changes
+
+- 74c28d1: move common rpc out of infra
+- Updated dependencies [74c28d1]
+  - effect-app@3.0.1
+
+## 3.0.0
+
+### Major Changes
+
+- 3e4c45d: feat: Add new @effect/rpc Dynamic and Global Middleware, based on effect-app Router
+
+### Patch Changes
+
+- Updated dependencies [3e4c45d]
+  - effect-app@3.0.0
+
+## 2.94.0
+
+### Minor Changes
+
+- db2b575: switch to new HttpLayerRouter
+
+### Patch Changes
+
+- Updated dependencies [db2b575]
+  - effect-app@2.56.0
+
+## 2.93.0
+
+### Minor Changes
+
+- 37eb29a: improve ServiceBus api
+
+### Patch Changes
+
+- Updated dependencies [37eb29a]
+  - effect-app@2.55.0
+
+## 2.92.3
+
+### Patch Changes
+
+- 8653771: add more useful logging
+
+## 2.92.2
+
+### Patch Changes
+
+- 74dd551: fix Request span name
+
+## 2.92.1
+
+### Patch Changes
+
+- Updated dependencies [dd30471]
+  - effect-app@2.54.3
+
+## 2.92.0
+
+### Minor Changes
+
+- f88f046: sentry 10
+
+## 2.91.3
+
+### Patch Changes
+
+- 79ffd88: updates
+- Updated dependencies [79ffd88]
+  - effect-app@2.54.2
+
+## 2.91.2
+
+### Patch Changes
+
+- 60ed182: one way
+
+## 2.91.1
+
+### Patch Changes
+
+- 920840a: try to reduce union complexity
+
+## 2.91.0
+
+### Minor Changes
+
+- a660b08: cleanup legacy. move interruption/retryability to middleware
+
+## 2.90.1
+
+### Patch Changes
+
+- Updated dependencies [9f90266]
+  - effect-app@2.54.1
+
+## 2.90.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+### Patch Changes
+
+- Updated dependencies [0f2b2cf]
+  - effect-app@2.54.0
+
+## 2.89.3
+
+### Patch Changes
+
+- Updated dependencies [fa2c8d0]
+  - effect-app@2.53.1
+
+## 2.89.2
+
+### Patch Changes
+
+- d2776fb: fix dumb layer issues
+
+## 2.89.1
+
+### Patch Changes
+
+- 85c5d7b: you should always be able to control middleware order, even if everything required has been provided
+
+## 2.89.0
+
+### Minor Changes
+
+- 5c51597: refactor Middleware to run as RPC middleware
+
+### Patch Changes
+
+- Updated dependencies [5c51597]
+  - effect-app@2.53.0
+
+## 2.88.0
+
+### Minor Changes
+
+- bda3435: add sideways elimination when building middlewares
+
+### Patch Changes
+
+- 244f84d: various improvements, documentation
+- Updated dependencies [244f84d]
+  - effect-app@2.52.1
+
+## 2.87.2
+
+### Patch Changes
+
+- 6d43e93: fix Router empty dependencies support
+
+## 2.87.1
+
+### Patch Changes
+
+- remove debug
+
+## 2.87.0
+
+### Minor Changes
+
+- 99cf15f: unify middleware api
+
+### Patch Changes
+
+- Updated dependencies [99cf15f]
+  - effect-app@2.52.0
+
+## 2.86.0
+
+### Minor Changes
+
+- f30dfe3: support middleware `requires` and simplified api
+
+## 2.85.0
+
+### Minor Changes
+
+- 00bf1b7: allow multiple dynamic middleware at once
+
+## 2.84.0
+
+### Minor Changes
+
+- d4e66ee: drop make requirement
+
+## 2.83.1
+
+### Patch Changes
+
+- Updated dependencies [54dd59a]
+  - effect-app@2.51.0
+
+## 2.83.0
+
+### Minor Changes
+
+- use NERA instead of fake ContextRepr
+
+## 2.82.0
+
+### Minor Changes
+
+- c375351: fix: dependsOn for dynamicMiddleware.
+- 6e20474: feat: add provides: Context support
+
+## 2.81.1
+
+### Patch Changes
+
+- a33dd24: cleanupy
+
+## 2.81.0
+
+### Minor Changes
+
+- e9ce960: improve: make dynamic middleware with the same RpcMiddleware.tag api.
+  added experimental `makeNewMiddleware` with fluent api.
+  remove HttpServerRequest requirement from checkJWTI
+
+## 2.80.0
+
+### Minor Changes
+
+- 8cc79f2: remove http details from rpc api
+
+## 2.79.0
+
+### Minor Changes
+
+- f4b6d3d: improve: Align our Middleware with RPC Middleware. combine genericMiddleware with contextProvider.
+
+## 2.78.8
+
+### Patch Changes
+
+- 0e0f558: support for generators in context providers
+
+## 2.78.7
+
+### Patch Changes
+
+- minor api improvements
+
+## 2.78.6
+
+### Patch Changes
+
+- 8c62716: make contextProvider optional
+
+## 2.78.5
+
+### Patch Changes
+
+- fix type
+
+## 2.78.4
+
+### Patch Changes
+
+- fix typesafety
+
+## 2.78.3
+
+### Patch Changes
+
+- cab6fad: fix dependencies
+
+## 2.78.2
+
+### Patch Changes
+
+- Updated dependencies [0d33085]
+  - effect-app@2.50.2
+
+## 2.78.1
+
+### Patch Changes
+
+- build fix
+- Updated dependencies
+  - effect-app@2.50.1
+
+## 2.78.0
+
+### Minor Changes
+
+- 40e4383: rely on rpc http protocol injecting http headers.
+
+## 2.77.0
+
+### Minor Changes
+
+- 0a82e7f: update packages
+- 214afcc: align middleware more with rpc middleware
+
+### Patch Changes
+
+- Updated dependencies [0a82e7f]
+  - effect-app@2.50.0
+
+## 2.76.0
+
+### Minor Changes
+
+- d3a7a32: cleanup middleware
+
+## 2.75.0
+
+### Minor Changes
+
+- 6490adf: add "generic middleware"
+- 0fc2abc: extract ConfigureInterruptibilityMiddleware
+
+### Patch Changes
+
+- make execute/dependencies optional
+
+## 2.74.0
+
+### Minor Changes
+
+- a36ceed: feat: composable dynamic middleware
+
+### Patch Changes
+
+- Updated dependencies [a36ceed]
+  - effect-app@2.49.0
+
+## 2.73.4
+
+### Patch Changes
+
+- 6996ba3: fix MergedContextProvider
+
+## 2.73.3
+
+### Patch Changes
+
+- 981c4ed: set proper upperbounds for contexts, add MergedContextProvider, remove MiddlewareR from makeMiddleware
+
+## 2.73.2
+
+### Patch Changes
+
+- fup
+
+## 2.73.1
+
+### Patch Changes
+
+- 4c93aae: fix: ContextProvider R
+
+## 2.73.0
+
+### Minor Changes
+
+- f260706: simplify middleware
+- 063b79f: further simplify ContextProvider
+- 063b79f: improve ContextProvider
+
+## 2.72.0
+
+### Minor Changes
+
+- 96c51df: replace execute with executeContextual
+
+### Patch Changes
+
+- 96c51df: add support for error
+
+## 2.71.0
+
+### Minor Changes
+
+- 8bb246b: cleanup and document router/middleware
+
+### Patch Changes
+
+- 8bb246b: better middlewares creation
+- Updated dependencies [8bb246b]
+  - effect-app@2.48.0
+
+## 2.70.2
+
+### Patch Changes
+
+- fup
+- Updated dependencies
+  - effect-app@2.47.2
+
+## 2.70.1
+
+### Patch Changes
+
+- Updated dependencies
+  - effect-app@2.47.1
+
+## 2.70.0
+
+### Minor Changes
+
+- d29cb1b: refactor: drop optional identifier for Schema classes.
+
+### Patch Changes
+
+- 4ae597d: update packages
+- Updated dependencies [d29cb1b]
+  - effect-app@2.47.0
+
+## 2.69.1
+
+### Patch Changes
+
+- b095bb5: tscp
+- Updated dependencies [b095bb5]
+  - effect-app@2.46.1
+
+## 2.69.0
+
+### Minor Changes
+
+- ba4ad65: update packages; drop ServiceStrict in favour of language-service
+
+### Patch Changes
+
+- Updated dependencies [ba4ad65]
+  - effect-app@2.46.0
+
+## 2.68.1
+
+### Patch Changes
+
+- c53fb64: add contextMaker
+
+## 2.68.0
+
+### Minor Changes
+
+- 940f9a0: flat ContextMaker again
+
+## 2.67.2
+
+### Patch Changes
+
+- f5724bf: support scope
+
+## 2.67.1
+
+### Patch Changes
+
+- 6e8123a: fup
+
+## 2.67.0
+
+### Minor Changes
+
+- e65a694: improve ContextMaker
+
+## 2.66.0
+
+### Minor Changes
+
+- 2c217ce: update packages
+
+### Patch Changes
+
+- Updated dependencies [2c217ce]
+  - effect-app@2.45.0
+
+## 2.65.0
+
+### Minor Changes
+
+- 55da9e7: improve: Router supports contextProvider through middleware, replacing flawed requestLayers
+
+### Patch Changes
+
+- Updated dependencies [55da9e7]
+  - effect-app@2.44.0
+
+## 2.64.6
+
+### Patch Changes
+
+- 0e0c962: router: fix missing R retrieval in generators
+
+## 2.64.5
+
+### Patch Changes
+
+- b771967: update packages
+- Updated dependencies [b771967]
+  - effect-app@2.43.3
+
+## 2.64.4
+
+### Patch Changes
+
+- Updated dependencies [aec6960]
+  - effect-app@2.43.2
+
+## 2.64.3
+
+### Patch Changes
+
+- Updated dependencies [a2e1e1e]
+  - effect-app@2.43.1
+
+## 2.64.2
+
+### Patch Changes
+
+- 492915e: add more overloads for whereSome and whereEvery (DX)
+
+## 2.64.1
+
+### Patch Changes
+
+- 95e6e0f: cleanup
+
+## 2.64.0
+
+### Minor Changes
+
+- feat: better every some queries: remove the need of flow wrapper
+
+## 2.63.0
+
+### Minor Changes
+
+- e8bb979: feat: every/some dsl
+
+## 2.62.0
+
+### Minor Changes
+
+- feat: support "every" semantic in the relationship query instead of only "some"
+
+## 2.61.8
+
+### Patch Changes
+
+- fix: proper dotted access path conversion
+
+## 2.61.7
+
+### Patch Changes
+
+- fix
+
+## 2.61.6
+
+### Patch Changes
+
+- d56da4e: fix
+
+## 2.61.5
+
+### Patch Changes
+
+- 17a78df: fix non relation
+
+## 2.61.4
+
+### Patch Changes
+
+- 50b470c: optimise
+
+## 2.61.3
+
+### Patch Changes
+
+- 136e178: fix distinct for join
+
+## 2.61.2
+
+### Patch Changes
+
+- 43dbb4d: support nested in memory
+
+## 2.61.1
+
+### Patch Changes
+
+- 18ebe56: fix rel
+
+## 2.61.0
+
+### Minor Changes
+
+- 71a6ba8: feat: add proper relationship query grouping
+
+## 2.60.1
+
+### Patch Changes
+
+- fix: don't array select non selectable types
+
+## 2.60.0
+
+### Minor Changes
+
+- a085319: feat: support first-level array field selection
+
+### Patch Changes
+
+- eea664d: fix: support for reserved keywords in cosmos queries.
+
+## 2.59.1
+
+### Patch Changes
+
+- 1c86c6a: remove obsolete :error workaround
+
+## 2.59.0
+
+### Minor Changes
+
+- d88598d: feat: add `queryRaw` support for experimentation
+
+## 2.58.0
+
+### Minor Changes
+
+- eac9c67: update packages
+
+### Patch Changes
+
+- Updated dependencies [eac9c67]
+  - effect-app@2.43.0
+
+## 2.57.8
+
+### Patch Changes
+
+- log error
+
+## 2.57.7
+
+### Patch Changes
+
+- 9b3717d: fix stream end on error
+
+## 2.57.6
+
+### Patch Changes
+
+- cfe1601: fix: eventstream termination
+
+## 2.57.5
+
+### Patch Changes
+
+- e02a908: bun workaround
+
+## 2.57.4
+
+### Patch Changes
+
+- 7d7a286: peer
+
+## 2.57.3
+
+### Patch Changes
+
+- 50bd7c1: peer
+
+## 2.57.2
+
+### Patch Changes
+
+- 49d93a5: update packages
+- Updated dependencies [49d93a5]
+  - effect-app@2.42.1
+
+## 2.57.1
+
+### Patch Changes
+
+- 18c15ef: chore: change queue incoming message log level to debug
+
+## 2.57.0
+
+### Minor Changes
+
+- ba96171: improve Cosmos errors
+
+### Patch Changes
+
+- Updated dependencies [ba96171]
+  - effect-app@2.42.0
+
+## 2.56.3
+
+### Patch Changes
+
+- db3dafc: improve: SSE logs
+
+## 2.56.2
+
+### Patch Changes
+
+- 90670bb: fix bigint serialisation error
+
+## 2.56.1
+
+### Patch Changes
+
+- cd0f564: improve: add connection id logging for SSE
+
+## 2.56.0
+
+### Minor Changes
+
+- b1d4af4: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [b1d4af4]
+  - effect-app@2.41.0
+
 ## 2.55.2
 
 ### Patch Changes

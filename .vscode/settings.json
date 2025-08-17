@@ -1,13 +1,9 @@
 {
-  "workbench.colorCustomizations": {
-    "titleBar.inactiveBackground": "#16a085",
-    "titleBar.inactiveForeground": "#ffffff"
-  },
   "explorer.sortOrderLexicographicOptions": "upper",
   // would prefer on in frontend, so might want to use a specialised frontend config..
   "volar.updateImportsOnFileMove.enabled": false,
   "typescript.preferences.includePackageJsonAutoImports": "on",
-  "typescript.preferences.autoImportFileExcludePatterns": [w
+  "typescript.preferences.autoImportFileExcludePatterns": [
     "node_modules/@sentry/node",
     "node_modules/vitest/dist",
     "node_modules/@azure/cosmos",

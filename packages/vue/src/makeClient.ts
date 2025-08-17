@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as Result from "@effect-rx/rx/Result"
-import type { InitialDataFunction, QueryObserverResult, RefetchOptions, UseQueryReturnType } from "@tanstack/vue-query"
+import * as Result from "@effect-atom/atom/Result"
+import { type InitialDataFunction, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Cause, Effect, Exit, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
@@ -8,7 +8,7 @@ import { constant, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
-import { computed, type ComputedRef, type Ref, ref, type ShallowRef, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, type ShallowRef, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { getRuntime, reportRuntimeError } from "./lib.js"
@@ -198,6 +198,24 @@ export const makeClient = <Locale extends string, R>(
    */
   const _useUnsafeMutation = makeMutation()
   const _useSafeQuery = makeQuery(runtime)
+
+  const __useUnsafeMutation: {
+    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandlerWithInput<I, A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2, I>
+    ): (i: I) => Effect<A2, E2, R2>
+    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      self: RequestHandler<A, E, R, Request>,
+      options?: MutationOptions<A, E, R, A2, E2, R2>
+    ): Effect<A2, E2, R2>
+  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+    options?: MutationOptions<A, E, R, A2, E2, R2, I>
+  ) =>
+    tapHandler(
+      _useUnsafeMutation(self as any, options),
+      Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
+    ) as any
 
   /**
    * Effect results are converted to Exit, so errors are ignored by default.
@@ -852,19 +870,28 @@ export const makeClient = <Locale extends string, R>(
       argOrOptions,
       { ...options, suspense: true } // experimental_prefetchInRender: true }
     )
+
+    const isMounted = ref(true)
+    onBeforeUnmount(() => {
+      isMounted.value = false
+    })
+
+    // @effect-diagnostics effect/missingEffectError:off
     return Effect.gen(function*() {
       // we want to throw on error so that we can catch cancelled error and skip handling it
       // what's the difference with just calling `fetch` ?
       // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
       const r = yield* Effect.tryPromise(() => uqrt.suspense()).pipe(
         Effect.catchTag("UnknownException", (err) =>
-          Runtime
-              .isFiberFailure(
-                err.error
-              )
+          Runtime.isFiberFailure(err.error)
             ? Effect.failCause(err.error[Runtime.FiberFailureCauseId])
+            : isCancelledError(err.error)
+            ? Effect.interrupt
             : Effect.die(err.error))
       )
+      if (!isMounted.value) {
+        return yield* Effect.interrupt
+      }
       const result = resultRef.value
       if (Result.isInitial(result)) {
         console.error("Internal Error: Promise should be resolved already", {
@@ -897,7 +924,7 @@ export const makeClient = <Locale extends string, R>(
     buildFormFromSchema: _buildFormFromSchema,
     useSafeQuery: _useSafeQuery,
     useSafeMutation: _useSafeMutation,
-    useUnsafeMutation: _useUnsafeMutation,
+    useUnsafeMutation: __useUnsafeMutation,
     useSafeSuspenseQuery
   }
 }

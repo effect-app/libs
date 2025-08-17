@@ -6,7 +6,7 @@ export const OperationId = S.StringId
 export class OperationProgress extends S.ExtendedClass<
   OperationProgress,
   OperationProgress.Encoded
->()({
+>("OperationProgress")({
   completed: S.NonNegativeInt,
   total: S.NonNegativeInt
 }) {}
@@ -26,7 +26,7 @@ export class OperationFailure
 export const OperationResult = S.TaggedUnion(OperationSuccess, OperationFailure)
 export type OperationResult = S.Schema.Type<typeof OperationResult>
 
-export class Operation extends S.ExtendedClass<Operation, Operation.Encoded>()({
+export class Operation extends S.ExtendedClass<Operation, Operation.Encoded>("Operation")({
   id: OperationId,
   title: S.NonEmptyString2k,
   progress: S.optional(OperationProgress),

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Match, Option, pipe, S } from "effect-app"
+import { Array, identity, Match, Option, pipe, S } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { dropUndefinedT } from "effect-app/utils"
 import type { FilterResult } from "../filter/filterApi.js"
@@ -48,17 +48,26 @@ const interpret = <
     if (v.mode !== undefined) data.mode = v.mode
   }
 
+  const applyPath = (path: string) => (_: FilterResult): FilterResult =>
+    _.t === "where" || _.t === "and" || _.t === "or"
+      ? { ..._, path: `${path}.-1.${_.path}` }
+      : { ..._, result: _.result.map(applyPath(path)) }
+
   pipe(
     a,
     Match.valueTags({
       value: () => {
         // data.filter.push(value)
       },
-      where: ({ current, operation }) => {
+      where: ({ current, operation, relation, subPath }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
           data.filter.push(
-            { t: "where-scope", result: interpret(operation(make())).filter }
+            {
+              t: "where-scope",
+              result: interpret(operation(make())).filter.map(subPath ? applyPath(subPath) : identity),
+              relation
+            }
           )
         } else {
           data.filter.push(
@@ -71,11 +80,11 @@ const interpret = <
           )
         }
       },
-      and: ({ current, operation }) => {
+      and: ({ current, operation, relation }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
           data.filter.push(
-            { t: "and-scope", result: interpret(operation(make())).filter }
+            { t: "and-scope", result: interpret(operation(make())).filter, relation }
           )
         } else {
           data.filter.push(
@@ -88,11 +97,11 @@ const interpret = <
           )
         }
       },
-      or: ({ current, operation }) => {
+      or: ({ current, operation, relation }) => {
         upd(interpret(current))
         if (typeof operation === "function") {
           data.filter.push(
-            { t: "or-scope", result: interpret(operation(make())).filter }
+            { t: "or-scope", result: interpret(operation(make())).filter, relation }
           )
         } else {
           data.filter.push(
@@ -135,6 +144,13 @@ const interpret = <
   return data
 }
 
+const walkTransformation = (t: S.AST.AST) => {
+  if (S.AST.isTransformation(t)) {
+    return walkTransformation(t.from)
+  }
+  return t
+}
+
 export const toFilter = <
   TFieldValues extends FieldValues,
   A,
@@ -146,14 +162,36 @@ export const toFilter = <
   // TODO: Native interpreter for each db adapter, instead of the intermediate "new-kid" format
   const a = interpret(q)
   const schema = a.schema
-  let select: (keyof TFieldValues)[] = []
+  let select: (keyof TFieldValues | { key: string; subKeys: string[] })[] = []
+  // TODO: support more complex (nested) schemas?
   if (schema) {
-    let t = schema.ast
-    if (S.AST.isTransformation(t)) {
-      t = t.from
-    }
+    const t = walkTransformation(schema.ast)
     if (S.AST.isTypeLiteral(t)) {
-      select = t.propertySignatures.map((_) => _.name) as any
+      select = t.propertySignatures.map((_) => _.name as string)
+      for (const prop of t.propertySignatures) {
+        if (S.AST.isTupleType(prop.type)) {
+          // make sure we only select when there are actually type literals in the tuple...
+          // otherwise we might be dealing with strings etc.
+          // TODO; be more strict, can't support arrays with unions that have non TypeLiteral members etc..
+          const arraySelect = {
+            key: prop.name as string,
+            subKeys: Array.flatMap(
+              prop.type.rest,
+              (x) => {
+                const t = walkTransformation(x.type)
+                return S.AST.isTypeLiteral(t) ? t.propertySignatures.map((y) => y.name as string) : []
+              }
+            )
+          }
+          if (arraySelect.subKeys.length > 0) {
+            select.push(arraySelect)
+            // make sure we don't double select?
+            if (select.includes(prop.name as string)) {
+              select.splice(select.indexOf(prop.name as string), 1)
+            }
+          }
+        }
+      }
     }
   }
   return dropUndefinedT({

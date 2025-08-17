@@ -9,12 +9,12 @@ import { mount } from "@vue/test-utils"
 import OmegaForm from "./OmegaFormTest.vue"
 import OmegaIntlProvider from "./OmegaIntlProvider.vue"
 
-class kkk extends S.Class<kkk>()({
+class kkk extends S.Class<kkk>("kkk")({
   lll: S.String.pipe(S.minLength(10)).pipe(S.maxLength(21)),
   mmm: S.Number.pipe(S.between(10, 20)),
 }) {}
 
-class bbb extends S.Class<bbb>()({
+class bbb extends S.Class<bbb>("bbb")({
   ccc: S.String.pipe(S.minLength(1)).pipe(S.maxLength(2)),
   ddd: S.NullOr(S.String.pipe(S.maxLength(3))),
   jjj: S.UndefinedOr(S.String.pipe(S.maxLength(4))),

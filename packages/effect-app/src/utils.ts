@@ -841,3 +841,18 @@ export function isNativeTuple<A>(a: A): a is RemoveNonArray<A> {
 }
 
 export const mutable: { <A>(a: A, deep: true): DeepMutable<A>; <A>(a: A): Mutable<A> } = identity
+
+/**
+ * Recursively removes all elements assignable to type `E` from tuple `T`.
+ *
+ * @example
+ * ```typescript
+ * type Mixed = [1, "hello", 2, "world", 3]
+ * type Numbers = ExcludeFromTuple<Mixed, string>
+ * // Result: [1, 2, 3]
+ * ```
+ */
+export type ExcludeFromTuple<T extends readonly any[], E> = T extends [infer F, ...infer R]
+  ? [F] extends [E] ? ExcludeFromTuple<R, E>
+  : [F, ...ExcludeFromTuple<R, E>]
+  : []

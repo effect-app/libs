@@ -173,7 +173,8 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
             set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
             batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
             bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
-            remove: (...args) => Effect.flatMap(getStore, (_) => _.remove(...args))
+            remove: (...args) => Effect.flatMap(getStore, (_) => _.remove(...args)),
+            queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args))
           }
           return s
         })

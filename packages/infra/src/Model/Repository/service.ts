@@ -2,9 +2,8 @@
 import type { Effect, Option, PubSub, S } from "effect-app"
 import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "effect-app/client/errors"
 import type { NonNegativeInt } from "effect-app/Schema/numbers"
-import { type Equals } from "effect-app/Types"
 import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
-import type { QAll, Query, QueryProjection } from "../query.js"
+import type { QAll, Query, QueryProjection, RawQuery } from "../query.js"
 import type { Mapped } from "./legacy.js"
 
 export interface Repository<
@@ -29,6 +28,11 @@ export interface Repository<
     items: Iterable<T>,
     events?: Iterable<Evt>
   ) => Effect<void, never, RSchema | RPublish>
+
+  readonly queryRaw: <T, Out, R>(
+    schema: S.Schema<T, Out, R>,
+    raw: RawQuery<Encoded, Out>
+  ) => Effect<readonly T[], S.ParseResult.ParseError, R>
 
   readonly query: {
     // ending with projection
@@ -572,16 +576,7 @@ type ExtractTagged_<T, EncodedRefined> = EncodedRefined extends { _tag: string }
   : T
 
 type ExtractTagged<T, EncodedRefined> = ExtractTagged_<T, EncodedRefined> extends infer R
-  ? RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined> extends infer R2 ? NullableRefined<
-      R2,
-      EncodedRefined
-    > extends infer R3 ? Equals<
-        R2,
-        R3
-      > extends true ? R2
-      : ResolveFirstLevel<R3>
-    : never
-  : never
+  ? RecursiveExtractTagged<RecusiveExtractIded<R, EncodedRefined>, EncodedRefined>
   : never
 
 type ShouldRecursiveExtractIded<T, EncodedRefined> = true extends {
@@ -607,14 +602,7 @@ type ExtractIded_<T, EncodedRefined> = EncodedRefined extends { id: string }
   : T
 
 type ExtractIded<T, EncodedRefined> = ExtractIded_<T, EncodedRefined> extends infer R
-  ? RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined> extends infer R2
-    ? NullableRefined<R2, EncodedRefined> extends infer R3 ? Equals<
-        R2,
-        R3
-      > extends true ? R2
-      : ResolveFirstLevel<R3>
-    : never
-  : never
+  ? RecusiveExtractIded<RecursiveExtractTagged<R, EncodedRefined>, EncodedRefined>
   : never
 
 export type RefineTHelper<T, EncodedRefined> = ResolveFirstLevel<

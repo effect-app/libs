@@ -47,36 +47,32 @@ export const endpointCallsMetric = () => {
   const endpointCalledCounter = Metric.counter("server.endpoint_calls")
 
   return Middleware.make((app) =>
-    Effect.gen(function*(_) {
-      const request = yield* _(HttpServerRequest.HttpServerRequest)
+    Effect.gen(function*() {
+      const request = yield* (HttpServerRequest.HttpServerRequest)
 
-      yield* _(
+      yield* pipe(
         Metric.increment(endpointCalledCounter),
         Effect.tagMetrics("path", request.url)
       )
 
-      return yield* _(app)
+      return yield* app
     })
   )
 }
 
 export const errorLog = Middleware.make((app) =>
-  Effect.gen(function*(_) {
-    const request = yield* _(HttpServerRequest.HttpServerRequest)
+  Effect.gen(function*() {
+    const request = yield* HttpServerRequest.HttpServerRequest
 
-    const response = yield* _(app)
+    const response = yield* app
 
     if (response.status >= 400 && response.status < 500) {
-      yield* _(
-        InfraLogger.logWarning(
-          `${request.method.toUpperCase()} ${request.url} client error ${response.status}`
-        )
+      yield* InfraLogger.logWarning(
+        `${request.method.toUpperCase()} ${request.url} client error ${response.status}`
       )
     } else if (response.status >= 500) {
-      yield* _(
-        InfraLogger.logError(
-          `${request.method.toUpperCase()} ${request.url} server error ${response.status}`
-        )
+      yield* InfraLogger.logError(
+        `${request.method.toUpperCase()} ${request.url} server error ${response.status}`
       )
     }
 
@@ -84,7 +80,7 @@ export const errorLog = Middleware.make((app) =>
   })
 )
 
-export const toServerResponse = (err: NotLoggedInError) =>
+const toServerResponse = (err: NotLoggedInError) =>
   HttpServerResponse.empty().pipe(
     HttpServerResponse.setStatus(401),
     HttpServerResponse.setBody(HttpBody.unsafeJson({ message: err.message }))
@@ -100,13 +96,13 @@ export const basicAuth = <_, R>(
   }>
 ) =>
   Middleware.make((app) =>
-    Effect.gen(function*(_) {
+    Effect.gen(function*() {
       const headerName = options?.headerName ?? "Authorization"
       const skippedPaths = options?.skipPaths ?? []
-      const request = yield* _(HttpServerRequest.HttpServerRequest)
+      const request = yield* HttpServerRequest.HttpServerRequest
 
       if (skippedPaths.includes(request.url)) {
-        return yield* _(app)
+        return yield* app
       }
 
       const authHeader = request.headers[headerName.toLowerCase()]
@@ -149,19 +145,16 @@ export const basicAuth = <_, R>(
         )
       }
 
-      const check = yield* _(
-        checkCredentials({
-          user: credentialsParts[0],
-          password: credentialsParts[1]!
-        }),
-        Effect.either
-      )
+      const check = yield* Effect.either(checkCredentials({
+        user: credentialsParts[0],
+        password: credentialsParts[1]!
+      }))
 
       if (Either.isLeft(check)) {
         return toServerResponse(check.left)
       }
 
-      return yield* _(app)
+      return yield* app
     })
   )
 
@@ -181,15 +174,12 @@ export const cors = (_options?: Partial<Middlewares.CorsOptions>) => {
   }
 
   const allowOrigin = (originHeader: string) => {
-    if (options.allowedOrigins.length === 0) {
+    if (options.allowedOrigins.includes("*")) {
       return { "Access-Control-Allow-Origin": "*" }
     }
 
-    if (options.allowedOrigins.length === 1) {
-      return {
-        "Access-Control-Allow-Origin": options.allowedOrigins[0],
-        Vary: "Origin"
-      }
+    if (options.allowedOrigins.length === 0) {
+      return { "Access-Control-Allow-Origin": "*" }
     }
 
     if (isAllowedOrigin(originHeader)) {
@@ -221,6 +211,8 @@ export const cors = (_options?: Partial<Middlewares.CorsOptions>) => {
   })()
 
   const allowHeaders = (accessControlRequestHeaders: string | undefined) => {
+    if (!options.allowedOrigins) return undefined
+
     if (options.allowedHeaders.length === 0 && accessControlRequestHeaders) {
       return {
         Vary: "Access-Control-Request-Headers",
@@ -228,7 +220,7 @@ export const cors = (_options?: Partial<Middlewares.CorsOptions>) => {
       }
     }
 
-    if (options.allowedHeaders) {
+    if (options.allowedHeaders.length) {
       return {
         "Access-Control-Allow-Headers": options.allowedHeaders.join(",")
       }
@@ -256,8 +248,8 @@ export const cors = (_options?: Partial<Middlewares.CorsOptions>) => {
   })()
 
   return Middleware.make((app) =>
-    Effect.gen(function*(_) {
-      const request = yield* _(HttpServerRequest.HttpServerRequest)
+    Effect.gen(function*() {
+      const request = yield* HttpServerRequest.HttpServerRequest
 
       const origin = request.headers["origin"]
       const accessControlRequestHeaders = request.headers["access-control-request-headers"]
@@ -279,7 +271,7 @@ export const cors = (_options?: Partial<Middlewares.CorsOptions>) => {
         return ServerResponse.empty({ status: 204, headers: HttpHeaders.fromInput(dropUndefined(corsHeaders)) })
       }
 
-      const response = yield* _(app)
+      const response = yield* app
 
       return response.pipe(ServerResponse.setHeaders(dropUndefined(corsHeaders)))
     })

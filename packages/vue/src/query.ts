@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import * as Result from "@effect-rx/rx/Result"
+import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type InitialDataFunction, type QueryKey, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
@@ -18,11 +18,8 @@ export interface QueryObserverOptionsCustom<
   TError = Error,
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
-  TPageParam = never
-> extends
-  Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey, TPageParam>, "queryKey" | "queryFn">
-{}
+  TQueryKey extends QueryKey = QueryKey
+> extends Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn"> {}
 
 export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
   readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>
@@ -53,6 +50,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       : ref(arg)
     const queryKey = makeQueryKey(q)
     const handler = q.handler
+
     const r = useQuery<unknown, KnownFiberFailure<E>, A>(
       Effect.isEffect(handler)
         ? {
@@ -141,12 +139,14 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     if (r.error) {
       return Result.failureWithPrevious(
         r.error[Runtime.FiberFailureCauseId],
-        r.data === undefined ? Option.none() : Option.some(Result.success(r.data)),
-        r.isValidating
+        {
+          previous: r.data === undefined ? Option.none() : Option.some(Result.success(r.data)),
+          waiting: r.isValidating
+        }
       )
     }
     if (r.data !== undefined) {
-      return Result.success<A, E>(r.data, r.isValidating)
+      return Result.success<A, E>(r.data, { waiting: r.isValidating })
     }
 
     return Result.initial(r.isValidating)
@@ -209,8 +209,8 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
 export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
 
 function orPrevious<E, A>(result: Result.Result<A, E>) {
-  return Result.isFailure(result) && Option.isSome(result.previousValue)
-    ? Result.success(result.previousValue.value, result.waiting)
+  return Result.isFailure(result) && Option.isSome(result.previousSuccess)
+    ? Result.success(result.previousSuccess.value, { waiting: result.waiting })
     : result
 }
 
@@ -251,5 +251,5 @@ export function composeQueries<
     prev[key] = Result.value(value).value
     return prev
   }, {} as any)
-  return Result.success(r, isRefreshing)
+  return Result.success(r, { waiting: isRefreshing })
 }

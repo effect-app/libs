@@ -25,5 +25,14 @@
         }
       ]
     },
+    {
+      "label": "Run Storybook OmegaForm",
+      "type": "shell",
+      "command": "pnpm storybook",
+      "options": {
+        "cwd": "${workspaceRoot}/packages/vue-components"
+      },
+      "problemMatcher": []
+    }
   ]
 }

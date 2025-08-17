@@ -1,5 +1,316 @@
 # @effect-app/vue
 
+## 2.51.2
+
+### Patch Changes
+
+- Updated dependencies [bc68d9f]
+  - effect-app@3.0.4
+
+## 2.51.1
+
+### Patch Changes
+
+- fix
+
+## 2.50.7
+
+### Patch Changes
+
+- 715dd12: fix: missing span for useUnsafeMutation
+- Updated dependencies [c31423a]
+  - effect-app@3.0.3
+
+## 2.50.6
+
+### Patch Changes
+
+- 4995794: fix query.ts enabled options
+
+## 2.50.5
+
+### Patch Changes
+
+- Updated dependencies [88bb989]
+  - effect-app@3.0.2
+
+## 2.50.4
+
+### Patch Changes
+
+- Updated dependencies [74c28d1]
+  - effect-app@3.0.1
+
+## 2.50.3
+
+### Patch Changes
+
+- Updated dependencies [3e4c45d]
+  - effect-app@3.0.0
+
+## 2.50.2
+
+### Patch Changes
+
+- Updated dependencies [db2b575]
+  - effect-app@2.56.0
+
+## 2.50.1
+
+### Patch Changes
+
+- Updated dependencies [37eb29a]
+  - effect-app@2.55.0
+
+## 2.50.0
+
+### Minor Changes
+
+- fup
+
+## 2.49.1
+
+### Patch Changes
+
+- Updated dependencies [dd30471]
+  - effect-app@2.54.3
+
+## 2.49.0
+
+### Minor Changes
+
+- 1960261: switch to @effect-atom from rx.
+
+## 2.48.0
+
+### Minor Changes
+
+- f88f046: sentry 10
+
+## 2.47.2
+
+### Patch Changes
+
+- Updated dependencies [79ffd88]
+  - effect-app@2.54.2
+
+## 2.47.1
+
+### Patch Changes
+
+- Updated dependencies [9f90266]
+  - effect-app@2.54.1
+
+## 2.47.0
+
+### Minor Changes
+
+- 0f2b2cf: update packages
+
+### Patch Changes
+
+- Updated dependencies [0f2b2cf]
+  - effect-app@2.54.0
+
+## 2.46.8
+
+### Patch Changes
+
+- Updated dependencies [fa2c8d0]
+  - effect-app@2.53.1
+
+## 2.46.7
+
+### Patch Changes
+
+- Updated dependencies [5c51597]
+  - effect-app@2.53.0
+
+## 2.46.6
+
+### Patch Changes
+
+- Updated dependencies [244f84d]
+  - effect-app@2.52.1
+
+## 2.46.5
+
+### Patch Changes
+
+- Updated dependencies [99cf15f]
+  - effect-app@2.52.0
+
+## 2.46.4
+
+### Patch Changes
+
+- Updated dependencies [54dd59a]
+  - effect-app@2.51.0
+
+## 2.46.3
+
+### Patch Changes
+
+- bb142a1: something about options and enabled that's behind a () => now
+
+## 2.46.2
+
+### Patch Changes
+
+- Updated dependencies [0d33085]
+  - effect-app@2.50.2
+
+## 2.46.1
+
+### Patch Changes
+
+- build fix
+- Updated dependencies
+  - effect-app@2.50.1
+
+## 2.46.0
+
+### Minor Changes
+
+- 0a82e7f: update packages
+
+### Patch Changes
+
+- Updated dependencies [0a82e7f]
+  - effect-app@2.50.0
+
+## 2.45.4
+
+### Patch Changes
+
+- Updated dependencies [a36ceed]
+  - effect-app@2.49.0
+
+## 2.45.3
+
+### Patch Changes
+
+- Updated dependencies [8bb246b]
+  - effect-app@2.48.0
+
+## 2.45.2
+
+### Patch Changes
+
+- Updated dependencies
+  - effect-app@2.47.2
+
+## 2.45.1
+
+### Patch Changes
+
+- Updated dependencies
+  - effect-app@2.47.1
+
+## 2.45.0
+
+### Minor Changes
+
+- d29cb1b: refactor: drop optional identifier for Schema classes.
+
+### Patch Changes
+
+- 4ae597d: update packages
+- Updated dependencies [d29cb1b]
+  - effect-app@2.47.0
+
+## 2.44.2
+
+### Patch Changes
+
+- b095bb5: tscp
+- Updated dependencies [b095bb5]
+  - effect-app@2.46.1
+
+## 2.44.1
+
+### Patch Changes
+
+- Updated dependencies [ba4ad65]
+  - effect-app@2.46.0
+
+## 2.44.0
+
+### Minor Changes
+
+- 2c217ce: update packages
+
+### Patch Changes
+
+- Updated dependencies [2c217ce]
+  - effect-app@2.45.0
+
+## 2.43.4
+
+### Patch Changes
+
+- Updated dependencies [55da9e7]
+  - effect-app@2.44.0
+
+## 2.43.3
+
+### Patch Changes
+
+- b771967: update packages
+- Updated dependencies [b771967]
+  - effect-app@2.43.3
+
+## 2.43.2
+
+### Patch Changes
+
+- Updated dependencies [aec6960]
+  - effect-app@2.43.2
+
+## 2.43.1
+
+### Patch Changes
+
+- Updated dependencies [a2e1e1e]
+  - effect-app@2.43.1
+
+## 2.43.0
+
+### Minor Changes
+
+- eac9c67: update packages
+
+### Patch Changes
+
+- Updated dependencies [eac9c67]
+  - effect-app@2.43.0
+
+## 2.42.2
+
+### Patch Changes
+
+- 49d93a5: update packages
+- Updated dependencies [49d93a5]
+  - effect-app@2.42.1
+
+## 2.42.1
+
+### Patch Changes
+
+- Updated dependencies [ba96171]
+  - effect-app@2.42.0
+
+## 2.42.0
+
+### Minor Changes
+
+- b1d4af4: housekeeping: update packages
+
+### Patch Changes
+
+- Updated dependencies [b1d4af4]
+  - effect-app@2.41.0
+
 ## 2.41.2
 
 ### Patch Changes

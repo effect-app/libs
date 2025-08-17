@@ -71,12 +71,16 @@ const errors = computed(() =>
   fieldState.value.meta.errors.map((e: any) => e?.message).filter(Boolean),
 )
 
+const isFalsyButNotZero = (value: unknown): boolean => {
+  return value == null || value === false || value === "" || Number.isNaN(value)
+}
+
 // we remove value and errors when the field is empty and not required
 //watchEffect will trigger infinite times with both free fieldValue and errors, so bet to watch a stupid boolean
 watch(
   () => !!fieldValue.value,
-  value => {
-    if (!value) {
+  () => {
+    if (isFalsyButNotZero(fieldValue.value) && props.meta?.type !== "boolean") {
       nextTick(() => {
         fieldApi.setValue(
           props.meta?.nullableOrUndefined === "undefined" ? undefined : null,

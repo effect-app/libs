@@ -1,9 +1,12 @@
-const path = require('path');
-const { defineConfig } = require('vite');
+import path from 'path';
+import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
+import { fileURLToPath } from 'url';
 
-module.exports = defineConfig({
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig({
   plugins: [
     // Use the default cssInjectedByJsPlugin configuration with injectCode
     cssInjectedByJsPlugin({

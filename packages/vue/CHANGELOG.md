@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 2.51.6
+
+### Patch Changes
+
+- ac58cfb: chore update
+- 48efb4d: Fixes return type of useSafeQuery
+
 ## 2.51.5
 
 ### Patch Changes

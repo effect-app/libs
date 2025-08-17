@@ -4,11 +4,11 @@ import { describe, expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Either, Layer, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
-import { makeMiddleware, Tag } from "effect-app/rpc"
+import * as RpcX from "effect-app/rpc"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware
-  extends Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware", {})
+  extends RpcX.Tag<RequiresSomeMiddleware, { requires: Some }>()("RequiresSomeMiddleware", {})
 {
   static Default = Layer.make(this, {
     *make() {
@@ -22,23 +22,27 @@ export class RequiresSomeMiddleware
   })
 }
 
-const middleware3 = makeMiddleware(RequestContextMap)
+const middleware3 = RpcX
+  .makeMiddleware(RequestContextMap)
   .middleware(RequiresSomeMiddleware)
   .middleware(SomeMiddleware)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
   .middleware(SomeElseMiddleware)
 
-const _middlewareSideways = makeMiddleware(RequestContextMap)
+const _middlewareSideways = RpcX
+  .makeMiddleware(RequestContextMap)
   .middleware(RequiresSomeMiddleware)
   .middleware(SomeMiddleware)
   .middleware(RequireRoles, AllowAnonymous, Test)
   .middleware(SomeElseMiddleware)
 
-const _middlewareSidewaysFully = makeMiddleware(RequestContextMap)
+const _middlewareSidewaysFully = RpcX
+  .makeMiddleware(RequestContextMap)
   .middleware(RequiresSomeMiddleware, SomeMiddleware, RequireRoles, AllowAnonymous, Test, SomeElseMiddleware)
 
-export const _middleware3Bis = makeMiddleware(RequestContextMap)
+export const _middleware3Bis = RpcX
+  .makeMiddleware(RequestContextMap)
   .middleware(RequiresSomeMiddleware)
   .middleware(SomeMiddleware)
   .middleware(RequireRoles)

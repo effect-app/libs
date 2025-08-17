@@ -6,14 +6,14 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
-import { makeMiddleware, Tag } from "effect-app/rpc"
+import * as RpcX from "effect-app/rpc"
 import { TypeTestId } from "effect-app/TypeTest"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Tag<MyContextProvider, {
+class MyContextProvider extends RpcX.Tag<MyContextProvider, {
   provides: Some
   requires: SomeElse
 }>()("MyContextProvider") {
@@ -45,7 +45,7 @@ class MyContextProvider extends Tag<MyContextProvider, {
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider3 extends Tag<MyContextProvider3, {
+class MyContextProvider3 extends RpcX.Tag<MyContextProvider3, {
   provides: Some
   requires: SomeElse
 }>()("MyContextProvider3") {
@@ -83,7 +83,7 @@ expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<
 >()
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider2 extends Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2") {
+class MyContextProvider2 extends RpcX.Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2") {
   static Default = Layer.make(this, {
     *make() {
       if (Math.random() > 0.5) return yield* new CustomError1()
@@ -101,7 +101,7 @@ class MyContextProvider2 extends Tag<MyContextProvider2, { provides: SomeElse }>
 
 const Str = Context.GenericTag<"str", "str">("str")
 
-export class BogusMiddleware extends Tag<BogusMiddleware>()("BogusMiddleware") {
+export class BogusMiddleware extends RpcX.Tag<BogusMiddleware>()("BogusMiddleware") {
   static Default = Layer.make(this, {
     *make() {
       yield* Str
@@ -127,7 +127,8 @@ const genericMiddlewaresLive = [
   MyContextProvider2.Default
 ] as const
 
-const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
+const middleware = RpcX
+  .makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(
     RequireRoles,
     Test
@@ -137,7 +138,8 @@ const middleware = makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(...genericMiddlewares)
 
-const middlewareBis = makeMiddleware<RequestContextMap>(RequestContextMap)
+const middlewareBis = RpcX
+  .makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(
     RequireRoles,
     Test
@@ -147,7 +149,8 @@ const middlewareBis = makeMiddleware<RequestContextMap>(RequestContextMap)
 
 expectTypeOf(middleware).toEqualTypeOf<typeof middlewareBis>()
 
-const middlewareTrisWip = makeMiddleware<RequestContextMap>(RequestContextMap)
+const middlewareTrisWip = RpcX
+  .makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(
     MyContextProvider,
     RequireRoles,
@@ -160,7 +163,8 @@ expectTypeOf(middlewareTrisWip).toEqualTypeOf<{
 }>()
 
 // testing more sideways elimination]
-const middlewareQuater = makeMiddleware<RequestContextMap>(RequestContextMap)
+const middlewareQuater = RpcX
+  .makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(
     RequireRoles,
     Test,
@@ -171,13 +175,15 @@ const middlewareQuater = makeMiddleware<RequestContextMap>(RequestContextMap)
 
 expectTypeOf(middleware).toEqualTypeOf<typeof middlewareQuater>()
 
-const middleware2 = makeMiddleware<RequestContextMap>(RequestContextMap)
+const middleware2 = RpcX
+  .makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(MyContextProvider)
   .middleware(RequireRoles, Test)
   .middleware(AllowAnonymous)
   .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
 
-export const middleware3 = makeMiddleware<RequestContextMap>(RequestContextMap)
+export const middleware3 = RpcX
+  .makeMiddleware<RequestContextMap>(RequestContextMap)
   .middleware(...genericMiddlewares)
   .middleware(AllowAnonymous, RequireRoles)
   .middleware(Test)

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.4
+
+### Patch Changes
+
+- bc68d9f: feat: introduce Layer.make as alternative to Context.ProvideService
+
 ## 3.0.3
 
 ### Patch Changes

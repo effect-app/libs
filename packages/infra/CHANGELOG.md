@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.6
+
+### Patch Changes
+
+- bc68d9f: feat: introduce Layer.make as alternative to Context.ProvideService
+- Updated dependencies [bc68d9f]
+  - effect-app@3.0.4
+
 ## 3.0.5
 
 ### Patch Changes

@@ -159,7 +159,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     // required options, with initialData
     <E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandler<A, E, R, Request>,
-      options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> & {
+      options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
         initialData: A | InitialDataFunction<A>
       }
     ): readonly [
@@ -171,7 +171,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     <Arg, E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandlerWithInput<Arg, A, E, R, Request>,
       arg: Arg | WatchSource<Arg>,
-      options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> & {
+      options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
         initialData: A | InitialDataFunction<A>
       }
     ): readonly [
@@ -184,7 +184,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     // optional options, optional A
     <E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandler<A, E, R, Request>,
-      options?: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A>
+      options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A | undefined>,
@@ -194,7 +194,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     <Arg, E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandlerWithInput<Arg, A, E, R, Request>,
       arg: Arg | WatchSource<Arg>,
-      options?: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A>
+      options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A | undefined>,

@@ -5,7 +5,6 @@
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import { type HttpHeaders } from "effect-app/http"
-import { DevMode } from "effect-app/middleware"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -171,8 +170,7 @@ export const makeRouter = <
     ContextProviderE,
     ContextProviderR,
     RequestContextId
-  >,
-  devMode: boolean
+  >
 ) => {
   function matchFor<
     const ModuleName extends string,
@@ -449,8 +447,7 @@ export const makeRouter = <
         Layer.provide([
           dependenciesL,
           middleware.Default
-        ]),
-        Layer.provide(Layer.succeed(DevMode, devMode))
+        ])
       )
 
       return routes

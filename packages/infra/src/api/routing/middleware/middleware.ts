@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
+import { Cause, Config, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
 import { ConfigureInterruptibilityMiddleware, DevMode, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
@@ -111,8 +111,27 @@ export const LoggerMiddlewareLive = Layer.effect(
   })
 )
 
+// TODO: do we need this as middleware or just as layer?
+export const DevModeLive = Layer.effect(
+  DevMode,
+  Effect.gen(function*() {
+    const env = yield* Config.string("env").pipe(Config.withDefault("local-dev"))
+    return env === "local-dev"
+  })
+)
+export const DevModeMiddlewareLive = Layer
+  .effect(
+    LoggerMiddleware,
+    Effect.gen(function*() {
+      const devMode = yield* DevMode
+      return (effect) => Effect.provideService(effect, DevMode, devMode)
+    })
+  )
+  .pipe(Layer.provide(DevModeLive))
+
 export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
   RequestCacheMiddlewareLive,
   ConfigureInterruptibilityMiddlewareLive,
-  LoggerMiddlewareLive
+  LoggerMiddlewareLive,
+  DevModeMiddlewareLive
 )

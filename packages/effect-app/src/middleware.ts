@@ -14,8 +14,11 @@ export class ConfigureInterruptibilityMiddleware
 
 export class LoggerMiddleware extends RpcX.RpcMiddleware.Tag<LoggerMiddleware>()("LoggerMiddleware") {}
 
+export class DevModeMiddleware extends RpcX.RpcMiddleware.Tag<DevModeMiddleware>()("DevModeMiddleware") {}
+
 export const DefaultGenericMiddlewares = [
   RequestCacheMiddleware,
   ConfigureInterruptibilityMiddleware,
-  LoggerMiddleware
+  LoggerMiddleware,
+  DevModeMiddleware
 ] as const

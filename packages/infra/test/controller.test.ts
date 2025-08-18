@@ -9,7 +9,7 @@ import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import * as RpcX from "effect-app/rpc"
 import { MiddlewareMaker } from "effect-app/rpc"
 import { TypeTestId } from "effect-app/TypeTest"
-import { DefaultGenericMiddlewaresLive } from "../src/api/routing/middleware.js"
+import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
@@ -127,7 +127,8 @@ const genericMiddlewares = [
 const genericMiddlewaresLive = [
   DefaultGenericMiddlewaresLive,
   BogusMiddleware.Default,
-  MyContextProvider2.Default
+  MyContextProvider2.Default,
+  DevModeMiddlewareLive
 ] as const
 
 const MiddlewaresLive = [
@@ -278,13 +279,11 @@ export class SomethingService2 extends Effect.Service<SomethingService2>()("Some
 }) {}
 
 export const { Router, matchAll } = makeRouter(
-  middleware,
-  true
+  middleware
 )
 
 export const r2 = makeRouter(
-  Object.assign(middleware2, { Default: middleware2.layer.pipe(Layer.provide(MiddlewaresLive)) }),
-  true
+  Object.assign(middleware2, { Default: middleware2.layer.pipe(Layer.provide(MiddlewaresLive)) })
 )
 
 const router = Router(Something)({

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Config, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
-import { ConfigureInterruptibilityMiddleware, DevMode, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
+import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
@@ -121,7 +121,7 @@ export const DevModeLive = Layer.effect(
 )
 export const DevModeMiddlewareLive = Layer
   .effect(
-    LoggerMiddleware,
+    DevModeMiddleware,
     Effect.gen(function*() {
       const devMode = yield* DevMode
       return (effect) => Effect.provideService(effect, DevMode, devMode)

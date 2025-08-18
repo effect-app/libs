@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.11
+
+### Patch Changes
+
+- 3543bfb: cleanup dev-mode
+- Updated dependencies [3543bfb]
+  - effect-app@3.0.8
+
 ## 3.0.10
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.8
+
+### Patch Changes
+
+- 3543bfb: cleanup dev-mode
+
 ## 3.0.7
 
 ### Patch Changes

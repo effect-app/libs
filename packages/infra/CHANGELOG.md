@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.0.12
+
+### Patch Changes
+
+- sync
+
 ## 3.0.11
 
 ### Patch Changes

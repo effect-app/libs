@@ -4,7 +4,7 @@ import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra
 import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
-import { InvalidStateError, makeRpcClient, NotLoggedInError, UnauthorizedError } from "effect-app/client"
+import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import * as RpcX from "effect-app/rpc"
 import { MiddlewareMaker } from "effect-app/rpc"
@@ -205,17 +205,12 @@ export const middleware3 = MiddlewareMaker
   .middleware(Test)
   .middleware(BogusMiddleware)
 
-export type RequestConfig = {
+export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)<{
   /** Disable authentication requirement */
   allowAnonymous?: true
   /** Control the roles that are required to access the resource */
   allowRoles?: readonly string[]
-}
-export const { TaggedRequest: Req } = makeRpcClient<RequestConfig, RequestContextMap>({
-  allowAnonymous: NotLoggedInError,
-  requireRoles: UnauthorizedError,
-  test: S.Never
-})
+}>()
 
 export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
 export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}

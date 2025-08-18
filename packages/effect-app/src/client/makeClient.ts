@@ -1,5 +1,5 @@
 import { S } from "../internal/lib.js"
-import { type GetEffectError, type RpcContextMap } from "../rpc/RpcContextMap.js"
+import { type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import { AST } from "../Schema.js"
 
 // TODO: Fix error types... (?)
@@ -30,13 +30,12 @@ type SchemaOrFields<T> = T extends S.Struct.Fields ? S.TypeLiteral<T, []> : T ex
 const ForceVoid: S.Schema<void> = S.transform(S.Any, S.Void, { decode: () => void 0, encode: () => void 0 })
 
 export const makeRpcClient = <
-  RequestConfig extends object,
-  RequestContextMap extends Record<string, RpcContextMap.Any>,
+  RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Schema.All = never
->(
-  errors: { [K in keyof RequestContextMap]: RequestContextMap[K]["error"] },
-  generalErrors?: GeneralErrors
-) => {
+>(rcs: RequestContextMap, generalErrors?: GeneralErrors) =>
+<
+  RequestConfig extends object
+>() => {
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type Context = {
     success: S.Schema.Any | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
@@ -55,7 +54,7 @@ export const makeRpcClient = <
         { readonly _tag: S.tag<Tag> } & Payload,
         SchemaOrFields<typeof config["success"]>,
         JoinSchema<
-          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap, C> | GeneralErrors]
+          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap["config"], C> | GeneralErrors]
         >
       >
       & { config: Omit<C, "success" | "failure"> }
@@ -69,7 +68,7 @@ export const makeRpcClient = <
         Tag,
         { readonly _tag: S.tag<Tag> } & Payload,
         SchemaOrFields<typeof config["success"]>,
-        JoinSchema<[GetEffectError<RequestContextMap, C> | GeneralErrors]>
+        JoinSchema<[GetEffectError<RequestContextMap["config"], C> | GeneralErrors]>
       >
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "failure">>(
@@ -83,7 +82,7 @@ export const makeRpcClient = <
         { readonly _tag: S.tag<Tag> } & Payload,
         typeof S.Void,
         JoinSchema<
-          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap, C> | GeneralErrors]
+          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap["config"], C> | GeneralErrors]
         >
       >
       & { config: Omit<C, "success" | "failure"> }
@@ -97,7 +96,7 @@ export const makeRpcClient = <
         Tag,
         { readonly _tag: S.tag<Tag> } & Payload,
         typeof S.Void,
-        JoinSchema<[GetEffectError<RequestContextMap, C> | GeneralErrors]>
+        JoinSchema<[GetEffectError<RequestContextMap["config"], C> | GeneralErrors]>
       >
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields>(
@@ -115,7 +114,7 @@ export const makeRpcClient = <
       & { config: {} }
   } {
     // TODO: filter errors based on config + take care of inversion
-    const errorSchemas = Object.values(errors)
+    const errorSchemas = Object.values(rcs.config).map((_) => _.error)
     return (<Tag extends string, Fields extends S.Struct.Fields, C extends Context>(
       tag: Tag,
       fields: Fields,

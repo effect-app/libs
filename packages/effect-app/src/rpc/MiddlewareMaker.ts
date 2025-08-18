@@ -8,11 +8,11 @@ import { type Simplify } from "effect/Types"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
 import { typedValuesOf } from "../utils.js"
-import { type GetContextConfig, type RpcContextMap } from "./RpcContextMap.js"
+import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "./RpcContextMap.js"
 import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
 
-// adapter for v3 rpc middleware provides
+// adapter for effect/rpc v3 middleware provides. (in effect-smol (v4), it's wrap only, and just a Service Identifier, no tags.)
 type MakeTags<A> = Context.Tag<A, A>
 
 export interface MiddlewareMaker<
@@ -358,10 +358,10 @@ const makeMiddlewareBasic = <Self>() =>
 export const Tag = <Self>() =>
 <
   const Id extends string,
-  RequestContextMap extends Record<string, RpcContextMap.Any>
->(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap> => {
+  RequestContextMap extends RequestContextMapTagAny
+>(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap["config"]> => {
   let allMiddleware: MiddlewareMaker.Any[] = []
-  const requestContext = Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
+  const requestContext = Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
     "RequestContextConfig"
   )
   const it = {
@@ -373,7 +373,7 @@ export const Tag = <Self>() =>
       Success extends Schema.Schema.Any = typeof Schema.Void,
       Error extends Schema.Schema.All = typeof Schema.Never,
       const Stream extends boolean = false,
-      Config extends GetContextConfig<RequestContextMap> = {}
+      Config extends GetContextConfig<RequestContextMap["config"]> = {}
     >(tag: Tag, options?: {
       readonly payload?: Payload
       readonly success?: Success
@@ -398,7 +398,7 @@ export const Tag = <Self>() =>
       // based on the config, we must enhance (union) or set failures.
       // TODO: we should only include errors that are relevant based on the middleware config.ks
       const error = options?.error
-      const errors = typedValuesOf(rcm).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
+      const errors = typedValuesOf(rcm.config).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
       const newError = error ? S.Union(error, ...errors) : S.Union(...errors)
 
       const rpc = Rpc.make(tag, { ...options, error: newError }) as any
@@ -410,11 +410,11 @@ export const Tag = <Self>() =>
         // recall that we run middlewares in reverse order
         allMiddleware = [mw, ...allMiddleware]
       }
-      return allMiddleware.filter((m) => !!m.dynamic).length !== Object.keys(rcm).length
+      return allMiddleware.filter((m) => !!m.dynamic).length !== Object.keys(rcm.config).length
         // for sure, until all the dynamic middlewares are provided it's non sensical to call makeMiddlewareBasic
         ? it
         // actually, we don't know yet if MiddlewareR is never, but we can't easily check it at runtime
-        : Object.assign(makeMiddlewareBasic<Self>()<Id, any, any>(id, rcm, ...allMiddleware), it)
+        : Object.assign(makeMiddlewareBasic<Self>()<Id, any, any>(id, rcm.config, ...allMiddleware), it)
     }
   }
   return it as any

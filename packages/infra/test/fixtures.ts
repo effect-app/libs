@@ -1,7 +1,6 @@
 import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
-import { RpcX } from "effect-app/rpc"
-import { contextMap, getConfig, RpcContextMap } from "effect-app/rpc/RpcContextMap"
+import { RpcContextMap, RpcX } from "effect-app/rpc"
 import { TaggedError } from "effect-app/Schema"
 
 export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
@@ -45,24 +44,14 @@ export const SomeElseMiddlewareLive = Layer.effect(
   })
 )
 
-const requestConfig = getConfig<RequestContextMap>()
-
-// TODO: null as never sucks
-// why [UserProfile] is needed? AllowAnonymous triggers an error if just UserProfile without []
-// [] requires return Context, non [] requires return the Service instance
-//
-// consider if we want to support Context of one Service
-export const RequestContextMap = {
-  allowAnonymous: RpcContextMap.makeInverted([UserProfile], NotLoggedInError),
-  requireRoles: RpcContextMap.makeCustom(null as never, UnauthorizedError, Array<string>()),
-  test: RpcContextMap.make(null as never, S.Never)
-} as const
-
-type _RequestContextMap = typeof RequestContextMap
-export interface RequestContextMap extends _RequestContextMap {}
+export class RequestContextMap extends RpcContextMap.makeMap({
+  allowAnonymous: RpcContextMap.makeInverted<UserProfile>()(NotLoggedInError),
+  requireRoles: RpcContextMap.makeCustom()(UnauthorizedError, Array<string>()),
+  test: RpcContextMap.make()(S.Never)
+}) {}
 
 export class AllowAnonymous extends RpcX.RpcMiddleware.Tag<AllowAnonymous, { requires: SomeElse }>()("AllowAnonymous", {
-  dynamic: contextMap(RequestContextMap, "allowAnonymous")
+  dynamic: RequestContextMap.get("allowAnonymous")
 }) {}
 
 export const AllowAnonymousLive = Layer.effect(
@@ -74,7 +63,7 @@ export const AllowAnonymousLive = Layer.effect(
         yield* Scope.Scope // provided by HttpLayerRouter.Provided
         const isLoggedIn = !!headers["x-user"]
         if (!isLoggedIn) {
-          if (!requestConfig(rpc).allowAnonymous) {
+          if (!RequestContextMap.getConfig(rpc).allowAnonymous) {
             return yield* new NotLoggedInError({ message: "Not logged in" })
           }
           return yield* effect
@@ -92,10 +81,9 @@ export const AllowAnonymousLive = Layer.effect(
   })
 )
 
-// TODO: don't expect service when it's wrap
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends RpcX.RpcMiddleware.Tag<RequireRoles>()("RequireRoles", {
-  dynamic: contextMap(RequestContextMap, "requireRoles"),
+  dynamic: RequestContextMap.get("requireRoles"),
   // had to move this in here, because once you put it manually as a readonly static property on the class,
   // there's a weird issue where the fluent api stops behaving properly after adding this middleware via `addDynamicMiddleware`
   dependsOn: [AllowAnonymous]
@@ -109,7 +97,7 @@ export const RequireRolesLive = Layer.effect(
       function*(effect, { rpc }) {
         // we don't know if the service will be provided or not, so we use option..
         const userProfile = yield* Effect.serviceOption(UserProfile)
-        const { requireRoles } = requestConfig(rpc)
+        const { requireRoles } = RequestContextMap.getConfig(rpc)
         console.dir(
           {
             userProfile,
@@ -126,9 +114,8 @@ export const RequireRolesLive = Layer.effect(
   })
 )
 
-// TODO: don't expect service when it's wrap
 export class Test extends RpcX.RpcMiddleware.Tag<Test>()("Test", {
-  dynamic: contextMap(RequestContextMap, "test")
+  dynamic: RequestContextMap.get("test")
 }) {}
 
 export const TestLive = Layer.effect(

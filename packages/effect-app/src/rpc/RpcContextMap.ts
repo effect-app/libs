@@ -4,114 +4,43 @@
 
 import { type AnyWithProps } from "@effect/rpc/Rpc"
 import { Context, type Schema as S } from "effect"
-import { type NonEmptyReadonlyArray } from "effect/Array"
-import { type Tag } from "effect/Context"
 import { type RpcDynamic } from "./RpcMiddleware.js"
-
-/** Adapter used when setting the dynamic prop on a middleware implementation */
-export const contextMap = <
-  RequestContextMap extends Record<string, RpcContextMap.Any>,
-  Key extends (keyof RequestContextMap) & string
->(rcm: RequestContextMap, key: Key): RpcDynamic<Key, RequestContextMap[Key]> => ({
-  key,
-  settings: { service: rcm[key]!["service"] } as RequestContextMap[Key]
-})
-
-const tag = Context.GenericTag("RequestContextConfig")
-/** Retrieves RequestContextConfig out of the Rpc annotations */
-export const getConfig = <
-  RequestContextMap extends Record<string, RpcContextMap.Any>
->() =>
-(rpc: AnyWithProps): GetContextConfig<RequestContextMap> => {
-  return Context.getOrElse(rpc.annotations, tag as any, () => ({}))
-}
 
 type Values<T extends Record<any, any>> = T[keyof T]
 
-/** @deprecated just use Service Identifier Union */
-export type ContextTagArray = NonEmptyReadonlyArray<Context.Tag<any, any>>
-
-/** @deprecated just use Service Identifier Union */
-export namespace ContextTagArray {
-  export type Identifier<A> = A extends ContextTagArray ? Tag.Identifier<A[number]> : never
-  export type Service<A> = A extends ContextTagArray ? Tag.Service<A[number]> : never
+/**
+ * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
+ * Unless explicitly configured as `true`.
+ */
+export type RpcContextMap<Service, E> = {
+  // todo; rename Provides
+  service: Service
+  error: E
+  contextActivation: true
 }
 
-/** @deprecated just use Service Identifier Union */
-export type AnyService = Context.Tag<any, any> | ContextTagArray
-/** @deprecated just use Service Identifier Union */
-export namespace AnyService {
-  export type Bla<A> = A extends ContextTagArray ? Context.Context<ContextTagArray.Identifier<A>>
-    : A extends Context.Tag<any, any> ? Tag.Service<A>
-    : never
-  export type Identifier<A> = A extends ContextTagArray ? ContextTagArray.Identifier<A>
-    : A extends Context.Tag<any, any> ? Tag.Identifier<A>
-    : never
-  export type Service<A> = A extends ContextTagArray ? ContextTagArray.Service<A>
-    : A extends Context.Tag<any, any> ? Tag.Service<A>
-    : never
-}
-
-export namespace RpcContextMap {
-  /**
-   * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
-   * Unless explicitly configured as `true`.
-   */
-  export type RpcContextMap<Service, E> = {
-    service: Service
-    error: E
-    contextActivation: true
-  }
-
+export declare namespace RpcContextMap {
   /**
    * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect Context.
    * Unless explicitly omitted.
    */
-  export type Inverted<Service extends AnyService, E> = {
+  export type Inverted<Service, E> = {
     service: Service
     error: E
     contextActivation: false
   }
 
-  export type Custom<Service extends AnyService, E, C> = {
+  export type Custom<Service, E, C> = {
     service: Service
     error: E
     contextActivation: C
   }
 
   export type Any = {
-    service: AnyService
+    service: any
     error: S.Schema.All
     contextActivation: any
   }
-
-  export const make = <Service extends AnyService, E>(
-    service: Service,
-    error: E
-  ): RpcContextMap<Service, E> => ({
-    service,
-    error,
-    contextActivation: true
-  })
-
-  export const makeInverted = <Service extends AnyService, E>(
-    service: Service,
-    error: E
-  ): Inverted<Service, E> => ({
-    service,
-    error,
-    contextActivation: false
-  })
-
-  export const makeCustom = <Service extends AnyService, E, C>(
-    service: Service,
-    error: E,
-    contextActivation: C
-  ): Custom<Service, E, C> => ({
-    service,
-    error,
-    contextActivation
-  })
 }
 
 export type GetContextConfig<RequestContextMap extends Record<string, RpcContextMap.Any>> = {
@@ -128,7 +57,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RpcContext
         : key extends keyof T ? T[key] extends true ? never : key
         : key
     ]: // TODO: or as an Optional available?
-      AnyService.Identifier<RequestContextMap[key]["service"]>
+      RequestContextMap[key]["service"]
   }
   // normal: contextActivation is true => add if explicitly set to true
   & {
@@ -137,7 +66,7 @@ export type GetEffectContext<RequestContextMap extends Record<string, RpcContext
         : key extends keyof T ? T[key] extends true ? key : never
         : never
     ]: // TODO: or as an Optional available?
-      AnyService.Identifier<RequestContextMap[key]["service"]>
+      RequestContextMap[key]["service"]
   }
 >
 
@@ -161,3 +90,57 @@ export type GetEffectError<RequestContextMap extends Record<string, RpcContextMa
       RequestContextMap[key]["error"]
   }
 >
+
+const tag = Context.GenericTag("RequestContextConfig")
+
+export const makeMap = <const Config extends Record<string, RpcContextMap.Any>>(config: Config) => {
+  const cls = class {
+    readonly config: Config
+    constructor() {
+      this.config = config
+    }
+  }
+  return Object.assign(cls, {
+    config, /** Retrieves RequestContextConfig out of the Rpc annotations */
+    getConfig: (rpc: AnyWithProps): GetContextConfig<Config> => {
+      return Context.getOrElse(rpc.annotations, tag as any, () => ({}))
+    },
+    /** Adapter used when setting the dynamic prop on a middleware implementation */
+    get: <
+      Key extends (keyof Config) & string
+    >(key: Key): RpcDynamic<Key, Config[Key]> => ({
+      key,
+      settings: { service: config[key]!["service"] } as Config[Key]
+    })
+  })
+}
+
+export const make = <Service = never>() =>
+<E>(
+  error: E
+): RpcContextMap<Service, E> => ({
+  service: null as Service,
+  error,
+  contextActivation: true
+})
+
+export const makeInverted = <Service = never>() =>
+<E>(
+  error: E
+): RpcContextMap.Inverted<Service, E> => ({
+  service: null as Service,
+  error,
+  contextActivation: false
+})
+
+export const makeCustom = <Service = never>() =>
+<E, C>(
+  error: E,
+  contextActivation: C
+): RpcContextMap.Custom<Service, E, C> => ({
+  service: null as Service,
+  error,
+  contextActivation
+})
+
+export type RequestContextMapTagAny = { readonly config: Record<string, RpcContextMap.Any> }

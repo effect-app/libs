@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.51.7
+
+### Patch Changes
+
+- 4643ee7: Simplify return type
+
 ## 2.51.6
 
 ### Patch Changes

@@ -239,8 +239,8 @@ export type MiddlewaresBuilder<
         RequestContextMap,
         Middlewares
       >
-    : {}
-    : {})
+    : { new(_: never): {} }
+    : { new(_: never): {} })
 
 const middlewareMaker = <
   MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>

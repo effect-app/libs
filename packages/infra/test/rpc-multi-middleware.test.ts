@@ -13,6 +13,14 @@ import { createServer } from "http"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
 
+const incomplete = MiddlewareMaker
+  .Tag<middleware>()("MiddlewareMaker", RequestContextMap)
+  .middleware(RequireRoles)
+  .middleware(AllowAnonymous, Test)
+
+// this extension is allowed otherwise the error is quite obscure
+export class incompleteMiddleware extends incomplete {}
+
 class middleware extends MiddlewareMaker
   .Tag<middleware>()("MiddlewareMaker", RequestContextMap)
   .middleware(RequireRoles)

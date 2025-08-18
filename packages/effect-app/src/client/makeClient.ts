@@ -1,5 +1,5 @@
 import { S } from "../internal/lib.js"
-import { type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
+import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import { AST } from "../Schema.js"
 
 // TODO: Fix error types... (?)
@@ -32,15 +32,14 @@ const ForceVoid: S.Schema<void> = S.transform(S.Any, S.Void, { decode: () => voi
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Schema.All = never
->(rcs: RequestContextMap, generalErrors?: GeneralErrors) =>
-<
-  RequestConfig extends object
->() => {
+>(rcs: RequestContextMap, generalErrors?: GeneralErrors) => {
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type Context = {
     success: S.Schema.Any | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     failure: S.Schema.Any | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
   }
+
+  type RequestConfig = GetContextConfig<RequestContextMap["config"]>
 
   function TaggedRequest<Self>(): {
     <Tag extends string, Payload extends S.Struct.Fields, C extends Context>(

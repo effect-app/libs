@@ -8,7 +8,7 @@ export class RequestContextMap extends RpcContextMap.makeMap({
   test: RpcContextMap.make()(S.Never)
 }) {}
 
-const { TaggedRequest } = makeRpcClient(RequestContextMap)()
+const { TaggedRequest } = makeRpcClient(RequestContextMap)
 
 export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
   allowedRoles: ["manager"],

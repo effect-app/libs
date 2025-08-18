@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 0.12.16
+
+### Patch Changes
+
+- ac58cfb: chore update
+- Updated dependencies [ac58cfb]
+- Updated dependencies [48efb4d]
+  - @effect-app/vue@2.51.6
+
 ## 0.12.15
 
 ### Patch Changes

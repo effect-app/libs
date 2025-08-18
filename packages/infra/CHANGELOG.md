@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.13
+
+### Patch Changes
+
+- ea6380f: cleanup RpcContextMap
+- Updated dependencies [ea6380f]
+  - effect-app@3.0.9
+
 ## 3.0.12
 
 ### Patch Changes

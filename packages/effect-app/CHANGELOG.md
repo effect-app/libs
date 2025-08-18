@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.9
+
+### Patch Changes
+
+- ea6380f: cleanup RpcContextMap
+
 ## 3.0.8
 
 ### Patch Changes

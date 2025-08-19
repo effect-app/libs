@@ -55,8 +55,8 @@ interface OF<To, From> extends OmegaFormApi<To, From> {
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
 
-export interface OmegaFormReturn<To extends Record<PropertyKey, any>, From>
-  extends OF<To, From> {
+export interface OmegaFormReturn<From, To>
+  extends OF<From, To> {
   Input: typeof OmegaFormInput
 }
 
@@ -69,7 +69,7 @@ export const useOmegaForm = <
   schema: S.Schema<From, To, never>,
   tanstackFormOptions?: NoInfer<FormProps<To, From>>,
   omegaConfig?: OmegaConfig<From>,
-): OmegaFormReturn<To, From> => {
+): OmegaFormReturn<From, To> => {
   if (!schema) throw new Error("Schema is required")
   const standardSchema = S.standardSchemaV1(schema)
 

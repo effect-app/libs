@@ -19,6 +19,7 @@ import {
 import { pipe, Order, Array as A } from "effect-app"
 import OmegaInput from "./OmegaInput.vue"
 import { DeepKeys } from "@tanstack/vue-form"
+import { OmegaFormReturn } from "./useOmegaForm"
 
 export type OmegaAutoGenMeta<From, To> = Omit<OmegaInputProps<From, To>, "form">
 type NewMeta = OmegaAutoGenMeta<From, To>
@@ -52,9 +53,7 @@ const filterMapRecord =
     )
 
 const props = defineProps<{
-  form: FormType<From, To> & {
-    meta: MetaRecord<From>
-  }
+  form: OmegaInputProps<From, To>['form']
   pick?: DeepKeys<From>[]
   omit?: DeepKeys<From>[]
   labelMap?: (key: DeepKeys<From>) => string | undefined

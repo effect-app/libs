@@ -15,7 +15,7 @@
               field,
               subField,
               subState,
-              index: i,
+              index: i as number,
             }"
           />
         </template>

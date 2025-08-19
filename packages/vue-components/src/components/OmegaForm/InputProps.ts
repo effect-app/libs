@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { 
-  DeepValue, 
+import type {
+  DeepValue,
   DeepKeys,
   FieldApi,
-  ValidationError
+  ValidationError,
+  FieldComponent,
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+  StandardSchemaV1,
+  FieldValidateOrFn,
 } from "@tanstack/vue-form"
-import { OmegaFormApi, type NestedKeyOf } from "./OmegaFormStuff"
 
 export type FieldState<TValue = any> = {
   value: TValue
@@ -15,13 +19,36 @@ export type FieldState<TValue = any> = {
 }
 
 // Desculpame madre
-export type OmegaFieldInternalApi<From, To> = FieldApi<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any> & {
-  store: {
-    state: FieldState<DeepValue<From, DeepKeys<From>>>
-  }
-}
+export type OmegaFieldInternalApi<From, To> = FieldApi<
+  From,
+  DeepKeys<From>,
+  DeepValue<From, DeepKeys<From>>,
+  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+  | undefined,
+  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+  | undefined,
+  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+  | undefined,
+  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+  | undefined,
+  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+  | undefined,
+  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+  | undefined,
+  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+  | undefined,
+  StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined
+>
 
-export type InputProps<T = unknown, S = unknown> = {
+export type InputProps<T, S> = {
   id: string
   required?: boolean
   minLength?: number | false

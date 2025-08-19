@@ -143,7 +143,7 @@ watch(
   },
 )
 
-const inputProps: ComputedRef<InputProps<From>> = computed(() => ({
+const inputProps: ComputedRef<InputProps<From, To>> = computed(() => ({
   id,
   required: props.meta?.required,
   minLength: props.meta?.type === "string" && props.meta?.minLength,

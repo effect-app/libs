@@ -6,20 +6,19 @@ import {
   type StandardSchemaV1,
   type FormApi,
   type VueFormApi,
-  type FieldComponent,
   type FormOptions,
   type DeepKeys,
   type FieldValidateOrFn,
   type FieldAsyncValidateOrFn,
   type FormState,
 } from "@tanstack/vue-form"
-import type { Component } from "vue"
 import { useIntl } from "../../utils"
+import { OmegaFormReturn } from "./useOmegaForm"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
 export type OmegaInputProps<From, To> = {
-  form: FormType<From, To> & {
+  form: OmegaFormReturn<From, To> & {
     meta: MetaRecord<From>
   }
   name: NestedKeyOf<From>

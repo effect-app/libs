@@ -7,7 +7,7 @@
   </slot>
 </template>
 
-<script setup lang="ts" generic="To, From">
+<script setup lang="ts" generic="From, To">
 import { computed } from "vue"
 import {
   type NestedKeyOf,

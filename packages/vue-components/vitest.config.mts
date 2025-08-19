@@ -15,4 +15,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['**/__tests__/**', '**/*.test.*']
   }
-} as any)
+})

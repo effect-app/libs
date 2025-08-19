@@ -84,4 +84,10 @@ const form = useOmegaForm(schema, {
     console.log(value)
   },
 })
+
+const form2 = useOmegaForm(
+  S.Struct({
+    string: S.Array(S.String),
+  }),
+)
 </script>

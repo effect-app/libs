@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.12.20
+
+### Patch Changes
+
+- fba6690: Fixes type inference with the new tanstack query types
+
 ## 0.12.19
 
 ### Patch Changes

@@ -205,12 +205,7 @@ export const middleware3 = MiddlewareMaker
   .middleware(Test)
   .middleware(BogusMiddleware)
 
-export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)<{
-  /** Disable authentication requirement */
-  allowAnonymous?: true
-  /** Control the roles that are required to access the resource */
-  allowRoles?: readonly string[]
-}>()
+export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
 
 export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
 export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}

@@ -4,9 +4,9 @@
       <component
         :is="form.Field"
         v-for="(_, i) of field.state.value"
-        :key="i"
+        :key="`${name}[${Number(i)}]`"
         :name="
-          `${name}[${String(i)}]` as DeepKeys<From>
+          `${name}[${Number(i)}]` as DeepKeys<From>
         "
       >
         <template #default="{ field: subField, state: subState }">
@@ -15,7 +15,7 @@
               field,
               subField,
               subState,
-              index: i as number,
+              index: Number(i),
             }"
           />
         </template>

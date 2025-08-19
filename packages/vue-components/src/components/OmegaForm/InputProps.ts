@@ -13,13 +13,6 @@ import type {
   FieldAsyncValidateOrFn,
 } from "@tanstack/vue-form"
 
-export type FieldState<TValue = any> = {
-  value: TValue
-  meta: {
-    errors: ValidationError[]
-  }
-}
-
 export type OmegaFieldInternalApi<From, To> = FieldApi<
   From,
   DeepKeys<From>,

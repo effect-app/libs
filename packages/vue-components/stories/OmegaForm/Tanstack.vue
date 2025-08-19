@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { useForm } from "@tanstack/vue-form"
+import { useForm, useStore } from "@tanstack/vue-form"
 import { S } from "effect-app"
 
 const schema = S.Struct({

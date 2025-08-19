@@ -11,7 +11,7 @@
   </slot>
 </template>
 
-<script setup lang="ts" generic="To">
+<script setup lang="ts" generic="From, To">
 import { useStore } from "@tanstack/vue-form"
 import {
   useId,
@@ -39,12 +39,12 @@ defineOptions({
 })
 
 const props = defineProps<{
-  field: OmegaFieldInternalApi<To>
-  meta: MetaRecord<To>[NestedKeyOf<To>]
+  field: OmegaFieldInternalApi<From, To>
+  meta: MetaRecord<From>[NestedKeyOf<From>]
   label: string
   options?: { title: string; value: string }[]
   type?: TypeOverride
-  validators?: FieldValidators<To>
+  validators?: FieldValidators<From>
 }>()
 
 const instance = getCurrentInstance()
@@ -54,7 +54,7 @@ const id = useId()
 
 const fieldApi = props.field
 
-const fieldState = useStore(fieldApi.store, state => state)
+const fieldState = useStore(fieldApi, state => state)
 
 const fieldType = computed(() => {
   if (props.type) return props.type
@@ -143,7 +143,7 @@ watch(
   },
 )
 
-const inputProps: ComputedRef<InputProps<To>> = computed(() => ({
+const inputProps: ComputedRef<InputProps<From>> = computed(() => ({
   id,
   required: props.meta?.required,
   minLength: props.meta?.type === "string" && props.meta?.minLength,

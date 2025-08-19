@@ -20,9 +20,9 @@ export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
 export type OmegaInputProps<From, To> = {
   form: FormType<From, To> & {
-    meta: MetaRecord<To>
+    meta: MetaRecord<From>
   }
-  name: NestedKeyOf<To>
+  name: NestedKeyOf<From>
   validators?: FieldValidators<From>
   label: string
   options?: { title: string; value: string }[]
@@ -49,68 +49,68 @@ export interface OmegaError {
 
 const isArrayOfString = S.NonEmptyArray(S.String)
 
-export type FormProps<To, From> = Omit<
+export type FormProps<From, To> = Omit<
   FormOptions<
-    To,
-    FormValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    StandardSchemaV1<To, From>,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined
+    From,
+    FormValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    StandardSchemaV1<From, To>,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined
   >,
   "onSubmit"
 > & {
   onSubmit?: (props: {
-    formApi: OmegaFormParams<To, From>
+    formApi: OmegaFormParams<From, To>
     meta: any
-    value: From
+    value: To
   }) => Promise<any> | any
 }
 
-export type OmegaFormParams<To, From> = FormApi<
-  To,
-  FormValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  StandardSchemaV1<To, From>,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined
+export type OmegaFormParams<From, To> = FormApi<
+  From,
+  FormValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined
 >
 
-export type OmegaFormState<To, From> = FormState<
-  To,
-  FormValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  StandardSchemaV1<To, From>,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined
+export type OmegaFormState<From, To> = FormState<
+  From,
+  FormValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined
 >
 
-export type OmegaFormApi<To, From> = OmegaFormParams<To, From> &
+export type OmegaFormApi<From, To> = OmegaFormParams<From, To> &
   VueFormApi<
-    To,
-    FormValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    StandardSchemaV1<To, From>,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined
+    From,
+    FormValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    StandardSchemaV1<From, To>,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined
   >
 
-export type FormComponent<T, S> = FieldComponent<
+export type FormComponent<T, S> = VueFormApi<
   T,
   FormValidateOrFn<T> | undefined,
   FormValidateOrFn<T> | undefined,
@@ -121,11 +121,10 @@ export type FormComponent<T, S> = FieldComponent<
   FormAsyncValidateOrFn<T> | undefined,
   FormAsyncValidateOrFn<T> | undefined,
   FormAsyncValidateOrFn<T> | undefined
-> &
-  Component
+>
 
 export type FormType<T, S = unknown> = OmegaFormApi<T, S> & {
-  Field: Component
+  Field: FormComponent<T, S>
 }
 
 export type PrefixFromDepth<
@@ -423,7 +422,7 @@ const flattenMeta = <From, To>(
       for (const key in obj) {
         const newKey = parentKey ? `${parentKey}.${key}` : key
         if (obj[key] && typeof obj[key] === "object" && "type" in obj[key]) {
-          result[newKey as NestedKeyOf<To>] = obj[key] as FieldMeta
+          result[newKey as DeepKeys<To>] = obj[key] as FieldMeta
         } else if (obj[key] && typeof obj[key] === "object") {
           flattenObject(obj[key], newKey)
         }

@@ -5,7 +5,9 @@
         :is="form.Field"
         v-for="(_, i) of field.state.value"
         :key="i"
-        :name="`${name}[${i}]`"
+        :name="
+          `${name}[${String(i)}]` as DeepKeys<From>
+        "
       >
         <template #default="{ field: subField, state: subState }">
           <slot

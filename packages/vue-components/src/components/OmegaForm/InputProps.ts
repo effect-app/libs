@@ -1,68 +1,38 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { FieldApi, DeepValue, ValidationError } from "@tanstack/vue-form"
-import { type NestedKeyOf } from "./OmegaFormStuff"
-
-// Placeholder types for validator function shapes
-type ValidatorFnSync = (opts: {
-  value: any
-  fieldApi: any
-}) => ValidationError | undefined
-type ValidatorFnAsync = (opts: {
-  value: any
-  fieldApi: any
-}) => Promise<ValidationError | undefined>
-// Assuming form validators have a similar structure but might operate on the whole form data (any for simplicity)
-type FormValidatorFnSync = (opts: {
-  value: any
-  formApi: any
-}) => ValidationError | undefined
-type FormValidatorFnAsync = (opts: {
-  value: any
-  formApi: any
-}) => Promise<ValidationError | undefined>
-// Placeholder for other form-related types
-type FormServerError = any
-type SubmitMeta = any
+import type { 
+  FieldApi, 
+  DeepValue, 
+  ValidationError,
+  FieldValidateOrFn,
+  FieldAsyncValidateOrFn,
+  FormValidateOrFn,
+  FormAsyncValidateOrFn,
+  StandardSchemaV1,
+  DeepKeys
+} from "@tanstack/vue-form"
+import { OmegaFormApi, type NestedKeyOf } from "./OmegaFormStuff"
 
 // Define a more flexible Updater type that can accept direct values
 type FlexibleUpdater<T> = ((prev: T) => T) | T
 
-export type OmegaFieldInternalApi<To> = Omit<
-  FieldApi<
-    To, // TParentData
-    NestedKeyOf<To>, // TName
-    DeepValue<To, NestedKeyOf<To>>, // TData
-    // Field Validators (approximated typqes)
-    ValidatorFnSync, // TOnMount
-    ValidatorFnSync, // TOnChange
-    ValidatorFnAsync, // TOnChangeAsync
-    ValidatorFnSync, // TOnBlur
-    ValidatorFnAsync, // TOnBlurAsync
-    ValidatorFnSync, // TOnSubmit
-    ValidatorFnAsync, // TOnSubmitAsync
-    // Form Validators (approximated types)
-    FormValidatorFnSync, // TFormOnMount
-    FormValidatorFnSync, // TFormOnChange
-    FormValidatorFnAsync, // TFormOnChangeAsync
-    FormValidatorFnSync, // TFormOnBlur
-    FormValidatorFnAsync, // TFormOnBlurAsync
-    FormValidatorFnSync, // TFormOnSubmit
-    FormValidatorFnAsync, // TFormOnSubmitAsync
-    // Other Form types (placeholders)
-    FormServerError, // TFormOnServer
-    SubmitMeta // TParentSubmitMeta
-  >,
-  "handleChange" | "setValue"
-> & {
+export type OmegaFieldInternalApi<From, To> = {
+  state: {
+    value: DeepValue<From, NestedKeyOf<From>>
+    meta: {
+      errors: ValidationError[]
+    }
+  }
+  store: any
   handleChange: (
-    updater: FlexibleUpdater<DeepValue<To, NestedKeyOf<To>>> | any,
+    updater: FlexibleUpdater<DeepValue<From, NestedKeyOf<From>>>,
   ) => void
   setValue: (
-    updater: FlexibleUpdater<DeepValue<To, NestedKeyOf<To>>> | any,
+    updater: FlexibleUpdater<DeepValue<From, NestedKeyOf<From>>>,
   ) => void
+  handleBlur: () => void
 }
 
-export type InputProps<T> = {
+export type InputProps<T, S> = {
   id: string
   required?: boolean
   minLength?: number | false
@@ -73,7 +43,7 @@ export type InputProps<T> = {
   modelValue: unknown
   errorMessages: string[]
   error: boolean
-  field: OmegaFieldInternalApi<T>
+  field: OmegaFieldInternalApi<T, S>
   setRealDirty: () => void
   type: string
   label: string

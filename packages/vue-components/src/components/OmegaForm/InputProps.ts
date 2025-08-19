@@ -1,38 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { 
-  FieldApi, 
   DeepValue, 
-  ValidationError,
-  FieldValidateOrFn,
-  FieldAsyncValidateOrFn,
-  FormValidateOrFn,
-  FormAsyncValidateOrFn,
-  StandardSchemaV1,
-  DeepKeys
+  DeepKeys,
+  FieldApi,
+  ValidationError
 } from "@tanstack/vue-form"
 import { OmegaFormApi, type NestedKeyOf } from "./OmegaFormStuff"
 
-// Define a more flexible Updater type that can accept direct values
-type FlexibleUpdater<T> = ((prev: T) => T) | T
-
-export type OmegaFieldInternalApi<From, To> = {
-  state: {
-    value: DeepValue<From, NestedKeyOf<From>>
-    meta: {
-      errors: ValidationError[]
-    }
+export type FieldState<TValue = any> = {
+  value: TValue
+  meta: {
+    errors: ValidationError[]
   }
-  store: any
-  handleChange: (
-    updater: FlexibleUpdater<DeepValue<From, NestedKeyOf<From>>>,
-  ) => void
-  setValue: (
-    updater: FlexibleUpdater<DeepValue<From, NestedKeyOf<From>>>,
-  ) => void
-  handleBlur: () => void
 }
 
-export type InputProps<T, S> = {
+// Desculpame madre
+export type OmegaFieldInternalApi<From, To> = FieldApi<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any> & {
+  store: {
+    state: FieldState<DeepValue<From, DeepKeys<From>>>
+  }
+}
+
+export type InputProps<T = unknown, S = unknown> = {
   id: string
   required?: boolean
   minLength?: number | false

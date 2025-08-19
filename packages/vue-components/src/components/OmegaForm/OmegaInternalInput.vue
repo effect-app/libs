@@ -54,7 +54,7 @@ const id = useId()
 
 const fieldApi = props.field
 
-const fieldState = useStore(fieldApi, state => state)
+const fieldState = useStore(fieldApi.store, state => state)
 
 const fieldType = computed(() => {
   if (props.type) return props.type

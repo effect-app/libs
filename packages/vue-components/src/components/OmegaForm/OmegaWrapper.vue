@@ -158,7 +158,7 @@ const formIsSubmitting = useStore(
 )
 
 const subscribedValues = getOmegaStore(
-  formToUse.value as OmegaFormApi<From, To>,
+  formToUse.value as unknown as OmegaFormApi<From, To>,
   props.subscribe,
 )
 

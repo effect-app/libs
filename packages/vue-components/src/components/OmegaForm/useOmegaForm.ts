@@ -24,6 +24,7 @@ import {
 } from "vue"
 import { isObject } from "effect/Predicate"
 import OmegaFormInput from "./OmegaFormInput.vue"
+import { OmegaFieldInternalApi } from "./InputProps"
 
 type keysRule<T> =
   | {
@@ -55,8 +56,7 @@ interface OF<To, From> extends OmegaFormApi<To, From> {
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
 
-export interface OmegaFormReturn<From, To>
-  extends OF<From, To> {
+export interface OmegaFormReturn<From, To> extends OF<From, To> {
   Input: typeof OmegaFormInput
 }
 
@@ -64,11 +64,11 @@ export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   From extends Record<PropertyKey, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  To extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
 >(
   schema: S.Schema<From, To, never>,
   tanstackFormOptions?: NoInfer<FormProps<To, From>>,
-  omegaConfig?: OmegaConfig<From>,
+  omegaConfig?: OmegaConfig<From>
 ): OmegaFormReturn<From, To> => {
   if (!schema) throw new Error("Schema is required")
   const standardSchema = S.standardSchemaV1(schema)
@@ -149,7 +149,7 @@ export const useOmegaForm = <
       if (storage) {
         try {
           const value = JSON.parse(
-            storage.getItem(persistencyKey.value) || "{}",
+            storage.getItem(persistencyKey.value) || "{}"
           )
           storage.removeItem(persistencyKey.value)
           defValuesPatch = value
@@ -206,21 +206,18 @@ export const useOmegaForm = <
   }
 
   const createNestedObjectFromPaths = (paths: string[]) =>
-    paths.reduce(
-      (result, path) => {
-        const parts = path.split(".")
-        parts.reduce((acc, part, i) => {
-          if (i === parts.length - 1) {
-            acc[part] = form.getFieldValue(path as any)
-          } else {
-            acc[part] = acc[part] ?? {}
-          }
-          return acc[part]
-        }, result)
-        return result
-      },
-      {} as Record<string, any>,
-    )
+    paths.reduce((result, path) => {
+      const parts = path.split(".")
+      parts.reduce((acc, part, i) => {
+        if (i === parts.length - 1) {
+          acc[part] = form.getFieldValue(path as any)
+        } else {
+          acc[part] = acc[part] ?? {}
+        }
+        return acc[part]
+      }, result)
+      return result
+    }, {} as Record<string, any>)
 
   const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
     if (!persistency) return
@@ -229,7 +226,7 @@ export const useOmegaForm = <
     }
     if (Array.isArray(persistency.banKeys)) {
       const subs = Object.keys(meta).filter(metakey =>
-        persistency.banKeys?.includes(metakey as any),
+        persistency.banKeys?.includes(metakey as any)
       )
       return createNestedObjectFromPaths(subs)
     }
@@ -290,5 +287,6 @@ export const useOmegaForm = <
 
   return Object.assign(formWithExtras, {
     Input: OmegaFormInput,
+    Field: form.Field as unknown as OmegaFieldInternalApi<From, To>,
   })
 }

@@ -42,6 +42,6 @@ defineProps<{
 
 defineSlots<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  default: (props: InputProps<From, To>) => any
+  default: InputProps<From, To>
 }>()
 </script>

@@ -14,6 +14,7 @@ import {
 } from "@tanstack/vue-form"
 import { useIntl } from "../../utils"
 import { OmegaFormReturn } from "./useOmegaForm"
+import { OmegaFieldInternalApi } from "./InputProps"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
@@ -123,12 +124,12 @@ export type FormComponent<T, S> = VueFormApi<
 >
 
 export type FormType<T, S = unknown> = OmegaFormApi<T, S> & {
-  Field: FormComponent<T, S>
+  Field: OmegaFieldInternalApi<T, S>
 }
 
 export type PrefixFromDepth<
   K extends string | number,
-  _TDepth extends any[],
+  _TDepth extends any[]
 > = K
 
 export type NestedKeyOf<T> = DeepKeys<T>
@@ -232,7 +233,7 @@ const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
 
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
-  acc: Partial<MetaRecord<T>> = {},
+  acc: Partial<MetaRecord<T>> = {}
 ): MetaRecord<T> | FieldMeta => {
   if (property && property._tag === "Transformation") {
     return createMeta<T>({
@@ -258,11 +259,11 @@ export const createMeta = <T = any>(
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
         const nonNullTypes = p.type.types.filter(
-          t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast,
+          t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
         )
 
         const hasStructMembers = nonNullTypes.some(
-          t => "propertySignatures" in t,
+          t => "propertySignatures" in t
         )
 
         if (hasStructMembers) {
@@ -283,7 +284,7 @@ export const createMeta = <T = any>(
                   parent: key,
                   propertySignatures: nonNullType.propertySignatures,
                   meta: { required: isRequired, nullableOrUndefined },
-                }),
+                })
               )
             }
           }
@@ -304,7 +305,7 @@ export const createMeta = <T = any>(
             parent: key,
             propertySignatures: typeToProcess.propertySignatures,
             meta: { required: isRequired, nullableOrUndefined },
-          }),
+          })
         )
       } else {
         const newMeta = createMeta<T>({
@@ -327,7 +328,7 @@ export const createMeta = <T = any>(
 
     if (S.AST.isUnion(property)) {
       const nonNullType = property.types.find(
-        t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast,
+        t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
       )!
 
       if ("propertySignatures" in nonNullType) {
@@ -367,7 +368,7 @@ export const createMeta = <T = any>(
 
     const JSONAnnotation = S.AST.getAnnotation(
       property,
-      S.AST.JSONSchemaAnnotationId,
+      S.AST.JSONSchemaAnnotationId
     ).pipe(Option.getOrElse(() => ({}))) as Record<string, unknown>
 
     meta = { ...meta, ...JSONAnnotation }
@@ -381,11 +382,11 @@ export const createMeta = <T = any>(
     } else {
       meta["type"] = S.AST.getAnnotation(
         property,
-        S.AST.TitleAnnotationId,
+        S.AST.TitleAnnotationId
       ).pipe(
         Option.getOrElse(() => {
           return "unknown"
-        }),
+        })
       )
     }
 
@@ -396,7 +397,7 @@ export const createMeta = <T = any>(
 }
 
 const flattenMeta = <From, To>(
-  schema: S.Schema<From, To, never>,
+  schema: S.Schema<From, To, never>
 ): MetaRecord<To> => {
   const ast = schema.ast
   const result: MetaRecord<To> = {}
@@ -416,7 +417,7 @@ const flattenMeta = <From, To>(
 
     const flattenObject = (
       obj: Record<string, any>,
-      parentKey: string = "",
+      parentKey: string = ""
     ) => {
       for (const key in obj) {
         const newKey = parentKey ? `${parentKey}.${key}` : key
@@ -435,13 +436,13 @@ const flattenMeta = <From, To>(
 }
 
 export const duplicateSchema = <From, To>(
-  schema: S.Schema<From, To, never>,
+  schema: S.Schema<From, To, never>
 ) => {
   return S.extend(schema, S.Struct({}))
 }
 
 export const generateMetaFromSchema = <From, To>(
-  schema: S.Schema<From, To, never>,
+  schema: S.Schema<From, To, never>
 ): {
   schema: S.Schema<From, To, never>
   meta: MetaRecord<To>
@@ -455,23 +456,23 @@ export const generateMetaFromSchema = <From, To>(
     Option.flatMap(s => S.AST.getJSONSchemaAnnotation(s)),
     Option.filter(s => "items" in s),
     Option.filterMap(({ items }) =>
-      S.decodeUnknownOption(isArrayOfString)(items),
+      S.decodeUnknownOption(isArrayOfString)(items)
     ),
     Option.zipWith(
       S.AST.getMessageAnnotation(schema.ast),
       (items, message) => ({
         items,
         message: message("" as unknown as S.ParseResult.ParseIssue),
-      }),
+      })
     ),
-    Option.getOrUndefined,
+    Option.getOrUndefined
   )
 
   return { schema, meta, filterItems }
 }
 
 export const generateInputStandardSchemaFromFieldMeta = (
-  meta: FieldMeta,
+  meta: FieldMeta
 ): StandardSchemaV1<any, any> => {
   const { trans } = useIntl()
   let schema: S.Schema<any, any, never>
@@ -486,7 +487,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
           schema,
           S.Email.annotations({
             message: () => trans("validation.email.invalid"),
-          }),
+          })
         )
       }
 
@@ -599,7 +600,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
     schema.pipe(
       S.annotations({
         message: () => trans("validation.empty"),
-      }),
+      })
     )
   }
   const result = S.standardSchemaV1(schema)
@@ -608,11 +609,11 @@ export const generateInputStandardSchemaFromFieldMeta = (
 
 export const nullableInput = <A, I, R>(
   schema: S.Schema<A, I, R>,
-  defaultValue: () => A,
+  defaultValue: () => A
 ) =>
   S.NullOr(schema).pipe(
     S.transform(S.typeSchema(schema), {
       decode: input => input ?? defaultValue(),
       encode: input => input,
-    }),
+    })
   )

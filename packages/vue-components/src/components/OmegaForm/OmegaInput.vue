@@ -7,7 +7,7 @@
       ...validators,
     }"
   >
-    <template #default="{ field }">
+  <template #default="{ field }">
       <OmegaInternalInput
         v-if="meta"
         :field="field"

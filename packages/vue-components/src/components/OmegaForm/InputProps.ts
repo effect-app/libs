@@ -4,11 +4,13 @@ import type {
   DeepKeys,
   FieldApi,
   ValidationError,
-  FieldComponent,
   FormAsyncValidateOrFn,
   FormValidateOrFn,
   StandardSchemaV1,
   FieldValidateOrFn,
+  FieldValidateFn,
+  FieldValidateAsyncFn,
+  FieldAsyncValidateOrFn,
 } from "@tanstack/vue-form"
 
 export type FieldState<TValue = any> = {
@@ -21,24 +23,18 @@ export type FieldState<TValue = any> = {
 export type OmegaFieldInternalApi<From, To> = FieldApi<
   From,
   DeepKeys<From>,
-  DeepValue<From, DeepKeys<From>>,
-  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-  | undefined,
-  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-  | undefined,
-  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-  | undefined,
-  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-  | undefined,
-  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-  | undefined,
-  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-  | undefined,
-  | FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-  | undefined,
-  StandardSchemaV1<From, To>,
+  DeepValue<From, any>,
+  FieldValidateOrFn<From, DeepKeys<From>,
+  DeepValue<From, DeepKeys<From>>> | undefined,
+  StandardSchemaV1<unknown, To> | FieldValidateFn<From, any, To>,
+  StandardSchemaV1<unknown, To> | FieldValidateAsyncFn<From, any, To>,
+  FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, any>>,
+  FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, any>>,
+  FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, any>> | undefined,
+  FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, any>> | undefined,
   FormValidateOrFn<From> | undefined,
-  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  any,
   FormValidateOrFn<From> | undefined,
   FormAsyncValidateOrFn<From> | undefined,
   FormValidateOrFn<From> | undefined,

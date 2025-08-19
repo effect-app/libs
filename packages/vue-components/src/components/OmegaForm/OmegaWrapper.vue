@@ -84,7 +84,7 @@ const props = defineProps<
   } & FormProps<To, From> &
     (
       | {
-          form: OmegaFormReturn<To, From>
+          form: OmegaFormReturn<From, To>
           schema?: undefined
         }
       | {
@@ -158,7 +158,7 @@ const formIsSubmitting = useStore(
 )
 
 const subscribedValues = getOmegaStore(
-  formToUse.value as OmegaFormApi<To, From>,
+  formToUse.value as unknown as OmegaFormApi<From, To>,
   props.subscribe,
 )
 

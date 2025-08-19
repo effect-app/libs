@@ -18,6 +18,8 @@ import {
 } from "./OmegaFormStuff"
 import { pipe, Order, Array as A } from "effect-app"
 import OmegaInput from "./OmegaInput.vue"
+import { DeepKeys } from "@tanstack/vue-form"
+import { OmegaFormReturn } from "./useOmegaForm"
 
 export type OmegaAutoGenMeta<From, To> = Omit<OmegaInputProps<From, To>, "form">
 type NewMeta = OmegaAutoGenMeta<From, To>
@@ -51,18 +53,16 @@ const filterMapRecord =
     )
 
 const props = defineProps<{
-  form: FormType<From, To> & {
-    meta: MetaRecord<To>
-  }
-  pick?: NestedKeyOf<To>[]
-  omit?: NestedKeyOf<To>[]
-  labelMap?: (key: NestedKeyOf<To>) => string | undefined
-  filterMap?: <M extends NewMeta>(key: NestedKeyOf<To>, meta: M) => boolean | M
-  order?: NestedKeyOf<To>[]
+  form: OmegaInputProps<From, To>['form']
+  pick?: DeepKeys<From>[]
+  omit?: DeepKeys<From>[]
+  labelMap?: (key: DeepKeys<From>) => string | undefined
+  filterMap?: <M extends NewMeta>(key: DeepKeys<From>, meta: M) => boolean | M
+  order?: DeepKeys<From>[]
   sort?: Order.Order<NewMeta>
 }>()
 
-const namePosition = (name: NestedKeyOf<To>, order: NestedKeyOf<To>[]) => {
+const namePosition = (name: DeepKeys<From>, order: DeepKeys<From>[]) => {
   const index = order?.indexOf(name) ?? -1
   return index === -1 ? Number.MAX_SAFE_INTEGER : index
 }
@@ -74,7 +74,7 @@ const orderBy: Order.Order<NewMeta> = Order.mapInput(
 
 const children = computed<NewMeta[]>(() =>
   pipe(
-    props.form.meta as Record<NestedKeyOf<To>, FieldMeta | undefined>,
+    props.form.meta as Record<DeepKeys<From>, FieldMeta | undefined>,
     // include / exclude
     filterRecord((_, metaKey) =>
       props.pick

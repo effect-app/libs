@@ -64,7 +64,7 @@
       @update:model-value="
         (e: any) => {
           if (e || e === 0) {
-            inputProps.field.handleChange(Number(e))
+              inputProps.field.handleChange(Number(e))
           } else {
             inputProps.field.handleChange(undefined)
           }
@@ -112,11 +112,11 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="T, S">
 import type { InputProps } from "./InputProps"
 
 defineProps<{
-  inputProps: InputProps<T>
+  inputProps: InputProps<T, S>
   vuetifyValue: unknown
 }>()
 

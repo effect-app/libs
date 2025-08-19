@@ -7,7 +7,7 @@
       ...validators,
     }"
   >
-    <template #default="{ field }: { field: OmegaFieldInternalApi<To> }">
+  <template #default="{ field }">
       <OmegaInternalInput
         v-if="meta"
         :field="field"
@@ -33,7 +33,6 @@ import {
   type OmegaInputProps,
 } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
-import type { OmegaFieldInternalApi } from "./InputProps"
 
 const props = defineProps<OmegaInputProps<From, To>>()
 

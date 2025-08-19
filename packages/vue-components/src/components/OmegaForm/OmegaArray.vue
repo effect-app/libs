@@ -4,8 +4,10 @@
       <component
         :is="form.Field"
         v-for="(_, i) of field.state.value"
-        :key="i"
-        :name="`${name}[${i}]`"
+        :key="`${name}[${Number(i)}]`"
+        :name="
+          `${name}[${Number(i)}]` as DeepKeys<From>
+        "
       >
         <template #default="{ field: subField, state: subState }">
           <slot
@@ -13,7 +15,7 @@
               field,
               subField,
               subState,
-              index: i,
+              index: Number(i),
             }"
           />
         </template>

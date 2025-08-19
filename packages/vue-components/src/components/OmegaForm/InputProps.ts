@@ -18,7 +18,6 @@ export type FieldState<TValue = any> = {
   }
 }
 
-// Desculpame madre
 export type OmegaFieldInternalApi<From, To> = FieldApi<
   From,
   DeepKeys<From>,
@@ -48,7 +47,7 @@ export type OmegaFieldInternalApi<From, To> = FieldApi<
   FormAsyncValidateOrFn<From> | undefined
 >
 
-export type InputProps<T, S> = {
+export type InputProps<T, S = unknown> = {
   id: string
   required?: boolean
   minLength?: number | false
@@ -56,7 +55,7 @@ export type InputProps<T, S> = {
   max?: number | false
   min?: number | false
   name: string
-  modelValue: unknown
+  modelValue: S
   errorMessages: string[]
   error: boolean
   field: OmegaFieldInternalApi<T, S>

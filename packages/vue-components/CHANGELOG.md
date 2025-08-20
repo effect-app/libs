@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 0.13.0
+
+### Minor Changes
+
+- d7c3a71: improve input types
+
+### Patch Changes
+
+- d7c3a71: fix slot issue
+
 ## 0.12.22
 
 ### Patch Changes

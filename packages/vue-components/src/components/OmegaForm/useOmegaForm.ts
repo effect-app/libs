@@ -14,6 +14,8 @@ import {
   type FormProps,
   type MetaRecord,
   type OmegaFormApi,
+  TypeOverride,
+  FieldValidators,
 } from "./OmegaFormStuff"
 import {
   computed,
@@ -25,7 +27,7 @@ import {
 } from "vue"
 import { isObject } from "effect/Predicate"
 import OmegaFormInput from "./OmegaFormInput.vue"
-import { OmegaFieldInternalApi } from "./InputProps"
+import { InputProps, OmegaFieldInternalApi } from "./InputProps"
 
 type keysRule<T> =
   | {
@@ -57,8 +59,32 @@ interface OF<From, To> extends OmegaFormApi<From, To> {
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
 
+type __VLS_PrettifyLocal<T> = {
+    [K in keyof T]: T[K];
+} & {};
+
 export interface OmegaFormReturn<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> extends OF<From, To> {
-  Input: typeof OmegaFormInput<From, To, DeepKeys<From>>
+  // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
+  Input: <Name extends DeepKeys<From>>(__VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"], __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>, __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"], __VLS_setup?: Promise<{
+    props: __VLS_PrettifyLocal<Pick<Partial<{}> & Omit<{} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps, never>, never> & {
+        name: Name;
+        label: string;
+        validators?: FieldValidators<From>;
+        options?: {
+            title: string;
+            value: string;
+        }[];
+        type?: TypeOverride;
+    } & Partial<{}>> & import("vue").PublicProps;
+    expose(exposed: import("vue").ShallowUnwrapRef<{}>): void;
+    attrs: any;
+    slots: {
+        default(props: InputProps<From, Name>): void;
+    };
+    emit: {};
+}>) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>;
+};
 }
 
 export const useOmegaForm = <

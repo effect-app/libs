@@ -18,7 +18,7 @@ import { OmegaFieldInternalApi } from "./InputProps"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
-export type OmegaInputProps<From, To> = {
+export type OmegaInputProps<From extends Record<string, any>, To extends Record<string, any>> = {
   form: OmegaFormReturn<From, To> & {
     meta: MetaRecord<From>
   }

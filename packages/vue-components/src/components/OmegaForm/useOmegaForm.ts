@@ -56,8 +56,8 @@ interface OF<From, To> extends OmegaFormApi<From, To> {
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
 
-export interface OmegaFormReturn<From, To> extends OF<From, To> {
-  Input: typeof OmegaFormInput
+export interface OmegaFormReturn<From extends Record<string, any>, To extends Record<string, any>> extends OF<From, To> {
+  Input: typeof OmegaFormInput<From, To>
 }
 
 export const useOmegaForm = <

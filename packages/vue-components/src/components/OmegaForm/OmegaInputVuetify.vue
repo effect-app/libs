@@ -112,11 +112,11 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T, S">
+<script setup lang="ts" generic="From, To">
 import type { InputProps } from "./InputProps"
 
 defineProps<{
-  inputProps: InputProps<T, S>
+  inputProps: InputProps<From, To>
   vuetifyValue: unknown
 }>()
 

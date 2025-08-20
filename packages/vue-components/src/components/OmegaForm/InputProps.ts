@@ -35,7 +35,7 @@ export type OmegaFieldInternalApi<From, To> = FieldApi<
   FormAsyncValidateOrFn<From> | undefined
 >
 
-export type InputProps<T, S = unknown> = {
+export type InputProps<From, To> = {
   id: string
   required?: boolean
   minLength?: number | false
@@ -43,10 +43,10 @@ export type InputProps<T, S = unknown> = {
   max?: number | false
   min?: number | false
   name: string
-  modelValue: S
+  modelValue: From
   errorMessages: string[]
   error: boolean
-  field: OmegaFieldInternalApi<T, S>
+  field: OmegaFieldInternalApi<From, To>
   setRealDirty: () => void
   type: string
   label: string

@@ -7,7 +7,7 @@
   </slot>
 </template>
 
-<script setup lang="ts" generic="From, To">
+<script setup lang="ts" generic="From extends Record<PropertyKey, string>, To extends Record<PropertyKey, string>">
 import { computed } from "vue"
 import {
   type NestedKeyOf,
@@ -21,7 +21,7 @@ import OmegaInput from "./OmegaInput.vue"
 import { DeepKeys } from "@tanstack/vue-form"
 import { OmegaFormReturn } from "./useOmegaForm"
 
-export type OmegaAutoGenMeta<From, To> = Omit<OmegaInputProps<From, To>, "form">
+export type OmegaAutoGenMeta<From extends Record<PropertyKey, string>, To extends Record<PropertyKey, string>> = Omit<OmegaInputProps<From, To>, "form">
 type NewMeta = OmegaAutoGenMeta<From, To>
 
 const mapObject =

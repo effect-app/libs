@@ -25,7 +25,7 @@
   </component>
 </template>
 
-<script setup lang="ts" generic="From, To">
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>">
 import { computed, inject, type Ref } from "vue"
 import {
   type FieldMeta,

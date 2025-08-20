@@ -14,7 +14,7 @@
   </OmegaInput>
 </template>
 
-<script setup lang="ts" generic="From, To extends Record<PropertyKey, any>">
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
 import { inject } from "vue"
 import type {
   FieldValidators,
@@ -33,7 +33,7 @@ if (!form) {
 }
 
 defineProps<{
-  name: DeepKeys<From>
+  name: Name
   label: string
   validators?: FieldValidators<From>
   options?: { title: string; value: string }[]
@@ -41,6 +41,6 @@ defineProps<{
 }>()
 
 defineSlots<{
-  default(props: InputProps<From, To>): void
+  default(props: InputProps<From, Name>): void
 }>()
 </script>

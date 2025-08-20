@@ -4,6 +4,7 @@ import {
   type FormValidateOrFn,
   type FormAsyncValidateOrFn,
   type StandardSchemaV1,
+  DeepKeys,
 } from "@tanstack/vue-form"
 import { type Record, S } from "effect-app"
 import {
@@ -56,15 +57,15 @@ interface OF<From, To> extends OmegaFormApi<From, To> {
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
 
-export interface OmegaFormReturn<From extends Record<string, any>, To extends Record<string, any>> extends OF<From, To> {
-  Input: typeof OmegaFormInput<From, To>
+export interface OmegaFormReturn<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> extends OF<From, To> {
+  Input: typeof OmegaFormInput<From, To, DeepKeys<From>>
 }
 
 export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   From extends Record<PropertyKey, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  To extends Record<PropertyKey, any>
+  To extends Record<PropertyKey, any>,
 >(
   schema: S.Schema<To, From, never>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
@@ -287,6 +288,6 @@ export const useOmegaForm = <
 
   return Object.assign(formWithExtras, {
     Input: OmegaFormInput,
-    Field: form.Field as unknown as OmegaFieldInternalApi<From, To>,
+    Field: form.Field as unknown as OmegaFieldInternalApi<From, any>, // TODO
   })
 }

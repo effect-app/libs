@@ -18,7 +18,7 @@ import { OmegaFieldInternalApi } from "./InputProps"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
-export type OmegaInputProps<From extends Record<string, any>, To extends Record<string, any>> = {
+export type OmegaInputProps<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> = {
   form: OmegaFormReturn<From, To> & {
     meta: MetaRecord<From>
   }
@@ -123,8 +123,8 @@ export type FormComponent<T, S> = VueFormApi<
   FormAsyncValidateOrFn<T> | undefined
 >
 
-export type FormType<T, S = unknown> = OmegaFormApi<T, S> & {
-  Field: OmegaFieldInternalApi<T, S>
+export type FormType<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>> = OmegaFormApi<From, To> & {
+  Field: OmegaFieldInternalApi<From, Name>
 }
 
 export type PrefixFromDepth<

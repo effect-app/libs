@@ -14,25 +14,25 @@ import type {
 } from "@tanstack/vue-form"
 
 export type OmegaFieldInternalApi<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = FieldApi<
-  From,
-  TName,
-  DeepValue<From, TName>,
-  FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
-  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateFn<From, TName>,
-  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateAsyncFn<From, TName>,
-  FieldValidateOrFn<From, TName, DeepValue<From, TName>>,
-  FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>>,
-  FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
-  FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
-  FormValidateOrFn<From> | undefined,
-  FormValidateOrFn<From> | undefined,
-  any, // TODO
-  FormValidateOrFn<From> | undefined,
-  FormAsyncValidateOrFn<From> | undefined,
-  FormValidateOrFn<From> | undefined,
-  FormAsyncValidateOrFn<From> | undefined,
-  FormAsyncValidateOrFn<From> | undefined,
-  FormAsyncValidateOrFn<From> | undefined
+/*in out TParentData*/ From,
+/* in out TName*/ TName,
+ /*in out TData*/  DeepValue<From, TName>,
+/* in out TOnMount*/  FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+/* in out TOnChange*/  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateFn<From, TName>,
+/* in out TOnChangeAsync*/  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateAsyncFn<From, TName>,
+/* in out TOnBlur*/  FieldValidateOrFn<From, TName, DeepValue<From, TName>>,
+/* in out TOnBlurAsync*/  FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>>,
+/* in out TOnSubmit*/  FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+/* in out TOnSubmitAsync*/  FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+/* in out TFormOnMount*/  FormValidateOrFn<From> | undefined,
+/* in out TFormOnChange*/  FormValidateOrFn<From> | undefined,
+/* in out TFormOnChangeAsync*/  FormAsyncValidateOrFn<From>,
+/* in out TFormOnBlur*/  FormValidateOrFn<From> | undefined,
+/* in out TFormOnBlurAsync*/  FormAsyncValidateOrFn<From> | undefined,
+/* in out TFormOnSubmit*/  FormValidateOrFn<From> | undefined,
+/* in out TFormOnSubmitAsync*/  FormAsyncValidateOrFn<From> | undefined,
+/* in out TFormOnServer*/  FormAsyncValidateOrFn<From> | undefined,
+/* in out TParentSubmitMeta*/  FormAsyncValidateOrFn<From> | undefined
 >
 
 export type InputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.12.22
+
+### Patch Changes
+
+- 02df024: From is To and To is From, but where is To From?
+
 ## 0.12.21
 
 ### Patch Changes

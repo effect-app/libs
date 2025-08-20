@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.51.10
+
+### Patch Changes
+
+- 46f614a: feat: add useUpdateQuery
+
 ## 2.51.9
 
 ### Patch Changes

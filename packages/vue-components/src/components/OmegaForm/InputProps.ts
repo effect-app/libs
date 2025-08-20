@@ -14,9 +14,9 @@ import type {
 } from "@tanstack/vue-form"
 
 export type OmegaFieldInternalApi<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = FieldApi<
-/*in out TParentData*/ From,
+/* in out TParentData*/ From,
 /* in out TName*/ TName,
- /*in out TData*/  DeepValue<From, TName>,
+/* in out TData*/  DeepValue<From, TName>,
 /* in out TOnMount*/  FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
 /* in out TOnChange*/  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateFn<From, TName>,
 /* in out TOnChangeAsync*/  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateAsyncFn<From, TName>,

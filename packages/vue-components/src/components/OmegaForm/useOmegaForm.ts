@@ -288,6 +288,6 @@ export const useOmegaForm = <
 
   return Object.assign(formWithExtras, {
     Input: OmegaFormInput,
-    Field: form.Field as unknown as OmegaFieldInternalApi<From, any>, // TODO
+    Field: form.Field
   })
 }

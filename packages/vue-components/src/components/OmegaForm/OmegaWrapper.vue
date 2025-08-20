@@ -24,7 +24,7 @@
   generic="
     From extends Record<PropertyKey, any>,
     To extends Record<PropertyKey, any>,
-    K extends keyof OmegaFormState<To, From> = keyof OmegaFormState<To, From>
+    K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>
   "
 >
 /**
@@ -81,7 +81,7 @@ const props = defineProps<
     omegaConfig?: OmegaConfig<From>
     subscribe?: K[]
     showErrorsOn?: ShowErrorsOn
-  } & FormProps<To, From> &
+  } & FormProps<From, To> &
     (
       | {
           form: OmegaFormReturn<From, To>
@@ -214,7 +214,7 @@ defineSlots<{
   default(): void
   // Named slot when form is created internally via schema
   internalForm(props: {
-    form: OmegaFormReturn<To, From>
+    form: OmegaFormReturn<From, To>
     subscribedValues: typeof subscribedValues.value
   }): void
   // Named slot when form is passed via props (provides subscribedValues)

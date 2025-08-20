@@ -48,8 +48,8 @@ export type OmegaConfig<T> = {
   } & keysRule<T>
 }
 
-interface OF<To, From> extends OmegaFormApi<To, From> {
-  meta: MetaRecord<To>
+interface OF<From, To> extends OmegaFormApi<From, To> {
+  meta: MetaRecord<From>
   filterItems?: FilterItems
   clear: () => void
 }
@@ -66,9 +66,9 @@ export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   To extends Record<PropertyKey, any>
 >(
-  schema: S.Schema<From, To, never>,
-  tanstackFormOptions?: NoInfer<FormProps<To, From>>,
-  omegaConfig?: OmegaConfig<From>
+  schema: S.Schema<To, From, never>,
+  tanstackFormOptions?: NoInfer<FormProps<From, To>>,
+  omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To> => {
   if (!schema) throw new Error("Schema is required")
   const standardSchema = S.standardSchemaV1(schema)
@@ -172,16 +172,16 @@ export const useOmegaForm = <
   })
 
   const form = useForm<
-    To,
-    FormValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    StandardSchemaV1<To, From>,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined
+    From,
+    FormValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    StandardSchemaV1<From, To>,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined
   >({
     ...tanstackFormOptions,
     validators: {
@@ -191,9 +191,9 @@ export const useOmegaForm = <
     onSubmit: tanstackFormOptions?.onSubmit
       ? ({ formApi, meta, value }) =>
           tanstackFormOptions.onSubmit?.({
-            formApi: formApi as OmegaFormApi<To, From>,
+            formApi: formApi as OmegaFormApi<From, To>,
             meta,
-            value: value as unknown as From,
+            value: value as unknown as To,
           })
       : undefined,
     defaultValues: defaultValues.value as any,
@@ -277,7 +277,7 @@ export const useOmegaForm = <
     window.removeEventListener("blur", saveDataInUrl)
   })
 
-  const formWithExtras: OF<To, From> = Object.assign(form, {
+  const formWithExtras: OF<From, To> = Object.assign(form, {
     meta,
     filterItems,
     clear,

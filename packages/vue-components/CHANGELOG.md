@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.13.1
+
+### Patch Changes
+
+- 8fc1b2a: fix form input type should narrow to the type of the field, not all fields.
+
 ## 0.13.0
 
 ### Minor Changes

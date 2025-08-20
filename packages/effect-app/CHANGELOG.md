@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.0.10
+
+### Patch Changes
+
+- ce91007: fix non inverted rpc context map use
+
 ## 3.0.9
 
 ### Patch Changes

@@ -64,9 +64,9 @@
       @update:model-value="
         (e: any) => {
           if (e || e === 0) {
-              inputProps.field.handleChange(Number(e))
+              inputProps.field.handleChange(Number(e) as any)
           } else {
-            inputProps.field.handleChange(undefined)
+            inputProps.field.handleChange(undefined as any)
           }
         }
       "
@@ -85,7 +85,7 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @clear="inputProps.field.handleChange(undefined)"
+      @clear="inputProps.field.handleChange(undefined as any)"
       @update:model-value="inputProps.field.handleChange"
     />
 
@@ -106,17 +106,18 @@
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @clear="inputProps.field.handleChange(undefined)"
+      @clear="inputProps.field.handleChange(undefined as any)"
       @update:model-value="inputProps.field.handleChange"
     />
   </div>
 </template>
 
-<script setup lang="ts" generic="T, S">
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
+import { DeepKeys } from "@tanstack/vue-form";
 import type { InputProps } from "./InputProps"
 
 defineProps<{
-  inputProps: InputProps<T, S>
+  inputProps: InputProps<From, Name>
   vuetifyValue: unknown
 }>()
 

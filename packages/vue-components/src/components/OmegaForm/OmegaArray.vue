@@ -25,7 +25,7 @@
   </component>
 </template>
 
-<script setup lang="ts" generic="From, To">
+<script setup lang="ts" generic="From extends Record<PropertyKey, string>, To extends Record<PropertyKey, string>">
 import { computed, onMounted, provide } from "vue"
 import {
   type CreateMeta,

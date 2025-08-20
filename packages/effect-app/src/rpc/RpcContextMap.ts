@@ -17,6 +17,7 @@ export type RpcContextMap<Service, E> = {
   service: Service
   error: E
   contextActivation: true
+  inverted: false
 }
 
 export declare namespace RpcContextMap {
@@ -28,24 +29,29 @@ export declare namespace RpcContextMap {
     service: Service
     error: E
     contextActivation: false
+    inverted: true
   }
 
   export type Custom<Service, E, C> = {
     service: Service
     error: E
     contextActivation: C
+    inverted: false
   }
 
   export type Any = {
     service: any
     error: S.Schema.All
     contextActivation: any
+    inverted: boolean
   }
 }
 
 export type GetContextConfig<RequestContextMap extends Record<string, RpcContextMap.Any>> = {
-  [K in keyof RequestContextMap]?: RequestContextMap[K]["contextActivation"] extends true ? false
+  [K in keyof RequestContextMap]?: RequestContextMap[K]["inverted"] extends true
+    ? RequestContextMap[K]["contextActivation"] extends true ? false
     : RequestContextMap[K]["contextActivation"] extends false ? true
+    : RequestContextMap[K]["contextActivation"]
     : RequestContextMap[K]["contextActivation"]
 }
 
@@ -121,7 +127,8 @@ export const make = <Service = never>() =>
 ): RpcContextMap<Service, E> => ({
   service: null as Service,
   error,
-  contextActivation: true
+  contextActivation: true,
+  inverted: false
 })
 
 export const makeInverted = <Service = never>() =>
@@ -130,7 +137,8 @@ export const makeInverted = <Service = never>() =>
 ): RpcContextMap.Inverted<Service, E> => ({
   service: null as Service,
   error,
-  contextActivation: false
+  contextActivation: false,
+  inverted: true
 })
 
 export const makeCustom = <Service = never>() =>

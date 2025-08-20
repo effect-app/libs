@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.13.4
+
+### Patch Changes
+
+- c996758: confusing af
+
 ## 0.13.3
 
 ### Patch Changes

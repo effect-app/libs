@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type Enabled, type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type Enabled, type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, useQueryClient, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
@@ -259,4 +259,32 @@ export function composeQueries<
     return prev
   }, {} as any)
   return Result.success(r, { waiting: isRefreshing })
+}
+
+export const useUpdateQuery = () => {
+  const queryClient = useQueryClient()
+
+  const f: {
+    <A>(
+      query: RequestHandler<A, any, any, any>,
+      updater: (data: NoInfer<A>) => NoInfer<A>
+    ): void
+    <I, A>(
+      query: RequestHandlerWithInput<I, A, any, any, any>,
+      input: I,
+      updater: (data: NoInfer<A>) => NoInfer<A>
+    ): void
+  } = (query: any, updateOrInput: any, updaterMaybe?: any) => {
+    const updater = updaterMaybe !== undefined ? updaterMaybe : updateOrInput
+    const key = updaterMaybe !== undefined
+      ? [...makeQueryKey(query), updateOrInput]
+      : makeQueryKey(query)
+    const data = queryClient.getQueryData(key)
+    if (data) {
+      queryClient.setQueryData(key, updater)
+    } else {
+      console.warn(`Query data for key ${key} not found`, key)
+    }
+  }
+  return f
 }

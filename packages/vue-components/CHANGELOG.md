@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.13.3
+
+### Patch Changes
+
+- 1761ffb: Fixes wrong type extend for OmegaArray
+
 ## 0.13.2
 
 ### Patch Changes

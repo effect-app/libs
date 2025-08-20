@@ -89,7 +89,7 @@ const props = defineProps<
         }
       | {
           form?: undefined
-          schema: S.Schema<From, To, never>
+          schema: S.Schema<To, From, never>
         }
     )
 >()

@@ -397,7 +397,7 @@ export const createMeta = <T = any>(
 }
 
 const flattenMeta = <From, To>(
-  schema: S.Schema<From, To, never>
+  schema: S.Schema<To, From, never>
 ): MetaRecord<To> => {
   const ast = schema.ast
   const result: MetaRecord<To> = {}
@@ -436,15 +436,15 @@ const flattenMeta = <From, To>(
 }
 
 export const duplicateSchema = <From, To>(
-  schema: S.Schema<From, To, never>
+  schema: S.Schema<To, From, never>
 ) => {
   return S.extend(schema, S.Struct({}))
 }
 
 export const generateMetaFromSchema = <From, To>(
-  schema: S.Schema<From, To, never>
+  schema: S.Schema<To, From, never>
 ): {
-  schema: S.Schema<From, To, never>
+  schema: S.Schema<To, From, never>
   meta: MetaRecord<To>
   filterItems?: FilterItems
 } => {

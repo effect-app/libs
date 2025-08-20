@@ -148,7 +148,8 @@ export const makeCustom = <Service = never>() =>
 ): RpcContextMap.Custom<Service, E, C> => ({
   service: null as Service,
   error,
-  contextActivation
+  contextActivation,
+  inverted: false
 })
 
 export type RequestContextMapTagAny = { readonly config: Record<string, RpcContextMap.Any> }

@@ -4,10 +4,10 @@
   "pnpm": {
     "patchedDependencies": {
       "eslint-plugin-codegen@0.17.0": "patches/eslint-plugin-codegen@0.17.0.patch",
-      "typescript": "patches/typescript.patch",
       "effect": "patches/effect.patch",
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
-      "@tanstack/query-core": "patches/@tanstack__query-core.patch"
+      "@tanstack/query-core": "patches/@tanstack__query-core.patch",
+      "typescript": "patches/typescript.patch"
     }
   },
   "engines": {

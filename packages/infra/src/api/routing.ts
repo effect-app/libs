@@ -2,16 +2,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, RpcGroup, RpcServer } from "@effect/rpc"
+import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
-import type { GetEffectContext, GetEffectError, RPCContextMap } from "effect-app/client/req"
-import { type HttpHeaders, HttpRouter } from "effect-app/http"
+import { type HttpHeaders } from "effect-app/http"
+import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
+import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Service } from "effect/Effect"
 import type { Contravariant } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { type LayerUtils } from "./layerUtils.js"
-import { DevMode, type RouterMiddleware } from "./routing/middleware.js"
+import { type RouterMiddleware } from "./routing/middleware.js"
 
 export * from "./routing/middleware.js"
 
@@ -91,12 +92,7 @@ type FilterRequestModules<T> = {
   [K in keyof T as T[K] extends AnyRequestModule ? K : never]: T[K]
 }
 
-export const RouterSymbol = Symbol()
-export interface RouterShape<Resource> {
-  [RouterSymbol]: Resource
-}
-
-type RPCRouteR<
+type RpcRouteR<
   T extends [any, (req: any, headers: HttpHeaders.Headers) => Effect<any, any, any>]
 > = T extends [
   any,
@@ -155,25 +151,26 @@ export type RouteMatcher<
     }
 }
 
-export class Router extends HttpRouter.Tag("@effect-app/Rpc")<Router>() {}
-
 export const makeRouter = <
-  RequestContextMap extends Record<string, RPCContextMap.Any>,
+  Self,
+  RequestContextMap extends Record<string, RpcContextMap.Any>,
   MakeMiddlewareE,
   MakeMiddlewareR,
   ContextProviderA,
   ContextProviderE,
-  ContextProviderR
+  ContextProviderR,
+  RequestContextId
 >(
   middleware: RouterMiddleware<
+    Self,
     RequestContextMap,
     MakeMiddlewareE,
     MakeMiddlewareR,
     ContextProviderA,
     ContextProviderE,
-    ContextProviderR
-  >,
-  devMode: boolean
+    ContextProviderR,
+    RequestContextId
+  >
 ) => {
   function matchFor<
     const ModuleName extends string,
@@ -352,7 +349,12 @@ export const makeRouter = <
         match: any
       ) => Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
-      type Router = RouterShape<Resource>
+      const dependenciesL = (dependencies ? Layer.mergeAll(...dependencies as any) : Layer.empty) as Layer.Layer<
+        LayerUtils.GetLayersSuccess<MakeDependencies>,
+        LayerUtils.GetLayersError<MakeDependencies>,
+        LayerUtils.GetLayersContext<MakeDependencies>
+      >
+
       const layer = Effect
         .gen(function*() {
           const finalMake = ((make as any)[Symbol.toStringTag] === "GeneratorFunction"
@@ -383,7 +385,7 @@ export const makeRouter = <
                 : resource,
               (payload: any, headers: any) =>
                 (handler.handler(payload, headers) as Effect<unknown, unknown, unknown>).pipe(
-                  Effect.withSpan("Request." + resource._tag, {
+                  Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
                 )
@@ -410,63 +412,45 @@ export const makeRouter = <
           const rpcs = RpcGroup
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
-                return Rpc.fromTaggedRequest(resource).annotate(middleware.requestContext, resource.config ?? {})
+                return Rpc
+                  .fromTaggedRequest(resource)
+                  .annotate(middleware.requestContext, resource.config ?? {})
               })
             )
             .prefix(`${meta.moduleName}.`)
             .middleware(middleware as any)
-          const rpcLayer = rpcs.toLayer(Effect.gen(function*() {
-            return typedValuesOf(mapped).reduce((acc, [resource, handler]) => {
-              acc[`${meta.moduleName}.${resource._tag}`] = handler
-              return acc
-            }, {} as Record<string, any>) as any // TODO
-          })) as unknown as Layer<
-            { [K in keyof RequestModules]: Rpc.Handler<K> },
-            | Layer.Error<typeof middleware.Default>
-            | LayerUtils.GetLayersError<MakeDependencies>,
-            | RPCRouteR<typeof mapped[keyof typeof mapped]>
-            | Layer.Context<typeof middleware.Default>
-            | LayerUtils.GetLayersContext<MakeDependencies>
-          >
+
+          const rpc = rpcs
+            .toLayer(Effect.gen(function*() {
+              return typedValuesOf(mapped).reduce((acc, [resource, handler]) => {
+                acc[`${meta.moduleName}.${resource._tag}`] = handler
+                return acc
+              }, {} as Record<string, any>) as any // TODO
+            })) as unknown as Layer<
+              { [K in keyof RequestModules]: Rpc.Handler<K> },
+              MakeE,
+              RpcRouteR<typeof mapped[keyof typeof mapped]>
+            >
 
           return RpcServer
-            .layer(rpcs, { spanPrefix: "RpcServer." + meta.moduleName })
-            .pipe(Layer.provide(rpcLayer))
-            .pipe(
-              Layer.provideMerge(
-                RpcServer.layerProtocolHttp(
-                  { path: ("/" + meta.moduleName) as `/${typeof meta.moduleName}`, routerTag: Router }
-                )
-              )
-            )
+            .layerHttpRouter({
+              spanPrefix: "RpcServer." + meta.moduleName,
+              group: rpcs,
+              path: ("/rpc/" + meta.moduleName) as `/${typeof meta.moduleName}`,
+              protocol: "http"
+            })
+            .pipe(Layer.provide(rpc))
         })
         .pipe(Layer.unwrapEffect)
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      const routes = (
-        layer.pipe(
-          Layer.provide([
-            ...dependencies ?? [],
-            middleware.Default
-          ] as any) as any,
-          Layer.provide(Layer.succeed(DevMode, devMode))
-        )
-      ) as (Layer.Layer<
-        Router,
-        | LayerUtils.GetLayersError<MakeDependencies>
-        | MakeE
-        | Layer.Error<typeof middleware.Default>,
-        | LayerUtils.GetLayersContext<MakeDependencies>
-        | Layer.Context<typeof middleware.Default>
-        | Exclude<MakeR, LayerUtils.GetLayersSuccess<MakeDependencies>>
-      >)
+      const routes = layer.pipe(
+        Layer.provide([
+          dependenciesL,
+          middleware.Default
+        ])
+      )
 
-      // Effect.Effect<HttpRouter.HttpRouter<unknown, HttpRouter.HttpRouter.DefaultServices>, never, UserRouter>
-
-      return {
-        moduleName: meta.moduleName,
-        routes
-      }
+      return routes
     }
 
     const effect: {
@@ -490,11 +474,9 @@ export const makeRouter = <
         }
       >(
         make: Make
-      ): {
-        moduleName: ModuleName
-
-        routes: Layer.Layer<
-          RouterShape<Resource>,
+      ):
+        & Layer.Layer<
+          never,
           | MakeErrors<Make>
           | Service.MakeDepsE<Make>
           | Layer.Error<typeof middleware.Default>,
@@ -504,169 +486,12 @@ export const makeRouter = <
             MakeContext<Make>,
             MakeDepsOut<Make>
           >
+          | RpcSerialization.RpcSerialization
         >
-
-        // just for type testing purposes
-        make: Make
-      }
-      // <
-      //   const Make extends {
-      //     dependencies?: Array<Layer.Layer.Any>
-      //     effect: (match: typeof router3) => Effect<
-      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-      //       any,
-      //       any
-      //     >
-      //     /** @deprecated */
-      //     readonly ಠ_ಠ: never
-      //   }
-      // >(
-      //   make: Make
-      // ): {
-      //   moduleName: ModuleName
-
-      //   routes: Layer.Layer<
-      //     RouterShape<Resource>,
-      //     | MakeErrors<Make>
-      //     | Service.MakeDepsE<Make>
-      //     | Layer.Error<typeof middleware.Default>,
-      //     | Service.MakeDepsIn<Make>
-      //     | Layer.Context<typeof middleware.Default>
-      //     | Exclude<
-      //       MakeContext<Make>,
-      //       MakeDepsOut<Make>
-      //     >
-      //   >
-
-      //   // just for type testing purposes
-      //   make: Make
-      // }
-      // <
-      //   const Make extends {
-      //     dependencies?: Array<Layer.Layer.Any>
-      //     effect: (match: typeof router3) => Effect<
-      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-      //       any,
-      //       any
-      //     >
-      //     /** @deprecated */
-      //     readonly ಠ_ಠ: never
-      //   }
-      // >(
-      //   make: Make
-      // ): {
-      //   moduleName: ModuleName
-
-      //   routes: Layer.Layer<
-      //     RouterShape<Resource>,
-      //     | MakeErrors<Make>
-      //     | Service.MakeDepsE<Make>
-      //     | Layer.Error<typeof middleware.Default>,
-      //     | Service.MakeDepsIn<Make>
-      //     | Layer.Context<typeof middleware.Default>
-      //     | Exclude<
-      //       MakeContext<Make>,
-      //       MakeDepsOut<Make>
-      //     >
-      //   >
-
-      //   // just for type testing purposes
-      //   make: Make
-      // }
-      // <
-      //   const Make extends {
-      //     dependencies?: Array<Layer.Layer.Any>
-      //     effect: (match: typeof router3) => Effect<
-      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-      //       any,
-      //       any
-      //     >
-      //     /** @deprecated */
-      //     readonly ಠ_ಠ: never
-      //   }
-      // >(
-      //   make: Make
-      // ): {
-      //   moduleName: ModuleName
-
-      //   routes: Layer.Layer<
-      //     RouterShape<Resource>,
-      //     | MakeErrors<Make>
-      //     | Service.MakeDepsE<Make>
-      //     | Layer.Error<typeof middleware.Default>,
-      //     | Service.MakeDepsIn<Make>
-      //     | Layer.Context<typeof middleware.Default>
-      //     | Exclude<
-      //       MakeContext<Make>,
-      //       MakeDepsOut<Make>
-      //     >
-      //   >
-
-      //   // just for type testing purposes
-      //   make: Make
-      // }
-      // <
-      //   const Make extends {
-      //     dependencies?: Array<Layer.Layer.Any>
-      //     effect: (match: typeof router3) => Effect<
-      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-      //       any,
-      //       any
-      //     >
-      //     /** @deprecated */
-      //     readonly ಠ_ಠ: never
-      //   }
-      // >(
-      //   make: Make
-      // ): {
-      //   moduleName: ModuleName
-
-      //   routes: Layer.Layer<
-      //     RouterShape<Resource>,
-      //     | MakeErrors<Make>
-      //     | Service.MakeDepsE<Make>
-      //     | Layer.Error<typeof middleware.Default>,
-      //     | Service.MakeDepsIn<Make>
-      //     | Layer.Context<typeof middleware.Default>
-      //     | Exclude<
-      //       MakeContext<Make>,
-      //       MakeDepsOut<Make>
-      //     >
-      //   >
-
-      //   // just for type testing purposes
-      //   make: Make
-      // }
-      // <
-      //   const Make extends {
-      //     dependencies?: Array<Layer.Layer.Any>
-      //     effect: (match: typeof router3) => Effect<
-      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-      //       any,
-      //       any
-      //     >
-      //   }
-      // >(
-      //   make: Make
-      // ): {
-      //   moduleName: ModuleName
-
-      //   routes: Layer.Layer<
-      //     RouterShape<Resource>,
-      //     | MakeErrors<Make>
-      //     | Service.MakeDepsE<Make>
-      //     | Layer.Error<typeof middleware.Default>,
-      //     | Service.MakeDepsIn<Make>
-      //     | Layer.Context<typeof middleware.Default>
-      //     | Exclude<
-      //       MakeContext<Make>,
-      //       MakeDepsOut<Make>
-      //     >
-      //   >
-
-      //   // just for type testing purposes
-      //   make: Make
-      // }
+        & {
+          // just for type testing purposes
+          [TypeTestId]: Make
+        }
       <
         const Make extends {
           dependencies?: Array<Layer.Layer.Any>
@@ -684,11 +509,9 @@ export const makeRouter = <
         }
       >(
         make: Make
-      ): {
-        moduleName: ModuleName
-
-        routes: Layer.Layer<
-          RouterShape<Resource>,
+      ):
+        & Layer.Layer<
+          never,
           | MakeErrors<Make>
           | Service.MakeDepsE<Make>
           | Layer.Error<typeof middleware.Default>,
@@ -698,39 +521,12 @@ export const makeRouter = <
             MakeContext<Make>,
             MakeDepsOut<Make>
           >
+          | RpcSerialization.RpcSerialization
         >
-
-        // just for type testing purposes
-        make: Make
-      }
-      // <
-      //   const Make extends {
-      //     dependencies: [
-      //       ...Make["dependencies"],
-      //       ...Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>> extends never ? []
-      //         : [Layer.Layer<Exclude<Effect.Context<ReturnType<Make["effect"]>>, MakeDepsOut<Make>>, never, never>]
-      //     ]
-      //     effect: (match: typeof router3) => Effect<
-      //       { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-      //       any,
-      //       any
-      //     >
-      //   }
-      // >(
-      //   make: Make
-      // ): {
-      //   moduleName: ModuleName
-      //   Router: HttpRouter.HttpRouter.TagClass<
-      //     RouterShape<Resource>,
-      //     `${ModuleName}Router`,
-      //     never,
-      //     never
-      //   >
-      //   routes: any
-
-      //   // just for type testing purposes
-      //   make: Make
-      // }
+        & {
+          // just for type testing purposes
+          readonly [TypeTestId]: Make
+        }
     } =
       ((make: { dependencies: any; effect: any }) =>
         Object.assign(makeRoutes(make.dependencies, make.effect), { make })) as any
@@ -740,22 +536,18 @@ export const makeRouter = <
 
   function matchAll<
     T extends {
-      [key: string]: {
-        //      Router: { router: Effect<HttpRouter.HttpRouter<any, any>, any, any> }
-        routes: Layer.Layer<any, any, any>
-        moduleName: string
-      }
+      [key: string]: Layer.Layer<never, any, any>
     }
   >(
     handlers: T
   ) {
     const routers = typedValuesOf(handlers)
 
-    return Layer.mergeAll(...routers.map((_) => _.routes) as [any]) as unknown as Layer.Layer<
+    return Layer.mergeAll(...routers as [any]) as unknown as Layer.Layer<
       never,
-      Layer.Layer.Error<typeof handlers[keyof typeof handlers]["routes"]>,
-      Layer.Layer.Context<typeof handlers[keyof typeof handlers]["routes"]>
-    > // TODO
+      Layer.Layer.Error<typeof handlers[keyof typeof handlers]>,
+      Layer.Layer.Context<typeof handlers[keyof typeof handlers]>
+    >
   }
 
   return {

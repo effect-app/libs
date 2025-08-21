@@ -14,7 +14,7 @@
           <v-btn
             type="button"
             variant="tonal"
-            @click="field.pushValue({ age: 0 })"
+            @click="field.pushValue({ name: 'Mario Mario', age: 0 })"
           >
             add
           </v-btn>
@@ -50,13 +50,14 @@ import {
   OmegaInput,
 } from "../../src/components/OmegaForm"
 import { onMounted, ref } from "vue"
+import { useForm } from "@tanstack/vue-form"
 
 const schema = S.Struct({
-  Users: S.Array(
+  Users: S.mutable(S.Array(
     S.Struct({
       name: S.String,
       age: S.NullOr(S.Number.pipe(S.greaterThan(18))),
-    }),
+    })),
   ),
 })
 

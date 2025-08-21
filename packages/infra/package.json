@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "2.92.1",
+  "version": "3.0.14",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -32,7 +32,7 @@
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
     "strip-ansi": "^7.1.0",
-    "typescript": "^5.9.2",
+    "typescript": "~5.9.2",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
@@ -309,25 +309,9 @@
       "types": "./dist/api/routing/middleware/RouterMiddleware.d.ts",
       "default": "./dist/api/routing/middleware/RouterMiddleware.js"
     },
-    "./api/routing/middleware/RpcMiddleware": {
-      "types": "./dist/api/routing/middleware/RpcMiddleware.d.ts",
-      "default": "./dist/api/routing/middleware/RpcMiddleware.js"
-    },
-    "./api/routing/middleware/dynamic-middleware": {
-      "types": "./dist/api/routing/middleware/dynamic-middleware.d.ts",
-      "default": "./dist/api/routing/middleware/dynamic-middleware.js"
-    },
-    "./api/routing/middleware/generic-middleware": {
-      "types": "./dist/api/routing/middleware/generic-middleware.d.ts",
-      "default": "./dist/api/routing/middleware/generic-middleware.js"
-    },
     "./api/routing/middleware/middleware": {
       "types": "./dist/api/routing/middleware/middleware.d.ts",
       "default": "./dist/api/routing/middleware/middleware.js"
-    },
-    "./api/routing/middleware/middleware-api": {
-      "types": "./dist/api/routing/middleware/middleware-api.d.ts",
-      "default": "./dist/api/routing/middleware/middleware-api.js"
     },
     "./api/routing/schema/jwt": {
       "types": "./dist/api/routing/schema/jwt.d.ts",
@@ -396,15 +380,15 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tspc --build",
+    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
     "build": "pnpm build:tsc",
-    "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tspc -w",
+    "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",
     "clean-dist": "sh ../../scripts/clean-dist.sh",
     "circular": "pnpm circular:src && pnpm circular:dist",
     "circular:src": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "circular:dist": "madge --circular --extensions js ./dist",
-    "compile": "NODE_OPTIONS=--max-old-space-size=6144 tspc --noEmit",
+    "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
     "autofix": "pnpm lint --fix",

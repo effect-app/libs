@@ -11,8 +11,8 @@
   </slot>
 </template>
 
-<script setup lang="ts" generic="To">
-import { useStore } from "@tanstack/vue-form"
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
+import { DeepKeys, useStore } from "@tanstack/vue-form"
 import {
   useId,
   computed,
@@ -39,12 +39,12 @@ defineOptions({
 })
 
 const props = defineProps<{
-  field: OmegaFieldInternalApi<To>
-  meta: MetaRecord<To>[NestedKeyOf<To>]
+  field: OmegaFieldInternalApi<From, Name>
+  meta: MetaRecord<From>[NestedKeyOf<From>]
   label: string
   options?: { title: string; value: string }[]
   type?: TypeOverride
-  validators?: FieldValidators<To>
+  validators?: FieldValidators<From>
 }>()
 
 const instance = getCurrentInstance()
@@ -83,7 +83,7 @@ watch(
     if (isFalsyButNotZero(fieldValue.value) && props.meta?.type !== "boolean") {
       nextTick(() => {
         fieldApi.setValue(
-          props.meta?.nullableOrUndefined === "undefined" ? undefined : null,
+          props.meta?.nullableOrUndefined === "undefined" ? undefined : null as any,
         )
       })
     }
@@ -96,7 +96,7 @@ onMounted(() => {
     !props.meta?.required &&
     props.meta?.nullableOrUndefined === "null"
   ) {
-    fieldApi.setValue(null)
+    fieldApi.setValue(null as any)
   }
 })
 const { addError, removeError, showErrors, showErrorsOn } = useOmegaErrors()
@@ -143,7 +143,7 @@ watch(
   },
 )
 
-const inputProps: ComputedRef<InputProps<To>> = computed(() => ({
+const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   id,
   required: props.meta?.required,
   minLength: props.meta?.type === "string" && props.meta?.minLength,

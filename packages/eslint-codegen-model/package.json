@@ -5,7 +5,7 @@
   "version": "1.42.0",
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && tspc --build",
+    "build:tsc": "pnpm clean-dist && tsc --build",
     "build": "tspc",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
@@ -34,7 +34,7 @@
     "@types/lodash": "4.17.20",
     "effect": "^3.17.6",
     "madge": "8.0.0",
-    "typescript": "^5.9.2"
+    "typescript": "~5.9.2"
   },
   "main": "index.js",
   "author": "Wessel van der Veen & Scott vanBommel",

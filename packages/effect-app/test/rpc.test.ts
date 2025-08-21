@@ -1,7 +1,14 @@
-import { makeRpcClient } from "../src/client/req.js"
+import { makeRpcClient, NotLoggedInError, UnauthorizedError } from "../src/client.js"
 import { S } from "../src/index.js"
+import { RpcContextMap } from "../src/rpc.js"
 
-const { TaggedRequest } = makeRpcClient({})
+export class RequestContextMap extends RpcContextMap.makeMap({
+  allowAnonymous: RpcContextMap.makeInverted()(NotLoggedInError),
+  requireRoles: RpcContextMap.makeCustom()(UnauthorizedError, Array<string>()),
+  test: RpcContextMap.make()(S.Never)
+}) {}
+
+const { TaggedRequest } = makeRpcClient(RequestContextMap)
 
 export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
   allowedRoles: ["manager"],

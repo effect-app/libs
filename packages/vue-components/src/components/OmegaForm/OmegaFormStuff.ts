@@ -6,23 +6,23 @@ import {
   type StandardSchemaV1,
   type FormApi,
   type VueFormApi,
-  type FieldComponent,
   type FormOptions,
   type DeepKeys,
   type FieldValidateOrFn,
   type FieldAsyncValidateOrFn,
   type FormState,
 } from "@tanstack/vue-form"
-import type { Component } from "vue"
 import { useIntl } from "../../utils"
+import { OmegaFormReturn } from "./useOmegaForm"
+import { OmegaFieldInternalApi } from "./InputProps"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
-export type OmegaInputProps<From, To> = {
-  form: FormType<From, To> & {
-    meta: MetaRecord<To>
+export type OmegaInputProps<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> = {
+  form: OmegaFormReturn<From, To> & {
+    meta: MetaRecord<From>
   }
-  name: NestedKeyOf<To>
+  name: NestedKeyOf<From>
   validators?: FieldValidators<From>
   label: string
   options?: { title: string; value: string }[]
@@ -49,68 +49,68 @@ export interface OmegaError {
 
 const isArrayOfString = S.NonEmptyArray(S.String)
 
-export type FormProps<To, From> = Omit<
+export type FormProps<From, To> = Omit<
   FormOptions<
-    To,
-    FormValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    StandardSchemaV1<To, From>,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined
+    From,
+    FormValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    StandardSchemaV1<From, To>,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined
   >,
   "onSubmit"
 > & {
   onSubmit?: (props: {
-    formApi: OmegaFormParams<To, From>
+    formApi: OmegaFormParams<From, To>
     meta: any
-    value: From
+    value: To
   }) => Promise<any> | any
 }
 
-export type OmegaFormParams<To, From> = FormApi<
-  To,
-  FormValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  StandardSchemaV1<To, From>,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined
+export type OmegaFormParams<From, To> = FormApi<
+  From,
+  FormValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined
 >
 
-export type OmegaFormState<To, From> = FormState<
-  To,
-  FormValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  StandardSchemaV1<To, From>,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined,
-  FormAsyncValidateOrFn<To> | undefined
+export type OmegaFormState<From, To> = FormState<
+  From,
+  FormValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined
 >
 
-export type OmegaFormApi<To, From> = OmegaFormParams<To, From> &
+export type OmegaFormApi<From, To> = OmegaFormParams<From, To> &
   VueFormApi<
-    To,
-    FormValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    StandardSchemaV1<To, From>,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined,
-    FormAsyncValidateOrFn<To> | undefined
+    From,
+    FormValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    StandardSchemaV1<From, To>,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined
   >
 
-export type FormComponent<T, S> = FieldComponent<
+export type FormComponent<T, S> = VueFormApi<
   T,
   FormValidateOrFn<T> | undefined,
   FormValidateOrFn<T> | undefined,
@@ -121,16 +121,15 @@ export type FormComponent<T, S> = FieldComponent<
   FormAsyncValidateOrFn<T> | undefined,
   FormAsyncValidateOrFn<T> | undefined,
   FormAsyncValidateOrFn<T> | undefined
-> &
-  Component
+>
 
-export type FormType<T, S = unknown> = OmegaFormApi<T, S> & {
-  Field: Component
+export type FormType<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>> = OmegaFormApi<From, To> & {
+  Field: OmegaFieldInternalApi<From, Name>
 }
 
 export type PrefixFromDepth<
   K extends string | number,
-  _TDepth extends any[],
+  _TDepth extends any[]
 > = K
 
 export type NestedKeyOf<T> = DeepKeys<T>
@@ -234,7 +233,7 @@ const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
 
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
-  acc: Partial<MetaRecord<T>> = {},
+  acc: Partial<MetaRecord<T>> = {}
 ): MetaRecord<T> | FieldMeta => {
   if (property && property._tag === "Transformation") {
     return createMeta<T>({
@@ -260,11 +259,11 @@ export const createMeta = <T = any>(
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
         const nonNullTypes = p.type.types.filter(
-          t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast,
+          t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
         )
 
         const hasStructMembers = nonNullTypes.some(
-          t => "propertySignatures" in t,
+          t => "propertySignatures" in t
         )
 
         if (hasStructMembers) {
@@ -285,7 +284,7 @@ export const createMeta = <T = any>(
                   parent: key,
                   propertySignatures: nonNullType.propertySignatures,
                   meta: { required: isRequired, nullableOrUndefined },
-                }),
+                })
               )
             }
           }
@@ -306,7 +305,7 @@ export const createMeta = <T = any>(
             parent: key,
             propertySignatures: typeToProcess.propertySignatures,
             meta: { required: isRequired, nullableOrUndefined },
-          }),
+          })
         )
       } else {
         const newMeta = createMeta<T>({
@@ -329,7 +328,7 @@ export const createMeta = <T = any>(
 
     if (S.AST.isUnion(property)) {
       const nonNullType = property.types.find(
-        t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast,
+        t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
       )!
 
       if ("propertySignatures" in nonNullType) {
@@ -369,7 +368,7 @@ export const createMeta = <T = any>(
 
     const JSONAnnotation = S.AST.getAnnotation(
       property,
-      S.AST.JSONSchemaAnnotationId,
+      S.AST.JSONSchemaAnnotationId
     ).pipe(Option.getOrElse(() => ({}))) as Record<string, unknown>
 
     meta = { ...meta, ...JSONAnnotation }
@@ -383,11 +382,11 @@ export const createMeta = <T = any>(
     } else {
       meta["type"] = S.AST.getAnnotation(
         property,
-        S.AST.TitleAnnotationId,
+        S.AST.TitleAnnotationId
       ).pipe(
         Option.getOrElse(() => {
           return "unknown"
-        }),
+        })
       )
     }
 
@@ -398,7 +397,7 @@ export const createMeta = <T = any>(
 }
 
 const flattenMeta = <From, To>(
-  schema: S.Schema<From, To, never>,
+  schema: S.Schema<To, From, never>
 ): MetaRecord<To> => {
   const ast = schema.ast
   const result: MetaRecord<To> = {}
@@ -418,12 +417,12 @@ const flattenMeta = <From, To>(
 
     const flattenObject = (
       obj: Record<string, any>,
-      parentKey: string = "",
+      parentKey: string = ""
     ) => {
       for (const key in obj) {
         const newKey = parentKey ? `${parentKey}.${key}` : key
         if (obj[key] && typeof obj[key] === "object" && "type" in obj[key]) {
-          result[newKey as NestedKeyOf<To>] = obj[key] as FieldMeta
+          result[newKey as DeepKeys<To>] = obj[key] as FieldMeta
         } else if (obj[key] && typeof obj[key] === "object") {
           flattenObject(obj[key], newKey)
         }
@@ -437,15 +436,15 @@ const flattenMeta = <From, To>(
 }
 
 export const duplicateSchema = <From, To>(
-  schema: S.Schema<From, To, never>,
+  schema: S.Schema<To, From, never>
 ) => {
   return S.extend(schema, S.Struct({}))
 }
 
 export const generateMetaFromSchema = <From, To>(
-  schema: S.Schema<From, To, never>,
+  schema: S.Schema<To, From, never>
 ): {
-  schema: S.Schema<From, To, never>
+  schema: S.Schema<To, From, never>
   meta: MetaRecord<To>
   filterItems?: FilterItems
 } => {
@@ -457,23 +456,23 @@ export const generateMetaFromSchema = <From, To>(
     Option.flatMap(s => S.AST.getJSONSchemaAnnotation(s)),
     Option.filter(s => "items" in s),
     Option.filterMap(({ items }) =>
-      S.decodeUnknownOption(isArrayOfString)(items),
+      S.decodeUnknownOption(isArrayOfString)(items)
     ),
     Option.zipWith(
       S.AST.getMessageAnnotation(schema.ast),
       (items, message) => ({
         items,
         message: message("" as unknown as S.ParseResult.ParseIssue),
-      }),
+      })
     ),
-    Option.getOrUndefined,
+    Option.getOrUndefined
   )
 
   return { schema, meta, filterItems }
 }
 
 export const generateInputStandardSchemaFromFieldMeta = (
-  meta: FieldMeta,
+  meta: FieldMeta
 ): StandardSchemaV1<any, any> => {
   const { trans } = useIntl()
   let schema: S.Schema<any, any, never>
@@ -488,7 +487,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
           schema,
           S.Email.annotations({
             message: () => trans("validation.email.invalid"),
-          }),
+          })
         )
       }
 
@@ -601,7 +600,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
     schema.pipe(
       S.annotations({
         message: () => trans("validation.empty"),
-      }),
+      })
     )
   }
   const result = S.standardSchemaV1(schema)
@@ -610,11 +609,11 @@ export const generateInputStandardSchemaFromFieldMeta = (
 
 export const nullableInput = <A, I, R>(
   schema: S.Schema<A, I, R>,
-  defaultValue: () => A,
+  defaultValue: () => A
 ) =>
   S.NullOr(schema).pipe(
     S.transform(S.typeSchema(schema), {
       decode: input => input ?? defaultValue(),
       encode: input => input,
-    }),
+    })
   )

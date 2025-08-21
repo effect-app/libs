@@ -1,5 +1,134 @@
 # @effect-app/vue
 
+## 2.51.11
+
+### Patch Changes
+
+- Updated dependencies [ce91007]
+  - effect-app@3.0.10
+
+## 2.51.10
+
+### Patch Changes
+
+- 46f614a: feat: add useUpdateQuery
+
+## 2.51.9
+
+### Patch Changes
+
+- Updated dependencies [ea6380f]
+  - effect-app@3.0.9
+
+## 2.51.8
+
+### Patch Changes
+
+- Updated dependencies [3543bfb]
+  - effect-app@3.0.8
+
+## 2.51.7
+
+### Patch Changes
+
+- 4643ee7: Simplify return type
+
+## 2.51.6
+
+### Patch Changes
+
+- ac58cfb: chore update
+- 48efb4d: Fixes return type of useSafeQuery
+
+## 2.51.5
+
+### Patch Changes
+
+- Updated dependencies [d42afe6]
+  - effect-app@3.0.7
+
+## 2.51.4
+
+### Patch Changes
+
+- Updated dependencies [868eab6]
+  - effect-app@3.0.6
+
+## 2.51.3
+
+### Patch Changes
+
+- Updated dependencies [182ca78]
+  - effect-app@3.0.5
+
+## 2.51.2
+
+### Patch Changes
+
+- Updated dependencies [bc68d9f]
+  - effect-app@3.0.4
+
+## 2.51.1
+
+### Patch Changes
+
+- fix
+
+## 2.50.7
+
+### Patch Changes
+
+- 715dd12: fix: missing span for useUnsafeMutation
+- Updated dependencies [c31423a]
+  - effect-app@3.0.3
+
+## 2.50.6
+
+### Patch Changes
+
+- 4995794: fix query.ts enabled options
+
+## 2.50.5
+
+### Patch Changes
+
+- Updated dependencies [88bb989]
+  - effect-app@3.0.2
+
+## 2.50.4
+
+### Patch Changes
+
+- Updated dependencies [74c28d1]
+  - effect-app@3.0.1
+
+## 2.50.3
+
+### Patch Changes
+
+- Updated dependencies [3e4c45d]
+  - effect-app@3.0.0
+
+## 2.50.2
+
+### Patch Changes
+
+- Updated dependencies [db2b575]
+  - effect-app@2.56.0
+
+## 2.50.1
+
+### Patch Changes
+
+- Updated dependencies [37eb29a]
+  - effect-app@2.55.0
+
+## 2.50.0
+
+### Minor Changes
+
+- fup
+
 ## 2.49.1
 
 ### Patch Changes

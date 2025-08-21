@@ -1,5 +1,194 @@
 # @effect-app/vue-components
 
+## 0.13.4
+
+### Patch Changes
+
+- c996758: confusing af
+
+## 0.13.3
+
+### Patch Changes
+
+- 1761ffb: Fixes wrong type extend for OmegaArray
+
+## 0.13.2
+
+### Patch Changes
+
+- Updated dependencies [ce91007]
+  - effect-app@3.0.10
+  - @effect-app/vue@2.51.11
+
+## 0.13.1
+
+### Patch Changes
+
+- 8fc1b2a: fix form input type should narrow to the type of the field, not all fields.
+
+## 0.13.0
+
+### Minor Changes
+
+- d7c3a71: improve input types
+
+### Patch Changes
+
+- d7c3a71: fix slot issue
+
+## 0.12.22
+
+### Patch Changes
+
+- 02df024: From is To and To is From, but where is To From?
+
+## 0.12.21
+
+### Patch Changes
+
+- Updated dependencies [46f614a]
+  - @effect-app/vue@2.51.10
+
+## 0.12.20
+
+### Patch Changes
+
+- fba6690: Fixes type inference with the new tanstack query types
+
+## 0.12.19
+
+### Patch Changes
+
+- Updated dependencies [ea6380f]
+  - effect-app@3.0.9
+  - @effect-app/vue@2.51.9
+
+## 0.12.18
+
+### Patch Changes
+
+- Updated dependencies [3543bfb]
+  - effect-app@3.0.8
+  - @effect-app/vue@2.51.8
+
+## 0.12.17
+
+### Patch Changes
+
+- Updated dependencies [4643ee7]
+  - @effect-app/vue@2.51.7
+
+## 0.12.16
+
+### Patch Changes
+
+- ac58cfb: chore update
+- Updated dependencies [ac58cfb]
+- Updated dependencies [48efb4d]
+  - @effect-app/vue@2.51.6
+
+## 0.12.15
+
+### Patch Changes
+
+- Updated dependencies [d42afe6]
+  - effect-app@3.0.7
+  - @effect-app/vue@2.51.5
+
+## 0.12.14
+
+### Patch Changes
+
+- Updated dependencies [868eab6]
+  - effect-app@3.0.6
+  - @effect-app/vue@2.51.4
+
+## 0.12.13
+
+### Patch Changes
+
+- Updated dependencies [182ca78]
+  - effect-app@3.0.5
+  - @effect-app/vue@2.51.3
+
+## 0.12.12
+
+### Patch Changes
+
+- Updated dependencies [bc68d9f]
+  - effect-app@3.0.4
+  - @effect-app/vue@2.51.2
+
+## 0.12.11
+
+### Patch Changes
+
+- Updated dependencies
+  - @effect-app/vue@2.51.1
+
+## 0.12.10
+
+### Patch Changes
+
+- Updated dependencies [c31423a]
+- Updated dependencies [715dd12]
+  - effect-app@3.0.3
+  - @effect-app/vue@2.50.7
+
+## 0.12.9
+
+### Patch Changes
+
+- Updated dependencies [4995794]
+  - @effect-app/vue@2.50.6
+
+## 0.12.8
+
+### Patch Changes
+
+- Updated dependencies [88bb989]
+  - effect-app@3.0.2
+  - @effect-app/vue@2.50.5
+
+## 0.12.7
+
+### Patch Changes
+
+- Updated dependencies [74c28d1]
+  - effect-app@3.0.1
+  - @effect-app/vue@2.50.4
+
+## 0.12.6
+
+### Patch Changes
+
+- Updated dependencies [3e4c45d]
+  - effect-app@3.0.0
+  - @effect-app/vue@2.50.3
+
+## 0.12.5
+
+### Patch Changes
+
+- Updated dependencies [db2b575]
+  - effect-app@2.56.0
+  - @effect-app/vue@2.50.2
+
+## 0.12.4
+
+### Patch Changes
+
+- Updated dependencies [37eb29a]
+  - effect-app@2.55.0
+  - @effect-app/vue@2.50.1
+
+## 0.12.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @effect-app/vue@2.50.0
+
 ## 0.12.2
 
 ### Patch Changes

@@ -1,68 +1,52 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { FieldApi, DeepValue, ValidationError } from "@tanstack/vue-form"
-import { type NestedKeyOf } from "./OmegaFormStuff"
+import type {
+  DeepValue,
+  DeepKeys,
+  FieldApi,
+  ValidationError,
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+  StandardSchemaV1,
+  FieldValidateOrFn,
+  FieldValidateFn,
+  FieldValidateAsyncFn,
+  FieldAsyncValidateOrFn,
+} from "@tanstack/vue-form"
 
-// Placeholder types for validator function shapes
-type ValidatorFnSync = (opts: {
-  value: any
-  fieldApi: any
-}) => ValidationError | undefined
-type ValidatorFnAsync = (opts: {
-  value: any
-  fieldApi: any
-}) => Promise<ValidationError | undefined>
-// Assuming form validators have a similar structure but might operate on the whole form data (any for simplicity)
-type FormValidatorFnSync = (opts: {
-  value: any
-  formApi: any
-}) => ValidationError | undefined
-type FormValidatorFnAsync = (opts: {
-  value: any
-  formApi: any
-}) => Promise<ValidationError | undefined>
-// Placeholder for other form-related types
-type FormServerError = any
-type SubmitMeta = any
+export type OmegaFieldInternalApi<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = FieldApi<
+/* in out TParentData*/ From,
+/* in out TName*/ TName,
+/* in out TData*/  DeepValue<From, TName>,
+/* in out TOnMount*/  FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+/* in out TOnChange*/  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateFn<From, TName>,
+/* in out TOnChangeAsync*/  StandardSchemaV1<DeepValue<From, TName>, unknown> | FieldValidateAsyncFn<From, TName>,
+/* in out TOnBlur*/  FieldValidateOrFn<From, TName, DeepValue<From, TName>>,
+/* in out TOnBlurAsync*/  FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>>,
+/* in out TOnSubmit*/  FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+/* in out TOnSubmitAsync*/  FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+/* in out TFormOnMount*/  FormValidateOrFn<From> | undefined,
+/* in out TFormOnChange*/  FormValidateOrFn<From> | undefined,
+// using `any` for now to silence:
+/*
+Type 'FieldApi<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>, FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<...>>> | undefined, ... 14 more ..., FormAsyncValidateOrFn<...> | undefined>' is not assignable to type 'OmegaFieldInternalApi<From, any>'.
+  The types of 'form.options.defaultState' are incompatible between these types.
+    Type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, StandardSchemaV1<From, To>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>> | undefined' is not assignable to type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, FormAsyncValidateOrFn<From>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>> | undefined'.
+      Type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, StandardSchemaV1<From, To>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>>' is not assignable to type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, FormAsyncValidateOrFn<From>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>>'.
+        Types of property 'errorMap' are incompatible.
+          Type 'FormValidationErrorMap<undefined, undefined, Record<string, StandardSchemaV1Issue[]>, undefined, undefined, undefined, undefined, undefined> | undefined' is not assignable to type 'FormValidationErrorMap<undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined> | undefined'.
+            Type 'FormValidationErrorMap<undefined, undefined, Record<string, StandardSchemaV1Issue[]>, undefined, undefined, undefined, undefined, undefined>' is not assignable to type 'FormValidationErrorMap<undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>'.
+              Type 'Record<string, StandardSchemaV1Issue[]>' is not assignable to type 'undefined'.
+*/
+/* in out TFormOnChangeAsync*/ any, // FormAsyncValidateOrFn<From>, 
+/* in out TFormOnBlur*/  FormValidateOrFn<From> | undefined,
+/* in out TFormOnBlurAsync*/  FormAsyncValidateOrFn<From> | undefined,
+/* in out TFormOnSubmit*/  FormValidateOrFn<From> | undefined,
+/* in out TFormOnSubmitAsync*/  FormAsyncValidateOrFn<From> | undefined,
+/* in out TFormOnServer*/  FormAsyncValidateOrFn<From> | undefined,
+/* in out TParentSubmitMeta*/  FormAsyncValidateOrFn<From> | undefined
+>
 
-// Define a more flexible Updater type that can accept direct values
-type FlexibleUpdater<T> = ((prev: T) => T) | T
-
-export type OmegaFieldInternalApi<To> = Omit<
-  FieldApi<
-    To, // TParentData
-    NestedKeyOf<To>, // TName
-    DeepValue<To, NestedKeyOf<To>>, // TData
-    // Field Validators (approximated typqes)
-    ValidatorFnSync, // TOnMount
-    ValidatorFnSync, // TOnChange
-    ValidatorFnAsync, // TOnChangeAsync
-    ValidatorFnSync, // TOnBlur
-    ValidatorFnAsync, // TOnBlurAsync
-    ValidatorFnSync, // TOnSubmit
-    ValidatorFnAsync, // TOnSubmitAsync
-    // Form Validators (approximated types)
-    FormValidatorFnSync, // TFormOnMount
-    FormValidatorFnSync, // TFormOnChange
-    FormValidatorFnAsync, // TFormOnChangeAsync
-    FormValidatorFnSync, // TFormOnBlur
-    FormValidatorFnAsync, // TFormOnBlurAsync
-    FormValidatorFnSync, // TFormOnSubmit
-    FormValidatorFnAsync, // TFormOnSubmitAsync
-    // Other Form types (placeholders)
-    FormServerError, // TFormOnServer
-    SubmitMeta // TParentSubmitMeta
-  >,
-  "handleChange" | "setValue"
-> & {
-  handleChange: (
-    updater: FlexibleUpdater<DeepValue<To, NestedKeyOf<To>>> | any,
-  ) => void
-  setValue: (
-    updater: FlexibleUpdater<DeepValue<To, NestedKeyOf<To>>> | any,
-  ) => void
-}
-
-export type InputProps<T> = {
+export type InputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
   id: string
   required?: boolean
   minLength?: number | false
@@ -70,10 +54,10 @@ export type InputProps<T> = {
   max?: number | false
   min?: number | false
   name: string
-  modelValue: unknown
+  modelValue: DeepValue<From, TName>
   errorMessages: string[]
   error: boolean
-  field: OmegaFieldInternalApi<T>
+  field: OmegaFieldInternalApi<From, TName>
   setRealDirty: () => void
   type: string
   label: string

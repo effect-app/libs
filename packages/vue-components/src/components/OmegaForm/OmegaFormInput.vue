@@ -14,28 +14,26 @@
   </OmegaInput>
 </template>
 
-<script setup lang="ts" generic="From, To extends Record<PropertyKey, any>">
+<script setup lang="ts" generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
 import { inject } from "vue"
 import type {
   FieldValidators,
-  NestedKeyOf,
   TypeOverride,
-  FormType,
-  MetaRecord,
+  OmegaInputProps,
 } from "./OmegaFormStuff"
 import type { InputProps } from "./InputProps"
 import OmegaInput from "./OmegaInput.vue"
 import { OmegaFormKey } from "./useOmegaForm"
+import { DeepKeys } from "@tanstack/vue-form"
 
-const form = inject(OmegaFormKey) as FormType<From, To> & {
-  meta: MetaRecord<To>
-}
+const form = inject(OmegaFormKey) as unknown as OmegaInputProps<From, To>['form']
+ 
 if (!form) {
   throw new Error("OmegaFormInput must be used within an OmegaForm context")
 }
 
 defineProps<{
-  name: NestedKeyOf<To>
+  name: Name
   label: string
   validators?: FieldValidators<From>
   options?: { title: string; value: string }[]
@@ -43,7 +41,6 @@ defineProps<{
 }>()
 
 defineSlots<{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  default: (props: InputProps<To>) => any
+  default(props: InputProps<From, Name>): void
 }>()
 </script>

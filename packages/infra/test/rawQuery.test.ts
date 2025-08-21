@@ -137,7 +137,7 @@ describe("select first-level array fields", () => {
     })
     .pipe(setupRequestContextFromCurrent())
 
-  it("works well in CosmosDB", () =>
+  it.skipIf(!process.env["STORAGE_URL"])("works well in CosmosDB", () =>
     test
       .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
 
@@ -232,7 +232,7 @@ describe("filter first-level array fields as groups", () => {
     })
     .pipe(setupRequestContextFromCurrent())
 
-  it("works well in CosmosDB", () =>
+  it.skipIf(!process.env["STORAGE_URL"])("works well in CosmosDB", () =>
     test
       .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
 
@@ -302,7 +302,7 @@ describe("1", () => {
     })
     .pipe(setupRequestContextFromCurrent())
 
-  it("works well in CosmosDB", () =>
+  it.skipIf(!process.env["STORAGE_URL"])("works well in CosmosDB", () =>
     test
       .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
 
@@ -330,7 +330,7 @@ describe("multi-level", () => {
     })
     .pipe(setupRequestContextFromCurrent())
 
-  it("works well in CosmosDB", () =>
+  it.skipIf(!process.env["STORAGE_URL"])("works well in CosmosDB", () =>
     test
       .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
 

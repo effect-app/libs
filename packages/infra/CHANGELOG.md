@@ -1,5 +1,154 @@
 # @effect-app/infra
 
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [ce91007]
+  - effect-app@3.0.10
+
+## 3.0.13
+
+### Patch Changes
+
+- ea6380f: cleanup RpcContextMap
+- Updated dependencies [ea6380f]
+  - effect-app@3.0.9
+
+## 3.0.12
+
+### Patch Changes
+
+- sync
+
+## 3.0.11
+
+### Patch Changes
+
+- 3543bfb: cleanup dev-mode
+- Updated dependencies [3543bfb]
+  - effect-app@3.0.8
+
+## 3.0.10
+
+### Patch Changes
+
+- 5d6a589: fix
+
+## 3.0.9
+
+### Patch Changes
+
+- d42afe6: cleanup
+- Updated dependencies [d42afe6]
+  - effect-app@3.0.7
+
+## 3.0.8
+
+### Patch Changes
+
+- 868eab6: cleanup
+- Updated dependencies [868eab6]
+  - effect-app@3.0.6
+
+## 3.0.7
+
+### Patch Changes
+
+- 182ca78: improve: MiddlewareMaker is a Tag with Self so we can extend it from class.
+- Updated dependencies [182ca78]
+  - effect-app@3.0.5
+
+## 3.0.6
+
+### Patch Changes
+
+- bc68d9f: feat: introduce Layer.make as alternative to Context.ProvideService
+- Updated dependencies [bc68d9f]
+  - effect-app@3.0.4
+
+## 3.0.5
+
+### Patch Changes
+
+- c31423a: cleanup rpc
+- 715dd12: fix: missing span for useUnsafeMutation
+- Updated dependencies [c31423a]
+  - effect-app@3.0.3
+
+## 3.0.4
+
+### Patch Changes
+
+- 0d114ad: cleanup
+
+## 3.0.3
+
+### Patch Changes
+
+- 88bb989: align dynamic/global middleware with V4
+- Updated dependencies [88bb989]
+  - effect-app@3.0.2
+
+## 3.0.2
+
+### Patch Changes
+
+- 64745d0: just layers
+
+## 3.0.1
+
+### Patch Changes
+
+- 74c28d1: move common rpc out of infra
+- Updated dependencies [74c28d1]
+  - effect-app@3.0.1
+
+## 3.0.0
+
+### Major Changes
+
+- 3e4c45d: feat: Add new @effect/rpc Dynamic and Global Middleware, based on effect-app Router
+
+### Patch Changes
+
+- Updated dependencies [3e4c45d]
+  - effect-app@3.0.0
+
+## 2.94.0
+
+### Minor Changes
+
+- db2b575: switch to new HttpLayerRouter
+
+### Patch Changes
+
+- Updated dependencies [db2b575]
+  - effect-app@2.56.0
+
+## 2.93.0
+
+### Minor Changes
+
+- 37eb29a: improve ServiceBus api
+
+### Patch Changes
+
+- Updated dependencies [37eb29a]
+  - effect-app@2.55.0
+
+## 2.92.3
+
+### Patch Changes
+
+- 8653771: add more useful logging
+
+## 2.92.2
+
+### Patch Changes
+
+- 74dd551: fix Request span name
+
 ## 2.92.1
 
 ### Patch Changes

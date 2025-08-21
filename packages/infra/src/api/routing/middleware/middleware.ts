@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Context, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect-app"
+import { Cause, Config, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
+import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { determineMethod, isCommand } from "../utils.js"
-import { Tag } from "./RpcMiddleware.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
@@ -17,47 +17,44 @@ export const RequestCacheLayers = Layer.mergeAll(
   Layer.setRequestBatching(true)
 )
 
-export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
-
-export class RequestCacheMiddleware extends Tag<RequestCacheMiddleware>()("RequestCacheMiddleware", { wrap: true })({
-  effect: Effect.succeed(({ next }) => next.pipe(Effect.provide(RequestCacheLayers)))
-}) {
-}
+export const RequestCacheMiddlewareLive = Layer.succeed(
+  RequestCacheMiddleware,
+  (effect) => effect.pipe(Effect.provide(RequestCacheLayers))
+)
 
 // retry just once on optimistic concurrency exceptions
 const optimisticConcurrencySchedule = Schedule.once.pipe(
   Schedule.intersect(Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException"))
 )
 
-export class ConfigureInterruptibilityMiddleware
-  extends Tag<ConfigureInterruptibilityMiddleware>()("ConfigureInterruptibilityMiddleware", { wrap: true })({
-    effect: Effect.gen(function*() {
-      const cache = new Map()
-      const getCached = (key: string, schema: Schema.Schema.Any) => {
-        const existing = cache.get(key)
-        if (existing) return existing
-        const n = determineMethod(key, schema)
-        cache.set(key, n)
-        return n
-      }
-      return ({ next, rpc }) => {
-        const method = getCached(rpc._tag, rpc.payloadSchema)
+export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
+  ConfigureInterruptibilityMiddleware,
+  Effect.gen(function*() {
+    const cache = new Map()
+    const getCached = (key: string, schema: Schema.Schema.Any) => {
+      const existing = cache.get(key)
+      if (existing) return existing
+      const n = determineMethod(key, schema)
+      cache.set(key, n)
+      return n
+    }
+    return (effect, { rpc }) => {
+      const method = getCached(rpc._tag, rpc.payloadSchema)
 
-        next = isCommand(method)
-          ? Effect.retry(Effect.uninterruptible(next), optimisticConcurrencySchedule)
-          : Effect.interruptible(next)
+      effect = isCommand(method)
+        ? Effect.retry(Effect.uninterruptible(effect), optimisticConcurrencySchedule)
+        : Effect.interruptible(effect)
 
-        return next
-      }
-    })
+      return effect
+    }
   })
-{
-}
+)
 
-export class LoggerMiddleware extends Tag<LoggerMiddleware>()("LoggerMiddleware", { wrap: true })({
-  effect: Effect.gen(function*() {
+export const LoggerMiddlewareLive = Layer.effect(
+  LoggerMiddleware,
+  Effect.gen(function*() {
     const devMode = yield* DevMode
-    return ({ headers, next, payload, rpc }) =>
+    return (effect, { headers, payload, rpc }) =>
       Effect
         .annotateCurrentSpan({
           "request.name": rpc._tag,
@@ -82,7 +79,7 @@ export class LoggerMiddleware extends Tag<LoggerMiddleware>()("LoggerMiddleware"
         })
         .pipe(
           // can't use andThen due to some being a function and effect
-          Effect.zipRight(next),
+          Effect.zipRight(effect),
           // TODO: support ParseResult if the error channel of the request allows it.. but who would want that?
           Effect.catchAll((_) => ParseResult.isParseError(_) ? Effect.die(_) : Effect.fail(_)),
           Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
@@ -112,11 +109,29 @@ export class LoggerMiddleware extends Tag<LoggerMiddleware>()("LoggerMiddleware"
           devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error"))
         )
   })
-}) {
-}
+)
 
-export const DefaultGenericMiddlewares = [
-  RequestCacheMiddleware,
-  ConfigureInterruptibilityMiddleware,
-  LoggerMiddleware
-] as const
+// TODO: do we need this as middleware or just as layer?
+export const DevModeLive = Layer.effect(
+  DevMode,
+  Effect.gen(function*() {
+    const env = yield* Config.string("env").pipe(Config.withDefault("local-dev"))
+    return env !== "prod"
+  })
+)
+export const DevModeMiddlewareLive = Layer
+  .effect(
+    DevModeMiddleware,
+    Effect.gen(function*() {
+      const devMode = yield* DevMode
+      return (effect) => Effect.provideService(effect, DevMode, devMode)
+    })
+  )
+  .pipe(Layer.provide(DevModeLive))
+
+export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
+  RequestCacheMiddlewareLive,
+  ConfigureInterruptibilityMiddlewareLive,
+  LoggerMiddlewareLive,
+  DevModeMiddlewareLive
+)

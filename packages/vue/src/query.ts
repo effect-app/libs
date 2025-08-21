@@ -4,25 +4,25 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type Enabled, type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery, useQueryClient, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
-import { computed, type ComputedRef, ref, type ShallowRef, shallowRef, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, type MaybeRefOrGetter, ref, type ShallowRef, shallowRef, watch, type WatchSource } from "vue"
 import { getRuntime, makeQueryKey, reportRuntimeError } from "./lib.js"
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface QueryObserverOptionsCustom<
   TQueryFnData = unknown,
   TError = Error,
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
-  TPageParam = never
+  TQueryKey extends QueryKey = QueryKey
 > extends
-  Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey, TPageParam>, "queryKey" | "queryFn">
-{}
+  Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn" | "enabled">
+{
+  enabled?: MaybeRefOrGetter<boolean | undefined> | (() => Enabled<TQueryFnData, TError, TQueryData, TQueryKey>)
+}
 
 export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
   readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>
@@ -38,7 +38,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       | RequestHandlerWithInput<I, A, E, R, Request>
       | RequestHandler<A, E, R, Request>,
     arg?: I | WatchSource<I>,
-    _options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
+    options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
   ) => {
     const runPromise = Runtime.runPromise(getRuntime(runtime))
     const arr = arg
@@ -53,10 +53,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
       : ref(arg)
     const queryKey = makeQueryKey(q)
     const handler = q.handler
-    const options = {
-      ..._options,
-      enabled: _options.enabled ? (() => _options.enabled!) : undefined
-    }
+
     const r = useQuery<unknown, KnownFiberFailure<E>, A>(
       Effect.isEffect(handler)
         ? {
@@ -162,7 +159,9 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     // required options, with initialData
     <E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandler<A, E, R, Request>,
-      options: QueryObserverOptionsCustom<A, E> & { initialData: A | InitialDataFunction<A> }
+      options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
+        initialData: A | InitialDataFunction<A>
+      }
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
@@ -172,7 +171,9 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     <Arg, E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandlerWithInput<Arg, A, E, R, Request>,
       arg: Arg | WatchSource<Arg>,
-      options: QueryObserverOptionsCustom<A, E> & { initialData: A | InitialDataFunction<A> }
+      options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
+        initialData: A | InitialDataFunction<A>
+      }
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
@@ -183,7 +184,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     // optional options, optional A
     <E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandler<A, E, R, Request>,
-      options?: QueryObserverOptionsCustom<A, E>
+      options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A | undefined>,
@@ -193,7 +194,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     <Arg, E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandlerWithInput<Arg, A, E, R, Request>,
       arg: Arg | WatchSource<Arg>,
-      options?: QueryObserverOptionsCustom<A, E>
+      options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A | undefined>,
@@ -258,4 +259,32 @@ export function composeQueries<
     return prev
   }, {} as any)
   return Result.success(r, { waiting: isRefreshing })
+}
+
+export const useUpdateQuery = () => {
+  const queryClient = useQueryClient()
+
+  const f: {
+    <A>(
+      query: RequestHandler<A, any, any, any>,
+      updater: (data: NoInfer<A>) => NoInfer<A>
+    ): void
+    <I, A>(
+      query: RequestHandlerWithInput<I, A, any, any, any>,
+      input: I,
+      updater: (data: NoInfer<A>) => NoInfer<A>
+    ): void
+  } = (query: any, updateOrInput: any, updaterMaybe?: any) => {
+    const updater = updaterMaybe !== undefined ? updaterMaybe : updateOrInput
+    const key = updaterMaybe !== undefined
+      ? [...makeQueryKey(query), updateOrInput]
+      : makeQueryKey(query)
+    const data = queryClient.getQueryData(key)
+    if (data) {
+      queryClient.setQueryData(key, updater)
+    } else {
+      console.warn(`Query data for key ${key} not found`, key)
+    }
+  }
+  return f
 }

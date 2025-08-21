@@ -1,5 +1,83 @@
 # @effect-app/prelude
 
+## 3.0.10
+
+### Patch Changes
+
+- ce91007: fix non inverted rpc context map use
+
+## 3.0.9
+
+### Patch Changes
+
+- ea6380f: cleanup RpcContextMap
+
+## 3.0.8
+
+### Patch Changes
+
+- 3543bfb: cleanup dev-mode
+
+## 3.0.7
+
+### Patch Changes
+
+- d42afe6: cleanup
+
+## 3.0.6
+
+### Patch Changes
+
+- 868eab6: cleanup
+
+## 3.0.5
+
+### Patch Changes
+
+- 182ca78: improve: MiddlewareMaker is a Tag with Self so we can extend it from class.
+
+## 3.0.4
+
+### Patch Changes
+
+- bc68d9f: feat: introduce Layer.make as alternative to Context.ProvideService
+
+## 3.0.3
+
+### Patch Changes
+
+- c31423a: cleanup rpc
+
+## 3.0.2
+
+### Patch Changes
+
+- 88bb989: align dynamic/global middleware with V4
+
+## 3.0.1
+
+### Patch Changes
+
+- 74c28d1: move common rpc out of infra
+
+## 3.0.0
+
+### Major Changes
+
+- 3e4c45d: feat: Add new @effect/rpc Dynamic and Global Middleware, based on effect-app Router
+
+## 2.56.0
+
+### Minor Changes
+
+- db2b575: switch to new HttpLayerRouter
+
+## 2.55.0
+
+### Minor Changes
+
+- 37eb29a: improve ServiceBus api
+
 ## 2.54.3
 
 ### Patch Changes

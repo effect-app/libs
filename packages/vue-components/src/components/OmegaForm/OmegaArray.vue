@@ -29,9 +29,7 @@
 >
 import { computed, onMounted, provide } from "vue"
 import {
-  type CreateMeta,
   type OmegaInputProps,
-  createMeta,
 } from "./OmegaFormStuff"
 import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
 
@@ -52,10 +50,8 @@ defineOptions({
 
 const store = props.form.useStore(state => state.values)
 const items = computed(() => {
-  return props.name.split(".").reduce((acc, curr) => {
-    if (curr === "items") {
-      return acc[curr]
-    }
+  const normalizedPath = props.name.replace(/\[/g, ".").replace(/\]/g, "")
+  return normalizedPath.split(".").reduce((acc, curr) => {
     return acc[curr] as typeof store.value
   }, store.value)
 })
@@ -67,34 +63,14 @@ onMounted(async () => {
 })
 
 const getMetaFromArray = computed(() => {
-  const inputMeta = props.form.meta[props.name]
-  if (inputMeta && inputMeta.type === "multiple") {
-    const result = inputMeta.rest.reduce<CreateMeta>((acc, curr) => {
-      if (curr.type._tag === "TypeLiteral") {
-        return {
-          ...acc,
-          propertySignatures: [
-            ...(acc.propertySignatures || []),
-            ...curr.type.propertySignatures,
-          ],
-        } as CreateMeta
-      }
-      return {
-        ...acc,
-        property: curr.type,
-      } as CreateMeta
-    }, {} as CreateMeta)
+  const getMeta = (path: string) => {
+    // Transform path like 'a[0].b[11].c' into 'a.b.c'
+    const simplifiedPath = path.replace(/\[\d+\]/g, '')
 
-    const arrayMeta = createMeta({ ...result, meta: inputMeta })
-    const getMeta = (index: string) => {
-      if (index.endsWith("]")) return arrayMeta
-      const parts = index.split("].")
-      const key = parts[parts.length - 1]
-      return arrayMeta[key as keyof typeof arrayMeta]
-    }
-    return getMeta
+    return props.form.meta[simplifiedPath as keyof typeof props.form.meta]
   }
-  return (_: string) => undefined
+  
+  return getMeta
 })
 
 provide("getMetaFromArray", getMetaFromArray)

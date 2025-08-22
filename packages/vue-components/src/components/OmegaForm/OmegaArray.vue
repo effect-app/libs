@@ -1,5 +1,6 @@
 <template>
-  <form.Field
+  <component
+    :is="form.Field"
     v-for="(_, i) of items"
     :key="`${name}[${Number(i)}]`"
     :name="
@@ -15,7 +16,7 @@
         }"
       />
     </template>
-  </form.Field>
+  </component>
 </template>
 
 <script

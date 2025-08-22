@@ -1,31 +1,31 @@
 <template>
-  <component :is="form.Field" :name="name">
-    <template #default="{ field }">
-      <component
-        :is="form.Field"
-        v-for="(_, i) of field.state.value"
-        :key="`${name}[${Number(i)}]`"
-        :name="
-          `${name}[${Number(i)}]` as DeepKeys<From>
-        "
-      >
-        <template #default="{ field: subField, state: subState }">
-          <slot
-            v-bind="{
-              field,
-              subField,
-              subState,
-              index: Number(i),
-            }"
-          />
-        </template>
-      </component>
-      <slot name="field" v-bind="{ field }" />
+  <form.Field
+    v-for="(_, i) of items"
+    :key="`${name}[${Number(i)}]`"
+    :name="
+      `${name}[${Number(i)}]` as DeepKeys<From>
+    "
+  >
+    <template #default="{ field: subField, state: subState }">
+      <slot
+        v-bind="{
+          subField,
+          subState,
+          index: Number(i),
+        }"
+      />
     </template>
-  </component>
+  </form.Field>
 </template>
 
-<script setup lang="ts" generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>">
+<script
+  setup
+  lang="ts"
+  generic="
+    From extends Record<PropertyKey, any>,
+    To extends Record<PropertyKey, any>
+  "
+>
 import { computed, onMounted, provide } from "vue"
 import {
   type CreateMeta,
@@ -33,7 +33,6 @@ import {
   createMeta,
 } from "./OmegaFormStuff"
 import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
-import { S } from "effect-app"
 
 const props = defineProps<
   Omit<
@@ -50,10 +49,18 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const storeItems = props.form.useStore(state => state.values[props.name])
+const store = props.form.useStore(state => state.values)
+const items = computed(() => {
+  return props.name.split(".").reduce((acc, curr) => {
+    if (curr === "items") {
+      return acc[curr]
+    }
+    return acc[curr] as typeof store.value
+  }, store.value)
+})
 
-onMounted(() => {
-  if (props.defaultItems && !storeItems.value) {
+onMounted(async () => {
+  if (props.defaultItems && !items.value) {
     props.form.setFieldValue(props.name, props.defaultItems)
   }
 })

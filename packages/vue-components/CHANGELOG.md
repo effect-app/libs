@@ -19,6 +19,15 @@
 - 663b8ee: Removes items from omega-array and move to a default-items prop
 - 5235122: Improves typing
 
+## 0.13.5
+
+### Patch Changes
+
+- Updated dependencies [1e4de39]
+- Updated dependencies [41352d8]
+  - effect-app@3.1.0
+  - @effect-app/vue@2.51.12
+
 ## 0.13.4
 
 ### Patch Changes

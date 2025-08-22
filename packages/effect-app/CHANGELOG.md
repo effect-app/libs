@@ -1,5 +1,15 @@
 # @effect-app/prelude
 
+## 3.1.0
+
+### Minor Changes
+
+- 1e4de39: remove namespace/type merging in Prelude.
+
+### Patch Changes
+
+- 41352d8: refactor: remove internal usage of namespace/type collission.
+
 ## 3.0.10
 
 ### Patch Changes

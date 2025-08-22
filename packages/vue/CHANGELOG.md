@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 2.51.12
+
+### Patch Changes
+
+- 41352d8: refactor: remove internal usage of namespace/type collission.
+- Updated dependencies [1e4de39]
+- Updated dependencies [41352d8]
+  - effect-app@3.1.0
+
 ## 2.51.11
 
 ### Patch Changes

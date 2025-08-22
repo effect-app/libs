@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 0.14.0
+
+### Minor Changes
+
+- 663b8ee: Removes items from omega-array and move to a default-items prop
+- 5235122: Improves typing
+
 ## 0.13.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.14.1
+
+### Patch Changes
+
+- e107efe: Fixes OmegaArray state cache not updating due to Vue cuncurrency
+
 ## 0.14.0
 
 ### Minor Changes

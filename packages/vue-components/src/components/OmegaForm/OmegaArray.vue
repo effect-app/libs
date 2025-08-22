@@ -42,7 +42,7 @@ const props = defineProps<
   > & {
     defaultItems?: DeepValue<To, DeepKeys<To>>
     // deprecated items, caused bugs in state update, use defaultItems instead. It's not a simple Never, because Volar explodes
-    items?: S.Schema<S.Never>
+    items?: "please use `defaultItems` instead"
   }
 >()
 

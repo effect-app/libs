@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import * as Record from "effect/Record"
 import type * as Request from "effect/Request"
 import type { Path } from "path-parser"
 import qs from "query-string"
-import { type Effect, Record, type Schema } from "../internal/lib.js"
+import type * as Effect from "../Effect.js"
 import type * as S from "../Schema.js"
 
 export function makePathWithQuery(
@@ -54,18 +55,18 @@ export type Client<M extends Requests> = RequestHandlers<
   M
 >
 
-export type ExtractResponse<T> = T extends Schema<any, any, any> ? Schema.Type<T>
+export type ExtractResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.Type<T>
   : T extends unknown ? void
   : never
 
-export type ExtractEResponse<T> = T extends Schema<any, any, any> ? Schema.Encoded<T>
+export type ExtractEResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.Encoded<T>
   : T extends unknown ? void
   : never
 
 type IsEmpty<T> = keyof T extends never ? true
   : false
 
-type Cruft = "_tag" | Request.RequestTypeId | typeof Schema.symbolSerializable | typeof Schema.symbolWithResult
+type Cruft = "_tag" | Request.RequestTypeId | typeof S.symbolSerializable | typeof S.symbolWithResult
 
 export type TaggedRequestClassAny = S.Schema.Any & {
   readonly _tag: string
@@ -80,14 +81,14 @@ export interface ClientForOptions {
 }
 
 export interface RequestHandler<A, E, R, Request extends TaggedRequestClassAny> {
-  handler: Effect<A, E, R>
+  handler: Effect.Effect<A, E, R>
   name: string
   options?: ClientForOptions
   Request: Request
 }
 
 export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedRequestClassAny> {
-  handler: (i: I) => Effect<A, E, R>
+  handler: (i: I) => Effect.Effect<A, E, R>
   name: string
   options?: ClientForOptions
   Request: Request
@@ -96,22 +97,22 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedReque
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 export type RequestHandlers<R, E, M extends Requests> = {
   [K in keyof M]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
-    ? RequestHandler<Schema.Type<M[K]["success"]>, Schema.Schema.Type<M[K]["failure"]> | E, R, M[K]> & {
-      raw: RequestHandler<Schema.Type<M[K]["success"]>, Schema.Schema.Type<M[K]["failure"]> | E, R, M[K]>
+    ? RequestHandler<S.Schema.Type<M[K]["success"]>, S.Schema.Type<M[K]["failure"]> | E, R, M[K]> & {
+      raw: RequestHandler<S.Schema.Type<M[K]["success"]>, S.Schema.Type<M[K]["failure"]> | E, R, M[K]>
     }
     :
       & RequestHandlerWithInput<
         Omit<S.Schema.Type<M[K]>, Cruft>,
-        Schema.Schema.Type<M[K]["success"]>,
-        Schema.Schema.Type<M[K]["failure"]> | E,
+        S.Schema.Type<M[K]["success"]>,
+        S.Schema.Type<M[K]["failure"]> | E,
         R,
         M[K]
       >
       & {
         raw: RequestHandlerWithInput<
           Omit<S.Schema.Type<M[K]>, Cruft>,
-          Schema.Schema.Encoded<M[K]["success"]>,
-          Schema.Schema.Type<M[K]["failure"]> | E,
+          S.Schema.Encoded<M[K]["success"]>,
+          S.Schema.Type<M[K]["failure"]> | E,
           R,
           M[K]
         >

@@ -44,11 +44,11 @@ export function mutationResultToVue<A, E>(
 export interface Res<A, E> {
   readonly loading: boolean
   readonly data: A | undefined
-  readonly error: Cause<E> | undefined
+  readonly error: Cause.Cause<E> | undefined
 }
 
 export type WatchSource<T = any> = Ref<T> | ComputedRef<T> | (() => T)
-export function make<A, E, R>(self: Effect<A, E, R>) {
+export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   const result = shallowRef(Result.initial() as Result.Result<A, E>)
 
   const execute = Effect
@@ -72,7 +72,7 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
    * Map the handler; cache invalidation is already done in this handler.
    * This is useful for e.g navigating, as you know caches have already updated.
    */
-  mapHandler?: (handler: Effect<A, E, R>, input: I) => Effect<A2, E2, R2>
+  mapHandler?: (handler: Effect.Effect<A, E, R>, input: I) => Effect.Effect<A2, E2, R2>
   /**
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
    * This can be overridden by providing a function that returns an array of filters and options.
@@ -96,13 +96,13 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
 
 export const asResult: {
   <A, E, R>(
-    handler: Effect<A, E, R>
-  ): readonly [ComputedRef<Result.Result<A, E>>, Effect<Exit<A, E>, never, void>]
+    handler: Effect.Effect<A, E, R>
+  ): readonly [ComputedRef<Result.Result<A, E>>, Effect.Effect<Exit.Exit<A, E>, never, void>]
   <Args extends readonly any[], A, E, R>(
-    handler: (...args: Args) => Effect<A, E, R>
-  ): readonly [ComputedRef<Result.Result<A, E>>, (...args: Args) => Effect<Exit<A, E>, never, void>]
+    handler: (...args: Args) => Effect.Effect<A, E, R>
+  ): readonly [ComputedRef<Result.Result<A, E>>, (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, void>]
 } = <Args extends readonly any[], A, E, R>(
-  handler: Effect<A, E, R> | ((...args: Args) => Effect<A, E, R>)
+  handler: Effect.Effect<A, E, R> | ((...args: Args) => Effect.Effect<A, E, R>)
 ) => {
   const state = shallowRef<Result.Result<A, E>>(Result.initial())
 
@@ -145,11 +145,11 @@ export const makeMutation = () => {
     <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): (i: I) => Effect<A2, E2, R2>
+    ): (i: I) => Effect.Effect<A2, E2, R2>
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): Effect<A2, E2, R2>
+    ): Effect.Effect<A2, E2, R2>
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
@@ -196,10 +196,10 @@ export const makeMutation = () => {
     type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
     const mapHandler = options?.mapHandler ?? identity as MH
 
-    const handle = (self: Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
+    const handle = (self: Effect.Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
       Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),
       i as I
-    ) as Effect<A2, E2, R2>)
+    ) as Effect.Effect<A2, E2, R2>)
 
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)

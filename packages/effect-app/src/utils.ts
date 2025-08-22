@@ -11,6 +11,7 @@ import type { DeepMutable, Equals, Mutable } from "./Types.js"
 // codegen:start {preset: barrel, include: ./utils/*.ts, nodir: false }
 export * from "./utils/effectify.js"
 export * from "./utils/extend.js"
+export * from "./utils/gen.js"
 export * from "./utils/logger.js"
 export * from "./utils/logLevel.js"
 // codegen:end
@@ -130,6 +131,7 @@ function get(obj: any, path: any, defaultValue = undefined) {
 // codegen:start {preset: barrel, include: ./utils/*.ts }
 export * from "./utils/effectify.js"
 export * from "./utils/extend.js"
+export * from "./utils/gen.js"
 export * from "./utils/logger.js"
 export * from "./utils/logLevel.js"
 // codegen:end
@@ -239,7 +241,7 @@ export interface Unifiable<X> {
   // Effect: [X] extends [Effect<infer R, infer E, infer A>]
   //   ? [X] extends [Sync<infer R, infer E, infer A>]
   //     ? never
-  //     : Effect<R, E, A>
+  //     : Effect.Effect<R, E, A>
   //   : never
   Unify: [X] extends [{ readonly [unifyIndex]: infer K }] ? K extends UnifiableIndexedURI ? UnifiableIndexed<X>[K]
     : never

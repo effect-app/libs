@@ -1,5 +1,5 @@
-import { S } from "../internal/lib.js"
 import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
+import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
 
 // TODO: Fix error types... (?)

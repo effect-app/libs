@@ -17,7 +17,7 @@ export type RouterMiddleware<
   _ContextProviderR, // what the context provider requires
   RequestContextId
 > =
-  & Effect<RpcMiddlewareWrap<ContextProviderA, ContextProviderE>, never, Self>
+  & Effect.Effect<RpcMiddlewareWrap<ContextProviderA, ContextProviderE>, never, Self>
   // makes error because of TagUnify :/
   // Context.Tag<Self, RpcMiddlewareWrap<ContextProviderA, ContextProviderE>>
   & {

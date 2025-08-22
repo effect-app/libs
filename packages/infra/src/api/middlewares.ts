@@ -76,7 +76,7 @@ export interface BasicAuthCredentials {
 export const basicAuth: <R2, _>(
   checkCredentials: (
     credentials: BasicAuthCredentials
-  ) => Effect<_, NotLoggedInError, R2>,
+  ) => Effect.Effect<_, NotLoggedInError, R2>,
   options?: Partial<{
     headerName: string
     skipPaths: readonly string[]

@@ -17,7 +17,7 @@ export const makeRedisClient = (makeClient: () => Client) =>
 
         function get(key: string) {
           return Effect
-            .async<Option<string>, ConnectionException>((res) => {
+            .async<Option.Option<string>, ConnectionException>((res) => {
               client.get(key, (err, v) =>
                 err
                   ? res(new ConnectionException(err))
@@ -50,7 +50,7 @@ export const makeRedisClient = (makeClient: () => Client) =>
 
         function hget(key: string, field: string) {
           return Effect
-            .async<Option<string>, ConnectionException>((res) => {
+            .async<Option.Option<string>, ConnectionException>((res) => {
               client.hget(key, field, (err, v) =>
                 err
                   ? res(new ConnectionException(err))
@@ -60,7 +60,7 @@ export const makeRedisClient = (makeClient: () => Client) =>
         }
         function hmgetAll(key: string) {
           return Effect
-            .async<Option<{ [key: string]: string }>, ConnectionException>(
+            .async<Option.Option<{ [key: string]: string }>, ConnectionException>(
               (res) => {
                 client.hgetall(key, (err, v) =>
                   err
@@ -90,7 +90,7 @@ export const makeRedisClient = (makeClient: () => Client) =>
         .pipe(Effect.uninterruptible, Effect.orDie)
   )
 
-export interface RedisClient extends Effect.Success<ReturnType<typeof makeRedisClient>> {}
+export interface RedisClient extends Effect.Effect.Success<ReturnType<typeof makeRedisClient>> {}
 
 export const RedisClient = Context.GenericTag<RedisClient>("@services/RedisClient")
 

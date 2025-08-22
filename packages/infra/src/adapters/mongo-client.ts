@@ -15,7 +15,7 @@ const withClient = (url: string) =>
 
 const makeMongoClient = (url: string, dbName?: string) => Effect.map(withClient(url), (x) => ({ db: x.db(dbName) }))
 
-export interface MongoClient extends Effect.Success<ReturnType<typeof makeMongoClient>> {}
+export interface MongoClient extends Effect.Effect.Success<ReturnType<typeof makeMongoClient>> {}
 
 export const MongoClient = Context.GenericTag<MongoClient>("@services/MongoClient")
 

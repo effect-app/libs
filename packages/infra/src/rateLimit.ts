@@ -5,7 +5,7 @@
 //  * failure, or interruption.
 //  */
 // export function withPermitsDuration(permits: number, duration: Duration) {
-//   return (self: TSemaphore): <R, E, A>(effect: Effect<R, E, A>) => Effect<R, E, A> => {
+//   return (self: TSemaphore): <R, E, A>(effect: Effect.Effect<R, E, A>) => Effect.Effect<R, E, A> => {
 //     return effect =>
 //       Effect.uninterruptibleMask(
 //         restore =>
@@ -29,8 +29,8 @@ import type { Semaphore } from "effect-app/Effect"
  * delayed by duration after the effect completes execution, whether by success,
  * failure, or interruption.
  */
-export function SEM_withPermitsDuration(permits: number, duration: Duration) {
-  return (self: Semaphore): <R, E, A>(effect: Effect<A, E, R>) => Effect<A, E, R> => {
+export function SEM_withPermitsDuration(permits: number, duration: Duration.Duration) {
+  return (self: Semaphore): <R, E, A>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R> => {
     return (effect) =>
       Effect.uninterruptibleMask(
         (restore) =>
@@ -47,8 +47,8 @@ export function SEM_withPermitsDuration(permits: number, duration: Duration) {
 
 export function batchPar<R, E, A, R2, E2, A2, T>(
   n: number,
-  forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect<A, E, R>,
-  forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect<A2, E2, R2>
+  forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect.Effect<A, E, R>,
+  forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect.Effect<A2, E2, R2>
 ) {
   return (items: Iterable<T>) =>
     Effect.forEach(
@@ -63,8 +63,8 @@ export function batchPar<R, E, A, R2, E2, A2, T>(
 
 export function batch<R, E, A, R2, E2, A2, T>(
   n: number,
-  forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect<A, E, R>,
-  forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect<A2, E2, R2>
+  forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect.Effect<A, E, R>,
+  forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect.Effect<A2, E2, R2>
 ) {
   return (items: Iterable<T>) =>
     Effect.forEach(
@@ -82,8 +82,8 @@ export function batch<R, E, A, R2, E2, A2, T>(
 // ) {
 //   return <T>(items: Iterable<T>) =>
 //     <R, E, A, R2, E2, A2>(
-//       forEachItem: (i: T) => Effect<R, E, A>,
-//       forEachBatch: (a: Chunk<A>) => Effect<R2, E2, A2>
+//       forEachItem: (i: T) => Effect.Effect<R, E, A>,
+//       forEachBatch: (a: Chunk<A>) => Effect.Effect<R2, E2, A2>
 //     ) =>
 //       Stream.fromCollection(items)
 //         .rechunk(n)
@@ -94,11 +94,11 @@ export function batch<R, E, A, R2, E2, A2, T>(
 
 export function naiveRateLimit(
   n: number,
-  d: Duration
+  d: Duration.Duration
 ) {
   return <T>(items: Iterable<T>) => (<R, E, A, R2, E2, A2>(
-    forEachItem: (i: T) => Effect<A, E, R>,
-    forEachBatch: (a: A[]) => Effect<A2, E2, R2>
+    forEachItem: (i: T) => Effect.Effect<A, E, R>,
+    forEachBatch: (a: A[]) => Effect.Effect<A2, E2, R2>
   ) =>
     Effect.forEach(
       Array.chunk_(items, n),

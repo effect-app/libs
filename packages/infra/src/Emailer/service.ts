@@ -8,7 +8,7 @@ export class SendMailError extends Data.TaggedError("SendMailError")<{
 }> {}
 
 export class Emailer extends Context.TagId("effect-app/Emailer")<Emailer, {
-  sendMail: (msg: EmailMsgOptionalFrom) => Effect<void, SendMailError>
+  sendMail: (msg: EmailMsgOptionalFrom) => Effect.Effect<void, SendMailError>
 }>() {}
 
 export type EmailData = Email | {

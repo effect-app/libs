@@ -42,7 +42,7 @@ const make = Effect.gen(function*() {
   function findOp(id: OperationId) {
     return repo.find(id)
   }
-  function finishOp(id: OperationId, exit: Exit<unknown, unknown>) {
+  function finishOp(id: OperationId, exit: Exit.Exit<unknown, unknown>) {
     return Effect
       .flatMap(repo.get(id).pipe(Effect.orDie), (_) =>
         repo
@@ -79,10 +79,10 @@ const make = Effect.gen(function*() {
   }
 
   function fork<R, R2, E, E2, A, A2>(
-    self: (id: OperationId) => Effect<A, E, R>,
-    fnc: (id: OperationId) => Effect<A2, E2, R2>,
+    self: (id: OperationId) => Effect.Effect<A, E, R>,
+    fnc: (id: OperationId) => Effect.Effect<A2, E2, R2>,
     title: NonEmptyString2k
-  ): Effect<
+  ): Effect.Effect<
     RunningOperation<A, E>,
     never,
     Exclude<R, Scope.Scope> | Exclude<R2, Scope.Scope>
@@ -114,15 +114,15 @@ const make = Effect.gen(function*() {
 
   const fork2: {
     (title: NonEmptyString2k): <R, E, A>(
-      self: (opId: OperationId) => Effect<A, E, R>
-    ) => Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
+      self: (opId: OperationId) => Effect.Effect<A, E, R>
+    ) => Effect.Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
     <R, E, A>(
-      self: (opId: OperationId) => Effect<A, E, R>,
+      self: (opId: OperationId) => Effect.Effect<A, E, R>,
       title: NonEmptyString2k
-    ): Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
+    ): Effect.Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
   } = dual(
     2,
-    <R, E, A>(self: (opId: OperationId) => Effect<A, E, R>, title: NonEmptyString2k) =>
+    <R, E, A>(self: (opId: OperationId) => Effect.Effect<A, E, R>, title: NonEmptyString2k) =>
       Effect.flatMap(
         Scope.make(),
         (scope) =>
@@ -144,15 +144,15 @@ const make = Effect.gen(function*() {
 
   const forkOperation: {
     (title: NonEmptyString2k): <R, E, A>(
-      self: Effect<A, E, R>
-    ) => Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
+      self: Effect.Effect<A, E, R>
+    ) => Effect.Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
     <R, E, A>(
-      self: Effect<A, E, R>,
+      self: Effect.Effect<A, E, R>,
       title: NonEmptyString2k
-    ): Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
+    ): Effect.Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
   } = dual(
     2,
-    <R, E, A>(self: Effect<A, E, R>, title: NonEmptyString2k) =>
+    <R, E, A>(self: Effect.Effect<A, E, R>, title: NonEmptyString2k) =>
       Effect.flatMap(
         Scope.make(),
         (scope) =>
@@ -172,7 +172,7 @@ const make = Effect.gen(function*() {
       )
   )
 
-  function forkOperationFunction<R, E, A, Inp>(fnc: (inp: Inp) => Effect<A, E, R>, title: NonEmptyString2k) {
+  function forkOperationFunction<R, E, A, Inp>(fnc: (inp: Inp) => Effect.Effect<A, E, R>, title: NonEmptyString2k) {
     return (inp: Inp) => fnc(inp).pipe((_) => forkOperation(_, title))
   }
 
@@ -211,18 +211,18 @@ export class Operations extends Context.TagMakeId("effect-app/Operations", make)
 
   static readonly Live = this.CleanupLive.pipe(Layer.provideMerge(this.toLayer()), Layer.provide(RequestFiberSet.Live))
 
-  static readonly forkOperation = (title: NonEmptyString2k) => <R, E, A>(self: Effect<A, E, R>) =>
+  static readonly forkOperation = (title: NonEmptyString2k) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
     this.use((_) => _.forkOperation(self, title))
   static readonly forkOperationFunction =
-    <R, E, A, Inp>(fnc: (inp: Inp) => Effect<A, E, R>, title: NonEmptyString2k) => (inp: Inp) =>
+    <R, E, A, Inp>(fnc: (inp: Inp) => Effect.Effect<A, E, R>, title: NonEmptyString2k) => (inp: Inp) =>
       this.use((_) => _.forkOperationFunction(fnc, title)(inp))
   static readonly fork = <R, R2, E, E2, A, A2>(
-    self: (id: OperationId) => Effect<A, E, R>,
-    fnc: (id: OperationId) => Effect<A2, E2, R2>,
+    self: (id: OperationId) => Effect.Effect<A, E, R>,
+    fnc: (id: OperationId) => Effect.Effect<A2, E2, R2>,
     title: NonEmptyString2k
   ) => this.use((_) => _.fork(self, fnc, title))
 
-  static readonly fork2 = (title: NonEmptyString2k) => <R, E, A>(self: (opId: OperationId) => Effect<A, E, R>) =>
+  static readonly fork2 = (title: NonEmptyString2k) => <R, E, A>(self: (opId: OperationId) => Effect.Effect<A, E, R>) =>
     this.use((_) => _.fork2(self, title))
 }
 

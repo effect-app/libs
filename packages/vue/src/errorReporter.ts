@@ -5,7 +5,7 @@ import { Cause, Effect, LogLevel } from "effect-app"
 import { CauseException, tryToJson, tryToReport } from "effect-app/client/errors"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 
-export const tryCauseException = <E>(cause: Cause<E>, name: string): CauseException<E> => {
+export const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): CauseException<E> => {
   try {
     return new CauseException(cause, name)
   } catch {

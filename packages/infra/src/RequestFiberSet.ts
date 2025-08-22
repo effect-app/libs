@@ -14,7 +14,7 @@ const getRootParentSpan = Effect.gen(function*() {
   return span
 })
 
-export const setRootParentSpan = <A, E, R>(self: Effect<A, E, R>) =>
+export const setRootParentSpan = <A, E, R>(self: Effect.Effect<A, E, R>) =>
   getRootParentSpan.pipe(Effect.andThen((span) => span ? Effect.withParentSpan(self, span) : self))
 
 const make = Effect.gen(function*() {
@@ -28,7 +28,7 @@ const make = Effect.gen(function*() {
     Effect.andThen(FiberSet.join(set))
   )
   const run = FiberSet.run(set)
-  const register = <A, E, R>(self: Effect<A, E, R>) =>
+  const register = <A, E, R>(self: Effect.Effect<A, E, R>) =>
     self.pipe(Effect.fork, Effect.tap(add), Effect.andThen(Fiber.join))
 
   // const waitUntilEmpty = Effect.gen(function*() {
@@ -51,7 +51,7 @@ const make = Effect.gen(function*() {
    *
    * Reports errors.
    */
-  function forkDaemonReport<R, E, A>(self: Effect<A, E, R>) {
+  function forkDaemonReport<R, E, A>(self: Effect.Effect<A, E, R>) {
     return self.pipe(
       reportRequestError,
       Effect.uninterruptible,
@@ -67,7 +67,7 @@ const make = Effect.gen(function*() {
    *
    * Reports unexpected errors.
    */
-  function forkDaemonReportUnexpected<R, E, A>(self: Effect<A, E, R>) {
+  function forkDaemonReportUnexpected<R, E, A>(self: Effect.Effect<A, E, R>) {
     return self
       .pipe(
         reportUnknownRequestError,
@@ -94,9 +94,10 @@ const make = Effect.gen(function*() {
  */
 export class RequestFiberSet extends Context.TagMakeId("RequestFiberSet", make)<RequestFiberSet>() {
   static readonly Live = this.toLayerScoped()
-  static readonly register = <A, E, R>(self: Effect<A, E, R>) => this.use((_) => _.register(self))
-  static readonly run = <A, E, R>(self: Effect<A, E, R>) => this.use((_) => _.run(self))
-  static readonly forkDaemonReport = <R, E, A>(self: Effect<A, E, R>) => this.use((_) => _.forkDaemonReport(self))
-  static readonly forkDaemonReportUnexpected = <R, E, A>(self: Effect<A, E, R>) =>
+  static readonly register = <A, E, R>(self: Effect.Effect<A, E, R>) => this.use((_) => _.register(self))
+  static readonly run = <A, E, R>(self: Effect.Effect<A, E, R>) => this.use((_) => _.run(self))
+  static readonly forkDaemonReport = <R, E, A>(self: Effect.Effect<A, E, R>) =>
+    this.use((_) => _.forkDaemonReport(self))
+  static readonly forkDaemonReportUnexpected = <R, E, A>(self: Effect.Effect<A, E, R>) =>
     this.use((_) => _.forkDaemonReportUnexpected(self))
 }

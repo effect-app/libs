@@ -1,7 +1,8 @@
 /** @effect-diagnostics overriddenSchemaConstructor:skip-file */
 import { TaggedError } from "effect-app/Schema"
+import * as Cause from "effect/Cause"
 import { makeFiberFailure } from "effect/Runtime"
-import { Cause, S } from "../internal/lib.js"
+import * as S from "../Schema.js"
 
 export const tryToJson = (error: { toJSON(): unknown; toString(): string }) => {
   try {
@@ -169,7 +170,7 @@ export const silenceError = (e: Record<PropertyKey, any>) => {
 }
 
 export class CauseException<E> extends Error {
-  constructor(readonly originalCause: Cause<E>, readonly _tag: string) {
+  constructor(readonly originalCause: Cause.Cause<E>, readonly _tag: string) {
     const limit = Error.stackTraceLimit
     Error.stackTraceLimit = 0
     super()

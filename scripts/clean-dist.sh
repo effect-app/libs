@@ -32,10 +32,10 @@ do
   raw="${f%.js}"
   if [ ! -f "$src_f" ]; then
     if [ ! -f "$src_f2" ]; then
-    if [ "$raw" != "dist/internal/Prelude" ]; then
+
       echo "Removing $raw.js"
       rm -f $raw.js $raw.js.map $raw.d.ts $raw.d.ts.map
-    fi
+
     fi
   fi
 done

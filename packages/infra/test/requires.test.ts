@@ -70,7 +70,7 @@ const testSuite = (_mw: typeof middleware3) =>
           payload: { _tag: "Test" },
           clientId: 0,
           rpc: { ...Rpc.fromTaggedRequest(TestRequest), annotations: Context.make(_mw.requestContext, {}) },
-          next: Effect.void as unknown as Effect<SuccessValue, never, any>
+          next: Effect.void as unknown as Effect.Effect<SuccessValue, never, any>
         }
         const layer = _mw.layer.pipe(
           Layer.provide([

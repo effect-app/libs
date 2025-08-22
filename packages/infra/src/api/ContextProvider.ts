@@ -8,7 +8,7 @@ import { type YieldWrap } from "effect/Utils"
 import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "./layerUtils.js"
 
 // // the context provider provides additional stuff
-// export type ContextProviderShape<ContextProviderA, ContextProviderR> = Effect<
+// export type ContextProviderShape<ContextProviderA, ContextProviderR> = Effect.Effect<
 //   Context.Context<ContextProviderA>,
 //   never, // no errors are allowed
 //   ContextProviderR
@@ -18,7 +18,7 @@ export interface ContextProviderId {
   _tag: "ContextProvider"
 }
 
-//  ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
+//  ContextTagWithDefault.Base<Effect.Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
 
 /**
  * TDeps is an array of services with Default implementation
@@ -26,15 +26,15 @@ export interface ContextProviderId {
  */
 type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // the following freaking shit helps me with nested variance issues: it wasn't sufficient to use never/any/unknown for
-  // the various type parameters, not anymore because of () => Generator<YieldWrap<Effect craziness
+  // the various type parameters, not anymore because of () => Generator<YieldWrap<Effect.Effect craziness
   // existential types may help, and all the following usages of infer _ have that meaning: I do not care which is the
   // actual type in that position, I just wanna set the overall structure
   [K in keyof TDeps]: TDeps[K] extends //
   // E = never => the context provided cannot trigger errors
-  // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope?
+  // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope.Scope?
   //  _R extends HttpLayerRouter.Provided => the context provided can only have what HttpLayerRouter.Provided provides as requirements
   (
-    ContextTagWithDefault.Base<Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
+    ContextTagWithDefault.Base<Effect.Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
   ) ? [_R] extends [HttpLayerRouter.Provided] ? TDeps[K]
     : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
       "_tag"
@@ -50,7 +50,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
       >
     ) // [_YW] extends [never] if no yield* is used and just some context is returned
       ? [_YW] extends [never] ? TDeps[K]
-      : [_YW] extends [YieldWrap<Effect<infer _2, never, infer _R>>]
+      : [_YW] extends [YieldWrap<Effect.Effect<infer _2, never, infer _R>>]
         ? [_R] extends [HttpLayerRouter.Provided] ? TDeps[K]
         : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
           "_tag"
@@ -106,22 +106,22 @@ export const ContextProvider = <
   Dependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>
 >(
   input: {
-    effect: Effect<
-      | Effect<ContextProviderA, never, ContextProviderR>
+    effect: Effect.Effect<
+      | Effect.Effect<ContextProviderA, never, ContextProviderR>
       | (() => Generator<
-        YieldWrap<Effect<any, never, ContextProviderR>>,
+        YieldWrap<Effect.Effect<any, never, ContextProviderR>>,
         ContextProviderA,
         any
       >),
       MakeContextProviderE,
-      MakeContextProviderR | Scope
+      MakeContextProviderR | Scope.Scope
     >
     dependencies?: Dependencies
   }
 ) => {
   const ctx = Context.GenericTag<
     ContextProviderId,
-    Effect<ContextProviderA, never, ContextProviderR>
+    Effect.Effect<ContextProviderA, never, ContextProviderR>
   >(
     "ContextProvider"
   )

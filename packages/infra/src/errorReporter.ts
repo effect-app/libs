@@ -5,7 +5,7 @@ import { getRC } from "./api/setupRequest.js"
 import { CauseException, tryToJson, tryToReport } from "./errors.js"
 import { InfraLogger } from "./logger.js"
 
-const tryCauseException = <E>(cause: Cause<E>, name: string): CauseException<E> => {
+const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): CauseException<E> => {
   try {
     return new CauseException(cause, name)
   } catch {
@@ -17,7 +17,7 @@ export function reportError(
   name: string
 ) {
   return (
-    cause: Cause<unknown>,
+    cause: Cause.Cause<unknown>,
     extras?: Record<string, unknown>,
     level: LogLevel.LogLevel = LogLevel.Error
   ) =>
@@ -75,7 +75,7 @@ function reportSentry(
 export function logError<E>(
   name: string
 ) {
-  return (cause: Cause<E>, extras?: Record<string, unknown>) =>
+  return (cause: Cause.Cause<E>, extras?: Record<string, unknown>) =>
     Effect
       .gen(function*() {
         if (Cause.isInterruptedOnly(cause)) {

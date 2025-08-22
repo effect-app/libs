@@ -124,7 +124,7 @@ export const proxify = <T extends object>(Tag: T) =>
 //   const c: {
 //     new(): Context.TagClassShape<Key, ServiceImpl>
 //     toLayer: () => Layer<Id, E, R>
-//     toLayerScoped: () => Layer<Id, E, Exclude<R, Scope>>
+//     toLayerScoped: () => Layer<Id, E, Exclude<R, Scope.Scope>>
 //   } = class {
 //     static toLayer = () => {
 //       return Layer.effect(this as any, make)
@@ -146,7 +146,7 @@ export const proxify = <T extends object>(Tag: T) =>
 //   Error.stackTraceLimit = limit
 //   const c: (abstract new(impl: ServiceImpl) => Readonly<ServiceImpl>) & {
 //     toLayer: <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => Layer<Id, E, R>
-//     toLayerScoped: <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => Layer<Id, E, Exclude<R, Scope>>
+//     toLayerScoped: <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => Layer<Id, E, Exclude<R, Scope.Scope>>
 //   } = class {
 //     constructor(service: ServiceImpl) {
 //       Object.assign(this, service)
@@ -178,8 +178,8 @@ export const proxify = <T extends object>(Tag: T) =>
 //   const c: (abstract new(impl: ServiceImpl) => Readonly<ServiceImpl>) & {
 //     toLayer: { (): Layer<Id, E, R>; <E, R>(eff: Effect.Effect<ServiceImpl, E, R>): Layer<Id, E, R> }
 //     toLayerScoped: {
-//       (): Layer<Id, E, Exclude<R, Scope>>
-//       <E, R>(eff: Effect.Effect<ServiceImpl, E, R>): Layer<Id, E, Exclude<R, Scope>>
+//       (): Layer<Id, E, Exclude<R, Scope.Scope>>
+//       <E, R>(eff: Effect.Effect<ServiceImpl, E, R>): Layer<Id, E, Exclude<R, Scope.Scope>>
 //     }
 //     make: Effect.Effect<Id, E, R>
 //   } = class {

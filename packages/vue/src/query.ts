@@ -165,7 +165,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
-      (options?: RefetchOptions) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
     <Arg, E, A, Request extends TaggedRequestClassAny>(
@@ -177,7 +177,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
-      (options?: RefetchOptions) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
 
@@ -188,7 +188,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A | undefined>,
-      (options?: RefetchOptions) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
     <Arg, E, A, Request extends TaggedRequestClassAny>(
@@ -198,7 +198,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A | undefined>,
-      (options?: RefetchOptions) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
   } = (

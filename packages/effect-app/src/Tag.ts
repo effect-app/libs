@@ -1,4 +1,4 @@
-// export function accessM_<T, I, R, E, A>(self: Tag<T, I>, f: (x: T) => Effect<R, E, A>) {
+// export function accessM_<T, I, R, E, A>(self: Tag<T, I>, f: (x: T) => Effect.Effect<R, E, A>) {
 //   return Effect.serviceWithEffect(self)(f)
 // }
 

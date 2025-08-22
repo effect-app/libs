@@ -33,7 +33,7 @@ export const extendRepo = <
     S2 extends T
   >(
     items: Iterable<S1>,
-    pure: Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>
+    pure: Effect.Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>
   ) {
     return saveAllWithEffectInt(
       runTerm(pure, [...items])
@@ -48,7 +48,7 @@ export const extendRepo = <
     S2 extends T
   >(
     item: S1,
-    pure: Effect<A, E, FixEnv<R, Evt, S1, S2>>
+    pure: Effect.Effect<A, E, FixEnv<R, Evt, S1, S2>>
   ) {
     return saveAllWithEffectInt(
       runTerm(pure, item)
@@ -63,7 +63,7 @@ export const extendRepo = <
     E,
     A
   >(
-    gen: Effect<readonly [Iterable<P>, Iterable<Evt>, A], E, R>
+    gen: Effect.Effect<readonly [Iterable<P>, Iterable<Evt>, A], E, R>
   ) {
     return Effect.flatMap(gen, ([items, events, a]) => repo.saveAndPublish(items, events).pipe(Effect.map(() => a)))
   }
@@ -76,7 +76,7 @@ export const extendRepo = <
     S2 extends T
   >(
     items: Iterable<S1>,
-    pure: Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>,
+    pure: Effect.Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>,
     batchSize = 100
   ) {
     return Effect.forEach(
@@ -93,7 +93,7 @@ export const extendRepo = <
       q: (
         q: Query<Encoded>
       ) => QueryEnd<Encoded, "one">,
-      pure: Effect<A, E2, FixEnv<R2, Evt, T, T2>>
+      pure: Effect.Effect<A, E2, FixEnv<R2, Evt, T, T2>>
     ): Effect.Effect<
       A,
       InvalidStateError | OptimisticConcurrencyException | NotFoundError<ItemType> | E2,
@@ -108,7 +108,7 @@ export const extendRepo = <
         | Query<Encoded>
         | QueryWhere<Encoded>
         | QueryEnd<Encoded, "many">,
-      pure: Effect<A, E2, FixEnv<R2, Evt, readonly T[], readonly T2[]>>
+      pure: Effect.Effect<A, E2, FixEnv<R2, Evt, readonly T[], readonly T2[]>>
     ): Effect.Effect<
       A,
       InvalidStateError | OptimisticConcurrencyException | E2,
@@ -125,7 +125,7 @@ export const extendRepo = <
         | Query<Encoded>
         | QueryWhere<Encoded>
         | QueryEnd<Encoded, "many">,
-      pure: Effect<A, E2, FixEnv<R2, Evt, readonly T[], readonly T2[]>>,
+      pure: Effect.Effect<A, E2, FixEnv<R2, Evt, readonly T[], readonly T2[]>>,
       batch: "batched" | number
     ): Effect.Effect<
       A[],
@@ -150,7 +150,7 @@ export const extendRepo = <
   const saveManyWithPure: {
     <R, A, E, S1 extends T, S2 extends T>(
       items: Iterable<S1>,
-      pure: Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>
+      pure: Effect.Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>
     ): Effect.Effect<
       A,
       InvalidStateError | OptimisticConcurrencyException | E,
@@ -162,7 +162,7 @@ export const extendRepo = <
     >
     <R, A, E, S1 extends T, S2 extends T>(
       items: Iterable<S1>,
-      pure: Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>,
+      pure: Effect.Effect<A, E, FixEnv<R, Evt, readonly S1[], readonly S2[]>>,
       batch: "batched" | number
     ): Effect.Effect<
       A[],
@@ -189,8 +189,8 @@ export const extendRepo = <
   const byIdAndSaveWithPure: {
     <R, A, E, S2 extends T>(
       id: T[IdKey],
-      pure: Effect<A, E, FixEnv<R, Evt, T, S2>>
-    ): Effect<
+      pure: Effect.Effect<A, E, FixEnv<R, Evt, T, S2>>
+    ): Effect.Effect<
       A,
       InvalidStateError | OptimisticConcurrencyException | NotFoundError<ItemType> | E,
       | RSchema
@@ -210,7 +210,7 @@ export const extendRepo = <
     .makeBatched((
       requests: NonEmptyReadonlyArray<Req>
     ) =>
-      (repo.query(Q.where(repo.idKey as any, "in" as any, requests.map((_) => _.id)) as any) as Effect<
+      (repo.query(Q.where(repo.idKey as any, "in" as any, requests.map((_) => _.id)) as any) as Effect.Effect<
         readonly T[],
         never
       >)
@@ -256,7 +256,7 @@ export const extendRepo = <
       S2 extends T
     >(
       item: S1,
-      pure: Effect<A, E, FixEnv<R, Evt, S1, S2>>
+      pure: Effect.Effect<A, E, FixEnv<R, Evt, S1, S2>>
     ) =>
       saveAllWithEffectInt(
         runTerm(pure, item)

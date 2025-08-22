@@ -32,7 +32,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
       make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
         name: string,
         idKey: IdKey,
-        seed?: Effect<Iterable<Encoded>, E, R>,
+        seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) =>
         Effect.gen(function*() {

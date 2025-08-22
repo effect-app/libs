@@ -5,13 +5,13 @@ import type { Misc, Union } from "ts-toolbelt"
 import type * as SET from "./Set.js"
 
 // type SomeObject = {
-//   0: Option<string>
+//   0: Option.Option<string>
 //   a: {
-//     b: Option<string>
-//     g: Option<Option<string>>
-//     h: Option<{ i: Option<boolean> }>
+//     b: Option.Option<string>
+//     g: Option.Option<Option<string>>
+//     h: Option.Option<{ i: Option.Option<boolean> }>
 //   }
-//   c: { d: Array<Option<{ e: Option<boolean> }>> }
+//   c: { d: Array<Option<{ e: Option.Option<boolean> }>> }
 // }
 // type test0 = Transform<SomeObject>
 // type test1 = Transform<SomeObject[]>

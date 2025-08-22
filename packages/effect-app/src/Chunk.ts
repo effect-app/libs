@@ -2,8 +2,8 @@ import { pipe, type Predicate, type Refinement } from "./Function.js"
 import * as Option from "./Option.js"
 
 import * as Chunk from "effect/Chunk"
+import { type Equivalence } from "effect/Equivalence"
 import * as Array from "./Array.js"
-import type { Equivalence } from "./index.js"
 
 export * from "effect/Chunk"
 

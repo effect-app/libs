@@ -34,7 +34,7 @@ export function parseRouteParamsOption<NER extends Record<string, Schema<any, an
   query: Record<string, any>,
   t: NER // enforce non empty
 ): {
-  [K in keyof NER]: Option<Schema.Type<NER[K]>>
+  [K in keyof NER]: Option.Option<Schema.Type<NER[K]>>
 } {
   return typedKeysOf(t).reduce(
     (prev, cur) => {
@@ -44,7 +44,7 @@ export function parseRouteParamsOption<NER extends Record<string, Schema<any, an
       return prev
     },
     {} as {
-      [K in keyof NER]: Option<Schema.Type<NER[K]>>
+      [K in keyof NER]: Option.Option<Schema.Type<NER[K]>>
     }
   )
 }

@@ -26,7 +26,7 @@ export const getRC = Effect.all({
   namespace: storeId
 })
 
-const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(f: Effect<A, E, R>) =>
+const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(f: Effect.Effect<A, E, R>) =>
   Effect.andThen(
     getRC,
     (ctx) =>
@@ -43,7 +43,7 @@ const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, 
   )
 
 export const setupRequestContextFromCurrent =
-  (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(self: Effect<A, E, R>) =>
+  (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
     self
       .pipe(
         withRequestSpan(name, options),
@@ -51,7 +51,7 @@ export const setupRequestContextFromCurrent =
       )
 
 // TODO: consider integrating Effect.withParentSpan
-export function setupRequestContext<R, E, A>(self: Effect<A, E, R>, requestContext: RequestContext) {
+export function setupRequestContext<R, E, A>(self: Effect.Effect<A, E, R>, requestContext: RequestContext) {
   const layer = Layer.mergeAll(
     ContextMapContainer.layer,
     Layer.succeed(LocaleRef, requestContext.locale),
@@ -65,7 +65,7 @@ export function setupRequestContext<R, E, A>(self: Effect<A, E, R>, requestConte
 }
 
 export function setupRequestContextWithCustomSpan<R, E, A>(
-  self: Effect<A, E, R>,
+  self: Effect.Effect<A, E, R>,
   requestContext: RequestContext,
   name: string,
   options?: Tracer.SpanOptions

@@ -43,11 +43,11 @@ export interface RepositoryOptions<
   /**
    * Optional handler to be able to publish events after successfull save.
    */
-  publishEvents?: (evt: NonEmptyReadonlyArray<Evt>) => Effect<void, never, RPublish>
+  publishEvents?: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, RPublish>
   /**
    * Optional creator for initial data in the table when it's created for the first itme.
    */
-  makeInitial?: Effect<readonly T[], E, RInitial> | undefined
+  makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
   /**
    * Optional context to be provided to Schema decode/encode.
    * Useful for effectful transformations like XWithItems, where items is a transformation retrieving elements from another database table or other source.

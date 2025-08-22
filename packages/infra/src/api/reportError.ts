@@ -4,7 +4,7 @@ import { logError, reportError } from "../errorReporter.js"
 // const onExitReportError = (name: string, unknownOnly?: boolean) => {
 //   const report = reportError(name)
 //   const log = logError(name)
-//   return <A, E, R>(self: Effect<A, E, R>) =>
+//   return <A, E, R>(self: Effect.Effect<A, E, R>) =>
 //     Effect.onExit(self, (exit) =>
 //       Exit.isFailure(exit)
 //         ? unknownOnly
@@ -17,7 +17,7 @@ import { logError, reportError } from "../errorReporter.js"
 const tapErrorCause = (name: string, unknownOnly?: boolean) => {
   const report = reportError(name)
   const log = logError(name)
-  return <A, E, R>(self: Effect<A, E, R>) =>
+  return <A, E, R>(self: Effect.Effect<A, E, R>) =>
     Effect.tapErrorCause(self, (cause) =>
       unknownOnly
         ? Cause.isFailure(cause)

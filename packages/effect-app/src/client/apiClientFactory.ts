@@ -1,13 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "@effect/rpc"
+import * as Config from "effect/Config"
+import { flow } from "effect/Function"
+import * as HashMap from "effect/HashMap"
+import * as Layer from "effect/Layer"
+import * as ManagedRuntime from "effect/ManagedRuntime"
+import * as Predicate from "effect/Predicate"
+import * as Struct from "effect/Struct"
+import * as Context from "../Context.js"
+import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
-import { Config, Context, Effect, flow, HashMap, Layer, ManagedRuntime, Option, Predicate, S, Struct } from "../internal/lib.js"
+import * as Option from "../Option.js"
+import * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, Requests } from "./clientFor.js"
 
 export interface ApiConfig {
   url: string
-  headers: Option<HashMap<string, string>>
+  headers: Option.Option<HashMap.HashMap<string, string>>
 }
 
 export const DefaultApiConfig = Config.all({
@@ -202,7 +212,9 @@ const makeApiClientFactory = Effect
               prev[cur] = Object.keys(fields).length === 0
                 ? {
                   handler: TheClient.pipe(
-                    Effect.flatMap((client) => (client as any)[requestAttr]!(new Request()) as Effect<any, any, never>),
+                    Effect.flatMap((client) =>
+                      (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>
+                    ),
                     Effect.provide(requestLevelLayers),
                     Effect.provide(mr),
                     Effect.provide(requestNameLayer)
@@ -211,7 +223,7 @@ const makeApiClientFactory = Effect
                   raw: {
                     handler: TheClient.pipe(
                       Effect.flatMap((client) =>
-                        (client as any)[requestAttr]!(new Request()) as Effect<any, any, never>
+                        (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>
                       ),
                       Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
                       Effect.provide(requestLevelLayers),
@@ -226,7 +238,7 @@ const makeApiClientFactory = Effect
                   handler: (req: any) =>
                     TheClient.pipe(
                       Effect.flatMap((client) =>
-                        (client as any)[requestAttr]!(new Request(req)) as Effect<any, any, never>
+                        (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
                       ),
                       Effect.provide(requestLevelLayers),
                       Effect.provide(mr),
@@ -239,7 +251,7 @@ const makeApiClientFactory = Effect
                       // @effect-diagnostics effect/missingEffectContext:off
                       TheClient.pipe(
                         Effect.flatMap((client) =>
-                          (client as any)[requestAttr]!(new Request(req)) as Effect<any, any, never>
+                          (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
                         ),
                         Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
                         Effect.provide(requestLevelLayers),
@@ -270,7 +282,7 @@ const makeApiClientFactory = Effect
 
       return <M extends Requests>(
         models: M
-      ): Effect<Client<Omit<M, "meta">>> =>
+      ): Effect.Effect<Client<Omit<M, "meta">>> =>
         Effect.gen(function*() {
           const found = cache.get(models)
           if (found) {
@@ -290,7 +302,7 @@ const makeApiClientFactory = Effect
  * Used to create clients for resource modules.
  */
 export class ApiClientFactory
-  extends Context.TagId("ApiClientFactory")<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()
+  extends Context.TagId("ApiClientFactory")<ApiClientFactory, Effect.Effect.Success<typeof makeApiClientFactory>>()
 {
   static readonly layer = (config: ApiConfig) =>
     this.toLayerScoped(makeApiClientFactory).pipe(Layer.provide(RpcSerializationLayer(config)))

@@ -14,7 +14,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
   namespace: string,
   dir: string,
   name: string,
-  seed?: Effect<Iterable<Encoded>, E, R>,
+  seed?: Effect.Effect<Iterable<Encoded>, E, R>,
   defaultValues?: Partial<Encoded>
 ) {
   type PM = PersistenceModelType<Encoded>
@@ -126,7 +126,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
       make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
         name: string,
         idKey: IdKey,
-        seed?: Effect<Iterable<Encoded>, E, R>,
+        seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) =>
         Effect.gen(function*() {

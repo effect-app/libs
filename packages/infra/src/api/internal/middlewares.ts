@@ -89,7 +89,7 @@ const toServerResponse = (err: NotLoggedInError) =>
 export const basicAuth = <_, R>(
   checkCredentials: (
     credentials: Middlewares.BasicAuthCredentials
-  ) => Effect<_, NotLoggedInError, R>,
+  ) => Effect.Effect<_, NotLoggedInError, R>,
   options?: Partial<{
     headerName: string
     skipPaths: readonly string[]

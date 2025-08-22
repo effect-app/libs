@@ -308,7 +308,7 @@ export const project: {
     E extends boolean = ExtractExclusiveness<Q>
   >(
     schema: S.Schema<
-      Option<A>,
+      Option.Option<A>,
       {
         [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
       },

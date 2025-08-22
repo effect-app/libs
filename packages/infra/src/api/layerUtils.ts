@@ -39,7 +39,14 @@ export namespace ContextTagWithDefault {
 export type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
 
 export const mergeContexts = Effect.fnUntraced(
-  function*<T extends readonly { maker: any; handle: Effect<Context<any> | Option<Context<any>>> }[]>(makers: T) {
+  function*<
+    T extends readonly {
+      maker: any
+      handle: Effect.Effect<Context.Context<any> | Option.Option<Context.Context<any>>>
+    }[]
+  >(
+    makers: T
+  ) {
     let context = Context.empty()
     for (const mw of makers) {
       const ctx = yield* mw.handle.pipe(Effect.provide(context))
@@ -52,6 +59,6 @@ export const mergeContexts = Effect.fnUntraced(
         context = Context.merge(context, moreContext.value)
       }
     }
-    return context as Context.Context<Effect.Success<T[number]["handle"]>>
+    return context as Context.Context<Effect.Effect.Success<T[number]["handle"]>>
   }
 )

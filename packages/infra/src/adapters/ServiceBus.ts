@@ -3,7 +3,7 @@ import { type OperationOptionsBase, type ProcessErrorArgs, ServiceBusClient, typ
 import { Cause, Context, Effect, Exit, FiberSet, Layer, type Scope } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
-const withSpanAndLog = (name: string) => <A, E, R>(self: Effect<A, E, R>) =>
+const withSpanAndLog = (name: string) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.logInfo(name).pipe(
     Effect.zipRight(self),
     Effect.tap(Effect.logInfo(name + " done")),
@@ -77,7 +77,7 @@ const makeReceiver = (name: string) =>
     const serviceBusClient = yield* ServiceBusClientTag
 
     const makeReceiver = Effect.fnUntraced(
-      function*(queueName: string, waitTillEmpty: Effect<void>, sessionId?: string) {
+      function*(queueName: string, waitTillEmpty: Effect.Effect<void>, sessionId?: string) {
         return yield* Effect.acquireRelease(
           (sessionId
             ? Effect.promise(() => serviceBusClient.acceptSession(queueName, sessionId))
@@ -97,9 +97,10 @@ const makeReceiver = (name: string) =>
       }
     )
 
-    const make = (waitTillEmpty: Effect<void>) => makeReceiver(name, waitTillEmpty)
+    const make = (waitTillEmpty: Effect.Effect<void>) => makeReceiver(name, waitTillEmpty)
 
-    const makeSession = (sessionId: string, waitTillEmpty: Effect<void>) => makeReceiver(name, waitTillEmpty, sessionId)
+    const makeSession = (sessionId: string, waitTillEmpty: Effect.Effect<void>) =>
+      makeReceiver(name, waitTillEmpty, sessionId)
 
     return {
       name,
@@ -122,7 +123,7 @@ const makeReceiver = (name: string) =>
           )
           : make(wait)
 
-        const runEffect = <E>(effect: Effect<void, E, RMsg | RErr>) =>
+        const runEffect = <E>(effect: Effect.Effect<void, E, RMsg | RErr>) =>
           new Promise<void>((resolve, reject) =>
             fr(effect)
               .addObserver((exit) => {
@@ -158,15 +159,18 @@ const makeReceiver = (name: string) =>
             subscription.close.pipe(
               withSpanAndLog(`ServiceBus.subscription.close ${sessionId}`)
             )
-        ) as Effect<void, never, Scope> // wth is going on here
+        ) as Effect.Effect<void, never, Scope.Scope> // wth is going on here
       })
     }
   })
 
 export class Receiver extends Context.TagId("Receiver")<Receiver, {
   name: string
-  make: (waitTillEmpty: Effect<void>) => Effect<ServiceBusReceiver, never, Scope>
-  makeSession: (sessionId: string, waitTillEmpty: Effect<void>) => Effect<ServiceBusReceiver, never, Scope>
+  make: (waitTillEmpty: Effect.Effect<void>) => Effect.Effect<ServiceBusReceiver, never, Scope.Scope>
+  makeSession: (
+    sessionId: string,
+    waitTillEmpty: Effect.Effect<void>
+  ) => Effect.Effect<ServiceBusReceiver, never, Scope.Scope>
   subscribe<RMsg, RErr>(
     hndlr: MessageHandlers<RMsg, RErr>,
     sessionId?: string
@@ -195,11 +199,11 @@ export interface MessageHandlers<RMsg, RErr> {
    *
    * @param message - A message received from Service Bus.
    */
-  processMessage(message: ServiceBusReceivedMessage): Effect<void, never, RMsg>
+  processMessage(message: ServiceBusReceivedMessage): Effect.Effect<void, never, RMsg>
   /**
    * Handler that processes errors that occur during receiving.
    * @param args - The error and additional context to indicate where
    * the error originated.
    */
-  processError(args: ProcessErrorArgs): Effect<void, never, RErr>
+  processError(args: ProcessErrorArgs): Effect.Effect<void, never, RErr>
 }

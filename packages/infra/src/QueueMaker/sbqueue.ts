@@ -36,7 +36,7 @@ export function makeServiceBusQueue<
 
     return {
       drain: <DrainE, DrainR>(
-        handleEvent: (ks: DrainEvt) => Effect<void, DrainE, DrainR>,
+        handleEvent: (ks: DrainEvt) => Effect.Effect<void, DrainE, DrainR>,
         sessionId?: string
       ) =>
         Effect

@@ -17,22 +17,22 @@ export interface Repository<
 > {
   readonly itemType: ItemType
   readonly idKey: IdKey
-  readonly find: (id: T[IdKey]) => Effect<Option<T>, never, RSchema>
-  readonly all: Effect<T[], never, RSchema>
+  readonly find: (id: T[IdKey]) => Effect.Effect<Option.Option<T>, never, RSchema>
+  readonly all: Effect.Effect<T[], never, RSchema>
   readonly saveAndPublish: (
     items: Iterable<T>,
     events?: Iterable<Evt>
-  ) => Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
+  ) => Effect.Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
   readonly changeFeed: PubSub.PubSub<[T[], "save" | "remove"]>
   readonly removeAndPublish: (
     items: Iterable<T>,
     events?: Iterable<Evt>
-  ) => Effect<void, never, RSchema | RPublish>
+  ) => Effect.Effect<void, never, RSchema | RPublish>
 
   readonly queryRaw: <T, Out, R>(
     schema: S.Schema<T, Out, R>,
     raw: RawQuery<Encoded, Out>
-  ) => Effect<readonly T[], S.ParseResult.ParseError, R>
+  ) => Effect.Effect<readonly T[], S.ParseResult.ParseError, R>
 
   readonly query: {
     // ending with projection

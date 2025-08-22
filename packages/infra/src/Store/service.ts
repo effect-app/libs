@@ -68,38 +68,38 @@ export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded
 
 export type FilterFunc<Encoded extends FieldValues> = <U extends keyof Encoded = never>(
   args: FilterArgs<Encoded, U>
-) => Effect<(U extends undefined ? Encoded : Pick<Encoded, U>)[]>
+) => Effect.Effect<(U extends undefined ? Encoded : Pick<Encoded, U>)[]>
 
 export interface Store<
   IdKey extends keyof Encoded,
   Encoded extends FieldValues,
   PM extends PersistenceModelType<Encoded> = PersistenceModelType<Encoded>
 > {
-  all: Effect<PM[]>
+  all: Effect.Effect<PM[]>
   filter: FilterFunc<Encoded>
-  find: (id: Encoded[IdKey]) => Effect<Option<PM>>
-  set: (e: PM) => Effect<PM, OptimisticConcurrencyException>
+  find: (id: Encoded[IdKey]) => Effect.Effect<Option.Option<PM>>
+  set: (e: PM) => Effect.Effect<PM, OptimisticConcurrencyException>
   batchSet: (
     items: NonEmptyReadonlyArray<PM>
-  ) => Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
   bulkSet: (
     items: NonEmptyReadonlyArray<PM>
-  ) => Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
+  ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
   /**
    * Requires the Encoded type, not Id, because various stores may need to calculate e.g partition keys.
    */
-  remove: (e: Encoded) => Effect<void>
+  remove: (e: Encoded) => Effect.Effect<void>
 
-  queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect<readonly Out[]>
+  queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
 }
 
 export class StoreMaker extends Context.TagId("effect-app/StoreMaker")<StoreMaker, {
   make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
     name: string,
     idKey: IdKey,
-    seed?: Effect<Iterable<Encoded>, E, R>,
+    seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
-  ) => Effect<Store<IdKey, Encoded>, E, R>
+  ) => Effect.Effect<Store<IdKey, Encoded>, E, R>
 }>() {
 }
 

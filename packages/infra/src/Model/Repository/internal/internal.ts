@@ -55,15 +55,15 @@ export function makeRepoInternal<
     function make<RInitial = never, E = never, RPublish = never, RCtx = never>(
       args: [Evt] extends [never] ? {
           schemaContext?: Context.Context<RCtx>
-          makeInitial?: Effect<readonly T[], E, RInitial> | undefined
+          makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (a: Encoded) => string
           }
         }
         : {
           schemaContext?: Context.Context<RCtx>
-          publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect<void, never, RPublish>
-          makeInitial?: Effect<readonly T[], E, RInitial> | undefined
+          publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, RPublish>
+          makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (a: Encoded) => string
           }
@@ -71,7 +71,7 @@ export function makeRepoInternal<
     ) {
       return Effect
         .gen(function*() {
-          const rctx: Context<RCtx> = args.schemaContext ?? Context.empty() as any
+          const rctx: Context.Context<RCtx> = args.schemaContext ?? Context.empty() as any
           const provideRctx = Effect.provide(rctx)
           const encodeMany = flow(
             S.encode(S.Array(schema)),
@@ -390,7 +390,7 @@ export function makeStore<Encoded extends FieldValues>() {
     idKey: IdKey
   ) => {
     function makeStore<RInitial = never, EInitial = never>(
-      makeInitial?: Effect<readonly T[], EInitial, RInitial> | undefined,
+      makeInitial?: Effect.Effect<readonly T[], EInitial, RInitial> | undefined,
       config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
         partitionValue?: (a: Encoded) => string
       }
@@ -452,35 +452,35 @@ export interface Repos<
 > {
   make<RInitial = never, E = never, R2 = never>(
     args: [Evt] extends [never] ? {
-        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
+        makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }
       }
       : {
-        publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect<void, never, R2>
-        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
+        publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, R2>
+        makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }
       }
-  ): Effect<Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>, E, StoreMaker | RInitial | R2>
+  ): Effect.Effect<Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>, E, StoreMaker | RInitial | R2>
   makeWith<Out, RInitial = never, E = never, R2 = never>(
     args: [Evt] extends [never] ? {
-        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
+        makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }
       }
       : {
-        publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect<void, never, R2>
-        makeInitial?: Effect<readonly T[], E, RInitial> | undefined
+        publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, R2>
+        makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
           partitionValue?: (a: Encoded) => string
         }
       },
     f: (r: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>) => Out
-  ): Effect<Out, E, StoreMaker | RInitial | R2>
+  ): Effect.Effect<Out, E, StoreMaker | RInitial | R2>
   readonly Q: ReturnType<typeof Q.make<Encoded>>
   readonly type: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>
 }

@@ -2,7 +2,7 @@ import { Exit, Runtime } from "effect"
 import { Effect, Layer, Logger } from "effect-app"
 import * as Scope from "effect/Scope"
 
-export function makeAppRuntime<A, E, R>(layer: Layer<A, E, R>) {
+export function makeAppRuntime<A, E, R>(layer: Layer.Layer<A, E, R>) {
   return Effect.gen(function*() {
     layer = layer.pipe(
       Layer.provide(Logger.replace(Logger.defaultLogger, Logger.withSpanAnnotations(Logger.prettyLogger())))
@@ -24,7 +24,7 @@ export function makeAppRuntime<A, E, R>(layer: Layer<A, E, R>) {
   })
 }
 
-export function initializeSync<A, E>(layer: Layer<A, E, never>) {
+export function initializeSync<A, E>(layer: Layer.Layer<A, E, never>) {
   const { clean, runtime } = Effect.runSync(makeAppRuntime(layer))
   return {
     runtime,
@@ -32,7 +32,7 @@ export function initializeSync<A, E>(layer: Layer<A, E, never>) {
   }
 }
 
-export function initializeAsync<A, E>(layer: Layer<A, E, never>) {
+export function initializeAsync<A, E>(layer: Layer.Layer<A, E, never>) {
   return Effect
     .runPromise(makeAppRuntime(layer))
     .then(({ clean, runtime }) => {

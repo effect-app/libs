@@ -17,8 +17,8 @@ import { asResult, makeMutation, type MutationOptions, mutationResultToVue, type
 import { type KnownFiberFailure, makeQuery, type QueryObserverOptionsCustom } from "./query.js"
 
 const tapHandler = <A, E, R, I>(
-  handler: Effect<A, E, R> | ((i: I) => Effect<A, E, R>),
-  map: (self: Effect<A, E, R>) => Effect<A, E, R>
+  handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
+  map: (self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
 ) => Effect.isEffect(handler) ? map(handler) : (i: I) => map(handler(i))
 
 /**
@@ -47,11 +47,11 @@ export interface Opts<
   RDefect = never
 > extends MutationOptions<A, E, R, A2, E2, R2, I> {
   /** set to `undefined` to use default message */
-  successMessage?: ((a: A2, i: I) => Effect<string | undefined, ESuccess, RSuccess>) | undefined
+  successMessage?: ((a: A2, i: I) => Effect.Effect<string | undefined, ESuccess, RSuccess>) | undefined
   /** set to `undefined` to use default message */
-  failMessage?: ((e: E2, i: I) => Effect<string | undefined, EError, RError>) | undefined
+  failMessage?: ((e: E2, i: I) => Effect.Effect<string | undefined, EError, RError>) | undefined
   /** set to `undefined` to use default message */
-  defectMessage?: ((e: Cause.Cause<E2>, i: I) => Effect<string | undefined, EDefect, RDefect>) | undefined
+  defectMessage?: ((e: Cause.Cause<E2>, i: I) => Effect.Effect<string | undefined, EDefect, RDefect>) | undefined
 }
 
 export interface LowOpts<
@@ -65,9 +65,9 @@ export interface LowOpts<
   EDefect = never,
   RDefect = never
 > {
-  onSuccess: (a: A, i: I) => Effect<void, ESuccess, RSuccess>
-  onFail: (e: E, i: I) => Effect<void, EError, RError>
-  onDefect: (e: Cause.Cause<E>, i: I) => Effect<void, EDefect, RDefect>
+  onSuccess: (a: A, i: I) => Effect.Effect<void, ESuccess, RSuccess>
+  onFail: (e: E, i: I) => Effect.Effect<void, EError, RError>
+  onDefect: (e: Cause.Cause<E>, i: I) => Effect.Effect<void, EDefect, RDefect>
 }
 
 export interface LowOptsOptional<
@@ -85,9 +85,9 @@ export interface LowOptsOptional<
   EDefect = never,
   RDefect = never
 > extends MutationOptions<A, E, R, A2, E2, R2, I> {
-  onSuccess?: (a: A, i: I) => Effect<void, ESuccess, RSuccess>
-  onFail?: (e: E, i: I) => Effect<void, EError, RError>
-  onDefect?: (e: Cause.Cause<E>, i: I) => Effect<void, EDefect, RDefect>
+  onSuccess?: (a: A, i: I) => Effect.Effect<void, ESuccess, RSuccess>
+  onFail?: (e: E, i: I) => Effect.Effect<void, EError, RError>
+  onDefect?: (e: Cause.Cause<E>, i: I) => Effect.Effect<void, EDefect, RDefect>
 }
 
 type WithAction<A> = A & {
@@ -99,12 +99,12 @@ type WithAction<A> = A & {
 
 type Resp<I, A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
   V,
-  WithAction<(I: I) => Effect<Exit<A, E>, never, R>>
+  WithAction<(I: I) => Effect.Effect<Exit.Exit<A, E>, never, R>>
 ]
 
 type ActResp<A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
   V,
-  WithAction<Effect<Exit<A, E>, never, R>>
+  WithAction<Effect.Effect<Exit.Exit<A, E>, never, R>>
 ]
 
 export const suppressToast = constant(Effect.succeed(undefined))
@@ -121,16 +121,16 @@ function handleRequest<
   EDefect = never,
   RDefect = never
 >(
-  f: Effect<Exit<A, E>, never, R> | ((i: I) => Effect<Exit<A, E>, never, R>),
+  f: Effect.Effect<Exit.Exit<A, E>, never, R> | ((i: I) => Effect.Effect<Exit.Exit<A, E>, never, R>),
   name: string,
   action: string,
   options: {
-    onSuccess: (a: A, i: I) => Effect<void, ESuccess, RSuccess>
-    onFail: (e: E, i: I) => Effect<void, EError, RError>
-    onDefect: (e: Cause.Cause<E>, i: I) => Effect<void, EDefect, RDefect>
+    onSuccess: (a: A, i: I) => Effect.Effect<void, ESuccess, RSuccess>
+    onFail: (e: E, i: I) => Effect.Effect<void, EError, RError>
+    onDefect: (e: Cause.Cause<E>, i: I) => Effect.Effect<void, EDefect, RDefect>
   }
 ) {
-  const handleEffect = (i: any) => (self: Effect<Exit<A, E>, never, R>) =>
+  const handleEffect = (i: any) => (self: Effect.Effect<Exit.Exit<A, E>, never, R>) =>
     self.pipe(
       Effect.tap(
         Exit.matchEffect({
@@ -203,11 +203,11 @@ export const makeClient = <Locale extends string, R>(
     <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): (i: I) => Effect<A2, E2, R2>
+    ): (i: I) => Effect.Effect<A2, E2, R2>
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): Effect<A2, E2, R2>
+    ): Effect.Effect<A2, E2, R2>
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
@@ -227,14 +227,14 @@ export const makeClient = <Locale extends string, R>(
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
       ComputedRef<Result.Result<A2, E2>>,
-      (i: I) => Effect<Exit<A2, E2>, never, R2>
+      (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
       ComputedRef<Result.Result<A2, E2>>,
-      Effect<Exit<A2, E2>, never, R2>
+      Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
@@ -276,7 +276,7 @@ export const makeClient = <Locale extends string, R>(
       EDefect = never,
       RDefect = never
     >(
-      f: Effect<Exit<A2, E2>, never, R2> | ((i: I) => Effect<Exit<A2, E2>, never, R2>),
+      f: Effect.Effect<Exit.Exit<A2, E2>, never, R2> | ((i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>),
       name: string,
       action: string,
       options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
@@ -696,14 +696,14 @@ export const makeClient = <Locale extends string, R>(
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
       ComputedRef<Res<A, E>>,
-      (i: I) => Effect<Exit<A2, E2>, never, R2>
+      (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
     <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
       ComputedRef<Res<A, E>>,
-      Effect<Exit<A2, E2>, never, R2>
+      Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
   } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
@@ -731,7 +731,7 @@ export const makeClient = <Locale extends string, R>(
       >
       & { new(c: C): any; extend: any; fields: S.Struct.Fields },
     state: Ref<Omit<From, "_tag">>,
-    onSubmit: (a: To) => Effect<OnSubmitA, never, R>
+    onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, R>
   ) => {
     const fields = buildFieldInfoFromFieldsRoot(s).fields
     const schema = S.Struct(Struct.omit(s.fields, "_tag")) as any
@@ -742,7 +742,8 @@ export const makeClient = <Locale extends string, R>(
     const runPromise = Runtime.runPromise(getRuntime(runtime))
 
     const submit1 =
-      (onSubmit: (a: To) => Effect<OnSubmitA, never, R>) => async <T extends Promise<{ valid: boolean }>>(e: T) => {
+      (onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, R>) =>
+      async <T extends Promise<{ valid: boolean }>>(e: T) => {
         isLoading.value = true
         try {
           const r = await e
@@ -793,13 +794,13 @@ export const makeClient = <Locale extends string, R>(
     options?: QueryObserverOptionsCustom<A, E> & {
       initialData: A | InitialDataFunction<A>
     }
-  ): Effect<
+  ): Effect.Effect<
     readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
       (
         options?: RefetchOptions
-      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
   >
@@ -814,13 +815,13 @@ export const makeClient = <Locale extends string, R>(
     options?: QueryObserverOptionsCustom<A, E> & {
       initialData: A | InitialDataFunction<A>
     }
-  ): Effect<
+  ): Effect.Effect<
     readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
       (
         options?: RefetchOptions
-      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
   >
@@ -831,13 +832,13 @@ export const makeClient = <Locale extends string, R>(
   >(
     self: RequestHandler<A, E, R, Request>,
     options?: QueryObserverOptionsCustom<A, E>
-  ): Effect<
+  ): Effect.Effect<
     readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
       (
         options?: RefetchOptions
-      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
   >
@@ -850,13 +851,13 @@ export const makeClient = <Locale extends string, R>(
     self: RequestHandlerWithInput<Arg, A, E, R, Request>,
     arg: Arg | WatchSource<Arg>,
     options?: QueryObserverOptionsCustom<A, E>
-  ): Effect<
+  ): Effect.Effect<
     readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
       (
         options?: RefetchOptions
-      ) => Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
   >

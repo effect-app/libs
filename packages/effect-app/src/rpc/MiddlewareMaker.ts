@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "@effect/rpc"
 import { type HandlersFrom } from "@effect/rpc/RpcGroup"
-import { Context, Effect, Layer, type Schema, Schema as S } from "effect"
+import { Context, Effect, Layer, type Schema, Schema as S, type Scope } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
-import { type Scope } from "effect/Scope"
 import { type Simplify } from "effect/Types"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
@@ -261,7 +260,7 @@ const middlewareMaker = <
   return Effect.gen(function*() {
     const context = yield* Effect.context()
 
-    // returns a Effect/RpcMiddlewareV4 with Scope in requirements
+    // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
     return (
       _options: Parameters<
         RpcMiddleware.RpcMiddlewareWrap<
@@ -446,7 +445,7 @@ export const middlewareGroup = <
     ): Layer.Layer<
       Rpc.ToHandler<RN>,
       EX,
-      | Exclude<RX, Scope>
+      | Exclude<RX, Scope.Scope>
       | RpcMiddlewareX.HandlersContext<RN, Handlers>
     > => {
       return toLayerOriginal(build as any) as any // ??

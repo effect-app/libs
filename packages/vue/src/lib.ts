@@ -11,7 +11,7 @@ const reportRuntimeError_ = reportError("Runtime")
 
 const filters = ["TypeError: failed to fetch", "AbortError"].map((_) => _.toLowerCase())
 
-const determineLevel = (cause: Cause<unknown>) => {
+const determineLevel = (cause: Cause.Cause<unknown>) => {
   const sq = Cause.squash(cause)
   if (!isHttpClientError(sq)) {
     return undefined
@@ -25,7 +25,7 @@ const determineLevel = (cause: Cause<unknown>) => {
   }
 }
 
-export const reportRuntimeError = (cause: Cause<unknown>, extras?: Record<string, unknown>) =>
+export const reportRuntimeError = (cause: Cause.Cause<unknown>, extras?: Record<string, unknown>) =>
   reportRuntimeError_(cause, extras, determineLevel(cause))
 
 // $Project/$Configuration.Index
@@ -75,15 +75,15 @@ export const getRuntime = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined
 export const mapHandler: {
   <I, E, R, A, E2, A2, R2, Request extends TaggedRequestClassAny>(
     self: RequestHandlerWithInput<I, A, E, R, Request>,
-    map: (handler: (i: I) => Effect<A, E, R>) => (i: I) => Effect<A2, E2, R2>
+    map: (handler: (i: I) => Effect.Effect<A, E, R>) => (i: I) => Effect.Effect<A2, E2, R2>
   ): RequestHandlerWithInput<I, A2, E2, R2, Request>
   <E, A, R, E2, A2, R2, Request extends TaggedRequestClassAny>(
     self: RequestHandler<A, E, R, Request>,
-    map: (handler: Effect<A, E, R>) => Effect<A2, E2, R2>
+    map: (handler: Effect.Effect<A, E, R>) => Effect.Effect<A2, E2, R2>
   ): RequestHandler<A2, E2, R2, Request>
 } = (self: any, map: any): any => ({
   ...self,
   handler: typeof self.handler === "function"
-    ? (i: any) => map(self.handler as (i: any) => Effect<any, any, any>)(i)
+    ? (i: any) => map(self.handler as (i: any) => Effect.Effect<any, any, any>)(i)
     : map(self.handler)
 })

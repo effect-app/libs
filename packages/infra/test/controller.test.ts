@@ -347,7 +347,7 @@ it("sorts based on requirements", () => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Context<typeof matched>).toEqualTypeOf<
+expectTypeOf({} as Layer.Layer.Context<typeof matched>).toEqualTypeOf<
   RpcSerialization.RpcSerialization | SomeService | "str"
 >()
 
@@ -405,7 +405,7 @@ const router2 = r2.Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
-expectTypeOf({} as Layer.Context<typeof matched2>).toEqualTypeOf<
+expectTypeOf({} as Layer.Layer.Context<typeof matched2>).toEqualTypeOf<
   RpcSerialization.RpcSerialization | SomeService | "str"
 >()
 

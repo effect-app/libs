@@ -39,7 +39,7 @@ const make = Effect.gen(function*() {
    * The parent span is set to the root span of the current fiber.
    * Reports and then swallows errors.
    */
-  function forkDaemonReport<A, E, R>(self: Effect<A, E, R>) {
+  function forkDaemonReport<A, E, R>(self: Effect.Effect<A, E, R>) {
     return self.pipe(
       Effect.asVoid,
       Effect.catchAllCause(reportNonInterruptedFailureCause({})),
@@ -66,6 +66,7 @@ const make = Effect.gen(function*() {
 export class MainFiberSet extends Context.TagMakeId("MainFiberSet", make)<MainFiberSet>() {
   static readonly Live = this.toLayerScoped()
   static readonly JoinLive = this.pipe(Effect.andThen((_) => _.join), Layer.effectDiscard, Layer.provide(this.Live))
-  static readonly run = <A, R>(self: Effect<A, never, R>) => this.use((_) => _.run(self))
-  static readonly forkDaemonReport = <A, E, R>(self: Effect<A, E, R>) => this.use((_) => _.forkDaemonReport(self))
+  static readonly run = <A, R>(self: Effect.Effect<A, never, R>) => this.use((_) => _.run(self))
+  static readonly forkDaemonReport = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    this.use((_) => _.forkDaemonReport(self))
 }

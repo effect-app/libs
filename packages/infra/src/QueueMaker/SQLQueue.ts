@@ -128,7 +128,7 @@ export function makeSQLQueue<
             })
           ),
       drain: <DrainE, DrainR>(
-        handleEvent: (ks: DrainEvt) => Effect<void, DrainE, DrainR>,
+        handleEvent: (ks: DrainEvt) => Effect.Effect<void, DrainE, DrainR>,
         sessionId?: string
       ) =>
         Effect.gen(function*() {

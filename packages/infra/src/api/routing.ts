@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
-import { type Array, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
+import { Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import { type HttpHeaders } from "effect-app/http"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type TypeTestId } from "effect-app/TypeTest"
@@ -67,7 +67,7 @@ interface HandlerBase<Action extends AnyRequestModule, RT extends RequestType, A
   new(): {}
   _tag: RT
   stack: string
-  handler: (req: S.Schema.Type<Action>, headers: HttpHeaders.Headers) => Effect<A, E, R>
+  handler: (req: S.Schema.Type<Action>, headers: HttpHeaders.Headers) => Effect.Effect<A, E, R>
 }
 
 export interface Handler<Action extends AnyRequestModule, RT extends RequestType, R> extends
@@ -93,10 +93,10 @@ type FilterRequestModules<T> = {
 }
 
 type RpcRouteR<
-  T extends [any, (req: any, headers: HttpHeaders.Headers) => Effect<any, any, any>]
+  T extends [any, (req: any, headers: HttpHeaders.Headers) => Effect.Effect<any, any, any>]
 > = T extends [
   any,
-  (...args: any[]) => Effect<any, any, infer R>
+  (...args: any[]) => Effect.Effect<any, any, infer R>
 ] ? R
   : never
 
@@ -108,7 +108,7 @@ type Match<
 > = {
   // note: the defaults of = never prevent the whole router to error (??)
   <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
-    f: Effect<A, E, R2>
+    f: Effect.Effect<A, E, R2>
   ): Handler<
     Resource[Key],
     RT,
@@ -119,7 +119,7 @@ type Match<
   >
 
   <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
-    f: (req: S.Schema.Type<Resource[Key]>) => Effect<A, E, R2>
+    f: (req: S.Schema.Type<Resource[Key]>) => Effect.Effect<A, E, R2>
   ): Handler<
     Resource[Key],
     RT,
@@ -185,7 +185,7 @@ export const makeRouter = <
       req: S.Schema.Type<Action>
     ) => Generator<
       YieldWrap<
-        Effect<
+        Effect.Effect<
           any,
           S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
           // the actual implementation of the handler may just require the dynamic context provided by the middleware
@@ -202,7 +202,7 @@ export const makeRouter = <
       RT extends RequestType
     > = (
       req: S.Schema.Type<Action>
-    ) => Effect<
+    ) => Effect.Effect<
       GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
       // the actual implementation of the handler may just require the dynamic context provided by the middleware
@@ -213,7 +213,7 @@ export const makeRouter = <
     type HandlerEff<
       Action extends AnyRequestModule,
       RT extends RequestType
-    > = Effect<
+    > = Effect.Effect<
       GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
       // the actual implementation of the handler may just require the dynamic context provided by the middleware
@@ -307,18 +307,19 @@ export const makeRouter = <
         Exclude<
           Exclude<
             // retrieves context R from the actual implementation of the handler
-            Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Effect<any, any, infer R> ? R
-              : Impl[K]["raw"] extends Effect<any, any, infer R> ? R
+            Impl[K] extends { raw: any }
+              ? Impl[K]["raw"] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
+              : Impl[K]["raw"] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends (...args: any[]) => Generator<
-                YieldWrap<Effect<any, any, infer R>>,
+                YieldWrap<Effect.Effect<any, any, infer R>>,
                 any,
                 any
               > ? R
               : never
-              : Impl[K] extends (...args: any[]) => Effect<any, any, infer R> ? R
-              : Impl[K] extends Effect<any, any, infer R> ? R
+              : Impl[K] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
+              : Impl[K] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends (...args: any[]) => Generator<
-                YieldWrap<Effect<any, any, infer R>>,
+                YieldWrap<Effect.Effect<any, any, infer R>>,
                 any,
                 any
               > ? R
@@ -347,7 +348,9 @@ export const makeRouter = <
       dependencies: MakeDependencies,
       make: (
         match: any
-      ) => Effect<THandlers, MakeE, MakeR> | Generator<YieldWrap<Effect<any, MakeE, MakeR>>, THandlers, any>
+      ) =>
+        | Effect.Effect<THandlers, MakeE, MakeR>
+        | Generator<YieldWrap<Effect.Effect<any, MakeE, MakeR>>, THandlers, any>
     ) => {
       const dependenciesL = (dependencies ? Layer.mergeAll(...dependencies as any) : Layer.empty) as Layer.Layer<
         LayerUtils.GetLayersSuccess<MakeDependencies>,
@@ -359,7 +362,7 @@ export const makeRouter = <
         .gen(function*() {
           const finalMake = ((make as any)[Symbol.toStringTag] === "GeneratorFunction"
             ? Effect.fnUntraced(make as any)(router3) as any
-            : make(router3) as any) as Effect<THandlers, MakeE, MakeR>
+            : make(router3) as any) as Effect.Effect<THandlers, MakeE, MakeR>
 
           const controllers = yield* finalMake
 
@@ -384,7 +387,7 @@ export const makeRouter = <
                 } as any
                 : resource,
               (payload: any, headers: any) =>
-                (handler.handler(payload, headers) as Effect<unknown, unknown, unknown>).pipe(
+                (handler.handler(payload, headers) as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
@@ -398,11 +401,11 @@ export const makeRouter = <
                 req: any,
                 headers: HttpHeaders.Headers
               ) => Effect.Effect<
-                Effect.Success<ReturnType<THandlers[K]["handler"]>>,
-                | Effect.Error<ReturnType<THandlers[K]["handler"]>>
+                Effect.Effect.Success<ReturnType<THandlers[K]["handler"]>>,
+                | Effect.Effect.Error<ReturnType<THandlers[K]["handler"]>>
                 | GetEffectError<RequestContextMap, Resource[K]["config"]>,
                 Exclude<
-                  Effect.Context<ReturnType<THandlers[K]["handler"]>>,
+                  Effect.Effect.Context<ReturnType<THandlers[K]["handler"]>>,
                   ContextProviderA | GetEffectContext<RequestContextMap, Resource[K]["config"]>
                 >
               >
@@ -426,7 +429,7 @@ export const makeRouter = <
                 acc[`${meta.moduleName}.${resource._tag}`] = handler
                 return acc
               }, {} as Record<string, any>) as any // TODO
-            })) as unknown as Layer<
+            })) as unknown as Layer.Layer<
               { [K in keyof RequestModules]: Rpc.Handler<K> },
               MakeE,
               RpcRouteR<typeof mapped[keyof typeof mapped]>
@@ -457,10 +460,10 @@ export const makeRouter = <
       // Multiple times duplicated the "good" overload, so that errors will only mention the last overload when failing
       <
         const Make extends {
-          dependencies?: Array<Layer.Layer.Any>
+          dependencies?: ReadonlyArray<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
             YieldWrap<
-              Effect<
+              Effect.Effect<
                 any,
                 any,
                 any
@@ -479,9 +482,9 @@ export const makeRouter = <
           never,
           | MakeErrors<Make>
           | Service.MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
+          | Layer.Layer.Error<typeof middleware.Default>,
           | Service.MakeDepsIn<Make>
-          | Layer.Context<typeof middleware.Default>
+          | Layer.Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             MakeDepsOut<Make>
@@ -494,10 +497,10 @@ export const makeRouter = <
         }
       <
         const Make extends {
-          dependencies?: Array<Layer.Layer.Any>
+          dependencies?: ReadonlyArray<Layer.Layer.Any>
           effect: (match: typeof router3) => Generator<
             YieldWrap<
-              Effect<
+              Effect.Effect<
                 any,
                 any,
                 any
@@ -514,9 +517,9 @@ export const makeRouter = <
           never,
           | MakeErrors<Make>
           | Service.MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
+          | Layer.Layer.Error<typeof middleware.Default>,
           | Service.MakeDepsIn<Make>
-          | Layer.Context<typeof middleware.Default>
+          | Layer.Layer.Context<typeof middleware.Default>
           | Exclude<
             MakeContext<Make>,
             MakeDepsOut<Make>
@@ -560,22 +563,22 @@ export type MakeDeps<Make> = Make extends { readonly dependencies: ReadonlyArray
   ? Make["dependencies"][number]
   : never
 
-export type MakeErrors<Make> = /*Make extends { readonly effect: (_: any) => Effect<any, infer E, any> } ? E
-  : Make extends { readonly effect: (_: any) => Effect<any, never, any> } ? never
+export type MakeErrors<Make> = /*Make extends { readonly effect: (_: any) => Effect.Effect<any, infer E, any> } ? E
+  : Make extends { readonly effect: (_: any) => Effect.Effect<any, never, any> } ? never
   : */
-  Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, never, any>>, any, any> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, infer E, any>>, any, any> } ? E
+  Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect.Effect<any, never, any>>, any, any> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect.Effect<any, infer E, any>>, any, any> } ? E
     : never
 
-export type MakeContext<Make> = /*Make extends { readonly effect: (_: any) => Effect<any, any, infer R> } ? R
-  : Make extends { readonly effect: (_: any) => Effect<any, any, never> } ? never
+export type MakeContext<Make> = /*Make extends { readonly effect: (_: any) => Effect.Effect<any, any, infer R> } ? R
+  : Make extends { readonly effect: (_: any) => Effect.Effect<any, any, never> } ? never
   : */
-  Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, any, never>>, any, any> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect<any, any, infer R>>, any, any> } ? R
+  Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect.Effect<any, any, never>>, any, any> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<YieldWrap<Effect.Effect<any, any, infer R>>, any, any> } ? R
     : never
 
 export type MakeHandlers<Make, _Handlers extends Record<string, any>> = /*Make extends
-  { readonly effect: (_: any) => Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
+  { readonly effect: (_: any) => Effect.Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
   ? Effect.Success<ReturnType<Make["effect"]>>
   : */
   Make extends { readonly effect: (_: any) => Generator<YieldWrap<any>, infer S, any> } ? S

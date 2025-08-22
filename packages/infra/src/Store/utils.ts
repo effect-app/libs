@@ -14,7 +14,7 @@ export const makeETag = <E extends PersistenceModelType<{}>>(
 
 export const makeUpdateETag =
   (type: string) =>
-  <IdKey extends keyof E, E extends PersistenceModelType<{}>>(e: E, idKey: IdKey, current: Option<E>) =>
+  <IdKey extends keyof E, E extends PersistenceModelType<{}>>(e: E, idKey: IdKey, current: Option.Option<E>) =>
     Effect.gen(function*() {
       if (e._etag) {
         yield* Effect.mapError(

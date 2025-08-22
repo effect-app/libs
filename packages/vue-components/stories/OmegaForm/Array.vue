@@ -27,7 +27,7 @@
   <h2>Passing OmegaArray elements as a prop</h2>
   <OmegaForm :form="form2" :subscribe="['values']">
     <template #externalForm>
-      <OmegaArray :form="form2" name="string" :items="randomItems">
+      <OmegaArray :form="form2" name="string" :default-items="randomItems">
         <template #default="{ index }">
           <OmegaInput
             :form="form2"
@@ -50,7 +50,6 @@ import {
   OmegaInput,
 } from "../../src/components/OmegaForm"
 import { onMounted, ref } from "vue"
-import { useForm } from "@tanstack/vue-form"
 
 const schema = S.Struct({
   Users: S.mutable(S.Array(

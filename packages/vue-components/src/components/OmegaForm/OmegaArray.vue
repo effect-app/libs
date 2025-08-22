@@ -33,13 +33,16 @@ import {
   createMeta,
 } from "./OmegaFormStuff"
 import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
+import { S } from "effect-app"
 
 const props = defineProps<
   Omit<
     OmegaInputProps<From, To>,
     "validators" | "options" | "label" | "type" | "items"
   > & {
-    items?: DeepValue<To, DeepKeys<To>>
+    defaultItems?: DeepValue<To, DeepKeys<To>>
+    // deprecated items, caused bugs in state update, use defaultItems instead. It's not a simple Never, because Volar explodes
+    items?: S.Schema<S.Never>
   }
 >()
 
@@ -47,9 +50,11 @@ defineOptions({
   inheritAttrs: false,
 })
 
+const storeItems = props.form.useStore(state => state.values[props.name])
+
 onMounted(() => {
-  if (props.items) {
-    props.form.setFieldValue(props.name as any, props.items)
+  if (props.defaultItems && !storeItems.value) {
+    props.form.setFieldValue(props.name, props.defaultItems)
   }
 })
 

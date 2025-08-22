@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.14.4
+
+### Patch Changes
+
+- 6ff9bbc: Adds support to nested arrays
+
 ## 0.14.3
 
 ### Patch Changes

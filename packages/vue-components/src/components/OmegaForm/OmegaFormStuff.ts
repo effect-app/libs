@@ -319,47 +319,49 @@ export const createMeta = <T = any>(
           if (hasStructElements) {
             // For arrays with struct elements, only create meta for nested fields, not the array itself
             const elementType = p.type.rest[0].type
+            if (elementType._tag === "TypeLiteral" && "propertySignatures" in elementType) {
               // Process each property in the array element
               for (const prop of elementType.propertySignatures) {
-              const propKey = `${key}.${prop.name.toString()}`
-              
-              // Check if the property is another array
-              if (S.AST.isTupleType(prop.type) && prop.type.rest.length > 0) {
-                const nestedElementType = prop.type.rest[0].type
-                if (nestedElementType._tag === "TypeLiteral" && "propertySignatures" in nestedElementType) {
-                  // Array with struct elements - process nested fields
-                  for (const nestedProp of nestedElementType.propertySignatures) {
-                    const nestedKey = `${propKey}.${nestedProp.name.toString()}`
-                    const nestedMeta = createMeta<T>({
-                      parent: nestedKey,
-                      property: nestedProp.type,
-                      meta: {
-                        required: !isNullableOrUndefined(nestedProp.type),
-                        nullableOrUndefined: isNullableOrUndefined(nestedProp.type)
-                      }
-                    })
-                    acc[nestedKey as NestedKeyOf<T>] = nestedMeta as FieldMeta
+                const propKey = `${key}.${prop.name.toString()}`
+                
+                // Check if the property is another array
+                if (S.AST.isTupleType(prop.type) && prop.type.rest.length > 0) {
+                  const nestedElementType = prop.type.rest[0].type
+                  if (nestedElementType._tag === "TypeLiteral" && "propertySignatures" in nestedElementType) {
+                    // Array with struct elements - process nested fields
+                    for (const nestedProp of nestedElementType.propertySignatures) {
+                      const nestedKey = `${propKey}.${nestedProp.name.toString()}`
+                      const nestedMeta = createMeta<T>({
+                        parent: nestedKey,
+                        property: nestedProp.type,
+                        meta: {
+                          required: !isNullableOrUndefined(nestedProp.type),
+                          nullableOrUndefined: isNullableOrUndefined(nestedProp.type)
+                        }
+                      })
+                      acc[nestedKey as NestedKeyOf<T>] = nestedMeta as FieldMeta
+                    }
+                  } else {
+                    // Array with primitive elements - create meta for the array itself
+                    acc[propKey as NestedKeyOf<T>] = {
+                      type: "multiple",
+                      members: prop.type.elements,
+                      rest: prop.type.rest,
+                      required: !isNullableOrUndefined(prop.type),
+                      nullableOrUndefined: isNullableOrUndefined(prop.type)
+                    } as FieldMeta
                   }
                 } else {
-                  // Array with primitive elements - create meta for the array itself
-                  acc[propKey as NestedKeyOf<T>] = {
-                    type: "multiple",
-                    members: prop.type.elements,
-                    rest: prop.type.rest,
-                    required: !isNullableOrUndefined(prop.type),
-                    nullableOrUndefined: isNullableOrUndefined(prop.type)
-                  } as FieldMeta
+                  const fieldMeta = createMeta<T>({
+                    parent: propKey,
+                    property: prop.type,
+                    meta: {
+                      required: !isNullableOrUndefined(prop.type),
+                      nullableOrUndefined: isNullableOrUndefined(prop.type)
+                    }
+                  })
+                  acc[propKey as NestedKeyOf<T>] = fieldMeta as FieldMeta
                 }
-              } else {
-                const fieldMeta = createMeta<T>({
-                  parent: propKey,
-                  property: prop.type,
-                  meta: {
-                    required: !isNullableOrUndefined(prop.type),
-                    nullableOrUndefined: isNullableOrUndefined(prop.type)
-                  }
-                })
-                acc[propKey as NestedKeyOf<T>] = fieldMeta as FieldMeta
               }
             }
           } else {

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.14.5
+
+### Patch Changes
+
+- f68e71a: fix typo
+
 ## 0.14.4
 
 ### Patch Changes

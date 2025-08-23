@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.2.0
+
+### Minor Changes
+
+- bd12e89: Disable Schema batching by default, not to run into unexpected endless waiting for resolving to finish.
+
 ## 3.1.0
 
 ### Minor Changes

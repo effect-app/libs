@@ -292,13 +292,76 @@ export const createMeta = <T = any>(
             }
           }
         } else {
-          // If no struct members, process as regular union
-          const newMeta = createMeta<T>({
-            parent: key,
-            property: p.type,
-            meta: { required: isRequired, nullableOrUndefined },
-          })
-          acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
+          // Check if any of the union types are arrays (TupleType)
+          const arrayTypes = nonNullTypes.filter(S.AST.isTupleType)
+          if (arrayTypes.length > 0) {
+            const arrayType = arrayTypes[0]  // Take the first array type
+            
+            acc[key as NestedKeyOf<T>] = {
+              type: "multiple",
+              members: arrayType.elements,
+              rest: arrayType.rest,
+              required: isRequired,
+              nullableOrUndefined
+            } as FieldMeta
+            
+            // If the array has struct elements, also create metadata for their properties
+            if (arrayType.rest && arrayType.rest.length > 0) {
+              const restElement = arrayType.rest[0]
+              if (restElement.type._tag === "TypeLiteral" && "propertySignatures" in restElement.type) {
+
+                for (const prop of restElement.type.propertySignatures) {
+                  const propKey = `${key}.${prop.name.toString()}`
+                  
+                  const propMeta = createMeta<T>({
+                    parent: propKey,
+                    property: prop.type,
+                    meta: {
+                      required: !isNullableOrUndefined(prop.type),
+                      nullableOrUndefined: isNullableOrUndefined(prop.type)
+                    }
+                  })
+                  
+                  // add to accumulator if valid
+                  if (propMeta && typeof propMeta === 'object' && 'type' in propMeta) {
+                    acc[propKey as NestedKeyOf<T>] = propMeta as FieldMeta
+                    
+                    if (propMeta.type === "multiple" && S.AST.isTupleType(prop.type) && prop.type.rest && prop.type.rest.length > 0) {
+                      const nestedRestElement = prop.type.rest[0]
+                      if (nestedRestElement.type._tag === "TypeLiteral" && "propertySignatures" in nestedRestElement.type) {
+
+                        for (const nestedProp of nestedRestElement.type.propertySignatures) {
+                          const nestedPropKey = `${propKey}.${nestedProp.name.toString()}`
+                          
+                          const nestedPropMeta = createMeta<T>({
+                            parent: nestedPropKey,
+                            property: nestedProp.type,
+                            meta: {
+                              required: !isNullableOrUndefined(nestedProp.type),
+                              nullableOrUndefined: isNullableOrUndefined(nestedProp.type)
+                            }
+                          })
+                          
+                          // add to accumulator if valid
+                          if (nestedPropMeta && typeof nestedPropMeta === 'object' && 'type' in nestedPropMeta) {
+                            acc[nestedPropKey as NestedKeyOf<T>] = nestedPropMeta as FieldMeta
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            // If no struct members and no arrays, process as regular union
+            const newMeta = createMeta<T>({
+              parent: key,
+              property: p.type,
+              meta: { required: isRequired, nullableOrUndefined },
+            })
+            acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
+          }
         }
       } else if ("propertySignatures" in typeToProcess) {
         Object.assign(
@@ -381,6 +444,8 @@ export const createMeta = <T = any>(
             property: p.type,
             meta: { required: isRequired, nullableOrUndefined },
           })
+          
+          
           acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
         }
       }

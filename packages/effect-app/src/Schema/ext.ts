@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Effect, ParseResult, pipe, type SchemaAST } from "effect"
-import type { NonEmptyReadonlyArray } from "effect/Array"
 import type { Tag } from "effect/Context"
 import type { Schema } from "effect/Schema"
 import * as S from "effect/Schema"
@@ -22,73 +21,26 @@ export const Boolean = Object.assign(S.Boolean, {
 export const Number = Object.assign(S.Number, { withDefault: S.Number.pipe(withDefaultConstructor(() => 0)) })
 
 /**
- * Like the default Schema `Struct` but with batching enabled by default
- */
-export function Struct<Fields extends S.Struct.Fields, const Records extends S.IndexSignature.NonEmptyRecords>(
-  fields: Fields,
-  ...records: Records
-): S.TypeLiteral<Fields, Records>
-export function Struct<Fields extends S.Struct.Fields>(fields: Fields): S.Struct<Fields>
-export function Struct<Fields extends S.Struct.Fields, const Records extends S.IndexSignature.Records>(
-  fields: Fields,
-  ...records: Records
-): S.TypeLiteral<Fields, Records> {
-  return S.Struct(fields, ...records as any).pipe(S.annotations({ batching: true }))
-}
-
-export declare namespace Struct {
-  export type Fields = S.Struct.Fields
-  export type Type<F extends Fields> = S.Struct.Type<F>
-  export type Encoded<F extends Fields> = S.Struct.Encoded<F>
-  export type Context<F extends Fields> = S.Struct.Context<F>
-  export type Constructor<F extends Fields> = S.Struct.Constructor<F>
-}
-
-/**
- * Like the default Schema `tuple` but with batching enabled by default
- */
-export function Tuple<
-  const Elements extends S.TupleType.Elements,
-  Rest extends NonEmptyReadonlyArray<Schema.Any>
->(elements: Elements, ...rest: Rest): S.TupleType<Elements, Rest>
-export function Tuple<Elements extends S.TupleType.Elements>(...elements: Elements): S.Tuple<Elements>
-export function Tuple(...args: ReadonlyArray<any>): any {
-  return S.Tuple(...args).pipe(S.annotations({ batching: true }))
-}
-
-/**
- * Like the default Schema `NonEmptyArray` but with batching enabled by default
- */
-export function NonEmptyArray<Value extends Schema.Any>(value: Value): S.NonEmptyArray<Value> {
-  return pipe(
-    S.NonEmptyArray(value),
-    S.annotations({ batching: true })
-  )
-}
-
-/**
- * Like the default Schema `Array` but with `withDefault` and batching enabled by default
+ * Like the default Schema `Array` but with `withDefault`
  */
 export function Array<Value extends Schema.Any>(value: Value) {
   return pipe(
     S.Array(value),
-    S.annotations({ batching: true }),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => [])) })
   )
 }
 
 /**
- * Like the default Schema `ReadonlySet` but with `withDefault` and batching enabled by default
+ * Like the default Schema `ReadonlySet` but with `withDefault`
  */
 export const ReadonlySet = <Value extends Schema.Any>(value: Value) =>
   pipe(
     S.ReadonlySet(value),
-    S.annotations({ batching: true }),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Set<S.Schema.Type<Value>>())) })
   )
 
 /**
- * Like the default Schema `ReadonlyMap` but with `withDefault` and batching enabled by default
+ * Like the default Schema `ReadonlyMap` but with `withDefault`
  */
 export const ReadonlyMap = <K extends Schema.Any, V extends Schema.Any>(pair: {
   readonly key: K
@@ -96,7 +48,6 @@ export const ReadonlyMap = <K extends Schema.Any, V extends Schema.Any>(pair: {
 }) =>
   pipe(
     S.ReadonlyMap(pair),
-    S.annotations({ batching: true }),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Map())) })
   )
 

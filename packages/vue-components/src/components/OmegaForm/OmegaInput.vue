@@ -54,6 +54,7 @@ const meta = computed(() => {
 
 const schema = computed(() => {
   if (!meta.value) {
+    console.log(props.name, Object.keys(props.form.meta), props.form.meta)
     throw new Error("Meta is undefined")
   }
   return generateInputStandardSchemaFromFieldMeta(meta.value)

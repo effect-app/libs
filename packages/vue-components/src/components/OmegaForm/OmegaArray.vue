@@ -17,8 +17,12 @@
       />
     </template>
   </component>
+  <component :is="form.Field" :name="name">
+    <template #default="{ field }">
+      <slot name="field" v-bind="{ field }" />
+    </template>
+  </component>
 </template>
-
 <script
   setup
   lang="ts"

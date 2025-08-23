@@ -268,14 +268,16 @@ export const createMeta = <T = any>(
         )
 
         if (hasStructMembers) {
-          // Create metadata for the parent level (the union itself)
-          const parentMeta = createMeta<T>({
-            parent: key,
-            property: p.type,
-            meta: { required: isRequired, nullableOrUndefined },
-          })
-          acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
-
+          // Only create parent meta for non-NullOr unions to avoid duplicates
+          if (!nullableOrUndefined) {
+            const parentMeta = createMeta<T>({
+              parent: key,
+              property: p.type,
+              meta: { required: isRequired, nullableOrUndefined },
+            })
+            acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+          }
+          
           // Process each non-null type and merge their metadata
           for (const nonNullType of nonNullTypes) {
             if ("propertySignatures" in nonNullType) {
@@ -298,8 +300,7 @@ export const createMeta = <T = any>(
           })
           acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
         }
-      }
-      if ("propertySignatures" in typeToProcess) {
+      } else if ("propertySignatures" in typeToProcess) {
         Object.assign(
           acc,
           createMeta<T>({

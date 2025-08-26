@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 0.15.2
+
+### Patch Changes
+
+- 1449b91: Adds field to OmegaArray default slots and adds an example for remove
+- 19de635: bump
+
 ## 0.15.1
 
 ### Patch Changes

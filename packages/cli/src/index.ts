@@ -264,6 +264,8 @@ switch (cmd) {
   }
 
   case "ncu:effect-app": {
+    console.log("Updating effect-app dependencies...")
+
     updateEffectAppPackages()
 
     cp.execSync("pnpm i", { stdio: "inherit" })

@@ -54,9 +54,13 @@ defineOptions({
 const store = props.form.useStore(state => state.values)
 const items = computed(() => {
   const normalizedPath = props.name.replace(/\[/g, ".").replace(/\]/g, "")
-  return normalizedPath.split(".").reduce((acc, curr) => {
-    return acc[curr] as typeof store.value
-  }, store.value)
+  try {
+    return normalizedPath.split(".").reduce((acc, curr) => {
+      return acc[curr] as typeof store.value
+    }, store.value)
+  } catch (e) {
+    return []
+  }
 })
 
 onMounted(async () => {

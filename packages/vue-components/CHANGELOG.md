@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.15.3
+
+### Patch Changes
+
+- 4cb7cfc: bump
+
 ## 0.15.2
 
 ### Patch Changes

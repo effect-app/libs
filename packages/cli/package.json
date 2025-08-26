@@ -9,6 +9,8 @@
     "effect-app-cli": "./bin.js"
   },
   "dependencies": {
+    "@effect/cli": "^0.69.2",
+    "@effect/platform-node": "^0.94.1",
     "node-watch": "^0.7.4"
   },
   "devDependencies": {

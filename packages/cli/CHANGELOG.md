@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.1
+
+### Patch Changes
+
+- 20293b1: add ncu:effect and ncu:effect-app commands
+
 ## 1.23.0
 
 ### Minor Changes

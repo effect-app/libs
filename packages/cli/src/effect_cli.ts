@@ -95,7 +95,7 @@ const unlinkPackages = Effect.fnUntraced(function*() {
 
   yield* runNodeCommand("pnpm i")
   yield* Effect.log("Successfully unlinked local packages")
-})
+})()
 
 const link = Command
   .make(
@@ -112,7 +112,7 @@ const unlink = Command
     "unlink",
     {},
     Effect.fn("effa-cli.unlink")(function*({}) {
-      return yield* unlinkPackages()
+      return yield* unlinkPackages
     })
   )
   .pipe(Command.withDescription("Remove effect-app file resolutions and restore npm registry packages"))

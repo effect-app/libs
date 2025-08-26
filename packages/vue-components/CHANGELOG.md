@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.15.4
+
+### Patch Changes
+
+- 502171f: Fixes nested nullable arrays
+
 ## 0.15.3
 
 ### Patch Changes

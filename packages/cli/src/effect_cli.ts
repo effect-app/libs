@@ -70,6 +70,33 @@ const linkPackages = Effect.fnUntraced(function*(effectAppLibsPath: string) {
   yield* Effect.log("Successfully linked local packages")
 })
 
+const unlinkPackages = Effect.fnUntraced(function*() {
+  yield* Effect.log("Unlinking local effect-app packages...")
+
+  const fs = yield* FileSystem.FileSystem
+
+  const packageJsonPath = "./package.json"
+  const packageJsonContent = yield* fs.readFileString(packageJsonPath)
+  const pj = JSON.parse(packageJsonContent)
+
+  const filteredResolutions = Object.entries(pj.resolutions as Record<string, string>).reduce(
+    (acc, [k, v]) => {
+      if (k.startsWith("@effect-app/") || k === "effect-app" || packages.includes(k)) return acc
+      acc[k] = v
+      return acc
+    },
+    {} as Record<string, string>
+  )
+
+  pj.resolutions = filteredResolutions
+
+  yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
+  yield* Effect.log("Removed effect-app file resolutions from package.json")
+
+  yield* runNodeCommand("pnpm i")
+  yield* Effect.log("Successfully unlinked local packages")
+})
+
 const link = Command
   .make(
     "link",
@@ -79,6 +106,16 @@ const link = Command
     })
   )
   .pipe(Command.withDescription("Link local effect-app packages using file resolutions"))
+
+const unlink = Command
+  .make(
+    "unlink",
+    {},
+    Effect.fn("effa-cli.unlink")(function*({}) {
+      return yield* unlinkPackages()
+    })
+  )
+  .pipe(Command.withDescription("Remove effect-app file resolutions and restore npm registry packages"))
 
 const ue = Command
   .make(
@@ -128,7 +165,7 @@ const ue = Command
   )
   .pipe(Command.withDescription("Update effect-app and/or effect packages"))
 
-const command = Command.make("effa").pipe(Command.withSubcommands([ue, link]))
+const command = Command.make("effa").pipe(Command.withSubcommands([ue, link, unlink]))
 
 // Configure and initialize the CLI application
 const cli = Command.run(command, {

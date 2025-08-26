@@ -1,16 +1,16 @@
 <template>
   <OmegaForm :form="form" :subscribe="['values']">
     <template #externalForm>
-      <OmegaArray :form="form" name="Users">
+      <OmegaArray :form="form" name="test.Users">
         <template #default="{ index, field }">
           <OmegaInput
             :form="form"
-            :name="`Users[${index}].name`"
+            :name="`test.Users[${index}].name`"
             :label="`name ${index}`"
             :clearable="true"
             @click:clear="() => debouncedClear(() => field.removeValue(index))"
           />
-          <form.Input :name="`Users[${index}].age`" :label="`age ${index}`" />
+          <form.Input :name="`test.Users[${index}].age`" :label="`age ${index}`" />
         </template>
         <template #field="{ field }">
           <hr />
@@ -54,7 +54,6 @@ import {
 } from "../../src/components/OmegaForm"
 import { onMounted, ref } from "vue"
 
-// Debounce utility function
 const debounce = <T extends (...args: any[]) => any>(
   func: T,
   delay: number
@@ -67,11 +66,19 @@ const debounce = <T extends (...args: any[]) => any>(
 }
 
 const schema = S.Struct({
-  Users: S.mutable(S.Array(
+  test: S.NullOr(
     S.Struct({
-      name: S.String,
-      age: S.NullOr(S.Number.pipe(S.greaterThan(18))),
-    })),
+      Users: S.NullOr(
+        S.mutable(
+          S.Array(
+            S.Struct({
+              name: S.String,
+              age: S.NullOr(S.Number.pipe(S.greaterThan(18))),
+            }),
+          ),
+        ),
+      ),
+    }),
   ),
 })
 
@@ -86,7 +93,7 @@ const randomize = () => {
 // Debounced clear function because vuetify triggers clear multiple times sometimes
 const debouncedClear = debounce((callback: () => void) => {
   callback()
-}, 0) // 100ms delay
+}, 0)
 
 onMounted(() => {
   randomize()
@@ -94,10 +101,12 @@ onMounted(() => {
 
 const form = useOmegaForm(schema, {
   defaultValues: {
-    Users: [
-      { name: "Mario Mario", age: 33 },
-      { name: "Luigi Mario", age: 31 },
-    ],
+    test: {
+      Users: [
+        { name: "Mario Mario", age: 33 },
+        { name: "Luigi Mario", age: 31 },
+      ],
+    },
   },
   onSubmit: ({ value }) => {
     console.log(value)

@@ -154,15 +154,11 @@ function monitorPackagejson(path: string, levels = 0) {
   })
 }
 
-function updateEffectAppPackages(installAtEnd: boolean) {
+function updateEffectAppPackages() {
   const filters = ["effect-app", "@effect-app/*"]
   for (const filter of filters) {
     cp.execSync(`ncu -u --filter "${filter}"`, { stdio: "inherit" })
     cp.execSync(`pnpm -r ncu -u --filter "${filter}"`, { stdio: "inherit" })
-  }
-
-  if (installAtEnd) {
-    cp.execSync("pnpm i", { stdio: "inherit" })
   }
 }
 
@@ -173,7 +169,7 @@ function updateEffectPackages() {
     cp.execSync(`pnpm -r ncu -u --filter "${filter}"`, { stdio: "inherit" })
   }
 
-  updateEffectAppPackages(true)
+  updateEffectAppPackages()
 }
 
 let cmds = process.argv.slice(3).filter((_) => _ !== "--debug")
@@ -261,11 +257,17 @@ switch (cmd) {
     console.log("Updating effect & effect-app dependencies...")
 
     updateEffectPackages()
+
+    cp.execSync("pnpm i", { stdio: "inherit" })
+
     break
   }
 
   case "ncu:effect-app": {
-    updateEffectAppPackages(true)
+    updateEffectAppPackages()
+
+    cp.execSync("pnpm i", { stdio: "inherit" })
+
     break
   }
 }

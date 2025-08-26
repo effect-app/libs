@@ -172,111 +172,112 @@ function updateEffectPackages() {
   updateEffectAppPackages()
 }
 
-let cmds = process.argv.slice(3).filter((_) => _ !== "--debug")
-switch (cmd) {
-  case "link":
-    await import("./link.js")
-    break
-  case "unlink":
-    await import("./unlink.js")
-    break
-  case "watch": {
-    const dirs = ["../api/src/resources", "../api/src/models"]
-    const viteConfigFile = "./vite.config.ts"
-    const viteConfigExists = fs.existsSync(viteConfigFile)
-    dirs.forEach((d) => {
-      if (fs.existsSync(d)) {
-        const files: string[] = []
-        w.default(d, { recursive: true }, (t, f) => {
-          // console.log("change!", d)
-          touch("./tsconfig.json")
-          if (viteConfigExists && t === "update" && !files.includes(f)) {
-            // TODO: only on new files
-            touch(viteConfigFile)
-            files.push(f)
-          }
-        })
-      }
-    })
+;(async () => {
+  let cmds = process.argv.slice(3).filter((_) => _ !== "--debug")
+  switch (cmd) {
+    case "link":
+      await import("./link.js")
+      break
+    case "unlink":
+      await import("./unlink.js")
+      break
+    case "watch": {
+      const dirs = ["../api/src/resources", "../api/src/models"]
+      const viteConfigFile = "./vite.config.ts"
+      const viteConfigExists = fs.existsSync(viteConfigFile)
+      dirs.forEach((d) => {
+        if (fs.existsSync(d)) {
+          const files: string[] = []
+          w.default(d, { recursive: true }, (t, f) => {
+            // console.log("change!", d)
+            touch("./tsconfig.json")
+            if (viteConfigExists && t === "update" && !files.includes(f)) {
+              // TODO: only on new files
+              touch(viteConfigFile)
+              files.push(f)
+            }
+          })
+        }
+      })
 
-    break
+      break
+    }
+
+    case "index-multi": {
+      ;[
+        "./api/src"
+      ]
+        .filter(
+          (_) => fs.existsSync(_)
+        )
+        .forEach(monitorIndexes)
+      break
+    }
+
+    case "index": {
+      monitorIndexes("./src")
+      break
+    }
+
+    case "packagejson": {
+      monitorPackagejson(".")
+      break
+    }
+
+    case "packagejson-target": {
+      const target = process.argv[3]!
+      target.split(",").forEach((_) => monitorPackagejson(_, 1))
+      cmds = process.argv.slice(4)
+      break
+    }
+
+    case "packagejson-packages": {
+      fs
+        .readdirSync(startDir + "/packages")
+        .map((_) => startDir + "/packages/" + _)
+        .filter((_) =>
+          fs.existsSync(_ + "/package.json")
+          && fs.existsSync(_ + "/src")
+          && !_.endsWith("eslint-codegen-model")
+          && !_.endsWith("vue-components")
+        )
+        .forEach((_) => monitorPackagejson(_))
+      break
+    }
+
+    case "sync": {
+      console.log("Sync all snippets?")
+
+      await askQuestion("Are you sure you want to sync snippets")
+      await sync()
+      return process.exit(0)
+    }
+
+    case "ncu:effect": {
+      console.log("Updating effect & effect-app dependencies...")
+
+      updateEffectPackages()
+
+      cp.execSync("pnpm i", { stdio: "inherit" })
+
+      break
+    }
+
+    case "ncu:effect-app": {
+      console.log("Updating effect-app dependencies...")
+
+      updateEffectAppPackages()
+
+      cp.execSync("pnpm i", { stdio: "inherit" })
+
+      break
+    }
   }
 
-  case "index-multi": {
-    ;[
-      "./api/src"
-    ]
-      .filter(
-        (_) => fs.existsSync(_)
-      )
-      .forEach(monitorIndexes)
-    break
+  if (cmds.length) {
+    const p = cp.spawn(cmds[0]!, cmds.slice(1), { stdio: "inherit" })
+    p.on("close", (code) => process.exit(code ?? 0))
+    p.on("exit", (code) => process.exit(code ?? 0))
+    p.on("disconnect", () => process.exit(1))
   }
-
-  case "index": {
-    monitorIndexes("./src")
-    break
-  }
-
-  case "packagejson": {
-    monitorPackagejson(".")
-    break
-  }
-
-  case "packagejson-target": {
-    const target = process.argv[3]!
-    target.split(",").forEach((_) => monitorPackagejson(_, 1))
-    cmds = process.argv.slice(4)
-    break
-  }
-
-  case "packagejson-packages": {
-    fs
-      .readdirSync(startDir + "/packages")
-      .map((_) => startDir + "/packages/" + _)
-      .filter((_) =>
-        fs.existsSync(_ + "/package.json")
-        && fs.existsSync(_ + "/src")
-        && !_.endsWith("eslint-codegen-model")
-        && !_.endsWith("vue-components")
-      )
-      .forEach((_) => monitorPackagejson(_))
-    break
-  }
-
-  case "sync": {
-    console.log("Sync all snippets?")
-
-    await askQuestion("Are you sure you want to sync snippets")
-    await sync()
-    process.exit(0)
-    break
-  }
-
-  case "ncu:effect": {
-    console.log("Updating effect & effect-app dependencies...")
-
-    updateEffectPackages()
-
-    cp.execSync("pnpm i", { stdio: "inherit" })
-
-    break
-  }
-
-  case "ncu:effect-app": {
-    console.log("Updating effect-app dependencies...")
-
-    updateEffectAppPackages()
-
-    cp.execSync("pnpm i", { stdio: "inherit" })
-
-    break
-  }
-}
-
-if (cmds.length) {
-  const p = cp.spawn(cmds[0]!, cmds.slice(1), { stdio: "inherit" })
-  p.on("close", (code) => process.exit(code ?? 0))
-  p.on("exit", (code) => process.exit(code ?? 0))
-  p.on("disconnect", () => process.exit(1))
-}
+})()

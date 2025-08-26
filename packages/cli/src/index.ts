@@ -157,16 +157,16 @@ function monitorPackagejson(path: string, levels = 0) {
 function updateEffectAppPackages() {
   const filters = ["effect-app", "@effect-app/*"]
   for (const filter of filters) {
-    cp.execSync(`ncu -u --filter "${filter}"`, { stdio: "inherit" })
-    cp.execSync(`pnpm -r ncu -u --filter "${filter}"`, { stdio: "inherit" })
+    cp.execSync(`pnpm exec ncu -u --filter "${filter}"`, { stdio: "inherit" })
+    cp.execSync(`pnpm -r exec ncu -u --filter "${filter}"`, { stdio: "inherit" })
   }
 }
 
 function updateEffectPackages() {
   const effectFilters = ["effect", "@effect/*", "@effect-atom/*"]
   for (const filter of effectFilters) {
-    cp.execSync(`ncu -u --filter "${filter}"`, { stdio: "inherit" })
-    cp.execSync(`pnpm -r ncu -u --filter "${filter}"`, { stdio: "inherit" })
+    cp.execSync(`pnpm exec ncu -u --filter "${filter}"`, { stdio: "inherit" })
+    cp.execSync(`pnpm -r exec ncu -u --filter "${filter}"`, { stdio: "inherit" })
   }
 
   updateEffectAppPackages()

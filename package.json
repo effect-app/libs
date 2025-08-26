@@ -58,7 +58,7 @@
     "@ben_12/eslint-plugin-dprint": "^1.7.1",
     "@changesets/cli": "^2.29.5",
     "@dprint/typescript": "^0.95.9",
-    "@effect-app/cli": "^1.23.0",
+    "@effect-app/cli": "^1.23.1",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.34.0",

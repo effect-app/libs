@@ -1,24 +1,25 @@
 <template>
-  <component
-    :is="form.Field"
-    v-for="(_, i) of items"
-    :key="`${name}[${Number(i)}]`"
-    :name="
-      `${name}[${Number(i)}]` as DeepKeys<From>
-    "
-  >
-    <template #default="{ field: subField, state: subState }">
-      <slot
-        v-bind="{
-          subField,
-          subState,
-          index: Number(i),
-        }"
-      />
-    </template>
-  </component>
   <component :is="form.Field" :name="name">
     <template #default="{ field }">
+      <component
+        :is="form.Field"
+        v-for="(_, i) of items"
+        :key="`${name}[${Number(i)}]`"
+        :name="
+          `${name}[${Number(i)}]` as DeepKeys<From>
+        "
+      >
+        <template #default="{ field: subField, state: subState }">
+          <slot
+            v-bind="{
+              subField,
+              subState,
+              index: Number(i),
+              field,
+            }"
+          />
+        </template>
+      </component>
       <slot name="field" v-bind="{ field }" />
     </template>
   </component>
@@ -32,9 +33,7 @@
   "
 >
 import { computed, onMounted, provide } from "vue"
-import {
-  type OmegaInputProps,
-} from "./OmegaFormStuff"
+import { type OmegaInputProps } from "./OmegaFormStuff"
 import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
 
 const props = defineProps<
@@ -69,11 +68,11 @@ onMounted(async () => {
 const getMetaFromArray = computed(() => {
   const getMeta = (path: string) => {
     // Transform path like 'a[0].b[11].c' into 'a.b.c'
-    const simplifiedPath = path.replace(/\[\d+\]/g, '')
+    const simplifiedPath = path.replace(/\[\d+\]/g, "")
 
     return props.form.meta[simplifiedPath as keyof typeof props.form.meta]
   }
-  
+
   return getMeta
 })
 

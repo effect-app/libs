@@ -2,15 +2,18 @@
   <OmegaForm :form="form" :subscribe="['values']">
     <template #externalForm>
       <OmegaArray :form="form" name="Users">
-        <template #default="{ index }">
+        <template #default="{ index, field }">
           <OmegaInput
             :form="form"
             :name="`Users[${index}].name`"
             :label="`name ${index}`"
+            :clearable="true"
+            @click:clear="() => debouncedClear(() => field.removeValue(index))"
           />
           <form.Input :name="`Users[${index}].age`" :label="`age ${index}`" />
         </template>
         <template #field="{ field }">
+          <hr />
           <v-btn
             type="button"
             variant="tonal"
@@ -51,6 +54,18 @@ import {
 } from "../../src/components/OmegaForm"
 import { onMounted, ref } from "vue"
 
+// Debounce utility function
+const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let timeoutId: NodeJS.Timeout
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => func(...args), delay)
+  }
+}
+
 const schema = S.Struct({
   Users: S.mutable(S.Array(
     S.Struct({
@@ -67,6 +82,11 @@ const randomize = () => {
     Math.floor(Math.random() * 10).toString(),
   )
 }
+
+// Debounced clear function because vuetify triggers clear multiple times sometimes
+const debouncedClear = debounce((callback: () => void) => {
+  callback()
+}, 0) // 100ms delay
 
 onMounted(() => {
   randomize()

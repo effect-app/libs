@@ -26,7 +26,9 @@ const supportedCommands = [
   "packagejson-packages",
   "link",
   "unlink",
-  "sync"
+  "sync",
+  "ncu:effect",
+  "ncu:effect-app"
 ] as const
 if (
   !supportedCommands.includes(_cmd as any)
@@ -152,6 +154,28 @@ function monitorPackagejson(path: string, levels = 0) {
   })
 }
 
+function updateEffectAppPackages(installAtEnd: boolean) {
+  const filters = ["effect-app", "@effect-app/*"]
+  for (const filter of filters) {
+    cp.execSync(`ncu -u --filter "${filter}"`, { stdio: "inherit" })
+    cp.execSync(`pnpm -r ncu -u --filter "${filter}"`, { stdio: "inherit" })
+  }
+
+  if (installAtEnd) {
+    cp.execSync("pnpm i", { stdio: "inherit" })
+  }
+}
+
+function updateEffectPackages() {
+  const effectFilters = ["effect", "@effect/*", "@effect-atom/*"]
+  for (const filter of effectFilters) {
+    cp.execSync(`ncu -u --filter "${filter}"`, { stdio: "inherit" })
+    cp.execSync(`pnpm -r ncu -u --filter "${filter}"`, { stdio: "inherit" })
+  }
+
+  updateEffectAppPackages(true)
+}
+
 let cmds = process.argv.slice(3).filter((_) => _ !== "--debug")
 switch (cmd) {
   case "link":
@@ -230,6 +254,19 @@ switch (cmd) {
     await askQuestion("Are you sure you want to sync snippets")
     await sync()
     process.exit(0)
+    break
+  }
+
+  case "ncu:effect": {
+    console.log("Updating effect & effect-app dependencies...")
+
+    updateEffectPackages()
+    break
+  }
+
+  case "ncu:effect-app": {
+    updateEffectAppPackages(true)
+    break
   }
 }
 

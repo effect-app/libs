@@ -60,12 +60,19 @@ const ue = Command
 
       switch (prompted) {
         case "effect-app":
-          return yield* updateEffectAppPackages
+          return yield* updateEffectAppPackages.pipe(
+            Effect.andThen(runNodeCommand("pnpm i"))
+          )
 
         case "effect":
-          return yield* updateEffectPackages
+          return yield* updateEffectPackages.pipe(
+            Effect.andThen(runNodeCommand("pnpm i"))
+          )
         case "both":
-          return yield* updateEffectPackages.pipe(Effect.andThen(updateEffectAppPackages))
+          return yield* updateEffectPackages.pipe(
+            Effect.andThen(updateEffectAppPackages),
+            Effect.andThen(runNodeCommand("pnpm i"))
+          )
       }
     })
   )

@@ -14,6 +14,8 @@ Effect
     const path = yield* Path.Path
     const extractExportMappings = yield* ExtractExportMappingsService
 
+    yield* Effect.addFinalizer(() => Effect.logInfo(`CLI has finished executing`))
+
     /**
      * Executes a shell command using Node.js Command API with inherited stdio streams.
      * The command is run through the system shell (/bin/sh) for proper command parsing.
@@ -218,6 +220,9 @@ Effect
             )
           )
           .pipe(
+            Effect.andThen(
+              Effect.addFinalizer(() => Effect.logInfo(`Stopped monitoring child indexes in: ${watchPath}`))
+            ),
             Effect.forkScoped
           )
       }
@@ -257,6 +262,11 @@ Effect
             )
           )
           .pipe(
+            Effect.andThen(
+              Effect.addFinalizer(() =>
+                Effect.logInfo(`Stopped monitoring root indexes in: ${watchPath} -> ${indexFile}`)
+              )
+            ),
             Effect.forkScoped
           )
       }
@@ -370,6 +380,9 @@ Effect
               )
             )
             .pipe(
+              Effect.andThen(
+                Effect.addFinalizer(() => Effect.logInfo(`Stopped watching directory: ${dir}`))
+              ),
               Effect.forkScoped
             )
 

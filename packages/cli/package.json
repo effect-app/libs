@@ -31,13 +31,13 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./effect_cli": {
-      "types": "./dist/effect_cli.d.ts",
-      "default": "./dist/effect_cli.js"
-    },
     "./link": {
       "types": "./dist/link.d.ts",
       "default": "./dist/link.js"
+    },
+    "./old": {
+      "types": "./dist/old.d.ts",
+      "default": "./dist/old.js"
     },
     "./shared": {
       "types": "./dist/shared.d.ts",

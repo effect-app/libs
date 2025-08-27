@@ -31,6 +31,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./extract": {
+      "types": "./dist/extract.d.ts",
+      "default": "./dist/extract.js"
+    },
     "./link": {
       "types": "./dist/link.d.ts",
       "default": "./dist/link.js"

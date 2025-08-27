@@ -34,15 +34,15 @@ const runNodeCommand = (cmd: string, cwd?: string) =>
  * @param cwd - Optional working directory to execute the script in
  * @returns An Effect that succeeds with the output or fails with a PlatformError
  */
-const runBashFile = (file: string, cwd?: string) =>
-  NodeCommand
-    .make("sh", file)
-    .pipe(
-      NodeCommand.stdout("inherit"),
-      NodeCommand.stderr("inherit"),
-      cwd ? NodeCommand.workingDirectory(cwd) : identity,
-      NodeCommand.string
-    )
+// const runBashFile = (file: string, cwd?: string) =>
+//   NodeCommand
+//     .make("sh", file)
+//     .pipe(
+//       NodeCommand.stdout("inherit"),
+//       NodeCommand.stderr("inherit"),
+//       cwd ? NodeCommand.workingDirectory(cwd) : identity,
+//       NodeCommand.string
+//     )
 
 /**
  * Creates a file if it doesn't exist or updates the access and modification times of an existing file.

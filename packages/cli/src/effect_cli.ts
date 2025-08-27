@@ -1,9 +1,9 @@
 /* eslint-disable no-empty-pattern */
 // Import necessary modules from the libraries
 import { Args, Command, Options, Prompt } from "@effect/cli"
-import { Command as NodeCommand, FileSystem } from "@effect/platform"
+import { Command as NodeCommand, FileSystem, Path } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
-import { Effect, Stream } from "effect"
+import { Effect, identity, Order, Stream } from "effect"
 import { packages } from "./shared.js"
 
 /**
@@ -11,15 +11,35 @@ import { packages } from "./shared.js"
  * The command is run through the system shell (/bin/sh) for proper command parsing.
  *
  * @param cmd - The shell command to execute
+ * @param cwd - Optional working directory to execute the command in
  * @returns An Effect that succeeds with the exit code or fails with a PlatformError
  */
-const runNodeCommand = (cmd: string) =>
+const runNodeCommand = (cmd: string, cwd?: string) =>
   NodeCommand
     .make("sh", "-c", cmd)
     .pipe(
       NodeCommand.stdout("inherit"),
       NodeCommand.stderr("inherit"),
+      cwd ? NodeCommand.workingDirectory(cwd) : identity,
       NodeCommand.exitCode
+    )
+
+/**
+ * Executes a bash script file using Node.js Command API with inherited stdio streams.
+ * The script file is executed directly through the shell (/bin/sh).
+ *
+ * @param file - The path to the bash script file to execute
+ * @param cwd - Optional working directory to execute the script in
+ * @returns An Effect that succeeds with the output or fails with a PlatformError
+ */
+const runBashFile = (file: string, cwd?: string) =>
+  NodeCommand
+    .make("sh", file)
+    .pipe(
+      NodeCommand.stdout("inherit"),
+      NodeCommand.stderr("inherit"),
+      cwd ? NodeCommand.workingDirectory(cwd) : identity,
+      NodeCommand.string
     )
 
 /**
@@ -342,6 +362,79 @@ const watcher = Effect.fn("watch")(function*(debug: boolean) {
   yield* Effect.all(watchStreams, { concurrency: existingDirs.length })
 })
 
+/**
+ * Updates a package.json file with generated exports mappings for TypeScript modules.
+ * Scans TypeScript source files and creates export entries that map module paths
+ * to their compiled JavaScript and TypeScript declaration files.
+ *
+ * @param startDir - The starting directory path for resolving relative paths
+ * @param p - The package directory path to process
+ * @param levels - Optional depth limit for export filtering (0 = no limit)
+ * @returns An Effect that succeeds when the package.json is updated
+ */
+const packagejsonUpdater = Effect.fn("effa-cli.packagejsonUpdater")(function*(startDir: string, p: string, levels = 0) {
+  const fs = yield* FileSystem.FileSystem
+  const path = yield* Path.Path
+
+  const exportMappings = yield* runBashFile(
+    `${p === "." ? "../.." : startDir}/scripts/extract.sh`,
+    path.resolve(startDir, p)
+  )
+
+  const sortedExportMappings = exportMappings
+    .split("\n")
+    .sort(Order.string)
+    .join("\n")
+
+  const sortedExportEntries = JSON.parse(
+    `{ ${sortedExportMappings.substring(0, sortedExportMappings.length - 1)} }`
+  ) as Record<
+    string,
+    unknown
+  >
+
+  const filteredExportEntries = levels
+    ? Object
+      .keys(sortedExportEntries)
+      // filter exports by directory depth - only include paths up to specified levels deep
+      .filter((_) => _.split("/").length <= (levels + 1 /* `./` */))
+      .reduce(
+        (prev, cur) => ({ ...prev, [cur]: sortedExportEntries[cur] }),
+        {} as Record<string, unknown>
+      )
+    : sortedExportEntries
+
+  const packageExports = {
+    ...((yield* fs.exists(p + "/src/index.ts"))
+      && {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        }
+      }),
+    ...Object
+      .keys(filteredExportEntries)
+      .reduce(
+        (prev, cur) => ({
+          ...prev,
+          // Exclude index files and internal modules from package exports:
+          // - skip "./index" to avoid conflicts with the main "." export
+          // - skip "/internal/" paths to keep internal modules private
+          ...cur !== "./index" && !cur.includes("/internal/") && { [cur]: filteredExportEntries[cur] }
+        }),
+        {} as Record<string, unknown>
+      )
+  }
+
+  const pkgJson = JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8"))
+  pkgJson.exports = packageExports
+
+  return yield* fs.writeFileString(
+    p + "/package.json",
+    JSON.stringify(pkgJson, null, 2)
+  )
+})
+
 /*
  * CLI
  */
@@ -477,6 +570,20 @@ const indexMulti = Command
     )
   )
 
+const packagejson = Command
+  .make(
+    "packagejson",
+    {},
+    Effect.fn("effa-cli.packagejson")(function*({}) {
+      const path = yield* Path.Path
+      // https://nodejs.org/api/path.html#pathresolvepaths
+      const startDir = path.resolve()
+
+      return yield* packagejsonUpdater(startDir, ".")
+    })
+  )
+  .pipe(Command.withDescription("Generate and update root-level package.json exports mappings for TypeScript modules"))
+
 // Configure CLI
 const cli = Command.run(
   Command
@@ -486,7 +593,8 @@ const cli = Command.run(
       link,
       unlink,
       watch,
-      indexMulti
+      indexMulti,
+      packagejson
     ])),
   {
     name: "Effect-App CLI by jfet97 ❤️",

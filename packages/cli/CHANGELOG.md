@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.3
+
+### Patch Changes
+
+- 62b36b0: fix monitors blocking next commands by forking them
+
 ## 1.23.2
 
 ### Patch Changes

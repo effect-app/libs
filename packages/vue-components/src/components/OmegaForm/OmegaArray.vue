@@ -1,6 +1,7 @@
 <template>
   <component :is="form.Field" :name="name">
-    <template #default="{ field }">
+    <template #default="{ field, state }">
+      <slot name="pre-array" v-bind="{ field, state }" />
       <component
         :is="form.Field"
         v-for="(_, i) of items"
@@ -20,6 +21,8 @@
           />
         </template>
       </component>
+      <slot name="post-array" v-bind="{ field, state }" />
+      <!-- TODO: legacy slot, remove this slot -->
       <slot name="field" v-bind="{ field }" />
     </template>
   </component>

@@ -100,14 +100,6 @@ onMounted(() => {
 })
 
 const form = useOmegaForm(schema, {
-  defaultValues: {
-    test: {
-      Users: [
-        { name: "Mario Mario", age: 33 },
-        { name: "Luigi Mario", age: 31 },
-      ],
-    },
-  },
   onSubmit: ({ value }) => {
     console.log(value)
   },

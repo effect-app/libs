@@ -1,6 +1,6 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
-// Import necessary modules from the libraries
+// import necessary modules from the libraries
 import { Args, Command, Options, Prompt } from "@effect/cli"
 import { Command as NodeCommand, FileSystem, Path } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
@@ -303,7 +303,7 @@ const watcher = Effect.fn("watch")(function*(debug: boolean) {
     yield* Effect.logInfo("watcher debug mode is enabled")
   }
 
-  // Validate directories and filter out non-existing ones
+  // validate directories and filter out non-existing ones
   const existingDirs: string[] = []
   for (const dir of dirs) {
     const dirExists = yield* fileSystem.exists(dir)
@@ -318,7 +318,7 @@ const watcher = Effect.fn("watch")(function*(debug: boolean) {
     return yield* Effect.logWarning("No directories to watch - exiting")
   }
 
-  // Start watching all existing directories concurrently
+  // start watching all existing directories concurrently
   const watchStreams = existingDirs.map((dir) =>
     Effect.gen(function*() {
       if (debug) {
@@ -335,13 +335,13 @@ const watcher = Effect.fn("watch")(function*(debug: boolean) {
               yield* Effect.logInfo(`File ${event._tag.toLowerCase()}: ${event.path}`)
             }
 
-            // Touch tsconfig.json on any file change
+            // touch tsconfig.json on any file change
             yield* touch("./tsconfig.json")
             if (debug) {
               yield* Effect.logInfo("Updated tsconfig.json")
             }
 
-            // Touch vite config only on file updates (not creates/deletes)
+            // touch vite config only on file updates (not creates/deletes)
             if (
               viteConfigExists
               && event._tag === "Update"
@@ -359,7 +359,7 @@ const watcher = Effect.fn("watch")(function*(debug: boolean) {
     })
   )
 
-  // Run all watch streams concurrently
+  // run all watch streams concurrently
   yield* Effect.all(watchStreams, { concurrency: existingDirs.length })
 })
 
@@ -420,7 +420,7 @@ const packagejsonUpdater = Effect.fn("effa-cli.packagejsonUpdater")(function*(st
       .reduce(
         (prev, cur) => ({
           ...prev,
-          // Exclude index files and internal modules from package exports:
+          // exclude index files and internal modules from package exports:
           // - skip "./index" to avoid conflicts with the main "." export
           // - skip "/internal/" paths to keep internal modules private
           ...cur !== "./index" && !cur.includes("/internal/") && { [cur]: filteredExportEntries[cur] }
@@ -648,7 +648,7 @@ const packagejsonPackages = Command
   )
   .pipe(Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo"))
 
-// Configure CLI
+// configure CLI
 const cli = Command.run(
   Command
     .make("effa")

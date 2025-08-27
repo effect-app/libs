@@ -5,6 +5,7 @@ import { Args, Command, Options, Prompt } from "@effect/cli"
 import { Command as NodeCommand, FileSystem, Path } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
 import { Effect, identity, Order, Stream } from "effect"
+import { extractExportMappings } from "./extract.js"
 import { packages } from "./shared.js"
 
 /**
@@ -379,10 +380,7 @@ const packagejsonUpdater = Effect.fn("effa-cli.packagejsonUpdater")(function*(st
 
   yield* Effect.log(`Generating exports for ${p}`)
 
-  const exportMappings = yield* runBashFile(
-    `${p === "." ? "../.." : startDir}/scripts/extract.sh`,
-    path.resolve(startDir, p)
-  )
+  const exportMappings = yield* extractExportMappings(path.resolve(startDir, p))
 
   const sortedExportMappings = exportMappings
     .split("\n")

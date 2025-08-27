@@ -1,6 +1,6 @@
 /* eslint-disable no-empty-pattern */
 // Import necessary modules from the libraries
-import { Args, Command, Prompt } from "@effect/cli"
+import { Args, Command, Options, Prompt } from "@effect/cli"
 import { Command as NodeCommand, FileSystem } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
 import { Effect, Stream } from "effect"
@@ -143,7 +143,7 @@ const unlinkPackages = Effect.fnUntraced(function*() {
  *
  * @returns An Effect that sets up file watching streams
  */
-const watcher = Effect.fn("watch")(function*() {
+const watcher = Effect.fn("watch")(function*(debug: boolean) {
   yield* Effect.log("Watch API resources and models for changes")
 
   const dirs = ["../api/src/resources", "../api/src/models"]
@@ -152,11 +152,31 @@ const watcher = Effect.fn("watch")(function*() {
 
   const viteConfigExists = yield* fileSystem.exists(viteConfigFile)
 
-  // Start watching all directories concurrently
-  const watchStreams = dirs.map((dir) =>
+  if (debug) {
+    yield* Effect.logInfo("watcher debug mode is enabled")
+  }
+
+  // Validate directories and filter out non-existing ones
+  const existingDirs: string[] = []
+  for (const dir of dirs) {
+    const dirExists = yield* fileSystem.exists(dir)
+    if (dirExists) {
+      existingDirs.push(dir)
+    } else {
+      yield* Effect.logWarning(`Directory ${dir} does not exist - skipping`)
+    }
+  }
+
+  if (existingDirs.length === 0) {
+    return yield* Effect.logWarning("No directories to watch - exiting")
+  }
+
+  // Start watching all existing directories concurrently
+  const watchStreams = existingDirs.map((dir) =>
     Effect.gen(function*() {
-      const dirExists = yield* fileSystem.exists(dir)
-      if (!dirExists) return
+      if (debug) {
+        yield* Effect.logInfo(`Starting to watch directory: ${dir}`)
+      }
 
       const files: string[] = []
       const watchStream = fileSystem.watch(dir, { recursive: true })
@@ -164,8 +184,15 @@ const watcher = Effect.fn("watch")(function*() {
       yield* watchStream.pipe(
         Stream.runForEach(
           Effect.fn("effa-cli.watch.handleEvent")(function*(event) {
+            if (debug) {
+              yield* Effect.logInfo(`File ${event._tag.toLowerCase()}: ${event.path}`)
+            }
+
             // Touch tsconfig.json on any file change
             yield* touch("./tsconfig.json")
+            if (debug) {
+              yield* Effect.logInfo("Updated tsconfig.json")
+            }
 
             // Touch vite config only on file updates (not creates/deletes)
             if (
@@ -174,6 +201,9 @@ const watcher = Effect.fn("watch")(function*() {
               && !files.includes(event.path)
             ) {
               yield* touch(viteConfigFile)
+              if (debug) {
+                yield* Effect.logInfo("Updated vite.config.ts")
+              }
               files.push(event.path)
             }
           })
@@ -183,8 +213,8 @@ const watcher = Effect.fn("watch")(function*() {
   )
 
   // Run all watch streams concurrently
-  yield* Effect.all(watchStreams, { concurrency: 2 })
-})()
+  yield* Effect.all(watchStreams, { concurrency: existingDirs.length })
+})
 
 /*
  * CLI
@@ -268,12 +298,17 @@ const ue = Command
   )
   .pipe(Command.withDescription("Update effect-app and/or effect packages"))
 
+const DebugOption = Options.boolean("debug").pipe(
+  Options.withAlias("d"),
+  Options.withDescription("Enable debug logging")
+)
+
 const watch = Command
   .make(
     "watch",
-    {},
-    Effect.fn("effa-cli.watch")(function*({}) {
-      return yield* watcher
+    { debug: DebugOption },
+    Effect.fn("effa-cli.watch")(function*({ debug }) {
+      return yield* watcher(debug)
     })
   )
   .pipe(

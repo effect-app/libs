@@ -1,3 +1,4 @@
+/* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // Import necessary modules from the libraries
 import { Args, Command, Options, Prompt } from "@effect/cli"
@@ -376,6 +377,8 @@ const packagejsonUpdater = Effect.fn("effa-cli.packagejsonUpdater")(function*(st
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
 
+  yield* Effect.log(`Generating exports for ${p}`)
+
   const exportMappings = yield* runBashFile(
     `${p === "." ? "../.." : startDir}/scripts/extract.sh`,
     path.resolve(startDir, p)
@@ -428,6 +431,8 @@ const packagejsonUpdater = Effect.fn("effa-cli.packagejsonUpdater")(function*(st
 
   const pkgJson = JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8"))
   pkgJson.exports = packageExports
+
+  yield* Effect.log(`Writing updated package.json for ${p}`)
 
   return yield* fs.writeFileString(
     p + "/package.json",
@@ -584,6 +589,65 @@ const packagejson = Command
   )
   .pipe(Command.withDescription("Generate and update root-level package.json exports mappings for TypeScript modules"))
 
+const packagejsonPackages = Command
+  .make(
+    "packagejson-packages",
+    {},
+    Effect.fn("effa-cli.packagejson-packages")(function*({}) {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      // https://nodejs.org/api/path.html#pathresolvepaths
+      const startDir = path.resolve()
+
+      const packagesDir = path.join(startDir, "packages")
+
+      const packagesExists = yield* fs.exists(packagesDir)
+      if (!packagesExists) {
+        return yield* Effect.logWarning("No packages directory found")
+      }
+
+      // get all package directories
+      const packageDirs = yield* fs.readDirectory(packagesDir)
+
+      const validPackages: string[] = []
+
+      // filter packages that have package.json and src directory
+      for (const packageName of packageDirs) {
+        const packagePath = path.join(packagesDir, packageName)
+        const packageJsonExists = yield* fs.exists(path.join(packagePath, "package.json"))
+        const srcExists = yield* fs.exists(path.join(packagePath, "src"))
+
+        const shouldExclude = false
+          || packageName.endsWith("eslint-codegen-model")
+          || packageName.endsWith("vue-components")
+
+        if (packageJsonExists && srcExists && !shouldExclude) {
+          validPackages.push(packagePath)
+        }
+      }
+
+      if (validPackages.length === 0) {
+        return yield* Effect.logWarning("No valid packages found to update")
+      }
+
+      yield* Effect.log(`Found ${validPackages.length} packages to update`)
+
+      // update each package sequentially
+      yield* Effect.all(
+        validPackages.map((packagePath) =>
+          Effect.gen(function*() {
+            const relativePackagePath = path.relative(startDir, packagePath)
+            yield* Effect.log(`Updating ${relativePackagePath}`)
+            return yield* packagejsonUpdater(startDir, relativePackagePath)
+          })
+        )
+      )
+
+      yield* Effect.log("All packages updated successfully")
+    })
+  )
+  .pipe(Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo"))
+
 // Configure CLI
 const cli = Command.run(
   Command
@@ -594,7 +658,8 @@ const cli = Command.run(
       unlink,
       watch,
       indexMulti,
-      packagejson
+      packagejson,
+      packagejsonPackages
     ])),
   {
     name: "Effect-App CLI by jfet97 ❤️",

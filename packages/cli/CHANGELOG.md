@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.4
+
+### Patch Changes
+
+- ca792d7: add some debug prints
+
 ## 1.23.3
 
 ### Patch Changes

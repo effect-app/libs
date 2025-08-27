@@ -9,6 +9,8 @@
     "effect-app-cli": "./bin.js"
   },
   "dependencies": {
+    "@effect/cli": "^0.69.2",
+    "@effect/platform-node": "^0.94.1",
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
@@ -29,9 +31,17 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./extract": {
+      "types": "./dist/extract.d.ts",
+      "default": "./dist/extract.js"
+    },
     "./link": {
       "types": "./dist/link.d.ts",
       "default": "./dist/link.js"
+    },
+    "./old": {
+      "types": "./dist/old.d.ts",
+      "default": "./dist/old.js"
     },
     "./shared": {
       "types": "./dist/shared.d.ts",

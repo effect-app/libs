@@ -54,8 +54,14 @@ export const extractExportMappings = Effect.fn("effa-cli.extractExportMappings")
 
   const sortedMappings = pipe(
     exportMappings,
-    EffectArray.sort(Order.string)
+    EffectArray.sort(Order.string),
+    EffectArray.join("\n")
   )
 
-  return sortedMappings.join("\n")
+  // remove last comma, if any
+  const result = sortedMappings.endsWith(",")
+    ? sortedMappings.slice(0, -1)
+    : sortedMappings
+
+  return result
 })

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.2.2
+
+### Patch Changes
+
+- 33f100d: finalize new cli
+
 ## 3.2.1
 
 ### Patch Changes

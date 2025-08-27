@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.18
+
+### Patch Changes
+
+- 33f100d: finalize new cli
+- Updated dependencies [33f100d]
+  - effect-app@3.2.2
+
 ## 3.0.17
 
 ### Patch Changes

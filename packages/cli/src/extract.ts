@@ -49,19 +49,14 @@ export const extractExportMappings = Effect.fn("effa-cli.extractExportMappings")
     const distPath = `./dist/${relativePath.replace(/\.ts$/, ".js")}`
     const typesPath = `./dist/${relativePath.replace(/\.ts$/, ".d.ts")}`
 
-    return `"${exportKey}": { "types": "${typesPath}", "default": "${distPath}" },`
+    return `"${exportKey}": { "types": "${typesPath}", "default": "${distPath}" }`
   })
 
   const sortedMappings = pipe(
     exportMappings,
     EffectArray.sort(Order.string),
-    EffectArray.join("\n")
+    EffectArray.join(",\n")
   )
 
-  // remove last comma, if any
-  const result = sortedMappings.endsWith(",")
-    ? sortedMappings.slice(0, -1)
-    : sortedMappings
-
-  return result
+  return sortedMappings
 })

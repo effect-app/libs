@@ -178,44 +178,48 @@ Effect
 
         const watchStream = fileSystem.watch(watchPath, { recursive: true })
 
-        yield* watchStream.pipe(
-          Stream.runForEach(
-            Effect.fn("effa-cli.monitorChildIndexes.handleEvent")(function*(event) {
-              const pathParts = event.path.split("/")
-              const fileName = pathParts[pathParts.length - 1]
-              const isController = fileName?.toLowerCase().includes(".controllers.")
+        yield* watchStream
+          .pipe(
+            Stream.runForEach(
+              Effect.fn("effa-cli.monitorChildIndexes.handleEvent")(function*(event) {
+                const pathParts = event.path.split("/")
+                const fileName = pathParts[pathParts.length - 1]
+                const isController = fileName?.toLowerCase().includes(".controllers.")
 
-              if (!isController) return
+                if (!isController) return
 
-              let i = 1
-              const reversedParts = pathParts.toReversed()
+                let i = 1
+                const reversedParts = pathParts.toReversed()
 
-              while (i < reversedParts.length) {
-                const candidateFiles = ["controllers.ts", "routes.ts"]
-                  .map((f) => [...pathParts.slice(0, pathParts.length - i), f].join("/"))
+                while (i < reversedParts.length) {
+                  const candidateFiles = ["controllers.ts", "routes.ts"]
+                    .map((f) => [...pathParts.slice(0, pathParts.length - i), f].join("/"))
 
-                const existingFiles: string[] = []
-                for (const file of candidateFiles) {
-                  const exists = yield* fileSystem.exists(file)
-                  if (exists) existingFiles.push(file)
-                }
-
-                if (existingFiles.length > 0) {
-                  if (debug) {
-                    yield* Effect.logInfo(
-                      `Controller change detected: ${event.path}, fixing files: ${existingFiles.join(", ")}`
-                    )
+                  const existingFiles: string[] = []
+                  for (const file of candidateFiles) {
+                    const exists = yield* fileSystem.exists(file)
+                    if (exists) existingFiles.push(file)
                   }
 
-                  const eslintArgs = existingFiles.map((f) => `"../${f}"`).join(" ")
-                  yield* runNodeCommand(`cd api && pnpm eslint --fix ${eslintArgs}`)
-                  break
+                  if (existingFiles.length > 0) {
+                    if (debug) {
+                      yield* Effect.logInfo(
+                        `Controller change detected: ${event.path}, fixing files: ${existingFiles.join(", ")}`
+                      )
+                    }
+
+                    const eslintArgs = existingFiles.map((f) => `"../${f}"`).join(" ")
+                    yield* runNodeCommand(`cd api && pnpm eslint --fix ${eslintArgs}`)
+                    break
+                  }
+                  i++
                 }
-                i++
-              }
-            })
+              })
+            )
           )
-        )
+          .pipe(
+            Effect.forkScoped
+          )
       }
     )
 
@@ -238,19 +242,23 @@ Effect
 
         const watchStream = fileSystem.watch(watchPath)
 
-        yield* watchStream.pipe(
-          Stream.runForEach(
-            Effect.fn("effa-cli.index-multi.monitorRootIndexes.handleEvent")(function*(event) {
-              if (event.path.endsWith(indexFile)) return
+        yield* watchStream
+          .pipe(
+            Stream.runForEach(
+              Effect.fn("effa-cli.index-multi.monitorRootIndexes.handleEvent")(function*(event) {
+                if (event.path.endsWith(indexFile)) return
 
-              if (debug) {
-                yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
-              }
+                if (debug) {
+                  yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
+                }
 
-              yield* runNodeCommand(`pnpm eslint --fix "${indexFile}"`)
-            })
+                yield* runNodeCommand(`pnpm eslint --fix "${indexFile}"`)
+              })
+            )
           )
-        )
+          .pipe(
+            Effect.forkScoped
+          )
       }
     )
 
@@ -332,34 +340,41 @@ Effect
           const files: string[] = []
           const watchStream = fileSystem.watch(dir, { recursive: true })
 
-          yield* watchStream.pipe(
-            Stream.runForEach(
-              Effect.fn("effa-cli.watch.handleEvent")(function*(event) {
-                if (debug) {
-                  yield* Effect.logInfo(`File ${event._tag.toLowerCase()}: ${event.path}`)
-                }
-
-                // touch tsconfig.json on any file change
-                yield* touch("./tsconfig.json")
-                if (debug) {
-                  yield* Effect.logInfo("Updated tsconfig.json")
-                }
-
-                // touch vite config only on file updates (not creates/deletes)
-                if (
-                  viteConfigExists
-                  && event._tag === "Update"
-                  && !files.includes(event.path)
-                ) {
-                  yield* touch(viteConfigFile)
+          yield* watchStream
+            .pipe(
+              Stream.runForEach(
+                Effect.fn("effa-cli.watch.handleEvent")(function*(event) {
                   if (debug) {
-                    yield* Effect.logInfo("Updated vite.config.ts")
+                    yield* Effect.logInfo(`File ${event._tag.toLowerCase()}: ${event.path}`)
                   }
-                  files.push(event.path)
-                }
-              })
+
+                  // touch tsconfig.json on any file change
+                  yield* touch("./tsconfig.json")
+                  if (debug) {
+                    yield* Effect.logInfo("Updated tsconfig.json")
+                  }
+
+                  // touch vite config only on file updates (not creates/deletes)
+                  if (
+                    viteConfigExists
+                    && event._tag === "Update"
+                    && !files.includes(event.path)
+                  ) {
+                    yield* touch(viteConfigFile)
+                    if (debug) {
+                      yield* Effect.logInfo("Updated vite.config.ts")
+                    }
+                    files.push(event.path)
+                  }
+                })
+              )
             )
-          )
+            .pipe(
+              Effect.forkScoped
+            )
+
+          // also start monitoring indexes in the watched directory
+          yield* monitorIndexes(dir, debug)
         })
       )
 
@@ -670,6 +685,7 @@ Effect
     return yield* cli(process.argv)
   })()
   .pipe(
+    Effect.scoped,
     Effect.provide(NodeContext.layer),
     NodeRuntime.runMain
   )

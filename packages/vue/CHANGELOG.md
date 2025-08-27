@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.51.15
+
+### Patch Changes
+
+- c12a49b: effect app cli to effect cli
+- Updated dependencies [c12a49b]
+  - effect-app@3.2.1
+
 ## 2.51.14
 
 ### Patch Changes

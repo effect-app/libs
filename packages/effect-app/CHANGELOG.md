@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.2.1
+
+### Patch Changes
+
+- c12a49b: effect app cli to effect cli
+
 ## 3.2.0
 
 ### Minor Changes

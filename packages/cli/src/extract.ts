@@ -40,6 +40,13 @@ export const extractExportMappings = Effect.fn("effa-cli.extractExportMappings")
     })
 
   const srcDir = path.join(cwd, "src")
+
+  // Check if src directory exists
+  const srcExists = yield* fs.exists(srcDir)
+  if (!srcExists) {
+    return ""
+  }
+
   const tsFiles = yield* findTsFiles(srcDir)
 
   const exportMappings = tsFiles.map((filePath) => {

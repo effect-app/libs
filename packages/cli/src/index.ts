@@ -382,6 +382,12 @@ const packagejsonUpdater = Effect.fn("effa-cli.packagejsonUpdater")(function*(st
 
   const exportMappings = yield* extractExportMappings(path.resolve(startDir, p))
 
+  // if exportMappings is empty skip export generation
+  if (exportMappings === "") {
+    yield* Effect.log(`No src directory found for ${p}, skipping export generation`)
+    return
+  }
+
   const sortedExportEntries = JSON.parse(
     `{ ${exportMappings} }`
   ) as Record<

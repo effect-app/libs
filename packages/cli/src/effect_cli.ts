@@ -138,6 +138,132 @@ const unlinkPackages = Effect.fnUntraced(function*() {
 })()
 
 /**
+ * Monitors controller files for changes and runs eslint on related controllers.ts/routes.ts files.
+ * Watches for .controllers. files and triggers eslint fixes on parent directory's controller files.
+ *
+ * @param watchPath - The path to watch for controller changes
+ * @param debug - Whether to enable debug logging
+ * @returns An Effect that sets up controller file monitoring
+ */
+const monitorChildIndexes = Effect.fn("effa-cli.index-multi.monitorChildIndexes")(
+  function*(watchPath: string, debug: boolean) {
+    const fileSystem = yield* FileSystem.FileSystem
+
+    if (debug) {
+      yield* Effect.logInfo(`Starting controller monitoring for: ${watchPath}`)
+    }
+
+    const watchStream = fileSystem.watch(watchPath, { recursive: true })
+
+    yield* watchStream.pipe(
+      Stream.runForEach(
+        Effect.fn("effa-cli.monitorChildIndexes.handleEvent")(function*(event) {
+          const pathParts = event.path.split("/")
+          const fileName = pathParts[pathParts.length - 1]
+          const isController = fileName?.toLowerCase().includes(".controllers.")
+
+          if (!isController) return
+
+          let i = 1
+          const reversedParts = pathParts.toReversed()
+
+          while (i < reversedParts.length) {
+            const candidateFiles = ["controllers.ts", "routes.ts"]
+              .map((f) => [...pathParts.slice(0, pathParts.length - i), f].join("/"))
+
+            const existingFiles: string[] = []
+            for (const file of candidateFiles) {
+              const exists = yield* fileSystem.exists(file)
+              if (exists) existingFiles.push(file)
+            }
+
+            if (existingFiles.length > 0) {
+              if (debug) {
+                yield* Effect.logInfo(
+                  `Controller change detected: ${event.path}, fixing files: ${existingFiles.join(", ")}`
+                )
+              }
+
+              const eslintArgs = existingFiles.map((f) => `"../${f}"`).join(" ")
+              yield* runNodeCommand(`cd api && pnpm eslint --fix ${eslintArgs}`)
+              break
+            }
+            i++
+          }
+        })
+      )
+    )
+  }
+)
+
+/**
+ * Monitors a directory for changes and runs eslint on the specified index file.
+ * Triggers eslint fixes when any file in the directory changes (except the index file itself).
+ *
+ * @param watchPath - The path to watch for changes
+ * @param indexFile - The index file to run eslint on when changes occur
+ * @param debug - Whether to enable debug logging
+ * @returns An Effect that sets up root index monitoring
+ */
+const monitorRootIndexes = Effect.fn("effa-cli.index-multi.monitorRootIndexes")(
+  function*(watchPath: string, indexFile: string, debug: boolean) {
+    const fileSystem = yield* FileSystem.FileSystem
+
+    if (debug) {
+      yield* Effect.logInfo(`Starting root index monitoring for: ${watchPath} -> ${indexFile}`)
+    }
+
+    const watchStream = fileSystem.watch(watchPath)
+
+    yield* watchStream.pipe(
+      Stream.runForEach(
+        Effect.fn("effa-cli.index-multi.monitorRootIndexes.handleEvent")(function*(event) {
+          if (event.path.endsWith(indexFile)) return
+
+          if (debug) {
+            yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
+          }
+
+          yield* runNodeCommand(`pnpm eslint --fix "${indexFile}"`)
+        })
+      )
+    )
+  }
+)
+
+/**
+ * Sets up comprehensive index monitoring for a given path.
+ * Combines both child controller monitoring and root index monitoring.
+ *
+ * @param watchPath - The path to monitor
+ * @param debug - Whether to enable debug logging
+ * @returns An Effect that sets up all index monitoring for the path
+ */
+const monitorIndexes = Effect.fn("effa-cli.index-multi.monitorIndexes")(function*(watchPath: string, debug: boolean) {
+  const fileSystem = yield* FileSystem.FileSystem
+
+  if (debug) {
+    yield* Effect.logInfo(`Setting up index monitoring for path: ${watchPath}`)
+  }
+
+  const indexFile = watchPath + "/index.ts"
+
+  const monitors = [monitorChildIndexes(watchPath, debug)]
+
+  if (yield* fileSystem.exists(indexFile)) {
+    monitors.push(monitorRootIndexes(watchPath, indexFile, debug))
+  } else {
+    yield* Effect.logInfo(`Index file ${indexFile} does not exist`)
+  }
+
+  if (debug) {
+    yield* Effect.logInfo(`Starting ${monitors.length} monitor(s) for ${watchPath}`)
+  }
+
+  yield* Effect.all(monitors, { concurrency: monitors.length })
+})
+
+/**
  * Watches directories for file changes and updates tsconfig.json and vite.config.ts accordingly.
  * Monitors API resources and models directories for changes using Effect's native file watching.
  *
@@ -317,6 +443,40 @@ const watch = Command
     )
   )
 
+const indexMulti = Command
+  .make(
+    "index-multi",
+    { debug: DebugOption },
+    Effect.fn("effa-cli.index-multi")(function*({ debug }) {
+      yield* Effect.log("Starting multi-index monitoring")
+
+      const dirs = ["./api/src"]
+      const fileSystem = yield* FileSystem.FileSystem
+
+      const existingDirs: string[] = []
+      for (const dir of dirs) {
+        const dirExists = yield* fileSystem.exists(dir)
+        if (dirExists) {
+          existingDirs.push(dir)
+        } else {
+          yield* Effect.logWarning(`Directory ${dir} does not exist - skipping`)
+        }
+      }
+
+      if (existingDirs.length === 0) {
+        return yield* Effect.logWarning("No directories to monitor - exiting")
+      }
+
+      const monitors = existingDirs.map((dir) => monitorIndexes(dir, debug))
+      yield* Effect.all(monitors, { concurrency: monitors.length })
+    })
+  )
+  .pipe(
+    Command.withDescription(
+      "Monitor multiple directories for index and controller file changes"
+    )
+  )
+
 // Configure CLI
 const cli = Command.run(
   Command
@@ -325,7 +485,8 @@ const cli = Command.run(
       ue,
       link,
       unlink,
-      watch
+      watch,
+      indexMulti
     ])),
   {
     name: "Effect-App CLI by jfet97 ❤️",

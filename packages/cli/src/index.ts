@@ -5,13 +5,14 @@ import { Args, Command, Options, Prompt } from "@effect/cli"
 import { Command as NodeCommand, FileSystem, Path } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
 import { Effect, identity, Stream } from "effect"
-import { extractExportMappings } from "./extract.js"
+import { ExtractExportMappingsService } from "./extract.js"
 import { packages } from "./shared.js"
 
 Effect
   .fn("effa-cli")(function*() {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
+    const extractExportMappings = yield* ExtractExportMappingsService
 
     /**
      * Executes a shell command using Node.js Command API with inherited stdio streams.

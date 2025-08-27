@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.17
+
+### Patch Changes
+
+- c12a49b: effect app cli to effect cli
+- Updated dependencies [c12a49b]
+  - effect-app@3.2.1
+
 ## 3.0.16
 
 ### Patch Changes

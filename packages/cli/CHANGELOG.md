@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.2
+
+### Patch Changes
+
+- c12a49b: effect app cli to effect cli
+
 ## 1.23.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.15.5
+
+### Patch Changes
+
+- ee39434: Improves array slots
+
 ## 0.15.4
 
 ### Patch Changes

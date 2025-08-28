@@ -56,24 +56,6 @@ Effect
     //     )
 
     /**
-     * Creates a file if it doesn't exist or updates the access and modification times of an existing file.
-     * This is the effectful equivalent of the Unix `touch` command.
-     *
-     * @param path - The path to the file to touch
-     * @returns An Effect that succeeds with void or fails with a FileSystem error
-     */
-    const touch = Effect.fn("touch")(function*(path: string) {
-      const time = new Date()
-
-      yield* fs.utimes(path, time, time).pipe(
-        Effect.catchTag("SystemError", (err) =>
-          err.reason === "NotFound"
-            ? fs.writeFileString(path, "")
-            : Effect.fail(err))
-      )
-    })
-
-    /**
      * Updates effect-app packages to their latest versions using npm-check-updates.
      * Runs both at workspace root and recursively in all workspace packages.
      */
@@ -282,7 +264,7 @@ Effect
         if (yield* fs.exists(indexFile)) {
           monitors.push(monitorRootIndexes(watchPath, indexFile))
         } else {
-          yield* Effect.logInfo(`Index file ${indexFile} does not exist`)
+          yield* Effect.logWarning(`Index file ${indexFile} does not exist`)
         }
 
         yield* Effect.logInfo(`Starting ${monitors.length} monitor(s) for ${watchPath}`)
@@ -290,83 +272,6 @@ Effect
         yield* Effect.all(monitors, { concurrency: monitors.length })
       }
     )
-
-    /**
-     * Watches directories for file changes and updates tsconfig.json and vite.config.ts accordingly.
-     * Monitors API resources and models directories for changes using Effect's native file watching.
-     *
-     * @returns An Effect that sets up file watching streams
-     */
-    const watcher = Effect.fn("watch")(function*() {
-      yield* Effect.logInfo("Watch API resources and models for changes")
-
-      const dirs = ["../api/src/resources", "../api/src/models"]
-      const viteConfigFile = "./vite.config.ts"
-
-      const viteConfigExists = yield* fs.exists(viteConfigFile)
-
-      yield* Effect.logInfo("watcher debug mode is enabled")
-
-      // validate directories and filter out non-existing ones
-      const existingDirs: string[] = []
-      for (const dir of dirs) {
-        const dirExists = yield* fs.exists(dir)
-        if (dirExists) {
-          existingDirs.push(dir)
-        } else {
-          yield* Effect.logWarning(`Directory ${dir} does not exist - skipping`)
-        }
-      }
-
-      // start watching all existing directories concurrently
-      const watchStreams = existingDirs.map((dir) =>
-        Effect.gen(function*() {
-          yield* Effect.logInfo(`Starting to watch directory: ${dir}`)
-
-          const files: string[] = []
-          const watchStream = fs.watch(dir, { recursive: true })
-
-          yield* watchStream
-            .pipe(
-              Stream.runForEach(
-                Effect.fn("effa-cli.watch.handleEvent")(function*(event) {
-                  yield* Effect.logInfo(`File ${event._tag.toLowerCase()}: ${event.path}`)
-
-                  // touch tsconfig.json on any file change
-                  yield* touch("./tsconfig.json")
-
-                  yield* Effect.logInfo("Updated tsconfig.json")
-
-                  // touch vite config only on file updates (not creates/deletes)
-                  if (
-                    viteConfigExists
-                    && event._tag === "Update"
-                    && !files.includes(event.path)
-                  ) {
-                    yield* touch(viteConfigFile)
-
-                    yield* Effect.logInfo("Updated vite.config.ts")
-
-                    files.push(event.path)
-                  }
-                })
-              )
-            )
-            .pipe(
-              Effect.andThen(
-                Effect.addFinalizer(() => Effect.logInfo(`Stopped watching directory: ${dir}`))
-              ),
-              Effect.forkScoped
-            )
-
-          // also start monitoring indexes in the watched directory
-          yield* monitorIndexes(dir)
-        })
-      )
-
-      // run all watch streams concurrently
-      yield* Effect.all(watchStreams, { concurrency: existingDirs.length })
-    })
 
     /**
      * Updates a package.json file with generated exports mappings for TypeScript modules.
@@ -632,20 +537,6 @@ Effect
       )
       .pipe(Command.withDescription("Update effect-app and/or effect packages"))
 
-    const watch = makeCommandWithWrap(
-      "watch",
-      {},
-      Effect.fn("effa-cli.watch")(function*({}) {
-        return yield* watcher()
-      }),
-      "Stopped watching API resources and models"
-    )
-      .pipe(
-        Command.withDescription(
-          "Watch API resources and models for changes and update tsconfig.json and vite.config.ts accordingly"
-        )
-      )
-
     const indexMulti = makeCommandWithWrap(
       "index-multi",
       {},
@@ -745,6 +636,42 @@ Effect
         Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo")
       )
 
+    const DryRunOption = Options.boolean("dry-run").pipe(
+      Options.withDescription("Show what would be done without making changes")
+    )
+
+    const PruneStoreOption = Options.boolean("store-prune").pipe(
+      Options.withDescription("Prune the package manager store")
+    )
+
+    const nuke = Command
+      .make(
+        "nuke",
+        { dryRun: DryRunOption, storePrune: PruneStoreOption },
+        Effect.fn("effa-cli.nuke")(function*({ dryRun, storePrune }) {
+          yield* Effect.logInfo(dryRun ? "Performing dry run cleanup..." : "Performing nuclear cleanup...")
+
+          if (dryRun) {
+            yield* runNodeCommand(
+              "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -print \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -print \\)"
+            )
+          } else {
+            yield* runNodeCommand(
+              "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -exec rm -rf -- {} + \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -delete \\)"
+            )
+
+            if (storePrune) {
+              yield* runNodeCommand(
+                "pnpm store prune"
+              )
+            }
+          }
+
+          yield* Effect.logInfo("Cleanup operation completed")
+        })
+      )
+      .pipe(Command.withDescription("Nuclear cleanup command: removes all generated files and cleans the workspace"))
+
     // configure CLI
     const cli = Command.run(
       Command
@@ -753,10 +680,10 @@ Effect
           ue,
           link,
           unlink,
-          watch,
           indexMulti,
           packagejson,
-          packagejsonPackages
+          packagejsonPackages,
+          nuke
         ])),
       {
         name: "Effect-App CLI by jfet97 ❤️",

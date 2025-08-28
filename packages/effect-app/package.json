@@ -284,7 +284,7 @@
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && effect-app-cli packagejson && tsc --build",
-    "build:tsc-src": "pnpm clean-dist && effect-app-cli packagejson && tsc --build ./tsconfig.src.json",
+    "build:tsc-src": "pnpm clean-dist && effect-app-cli packagejson tsc --build ./tsconfig.src.json",
     "build:src": "pnpm build:tsc-src",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",

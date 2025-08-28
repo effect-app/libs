@@ -4,7 +4,10 @@
 import { Args, Command, Options, Prompt } from "@effect/cli"
 import { Command as NodeCommand, FileSystem, Path } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
-import { Effect, identity, Stream } from "effect"
+
+import { type CommandExecutor } from "@effect/platform/CommandExecutor"
+import { type PlatformError } from "@effect/platform/Error"
+import { Effect, identity, Option, Stream, type Types } from "effect"
 import { ExtractExportMappingsService } from "./extract.js"
 import { packages } from "./shared.js"
 
@@ -104,7 +107,7 @@ Effect
      * @returns An Effect that succeeds when linking is complete
      */
     const linkPackages = Effect.fnUntraced(function*(effectAppLibsPath: string) {
-      yield* Effect.log("Linking local effect-app packages...")
+      yield* Effect.logInfo("Linking local effect-app packages...")
 
       const packageJsonPath = "./package.json"
       const packageJsonContent = yield* fs.readFileString(packageJsonPath)
@@ -123,11 +126,11 @@ Effect
       pj.resolutions = resolutions
 
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
-      yield* Effect.log("Updated package.json with local file resolutions")
+      yield* Effect.logInfo("Updated package.json with local file resolutions")
 
       yield* runNodeCommand("pnpm i")
 
-      yield* Effect.log("Successfully linked local packages")
+      yield* Effect.logInfo("Successfully linked local packages")
     })
 
     /**
@@ -138,7 +141,7 @@ Effect
      * @returns An Effect that succeeds when unlinking is complete
      */
     const unlinkPackages = Effect.fnUntraced(function*() {
-      yield* Effect.log("Unlinking local effect-app packages...")
+      yield* Effect.logInfo("Unlinking local effect-app packages...")
 
       const packageJsonPath = "./package.json"
       const packageJsonContent = yield* fs.readFileString(packageJsonPath)
@@ -156,10 +159,10 @@ Effect
       pj.resolutions = filteredResolutions
 
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
-      yield* Effect.log("Removed effect-app file resolutions from package.json")
+      yield* Effect.logInfo("Removed effect-app file resolutions from package.json")
 
       yield* runNodeCommand("pnpm i")
-      yield* Effect.log("Successfully unlinked local packages")
+      yield* Effect.logInfo("Successfully unlinked local packages")
     })()
 
     /**
@@ -171,10 +174,8 @@ Effect
      * @returns An Effect that sets up controller file monitoring
      */
     const monitorChildIndexes = Effect.fn("effa-cli.index-multi.monitorChildIndexes")(
-      function*(watchPath: string, debug: boolean) {
-        if (debug) {
-          yield* Effect.logInfo(`Starting controller monitoring for: ${watchPath}`)
-        }
+      function*(watchPath: string) {
+        yield* Effect.logInfo(`Starting controller monitoring for: ${watchPath}`)
 
         const watchStream = fs.watch(watchPath, { recursive: true })
 
@@ -202,11 +203,9 @@ Effect
                   }
 
                   if (existingFiles.length > 0) {
-                    if (debug) {
-                      yield* Effect.logInfo(
-                        `Controller change detected: ${event.path}, fixing files: ${existingFiles.join(", ")}`
-                      )
-                    }
+                    yield* Effect.logInfo(
+                      `Controller change detected: ${event.path}, fixing files: ${existingFiles.join(", ")}`
+                    )
 
                     const eslintArgs = existingFiles.map((f) => `"../${f}"`).join(" ")
                     yield* runNodeCommand(`cd api && pnpm eslint --fix ${eslintArgs}`)
@@ -236,10 +235,8 @@ Effect
      * @returns An Effect that sets up root index monitoring
      */
     const monitorRootIndexes = Effect.fn("effa-cli.index-multi.monitorRootIndexes")(
-      function*(watchPath: string, indexFile: string, debug: boolean) {
-        if (debug) {
-          yield* Effect.logInfo(`Starting root index monitoring for: ${watchPath} -> ${indexFile}`)
-        }
+      function*(watchPath: string, indexFile: string) {
+        yield* Effect.logInfo(`Starting root index monitoring for: ${watchPath} -> ${indexFile}`)
 
         const watchStream = fs.watch(watchPath)
 
@@ -249,9 +246,7 @@ Effect
               Effect.fn("effa-cli.index-multi.monitorRootIndexes.handleEvent")(function*(event) {
                 if (event.path.endsWith(indexFile)) return
 
-                if (debug) {
-                  yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
-                }
+                yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
 
                 yield* runNodeCommand(`pnpm eslint --fix "${indexFile}"`)
               })
@@ -277,24 +272,20 @@ Effect
      * @returns An Effect that sets up all index monitoring for the path
      */
     const monitorIndexes = Effect.fn("effa-cli.index-multi.monitorIndexes")(
-      function*(watchPath: string, debug: boolean) {
-        if (debug) {
-          yield* Effect.logInfo(`Setting up index monitoring for path: ${watchPath}`)
-        }
+      function*(watchPath: string) {
+        yield* Effect.logInfo(`Setting up index monitoring for path: ${watchPath}`)
 
         const indexFile = watchPath + "/index.ts"
 
-        const monitors = [monitorChildIndexes(watchPath, debug)]
+        const monitors = [monitorChildIndexes(watchPath)]
 
         if (yield* fs.exists(indexFile)) {
-          monitors.push(monitorRootIndexes(watchPath, indexFile, debug))
+          monitors.push(monitorRootIndexes(watchPath, indexFile))
         } else {
           yield* Effect.logInfo(`Index file ${indexFile} does not exist`)
         }
 
-        if (debug) {
-          yield* Effect.logInfo(`Starting ${monitors.length} monitor(s) for ${watchPath}`)
-        }
+        yield* Effect.logInfo(`Starting ${monitors.length} monitor(s) for ${watchPath}`)
 
         yield* Effect.all(monitors, { concurrency: monitors.length })
       }
@@ -306,17 +297,15 @@ Effect
      *
      * @returns An Effect that sets up file watching streams
      */
-    const watcher = Effect.fn("watch")(function*(debug: boolean) {
-      yield* Effect.log("Watch API resources and models for changes")
+    const watcher = Effect.fn("watch")(function*() {
+      yield* Effect.logInfo("Watch API resources and models for changes")
 
       const dirs = ["../api/src/resources", "../api/src/models"]
       const viteConfigFile = "./vite.config.ts"
 
       const viteConfigExists = yield* fs.exists(viteConfigFile)
 
-      if (debug) {
-        yield* Effect.logInfo("watcher debug mode is enabled")
-      }
+      yield* Effect.logInfo("watcher debug mode is enabled")
 
       // validate directories and filter out non-existing ones
       const existingDirs: string[] = []
@@ -329,16 +318,10 @@ Effect
         }
       }
 
-      if (existingDirs.length === 0) {
-        return yield* Effect.logWarning("No directories to watch - exiting")
-      }
-
       // start watching all existing directories concurrently
       const watchStreams = existingDirs.map((dir) =>
         Effect.gen(function*() {
-          if (debug) {
-            yield* Effect.logInfo(`Starting to watch directory: ${dir}`)
-          }
+          yield* Effect.logInfo(`Starting to watch directory: ${dir}`)
 
           const files: string[] = []
           const watchStream = fs.watch(dir, { recursive: true })
@@ -347,15 +330,12 @@ Effect
             .pipe(
               Stream.runForEach(
                 Effect.fn("effa-cli.watch.handleEvent")(function*(event) {
-                  if (debug) {
-                    yield* Effect.logInfo(`File ${event._tag.toLowerCase()}: ${event.path}`)
-                  }
+                  yield* Effect.logInfo(`File ${event._tag.toLowerCase()}: ${event.path}`)
 
                   // touch tsconfig.json on any file change
                   yield* touch("./tsconfig.json")
-                  if (debug) {
-                    yield* Effect.logInfo("Updated tsconfig.json")
-                  }
+
+                  yield* Effect.logInfo("Updated tsconfig.json")
 
                   // touch vite config only on file updates (not creates/deletes)
                   if (
@@ -364,9 +344,9 @@ Effect
                     && !files.includes(event.path)
                   ) {
                     yield* touch(viteConfigFile)
-                    if (debug) {
-                      yield* Effect.logInfo("Updated vite.config.ts")
-                    }
+
+                    yield* Effect.logInfo("Updated vite.config.ts")
+
                     files.push(event.path)
                   }
                 })
@@ -380,7 +360,7 @@ Effect
             )
 
           // also start monitoring indexes in the watched directory
-          yield* monitorIndexes(dir, debug)
+          yield* monitorIndexes(dir)
         })
       )
 
@@ -400,13 +380,13 @@ Effect
      */
     const packagejsonUpdater = Effect.fn("effa-cli.packagejsonUpdater")(
       function*(startDir: string, p: string, levels = 0) {
-        yield* Effect.log(`Generating exports for ${p}`)
+        yield* Effect.logInfo(`Generating exports for ${p}`)
 
         const exportMappings = yield* extractExportMappings(path.resolve(startDir, p))
 
         // if exportMappings is empty skip export generation
         if (exportMappings === "") {
-          yield* Effect.log(`No src directory found for ${p}, skipping export generation`)
+          yield* Effect.logInfo(`No src directory found for ${p}, skipping export generation`)
           return
         }
 
@@ -453,7 +433,7 @@ Effect
         const pkgJson = JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8"))
         pkgJson.exports = packageExports
 
-        yield* Effect.log(`Writing updated package.json for ${p}`)
+        yield* Effect.logInfo(`Writing updated package.json for ${p}`)
 
         return yield* fs.writeFileString(
           p + "/package.json",
@@ -501,6 +481,79 @@ Effect
      * CLI
      */
 
+    const WrapAsOption = Options.text("wrap").pipe(
+      Options.withAlias("w"),
+      Options.optional,
+      Options.withDescription(
+        "Wrap child bash command: the lifetime of the CLI command will be tied to the child process"
+      )
+    )
+
+    // has prio over WrapAsOption
+    const WrapAsArg = Args
+      .text({
+        name: "wrap"
+      })
+      .pipe(
+        Args.atLeast(1),
+        Args.optional,
+        Args.withDescription(
+          "Wrap child bash command: the lifetime of the CLI command will be tied to the child process"
+        )
+      )
+
+    /**
+     * Creates a command that automatically includes wrap functionality for executing child bash commands.
+     * Combines both option-based (--wrap) and argument-based wrap parameters, giving priority to arguments.
+     * If a wrap command is provided, it will be executed **after** the main command handler.
+     *
+     * @param name - The command name
+     * @param config - The command configuration (options, args, etc.)
+     * @param handler - The main command handler function
+     * @param completionMessage - Optional message to log when the command completes
+     * @returns A Command with integrated wrap functionality
+     */
+    const makeCommandWithWrap = <Name extends string, const Config extends Command.Command.Config, R, E>(
+      name: Name,
+      config: Config,
+      handler: (_: Types.Simplify<Command.Command.ParseConfig<Config>>) => Effect.Effect<void, E, R>,
+      completionMessage?: string
+    ): Command.Command<
+      Name,
+      CommandExecutor | R,
+      PlatformError | E,
+      Types.Simplify<Command.Command.ParseConfig<Config>>
+    > =>
+      Command.make(
+        name,
+        { ...config, wo: WrapAsOption, wa: WrapAsArg },
+        Effect.fn("effa-cli.withWrapHandler")(function*(_) {
+          const { wa, wo, ...cfg } = _ as unknown as {
+            wo: Option.Option<string>
+            wa: Option.Option<[string, ...string[]]>
+          } & Types.Simplify<Command.Command.ParseConfig<Config>>
+
+          if (completionMessage) {
+            yield* Effect.addFinalizer(() => Effect.logInfo(completionMessage))
+          }
+
+          const wrapOption = Option.orElse(wa, () => wo)
+
+          yield* handler(cfg as any)
+
+          if (Option.isSome(wrapOption)) {
+            const val = Array.isArray(wrapOption.value)
+              ? wrapOption.value.join(" ")
+              : wrapOption.value
+
+            yield* Effect.logInfo(`Spawning child command: ${val}`)
+            yield* runNodeCommand(val)
+          }
+
+          return
+        }, (_) => Effect.scoped(_))
+      )
+
     const EffectAppLibsPath = Args
       .directory({
         exists: "yes",
@@ -536,7 +589,7 @@ Effect
         "ue",
         {},
         Effect.fn("effa-cli.ue")(function*({}) {
-          yield* Effect.log("Update effect-app and/or effect packages")
+          yield* Effect.logInfo("Update effect-app and/or effect packages")
 
           const prompted = yield* Prompt.select({
             choices: [
@@ -579,129 +632,118 @@ Effect
       )
       .pipe(Command.withDescription("Update effect-app and/or effect packages"))
 
-    const DebugOption = Options.boolean("debug").pipe(
-      Options.withAlias("d"),
-      Options.withDescription("Enable debug logging")
+    const watch = makeCommandWithWrap(
+      "watch",
+      {},
+      Effect.fn("effa-cli.watch")(function*({}) {
+        return yield* watcher()
+      }),
+      "Stopped watching API resources and models"
     )
-
-    const watch = Command
-      .make(
-        "watch",
-        { debug: DebugOption },
-        Effect.fn("effa-cli.watch")(function*({ debug }) {
-          return yield* watcher(debug)
-        })
-      )
       .pipe(
         Command.withDescription(
           "Watch API resources and models for changes and update tsconfig.json and vite.config.ts accordingly"
         )
       )
 
-    const indexMulti = Command
-      .make(
-        "index-multi",
-        { debug: DebugOption },
-        Effect.fn("effa-cli.index-multi")(function*({ debug }) {
-          yield* Effect.log("Starting multi-index monitoring")
+    const indexMulti = makeCommandWithWrap(
+      "index-multi",
+      {},
+      Effect.fn("effa-cli.index-multi")(function*({}) {
+        yield* Effect.logInfo("Starting multi-index monitoring")
 
-          const dirs = ["./api/src"]
+        const dirs = ["./api/src"]
 
-          const existingDirs: string[] = []
-          for (const dir of dirs) {
-            const dirExists = yield* fs.exists(dir)
-            if (dirExists) {
-              existingDirs.push(dir)
-            } else {
-              yield* Effect.logWarning(`Directory ${dir} does not exist - skipping`)
-            }
+        const existingDirs: string[] = []
+        for (const dir of dirs) {
+          const dirExists = yield* fs.exists(dir)
+          if (dirExists) {
+            existingDirs.push(dir)
+          } else {
+            yield* Effect.logWarning(`Directory ${dir} does not exist - skipping`)
           }
+        }
 
-          if (existingDirs.length === 0) {
-            return yield* Effect.logWarning("No directories to monitor - exiting")
-          }
-
-          const monitors = existingDirs.map((dir) => monitorIndexes(dir, debug))
-          yield* Effect.all(monitors, { concurrency: monitors.length })
-        })
-      )
+        const monitors = existingDirs.map((dir) => monitorIndexes(dir))
+        yield* Effect.all(monitors, { concurrency: monitors.length })
+      }),
+      "Stopped multi-index monitoring"
+    )
       .pipe(
         Command.withDescription(
           "Monitor multiple directories for index and controller file changes"
         )
       )
 
-    const packagejson = Command
-      .make(
-        "packagejson",
-        {},
-        Effect.fn("effa-cli.packagejson")(function*({}) {
-          // https://nodejs.org/api/path.html#pathresolvepaths
-          const startDir = path.resolve()
+    const packagejson = makeCommandWithWrap(
+      "packagejson",
+      {},
+      Effect.fn("effa-cli.packagejson")(function*({}) {
+        // https://nodejs.org/api/path.html#pathresolvepaths
+        const startDir = path.resolve()
 
-          return yield* monitorPackageJson(startDir, ".")
-        })
-      )
+        return yield* monitorPackageJson(startDir, ".")
+      }),
+      "Stopped monitoring root package.json exports"
+    )
       .pipe(
         Command.withDescription("Generate and update root-level package.json exports mappings for TypeScript modules")
       )
 
-    const packagejsonPackages = Command
-      .make(
-        "packagejson-packages",
-        {},
-        Effect.fn("effa-cli.packagejson-packages")(function*({}) {
-          // https://nodejs.org/api/path.html#pathresolvepaths
-          const startDir = path.resolve()
+    const packagejsonPackages = makeCommandWithWrap(
+      "packagejson-packages",
+      {},
+      Effect.fn("effa-cli.packagejson-packages")(function*({}) {
+        // https://nodejs.org/api/path.html#pathresolvepaths
+        const startDir = path.resolve()
 
-          const packagesDir = path.join(startDir, "packages")
+        const packagesDir = path.join(startDir, "packages")
 
-          const packagesExists = yield* fs.exists(packagesDir)
-          if (!packagesExists) {
-            return yield* Effect.logWarning("No packages directory found")
+        const packagesExists = yield* fs.exists(packagesDir)
+        if (!packagesExists) {
+          return yield* Effect.logWarning("No packages directory found")
+        }
+
+        // get all package directories
+        const packageDirs = yield* fs.readDirectory(packagesDir)
+
+        const validPackages: string[] = []
+
+        // filter packages that have package.json and src directory
+        for (const packageName of packageDirs) {
+          const packagePath = path.join(packagesDir, packageName)
+          const packageJsonExists = yield* fs.exists(path.join(packagePath, "package.json"))
+          const srcExists = yield* fs.exists(path.join(packagePath, "src"))
+
+          const shouldExclude = false
+            || packageName.endsWith("eslint-codegen-model")
+            || packageName.endsWith("vue-components")
+
+          if (packageJsonExists && srcExists && !shouldExclude) {
+            validPackages.push(packagePath)
           }
+        }
 
-          // get all package directories
-          const packageDirs = yield* fs.readDirectory(packagesDir)
+        yield* Effect.logInfo(`Found ${validPackages.length} packages to update`)
 
-          const validPackages: string[] = []
-
-          // filter packages that have package.json and src directory
-          for (const packageName of packageDirs) {
-            const packagePath = path.join(packagesDir, packageName)
-            const packageJsonExists = yield* fs.exists(path.join(packagePath, "package.json"))
-            const srcExists = yield* fs.exists(path.join(packagePath, "src"))
-
-            const shouldExclude = false
-              || packageName.endsWith("eslint-codegen-model")
-              || packageName.endsWith("vue-components")
-
-            if (packageJsonExists && srcExists && !shouldExclude) {
-              validPackages.push(packagePath)
-            }
-          }
-
-          if (validPackages.length === 0) {
-            return yield* Effect.logWarning("No valid packages found to update")
-          }
-
-          yield* Effect.log(`Found ${validPackages.length} packages to update`)
-
-          // update each package sequentially
-          yield* Effect.all(
-            validPackages.map((packagePath) =>
-              Effect.gen(function*() {
-                const relativePackagePath = path.relative(startDir, packagePath)
-                yield* Effect.logInfo(`Updating ${relativePackagePath}`)
-                return yield* monitorPackageJson(startDir, relativePackagePath)
-              })
-            )
+        // update each package sequentially
+        yield* Effect.all(
+          validPackages.map(
+            Effect.fnUntraced(function*(packagePath) {
+              const relativePackagePath = path.relative(startDir, packagePath)
+              yield* Effect.logInfo(`Updating ${relativePackagePath}`)
+              return yield* monitorPackageJson(startDir, relativePackagePath)
+            })
           )
+        )
 
-          yield* Effect.log("All packages updated successfully")
-        })
+        yield* Effect.logInfo("All packages updated successfully")
+      }),
+      "Stopped monitoring package.json exports for all packages"
+    )
+      .pipe(
+        Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo")
       )
-      .pipe(Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo"))
 
     // configure CLI
     const cli = Command.run(

@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.19
+
+### Patch Changes
+
+- f101ef0: upgrade ea
+- Updated dependencies [f101ef0]
+  - effect-app@3.2.3
+
 ## 3.0.18
 
 ### Patch Changes

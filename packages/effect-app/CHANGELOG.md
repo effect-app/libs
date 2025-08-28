@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.2.3
+
+### Patch Changes
+
+- f101ef0: upgrade ea
+
 ## 3.2.2
 
 ### Patch Changes

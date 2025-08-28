@@ -1,5 +1,12 @@
 # @effect-app/cli
 
+## 1.23.5
+
+### Patch Changes
+
+- de35a0f: add monitors for packagejson
+- 8e1543e: add wrapping of child commands
+
 ## 1.23.4
 
 ### Patch Changes

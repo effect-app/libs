@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.51.17
+
+### Patch Changes
+
+- f101ef0: upgrade ea
+- Updated dependencies [f101ef0]
+  - effect-app@3.2.3
+
 ## 2.51.16
 
 ### Patch Changes

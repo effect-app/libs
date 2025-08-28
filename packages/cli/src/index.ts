@@ -172,13 +172,11 @@ Effect
      */
     const monitorChildIndexes = Effect.fn("effa-cli.index-multi.monitorChildIndexes")(
       function*(watchPath: string, debug: boolean) {
-        const fileSystem = yield* FileSystem.FileSystem
-
         if (debug) {
           yield* Effect.logInfo(`Starting controller monitoring for: ${watchPath}`)
         }
 
-        const watchStream = fileSystem.watch(watchPath, { recursive: true })
+        const watchStream = fs.watch(watchPath, { recursive: true })
 
         yield* watchStream
           .pipe(
@@ -199,7 +197,7 @@ Effect
 
                   const existingFiles: string[] = []
                   for (const file of candidateFiles) {
-                    const exists = yield* fileSystem.exists(file)
+                    const exists = yield* fs.exists(file)
                     if (exists) existingFiles.push(file)
                   }
 
@@ -239,13 +237,11 @@ Effect
      */
     const monitorRootIndexes = Effect.fn("effa-cli.index-multi.monitorRootIndexes")(
       function*(watchPath: string, indexFile: string, debug: boolean) {
-        const fileSystem = yield* FileSystem.FileSystem
-
         if (debug) {
           yield* Effect.logInfo(`Starting root index monitoring for: ${watchPath} -> ${indexFile}`)
         }
 
-        const watchStream = fileSystem.watch(watchPath)
+        const watchStream = fs.watch(watchPath)
 
         yield* watchStream
           .pipe(
@@ -282,8 +278,6 @@ Effect
      */
     const monitorIndexes = Effect.fn("effa-cli.index-multi.monitorIndexes")(
       function*(watchPath: string, debug: boolean) {
-        const fileSystem = yield* FileSystem.FileSystem
-
         if (debug) {
           yield* Effect.logInfo(`Setting up index monitoring for path: ${watchPath}`)
         }
@@ -292,7 +286,7 @@ Effect
 
         const monitors = [monitorChildIndexes(watchPath, debug)]
 
-        if (yield* fileSystem.exists(indexFile)) {
+        if (yield* fs.exists(indexFile)) {
           monitors.push(monitorRootIndexes(watchPath, indexFile, debug))
         } else {
           yield* Effect.logInfo(`Index file ${indexFile} does not exist`)
@@ -317,9 +311,8 @@ Effect
 
       const dirs = ["../api/src/resources", "../api/src/models"]
       const viteConfigFile = "./vite.config.ts"
-      const fileSystem = yield* FileSystem.FileSystem
 
-      const viteConfigExists = yield* fileSystem.exists(viteConfigFile)
+      const viteConfigExists = yield* fs.exists(viteConfigFile)
 
       if (debug) {
         yield* Effect.logInfo("watcher debug mode is enabled")
@@ -328,7 +321,7 @@ Effect
       // validate directories and filter out non-existing ones
       const existingDirs: string[] = []
       for (const dir of dirs) {
-        const dirExists = yield* fileSystem.exists(dir)
+        const dirExists = yield* fs.exists(dir)
         if (dirExists) {
           existingDirs.push(dir)
         } else {
@@ -348,7 +341,7 @@ Effect
           }
 
           const files: string[] = []
-          const watchStream = fileSystem.watch(dir, { recursive: true })
+          const watchStream = fs.watch(dir, { recursive: true })
 
           yield* watchStream
             .pipe(
@@ -469,6 +462,41 @@ Effect
       }
     )
 
+    /**
+     * Monitors a directory for TypeScript file changes and automatically updates package.json exports.
+     * Generates initial package.json exports, then watches the src directory for changes to regenerate exports.
+     *
+     * @param watchPath - The directory path containing the package.json and src to monitor
+     * @param levels - Optional depth limit for export filtering (0 = no limit)
+     * @returns An Effect that sets up package.json monitoring
+     */
+    const monitorPackageJson = Effect.fn("effa-cli.monitorPackageJson")(
+      function*(startDir: string, watchPath: string, levels = 0) {
+        yield* packagejsonUpdater(startDir, watchPath, levels)
+
+        const srcPath = watchPath === "." ? "./src" : `${watchPath}/src`
+
+        if (!(yield* fs.exists(srcPath))) {
+          yield* Effect.logWarning(`Source directory ${srcPath} does not exist - skipping monitoring`)
+          return
+        }
+
+        const watchStream = fs.watch(srcPath, { recursive: true })
+
+        yield* watchStream.pipe(
+          Stream.runForEach(
+            Effect.fn("effa-cli.monitorPackageJson.handleEvent")(function*(_) {
+              yield* packagejsonUpdater(startDir, watchPath, levels)
+            })
+          ),
+          Effect.andThen(
+            Effect.addFinalizer(() => Effect.logInfo(`Stopped monitoring package.json for: ${watchPath}`))
+          ),
+          Effect.forkScoped
+        )
+      }
+    )
+
     /*
      * CLI
      */
@@ -578,11 +606,10 @@ Effect
           yield* Effect.log("Starting multi-index monitoring")
 
           const dirs = ["./api/src"]
-          const fileSystem = yield* FileSystem.FileSystem
 
           const existingDirs: string[] = []
           for (const dir of dirs) {
-            const dirExists = yield* fileSystem.exists(dir)
+            const dirExists = yield* fs.exists(dir)
             if (dirExists) {
               existingDirs.push(dir)
             } else {
@@ -612,7 +639,7 @@ Effect
           // https://nodejs.org/api/path.html#pathresolvepaths
           const startDir = path.resolve()
 
-          return yield* packagejsonUpdater(startDir, ".")
+          return yield* monitorPackageJson(startDir, ".")
         })
       )
       .pipe(
@@ -665,8 +692,8 @@ Effect
             validPackages.map((packagePath) =>
               Effect.gen(function*() {
                 const relativePackagePath = path.relative(startDir, packagePath)
-                yield* Effect.log(`Updating ${relativePackagePath}`)
-                return yield* packagejsonUpdater(startDir, relativePackagePath)
+                yield* Effect.logInfo(`Updating ${relativePackagePath}`)
+                return yield* monitorPackageJson(startDir, relativePackagePath)
               })
             )
           )

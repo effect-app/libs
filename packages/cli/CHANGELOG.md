@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.6
+
+### Patch Changes
+
+- e81f093: remove watch add nuke
+
 ## 1.23.5
 
 ### Patch Changes

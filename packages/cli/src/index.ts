@@ -495,6 +495,7 @@ Effect
         name: "wrap"
       })
       .pipe(
+        Args.atLeast(1),
         Args.optional,
         Args.withDescription(
           "Wrap child bash command: the lifetime of the CLI command will be tied to the child process"
@@ -529,7 +530,7 @@ Effect
         Effect.fn("effa-cli.withWrapHandler")(function*(_) {
           const { wa, wo, ...cfg } = _ as unknown as {
             wo: Option.Option<string>
-            wa: Option.Option<string>
+            wa: Option.Option<[string, ...string[]]>
           } & Types.Simplify<Command.Command.ParseConfig<Config>>
 
           if (completionMessage) {
@@ -541,9 +542,12 @@ Effect
           yield* handler(cfg as any)
 
           if (Option.isSome(wrapOption)) {
-            yield* Effect.logInfo(`Spawning child command: ${wrapOption.value}`)
+            const val = Array.isArray(wrapOption.value)
+              ? wrapOption.value.join(" ")
+              : wrapOption.value
 
-            yield* runNodeCommand(wrapOption.value)
+            yield* Effect.logInfo(`Spawning child command: ${val}`)
+            yield* runNodeCommand(val)
           }
 
           return

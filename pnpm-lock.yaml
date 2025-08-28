@@ -53,8 +53,8 @@ importers:
         specifier: ^0.95.9
         version: 0.95.9
       '@effect-app/cli':
-        specifier: ^1.23.5
-        version: 1.23.5(a66799d3516925dffe25464adc3ab40a)
+        specifier: ^1.23.6
+        version: 1.23.6(a66799d3516925dffe25464adc3ab40a)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -1037,8 +1037,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.23.5':
-    resolution: {integrity: sha512-C5Nw1D4EZFx2pRWguxjrEcfvyWe+f/4I9z83V8a7Jw5i0SGzSD0Ycw/PWcAldwtYurTNSLzeosUd1EDkpsTsCg==}
+  '@effect-app/cli@1.23.6':
+    resolution: {integrity: sha512-SBUXw1tFGeITkx4LTOKL4iQmsi9dxLxX0X+RJLGjbX8/N86d4IRZIZDtpDxaMXDY26RIWPj7FSFUpMS/3uWQIg==}
     hasBin: true
 
   '@effect-atom/atom-vue@0.1.3':
@@ -7479,7 +7479,7 @@ snapshots:
   '@dprint/win32-x64@0.50.1':
     optional: true
 
-  '@effect-app/cli@1.23.5(a66799d3516925dffe25464adc3ab40a)':
+  '@effect-app/cli@1.23.6(a66799d3516925dffe25464adc3ab40a)':
     dependencies:
       '@effect/cli': 0.69.2(@effect/platform@0.90.0(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)))(@effect/printer-ansi@0.45.0(@effect/typeclass@0.36.0(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)))(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)))(@effect/printer@0.45.0(@effect/typeclass@0.36.0(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)))(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)))(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059))
       '@effect/platform-node': 0.94.1(324b4061763ddf10dde9e95265091108)

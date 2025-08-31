@@ -45,7 +45,25 @@ export interface Opts<
   RError = never,
   EDefect = never,
   RDefect = never
-> extends MutationOptions<A, E, R, A2, E2, R2, I> {
+> extends
+  MutationOptions<A, E, R, A2, E2, R2, I>,
+  MessageOpts<A, E, I, A2, E2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
+{
+}
+
+export interface MessageOpts<
+  A,
+  E,
+  I = void,
+  A2 = A,
+  E2 = E,
+  ESuccess = never,
+  RSuccess = never,
+  EError = never,
+  RError = never,
+  EDefect = never,
+  RDefect = never
+> {
   /** set to `undefined` to use default message */
   successMessage?: ((a: A2, i: I) => Effect.Effect<string | undefined, ESuccess, RSuccess>) | undefined
   /** set to `undefined` to use default message */
@@ -279,7 +297,7 @@ export const makeClient = <Locale extends string, R>(
       f: Effect.Effect<Exit.Exit<A2, E2>, never, R2> | ((i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>),
       name: string,
       action: string,
-      options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
+      options: MessageOpts<A, E, I, A2, E2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
     ) {
       const actionMessage = messages[action] ?? action
       const defaultWarnMessage = intl.value.formatMessage(

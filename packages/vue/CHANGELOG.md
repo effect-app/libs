@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.51.18
+
+### Patch Changes
+
+- fix void in asResult R.
+
 ## 2.51.17
 
 ### Patch Changes

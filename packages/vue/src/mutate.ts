@@ -97,10 +97,10 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
 export const asResult: {
   <A, E, R>(
     handler: Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<Result.Result<A, E>>, Effect.Effect<Exit.Exit<A, E>, never, void>]
+  ): readonly [ComputedRef<Result.Result<A, E>>, Effect.Effect<Exit.Exit<A, E>, never, R>]
   <Args extends readonly any[], A, E, R>(
     handler: (...args: Args) => Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<Result.Result<A, E>>, (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, void>]
+  ): readonly [ComputedRef<Result.Result<A, E>>, (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>]
 } = <Args extends readonly any[], A, E, R>(
   handler: Effect.Effect<A, E, R> | ((...args: Args) => Effect.Effect<A, E, R>)
 ) => {

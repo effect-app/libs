@@ -6,6 +6,7 @@ import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } fr
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { type RuntimeFiber } from "effect/Fiber"
+import { type NoInfer } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { computed, type ComputedRef } from "vue"
 import { type makeUseConfirm } from "./useConfirm.js"
@@ -99,8 +100,8 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A
     ): CommandOutHelper<Args, A>
     <
@@ -120,10 +121,10 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B
+      b: (_: A, ...args: NoInfer<Args>) => B
     ): CommandOutHelper<Args, B>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -143,11 +144,11 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C
+      b: (_: A, ...args: NoInfer<Args>) => B,
+      c: (_: B, ...args: NoInfer<Args>) => C
     ): CommandOutHelper<Args, C>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -168,12 +169,12 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D
+      b: (_: A, ...args: NoInfer<Args>) => B,
+      c: (_: B, ...args: NoInfer<Args>) => C,
+      d: (_: C, ...args: NoInfer<Args>) => D
     ): CommandOutHelper<Args, D>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -195,13 +196,13 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E
+      b: (_: A, ...args: NoInfer<Args>) => B,
+      c: (_: B, ...args: NoInfer<Args>) => C,
+      d: (_: C, ...args: NoInfer<Args>) => D,
+      e: (_: D, ...args: NoInfer<Args>) => E
     ): CommandOutHelper<Args, E>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -224,14 +225,14 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F
+      b: (_: A, ...args: NoInfer<Args>) => B,
+      c: (_: B, ...args: NoInfer<Args>) => C,
+      d: (_: C, ...args: NoInfer<Args>) => D,
+      e: (_: D, ...args: NoInfer<Args>) => E,
+      f: (_: E, ...args: NoInfer<Args>) => F
     ): CommandOutHelper<Args, F>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -255,15 +256,15 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
-      g: (_: F /* TODO , ...args: NoInfer<Args> */) => G
+      b: (_: A, ...args: NoInfer<Args>) => B,
+      c: (_: B, ...args: NoInfer<Args>) => C,
+      d: (_: C, ...args: NoInfer<Args>) => D,
+      e: (_: D, ...args: NoInfer<Args>) => E,
+      f: (_: E, ...args: NoInfer<Args>) => F,
+      g: (_: F, ...args: NoInfer<Args>) => G
     ): CommandOutHelper<Args, G>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -288,16 +289,16 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
-      g: (_: F /* TODO , ...args: NoInfer<Args> */) => G,
-      h: (_: G /* TODO , ...args: NoInfer<Args> */) => H
+      b: (_: A, ...args: NoInfer<Args>) => B,
+      c: (_: B, ...args: NoInfer<Args>) => C,
+      d: (_: C, ...args: NoInfer<Args>) => D,
+      e: (_: D, ...args: NoInfer<Args>) => E,
+      f: (_: E, ...args: NoInfer<Args>) => F,
+      g: (_: F, ...args: NoInfer<Args>) => G,
+      h: (_: G, ...args: NoInfer<Args>) => H
     ): CommandOutHelper<Args, H>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -323,17 +324,17 @@ export const makeUseCommand = <Locale extends string, RT>(
           [Eff] extends [never] ? never
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
-        > /* TODO ,
-          ...args: NoInfer<Args> */
+        >,
+        ...args: NoInfer<Args>
       ) => A,
-      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
-      g: (_: F /* TODO , ...args: NoInfer<Args> */) => G,
-      h: (_: G /* TODO , ...args: NoInfer<Args> */) => H,
-      i: (_: H /* TODO , ...args: NoInfer<Args> */) => I
+      b: (_: A, ...args: NoInfer<Args>) => B,
+      c: (_: B, ...args: NoInfer<Args>) => C,
+      d: (_: C, ...args: NoInfer<Args>) => D,
+      e: (_: D, ...args: NoInfer<Args>) => E,
+      f: (_: E, ...args: NoInfer<Args>) => F,
+      g: (_: F, ...args: NoInfer<Args>) => G,
+      h: (_: G, ...args: NoInfer<Args>) => H,
+      i: (_: H, ...args: NoInfer<Args>) => I
     ): CommandOutHelper<Args, I>
   }
 

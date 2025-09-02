@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
 import { CommandContext, DefaultIntl } from "../src/experimental/useCommand.js"

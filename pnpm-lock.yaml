@@ -495,6 +495,9 @@ importers:
         specifier: ^3.5.18
         version: 3.5.18(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))
     devDependencies:
+      '@formatjs/icu-messageformat-parser':
+        specifier: ^2.11.2
+        version: 2.11.2
       '@types/node':
         specifier: ~24.2.0
         version: 24.2.0

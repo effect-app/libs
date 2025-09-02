@@ -21,6 +21,7 @@
     "vue": "^3.5.18"
   },
   "devDependencies": {
+    "@formatjs/icu-messageformat-parser": "^2.11.2",
     "@types/node": "~24.2.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "intl-messageformat": "^10.7.16",
@@ -44,6 +45,10 @@
     "./errorReporter": {
       "types": "./dist/errorReporter.d.ts",
       "default": "./dist/errorReporter.js"
+    },
+    "./experimental/makeExperimental": {
+      "types": "./dist/experimental/makeExperimental.d.ts",
+      "default": "./dist/experimental/makeExperimental.js"
     },
     "./experimental/useCommand": {
       "types": "./dist/experimental/useCommand.d.ts",

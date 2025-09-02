@@ -67,7 +67,7 @@ it.live("can map the result", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: { "action.Test Span": "Test Span Translated" } })
+      const { useCommand } = useExperimental({ toasts })
       const Command = useCommand()
 
       let executed = false
@@ -76,7 +76,6 @@ it.live("can map the result", () =>
         function*() {
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
 
-          expect(yield* CommandContext).toEqual({ action: "Test Span Translated" })
           return "test-value"
         },
         Effect.map((_) => _ + _),
@@ -85,6 +84,29 @@ it.live("can map the result", () =>
       const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
 
       expect(r).toBe("test-valuetest-value") // to confirm that the initial function and map has ran.
+      expect(executed).toBe(true) // to confirm that the combinators have ran.
+    }))
+
+it.live("can receive and use input", () =>
+  Effect
+    .gen(function*() {
+      const toasts: any[] = []
+      const { useCommand } = useExperimental({ toasts })
+      const Command = useCommand()
+
+      let executed = false
+
+      const command = Command.fn("Test Span")(
+        function*(input1: number, input2: string) {
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+
+          return { input1, input2 }
+        },
+        Effect.tap(() => executed = true)
+      )
+      const r = yield* Fiber.join(command.value(1, "2")).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
+
+      expect(r).toEqual({ input1: 1, input2: "2" }) // to confirm that the initial function has ran and received input.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
     }))
 
@@ -101,7 +123,6 @@ it.live("can replace the result", () =>
         function*() {
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
 
-          expect(yield* CommandContext).toEqual({ action: "Test Span Translated" })
           return "test-value"
         },
         Effect.zipRight(Effect.succeed(42)),

@@ -71,6 +71,78 @@ export const makeUseCommand = <Locale extends string, RT>(
     Effect.Effect.Error<Eff>
   >
 
+  const makeCommand = (actionName: string) =>
+  <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
+    handler: (...args: Args) => Effect.Effect<A, E, R>
+  ) => {
+    const action = intl.value.formatMessage({
+      id: `action.${actionName}`,
+      defaultMessage: actionName
+    })
+    const context = { action }
+
+    const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+      self.pipe(
+        Effect.tapErrorCause(
+          Effect.fnUntraced(function*(cause) {
+            if (Cause.isInterruptedOnly(cause)) {
+              console.info(`Interrupted while trying to ${actionName}`)
+              return
+            }
+
+            const fail = Cause.failureOption(cause)
+            if (Option.isSome(fail)) {
+              // if (fail.value._tag === "SuppressErrors") {
+              //   console.info(
+              //     `Suppressed error trying to ${action}`,
+              //     fail.value,
+              //   )
+              //   return
+              // }
+              const message = `Failure trying to ${actionName}`
+              yield* reportMessage(message, {
+                action: actionName,
+                error: fail.value
+              })
+              return
+            }
+
+            const extra = {
+              action,
+              message: `Unexpected Error trying to ${actionName}`
+            }
+            yield* reportRuntimeError(cause, extra)
+          })
+        )
+      )
+
+    const theHandler = flow(
+      handler,
+      // all must be within the Effect.fn to fit within the Span
+      Effect.provideService(CommandContext, context),
+      (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_)),
+      errorReporter,
+      Effect.withSpan(actionName)
+    )
+
+    const [result, mut] = asResult(theHandler)
+
+    return computed(() =>
+      Object.assign(
+        flow(
+          mut,
+          runFork
+          // (_) => {}
+        ), /* make sure always create a new one, or the state won't properly propagate */
+        {
+          action,
+          result: result.value,
+          waiting: result.value.waiting
+        }
+      )
+    )
+  }
+
   return {
     /** Version of confirmOrInterrupt that automatically includes the action name in the default messages */
     confirmOrInterrupt: Effect.fnUntraced(function*(
@@ -440,146 +512,9 @@ export const makeUseCommand = <Locale extends string, RT>(
       // TODO: combinators can freely take A, E, R and change it to whatever they want, as long as the end result Requires not more than CommandContext | R
       ...combinators: any[]
     ): any => {
-      const action = intl.value.formatMessage({
-        id: `action.${actionName}`,
-        defaultMessage: actionName
-      })
-      const context = { action }
-
-      const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-        self.pipe(
-          Effect.tapErrorCause(
-            Effect.fnUntraced(function*(cause) {
-              if (Cause.isInterruptedOnly(cause)) {
-                console.info(`Interrupted while trying to ${actionName}`)
-                return
-              }
-
-              const fail = Cause.failureOption(cause)
-              if (Option.isSome(fail)) {
-                // if (fail.value._tag === "SuppressErrors") {
-                //   console.info(
-                //     `Suppressed error trying to ${action}`,
-                //     fail.value,
-                //   )
-                //   return
-                // }
-                const message = `Failure trying to ${actionName}`
-                yield* reportMessage(message, {
-                  action: actionName,
-                  error: fail.value
-                })
-                return
-              }
-
-              const extra = {
-                action,
-                message: `Unexpected Error trying to ${actionName}`
-              }
-              yield* reportRuntimeError(cause, extra)
-            })
-          )
-        )
-
-      // TODO: override span stack set by Effect.fn as it points here instead of to the caller of Command.fn.
-      // perhaps copying Effect.fn implementation is better than using it?
-      const handler = Effect.fn(actionName)(
-        fn,
-        ...(combinators as [any]),
-        // all must be within the Effect.fn to fit within the Span
-        Effect.provideService(CommandContext, context) as any, /* TODO */
-        ((_: any) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))) as any, /* TODO */
-        errorReporter as any /* TODO */
-      ) as any // (...args: Args) => Effect.Effect<AEff, $WrappedEffectError, R>
-
-      const [result, mut] = asResult(handler)
-
-      return computed(() =>
-        Object.assign(
-          flow(
-            mut as any,
-            runFork
-            // (_) => {}
-          ), /* make sure always create a new one, or the state won't properly propagate */
-          {
-            action,
-            result: result.value,
-            waiting: result.value.waiting
-          }
-        )
-      )
+      return makeCommand(actionName)(Effect.fnUntraced(fn, ...combinators as [any]) as any)
     },
 
-    alt: (actionName: string) =>
-    <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
-      handler: (...args: Args) => Effect.Effect<A, E, R>
-    ) => {
-      const action = intl.value.formatMessage({
-        id: `action.${actionName}`,
-        defaultMessage: actionName
-      })
-      const context = { action }
-
-      const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-        self.pipe(
-          Effect.tapErrorCause(
-            Effect.fnUntraced(function*(cause) {
-              if (Cause.isInterruptedOnly(cause)) {
-                console.info(`Interrupted while trying to ${actionName}`)
-                return
-              }
-
-              const fail = Cause.failureOption(cause)
-              if (Option.isSome(fail)) {
-                // if (fail.value._tag === "SuppressErrors") {
-                //   console.info(
-                //     `Suppressed error trying to ${action}`,
-                //     fail.value,
-                //   )
-                //   return
-                // }
-                const message = `Failure trying to ${actionName}`
-                yield* reportMessage(message, {
-                  action: actionName,
-                  error: fail.value
-                })
-                return
-              }
-
-              const extra = {
-                action,
-                message: `Unexpected Error trying to ${actionName}`
-              }
-              yield* reportRuntimeError(cause, extra)
-            })
-          )
-        )
-
-      const theHandler = flow(
-        handler,
-        // all must be within the Effect.fn to fit within the Span
-        Effect.provideService(CommandContext, context),
-        (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_)),
-        errorReporter,
-        Effect.withSpan(actionName)
-      )
-
-      const [result, mut] = asResult(theHandler)
-
-      return computed(() =>
-        Object.assign(
-          flow(
-            mut,
-            runFork
-            // (_) => {}
-          ), /* make sure always create a new one, or the state won't properly propagate */
-          {
-            action,
-            result: result.value,
-            waiting: result.value.waiting
-          }
-        )
-      )
-    }
+    alt: makeCommand
   }
 }

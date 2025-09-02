@@ -30,7 +30,8 @@ it.live("works", () =>
         ),
         Effect.tap(() => executed = true)
       )
-      expect(toasts.length).toBe(0)
+      expect(command.value.action).toBe("Test Span")
+
       const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
@@ -57,6 +58,7 @@ it.live("has custom action name", () =>
         },
         Effect.tap(() => executed = true)
       )
+      expect(command.value.action).toBe("Test Span Translated")
       const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.3
+
+### Patch Changes
+
+- 85c7b34: fix: unary
+
 ## 2.52.2
 
 ### Patch Changes

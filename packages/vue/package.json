@@ -12,16 +12,19 @@
     "query-string": "^9.2.2"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.90.0",
-    "@effect/platform-browser": "^0.70.0",
     "@effect-atom/atom": "^0.1.4",
     "@effect-atom/atom-vue": "^0.1.3",
+    "@effect/platform": "^0.90.0",
+    "@effect/platform-browser": "^0.70.0",
     "@sentry/browser": "^10.2.0",
     "effect": "^3.17.6",
     "vue": "^3.5.18"
   },
   "devDependencies": {
+    "@effect/vitest": "^0.25.1",
+    "@formatjs/icu-messageformat-parser": "^2.11.2",
     "@types/node": "~24.2.0",
+    "@vitejs/plugin-vue": "^6.0.1",
     "intl-messageformat": "^10.7.16",
     "json5": "^2.2.3",
     "typescript": "~5.9.2",
@@ -43,6 +46,22 @@
     "./errorReporter": {
       "types": "./dist/errorReporter.d.ts",
       "default": "./dist/errorReporter.js"
+    },
+    "./experimental/makeExperimental": {
+      "types": "./dist/experimental/makeExperimental.d.ts",
+      "default": "./dist/experimental/makeExperimental.js"
+    },
+    "./experimental/useCommand": {
+      "types": "./dist/experimental/useCommand.d.ts",
+      "default": "./dist/experimental/useCommand.js"
+    },
+    "./experimental/useConfirm": {
+      "types": "./dist/experimental/useConfirm.d.ts",
+      "default": "./dist/experimental/useConfirm.js"
+    },
+    "./experimental/useWithToast": {
+      "types": "./dist/experimental/useWithToast.d.ts",
+      "default": "./dist/experimental/useWithToast.js"
     },
     "./form": {
       "types": "./dist/form.d.ts",

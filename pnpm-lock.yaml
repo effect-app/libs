@@ -495,9 +495,18 @@ importers:
         specifier: ^3.5.18
         version: 3.5.18(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))
     devDependencies:
+      '@effect/vitest':
+        specifier: ^0.25.1
+        version: 0.25.1(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059))(vitest@3.2.4(@types/node@24.2.0)(jsdom@26.1.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1))
+      '@formatjs/icu-messageformat-parser':
+        specifier: ^2.11.2
+        version: 2.11.2
       '@types/node':
         specifier: ~24.2.0
         version: 24.2.0
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.1
+        version: 6.0.1(vite@7.1.0(@types/node@24.2.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1))(vue@3.5.18(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
       intl-messageformat:
         specifier: ^10.7.16
         version: 10.7.16
@@ -1151,6 +1160,12 @@ packages:
     resolution: {integrity: sha512-FpOKYdhe3LaOoYn0cm5W9cD9bk2qwr2A+ujMhiDVxN7MMgndFsOd8uxcWjZRX6tWjzU2aKvZXFKGEp93GAmXug==}
     peerDependencies:
       effect: ^3.17.0
+      vitest: ^3.2.0
+
+  '@effect/vitest@0.25.1':
+    resolution: {integrity: sha512-OMYvOU8iGed8GZXxgVBXlYtjG+jwWj5cJxFk0hOHOfTbCHXtdCMEWlXNba5zxbE7dBnW4srbnSYrP/NGGTC3qQ==}
+    peerDependencies:
+      effect: ^3.17.7
       vitest: ^3.2.0
 
   '@emnapi/core@1.4.3':
@@ -7609,6 +7624,11 @@ snapshots:
       effect: 3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)
 
   '@effect/vitest@0.25.0(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059))(vitest@3.2.4(@types/node@24.2.0)(jsdom@26.1.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1))':
+    dependencies:
+      effect: 3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)
+      vitest: 3.2.4(@types/node@24.2.0)(jsdom@26.1.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1)
+
+  '@effect/vitest@0.25.1(effect@3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059))(vitest@3.2.4(@types/node@24.2.0)(jsdom@26.1.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1))':
     dependencies:
       effect: 3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)
       vitest: 3.2.4(@types/node@24.2.0)(jsdom@26.1.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1)

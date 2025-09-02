@@ -1,5 +1,5 @@
 import { it } from "@effect/vitest"
-import { Effect, Exit, Fiber } from "effect-app"
+import { Cause, Effect, Exit, Fiber } from "effect-app"
 import { CommandContext, DefaultIntl } from "../src/experimental/useCommand.js"
 import { useExperimental } from "./stubs.js"
 
@@ -127,4 +127,57 @@ it.live("interrupted", () =>
       expect(Exit.isInterrupted(r)).toBe(true) // to confirm that the initial function has interrupted
 
       expect(toasts.length).toBe(0) // toast is removed on interruption. TODO: maybe a nicer user experience can be had?
+    }))
+
+it.live("fail", () =>
+  Effect
+    .gen(function*() {
+      let executed = false
+      const toasts: any[] = []
+      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
+      const Command = useCommand()
+
+      const command = Command.fn("Test Span")(
+        function*() {
+          expect(toasts.length).toBe(1)
+          return yield* Effect.fail({ message: "Boom!" })
+        },
+        Command.withDefaultToast,
+        Effect.tap(() => executed = true)
+      )
+
+      const r = yield* Fiber.join(command.value()) // we receive an Exit as errors/results are processed
+
+      expect(executed).toBe(false) // we failed after all :)
+      expect(Exit.isFailure(r)).toBe(true) // to confirm that the initial function has failed
+
+      expect(toasts.length).toBe(1) // toast should show error
+      expect(toasts[0].message).toBe("Test Span Failed:\nBoom!")
+    }))
+
+it.live("defect", () =>
+  Effect
+    .gen(function*() {
+      let executed = false
+      const toasts: any[] = []
+      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
+      const Command = useCommand()
+
+      const command = Command.fn("Test Span")(
+        function*() {
+          expect(toasts.length).toBe(1)
+          return yield* Effect.die({ message: "Boom!" })
+        },
+        Command.withDefaultToast,
+        Effect.tap(() => executed = true)
+      )
+
+      const r = yield* Fiber.join(command.value()) // we receive an Exit as errors/results are processed
+      // TODO: confirm we reported error
+
+      expect(executed).toBe(false) // we died after all :)
+      expect(Exit.isFailure(r) && Cause).toBe(true) // to confirm that the initial function has died
+
+      expect(toasts.length).toBe(1) // toast should show error
+      expect(toasts[0].message).toBe("Test Span unexpected error, please try again shortly.")
     }))

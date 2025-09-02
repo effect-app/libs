@@ -20,7 +20,7 @@ export const DefaultIntl = {
       "Die Anfrage war nicht erfolgreich:\n{error}\nWir wurden benachrichtigt und werden das Problem in Kürze beheben.",
     "handle.response_error": "Die Antwort konnte nicht verarbeitet werden:\n{error}",
     "handle.request_error": "Die Anfrage konnte nicht gesendet werden:\n{error}",
-    "handle.unexpected_error": "Unerwarteter Fehler:\n{error}"
+    "handle.unexpected_error2": "{action} unerwarteter Fehler, probieren sie es in kurze nochmals."
   },
   en: {
     "handle.confirmation": "Confirm {action}?",
@@ -32,7 +32,7 @@ export const DefaultIntl = {
       "There was an error in processing the response:\n{error}\nWe have been notified and will fix the problem shortly.",
     "handle.request_error": "There was an error in the request:\n{error}",
     "handle.response_error": "The request was not successful:\n{error}",
-    "handle.unexpected_error": "Unexpected Error:\n{error}"
+    "handle.unexpected_error2": "{action} unexpected error, please try again shortly."
   }
 }
 
@@ -127,10 +127,10 @@ export const makeUseCommand = <Locale extends string, R>(
             onFailure: Option.match({
               onNone: () =>
                 intl.value.formatMessage(
-                  { id: "handle.unexpected_error" },
+                  { id: "handle.unexpected_error2" },
                   {
                     action,
-                    error: "-" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway..
+                    error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
                   }
                 ),
               onSome: (e) =>

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.0
+
+### Minor Changes
+
+- 6f64811: add experimental Command helper
+
 ## 2.51.18
 
 ### Patch Changes

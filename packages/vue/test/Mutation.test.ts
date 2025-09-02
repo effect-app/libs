@@ -174,7 +174,7 @@ it.live("with toasts", () =>
         Effect.tap(() =>
           Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
         ),
-        Command.withDefaultToast,
+        Command.withDefaultToast(),
         Effect.tap(() => executed = true)
       )
 
@@ -201,7 +201,7 @@ it.live("interrupted", () =>
           yield* Effect.interrupt
           return "test-value"
         },
-        Command.withDefaultToast,
+        Command.withDefaultToast(),
         Effect.tap(() => executed = true)
       )
 
@@ -228,7 +228,7 @@ it.live("fail", () =>
           expect(toasts.length).toBe(1)
           return yield* Effect.fail({ message: "Boom!" })
         },
-        Command.withDefaultToast,
+        Command.withDefaultToast(),
         Effect.tap(() => executed = true)
       )
 
@@ -257,7 +257,7 @@ it.live("fail and recover", () =>
           return yield* Effect.fail({ message: "Boom!" })
         },
         Effect.catchAll(() => Effect.succeed("recovered")), // we recover from the error here, so the final result is success
-        Command.withDefaultToast,
+        Command.withDefaultToast(),
         Effect.tap(() => executed = true)
       )
 
@@ -285,7 +285,7 @@ it.live("defect", () =>
           expect(toasts.length).toBe(1)
           return yield* Effect.die({ message: "Boom!" })
         },
-        Command.withDefaultToast,
+        Command.withDefaultToast(),
         Effect.tap(() => executed = true)
       )
 
@@ -480,7 +480,7 @@ it.live("with toasts with alt", () =>
           Effect.tap(() =>
             Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
           ),
-          Command.withDefaultToast,
+          Command.withDefaultToast(),
           Effect.tap(() => executed = true)
         )
       )
@@ -510,7 +510,7 @@ it.live("interrupted with alt", () =>
             yield* Effect.interrupt
             return "test-value"
           },
-          Command.withDefaultToast,
+          Command.withDefaultToast(),
           Effect.tap(() => executed = true)
         )
       )
@@ -539,7 +539,7 @@ it.live("fail with alt", () =>
             expect(toasts.length).toBe(1)
             return yield* Effect.fail({ message: "Boom!" })
           },
-          Command.withDefaultToast,
+          Command.withDefaultToast(),
           Effect.tap(() => executed = true)
         )
       )
@@ -570,7 +570,7 @@ it.live("fail and recover with alt", () =>
             return yield* Effect.fail({ message: "Boom!" })
           },
           Effect.catchAll(() => Effect.succeed("recovered")), // we recover from the error here, so the final result is success
-          Command.withDefaultToast,
+          Command.withDefaultToast(),
           Effect.tap(() => executed = true)
         )
       )
@@ -600,7 +600,7 @@ it.live("defect with alt", () =>
             expect(toasts.length).toBe(1)
             return yield* Effect.die({ message: "Boom!" })
           },
-          Command.withDefaultToast,
+          Command.withDefaultToast(),
           Effect.tap(() => executed = true)
         )
       )

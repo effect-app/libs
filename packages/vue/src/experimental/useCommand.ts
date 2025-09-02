@@ -190,9 +190,9 @@ export const makeUseCommand = <Locale extends string, RT>(
       )
     }),
     /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
-    withDefaultToast: <A, E>(
-      self: Effect.Effect<A, E, CommandContext>,
-      errorRenderer?: (e: E) => string | undefined // undefined falls back to default?
+    withDefaultToast: <A, E>(errorRenderer?: (e: E) => string | undefined) =>
+    (
+      self: Effect.Effect<A, E, CommandContext>
     ) =>
       Effect.gen(function*() {
         const { action } = yield* CommandContext

@@ -4,7 +4,7 @@ import { makeUseCommand } from "./useCommand.js"
 import { makeUseConfirm } from "./useConfirm.js"
 import { makeUseWithToast, type UseToast } from "./useWithToast.js"
 
-export const makeExperimental = <Locale extends string, R>(
+export const makeExperimentalCommand = <Locale extends string, R>(
   // NOTE: underscores to not collide with auto exports in nuxt apps
   _useIntl: MakeIntlReturn<Locale>["useIntl"],
   _useToast: UseToast,

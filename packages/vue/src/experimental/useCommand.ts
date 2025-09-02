@@ -73,6 +73,270 @@ export const makeUseCommand = <Locale extends string, RT>(
     Effect.Effect.Error<Eff>
   >
 
+  type Gen = {
+    <Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext>>, AEff, Args extends Array<any>>(
+      body: (...args: Args) => Generator<Eff, AEff, never>
+    ): CommandOut<
+      Args,
+      AEff,
+      [Eff] extends [never] ? never
+        : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+        : never
+    >
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A
+    ): CommandOutHelper<Args, A>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B
+    ): CommandOutHelper<Args, B>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B,
+      C extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
+      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C
+    ): CommandOutHelper<Args, C>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B,
+      C,
+      D extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
+      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
+      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D
+    ): CommandOutHelper<Args, D>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B,
+      C,
+      D,
+      E extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
+      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
+      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
+      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E
+    ): CommandOutHelper<Args, E>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
+      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
+      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
+      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
+      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F
+    ): CommandOutHelper<Args, F>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F,
+      G extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
+      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
+      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
+      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
+      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
+      g: (_: F /* TODO , ...args: NoInfer<Args> */) => G
+    ): CommandOutHelper<Args, G>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F,
+      G,
+      H extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
+      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
+      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
+      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
+      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
+      g: (_: F /* TODO , ...args: NoInfer<Args> */) => G,
+      h: (_: G /* TODO , ...args: NoInfer<Args> */) => H
+    ): CommandOutHelper<Args, H>
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      AEff,
+      Args extends Array<any>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F,
+      G,
+      H,
+      I extends Effect.Effect<any, any, RT | CommandContext>
+    >(
+      body: (...args: Args) => Generator<Eff, AEff, never>,
+      a: (
+        _: Effect.Effect<
+          AEff,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : never,
+          [Eff] extends [never] ? never
+            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : never
+        > /* TODO ,
+          ...args: NoInfer<Args> */
+      ) => A,
+      b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
+      c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
+      d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
+      e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
+      f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
+      g: (_: F /* TODO , ...args: NoInfer<Args> */) => G,
+      h: (_: G /* TODO , ...args: NoInfer<Args> */) => H,
+      i: (_: H /* TODO , ...args: NoInfer<Args> */) => I
+    ): CommandOutHelper<Args, I>
+  }
+
   const makeCommand =
     (actionName: string, errorDef?: Error) =>
     <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
@@ -275,269 +539,7 @@ export const makeUseCommand = <Locale extends string, RT>(
      * - waiting: Whether the mutation is currently in progress. (shorthand for .result.waiting). Can be used e.g as Button loading/disabled state.
      * Reporting status to the user is recommended to use the `withDefaultToast` helper, or render the .result inline
      */
-    fn: (actionName: string): {
-      <Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext>>, AEff, Args extends Array<any>>(
-        body: (...args: Args) => Generator<Eff, AEff, never>
-      ): CommandOut<
-        Args,
-        AEff,
-        [Eff] extends [never] ? never
-          : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-          : never
-      >
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A
-      ): CommandOutHelper<Args, A>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B
-      ): CommandOutHelper<Args, B>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B,
-        C extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-        c: (_: B /* TODO , ...args: NoInfer<Args> */) => C
-      ): CommandOutHelper<Args, C>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B,
-        C,
-        D extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-        c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-        d: (_: C /* TODO , ...args: NoInfer<Args> */) => D
-      ): CommandOutHelper<Args, D>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B,
-        C,
-        D,
-        E extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-        c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-        d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-        e: (_: D /* TODO , ...args: NoInfer<Args> */) => E
-      ): CommandOutHelper<Args, E>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B,
-        C,
-        D,
-        E,
-        F extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-        c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-        d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-        e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-        f: (_: E /* TODO , ...args: NoInfer<Args> */) => F
-      ): CommandOutHelper<Args, F>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B,
-        C,
-        D,
-        E,
-        F,
-        G extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-        c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-        d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-        e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-        f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
-        g: (_: F /* TODO , ...args: NoInfer<Args> */) => G
-      ): CommandOutHelper<Args, G>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B,
-        C,
-        D,
-        E,
-        F,
-        G,
-        H extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-        c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-        d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-        e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-        f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
-        g: (_: F /* TODO , ...args: NoInfer<Args> */) => G,
-        h: (_: G /* TODO , ...args: NoInfer<Args> */) => H
-      ): CommandOutHelper<Args, H>
-      <
-        Eff extends YieldWrap<Effect.Effect<any, any, any>>,
-        AEff,
-        Args extends Array<any>,
-        A,
-        B,
-        C,
-        D,
-        E,
-        F,
-        G,
-        H,
-        I extends Effect.Effect<any, any, RT | CommandContext>
-      >(
-        body: (...args: Args) => Generator<Eff, AEff, never>,
-        a: (
-          _: Effect.Effect<
-            AEff,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-              : never,
-            [Eff] extends [never] ? never
-              : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-              : never
-          > /* TODO ,
-          ...args: NoInfer<Args> */
-        ) => A,
-        b: (_: A /* TODO , ...args: NoInfer<Args> */) => B,
-        c: (_: B /* TODO , ...args: NoInfer<Args> */) => C,
-        d: (_: C /* TODO , ...args: NoInfer<Args> */) => D,
-        e: (_: D /* TODO , ...args: NoInfer<Args> */) => E,
-        f: (_: E /* TODO , ...args: NoInfer<Args> */) => F,
-        g: (_: F /* TODO , ...args: NoInfer<Args> */) => G,
-        h: (_: G /* TODO , ...args: NoInfer<Args> */) => H,
-        i: (_: H /* TODO , ...args: NoInfer<Args> */) => I
-      ): CommandOutHelper<Args, I>
-    } =>
+    fn: (actionName: string): Gen =>
     // TODO constrain/type combinators
     (
       fn: any,

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.2
+
+### Patch Changes
+
+- ff81b46: fix typo
+
 ## 2.52.1
 
 ### Patch Changes

@@ -508,6 +508,78 @@ export const makeUseCommand = <Locale extends string, RT>(
           }
         )
       )
+    },
+
+    alt: (actionName: string) =>
+    <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
+      handler: (...args: Args) => Effect.Effect<A, E, R>
+    ) => {
+      const action = intl.value.formatMessage({
+        id: `action.${actionName}`,
+        defaultMessage: actionName
+      })
+      const context = { action }
+
+      const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+        self.pipe(
+          Effect.tapErrorCause(
+            Effect.fnUntraced(function*(cause) {
+              if (Cause.isInterruptedOnly(cause)) {
+                console.info(`Interrupted while trying to ${actionName}`)
+                return
+              }
+
+              const fail = Cause.failureOption(cause)
+              if (Option.isSome(fail)) {
+                // if (fail.value._tag === "SuppressErrors") {
+                //   console.info(
+                //     `Suppressed error trying to ${action}`,
+                //     fail.value,
+                //   )
+                //   return
+                // }
+                const message = `Failure trying to ${actionName}`
+                yield* reportMessage(message, {
+                  action: actionName,
+                  error: fail.value
+                })
+                return
+              }
+
+              const extra = {
+                action,
+                message: `Unexpected Error trying to ${actionName}`
+              }
+              yield* reportRuntimeError(cause, extra)
+            })
+          )
+        )
+
+      const theHandler = flow(
+        handler,
+        // all must be within the Effect.fn to fit within the Span
+        Effect.provideService(CommandContext, context),
+        (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_)),
+        errorReporter,
+        Effect.withSpan(actionName)
+      )
+
+      const [result, mut] = asResult(theHandler)
+
+      return computed(() =>
+        Object.assign(
+          flow(
+            mut,
+            runFork
+            // (_) => {}
+          ), /* make sure always create a new one, or the state won't properly propagate */
+          {
+            action,
+            result: result.value,
+            waiting: result.value.waiting
+          }
+        )
+      )
     }
   }
 }

@@ -153,7 +153,7 @@ export const makeUseCommand = <Locale extends string, R>(
 
       const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
         self.pipe(
-          Effect.catchAllCause(
+          Effect.tapErrorCause(
             Effect.fnUntraced(function*(cause) {
               if (Cause.isInterruptedOnly(cause)) {
                 console.info(`Interrupted while trying to ${actionName}`)
@@ -203,8 +203,8 @@ export const makeUseCommand = <Locale extends string, R>(
         Object.assign(
           flow(
             mut,
-            runFork,
-            (_) => {}
+            runFork
+            // (_) => {}
           ), /* make sure always create a new one, or the state won't properly propagate */
           {
             action,

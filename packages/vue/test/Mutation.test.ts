@@ -1,6 +1,7 @@
 import { it } from "@effect/vitest"
-import { Cause, Effect, Exit, Fiber } from "effect-app"
+import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
 import { CommandContext, DefaultIntl } from "../src/experimental/useCommand.js"
+import { Result } from "../src/lib.js"
 import { useExperimental } from "./stubs.js"
 
 it.live("works", () =>
@@ -15,6 +16,7 @@ it.live("works", () =>
       const command = Command.fn("Test Action")(
         function*() {
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
+          expect(command.value.waiting).toBe(true)
 
           expect(yield* CommandContext).toEqual({ action: "Test Action" })
 
@@ -33,9 +35,12 @@ it.live("works", () =>
       expect(command.value.action).toBe("Test Action")
 
       const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
+      expect(command.value.waiting).toBe(false)
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
+
+      expect(command.value.result.pipe(Result.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
     }))
@@ -199,6 +204,8 @@ it.live("interrupted", () =>
       expect(executed).toBe(false) // we were interrupted after all :)
       expect(Exit.isInterrupted(r)).toBe(true) // to confirm that the initial function has interrupted
 
+      expect(command.value.waiting).toBe(false)
+      expect(Exit.isInterrupted(Result.toExit(command.value.result))).toBe(true)
       expect(toasts.length).toBe(0) // toast is removed on interruption. TODO: maybe a nicer user experience can be had?
     }))
 
@@ -224,6 +231,8 @@ it.live("fail", () =>
       expect(executed).toBe(false) // we failed after all :)
       expect(Exit.isFailure(r) && Cause.isFailure(r.cause)).toBe(true) // to confirm that the initial function has failed
 
+      expect(command.value.waiting).toBe(false)
+      expect(Exit.isFailure(Result.toExit(command.value.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
     }))
@@ -251,6 +260,8 @@ it.live("fail and recover", () =>
       expect(executed).toBe(true) // we recovered after all :)
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
 
+      expect(command.value.waiting).toBe(false)
+      expect(Result.toExit(command.value.result)).toEqual(Exit.succeed("recovered"))
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Success")
     }))
@@ -278,6 +289,8 @@ it.live("defect", () =>
       expect(executed).toBe(false) // we died after all :)
       expect(Exit.isFailure(r) && Cause.isDie(r.cause)).toBe(true) // to confirm that the initial function has died
 
+      expect(command.value.waiting).toBe(false)
+      expect(Exit.isFailure(Result.toExit(command.value.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action unexpected error, please try again shortly.")
     }))

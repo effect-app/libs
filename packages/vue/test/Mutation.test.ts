@@ -1,5 +1,5 @@
 import { it } from "@effect/vitest"
-import { Effect, Fiber } from "effect-app"
+import { Effect, Exit, Fiber } from "effect-app"
 import { CommandContext, DefaultIntl } from "../src/experimental/useCommand.js"
 import { useExperimental } from "./stubs.js"
 
@@ -101,4 +101,30 @@ it.live("with toasts", () =>
 
       expect(toasts.length).toBe(1)
       expect(toasts[0].message).toBe("Test Span Success")
+    }))
+
+it.live("interrupted", () =>
+  Effect
+    .gen(function*() {
+      let executed = false
+      const toasts: any[] = []
+      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
+      const Command = useCommand()
+
+      const command = Command.fn("Test Span")(
+        function*() {
+          expect(toasts.length).toBe(1)
+          yield* Effect.interrupt
+          return "test-value"
+        },
+        Command.withDefaultToast,
+        Effect.tap(() => executed = true)
+      )
+
+      const r = yield* Fiber.join(command.value()) // we receive an Exit as errors/results are processed
+
+      expect(executed).toBe(false) // we were interrupted after all :)
+      expect(Exit.isInterrupted(r)).toBe(true) // to confirm that the initial function has interrupted
+
+      expect(toasts.length).toBe(0) // toast is removed on interruption. TODO: maybe a nicer user experience can be had?
     }))

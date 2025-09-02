@@ -43,6 +43,12 @@ export class CommandContext extends Context.Tag("CommandContext")<
   { action: string }
 >() {}
 
+export interface CommandProps<A, E> {
+  action: string
+  result: Result<A, E>
+  waiting: boolean
+}
+
 export const makeUseCommand = <Locale extends string, RT>(
   // NOTE: underscores to not collide with auto exports in nuxt apps
   _useIntl: MakeIntlReturn<Locale>["useIntl"],
@@ -58,11 +64,7 @@ export const makeUseCommand = <Locale extends string, RT>(
   const runFork = Runtime.runFork(runtime)
 
   type CommandOut<Args extends Array<any>, A, E> = ComputedRef<
-    ((...a: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
-      action: string
-      result: Result<A, E>
-      waiting: boolean
-    }
+    ((...a: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & CommandProps<A, E>
   >
 
   type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
@@ -70,6 +72,108 @@ export const makeUseCommand = <Locale extends string, RT>(
     Effect.Effect.Success<Eff>,
     Effect.Effect.Error<Eff>
   >
+
+  const makeCommand =
+    (actionName: string, errorDef?: Error) =>
+    <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
+      handler: (...args: Args) => Effect.Effect<A, E, R>
+    ) => {
+      const limit = Error.stackTraceLimit
+      Error.stackTraceLimit = 2
+      const localErrorDef = new Error()
+      Error.stackTraceLimit = limit
+      if (!errorDef) {
+        errorDef = localErrorDef
+      }
+      const action = intl.value.formatMessage({
+        id: `action.${actionName}`,
+        defaultMessage: actionName
+      })
+      const context = { action }
+
+      const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+        self.pipe(
+          Effect.tapErrorCause(
+            Effect.fnUntraced(function*(cause) {
+              if (Cause.isInterruptedOnly(cause)) {
+                console.info(`Interrupted while trying to ${actionName}`)
+                return
+              }
+
+              const fail = Cause.failureOption(cause)
+              if (Option.isSome(fail)) {
+                // if (fail.value._tag === "SuppressErrors") {
+                //   console.info(
+                //     `Suppressed error trying to ${action}`,
+                //     fail.value,
+                //   )
+                //   return
+                // }
+                const message = `Failure trying to ${actionName}`
+                yield* reportMessage(message, {
+                  action: actionName,
+                  error: fail.value
+                })
+                return
+              }
+
+              const extra = {
+                action,
+                message: `Unexpected Error trying to ${actionName}`
+              }
+              yield* reportRuntimeError(cause, extra)
+            })
+          )
+        )
+
+      const theHandler = flow(
+        handler,
+        // all must be within the Effect.fn to fit within the Span
+        Effect.provideService(CommandContext, context),
+        (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_)),
+        errorReporter
+      )
+
+      const [result, mut] = asResult(theHandler)
+
+      return computed(() =>
+        Object.assign(
+          (...args: Args) => {
+            const limit = Error.stackTraceLimit
+            Error.stackTraceLimit = 2
+            const errorCall = new Error()
+            Error.stackTraceLimit = limit
+
+            let cache: false | string = false
+            const captureStackTrace = () => {
+              if (cache !== false) {
+                return cache
+              }
+              if (errorCall.stack) {
+                const stackDef = errorDef!.stack!.trim().split("\n")
+                const stackCall = errorCall.stack.trim().split("\n")
+                let endStackDef = stackDef.slice(2).join("\n").trim()
+                if (!endStackDef.includes(`(`)) {
+                  endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+                }
+                let endStackCall = stackCall.slice(2).join("\n").trim()
+                if (!endStackCall.includes(`(`)) {
+                  endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                }
+                cache = `${endStackDef}\n${endStackCall}`
+                return cache
+              }
+            }
+            return runFork(Effect.withSpan(mut(...args), actionName, { captureStackTrace }))
+          }, /* make sure always create a new one, or the state won't properly propagate */
+          {
+            action,
+            result: result.value,
+            waiting: result.value.waiting
+          } as CommandProps<A, E>
+        )
+      )
+    }
 
   return {
     /** Version of confirmOrInterrupt that automatically includes the action name in the default messages */
@@ -440,74 +544,18 @@ export const makeUseCommand = <Locale extends string, RT>(
       // TODO: combinators can freely take A, E, R and change it to whatever they want, as long as the end result Requires not more than CommandContext | R
       ...combinators: any[]
     ): any => {
-      const action = intl.value.formatMessage({
-        id: `action.${actionName}`,
-        defaultMessage: actionName
-      })
-      const context = { action }
+      const limit = Error.stackTraceLimit
+      Error.stackTraceLimit = 2
+      const errorDef = new Error()
+      Error.stackTraceLimit = limit
 
-      const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-        self.pipe(
-          Effect.tapErrorCause(
-            Effect.fnUntraced(function*(cause) {
-              if (Cause.isInterruptedOnly(cause)) {
-                console.info(`Interrupted while trying to ${actionName}`)
-                return
-              }
+      return makeCommand(actionName, errorDef)(Effect.fnUntraced(fn, ...combinators as [any]) as any)
+    },
 
-              const fail = Cause.failureOption(cause)
-              if (Option.isSome(fail)) {
-                // if (fail.value._tag === "SuppressErrors") {
-                //   console.info(
-                //     `Suppressed error trying to ${action}`,
-                //     fail.value,
-                //   )
-                //   return
-                // }
-                const message = `Failure trying to ${actionName}`
-                yield* reportMessage(message, {
-                  action: actionName,
-                  error: fail.value
-                })
-                return
-              }
-
-              const extra = {
-                action,
-                message: `Unexpected Error trying to ${actionName}`
-              }
-              yield* reportRuntimeError(cause, extra)
-            })
-          )
-        )
-
-      // TODO: override span stack set by Effect.fn as it points here instead of to the caller of Command.fn.
-      // perhaps copying Effect.fn implementation is better than using it?
-      const handler = Effect.fn(actionName)(
-        fn,
-        ...(combinators as [any]),
-        // all must be within the Effect.fn to fit within the Span
-        Effect.provideService(CommandContext, context) as any, /* TODO */
-        ((_: any) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))) as any, /* TODO */
-        errorReporter as any /* TODO */
-      ) as any // (...args: Args) => Effect.Effect<AEff, $WrappedEffectError, R>
-
-      const [result, mut] = asResult(handler)
-
-      return computed(() =>
-        Object.assign(
-          flow(
-            mut as any,
-            runFork
-            // (_) => {}
-          ), /* make sure always create a new one, or the state won't properly propagate */
-          {
-            action,
-            result: result.value,
-            waiting: result.value.waiting
-          }
-        )
-      )
-    }
+    alt: makeCommand as (
+      actionName: string
+    ) => <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
+      handler: (...args: Args) => Effect.Effect<A, E, R>
+    ) => ComputedRef<((...a: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & CommandProps<A, E>>
   }
 }

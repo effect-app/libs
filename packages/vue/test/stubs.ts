@@ -2,7 +2,7 @@ import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
 import { Runtime } from "effect-app"
 import { computed, ref } from "vue"
-import { makeExperimental } from "../src/experimental/makeExperimental.js"
+import { makeExperimentalCommand } from "../src/experimental/makeExperimental.js"
 import { type ToastId } from "../src/experimental/useWithToast.js"
 
 // const mockIntl = {
@@ -61,7 +61,7 @@ export const useExperimental = (
     return id
   }
 
-  return makeExperimental(
+  return makeExperimentalCommand(
     useIntl,
     () => ({
       error: fakeToast,

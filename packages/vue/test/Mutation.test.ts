@@ -63,6 +63,56 @@ it.live("has custom action name", () =>
       expect(executed).toBe(true) // to confirm that the combinators have ran.
     }))
 
+it.live("can map the result", () =>
+  Effect
+    .gen(function*() {
+      const toasts: any[] = []
+      const { useCommand } = useExperimental({ toasts, messages: { "action.Test Span": "Test Span Translated" } })
+      const Command = useCommand()
+
+      let executed = false
+
+      const command = Command.fn("Test Span")(
+        function*() {
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+
+          expect(yield* CommandContext).toEqual({ action: "Test Span Translated" })
+          return "test-value"
+        },
+        Effect.map((_) => _ + _),
+        Effect.tap(() => executed = true)
+      )
+      const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
+
+      expect(r).toBe("test-valuetest-value") // to confirm that the initial function and map has ran.
+      expect(executed).toBe(true) // to confirm that the combinators have ran.
+    }))
+
+it.live("can replace the result", () =>
+  Effect
+    .gen(function*() {
+      const toasts: any[] = []
+      const { useCommand } = useExperimental({ toasts, messages: { "action.Test Span": "Test Span Translated" } })
+      const Command = useCommand()
+
+      let executed = false
+
+      const command = Command.fn("Test Span")(
+        function*() {
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+
+          expect(yield* CommandContext).toEqual({ action: "Test Span Translated" })
+          return "test-value"
+        },
+        Effect.zipRight(Effect.succeed(42)),
+        Effect.tap(() => executed = true)
+      )
+      const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
+
+      expect(r).toBe(42) // to confirm that the initial function and zipRight has ran.
+      expect(executed).toBe(true) // to confirm that the combinators have ran.
+    }))
+
 it.live("with toasts", () =>
   Effect
     .gen(function*() {
@@ -149,10 +199,37 @@ it.live("fail", () =>
       const r = yield* Fiber.join(command.value()) // we receive an Exit as errors/results are processed
 
       expect(executed).toBe(false) // we failed after all :)
-      expect(Exit.isFailure(r)).toBe(true) // to confirm that the initial function has failed
+      expect(Exit.isFailure(r) && Cause.isFailure(r.cause)).toBe(true) // to confirm that the initial function has failed
 
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Span Failed:\nBoom!")
+    }))
+
+it.live("fail and recover", () =>
+  Effect
+    .gen(function*() {
+      let executed = false
+      const toasts: any[] = []
+      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
+      const Command = useCommand()
+
+      const command = Command.fn("Test Span")(
+        function*() {
+          expect(toasts.length).toBe(1)
+          return yield* Effect.fail({ message: "Boom!" })
+        },
+        Effect.catchAll(() => Effect.succeed("recovered")), // we recover from the error here, so the final result is success
+        Command.withDefaultToast,
+        Effect.tap(() => executed = true)
+      )
+
+      const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed
+
+      expect(executed).toBe(true) // we recovered after all :)
+      expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
+
+      expect(toasts.length).toBe(1) // toast should show error
+      expect(toasts[0].message).toBe("Test Span Success")
     }))
 
 it.live("defect", () =>
@@ -176,7 +253,7 @@ it.live("defect", () =>
       // TODO: confirm we reported error
 
       expect(executed).toBe(false) // we died after all :)
-      expect(Exit.isFailure(r) && Cause).toBe(true) // to confirm that the initial function has died
+      expect(Exit.isFailure(r) && Cause.isDie(r.cause)).toBe(true) // to confirm that the initial function has died
 
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Span unexpected error, please try again shortly.")

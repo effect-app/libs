@@ -235,7 +235,7 @@ export const makeUseCommand = <Locale extends string, R>(
           ), /* make sure always create a new one, or the state won't properly propagate */
           {
             action,
-            result,
+            result: result.value,
             waiting: result.value.waiting
           }
         )

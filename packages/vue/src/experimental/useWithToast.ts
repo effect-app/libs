@@ -11,11 +11,11 @@ export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>> {
     ) => string | { level: "warn" | "error"; message: string })
 }
 
-type ToastId = string
-type ToastOpts = { id?: ToastId; timeout?: number }
+export type ToastId = string | number
+export type ToastOpts = { id?: ToastId; timeout?: number }
 
-type UseToast = () => {
-  error: (message: string, options?: ToastOpts) => void
+export type UseToast = () => {
+  error: (message: string, options?: ToastOpts) => ToastId
   warning: (message: string, options?: ToastOpts) => ToastId
   success: (message: string, options?: ToastOpts) => ToastId
   info: (message: string, options?: ToastOpts) => ToastId

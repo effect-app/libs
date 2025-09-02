@@ -1,12 +1,14 @@
 import { Effect } from "effect-app"
-import { type IntlShape } from "../makeIntl.js"
+import { type MakeIntlReturn } from "../makeIntl.js"
 
-export const makeUseConfirm = (intl: IntlShape) => () => {
-  const confirm = (message = "Sind sie Sicher?") => Effect.sync(() => window.confirm(message))
+export const makeUseConfirm = <Locale extends string>(_useIntl: MakeIntlReturn<Locale>["useIntl"]) => () => {
+  const { intl } = _useIntl()
+  const getDefaultMessage = () =>
+    intl.value.formatMessage({ id: "confirm.default", defaultMessage: "Sind sie Sicher?" })
 
-  const confirmOrInterrupt = (
-    message = intl.formatMessage({ id: "confirm.default", defaultMessage: "Sind sie Sicher?" })
-  ) =>
+  const confirm = (message = getDefaultMessage()) => Effect.sync(() => window.confirm(message))
+
+  const confirmOrInterrupt = (message = getDefaultMessage()) =>
     confirm(message).pipe(
       Effect.flatMap((result) => (result ? Effect.void : Effect.interrupt))
     )

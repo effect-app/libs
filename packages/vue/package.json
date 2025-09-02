@@ -45,6 +45,18 @@
       "types": "./dist/errorReporter.d.ts",
       "default": "./dist/errorReporter.js"
     },
+    "./experimental/useCommand": {
+      "types": "./dist/experimental/useCommand.d.ts",
+      "default": "./dist/experimental/useCommand.js"
+    },
+    "./experimental/useConfirm": {
+      "types": "./dist/experimental/useConfirm.d.ts",
+      "default": "./dist/experimental/useConfirm.js"
+    },
+    "./experimental/useWithToast": {
+      "types": "./dist/experimental/useWithToast.d.ts",
+      "default": "./dist/experimental/useWithToast.js"
+    },
     "./form": {
       "types": "./dist/form.d.ts",
       "default": "./dist/form.js"

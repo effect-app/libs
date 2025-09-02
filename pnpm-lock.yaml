@@ -498,6 +498,9 @@ importers:
       '@types/node':
         specifier: ~24.2.0
         version: 24.2.0
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.1
+        version: 6.0.1(vite@7.1.0(@types/node@24.2.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1))(vue@3.5.18(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
       intl-messageformat:
         specifier: ^10.7.16
         version: 10.7.16

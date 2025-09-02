@@ -1,5 +1,5 @@
 /// <reference types="vitest" />
-import { defineConfig } from "vite"
+import { defineConfig } from "vitest/config"
 import vue from '@vitejs/plugin-vue'
 import makeConfig from "../../vite.config.base"
 

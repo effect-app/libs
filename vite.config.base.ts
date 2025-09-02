@@ -1,8 +1,6 @@
 /// <reference types="vitest" />
 import path from "path"
 import fs from "fs"
-import AutoImport from "unplugin-auto-import/vite"
-import { defineConfig } from "vitest/config"
 
 // const autoImport = AutoImport({
 //   dts: "./test/auto-imports.d.ts",

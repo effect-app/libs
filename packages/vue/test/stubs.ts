@@ -24,7 +24,7 @@ const makeUseIntl = (messages: Record<string, string> | Record<string, MessageFo
   return { locale, intl: computed(() => intl), trans: (id: any, values: any) => intl.formatMessage({ id }, values) }
 }
 
-export const useExperimentalCommand = (
+export const useExperimental = (
   options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }
 ) => {
   const toasts: any[] = options?.toasts ?? []

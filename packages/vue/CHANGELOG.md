@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.4
+
+### Patch Changes
+
+- a02c7db: fix arg access
+
 ## 2.52.3
 
 ### Patch Changes

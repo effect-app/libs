@@ -39,10 +39,11 @@ export const useExperimental = (
     }
   }
   const fakeToast = (message: string, options?: { timeout?: number; id?: ToastId }) => {
-    console.log(`Toast message: ${message}`, options)
     const id = options?.id ?? Math.random().toString(36).substring(2, 15)
+    console.log(`Toast [${id}]: ${message}`, options)
+
     options = { ...options, id }
-    const idx = toasts.findIndex((_) => _.id === options?.id)
+    const idx = toasts.findIndex((_) => _.id === id)
     if (idx > -1) {
       const toast = toasts[idx]
       clearTimeout(toast.timeoutId)
@@ -51,7 +52,7 @@ export const useExperimental = (
         toasts.splice(idx, 1)
       }, options?.timeout ?? 3000)
     } else {
-      const toast: any = { message, options }
+      const toast: any = { id, message, options }
       toast.timeoutId = setTimeout(() => {
         toasts.splice(idx, 1)
       }, options?.timeout ?? 3000)

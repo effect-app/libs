@@ -9,6 +9,33 @@ import { computed } from "vue"
 import { type makeUseConfirm } from "./useConfirm.js"
 import { type makeUseWithToast } from "./useWithToast.js"
 
+export const DefaultIntl = {
+  de: {
+    "handle.confirmation": "{action} bestätigen?",
+    "handle.waiting": "{action} wird ausgeführt...",
+    "handle.success": "{action} erfolgreich",
+    "handle.with_errors": "{action} fehlgeschlagen",
+    "handle.with_warnings": "{action} erfolgreich, mit Warnungen",
+    "handle.error_response":
+      "Die Anfrage war nicht erfolgreich:\n{error}\nWir wurden benachrichtigt und werden das Problem in Kürze beheben.",
+    "handle.response_error": "Die Antwort konnte nicht verarbeitet werden:\n{error}",
+    "handle.request_error": "Die Anfrage konnte nicht gesendet werden:\n{error}",
+    "handle.unexpected_error": "Unerwarteter Fehler:\n{error}"
+  },
+  en: {
+    "handle.confirmation": "Confirm {action}?",
+    "handle.waiting": "{action} executing...",
+    "handle.success": "{action} Success",
+    "handle.with_errors": "{action} Failed",
+    "handle.with_warnings": "{action}, with warnings",
+    "handle.error_response":
+      "There was an error in processing the response:\n{error}\nWe have been notified and will fix the problem shortly.",
+    "handle.request_error": "There was an error in the request:\n{error}",
+    "handle.response_error": "The request was not successful:\n{error}",
+    "handle.unexpected_error": "Unexpected Error:\n{error}"
+  }
+}
+
 export class CommandContext extends Context.Tag("CommandContext")<
   CommandContext,
   { action: string }

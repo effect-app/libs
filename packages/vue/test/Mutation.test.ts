@@ -12,25 +12,25 @@ it.live("works", () =>
 
       let executed = false
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
-          expect(yield* CommandContext).toEqual({ action: "Test Span" })
+          expect(yield* CommandContext).toEqual({ action: "Test Action" })
 
           expect(toasts.length).toBe(0)
 
           return "test-value"
         },
         Effect.tap(Effect.fnUntraced(function*() {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Span")))
+          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
         ),
         Effect.tap(() => executed = true)
       )
-      expect(command.value.action).toBe("Test Span")
+      expect(command.value.action).toBe("Test Action")
 
       const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
 
@@ -44,21 +44,21 @@ it.live("has custom action name", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: { "action.Test Span": "Test Span Translated" } })
+      const { useCommand } = useExperimental({ toasts, messages: { "action.Test Action": "Test Action Translated" } })
       const Command = useCommand()
 
       let executed = false
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
-          expect(yield* CommandContext).toEqual({ action: "Test Span Translated" })
+          expect(yield* CommandContext).toEqual({ action: "Test Action Translated" })
           return "test-value"
         },
         Effect.tap(() => executed = true)
       )
-      expect(command.value.action).toBe("Test Span Translated")
+      expect(command.value.action).toBe("Test Action Translated")
       const r = yield* Fiber.join(command.value()).pipe(Effect.flatten) // we receive an Exit as errors/results are processed, so we flatten it.
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
@@ -74,9 +74,9 @@ it.live("can map the result", () =>
 
       let executed = false
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
           return "test-value"
         },
@@ -98,9 +98,9 @@ it.live("can receive and use input", () =>
 
       let executed = false
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*(input1: number, input2: string) {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
           return { input1, input2 }
         },
@@ -116,14 +116,14 @@ it.live("can replace the result", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: { "action.Test Span": "Test Span Translated" } })
+      const { useCommand } = useExperimental({ toasts, messages: { "action.Test Action": "Test Action Translated" } })
       const Command = useCommand()
 
       let executed = false
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
           return "test-value"
         },
@@ -148,20 +148,20 @@ it.live("with toasts", () =>
 
       let executed = false
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
           expect(toasts.length).toBe(1)
-          expect(toasts[0].message).toBe("Test Span executing...")
+          expect(toasts[0].message).toBe("Test Action executing...")
 
           return "test-value"
         },
         Effect.tap(Effect.fnUntraced(function*() {
-          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Span")
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Span")))
+          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
         ),
         Command.withDefaultToast,
         Effect.tap(() => executed = true)
@@ -173,7 +173,7 @@ it.live("with toasts", () =>
       expect(executed).toBe(true) // to confirm that the combinators have ran.
 
       expect(toasts.length).toBe(1)
-      expect(toasts[0].message).toBe("Test Span Success")
+      expect(toasts[0].message).toBe("Test Action Success")
     }))
 
 it.live("interrupted", () =>
@@ -184,7 +184,7 @@ it.live("interrupted", () =>
       const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
       const Command = useCommand()
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
           expect(toasts.length).toBe(1)
           yield* Effect.interrupt
@@ -210,7 +210,7 @@ it.live("fail", () =>
       const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
       const Command = useCommand()
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
           expect(toasts.length).toBe(1)
           return yield* Effect.fail({ message: "Boom!" })
@@ -225,7 +225,7 @@ it.live("fail", () =>
       expect(Exit.isFailure(r) && Cause.isFailure(r.cause)).toBe(true) // to confirm that the initial function has failed
 
       expect(toasts.length).toBe(1) // toast should show error
-      expect(toasts[0].message).toBe("Test Span Failed:\nBoom!")
+      expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
     }))
 
 it.live("fail and recover", () =>
@@ -236,7 +236,7 @@ it.live("fail and recover", () =>
       const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
       const Command = useCommand()
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
           expect(toasts.length).toBe(1)
           return yield* Effect.fail({ message: "Boom!" })
@@ -252,7 +252,7 @@ it.live("fail and recover", () =>
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
 
       expect(toasts.length).toBe(1) // toast should show error
-      expect(toasts[0].message).toBe("Test Span Success")
+      expect(toasts[0].message).toBe("Test Action Success")
     }))
 
 it.live("defect", () =>
@@ -263,7 +263,7 @@ it.live("defect", () =>
       const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
       const Command = useCommand()
 
-      const command = Command.fn("Test Span")(
+      const command = Command.fn("Test Action")(
         function*() {
           expect(toasts.length).toBe(1)
           return yield* Effect.die({ message: "Boom!" })
@@ -279,5 +279,5 @@ it.live("defect", () =>
       expect(Exit.isFailure(r) && Cause.isDie(r.cause)).toBe(true) // to confirm that the initial function has died
 
       expect(toasts.length).toBe(1) // toast should show error
-      expect(toasts[0].message).toBe("Test Span unexpected error, please try again shortly.")
+      expect(toasts[0].message).toBe("Test Action unexpected error, please try again shortly.")
     }))

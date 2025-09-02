@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.1
+
+### Patch Changes
+
+- 5157716: improve experimental, fix span stack, add alt implementation for useCommand.
+
 ## 2.52.0
 
 ### Minor Changes

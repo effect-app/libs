@@ -9,8 +9,7 @@ it.live("works", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts })
 
       let executed = false
 
@@ -50,11 +49,10 @@ it.live("has custom action name", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({
+      const Command = useExperimental({
         toasts,
         messages: { "action.Test Action": "Test Action Translated" }
       })
-      const Command = useCommand()
 
       let executed = false
 
@@ -78,8 +76,7 @@ it.live("can map the result", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts })
 
       let executed = false
 
@@ -102,8 +99,7 @@ it.live("can receive and use input", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts })
 
       let executed = false
 
@@ -125,11 +121,10 @@ it.live("can replace the result", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({
+      const Command = useExperimental({
         toasts,
         messages: { "action.Test Action": "Test Action Translated" }
       })
-      const Command = useCommand()
 
       let executed = false
 
@@ -152,11 +147,10 @@ it.live("with toasts", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({
+      const Command = useExperimental({
         toasts,
         messages: DefaultIntl.en
       })
-      const Command = useCommand()
 
       let executed = false
 
@@ -193,8 +187,7 @@ it.live("interrupted", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.fn("Test Action")(
         function*() {
@@ -221,8 +214,7 @@ it.live("fail", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.fn("Test Action")(
         function*() {
@@ -249,8 +241,7 @@ it.live("fail and recover", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.fn("Test Action")(
         function*() {
@@ -278,8 +269,7 @@ it.live("defect", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.fn("Test Action")(
         function*() {
@@ -306,8 +296,7 @@ it.live("works with alt", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts })
 
       let executed = false
 
@@ -349,11 +338,10 @@ it.live("has custom action name with alt", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({
+      const Command = useExperimental({
         toasts,
         messages: { "action.Test Action": "Test Action Translated" }
       })
-      const Command = useCommand()
 
       let executed = false
 
@@ -379,8 +367,7 @@ it.live("can map the result with alt", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts })
 
       let executed = false
 
@@ -403,8 +390,7 @@ it.live("can receive and use input with alt", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts })
 
       let executed = false
 
@@ -428,11 +414,10 @@ it.live("can replace the result with alt", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({
+      const Command = useExperimental({
         toasts,
         messages: { "action.Test Action": "Test Action Translated" }
       })
-      const Command = useCommand()
 
       let executed = false
 
@@ -457,11 +442,10 @@ it.live("with toasts with alt", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const { useCommand } = useExperimental({
+      const Command = useExperimental({
         toasts,
         messages: DefaultIntl.en
       })
-      const Command = useCommand()
 
       let executed = false
 
@@ -500,8 +484,7 @@ it.live("interrupted with alt", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.alt("Test Action")(
         Effect.fnUntraced(
@@ -531,8 +514,7 @@ it.live("fail with alt", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.alt("Test Action")(
         Effect.fnUntraced(
@@ -561,8 +543,7 @@ it.live("fail and recover with alt", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.alt("Test Action")(
         Effect.fnUntraced(
@@ -592,8 +573,7 @@ it.live("defect with alt", () =>
     .gen(function*() {
       let executed = false
       const toasts: any[] = []
-      const { useCommand } = useExperimental({ toasts, messages: DefaultIntl.en })
-      const Command = useCommand()
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
 
       const command = Command.alt("Test Action")(
         Effect.fnUntraced(

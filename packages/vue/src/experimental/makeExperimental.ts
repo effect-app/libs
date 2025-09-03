@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Runtime } from "effect-app"
+import { Context, Effect } from "effect-app"
 import { type MakeIntlReturn } from "../makeIntl.js"
 import { Commander } from "./useCommand.js"
 import { makeUseConfirm } from "./useConfirm.js"
@@ -23,31 +23,9 @@ export class WithToastSvc extends Effect.Service<WithToastSvc>()("WithToastSvc",
   })
 }) {}
 
-export const makeExperimental = <Locale extends string, R>(
-  // NOTE: underscores to not collide with auto exports in nuxt apps
-  _useIntl: MakeIntlReturn<Locale>["useIntl"],
-  _useToast: UseToast,
-  runtime: Runtime.Runtime<R>
-) => {
-  const _useConfirm = makeUseConfirm(_useIntl)
-  const _useWithToast = makeUseWithToast(_useToast)
+export const makeExperimental = Effect.fnUntraced(function*<R = never>() {
+  const cmndr = yield* Commander
+  const runtime = yield* Effect.runtime<R>()
 
-  // todo; instead expect layers to be provided from outside.
-  const IntlLayer = Layer.sync(IntlSvc, () => _useIntl() as unknown as ReturnType<MakeIntlReturn<string>["useIntl"]>)
-  const ToastLayer = Layer.sync(ToastSvc, () => _useToast())
-  const L = Commander.Default.pipe(Layer.provide([IntlLayer, ToastLayer]))
-
-  const runSync = Runtime.runSync(runtime)
-
-  const _useCommand = () => {
-    const cmndr = runSync(Commander.pipe(Effect.provide(L)))
-
-    return { ...cmndr, alt: cmndr.alt(runtime), fn: cmndr.fn(runtime) }
-  }
-
-  return {
-    useConfirm: _useConfirm,
-    useCommand: _useCommand,
-    useWithToast: _useWithToast
-  }
-}
+  return { ...cmndr, alt: cmndr.alt(runtime), fn: cmndr.fn(runtime) }
+})

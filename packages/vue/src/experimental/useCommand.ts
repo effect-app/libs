@@ -56,8 +56,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     const withToast = yield* WithToastSvc
     const { confirmOrInterrupt } = yield* ConfirmSvc
 
-    type CommandOut<Args extends Array<any>, A, E, R> = ComputedRef<
-      ((...a: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>) & {
+    type CommandOut<Args extends Array<any>, A, E> = ComputedRef<
+      ((...a: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
         action: string
         result: Result<A, E>
         waiting: boolean
@@ -67,8 +67,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
       Args,
       Effect.Effect.Success<Eff>,
-      Effect.Effect.Error<Eff>,
-      Effect.Effect.Context<Eff>
+      Effect.Effect.Error<Eff>
     >
 
     type Gen<RT> = {
@@ -79,8 +78,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         AEff,
         [Eff] extends [never] ? never
           : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-          : never,
-        RT
+          : never
       >
       <
         Eff extends YieldWrap<Effect.Effect<any, any, any>>,

@@ -1,4 +1,4 @@
-import { Context, Effect, flow, Layer, Runtime } from "effect-app"
+import { Context, Effect, Layer, Runtime } from "effect-app"
 import { type MakeIntlReturn } from "../makeIntl.js"
 import { Commander } from "./useCommand.js"
 import { makeUseConfirm } from "./useConfirm.js"
@@ -37,13 +37,12 @@ export const makeExperimental = <Locale extends string, R>(
   const ToastLayer = Layer.sync(ToastSvc, () => _useToast())
   const L = Commander.Default.pipe(Layer.provide([IntlLayer, ToastLayer]))
 
-  const runFork = Runtime.runFork(runtime)
   const runSync = Runtime.runSync(runtime)
 
   const _useCommand = () => {
     const cmndr = runSync(Commander.pipe(Effect.provide(L)))
 
-    return { ...cmndr, alt: flow(cmndr.alt, runFork), fn: flow(cmndr.fn, runFork) }
+    return { ...cmndr, alt: cmndr.alt(runtime), fn: cmndr.fn(runtime) }
   }
 
   return {

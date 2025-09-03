@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.6
+
+### Patch Changes
+
+- 9d16aa4: use reactive and introduce handle and handleSubmit
+
 ## 2.52.5
 
 ### Patch Changes

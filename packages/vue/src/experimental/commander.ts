@@ -9,7 +9,9 @@ import { type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { computed, type ComputedRef } from "vue"
-import { ConfirmSvc, IntlSvc, WithToastSvc } from "./makeExperimental.js"
+import { ConfirmSvc } from "./confirm.js"
+import { IntlSvc } from "./intl.js"
+import { WithToastSvc } from "./withToast.js"
 
 export const DefaultIntl = {
   de: {

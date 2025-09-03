@@ -43,10 +43,10 @@ export const DefaultIntl = {
 /**
  * Use on form submit @handler callbacks, to handle form submitting state.
  */
-const handleSubmit = <Arg>(
-  command: (arg: Arg) => RuntimeFiber<any, any>
+const handleSubmit = <Arg, A, E>(
+  command: (arg: Arg) => RuntimeFiber<A, E>
 ) =>
-(arg: Arg, resolve: () => void) => {
+(arg: Arg, resolve: (result: Exit.Exit<A, E>) => void) => {
   return command(arg).addObserver(resolve)
 }
 
@@ -85,9 +85,9 @@ export declare namespace Commander {
   }
 
   export interface UnaryCommandOut<Arg, A, E> extends CommandProps<A, E> {
-    handle: (a: Arg) => RuntimeFiber<Exit.Exit<A, E>, never>
+    handle: (a: Arg) => RuntimeFiber<A, E>
     /* for forms, only use with unary functions */
-    handleSubmit: (a: Arg, resolve: () => Exit.Exit<A, E>) => void
+    handleSubmit: (a: Arg, resolve: (a: Exit.Exit<A, E>) => void) => void
   }
 
   export interface OtherCommandOut<Args extends Array<any>, A, E> extends CommandProps<A, E> {
@@ -376,9 +376,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     const withToast = yield* WithToastSvc
     const { confirmOrInterrupt } = yield* ConfirmSvc
 
-    const makeCommand =
-      <RT>(runtime: Runtime.Runtime<RT>) =>
-      (actionName: string, errorDef?: Error) =>
+    const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
+      const runFork = Runtime.runFork(runtime)
+      return (actionName: string, errorDef?: Error) =>
       <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
         handler: (...args: Args) => Effect.Effect<A, E, R>
       ) => {
@@ -468,19 +468,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
               return cache
             }
           }
-          return Runtime.runFork(runtime)(Effect.withSpan(mut(...args), actionName, { captureStackTrace }))
-        }, /* make sure always create a new one, or the state won't properly propagate */ { action })
-
-        Object.defineProperty(command, "result", {
-          get() {
-            return result.value
-          }
-        })
-        Object.defineProperty(command, "waiting", {
-          get() {
-            return waiting.value
-          }
-        })
+          const command = Effect.withSpan(mut(...args), actionName, { captureStackTrace })
+          return runFork(Effect.flatten(command)) // as we run into a RuntimeFiber anyway, we can flatten A/E anyway, so we don't get an Exit<Exit on addObserver
+        }, { action })
 
         return reactive({
           result,
@@ -490,6 +480,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           handleSubmit: handleSubmit(command as any)
         })
       }
+    }
 
     return {
       /** Version of confirmOrInterrupt that automatically includes the action name in the default messages */

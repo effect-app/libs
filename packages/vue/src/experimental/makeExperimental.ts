@@ -1,27 +1,9 @@
-import { type Runtime } from "effect-app"
-import { type MakeIntlReturn } from "../makeIntl.js"
-import { makeUseCommand } from "./useCommand.js"
-import { makeUseConfirm } from "./useConfirm.js"
-import { makeUseWithToast, type UseToast } from "./useWithToast.js"
+import { Effect } from "effect-app"
+import { Commander } from "./commander.js"
 
-export const makeExperimental = <Locale extends string, R>(
-  // NOTE: underscores to not collide with auto exports in nuxt apps
-  _useIntl: MakeIntlReturn<Locale>["useIntl"],
-  _useToast: UseToast,
-  runtime: Runtime.Runtime<R>
-) => {
-  const _useConfirm = makeUseConfirm(_useIntl)
-  const _useWithToast = makeUseWithToast(_useToast)
-  const _useCommand = makeUseCommand(
-    _useIntl,
-    _useConfirm,
-    _useWithToast,
-    runtime
-  )
+export const makeExperimental = Effect.fnUntraced(function*<R = never>() {
+  const cmndr = yield* Commander
+  const runtime = yield* Effect.runtime<R>()
 
-  return {
-    useConfirm: _useConfirm,
-    useCommand: _useCommand,
-    useWithToast: _useWithToast
-  }
-}
+  return { ...cmndr, alt: cmndr.alt(runtime), fn: cmndr.fn(runtime) }
+})

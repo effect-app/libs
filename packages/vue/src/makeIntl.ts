@@ -2,7 +2,7 @@
 import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type ResolvedIntlConfig } from "@formatjs/intl"
 import { typedKeysOf } from "effect-app/utils"
 import type { FormatXMLElementFn, PrimitiveType } from "intl-messageformat"
-import { computed, type Ref, ref, watch } from "vue"
+import { type Ref, ref, watch } from "vue"
 import { translate } from "./form.js"
 import { makeContext } from "./makeContext.js"
 
@@ -48,7 +48,6 @@ export const makeIntl = <Locale extends string>(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     ) => intls[locale.value].formatMessage({ id: id as any }, values)
 
-    const intl = computed(() => intls[locale.value])
     watch(
       locale,
       (locale) => {
@@ -58,7 +57,13 @@ export const makeIntl = <Locale extends string>(
       { immediate: true }
     )
 
-    return { locale, trans, intl }
+    return {
+      locale,
+      trans,
+      get intl() {
+        return intls[locale.value] as IntlShape<Locale>
+      }
+    }
   }
   return { useIntl, LocaleContext }
 }

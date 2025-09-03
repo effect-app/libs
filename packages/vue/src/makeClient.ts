@@ -282,15 +282,15 @@ export const makeClient = <Locale extends string, R>(
       options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
     ) {
       const actionMessage = messages[action] ?? action
-      const defaultWarnMessage = intl.value.formatMessage(
+      const defaultWarnMessage = intl.formatMessage(
         { id: "handle.with_warnings" },
         { action: actionMessage }
       )
-      const defaultSuccessMessage = intl.value.formatMessage(
+      const defaultSuccessMessage = intl.formatMessage(
         { id: "handle.success" },
         { action: actionMessage }
       )
-      const defaultErrorMessage = intl.value.formatMessage(
+      const defaultErrorMessage = intl.formatMessage(
         { id: "handle.with_errors" },
         { action: actionMessage }
       )
@@ -325,7 +325,7 @@ export const makeClient = <Locale extends string, R>(
         onDefect: Effect.fnUntraced(function*(cause, i) {
           const message = options.defectMessage
             ? yield* options.defectMessage(cause, i)
-            : intl.value.formatMessage(
+            : intl.formatMessage(
               { id: "handle.unexpected_error" },
               {
                 action: actionMessage,
@@ -378,7 +378,7 @@ export const makeClient = <Locale extends string, R>(
           //   ),
           ParseError: (e) => {
             console.warn(e.toString())
-            return intl.value.formatMessage({ id: "validation.failed" })
+            return intl.formatMessage({ id: "validation.failed" })
           }
         }),
         Match.orElse((e) => `${e.message ?? e._tag ?? e}`)

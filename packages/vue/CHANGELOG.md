@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.7
+
+### Patch Changes
+
+- ae9e363: cleanup Commander and add helper for form submit
+
 ## 2.52.6
 
 ### Patch Changes

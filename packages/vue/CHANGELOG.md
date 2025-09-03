@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.8
+
+### Patch Changes
+
+- 24554d1: cleanup
+
 ## 2.52.7
 
 ### Patch Changes

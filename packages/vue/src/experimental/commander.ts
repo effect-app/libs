@@ -8,7 +8,7 @@ import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
-import { computed, type ComputedRef } from "vue"
+import { computed, reactive } from "vue"
 import { ConfirmSvc } from "./confirm.js"
 import { IntlSvc } from "./intl.js"
 import { WithToastSvc } from "./withToast.js"
@@ -40,6 +40,25 @@ export const DefaultIntl = {
   }
 }
 
+/**
+ * Use on form submit @handler callbacks, to handle form submitting state.
+ */
+const onSubmit = <Arg>(
+  command: (arg: Arg) => RuntimeFiber<any, any>
+) => {
+  return (arg: Arg, resolve: () => void) => {
+    return command(arg).addObserver(resolve)
+  }
+}
+
+// export const withSubmit = <Command extends (arg: any) => RuntimeFiber<any, any>>(command: Command) => {
+//   return Object.assign(command, {
+//     onSubmit: (arg: any, resolve: () => void) => {
+//       return onSubmit(command)(arg, resolve)
+//     }
+//   })
+// }
+
 export class CommandContext extends Context.Tag("CommandContext")<
   CommandContext,
   { action: string }
@@ -58,13 +77,14 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     const withToast = yield* WithToastSvc
     const { confirmOrInterrupt } = yield* ConfirmSvc
 
-    type CommandOut<Args extends Array<any>, A, E> = ComputedRef<
-      ((...a: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
-        action: string
-        result: Result<A, E>
-        waiting: boolean
-      }
-    >
+    type CommandOut<Args extends Array<any>, A, E> = {
+      action: string
+      result: Result<A, E>
+      waiting: boolean
+      handle: (...a: Args) => RuntimeFiber<Exit.Exit<A, E>, never>
+      /* for forms, only use with unary functions */
+      handleSubmit: Args extends [infer A] ? (a: A, resolve: () => void) => void : never
+    }
 
     type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
       Args,
@@ -400,43 +420,55 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
         const [result, mut] = asResult(theHandler)
 
-        return computed(() =>
-          Object.assign(
-            (...args: Args) => {
-              const limit = Error.stackTraceLimit
-              Error.stackTraceLimit = 2
-              const errorCall = new Error()
-              Error.stackTraceLimit = limit
+        const waiting = computed(() => result.value.waiting)
 
-              let cache: false | string = false
-              const captureStackTrace = () => {
-                if (cache !== false) {
-                  return cache
-                }
-                if (errorCall.stack) {
-                  const stackDef = errorDef!.stack!.trim().split("\n")
-                  const stackCall = errorCall.stack.trim().split("\n")
-                  let endStackDef = stackDef.slice(2).join("\n").trim()
-                  if (!endStackDef.includes(`(`)) {
-                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-                  }
-                  let endStackCall = stackCall.slice(2).join("\n").trim()
-                  if (!endStackCall.includes(`(`)) {
-                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-                  }
-                  cache = `${endStackDef}\n${endStackCall}`
-                  return cache
-                }
+        const command = Object.assign((...args: Args) => {
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
               }
-              return Runtime.runFork(runtime)(Effect.withSpan(mut(...args), actionName, { captureStackTrace }))
-            }, /* make sure always create a new one, or the state won't properly propagate */
-            {
-              action,
-              result: result.value,
-              waiting: result.value.waiting
-            } as CommandProps<A, E>
-          )
-        )
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+          return Runtime.runFork(runtime)(Effect.withSpan(mut(...args), actionName, { captureStackTrace }))
+        }, /* make sure always create a new one, or the state won't properly propagate */ { action })
+
+        Object.defineProperty(command, "result", {
+          get() {
+            return result.value
+          }
+        })
+        Object.defineProperty(command, "waiting", {
+          get() {
+            return waiting.value
+          }
+        })
+
+        return reactive({
+          result,
+          waiting,
+          action,
+          handle: command,
+          handleSubmit: onSubmit(command as any)
+        })
       }
 
     return {
@@ -559,9 +591,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
       alt: makeCommand as <RT>(runtime: Runtime.Runtime<RT>) => (
         actionName: string
-      ) => <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
+      ) => <Args extends Array<any>, A, E, R extends RT | CommandContext>(
         handler: (...args: Args) => Effect.Effect<A, E, R>
-      ) => ComputedRef<((...a: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & CommandProps<A, E>>
+      ) => CommandOutHelper<Args, Effect.Effect<A, E>>
     }
   })
 }) {}

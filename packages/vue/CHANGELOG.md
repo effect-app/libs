@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.5
+
+### Patch Changes
+
+- 02a2cd3: improve command implementation
+
 ## 2.52.4
 
 ### Patch Changes

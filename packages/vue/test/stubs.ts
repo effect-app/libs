@@ -1,7 +1,7 @@
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
 import { Runtime } from "effect-app"
-import { computed, ref } from "vue"
+import { ref } from "vue"
 import { makeExperimental } from "../src/experimental/makeExperimental.js"
 import { type ToastId } from "../src/experimental/useWithToast.js"
 
@@ -21,7 +21,11 @@ const makeUseIntl = (messages: Record<string, string> | Record<string, MessageFo
     },
     intlCache
   )
-  return { locale, intl: computed(() => intl), trans: (id: any, values: any) => intl.formatMessage({ id }, values) }
+  return {
+    locale,
+    intl,
+    trans: (id: any, values: any) => intl.formatMessage({ id }, values)
+  }
 }
 
 export const useExperimental = (

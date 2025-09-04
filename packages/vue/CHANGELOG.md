@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.54.4
+
+### Patch Changes
+
+- a73193a: fix toast
+
 ## 2.54.3
 
 ### Patch Changes

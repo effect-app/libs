@@ -2,8 +2,8 @@ import { type Effect, Option, pipe, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { useIntl } from "../../utils"
-import { OmegaFieldInternalApi } from "./InputProps"
-import { OmegaFormReturn } from "./useOmegaForm"
+import { type OmegaFieldInternalApi } from "./InputProps"
+import { type OmegaFormReturn } from "./useOmegaForm"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 

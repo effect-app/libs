@@ -67,7 +67,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type S } from "effect-app"
-import { computed, onBeforeMount } from "vue"
+import { computed, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"

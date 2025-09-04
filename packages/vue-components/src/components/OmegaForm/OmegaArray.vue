@@ -1,14 +1,18 @@
 <template>
-  <component :is="form.Field" :name="name">
+  <component
+    :is="form.Field"
+    :name="name"
+  >
     <template #default="{ field, state }">
-      <slot name="pre-array" v-bind="{ field, state }" />
+      <slot
+        name="pre-array"
+        v-bind="{ field, state }"
+      />
       <component
         :is="form.Field"
         v-for="(_, i) of items"
         :key="`${name}[${Number(i)}]`"
-        :name="
-          `${name}[${Number(i)}]` as DeepKeys<From>
-        "
+        :name="`${name}[${Number(i)}]` as DeepKeys<From>"
       >
         <template #default="{ field: subField, state: subState }">
           <slot
@@ -16,14 +20,20 @@
               subField,
               subState,
               index: Number(i),
-              field,
+              field
             }"
           />
         </template>
       </component>
-      <slot name="post-array" v-bind="{ field, state }" />
+      <slot
+        name="post-array"
+        v-bind="{ field, state }"
+      />
       <!-- TODO: legacy slot, remove this slot -->
-      <slot name="field" v-bind="{ field }" />
+      <slot
+        name="field"
+        v-bind="{ field }"
+      />
     </template>
   </component>
 </template>
@@ -31,13 +41,13 @@
   setup
   lang="ts"
   generic="
-    From extends Record<PropertyKey, any>,
-    To extends Record<PropertyKey, any>
-  "
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+"
 >
+import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { computed, onMounted, provide } from "vue"
 import { type OmegaInputProps } from "./OmegaFormStuff"
-import { type DeepValue, type DeepKeys } from "@tanstack/vue-form"
 
 const props = defineProps<
   Omit<
@@ -51,10 +61,10 @@ const props = defineProps<
 >()
 
 defineOptions({
-  inheritAttrs: false,
+  inheritAttrs: false
 })
 
-const store = props.form.useStore(state => state.values)
+const store = props.form.useStore((state) => state.values)
 const items = computed(() => {
   const normalizedPath = props.name.replace(/\[/g, ".").replace(/\]/g, "")
   try {

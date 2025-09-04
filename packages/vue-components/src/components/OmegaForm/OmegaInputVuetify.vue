@@ -61,15 +61,13 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @update:model-value="
-        (e: any) => {
-          if (e || e === 0) {
-              inputProps.field.handleChange(Number(e) as any)
-          } else {
-            inputProps.field.handleChange(undefined as any)
-          }
+      @update:model-value="(e: any) => {
+        if (e || e === 0) {
+          inputProps.field.handleChange(Number(e) as any)
+        } else {
+          inputProps.field.handleChange(undefined as any)
         }
-      "
+      }"
     />
     <v-select
       v-if="inputProps.type === 'select' || inputProps.type === 'multiple'"
@@ -90,10 +88,8 @@
     />
 
     <v-autocomplete
-      v-if="
-        inputProps.type === 'autocomplete' ||
-        inputProps.type === 'autocompletemultiple'
-      "
+      v-if="inputProps.type === 'autocomplete'
+      || inputProps.type === 'autocompletemultiple'"
       :id="inputProps.id"
       :clearable="inputProps.type === 'autocomplete'"
       :multiple="inputProps.type === 'autocompletemultiple'"
@@ -112,8 +108,15 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
-import { DeepKeys } from "@tanstack/vue-form";
+<script
+  setup
+  lang="ts"
+  generic="
+  From extends Record<PropertyKey, any>,
+  Name extends DeepKeys<From>
+"
+>
+import { type DeepKeys } from "@tanstack/vue-form"
 import type { InputProps } from "./InputProps"
 
 defineProps<{
@@ -127,7 +130,7 @@ defineEmits<{
 }>()
 
 defineOptions({
-  inheritAttrs: false,
+  inheritAttrs: false
 })
 </script>
 

@@ -4,10 +4,10 @@
     :name="name"
     :validators="{
       onChange: schema,
-      ...validators,
+      ...validators
     }"
   >
-  <template #default="{ field }">
+    <template #default="{ field }">
       <OmegaInternalInput
         v-if="meta"
         :field="field"
@@ -25,24 +25,27 @@
   </component>
 </template>
 
-<script setup lang="ts" generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>">
+<script
+  setup
+  lang="ts"
+  generic="
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+"
+>
 import { computed, inject, type Ref } from "vue"
-import {
-  type FieldMeta,
-  generateInputStandardSchemaFromFieldMeta,
-  type OmegaInputProps,
-} from "./OmegaFormStuff"
+import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 
 const props = defineProps<OmegaInputProps<From, To>>()
 
 defineOptions({
-  inheritAttrs: false,
+  inheritAttrs: false
 })
 
 const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
   "getMetaFromArray",
-  null,
+  null
 )
 
 const meta = computed(() => {

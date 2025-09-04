@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.53.3
+
+### Patch Changes
+
+- 714a4e8: support non-gen
+
 ## 2.53.2
 
 ### Patch Changes

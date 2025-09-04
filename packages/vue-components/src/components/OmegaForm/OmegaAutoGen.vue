@@ -20,7 +20,7 @@
   To extends Record<PropertyKey, string>
 "
 >
-import { type DeepKeys, type DeepKeys } from "@tanstack/vue-form"
+import { type DeepKeys } from "@tanstack/vue-form"
 import { Array as A, Order, pipe } from "effect-app"
 import { computed } from "vue"
 import { type FieldMeta, type OmegaInputProps } from "./OmegaFormStuff"

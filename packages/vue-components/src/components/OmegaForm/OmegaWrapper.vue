@@ -3,7 +3,10 @@
     <fieldset :disabled="formIsLoading">
       <!-- Render externalForm + default slots if props.form is provided -->
       <template v-if="props.form">
-        <slot name="externalForm" :subscribed-values="subscribedValues" />
+        <slot
+          name="externalForm"
+          :subscribed-values="subscribedValues"
+        />
         <slot />
         <!-- default slot -->
       </template>
@@ -22,10 +25,11 @@
   setup
   lang="ts"
   generic="
-    From extends Record<PropertyKey, any>,
-    To extends Record<PropertyKey, any>,
-    K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>
-  "
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  K extends keyof OmegaFormState<From, To> =
+    keyof OmegaFormState<From, To>
+"
 >
 /**
  * Form component that wraps TanStack Form's useForm hook
@@ -64,7 +68,6 @@ import {
   type FormProps,
   type FilterItems,
   type OmegaFormApi,
-  type OmegaFormParams,
   type OmegaFormState,
   type ShowErrorsOn,
 } from "./OmegaFormStuff"
@@ -131,7 +134,7 @@ onBeforeMount(() => {
     "showErrorsOn",
     "asyncAlways",
     "form",
-    "schema",
+    "schema"
   ])
 
   const filteredProps = Object.fromEntries(
@@ -155,28 +158,30 @@ onBeforeMount(() => {
 
   if (overlappingKeys.length > 0) {
     console.warn(
-      `[OmegaWrapper] Overlapping keys found between form options and filtered props:\n${overlappingKeys.join(
-        ", \n",
-      )}.\nProps will overwrite existing form options. This might indicate a configuration issue.`,
+      `[OmegaWrapper] Overlapping keys found between form options and filtered props:\n${
+        overlappingKeys.join(
+          ", \n"
+        )
+      }.\nProps will overwrite existing form options. This might indicate a configuration issue.`
     )
   }
 
   const mergedOptions = {
     ...formToUse.value.options,
-    ...filteredProps,
+    ...filteredProps
   }
 
   formToUse.value.options = Object.fromEntries(
     // TODO
     (Object.entries(mergedOptions) as any).filter(
-      ([_, value]: any) => value !== undefined,
-    ),
+      ([_, value]: any) => value !== undefined
+    )
   )
 })
 
 const formIsSubmitting = useStore(
   formToUse.value.store,
-  state => state.isSubmitting,
+  (state) => state.isSubmitting
 )
 
 const instance = getCurrentInstance()
@@ -202,15 +207,15 @@ const handleFormSubmit = (): void => {
 
 const subscribedValues = getOmegaStore(
   formToUse.value as unknown as OmegaFormApi<From, To>,
-  props.subscribe,
+  props.subscribe
 )
 
 const formSubmissionAttempts = useStore(
   formToUse.value.store,
-  state => state.submissionAttempts,
+  (state) => state.submissionAttempts
 )
 
-const errors = computed(() => formToUse.value.useStore(state => state.errors))
+const errors = computed(() => formToUse.value.useStore((state) => state.errors))
 
 watch(
   () => [formToUse.value.filterItems, errors.value.value],
@@ -219,18 +224,20 @@ watch(
     const currentErrors = errors.value.value
     if (!filterItems) return {}
     if (!currentErrors) return {}
-    const errorList = Object.values(currentErrors)
+    const errorList = Object
+      .values(currentErrors)
       .filter(
         (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> =>
-          Boolean(fieldErrors),
+          Boolean(fieldErrors)
       )
-      .flatMap(fieldErrors =>
-        Object.values(fieldErrors)
+      .flatMap((fieldErrors) =>
+        Object
+          .values(fieldErrors)
           .flat()
-          .map((issue: StandardSchemaV1Issue) => issue.message),
+          .map((issue: StandardSchemaV1Issue) => issue.message)
       )
 
-    if (errorList.some(e => e === filterItems.message)) {
+    if (errorList.some((e) => e === filterItems.message)) {
       // TODO: Investigate if filterItems.items should be typed based on DeepKeys<To>.
       filterItems.items.forEach((item: keyof From) => {
         const m = formToUse.value.getFieldMeta(item as any)
@@ -239,15 +246,15 @@ watch(
             ...m,
             errorMap: {
               onSubmit: [
-                { path: [item as string], message: filterItems.message },
-              ],
-            },
+                { path: [item as string], message: filterItems.message }
+              ]
+            }
           })
         }
       })
     }
     return {}
-  },
+  }
 )
 
 provideOmegaErrors(formSubmissionAttempts, errors.value, props.showErrorsOn)

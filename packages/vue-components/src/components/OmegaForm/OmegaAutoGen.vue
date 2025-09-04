@@ -1,41 +1,49 @@
 <template>
   <slot
-    v-for="{ name, label, ...attrs } in children"
+    v-for="({ name, label, ...attrs }) in children"
     :child="{ name, label, ...attrs }"
   >
-    <OmegaInput :form="props.form" :name="name" :label="label" v-bind="attrs" />
+    <OmegaInput
+      :form="props.form"
+      :name="name"
+      :label="label"
+      v-bind="attrs"
+    />
   </slot>
 </template>
 
-<script setup lang="ts" generic="From extends Record<PropertyKey, string>, To extends Record<PropertyKey, string>">
+<script
+  setup
+  lang="ts"
+  generic="
+  From extends Record<PropertyKey, string>,
+  To extends Record<PropertyKey, string>
+"
+>
+import { type DeepKeys } from "@tanstack/vue-form"
+import { Array as A, Order, pipe } from "effect-app"
 import { computed } from "vue"
-import {
-  type NestedKeyOf,
-  type MetaRecord,
-  type FormType,
-  type FieldMeta,
-  type OmegaInputProps,
-} from "./OmegaFormStuff"
-import { pipe, Order, Array as A } from "effect-app"
+import { type FieldMeta, type OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
-import { DeepKeys } from "@tanstack/vue-form"
-import { OmegaFormReturn } from "./useOmegaForm"
 
-export type OmegaAutoGenMeta<From extends Record<PropertyKey, string>, To extends Record<PropertyKey, string>> = Omit<OmegaInputProps<From, To>, "form">
+export type OmegaAutoGenMeta<
+  From extends Record<PropertyKey, string>,
+  To extends Record<PropertyKey, string>
+> = Omit<OmegaInputProps<From, To>, "form">
 type NewMeta = OmegaAutoGenMeta<From, To>
 
 const mapObject =
   <K extends string, A, B>(fn: (value: A, key: K) => B) =>
   (obj: Record<K, A>): Record<K, B> =>
     Object.fromEntries(
-      (Object.entries(obj) as [K, A][]).map(([k, v]) => [k, fn(v, k)]),
+      (Object.entries(obj) as [K, A][]).map(([k, v]) => [k, fn(v, k)])
     ) as Record<K, B> // Cast needed for Object.fromEntries
 
 const filterRecord =
   <K extends string, V>(predicate: (value: V, key: K) => boolean) =>
   (obj: Record<K, V>): Record<K, V> =>
     Object.fromEntries(
-      (Object.entries(obj) as [K, V][]).filter(([k, v]) => predicate(v, k)),
+      (Object.entries(obj) as [K, V][]).filter(([k, v]) => predicate(v, k))
     ) as Record<K, V>
 
 const filterMapRecord =
@@ -49,11 +57,11 @@ const filterMapRecord =
         }
         return acc
       },
-      {} as Record<K, B>,
+      {} as Record<K, B>
     )
 
 const props = defineProps<{
-  form: OmegaInputProps<From, To>['form']
+  form: OmegaInputProps<From, To>["form"]
   pick?: DeepKeys<From>[]
   omit?: DeepKeys<From>[]
   labelMap?: (key: DeepKeys<From>) => string | undefined
@@ -69,7 +77,7 @@ const namePosition = (name: DeepKeys<From>, order: DeepKeys<From>[]) => {
 
 const orderBy: Order.Order<NewMeta> = Order.mapInput(
   Order.number,
-  (x: NewMeta) => namePosition(x.name, props.order || []),
+  (x: NewMeta) => namePosition(x.name, props.order || [])
 )
 
 const children = computed<NewMeta[]>(() =>
@@ -79,29 +87,29 @@ const children = computed<NewMeta[]>(() =>
     filterRecord((_, metaKey) =>
       props.pick
         ? props.pick.includes(metaKey) && !props.omit?.includes(metaKey)
-        : !props.omit?.includes(metaKey),
+        : !props.omit?.includes(metaKey)
     ),
-    x => x,
+    (x) => x,
     // labelMap and adding name
     mapObject((metaValue, metaKey) => ({
       name: metaKey,
       label: props.labelMap?.(metaKey) || metaKey,
-      ...metaValue,
+      ...metaValue
     })),
     // filterMap
     props.filterMap
-      ? filterMapRecord(m => {
-          const result = props.filterMap?.(m.name!, m as NewMeta)
-          return result === undefined || result === true ? m : result
-        })
-      : x => x,
+      ? filterMapRecord((m) => {
+        const result = props.filterMap?.(m.name!, m as NewMeta)
+        return result === undefined || result === true ? m : result
+      })
+      : (x) => x,
     // transform to array
-    obj => Object.values(obj) as NewMeta[],
+    (obj) => Object.values(obj) as NewMeta[],
     // order
     A.sort(orderBy),
     // sort
-    props.sort ? A.sort(props.sort) : x => x,
-  ),
+    props.sort ? A.sort(props.sort) : (x) => x
+  )
 )
 
 defineSlots<{

@@ -1,10 +1,10 @@
 {
   "name": "effect-app",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@effect/rpc": "^0.68.3",
+    "@effect/rpc": "^0.69.2",
     "@tsconfig/strictest": "^2.0.5",
     "date-fns": "^4.1.0",
     "nanoid": "^5.1.5",
@@ -17,16 +17,16 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "~24.2.0",
+    "@types/node": "~24.3.1",
     "@types/uuid": "^10.0.0",
-    "@types/validator": "^13.15.2",
-    "fast-check": "~4.2.0",
+    "@types/validator": "^13.15.3",
+    "fast-check": "~4.3.0",
     "typescript": "~5.9.2",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.90.0",
-    "effect": "^3.17.6"
+    "@effect/platform": "^0.90.6",
+    "effect": "^3.17.13"
   },
   "typesVersions": {
     "*": {

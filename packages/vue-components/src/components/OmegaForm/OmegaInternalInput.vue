@@ -1,6 +1,9 @@
 <template>
   <slot v-bind="inputProps">
-    <div :class="$attrs.class" @focusout="setRealDirty">
+    <div
+      :class="$attrs.class"
+      @focusout="setRealDirty"
+    >
       <OmegaInputVuetify
         v-if="vuetified"
         :input-props="inputProps"
@@ -11,31 +14,23 @@
   </slot>
 </template>
 
-<script setup lang="ts" generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
-import { DeepKeys, useStore } from "@tanstack/vue-form"
-import {
-  useId,
-  computed,
-  watch,
-  onMounted,
-  ref,
-  watchEffect,
-  type ComputedRef,
-  getCurrentInstance,
-  nextTick,
-} from "vue"
-import type {
-  FieldValidators,
-  MetaRecord,
-  NestedKeyOf,
-  TypeOverride,
-} from "./OmegaFormStuff"
+<script
+  setup
+  lang="ts"
+  generic="
+  From extends Record<PropertyKey, any>,
+  Name extends DeepKeys<From>
+"
+>
+import { type DeepKeys, useStore } from "@tanstack/vue-form"
+import { computed, type ComputedRef, getCurrentInstance, nextTick, onMounted, ref, useId, watch, watchEffect } from "vue"
+import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import { useOmegaErrors } from "./OmegaErrorsContext"
-import type { OmegaFieldInternalApi, InputProps } from "./InputProps"
+import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
 
 defineOptions({
-  inheritAttrs: false,
+  inheritAttrs: false
 })
 
 const props = defineProps<{
@@ -54,7 +49,7 @@ const id = useId()
 
 const fieldApi = props.field
 
-const fieldState = useStore(fieldApi.store, state => state)
+const fieldState = useStore(fieldApi.store, (state) => state)
 
 const fieldType = computed(() => {
   if (props.type) return props.type
@@ -68,7 +63,7 @@ const fieldType = computed(() => {
 const fieldValue = computed(() => fieldState.value.value)
 const errors = computed(() =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fieldState.value.meta.errors.map((e: any) => e?.message).filter(Boolean),
+  fieldState.value.meta.errors.map((e: any) => e?.message).filter(Boolean)
 )
 
 const isFalsyButNotZero = (value: unknown): boolean => {
@@ -76,25 +71,27 @@ const isFalsyButNotZero = (value: unknown): boolean => {
 }
 
 // we remove value and errors when the field is empty and not required
-//watchEffect will trigger infinite times with both free fieldValue and errors, so bet to watch a stupid boolean
+// watchEffect will trigger infinite times with both free fieldValue and errors, so bet to watch a stupid boolean
 watch(
   () => !!fieldValue.value,
   () => {
     if (isFalsyButNotZero(fieldValue.value) && props.meta?.type !== "boolean") {
       nextTick(() => {
         fieldApi.setValue(
-          props.meta?.nullableOrUndefined === "undefined" ? undefined : null as any,
+          props.meta?.nullableOrUndefined === "undefined"
+            ? undefined
+            : null as any
         )
       })
     }
-  },
+  }
 )
 
 onMounted(() => {
   if (
-    !fieldValue.value &&
-    !props.meta?.required &&
-    props.meta?.nullableOrUndefined === "null"
+    !fieldValue.value
+    && !props.meta?.required
+    && props.meta?.nullableOrUndefined === "null"
   ) {
     fieldApi.setValue(null as any)
   }
@@ -131,16 +128,19 @@ watch(
     if (fieldState.value.meta.errors.length) {
       addError({
         inputId: id,
-        errors: fieldState.value.meta.errors
+        errors: fieldState
+          .value
+          .meta
+          .errors
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((e: any) => e.message)
           .filter(Boolean),
-        label: props.label,
+        label: props.label
       })
     } else {
       removeError(id)
     }
-  },
+  }
 )
 
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
@@ -158,6 +158,6 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   setRealDirty,
   type: fieldType.value,
   label: `${props.label}${props.meta?.required ? " *" : ""}`,
-  options: props.options,
+  options: props.options
 }))
 </script>

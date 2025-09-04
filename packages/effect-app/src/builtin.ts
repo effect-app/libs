@@ -55,10 +55,10 @@ declare module "effect/Option" {
 }
 
 declare module "effect/Either" {
-  export interface Left<out L, out R> {
-    get right(): R | undefined
+  export interface Left<E, A> {
+    get right(): A | undefined
   }
-  export interface Right<out L, out R> {
-    get left(): L | undefined
+  export interface Right<E, A> {
+    get left(): E | undefined
   }
 }

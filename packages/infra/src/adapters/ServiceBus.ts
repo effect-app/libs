@@ -52,7 +52,7 @@ export class Sender extends Context.TagId("Sender")<Sender, {
   name: string
   sendMessages: (
     messages: ServiceBusMessage | ServiceBusMessage[] | ServiceBusMessageBatch,
-    options?: Omit<OperationOptionsBase, "abortSignal"> | undefined
+    options?: Omit<OperationOptionsBase, "abortSignal">
   ) => Effect.Effect<void, never, never>
 }>() {
   static readonly layer = (name: string) => this.toLayerScoped(makeSender(name))

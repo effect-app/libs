@@ -1,0 +1,39 @@
+diff --git a/dist/lib/dprint/dprint.js b/dist/lib/dprint/dprint.js
+index eb3339fc5d824d061c4dc2ca2ecd4a1c28e8631b..9bf942db4e76d76f3bd7c74c122eec9d307b7e84 100644
+--- a/dist/lib/dprint/dprint.js
++++ b/dist/lib/dprint/dprint.js
+@@ -29,6 +29,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.format = void 0;
+ const formatter_1 = require("@dprint/formatter");
++const execSync = require("child_process").execSync;
+ const fs = __importStar(require("fs"));
+ const JSONC = __importStar(require("jsonc-parser"));
+ const path_1 = __importDefault(require("path"));
+@@ -117,7 +118,7 @@ function getFormatter(filePath, configName, configFile) {
+             return formatter;
+         }
+         else if (isPluginName(configName)) {
+-            console.warn("File %s not supported by %s", filePath, pluginsName[configName]);
++            //console.warn("File %s not supported by %s", filePath, pluginsName[configName]);
+         }
+     }
+     else if (isPluginName(configName)) {
+@@ -138,6 +139,17 @@ function getFormatter(filePath, configName, configFile) {
+ function format(configFile, overrideConfig, filePath, fileText, configName) {
+     const formatter = getFormatter(filePath, configName, configFile);
+     if (formatter) {
++        // hack to fix formatting inside .vue files
++        // please keep in mind, requires the config of dprint.json!
++        if (filePath.endsWith(".vue")) {
++            try {
++            const out = execSync(`./node_modules/.bin/dprint fmt --config '${configFile}' --stdin '${filePath}'`, { input: fileText, encoding: "utf-8" })
++            return out
++            } catch (e) { 
++                console.warn(e)
++                return undefined
++            }
++        }
+         const request = {
+             filePath,
+             fileText,

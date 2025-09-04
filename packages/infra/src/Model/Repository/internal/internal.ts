@@ -390,7 +390,7 @@ export function makeStore<Encoded extends FieldValues>() {
     idKey: IdKey
   ) => {
     function makeStore<RInitial = never, EInitial = never>(
-      makeInitial?: Effect.Effect<readonly T[], EInitial, RInitial> | undefined,
+      makeInitial?: Effect.Effect<readonly T[], EInitial, RInitial>,
       config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
         partitionValue?: (a: Encoded) => string
       }

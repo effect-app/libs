@@ -11,4 +11,4 @@ export type UseToast = () => {
   dismiss: (id: ToastId) => void
 }
 
-export class ToastSvc extends Context.TagId("ToastSvc")<ToastSvc, ReturnType<UseToast>>() {}
+export class Toast extends Context.TagId("Toast")<Toast, ReturnType<UseToast>>() {}

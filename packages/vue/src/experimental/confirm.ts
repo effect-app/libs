@@ -1,10 +1,10 @@
 import { Effect } from "effect-app"
-import { IntlSvc } from "./intl.js"
+import { I18n } from "./intl.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class ConfirmSvc extends Effect.Service<ConfirmSvc>()("ConfirmSvc", {
+export class Confirm extends Effect.Service<Confirm>()("Confirm", {
   effect: Effect.gen(function*() {
-    const { intl } = yield* IntlSvc
+    const { intl } = yield* I18n
 
     const getDefaultMessage = () => intl.formatMessage({ id: "confirm.default", defaultMessage: "Sind sie Sicher?" })
 

@@ -1,5 +1,5 @@
 import { Cause, Effect, type Option } from "effect-app"
-import { ToastSvc } from "./toast.js"
+import { Toast } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>> {
   onWaiting: string | ((...args: Args) => string)
@@ -13,9 +13,9 @@ export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>> {
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class WithToastSvc extends Effect.Service<WithToastSvc>()("WithToastSvc", {
+export class WithToast extends Effect.Service<WithToast>()("WithToast", {
   effect: Effect.gen(function*() {
-    const toast = yield* ToastSvc
+    const toast = yield* Toast
     return <A, E, Args extends ReadonlyArray<unknown>, R>(
       options: ToastOptions<A, E, Args>
     ) =>

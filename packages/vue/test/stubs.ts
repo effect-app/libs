@@ -4,13 +4,13 @@ import * as Intl from "@formatjs/intl"
 import { Effect, Layer } from "effect-app"
 import { ref } from "vue"
 import { Commander } from "../src/experimental/commander.js"
-import { IntlSvc } from "../src/experimental/intl.js"
+import { I18n } from "../src/experimental/intl.js"
 import { makeExperimental } from "../src/experimental/makeExperimental.js"
-import { type ToastId, ToastSvc } from "../src/experimental/toast.js"
+import { Toast, type ToastId } from "../src/experimental/toast.js"
 import { type MakeIntlReturn } from "../src/makeIntl.js"
 
 const fakeToastLayer = (toasts: any[] = []) =>
-  ToastSvc.toLayer(Effect.sync(() => {
+  Toast.toLayer(Effect.sync(() => {
     const dismiss = (id: ToastId) => {
       const idx = toasts.findIndex((_) => _.id === id)
       if (idx > -1) {
@@ -51,7 +51,7 @@ const fakeToastLayer = (toasts: any[] = []) =>
   }))
 
 export const fakeIntlLayer = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) =>
-  IntlSvc.toLayer(
+  I18n.toLayer(
     Effect.sync(() => {
       const locale = ref("en" as const)
       const intlCache = Intl.createIntlCache()

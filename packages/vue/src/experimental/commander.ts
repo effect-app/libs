@@ -9,9 +9,9 @@ import { type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
 import { computed, reactive } from "vue"
-import { ConfirmSvc } from "./confirm.js"
-import { IntlSvc } from "./intl.js"
-import { WithToastSvc } from "./withToast.js"
+import { Confirm } from "./confirm.js"
+import { I18n } from "./intl.js"
+import { WithToast } from "./withToast.js"
 
 export const DefaultIntl = {
   de: {
@@ -370,11 +370,11 @@ export declare namespace Commander {
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Commander extends Effect.Service<Commander>()("Commander", {
-  dependencies: [WithToastSvc.Default, ConfirmSvc.Default],
+  dependencies: [WithToast.Default, Confirm.Default],
   effect: Effect.gen(function*() {
-    const { intl } = yield* IntlSvc
-    const withToast = yield* WithToastSvc
-    const { confirm, confirmOrInterrupt } = yield* ConfirmSvc
+    const { intl } = yield* I18n
+    const withToast = yield* WithToast
+    const { confirm, confirmOrInterrupt } = yield* Confirm
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)

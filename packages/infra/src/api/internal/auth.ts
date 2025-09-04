@@ -29,7 +29,7 @@ export const checkJWTI = (config: Config) => {
           }
           return cb(Effect.die(err))
         }
-        const r = { headers, query: {}, body: {}, is: () => false } // is("urlencoded")
+        const r = { headers, query: {}, body: {}, is: () => false, method: "POST" } // is("urlencoded")
         try {
           mw(r as any, {} as any, next)
         } catch (e) {

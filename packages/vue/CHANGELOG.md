@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.53.1
+
+### Patch Changes
+
+- b74ec82: enable formatMessage accessor
+
 ## 2.53.0
 
 ### Minor Changes

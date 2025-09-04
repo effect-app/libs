@@ -132,7 +132,7 @@ export const ContextProvider = <
   return Object.assign(ctx, {
     Default: l.pipe(
       input.dependencies ? Layer.provide(input.dependencies) as any : (_) => _
-    ) as Layer.Layer<
+    ) satisfies Layer.Layer<
       ContextProviderId,
       | MakeContextProviderE
       | LayerUtils.GetLayersError<Dependencies>,

@@ -374,7 +374,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
   effect: Effect.gen(function*() {
     const { intl } = yield* IntlSvc
     const withToast = yield* WithToastSvc
-    const { confirmOrInterrupt } = yield* ConfirmSvc
+    const { confirm, confirmOrInterrupt } = yield* ConfirmSvc
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
@@ -483,12 +483,25 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     }
 
     return {
-      /** Version of confirmOrInterrupt that automatically includes the action name in the default messages */
+      /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
       confirmOrInterrupt: Effect.fnUntraced(function*(
         message: string | undefined = undefined
       ) {
         const context = yield* CommandContext
         yield* confirmOrInterrupt(
+          message
+            ?? intl.formatMessage(
+              { id: "handle.confirmation" },
+              { action: context.action }
+            )
+        )
+      }),
+      /** Version of @see confirm that automatically includes the action name in the default messages */
+      confirm: Effect.fnUntraced(function*(
+        message: string | undefined = undefined
+      ) {
+        const context = yield* CommandContext
+        return yield* confirm(
           message
             ?? intl.formatMessage(
               { id: "handle.confirmation" },

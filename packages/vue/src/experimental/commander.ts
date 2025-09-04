@@ -588,7 +588,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         )
       }),
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
-      withDefaultToast: <A, E, R>(errorRenderer?: (e: E) => string | undefined) =>
+      withDefaultToast: <A, E, R>(options?: { errorRenderer?: (e: E) => string | undefined }) =>
       (
         self: Effect.Effect<A, E, R>
       ) =>
@@ -604,8 +604,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             { action }
           )
           function renderError(e: E): string {
-            if (errorRenderer) {
-              const m = errorRenderer(e)
+            if (options?.errorRenderer) {
+              const m = options.errorRenderer(e)
               if (m) {
                 return m
               }

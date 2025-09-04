@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.53.0
+
+### Minor Changes
+
+- 0bacecb: cleanup naming
+
 ## 2.52.9
 
 ### Patch Changes

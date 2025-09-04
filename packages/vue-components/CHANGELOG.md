@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 0.15.20
+
+### Patch Changes
+
+- Updated dependencies [0bacecb]
+  - @effect-app/vue@2.53.0
+
 ## 0.15.19
 
 ### Patch Changes

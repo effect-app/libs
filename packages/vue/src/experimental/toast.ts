@@ -1,7 +1,8 @@
 import { Context, Effect, Option } from "effect-app"
 
 export type ToastId = string | number
-export type ToastOpts = { id?: ToastId | undefined | null; timeout?: number }
+export type ToastOpts = { id?: ToastId | undefined; timeout?: number }
+export type ToastOptsInternal = { id?: ToastId | undefined | null; timeout?: number }
 
 export type UseToast = () => {
   error: (this: void, message: string, options?: ToastOpts) => ToastId
@@ -16,13 +17,13 @@ export class CurrentToastId extends Context.TagId("CurrentToastId")<CurrentToast
 /** fallback to CurrentToastId when available unless id is explicitly set to a value or null */
 export const wrap = (toast: ReturnType<UseToast>) => {
   const wrap = (toastHandler: (message: string, options?: ToastOpts) => ToastId) => {
-    return (message: string, options?: ToastOpts) =>
+    return (message: string, options?: ToastOptsInternal) =>
       Effect.serviceOption(CurrentToastId).pipe(
         Effect.map((currentToast) =>
           toastHandler(message, {
             ...options,
             id: options?.id !== undefined
-              ? options.id
+              ? options.id ?? undefined
               : Option.getOrUndefined(Option.map(currentToast, (_) => _.toastId))
           })
         )

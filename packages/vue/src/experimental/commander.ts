@@ -510,9 +510,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         )
       }),
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
-      withDefaultToast: <A, E>(errorRenderer?: (e: E) => string | undefined) =>
+      withDefaultToast: <A, E, R>(errorRenderer?: (e: E) => string | undefined) =>
       (
-        self: Effect.Effect<A, E, CommandContext>
+        self: Effect.Effect<A, E, R>
       ) =>
         Effect.gen(function*() {
           const { action } = yield* CommandContext

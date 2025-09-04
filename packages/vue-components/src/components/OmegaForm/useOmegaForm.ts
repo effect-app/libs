@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import OmegaFormInput from "./OmegaFormInput.vue"
-import { DeepKeys, useForm, FormValidateOrFn, StandardSchemaV1, FormAsyncValidateOrFn } from "@tanstack/vue-form"
+import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
 import { S } from "effect-app"
-import { provide } from "vue"
 import { isObject } from "effect/Predicate"
-import { InjectionKey, computed, onUnmounted, onMounted, onBeforeUnmount } from "vue"
-import { InputProps } from "./InputProps"
-import { NestedKeyOf, OmegaFormApi, MetaRecord, FilterItems, FieldValidators, TypeOverride, FormProps, generateMetaFromSchema } from "./OmegaFormStuff"
+import { computed, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide } from "vue"
+import { type InputProps } from "./InputProps"
+import OmegaFormInput from "./OmegaFormInput.vue"
+import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, type TypeOverride } from "./OmegaFormStuff"
 
 type keysRule<T> =
   | {

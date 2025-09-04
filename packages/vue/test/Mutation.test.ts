@@ -45,6 +45,49 @@ it.live("works", () =>
       expect(toasts.length).toBe(0)
     }))
 
+it.live("works non-gen", () =>
+  Effect
+    .gen(function*() {
+      const toasts: any[] = []
+      const Command = useExperimental({ toasts })
+
+      let executed = false
+
+      const command = Command.fn("Test Action")(
+        () =>
+          Effect.gen(
+            function*() {
+              expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
+              expect(command.waiting).toBe(true)
+
+              expect(yield* CommandContext).toEqual({ action: "Test Action" })
+
+              expect(toasts.length).toBe(0)
+
+              return "test-value"
+            }
+          ),
+        Effect.tap(Effect.fnUntraced(function*() {
+          expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
+        })),
+        Effect.tap(() =>
+          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+        ),
+        Effect.tap(() => executed = true)
+      )
+      expect(command.action).toBe("Test Action")
+
+      const r = yield* Fiber.join(command.handle())
+      expect(command.waiting).toBe(false)
+
+      expect(r).toBe("test-value") // to confirm that the initial function has ran.
+      expect(executed).toBe(true) // to confirm that the combinators have ran.
+
+      expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+
+      expect(toasts.length).toBe(0)
+    }))
+
 it.live("has custom action name", () =>
   Effect
     .gen(function*() {

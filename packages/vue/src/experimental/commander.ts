@@ -2,7 +2,7 @@
 import { asResult, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
+import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S, Tracer } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { type RuntimeFiber } from "effect/Fiber"
@@ -366,6 +366,84 @@ export declare namespace Commander {
       i: (_: H, ...args: NoInfer<Args>) => I
     ): CommandOutHelper<Args, I>
   }
+
+  export type NonGen<RT> = {
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, Args extends Array<any>>(
+      body: (...args: Args) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => C,
+      c: (_: C, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => C,
+      c: (_: C, ...args: NoInfer<Args>) => D,
+      d: (_: D, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => C,
+      c: (_: C, ...args: NoInfer<Args>) => D,
+      d: (_: D, ...args: NoInfer<Args>) => E,
+      e: (_: E, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => C,
+      c: (_: C, ...args: NoInfer<Args>) => D,
+      d: (_: D, ...args: NoInfer<Args>) => E,
+      e: (_: E, ...args: NoInfer<Args>) => F,
+      f: (_: F, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => C,
+      c: (_: C, ...args: NoInfer<Args>) => D,
+      d: (_: D, ...args: NoInfer<Args>) => E,
+      e: (_: E, ...args: NoInfer<Args>) => F,
+      f: (_: F, ...args: NoInfer<Args>) => G,
+      g: (_: G, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, H, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => C,
+      c: (_: C, ...args: NoInfer<Args>) => D,
+      d: (_: D, ...args: NoInfer<Args>) => E,
+      e: (_: E, ...args: NoInfer<Args>) => F,
+      f: (_: F, ...args: NoInfer<Args>) => G,
+      g: (_: G, ...args: NoInfer<Args>) => H,
+      h: (_: H, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, H, I, Args extends Array<any>>(
+      body: (...args: Args) => A,
+      a: (_: A, ...args: NoInfer<Args>) => B,
+      b: (_: B, ...args: NoInfer<Args>) => C,
+      c: (_: C, ...args: NoInfer<Args>) => D,
+      d: (_: D, ...args: NoInfer<Args>) => E,
+      e: (_: E, ...args: NoInfer<Args>) => F,
+      f: (_: F, ...args: NoInfer<Args>) => G,
+      g: (_: G, ...args: NoInfer<Args>) => H,
+      h: (_: H, ...args: NoInfer<Args>) => I,
+      i: (_: H, ...args: NoInfer<Args>) => Eff
+    ): CommandOutHelper<Args, Eff>
+  }
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
@@ -597,7 +675,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return (actionName: string): Commander.Gen<RT> =>
+        return (actionName: string): Commander.Gen<RT> & Commander.NonGen<RT> =>
         // TODO constrain/type combinators
         (
           fn: any,
@@ -609,7 +687,20 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           const errorDef = new Error()
           Error.stackTraceLimit = limit
 
-          return make(actionName, errorDef)(Effect.fnUntraced(fn, ...combinators as [any]) as any)
+          return make(actionName, errorDef)(
+            // we need to use `fn` instead of `fnUntraced` to support non gen
+            // TODO: clean this mess.
+            (...args) =>
+              Effect.currentSpan.pipe(
+                Effect.flatMap((span) =>
+                  Effect.fn("bogus", { context: Tracer.DisablePropagation.context(true), captureStackTrace: false })(
+                    fn,
+                    ...combinators as [any],
+                    Effect.provideService(Tracer.ParentSpan, span)
+                  )(...args)
+                )
+              ) as any
+          )
         }
       },
 

@@ -35,7 +35,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               typeof options.onSuccess === "string"
                 ? options.onSuccess
                 : options.onSuccess(a, ...args),
-              { id: toastId, timeout: baseTimeout }
+              toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
             )
           ),
           Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
@@ -46,14 +46,16 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
             const t = typeof options.onFailure === "string"
               ? options.onFailure
               : options.onFailure(Cause.failureOption(cause), ...args)
+            const opts = { timeout: baseTimeout * 2 }
+
             if (typeof t === "object") {
               return t.level === "warn"
-                ? yield* toast.warning(t.message, { id: toastId, timeout: baseTimeout * 2 })
-                : yield* toast.error(t.message, { id: toastId, timeout: baseTimeout * 2 })
+                ? yield* toast.warning(t.message, toastId !== undefined ? { ...opts, id: toastId } : opts)
+                : yield* toast.error(t.message, toastId !== undefined ? { ...opts, id: toastId } : opts)
             }
-            yield* toast.error(t, { id: toastId, timeout: baseTimeout * 2 })
+            yield* toast.error(t, toastId !== undefined ? { ...opts, id: toastId } : opts)
           })),
-          toastId ? Effect.provideService(CurrentToastId, CurrentToastId.of({ toastId })) : (_) => _
+          toastId !== undefined ? Effect.provideService(CurrentToastId, CurrentToastId.of({ toastId })) : (_) => _
         )
       })
   })

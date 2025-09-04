@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.54.0
+
+### Minor Changes
+
+- 60e4105: enhance toasts.
+
 ## 2.53.4
 
 ### Patch Changes

@@ -10,6 +10,9 @@ overrides:
   vue: ^3.5.18
 
 patchedDependencies:
+  '@ben_12/eslint-plugin-dprint':
+    hash: 16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e
+    path: patches/@ben_12__eslint-plugin-dprint.patch
   '@tanstack/query-core':
     hash: 351153003e430d89ebb99f44022c6de72d7e21f40056ebf2468626bec8e015c7
     path: patches/@tanstack__query-core.patch
@@ -44,14 +47,14 @@ importers:
         version: 3.5.18(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))
     devDependencies:
       '@ben_12/eslint-plugin-dprint':
-        specifier: ^1.7.1
-        version: 1.7.1(@dprint/typescript@0.95.9)(eslint@9.32.0)
+        specifier: ^1.7.4
+        version: 1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(eslint@9.32.0)
       '@changesets/cli':
         specifier: ^2.29.5
         version: 2.29.5
       '@dprint/typescript':
-        specifier: ^0.95.9
-        version: 0.95.9
+        specifier: ^0.95.11
+        version: 0.95.11
       '@effect-app/cli':
         specifier: ^1.23.6
         version: 1.23.6(a66799d3516925dffe25464adc3ab40a)
@@ -568,6 +571,12 @@ importers:
         specifier: ^3.9.4
         version: 3.9.4(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))(vue@3.5.18(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
     devDependencies:
+      '@ben_12/eslint-plugin-dprint':
+        specifier: ^1.7.4
+        version: 1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(eslint@9.32.0)
+      '@dprint/typescript':
+        specifier: ^0.95.11
+        version: 0.95.11
       '@storybook/vue3':
         specifier: ^9.1.2
         version: 9.1.2(storybook@9.1.2(@testing-library/dom@10.4.0)(prettier@3.3.3)(vite@7.1.0(@types/node@24.2.0)(sass@1.90.0)(terser@5.39.0)(tsx@4.20.3)(yaml@2.8.1)))(vue@3.5.18(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
@@ -595,6 +604,9 @@ importers:
       '@vue/test-utils':
         specifier: ^2.4.6
         version: 2.4.6
+      dprint:
+        specifier: ^0.50.1
+        version: 0.50.1
       eslint-plugin-prettier:
         specifier: ^5.5.4
         version: 5.5.4(@types/eslint@9.6.1)(eslint-config-prettier@10.1.1(eslint@9.32.0))(eslint@9.32.0)(prettier@3.3.3)
@@ -851,18 +863,18 @@ packages:
     resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
 
-  '@ben_12/eslint-plugin-dprint@1.7.1':
-    resolution: {integrity: sha512-LKFcwIWTGeeLgkLO4EXJrkcl5Z7zqwxomh+sWyQAv29ftlkAQg5RxidbhK7eiVJehdSfFvRKo0ovkwey6zbGhA==}
+  '@ben_12/eslint-plugin-dprint@1.7.4':
+    resolution: {integrity: sha512-GvZysZ3/DtUW9IsK4rFSQm2uZMxXXnQfcUDvKIcHeow4Uea3oyKETwwTLrfah3tbG0G2fEZhgpaQXKTcvs2g1w==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@dprint/dockerfile': ^0.3.3
       '@dprint/json': ^0.20.0
       '@dprint/markdown': ^0.19.0
       '@dprint/toml': ^0.7.0
-      '@dprint/typescript': ^0.95.9
-      dprint-plugin-graphql: ^0.2.0
-      dprint-plugin-malva: ^0.14.1
-      dprint-plugin-markup: ^0.23.1
+      '@dprint/typescript': ^0.95.11
+      dprint-plugin-graphql: ^0.2.3
+      dprint-plugin-malva: ^0.14.2
+      dprint-plugin-markup: ^0.23.3
       dprint-plugin-yaml: ^0.5.1
       eslint: '>=7.0.0'
     peerDependenciesMeta:
@@ -1033,8 +1045,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@dprint/typescript@0.95.9':
-    resolution: {integrity: sha512-jmMFxkuarAfJh4fMRpcOaRl5PhJzd6d9AplDtDhobpl6PBPTNkLiaQBTbSJA2o87gB9LiQSjq71iGH/wLfpxTg==}
+  '@dprint/typescript@0.95.11':
+    resolution: {integrity: sha512-eYPrFvR4+ScHMGGirTWS4uY4XTfxTY/VoVUzvDN9sKZUyvwTDW1wV1mbZj7dRFc8pV4HexvPfW5oKLShFSXr4w==}
 
   '@dprint/win32-arm64@0.50.1':
     resolution: {integrity: sha512-ZeaRMQYoFjrsO3lvI1SqzDWDGH1GGXWmNSeXvcFuAf2OgYQJWMBlLotCKiHNJ3uyYneoyhTg2tv9QkApNkZV4Q==}
@@ -7259,7 +7271,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@ben_12/eslint-plugin-dprint@1.7.1(@dprint/typescript@0.95.9)(eslint@9.32.0)':
+  '@ben_12/eslint-plugin-dprint@1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(eslint@9.32.0)':
     dependencies:
       '@dprint/formatter': 0.4.1
       debug: 4.4.1(supports-color@5.5.0)
@@ -7267,7 +7279,7 @@ snapshots:
       eslint: 9.32.0
       jsonc-parser: 3.3.1
     optionalDependencies:
-      '@dprint/typescript': 0.95.9
+      '@dprint/typescript': 0.95.11
     transitivePeerDependencies:
       - supports-color
 
@@ -7486,7 +7498,7 @@ snapshots:
   '@dprint/linux-x64-musl@0.50.1':
     optional: true
 
-  '@dprint/typescript@0.95.9': {}
+  '@dprint/typescript@0.95.11': {}
 
   '@dprint/win32-arm64@0.50.1':
     optional: true

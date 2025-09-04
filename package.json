@@ -7,7 +7,8 @@
       "effect": "patches/effect.patch",
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
-      "typescript": "patches/typescript.patch"
+      "typescript": "patches/typescript.patch",
+      "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch"
     }
   },
   "engines": {
@@ -55,9 +56,10 @@
     "vue": "^3.5.18"
   },
   "devDependencies": {
-    "@ben_12/eslint-plugin-dprint": "^1.7.1",
+    "@dprint/typescript": "^0.95.11",
+    "@ben_12/eslint-plugin-dprint": "^1.7.4",
+    "dprint": "^0.50.1",
     "@changesets/cli": "^2.29.5",
-    "@dprint/typescript": "^0.95.9",
     "@effect-app/cli": "^1.23.6",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
@@ -76,7 +78,6 @@
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "concurrently": "^9.2.0",
-    "dprint": "^0.50.1",
     "effect": "^3.17.6",
     "effect-app": "workspace:*",
     "enhanced-resolve": "^5.18.3",

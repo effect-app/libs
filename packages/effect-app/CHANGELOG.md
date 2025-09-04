@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.2.4
+
+### Patch Changes
+
+- 8cb893c: dprint rules the world
+
 ## 3.2.3
 
 ### Patch Changes
@@ -285,7 +291,6 @@
 ### Patch Changes
 
 - 0230385: improve: rpc spans
-
   - fewer duplicate spans
   - improve name
 

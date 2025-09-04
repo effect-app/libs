@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.20
+
+### Patch Changes
+
+- 8cb893c: dprint rules the world
+- Updated dependencies [8cb893c]
+  - effect-app@3.2.4
+
 ## 3.0.19
 
 ### Patch Changes
@@ -905,7 +913,6 @@
 ### Patch Changes
 
 - 0230385: improve: rpc spans
-
   - fewer duplicate spans
   - improve name
 

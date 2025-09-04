@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 0.15.24
+
+### Patch Changes
+
+- 8cb893c: dprint rules the world
+- Updated dependencies [8cb893c]
+  - effect-app@3.2.4
+  - @effect-app/vue@2.53.4
+
 ## 0.15.23
 
 ### Patch Changes
@@ -828,12 +837,10 @@
   **BREAKING CHANGE (v0.4.0):** Users upgrading from v0.3.x need to adjust their `OmegaForm` templates.
 
   The `#default` slot has been replaced:
-
   - If you **do not** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#internalForm`.
   - If you **do** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#externalForm`.
 
   Additionally, when using the `#externalForm` slot (passing an external `form` prop):
-
   - **Do not** use the `form` instance provided by the slot template variables.
   - Use your **externally created/passed** `form` instance directly within the template.
 
@@ -993,7 +1000,6 @@
 ### Minor Changes
 
 - 98d5344: Enhance OmegaForm components with new input types and improved structure
-
   - Added support to CSS inside JS bundle both for modules than for custom elements
   - OmegaFormInput now fully support children as input, so vuetify it's only a default for environments that globally import that library
   - Updated OmegaInput.vue to support autocomplete and autocompletemultiple types.

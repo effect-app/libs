@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 1.42.1
+
+### Patch Changes
+
+- 8cb893c: dprint rules the world
+
 ## 1.42.0
 
 ### Minor Changes

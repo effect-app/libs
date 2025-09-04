@@ -1,21 +1,43 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
+import {
+  useForm,
+  type FormValidateOrFn,
+  type FormAsyncValidateOrFn,
+  type StandardSchemaV1,
+  DeepKeys,
+} from "@tanstack/vue-form"
 import { type Record, S } from "effect-app"
+import {
+  generateMetaFromSchema,
+  type NestedKeyOf,
+  type FilterItems,
+  type FormProps,
+  type MetaRecord,
+  type OmegaFormApi,
+  TypeOverride,
+  FieldValidators,
+} from "./OmegaFormStuff"
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  onUnmounted,
+  provide,
+  type InjectionKey,
+} from "vue"
 import { isObject } from "effect/Predicate"
-import { computed, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide } from "vue"
-import { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import OmegaFormInput from "./OmegaFormInput.vue"
-import { FieldValidators, type FilterItems, type FormProps TypeOverride } from "./OmegaFormStuff"
+import { InputProps, OmegaFieldInternalApi } from "./InputProps"
 
 type keysRule<T> =
   | {
-    keys?: NestedKeyOf<T>[]
-    banKeys?: "You should only use one of banKeys or keys, not both, moron"
-  }
+      keys?: NestedKeyOf<T>[]
+      banKeys?: "You should only use one of banKeys or keys, not both, moron"
+    }
   | {
-    keys?: "You should only use one of banKeys or keys, not both, moron"
-    banKeys?: NestedKeyOf<T>[]
-  }
+      keys?: "You should only use one of banKeys or keys, not both, moron"
+      banKeys?: NestedKeyOf<T>[]
+    }
 
 export type OmegaConfig<T> = {
   persistency?: {
@@ -37,59 +59,39 @@ interface OF<From, To> extends OmegaFormApi<From, To> {
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
 
-type __VLS_PrettifyLocal<T> =
-  & {
-    [K in keyof T]: T[K]
-  }
-  & {}
+type __VLS_PrettifyLocal<T> = {
+    [K in keyof T]: T[K];
+} & {};
 
-export interface OmegaFormReturn<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>>
-  extends OF<From, To>
-{
+export interface OmegaFormReturn<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> extends OF<From, To> {
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
-  Input: <Name extends DeepKeys<From>>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          > & {
-            name: Name
-            label: string
-            validators?: FieldValidators<From>
-            options?: {
-              title: string
-              value: string
-            }[]
-            type?: TypeOverride
-          } & Partial<{}>
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default(props: InputProps<From, Name>): void
-      }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
+  Input: <Name extends DeepKeys<From>>(__VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"], __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>, __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"], __VLS_setup?: Promise<{
+    props: __VLS_PrettifyLocal<Pick<Partial<{}> & Omit<{} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps, never>, never> & {
+        name: Name;
+        label: string;
+        validators?: FieldValidators<From>;
+        options?: {
+            title: string;
+            value: string;
+        }[];
+        type?: TypeOverride;
+    } & Partial<{}>> & import("vue").PublicProps;
+    expose(exposed: import("vue").ShallowUnwrapRef<{}>): void;
+    attrs: any;
+    slots: {
+        default(props: InputProps<From, Name>): void;
+    };
+    emit: {};
+}>) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>;
+};
 }
 
 export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   From extends Record<PropertyKey, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  To extends Record<PropertyKey, any>
+  To extends Record<PropertyKey, any>,
 >(
   schema: S.Schema<To, From, never>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
@@ -133,8 +135,8 @@ export const useOmegaForm = <
 
   const defaultValues = computed(() => {
     if (
-      tanstackFormOptions?.defaultValues
-      && !omegaConfig?.persistency?.overrideDefaultValues
+      tanstackFormOptions?.defaultValues &&
+      !omegaConfig?.persistency?.overrideDefaultValues
     ) {
       // defaultValues from tanstack are not partial,
       // so if ovverrideDefaultValues is false we simply return them
@@ -164,9 +166,9 @@ export const useOmegaForm = <
 
     if (
       // query string has higher priority than local/session storage
-      !defValuesPatch
-      && (persistency.policies.includes("local")
-        || persistency.policies.includes("session"))
+      !defValuesPatch &&
+      (persistency.policies.includes("local") ||
+        persistency.policies.includes("session"))
     ) {
       const storage = persistency.policies.includes("local")
         ? localStorage
@@ -211,17 +213,17 @@ export const useOmegaForm = <
     ...tanstackFormOptions,
     validators: {
       onSubmit: standardSchema,
-      ...(tanstackFormOptions?.validators || {})
+      ...(tanstackFormOptions?.validators || {}),
     },
     onSubmit: tanstackFormOptions?.onSubmit
       ? ({ formApi, meta, value }) =>
-        tanstackFormOptions.onSubmit?.({
-          formApi: formApi as OmegaFormApi<From, To>,
-          meta,
-          value: value as unknown as To
-        })
+          tanstackFormOptions.onSubmit?.({
+            formApi: formApi as OmegaFormApi<From, To>,
+            meta,
+            value: value as unknown as To,
+          })
       : undefined,
-    defaultValues: defaultValues.value as any
+    defaultValues: defaultValues.value as any,
   }) satisfies OmegaFormApi<To, From>
 
   const clear = () => {
@@ -250,7 +252,9 @@ export const useOmegaForm = <
       return createNestedObjectFromPaths(persistency.keys)
     }
     if (Array.isArray(persistency.banKeys)) {
-      const subs = Object.keys(meta).filter((metakey) => persistency.banKeys?.includes(metakey as any))
+      const subs = Object.keys(meta).filter(metakey =>
+        persistency.banKeys?.includes(metakey as any)
+      )
       return createNestedObjectFromPaths(subs)
     }
     return form.store.state.values
@@ -262,8 +266,8 @@ export const useOmegaForm = <
       return
     }
     if (
-      persistency.policies.includes("local")
-      || persistency.policies.includes("session")
+      persistency.policies.includes("local") ||
+      persistency.policies.includes("session")
     ) {
       const storage = persistency.policies.includes("local")
         ? localStorage
@@ -303,7 +307,7 @@ export const useOmegaForm = <
   const formWithExtras: OF<From, To> = Object.assign(form, {
     meta,
     filterItems,
-    clear
+    clear,
   })
 
   provide(OmegaFormKey, formWithExtras)

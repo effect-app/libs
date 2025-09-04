@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.53.2
+
+### Patch Changes
+
+- 503f333: fix: missing R support for withDefaultToast
+
 ## 2.53.1
 
 ### Patch Changes

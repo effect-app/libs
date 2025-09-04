@@ -1,20 +1,9 @@
-import { pipe, S, Option, type Record, type Effect } from "effect-app"
+import { type Effect, Option, pipe, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  type FormAsyncValidateOrFn,
-  type FormValidateOrFn,
-  type StandardSchemaV1,
-  type FormApi,
-  type VueFormApi,
-  type FormOptions,
-  type DeepKeys,
-  type FieldValidateOrFn,
-  type FieldAsyncValidateOrFn,
-  type FormState,
-} from "@tanstack/vue-form"
+import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { useIntl } from "../../utils"
-import { OmegaFormReturn } from "./useOmegaForm"
-import { OmegaFieldInternalApi } from "./InputProps"
+import { type OmegaFormReturn } from "./InputProps"
+import { type OmegaFieldInternalApi } from "./useOmegaForm"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
@@ -49,27 +38,29 @@ export interface OmegaError {
 
 const isArrayOfString = S.NonEmptyArray(S.String)
 
-export type FormProps<From, To> = Omit<
-  FormOptions<
-    From,
-    FormValidateOrFn<From> | undefined,
-    FormValidateOrFn<From> | undefined,
-    StandardSchemaV1<From, To>,
-    FormValidateOrFn<From> | undefined,
-    FormAsyncValidateOrFn<From> | undefined,
-    FormValidateOrFn<From> | undefined,
-    FormAsyncValidateOrFn<From> | undefined,
-    FormAsyncValidateOrFn<From> | undefined,
-    FormAsyncValidateOrFn<From> | undefined
-  >,
-  "onSubmit"
-> & {
-  onSubmit?: (props: {
-    formApi: OmegaFormParams<From, To>
-    meta: any
-    value: To
-  }) => Promise<any> | any
-}
+export type FormProps<From, To> =
+  & Omit<
+    FormOptions<
+      From,
+      FormValidateOrFn<From> | undefined,
+      FormValidateOrFn<From> | undefined,
+      StandardSchemaV1<From, To>,
+      FormValidateOrFn<From> | undefined,
+      FormAsyncValidateOrFn<From> | undefined,
+      FormValidateOrFn<From> | undefined,
+      FormAsyncValidateOrFn<From> | undefined,
+      FormAsyncValidateOrFn<From> | undefined,
+      FormAsyncValidateOrFn<From> | undefined
+    >,
+    "onSubmit"
+  >
+  & {
+    onSubmit?: (props: {
+      formApi: OmegaFormParams<From, To>
+      meta: any
+      value: To
+    }) => Promise<any> | any
+  }
 
 export type OmegaFormParams<From, To> = FormApi<
   From,
@@ -96,8 +87,9 @@ export type OmegaFormState<From, To> = FormState<
   FormAsyncValidateOrFn<From> | undefined
 >
 
-export type OmegaFormApi<From, To> = OmegaFormParams<From, To> &
-  VueFormApi<
+export type OmegaFormApi<From, To> =
+  & OmegaFormParams<From, To>
+  & VueFormApi<
     From,
     FormValidateOrFn<From> | undefined,
     FormValidateOrFn<From> | undefined,
@@ -123,7 +115,11 @@ export type FormComponent<T, S> = VueFormApi<
   FormAsyncValidateOrFn<T> | undefined
 >
 
-export type FormType<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>> = OmegaFormApi<From, To> & {
+export type FormType<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  Name extends DeepKeys<From>
+> = OmegaFormApi<From, To> & {
   Field: OmegaFieldInternalApi<From, Name>
 }
 
@@ -201,33 +197,36 @@ export type FilterItems = {
     | { readonly message: string | Effect.Effect<string> }
 }
 
-export type CreateMeta = {
-  parent?: string
-  meta?: Record<string, any>
-  nullableOrUndefined?: false | "undefined" | "null"
-} & (
-  | {
+export type CreateMeta =
+  & {
+    parent?: string
+    meta?: Record<string, any>
+    nullableOrUndefined?: false | "undefined" | "null"
+  }
+  & (
+    | {
       propertySignatures: readonly S.AST.PropertySignature[]
       property?: never
     }
-  | {
+    | {
       propertySignatures?: never
       property: S.AST.AST
     }
-)
+  )
 
 const getNullableOrUndefined = (property: S.AST.AST) => {
   return (
-    S.AST.isUnion(property) &&
-    property.types.find(_ => _._tag === "UndefinedKeyword" || _ === S.Null.ast)
+    S.AST.isUnion(property)
+    && property.types.find((_) => _._tag === "UndefinedKeyword" || _ === S.Null.ast)
   )
 }
 
 const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
   if (!property || !S.AST.isUnion(property)) return false
-  if (property.types.find(_ => _._tag === "UndefinedKeyword"))
+  if (property.types.find((_) => _._tag === "UndefinedKeyword")) {
     return "undefined"
-  if (property.types.find(_ => _ === S.Null.ast)) return "null"
+  }
+  if (property.types.find((_) => _ === S.Null.ast)) return "null"
   return false
 }
 
@@ -239,14 +238,14 @@ export const createMeta = <T = any>(
     return createMeta<T>({
       parent,
       meta,
-      property: property.from,
+      property: property.from
     })
   }
 
   if (property?._tag === "TypeLiteral" && "propertySignatures" in property) {
     return createMeta<T>({
       meta,
-      propertySignatures: property.propertySignatures,
+      propertySignatures: property.propertySignatures
     })
   }
 
@@ -255,16 +254,15 @@ export const createMeta = <T = any>(
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
       const isRequired = !nullableOrUndefined
-      
 
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
         const nonNullTypes = p.type.types.filter(
-          t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
+          (t) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
         )
 
         const hasStructMembers = nonNullTypes.some(
-          t => "propertySignatures" in t
+          (t) => "propertySignatures" in t
         )
 
         if (hasStructMembers) {
@@ -273,11 +271,11 @@ export const createMeta = <T = any>(
             const parentMeta = createMeta<T>({
               parent: key,
               property: p.type,
-              meta: { required: isRequired, nullableOrUndefined },
+              meta: { required: isRequired, nullableOrUndefined }
             })
             acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
           }
-          
+
           // Process each non-null type and merge their metadata
           for (const nonNullType of nonNullTypes) {
             if ("propertySignatures" in nonNullType) {
@@ -286,7 +284,7 @@ export const createMeta = <T = any>(
                 createMeta<T>({
                   parent: key,
                   propertySignatures: nonNullType.propertySignatures,
-                  meta: { required: isRequired, nullableOrUndefined },
+                  meta: { required: isRequired, nullableOrUndefined }
                 })
               )
             }
@@ -295,8 +293,8 @@ export const createMeta = <T = any>(
           // Check if any of the union types are arrays (TupleType)
           const arrayTypes = nonNullTypes.filter(S.AST.isTupleType)
           if (arrayTypes.length > 0) {
-            const arrayType = arrayTypes[0]  // Take the first array type
-            
+            const arrayType = arrayTypes[0] // Take the first array type
+
             acc[key as NestedKeyOf<T>] = {
               type: "multiple",
               members: arrayType.elements,
@@ -304,15 +302,14 @@ export const createMeta = <T = any>(
               required: isRequired,
               nullableOrUndefined
             } as FieldMeta
-            
+
             // If the array has struct elements, also create metadata for their properties
             if (arrayType.rest && arrayType.rest.length > 0) {
               const restElement = arrayType.rest[0]
               if (restElement.type._tag === "TypeLiteral" && "propertySignatures" in restElement.type) {
-
                 for (const prop of restElement.type.propertySignatures) {
                   const propKey = `${key}.${prop.name.toString()}`
-                  
+
                   const propMeta = createMeta<T>({
                     parent: propKey,
                     property: prop.type,
@@ -321,18 +318,23 @@ export const createMeta = <T = any>(
                       nullableOrUndefined: isNullableOrUndefined(prop.type)
                     }
                   })
-                  
-                  // add to accumulator if valid
-                  if (propMeta && typeof propMeta === 'object' && 'type' in propMeta) {
-                    acc[propKey as NestedKeyOf<T>] = propMeta as FieldMeta
-                    
-                    if (propMeta.type === "multiple" && S.AST.isTupleType(prop.type) && prop.type.rest && prop.type.rest.length > 0) {
-                      const nestedRestElement = prop.type.rest[0]
-                      if (nestedRestElement.type._tag === "TypeLiteral" && "propertySignatures" in nestedRestElement.type) {
 
+                  // add to accumulator if valid
+                  if (propMeta && typeof propMeta === "object" && "type" in propMeta) {
+                    acc[propKey as NestedKeyOf<T>] = propMeta as FieldMeta
+
+                    if (
+                      propMeta.type === "multiple" && S.AST.isTupleType(prop.type) && prop
+                        .type
+                        .rest && prop.type.rest.length > 0
+                    ) {
+                      const nestedRestElement = prop.type.rest[0]
+                      if (
+                        nestedRestElement.type._tag === "TypeLiteral" && "propertySignatures" in nestedRestElement.type
+                      ) {
                         for (const nestedProp of nestedRestElement.type.propertySignatures) {
                           const nestedPropKey = `${propKey}.${nestedProp.name.toString()}`
-                          
+
                           const nestedPropMeta = createMeta<T>({
                             parent: nestedPropKey,
                             property: nestedProp.type,
@@ -341,9 +343,9 @@ export const createMeta = <T = any>(
                               nullableOrUndefined: isNullableOrUndefined(nestedProp.type)
                             }
                           })
-                          
+
                           // add to accumulator if valid
-                          if (nestedPropMeta && typeof nestedPropMeta === 'object' && 'type' in nestedPropMeta) {
+                          if (nestedPropMeta && typeof nestedPropMeta === "object" && "type" in nestedPropMeta) {
                             acc[nestedPropKey as NestedKeyOf<T>] = nestedPropMeta as FieldMeta
                           }
                         }
@@ -358,7 +360,7 @@ export const createMeta = <T = any>(
             const newMeta = createMeta<T>({
               parent: key,
               property: p.type,
-              meta: { required: isRequired, nullableOrUndefined },
+              meta: { required: isRequired, nullableOrUndefined }
             })
             acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
           }
@@ -369,17 +371,17 @@ export const createMeta = <T = any>(
           createMeta<T>({
             parent: key,
             propertySignatures: typeToProcess.propertySignatures,
-            meta: { required: isRequired, nullableOrUndefined },
+            meta: { required: isRequired, nullableOrUndefined }
           })
         )
       } else {
         // Check if this is an array type
         if (S.AST.isTupleType(p.type)) {
           // Check if it has struct elements
-          const hasStructElements = p.type.rest.length > 0 && 
-            p.type.rest[0].type._tag === "TypeLiteral" && 
-            "propertySignatures" in p.type.rest[0].type
-          
+          const hasStructElements = p.type.rest.length > 0
+            && p.type.rest[0].type._tag === "TypeLiteral"
+            && "propertySignatures" in p.type.rest[0].type
+
           if (hasStructElements) {
             // For arrays with struct elements, only create meta for nested fields, not the array itself
             const elementType = p.type.rest[0].type
@@ -387,7 +389,7 @@ export const createMeta = <T = any>(
               // Process each property in the array element
               for (const prop of elementType.propertySignatures) {
                 const propKey = `${key}.${prop.name.toString()}`
-                
+
                 // Check if the property is another array
                 if (S.AST.isTupleType(prop.type) && prop.type.rest.length > 0) {
                   const nestedElementType = prop.type.rest[0].type
@@ -442,10 +444,9 @@ export const createMeta = <T = any>(
           const newMeta = createMeta<T>({
             parent: key,
             property: p.type,
-            meta: { required: isRequired, nullableOrUndefined },
+            meta: { required: isRequired, nullableOrUndefined }
           })
-          
-          
+
           acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
         }
       }
@@ -462,14 +463,14 @@ export const createMeta = <T = any>(
 
     if (S.AST.isUnion(property)) {
       const nonNullType = property.types.find(
-        t => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
+        (t) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
       )!
 
       if ("propertySignatures" in nonNullType) {
         return createMeta<T>({
           propertySignatures: nonNullType.propertySignatures,
           parent,
-          meta,
+          meta
         })
       }
 
@@ -477,7 +478,7 @@ export const createMeta = <T = any>(
         return {
           ...meta,
           type: "select",
-          members: property.types.map(t => t.literal),
+          members: property.types.map((t) => t.literal)
         } as FieldMeta
       }
 
@@ -486,8 +487,8 @@ export const createMeta = <T = any>(
         ...createMeta<T>({
           parent,
           meta,
-          property: nonNullType,
-        }),
+          property: nonNullType
+        })
       } as FieldMeta
     }
 
@@ -496,14 +497,17 @@ export const createMeta = <T = any>(
         ...meta,
         type: "multiple",
         members: property.elements,
-        rest: property.rest,
+        rest: property.rest
       } as FieldMeta
     }
 
-    const JSONAnnotation = S.AST.getAnnotation(
-      property,
-      S.AST.JSONSchemaAnnotationId
-    ).pipe(Option.getOrElse(() => ({}))) as Record<string, unknown>
+    const JSONAnnotation = S
+      .AST
+      .getAnnotation(
+        property,
+        S.AST.JSONSchemaAnnotationId
+      )
+      .pipe(Option.getOrElse(() => ({}))) as Record<string, unknown>
 
     meta = { ...meta, ...JSONAnnotation }
 
@@ -511,17 +515,20 @@ export const createMeta = <T = any>(
       return createMeta<T>({
         parent,
         meta,
-        property: property.from,
+        property: property.from
       })
     } else {
-      meta["type"] = S.AST.getAnnotation(
-        property,
-        S.AST.TitleAnnotationId
-      ).pipe(
-        Option.getOrElse(() => {
-          return "unknown"
-        })
-      )
+      meta["type"] = S
+        .AST
+        .getAnnotation(
+          property,
+          S.AST.TitleAnnotationId
+        )
+        .pipe(
+          Option.getOrElse(() => {
+            return "unknown"
+          })
+        )
     }
 
     return meta as FieldMeta
@@ -542,10 +549,10 @@ const flattenMeta = <From, To>(
 
   if ("propertySignatures" in ast) {
     const meta = createMeta<To>({
-      propertySignatures: ast.propertySignatures,
+      propertySignatures: ast.propertySignatures
     })
 
-    if (Object.values(meta).every(value => value && "type" in value)) {
+    if (Object.values(meta).every((value) => value && "type" in value)) {
       return meta as MetaRecord<To>
     }
 
@@ -586,17 +593,15 @@ export const generateMetaFromSchema = <From, To>(
 
   const filterItems = pipe(
     schema.ast,
-    Option.liftPredicate(s => s._tag === "Refinement" && "filter" in s),
-    Option.flatMap(s => S.AST.getJSONSchemaAnnotation(s)),
-    Option.filter(s => "items" in s),
-    Option.filterMap(({ items }) =>
-      S.decodeUnknownOption(isArrayOfString)(items)
-    ),
+    Option.liftPredicate((s) => s._tag === "Refinement" && "filter" in s),
+    Option.flatMap((s) => S.AST.getJSONSchemaAnnotation(s)),
+    Option.filter((s) => "items" in s),
+    Option.filterMap(({ items }) => S.decodeUnknownOption(isArrayOfString)(items)),
     Option.zipWith(
       S.AST.getMessageAnnotation(schema.ast),
       (items, message) => ({
         items,
-        message: message("" as unknown as S.ParseResult.ParseIssue),
+        message: message("" as unknown as S.ParseResult.ParseIssue)
       })
     ),
     Option.getOrUndefined
@@ -613,21 +618,21 @@ export const generateInputStandardSchemaFromFieldMeta = (
   switch (meta.type) {
     case "string":
       schema = S.String.annotations({
-        message: () => trans("validation.empty"),
+        message: () => trans("validation.empty")
       })
 
       if (meta.format === "email") {
         schema = S.compose(
           schema,
           S.Email.annotations({
-            message: () => trans("validation.email.invalid"),
+            message: () => trans("validation.email.invalid")
           })
         )
       }
 
       if (meta.required) {
         schema.annotations({
-          message: () => trans("validation.empty"),
+          message: () => trans("validation.empty")
         })
       }
 
@@ -635,28 +640,28 @@ export const generateInputStandardSchemaFromFieldMeta = (
         schema = schema.pipe(S.maxLength(meta.maxLength)).annotations({
           message: () =>
             trans("validation.string.maxLength", {
-              maxLength: meta.maxLength,
-            }),
+              maxLength: meta.maxLength
+            })
         })
       }
       if (meta.minLength) {
         schema = schema.pipe(S.minLength(meta.minLength)).annotations({
           message: () =>
             trans("validation.string.minLength", {
-              minLength: meta.minLength,
-            }),
+              minLength: meta.minLength
+            })
         })
       }
       break
 
     case "number":
       schema = S.Number.annotations({
-        message: () => trans("validation.empty"),
+        message: () => trans("validation.empty")
       })
 
       if (meta.required) {
         schema.annotations({
-          message: () => trans("validation.empty"),
+          message: () => trans("validation.empty")
         })
       }
       if (meta.minimum) {
@@ -664,8 +669,8 @@ export const generateInputStandardSchemaFromFieldMeta = (
           message: () =>
             trans("validation.number.min", {
               minimum: meta.minimum,
-              isExclusive: true,
-            }),
+              isExclusive: true
+            })
         })
       }
       if (meta.maximum) {
@@ -673,8 +678,8 @@ export const generateInputStandardSchemaFromFieldMeta = (
           message: () =>
             trans("validation.number.max", {
               maximum: meta.maximum,
-              isExclusive: true,
-            }),
+              isExclusive: true
+            })
         })
       }
       if (meta.exclusiveMinimum) {
@@ -682,8 +687,8 @@ export const generateInputStandardSchemaFromFieldMeta = (
           message: () =>
             trans("validation.number.min", {
               minimum: meta.exclusiveMinimum,
-              isExclusive: false,
-            }),
+              isExclusive: false
+            })
         })
       }
       if (meta.exclusiveMaximum) {
@@ -691,8 +696,8 @@ export const generateInputStandardSchemaFromFieldMeta = (
           message: () =>
             trans("validation.number.max", {
               maximum: meta.exclusiveMaximum,
-              isExclusive: false,
-            }),
+              isExclusive: false
+            })
         })
       }
       break
@@ -701,10 +706,10 @@ export const generateInputStandardSchemaFromFieldMeta = (
         message: () => ({
           message: trans("validation.not_a_valid", {
             type: "select",
-            message: meta.members.join(", "),
+            message: meta.members.join(", ")
           }),
-          override: true,
-        }),
+          override: true
+        })
       })
 
       break
@@ -714,8 +719,8 @@ export const generateInputStandardSchemaFromFieldMeta = (
         message: () =>
           trans("validation.not_a_valid", {
             type: "multiple",
-            message: meta.members.join(", "),
-          }),
+            message: meta.members.join(", ")
+          })
       })
       break
 
@@ -733,7 +738,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
   } else {
     schema.pipe(
       S.annotations({
-        message: () => trans("validation.empty"),
+        message: () => trans("validation.empty")
       })
     )
   }
@@ -747,7 +752,7 @@ export const nullableInput = <A, I, R>(
 ) =>
   S.NullOr(schema).pipe(
     S.transform(S.typeSchema(schema), {
-      decode: input => input ?? defaultValue(),
-      encode: input => input,
+      decode: (input) => input ?? defaultValue(),
+      encode: (input) => input
     })
   )

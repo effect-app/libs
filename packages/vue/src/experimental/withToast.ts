@@ -3,8 +3,8 @@ import { CurrentToastId, Toast } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>> {
   timeout?: number
-  onWaiting: string | ((...args: Args) => string) | undefined
-  onSuccess: string | ((a: A, ...args: Args) => string) | undefined
+  onWaiting: string | ((...args: Args) => string) | null
+  onSuccess: string | ((a: A, ...args: Args) => string) | null
   onFailure:
     | string
     | ((
@@ -22,7 +22,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
     ) =>
       Effect.fnUntraced(function*(self: Effect.Effect<A, E, R>, ...args: Args) {
         const baseTimeout = options.timeout ?? 3_000
-        const toastId = options.onWaiting === undefined ? undefined : yield* toast.info(
+        const toastId = options.onWaiting === null ? undefined : yield* toast.info(
           // .loading
           typeof options.onWaiting === "string"
             ? options.onWaiting
@@ -31,7 +31,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
         )
         return yield* self.pipe(
           Effect.tap((a) =>
-            options.onSuccess === undefined ? Effect.void : toast.success(
+            options.onSuccess === null ? Effect.void : toast.success(
               typeof options.onSuccess === "string"
                 ? options.onSuccess
                 : options.onSuccess(a, ...args),

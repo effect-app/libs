@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
-import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type ResolvedIntlConfig } from "@formatjs/intl"
+import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type MessageDescriptor, type ResolvedIntlConfig } from "@formatjs/intl"
 import { typedKeysOf } from "effect-app/utils"
-import type { FormatXMLElementFn, PrimitiveType } from "intl-messageformat"
+import { type FormatXMLElementFn, type Options as IntlMessageFormatOptions, type PrimitiveType } from "intl-messageformat"
 import { type Ref, ref, watch } from "vue"
 import { translate } from "./form.js"
 import { makeContext } from "./makeContext.js"
@@ -60,6 +60,13 @@ export const makeIntl = <Locale extends string>(
     return {
       locale,
       trans,
+      get formatMessage(): (
+        descriptor: MessageDescriptor,
+        values?: Record<string, PrimitiveType | FormatXMLElementFn<string, string>>,
+        opts?: IntlMessageFormatOptions
+      ) => string {
+        return intls[locale.value].formatMessage
+      },
       get intl() {
         return intls[locale.value] as IntlShape<Locale>
       }

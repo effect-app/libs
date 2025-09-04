@@ -1,5 +1,8 @@
 <template>
-  <form novalidate @submit.prevent.stop="handleFormSubmit">
+  <form
+    novalidate
+    @submit.prevent.stop="handleFormSubmit"
+  >
     <fieldset :disabled="formIsLoading">
       <!-- Render externalForm + default slots if props.form is provided -->
       <template v-if="props.form">
@@ -62,64 +65,60 @@
  * </Form>
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useStore, type StandardSchemaV1Issue } from "@tanstack/vue-form"
-import { Record, type S } from "effect-app"
-import {
-  type FormProps,
-  type FilterItems,
-  type OmegaFormApi,
-  type OmegaFormState,
-  type ShowErrorsOn,
-} from "./OmegaFormStuff"
+import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
+import { type Record, type S } from "effect-app"
+import { computed, getCurrentInstance, onBeforeMount } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
-import {
-  type OmegaConfig,
-  type OmegaFormReturn,
-  useOmegaForm,
-} from "./useOmegaForm"
-import { computed, watch, onBeforeMount } from "vue"
-import { getCurrentInstance } from 'vue';
+import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
+import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
-type OmegaWrapperProps = {
-  omegaConfig?: OmegaConfig<From>
-  subscribe?: K[]
-  showErrorsOn?: ShowErrorsOn
-} & Omit<FormProps<From, To>, 'onSubmit'> &
-  (
-    | {
-        form: OmegaFormReturn<From, To>
-        schema?: undefined
-      }
-    | {
-        form?: undefined
-        schema: S.Schema<To, From, never>
-      }
-  ) & (
-  | {
-    isLoading?: undefined,
-    onSubmit?: FormProps<From, To>['onSubmit']
-   }
-  | {
-    isLoading: boolean,
-    onSubmit: (data: To) => void
+type OmegaWrapperProps =
+  & {
+    omegaConfig?: OmegaConfig<From>
+    subscribe?: K[]
+    showErrorsOn?: ShowErrorsOn
   }
-)
+  & Omit<FormProps<From, To>, "onSubmit">
+  & (
+    | {
+      form: OmegaFormReturn<From, To>
+      schema?: undefined
+    }
+    | {
+      form?: undefined
+      schema: S.Schema<To, From, never>
+    }
+  )
+  & (
+    | {
+      isLoading?: undefined
+      onSubmit?: FormProps<From, To>["onSubmit"]
+    }
+    | {
+      isLoading: boolean
+      onSubmit: (data: To) => void
+    }
+  )
 
 const props = withDefaults(defineProps<OmegaWrapperProps>(), {
   isLoading: undefined
 })
-
 
 const localForm = computed(() => {
   if (props.form || !props.schema) {
     return undefined
   }
   return useOmegaForm<From, To>(
-    props.schema, 
-    { ...props, 
-      onSubmit: typeof props.isLoading !== 'undefined' ? undefined : props.onSubmit
-    }, props.omegaConfig)
+    props.schema,
+    {
+      ...props,
+      onSubmit: typeof props.isLoading !== "undefined"
+        ? undefined
+        : props.onSubmit
+    },
+    props.omegaConfig
+  )
 })
 
 const formToUse = computed(() => props.form ?? localForm.value!)
@@ -139,21 +138,22 @@ onBeforeMount(() => {
 
   const filteredProps = Object.fromEntries(
     Object.entries(props).filter(
-      ([key, value]) =>{
-        if(key === 'isLoading') {
+      ([key, value]) => {
+        if (key === "isLoading") {
           return false
         }
-        return!excludedKeys.has(key as keyof typeof props) && value !== undefined
-      },
-    ),
+        return !excludedKeys.has(key as keyof typeof props)
+          && value !== undefined
+      }
+    )
   ) as Record<string, unknown>
 
   const propsKeys = Object.keys(filteredProps)
 
   const overlappingKeys = formOptionsKeys.filter(
-    key =>
-      propsKeys.includes(key) &&
-      filteredProps[key] !== undefined,
+    (key) =>
+      propsKeys.includes(key)
+      && filteredProps[key] !== undefined
   )
 
   if (overlappingKeys.length > 0) {
@@ -186,21 +186,24 @@ const formIsSubmitting = useStore(
 
 const instance = getCurrentInstance()
 
-const formIsLoading = computed(() => typeof props.isLoading !== 'undefined' ? props.isLoading : formIsSubmitting.value)
+const formIsLoading = computed(() =>
+  typeof props.isLoading !== "undefined"
+    ? props.isLoading
+    : formIsSubmitting.value
+)
 
 const handleFormSubmit = (): void => {
   if (formIsLoading.value) return
-  
-  if (typeof props.isLoading !== 'undefined') {
-    formToUse.value.validateAllFields("submit").then(errors => {
+
+  if (typeof props.isLoading !== "undefined") {
+    formToUse.value.validateAllFields("submit").then((errors) => {
       if (Object.keys(errors).length === 0) {
         const formState = formToUse.value.store.state
         const values = formState.values
-        instance?.emit('submit', values as unknown as To)
+        instance?.emit("submit", values as unknown as To)
       }
     })
-  } 
-  else {
+  } else {
     formToUse.value.handleSubmit()
   }
 }

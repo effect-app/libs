@@ -56,6 +56,9 @@
     "vue": "^3.5.18"
   },
   "devDependencies": {
+    "dprint-plugin-malva": "^0.14.2",
+    "dprint-plugin-markup": "^0.23.3",
+    "dprint-plugin-yaml": "^0.5.1",
     "@dprint/typescript": "^0.95.11",
     "@ben_12/eslint-plugin-dprint": "^1.7.4",
     "dprint": "^0.50.1",
@@ -78,9 +81,6 @@
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "concurrently": "^9.2.0",
-        "dprint-plugin-malva": "^0.14.2",
-    "dprint-plugin-markup": "^0.23.3",
-    "dprint-plugin-yaml": "^0.5.1",
     "effect": "^3.17.6",
     "effect-app": "workspace:*",
     "enhanced-resolve": "^5.18.3",

@@ -588,80 +588,83 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         )
       }),
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
-      withDefaultToast: <A, E, R>(options?: { errorRenderer?: (e: E) => string | undefined }) =>
-      (
-        self: Effect.Effect<A, E, R>
-      ) =>
-        Effect.gen(function*() {
-          const { action } = yield* CommandContext
+      withDefaultToast:
+        <A, E, R>(options?: { errorRenderer?: (e: E) => string | undefined; onWaiting?: null; onSuccess?: null }) =>
+        (
+          self: Effect.Effect<A, E, R>
+        ) =>
+          Effect.gen(function*() {
+            const { action } = yield* CommandContext
 
-          const defaultWarnMessage = intl.formatMessage(
-            { id: "handle.with_warnings" },
-            { action }
-          )
-          const defaultErrorMessage = intl.formatMessage(
-            { id: "handle.with_errors" },
-            { action }
-          )
-          function renderError(e: E): string {
-            if (options?.errorRenderer) {
-              const m = options.errorRenderer(e)
-              if (m) {
-                return m
-              }
-            }
-            if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
-              if (typeof e === "object" && e !== null) {
-                if ("message" in e) {
-                  return `${e.message}`
-                }
-                if ("_tag" in e) {
-                  return `${e._tag}`
-                }
-              }
-              return ""
-            }
-            const e2: SupportedErrors | S.ParseResult.ParseError = e
-            return Match.value(e2).pipe(
-              Match.tags({
-                ParseError: (e) => {
-                  console.warn(e.toString())
-                  return intl.formatMessage({ id: "validation.failed" })
-                }
-              }),
-              Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+            const defaultWarnMessage = intl.formatMessage(
+              { id: "handle.with_warnings" },
+              { action }
             )
-          }
+            const defaultErrorMessage = intl.formatMessage(
+              { id: "handle.with_errors" },
+              { action }
+            )
+            function renderError(e: E): string {
+              if (options?.errorRenderer) {
+                const m = options.errorRenderer(e)
+                if (m) {
+                  return m
+                }
+              }
+              if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
+                if (typeof e === "object" && e !== null) {
+                  if ("message" in e) {
+                    return `${e.message}`
+                  }
+                  if ("_tag" in e) {
+                    return `${e._tag}`
+                  }
+                }
+                return ""
+              }
+              const e2: SupportedErrors | S.ParseResult.ParseError = e
+              return Match.value(e2).pipe(
+                Match.tags({
+                  ParseError: (e) => {
+                    console.warn(e.toString())
+                    return intl.formatMessage({ id: "validation.failed" })
+                  }
+                }),
+                Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+              )
+            }
 
-          return yield* self.pipe(
-            withToast({
-              onWaiting: intl.formatMessage(
-                { id: "handle.waiting" },
-                { action }
-              ),
-              onSuccess: (a) =>
-                intl.formatMessage({ id: "handle.success" }, { action })
-                + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-              onFailure: Option.match({
-                onNone: () =>
-                  intl.formatMessage(
-                    { id: "handle.unexpected_error2" },
-                    {
-                      action,
-                      error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
-                    }
-                  ),
-                onSome: (e) =>
-                  S.is(OperationFailure)(e)
-                    ? {
-                      level: "warn",
-                      message: defaultWarnMessage + e.message ? "\n" + e.message : ""
-                    }
-                    : `${defaultErrorMessage}:\n` + renderError(e)
+            return yield* self.pipe(
+              withToast({
+                onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
+                  { id: "handle.waiting" },
+                  { action }
+                ),
+                onSuccess: options?.onSuccess === null
+                  ? null
+                  : (a) =>
+                    intl.formatMessage({ id: "handle.success" }, { action })
+                    + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
+                onFailure: Option.match({
+                  onNone: () =>
+                    intl.formatMessage(
+                      { id: "handle.unexpected_error2" },
+                      {
+                        action,
+                        error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
+                      }
+                    ),
+                  onSome: (e) =>
+                    S.is(OperationFailure)(e)
+                      ? {
+                        level: "warn",
+                        message: defaultWarnMessage + e.message ? "\n" + e.message : ""
+                      }
+                      : `${defaultErrorMessage}:\n` + renderError(e)
+                })
               })
-            })
-          )
-        }),
+            )
+          }),
       /**
        * Define a Command
        * @param actionName The internal name of the action. will be used as Span. will be used to lookup user facing name via intl. `action.${actionName}`

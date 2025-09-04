@@ -3,12 +3,12 @@
     novalidate
     @submit.prevent.stop="handleFormSubmit"
   >
-    <fieldset :disabled="formIsLoading">
+    <fieldset :disabled="isFormLoading">
       <!-- Render externalForm + default slots if props.form is provided -->
       <template v-if="props.form">
         <slot
           name="externalForm"
-          :subscribed-values="subscribedValues"
+          :subscribed-values="{...subscribedValues, isFormLoading}"
         />
         <slot />
         <!-- default slot -->
@@ -18,7 +18,7 @@
         v-else-if="localForm"
         name="internalForm"
         :form="localForm"
-        :subscribed-values="subscribedValues"
+        :subscribed-values="{...subscribedValues, isFormLoading}"
       />
     </fieldset>
   </form>
@@ -67,7 +67,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
-import { computed, getCurrentInstance, onBeforeMount } from "vue"
+import { computed, getCurrentInstance, onBeforeMount, watch, watchEffect } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
@@ -76,7 +76,7 @@ import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmega
 type OmegaWrapperProps =
   & {
     omegaConfig?: OmegaConfig<From>
-    subscribe?: K[]
+    subscribe?: (K | "isFormLoading")[]
     showErrorsOn?: ShowErrorsOn
   }
   & Omit<FormProps<From, To>, "onSubmit">
@@ -105,23 +105,21 @@ const props = withDefaults(defineProps<OmegaWrapperProps>(), {
   isLoading: undefined
 })
 
-const localForm = computed(() => {
-  if (props.form || !props.schema) {
-    return undefined
-  }
-  return useOmegaForm<From, To>(
-    props.schema,
-    {
-      ...props,
-      onSubmit: typeof props.isLoading !== "undefined"
-        ? undefined
-        : props.onSubmit
-    },
-    props.omegaConfig
-  )
-})
+const localForm = props.form || !props.schema 
+  ? undefined 
+  : useOmegaForm<From, To>(
+      props.schema,
+      {
+        ...props,
+        onSubmit: typeof props.isLoading !== "undefined"
+          ? undefined
+          : props.onSubmit
+      },
+      props.omegaConfig
+    )
 
-const formToUse = computed(() => props.form ?? localForm.value!)
+const formToUse = computed(() => props.form ?? localForm!)
+
 
 onBeforeMount(() => {
   if (!props.form) return
@@ -184,33 +182,32 @@ const formIsSubmitting = useStore(
   (state) => state.isSubmitting
 )
 
+const formIsValidating = useStore(
+  formToUse.value.store,
+  (state) => state.isFormValidating
+)
+
 const instance = getCurrentInstance()
 
-const formIsLoading = computed(() =>
-  typeof props.isLoading !== "undefined"
-    ? props.isLoading
-    : formIsSubmitting.value
+const isFormLoading = computed(() =>
+  props.isLoading || formIsSubmitting.value || formIsValidating.value
 )
 
 const handleFormSubmit = (): void => {
-  if (formIsLoading.value) return
+  if (isFormLoading.value) return
 
-  if (typeof props.isLoading !== "undefined") {
-    formToUse.value.validateAllFields("submit").then((errors) => {
-      if (Object.keys(errors).length === 0) {
-        const formState = formToUse.value.store.state
-        const values = formState.values
-        instance?.emit("submit", values as unknown as To)
-      }
-    })
-  } else {
-    formToUse.value.handleSubmit()
-  }
+  formToUse.value.handleSubmit().then(() => {
+    const formState = formToUse.value.store.state
+    if(formState.isValid) {
+      const values = formState.values
+      instance?.emit("submit", values as unknown as To)
+    }
+  })
 }
 
 const subscribedValues = getOmegaStore(
   formToUse.value as unknown as OmegaFormApi<From, To>,
-  props.subscribe
+  props.subscribe?.filter((s) => s !== "isFormLoading") as K[]
 )
 
 const formSubmissionAttempts = useStore(
@@ -268,7 +265,7 @@ defineSlots<{
   // Named slot when form is created internally via schema
   internalForm(props: {
     form: OmegaFormReturn<From, To>
-    subscribedValues: typeof subscribedValues.value
+    subscribedValues: typeof subscribedValues.value & { isFormLoading: boolean }
   }): void
   // Named slot when form is passed via props (provides subscribedValues)
   externalForm(props: { subscribedValues: typeof subscribedValues.value }): void

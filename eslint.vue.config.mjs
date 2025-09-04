@@ -1,27 +1,28 @@
 import formatjs from "eslint-plugin-formatjs"
 import pluginVue from "eslint-plugin-vue"
-import { defineConfigWithVueTs, vueTsConfigs} from '@vue/eslint-config-typescript';
-import vuePrettierConfig from "@vue/eslint-config-prettier"
+import { defineConfigWithVueTs, vueTsConfigs } from "@vue/eslint-config-typescript"
 
-import tseslint from 'typescript-eslint';
+import tseslint from "typescript-eslint"
 
 import { baseConfig } from "./eslint.base.config.mjs"
+
+import dprint from "@ben_12/eslint-plugin-dprint"
 
 /**
  * @param {string} dirName
  * @param {boolean} [forceTS=false]
  * @returns {import("eslint").Linter.FlatConfig[]}
  */
-export function vueConfig(dirName, forceTS = false) {
+export function vueConfig(dirName, forceTS = false, dprintConfigFile = "dprint.json") {
   const enableTS = !!dirName && (forceTS || process.env["ESLINT_TS"])
 
   return [
     ...baseConfig(dirName, forceTS),
+
     // ...ts.configs.recommended,
     // this should set the vue parser as the parser plus some recommended rules
     ...pluginVue.configs["flat/recommended"],
     ...defineConfigWithVueTs(vueTsConfigs.base),
-    vuePrettierConfig,
     {
       name: "vue",
       files: ["*.vue", "**/*.vue"],
@@ -47,13 +48,64 @@ export function vueConfig(dirName, forceTS = false) {
         "vue/valid-v-slot": [
           "error",
           {
-            allowModifiers: true
-          }
+            allowModifiers: true,
+          },
         ]
       },
       plugins: {
-        formatjs // this is for ICU messages, so I'd say we need it here
+        formatjs, // this is for ICU messages, so I'd say we need it here
       },
-    }
+    },
+
+    {
+      name: "augmented",
+      plugins: {
+        "@ben_12/dprint": dprint,
+      },
+      rules: {
+        ...dprint.configs["disable-typescript-conflict-rules"].rules,
+        "vue/html-indent": "off",
+        ...dprint.configs["typescript-recommended"].rules,
+        ...dprint.configs["malva-recommended"].rules,
+        ...dprint.configs["markup-recommended"].rules,
+        "@ben_12/dprint/markup": [
+          "error",
+          {
+            // Use dprint JSON configuration file (default: "dprint.json")
+            // It may be created using `dprint init` command
+            // See also https://dprint.dev/config/
+            configFile: dprintConfigFile,
+            config: {
+              // The markup_fmt configuration of dprint
+              // See also https://dprint.dev/plugins/markup_fmt/config/
+            },
+          },
+        ],
+        "@ben_12/dprint/typescript": [
+          "error",
+          {
+            // Use dprint JSON configuration file (default: "dprint.json")
+            // It may be created using `dprint init` command
+            // See also https://dprint.dev/config/
+            configFile: "dprint.json",
+            // The TypeScript configuration of dprint
+            // See also https://dprint.dev/plugins/typescript/config/
+            config: {
+              // The TypeScript configuration of dprint
+              // See also https://dprint.dev/plugins/typescript/config/,
+              indentWidth: 2,
+              semiColons: "asi",
+              quoteStyle: "alwaysDouble",
+              trailingCommas: "never",
+              "arrowFunction.useParentheses": "force",
+              "memberExpression.linePerExpression": true,
+              "binaryExpression.linePerExpression": true,
+              "importDeclaration.forceSingleLine": true,
+              "exportDeclaration.forceSingleLine": true,
+            },
+          },
+        ],
+      },
+    },
   ]
 }

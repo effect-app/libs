@@ -9,25 +9,32 @@
     :type="type"
   >
     <template #default="slotProps">
-      <slot v-bind="slotProps"></slot>
+      <slot v-bind="slotProps" />
     </template>
   </OmegaInput>
 </template>
 
-<script setup lang="ts" generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>">
+<script
+  setup
+  lang="ts"
+  generic="
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  Name extends DeepKeys<From>
+"
+>
+import { type DeepKeys } from "@tanstack/vue-form"
 import { inject } from "vue"
-import type {
-  FieldValidators,
-  TypeOverride,
-  OmegaInputProps,
-} from "./OmegaFormStuff"
 import type { InputProps } from "./InputProps"
+import type { FieldValidators, OmegaInputProps, TypeOverride } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import { OmegaFormKey } from "./useOmegaForm"
-import { DeepKeys } from "@tanstack/vue-form"
 
-const form = inject(OmegaFormKey) as unknown as OmegaInputProps<From, To>['form']
- 
+const form = inject(OmegaFormKey) as unknown as OmegaInputProps<
+  From,
+  To
+>["form"]
+
 if (!form) {
   throw new Error("OmegaFormInput must be used within an OmegaForm context")
 }

@@ -199,7 +199,7 @@ export const makeMutation = () => {
     const handle = (self: Effect.Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
       Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),
       i as I
-    ) as Effect.Effect<A2, E2, R2>)
+    ))
 
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)

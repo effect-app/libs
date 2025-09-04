@@ -145,7 +145,7 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
       TheClient,
       Effect.map(
         RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }),
-        (cl) => (cl as any)[meta.moduleName] as any
+        (cl) => (cl as any)[meta.moduleName]
       )
     )
   }

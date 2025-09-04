@@ -181,7 +181,7 @@ export const Tag = <
   const Options extends RpcOptionsOriginal | RpcOptionsDynamic<any, any> = {}
 >(
   id: Name,
-  options?: Options | undefined
+  options?: Options
 ): TagClass<Self, Name, Options, Config> =>
   class extends RpcMiddleware.Tag<Self>()(id, options) {
     static readonly requires: "requires" extends keyof Config ? Config["requires"] : never

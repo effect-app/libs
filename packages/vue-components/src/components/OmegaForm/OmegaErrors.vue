@@ -14,7 +14,9 @@
           aria-live="polite"
           class="mb-4"
         >
-          <div class="text-h6 mb-3">{{ trans("form.includes_error") }}:</div>
+          <div class="text-h6 mb-3">
+            {{ trans("form.includes_error") }}:
+          </div>
           <component
             :is="errors.length > 1 ? 'ul' : 'div'"
             v-if="errors.length"
@@ -26,14 +28,18 @@
               :key="error.inputId"
               class="error-item"
             >
-              <div class="font-weight-medium">{{ error.label }}</div>
+              <div class="font-weight-medium">
+                {{ error.label }}
+              </div>
               <div class="error-message">
                 <component
                   :is="error.errors.length > 1 ? 'ul' : 'div'"
                   class="error-list"
                 >
                   <component
-                    :is="error.errors.length > 1 ? 'li' : 'span'"
+                    :is="error.errors.length > 1
+                    ? 'li'
+                    : 'span'"
                     v-for="e in error.errors"
                     :key="e"
                   >
@@ -41,7 +47,10 @@
                   </component>
                 </component>
               </div>
-              <a :href="`#${error.inputId}`" class="error-link">
+              <a
+                :href="`#${error.inputId}`"
+                class="error-link"
+              >
                 <component
                   :is="vuetified ? 'v-icon' : 'i'"
                   :icon="mdiLink"
@@ -63,11 +72,11 @@
 </template>
 
 <script setup lang="ts">
-import { useOmegaErrors } from "./OmegaErrorsContext"
 import { mdiLink } from "@mdi/js"
-import { useIntl } from "../../utils"
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
 import { computed, getCurrentInstance } from "vue"
+import { useIntl } from "../../utils"
+import { useOmegaErrors } from "./OmegaErrorsContext"
 
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VAlert"]
@@ -79,21 +88,23 @@ const { trans } = useIntl()
 const showedGeneralErrors = computed(() => {
   if (!generalErrors.value) return []
 
-  return generalErrors.value
+  return generalErrors
+    .value
     .filter((record): record is Record<string, StandardSchemaV1Issue[]> =>
-      Boolean(record),
+      Boolean(record)
     )
-    .flatMap(errorRecord =>
-      Object.values(errorRecord)
+    .flatMap((errorRecord) =>
+      Object
+        .values(errorRecord)
         .filter((issues): issues is StandardSchemaV1Issue[] => Boolean(issues))
-        .flatMap(issues =>
+        .flatMap((issues) =>
           issues
             .filter(
               (issue): issue is StandardSchemaV1Issue & { message: string } =>
-                Boolean(issue?.message),
+                Boolean(issue?.message)
             )
-            .map(issue => issue.message),
-        ),
+            .map((issue) => issue.message)
+        )
     )
 })
 </script>

@@ -48,7 +48,7 @@ importers:
     devDependencies:
       '@ben_12/eslint-plugin-dprint':
         specifier: ^1.7.4
-        version: 1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(eslint@9.32.0)
+        version: 1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.23.3)(dprint-plugin-yaml@0.5.1)(eslint@9.32.0)
       '@changesets/cli':
         specifier: ^2.29.5
         version: 2.29.5
@@ -112,6 +112,15 @@ importers:
       dprint:
         specifier: ^0.50.1
         version: 0.50.1
+      dprint-plugin-malva:
+        specifier: ^0.14.2
+        version: 0.14.3
+      dprint-plugin-markup:
+        specifier: ^0.23.3
+        version: 0.23.3
+      dprint-plugin-yaml:
+        specifier: ^0.5.1
+        version: 0.5.1
       effect:
         specifier: ^3.17.6
         version: 3.17.6(patch_hash=9c28b2f83f93326763cbf171eadd65ded6753b406afbd7f3fa93aa9c331b2059)
@@ -573,7 +582,7 @@ importers:
     devDependencies:
       '@ben_12/eslint-plugin-dprint':
         specifier: ^1.7.4
-        version: 1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(eslint@9.32.0)
+        version: 1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.23.3)(dprint-plugin-yaml@0.5.1)(eslint@9.32.0)
       '@dprint/typescript':
         specifier: ^0.95.11
         version: 0.95.11
@@ -3688,6 +3697,15 @@ packages:
 
   dom-accessibility-api@0.6.3:
     resolution: {integrity: sha512-7ZgogeTnjuHbo+ct10G9Ffp0mif17idi0IyWNVA/wcwcm7NPOD/WEHVP3n7n3MhXqxoIYm8d6MuZohYWIZ4T3w==}
+
+  dprint-plugin-malva@0.14.3:
+    resolution: {integrity: sha512-2ztbo2sruAQKQBH4zaTyGHeza4VDtkGd35kwxbqCyobR55k9khzonfuBBQSWfj1dp0Crhj448xSO9y5GESMC3Q==}
+
+  dprint-plugin-markup@0.23.3:
+    resolution: {integrity: sha512-y4boHUNCCALXN0/rJkwBvEHb4kdc/pY9olIBaah+SvxhlcE1uh/prcE9Q6+qWjy06injVdkczioZP9gp0SHL2Q==}
+
+  dprint-plugin-yaml@0.5.1:
+    resolution: {integrity: sha512-6q1C75Z492QV/6yCXEsgZ6sQQFZwJcdu10rifB2qNS59ltAYsMNiK1xPWeDDMxjv6UBnQJyd/psCuAiucdRNgA==}
 
   dprint@0.50.1:
     resolution: {integrity: sha512-s+kUyQp2rGpwsM3vVmXySOY3v1NjYyRpKfQZdP4rfNTz6zQuICSO6nqIXNm3YdK1MwNFR/EXSFMuE1YPuulhow==}
@@ -7271,7 +7289,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@ben_12/eslint-plugin-dprint@1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(eslint@9.32.0)':
+  '@ben_12/eslint-plugin-dprint@1.7.4(patch_hash=16c6d4c1b8952e573b0e7a0ea6bc3d4625d4684ac1b76ce5445b919e5001f93e)(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.23.3)(dprint-plugin-yaml@0.5.1)(eslint@9.32.0)':
     dependencies:
       '@dprint/formatter': 0.4.1
       debug: 4.4.1(supports-color@5.5.0)
@@ -7280,6 +7298,9 @@ snapshots:
       jsonc-parser: 3.3.1
     optionalDependencies:
       '@dprint/typescript': 0.95.11
+      dprint-plugin-malva: 0.14.3
+      dprint-plugin-markup: 0.23.3
+      dprint-plugin-yaml: 0.5.1
     transitivePeerDependencies:
       - supports-color
 
@@ -10208,6 +10229,12 @@ snapshots:
   dom-accessibility-api@0.5.16: {}
 
   dom-accessibility-api@0.6.3: {}
+
+  dprint-plugin-malva@0.14.3: {}
+
+  dprint-plugin-markup@0.23.3: {}
+
+  dprint-plugin-yaml@0.5.1: {}
 
   dprint@0.50.1:
     optionalDependencies:

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.54.2
+
+### Patch Changes
+
+- 667a106: enable override
+
 ## 2.54.1
 
 ### Patch Changes

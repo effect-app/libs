@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.52.9
+
+### Patch Changes
+
+- 58a2740: add missing confirm
+
 ## 2.52.8
 
 ### Patch Changes

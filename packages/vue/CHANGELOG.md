@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.53.4
+
+### Patch Changes
+
+- 8cb893c: dprint rules the world
+- Updated dependencies [8cb893c]
+  - effect-app@3.2.4
+
 ## 2.53.3
 
 ### Patch Changes

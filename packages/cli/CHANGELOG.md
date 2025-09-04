@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.7
+
+### Patch Changes
+
+- 8cb893c: dprint rules the world
+
 ## 1.23.6
 
 ### Patch Changes

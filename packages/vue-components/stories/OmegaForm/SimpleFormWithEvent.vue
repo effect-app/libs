@@ -2,14 +2,15 @@
   <div>
     <h3>Form with @submit event and custom loading state</h3>
     <p>Loading: {{ isLoading }}</p>
-    <OmegaForm 
-      :schema="schema" 
-      @submit="onSubmit" 
+    <OmegaForm
+      :schema="schema"
+      @submit="onSubmit"
       :isLoading="isLoading"
-      :subscribe="['values', 'isFormValidating', 'isFormLoading']"
+      :subscribe="['values', 'isFormValidating', 'isFormLoading', 'isSubmitting']"
       :validators="validators"
     >
-      <template #internalForm="{ form, subscribedValues: { values, isFormValidating, isFormLoading } }">
+      <template #internalForm="{ form, subscribedValues: { values, isFormValidating, isFormLoading, isSubmitting } }">
+        <div>isSubmitting: {{ isSubmitting }}</div>
         <div>isFormValidating: {{ isFormValidating }}</div>
         <div>isFormLoading: {{ isFormLoading }}</div>
         <OmegaInput label="asder2" name="asder2" :form="form" />
@@ -27,12 +28,12 @@ import { S } from "effect-app"
 import { OmegaForm, OmegaInput, OmegaErrors } from "../../src/components/OmegaForm"
 
 const validateNumberOnServer = async ({ value }: { value: { asder2: string } }) => {
-  
+
   await new Promise(resolve => setTimeout(resolve, 1500))
   console.log('validateNumberOnServer', value)
-  
+
   const num = parseInt(value.asder2, 10)
-  
+
   if (isNaN(num)) {
     console.log('Invalid input: Please enter a valid number')
     return {
@@ -43,7 +44,7 @@ const validateNumberOnServer = async ({ value }: { value: { asder2: string } }) 
       }
     }
   }
-  
+
   if (num % 2 !== 0) {
     console.log('Number is odd')
     return {
@@ -54,7 +55,7 @@ const validateNumberOnServer = async ({ value }: { value: { asder2: string } }) 
       }
     }
   }
-  
+
   return null
 }
 

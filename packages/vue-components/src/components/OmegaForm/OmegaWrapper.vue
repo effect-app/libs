@@ -3,7 +3,7 @@
     novalidate
     @submit.prevent.stop="formToUse.handleSubmit()"
   >
-    <fieldset :disabled="formIsSubmitting">
+    <fieldset :disabled="formIsSubmitting || disabled">
       <!-- Render externalForm + default slots if props.form is provided -->
       <template v-if="props.form">
         <slot
@@ -78,6 +78,7 @@ type OmegaWrapperProps =
     omegaConfig?: OmegaConfig<From>
     subscribe?: K[]
     showErrorsOn?: ShowErrorsOn
+    disabled?: boolean
   }
   & Omit<FormProps<From, To>, "onSubmit">
   & (

@@ -217,16 +217,27 @@ export const useOmegaForm = <
       ...(tanstackFormOptions?.validators || {})
     },
     onSubmit: tanstackFormOptions?.onSubmit
-      ? ({ formApi, meta, value }) => {
-        const r = tanstackFormOptions.onSubmit!({
-          formApi: formApi as OmegaFormApi<From, To>,
-          meta,
-          value: value as unknown as To
-        })
-        if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
-          return runtimeFiberAsPromise(r)
+      ? async ({ formApi, meta, value }) => {
+        try {
+          const r = tanstackFormOptions.onSubmit!({
+            formApi: formApi as OmegaFormApi<From, To>,
+            meta,
+            value: value as unknown as To
+          })
+          if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
+            return await runtimeFiberAsPromise(r)
+          }
+          return await r
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          formApi.setErrorMap({
+            onSubmit: {
+              "~standard": [{ path: [], message: errorMessage }]
+            } as unknown as StandardSchemaV1<From, unknown>
+          })
+          console.error("Form submission error:", error)
+          return
         }
-        return r
       }
       : undefined,
     defaultValues: defaultValues.value as any

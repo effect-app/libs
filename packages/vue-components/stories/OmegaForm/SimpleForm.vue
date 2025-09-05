@@ -5,6 +5,7 @@
     :subscribe="['values']"
   >
     <template #internalForm="{ form, subscribedValues: { values } }">
+      <OmegaErrors />
       <div>values: {{ values }}</div>
       <OmegaInput
         label="asder2"
@@ -30,10 +31,12 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({ asder2: S.String })
-const onSubmit = ({ value }: { value: { asder2: string } }) => {
-  console.log(value)
+const onSubmit = ({ value }) => {
+  return new Promise((resolve, reject) =>
+    setTimeout(() => reject(new Error("Not implemented")), 2000)
+  )
 }
 </script>

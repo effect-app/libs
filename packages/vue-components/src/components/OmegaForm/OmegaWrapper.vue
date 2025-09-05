@@ -67,7 +67,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { Cause, Exit, type Record, type S } from "effect-app"
-import { isRuntimeFiber, type RuntimeFiber } from "effect/Fiber"
+import { isFiber, isRuntimeFiber, type RuntimeFiber } from "effect/Fiber"
 import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
@@ -117,11 +117,12 @@ const props = defineProps<OmegaWrapperProps>()
 
 const instance = getCurrentInstance()
 
-const eventOnSubmit: FormProps<From, To>["onSubmit"] = ({ value }) => {
+const eventOnSubmit: NonNullable<FormProps<From, To>["onSubmit"]> = (
+  { value }
+) =>
   new Promise<void>((resolve, reject) => {
     instance!.emit("submit", value, resolve, reject)
   })
-}
 
 const asPromise = <A, E>(fiber: RuntimeFiber<A, E>) =>
   new Promise((resolve, reject) =>
@@ -146,7 +147,7 @@ const localForm = props.form || !props.schema
           return eventOnSubmit(submitProps)
         }
         const v = props.onSubmitAsync(submitProps)
-        if (isRuntimeFiber(v)) {
+        if (isFiber(v) && isRuntimeFiber(v)) {
           return asPromise(v)
         }
         return v

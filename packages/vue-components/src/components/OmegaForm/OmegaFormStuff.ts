@@ -59,7 +59,7 @@ export type FormProps<From, To> =
       formApi: OmegaFormParams<From, To>
       meta: any
       value: To
-    }) => Promise<any> | any
+    }) => Promise<any>
   }
 
 export type OmegaFormParams<From, To> = FormApi<

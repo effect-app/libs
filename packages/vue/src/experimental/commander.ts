@@ -40,16 +40,6 @@ export const DefaultIntl = {
   }
 }
 
-/**
- * Use on form submit @handler callbacks, to handle form submitting state.
- */
-const handleSubmit = <Arg, A, E>(
-  command: (arg: Arg) => RuntimeFiber<A, E>
-) =>
-(arg: Arg, resolve: (result: Exit.Exit<A, E>) => void) => {
-  return command(arg).addObserver(resolve)
-}
-
 export class CommandContext extends Context.Tag("CommandContext")<
   CommandContext,
   { action: string }
@@ -84,18 +74,9 @@ export declare namespace Commander {
     waiting: boolean
   }
 
-  export interface UnaryCommandOut<Arg, A, E> extends CommandProps<A, E> {
-    handle: (a: Arg) => RuntimeFiber<A, E>
-    /* for forms, only use with unary functions */
-    handleSubmit: (a: Arg, resolve: (a: Exit.Exit<A, E>) => void) => void
-  }
-
-  export interface OtherCommandOut<Args extends Array<any>, A, E> extends CommandProps<A, E> {
+  export interface CommandOut<Args extends Array<any>, A, E> extends CommandProps<A, E> {
     handle: (...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>
   }
-
-  export type CommandOut<Args extends Array<any>, A, E> = Args extends [infer _A] ? UnaryCommandOut<_A, A, E>
-    : OtherCommandOut<Args, A, E>
 
   type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
     Args,
@@ -518,7 +499,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           errorReporter
         )
 
-        const [result, mut] = asResult(theHandler)
+        const [result, exec] = asResult(theHandler)
 
         const waiting = computed(() => result.value.waiting)
 
@@ -554,7 +535,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           }
 
           const command = Effect.withSpan(
-            mut(...args),
+            exec(...args),
             actionName,
             { captureStackTrace }
           )
@@ -567,8 +548,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           result,
           waiting,
           action,
-          handle: command,
-          handleSubmit: handleSubmit(command as any)
+          handle: command
         })
       }
     }
@@ -683,7 +663,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        *
        * @param actionName The internal identifier for the action. Used as a tracing span and to lookup
        *                   the user-facing name via internationalization (`action.${actionName}`).
-       * @returns A function that executes the mutation when called (e.g., directly in `@click` handlers).
+       * @returns A function that executes the command when called (e.g., directly in `@click` handlers).
        *          Built-in error reporting handles failures automatically.
        *
        * **Effect Context**: Effects have access to the `CommandContext` service, which provides
@@ -691,10 +671,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        *
        * **Returned Properties**:
        * - `action`: User-facing action name from intl messages (useful for button labels)
-       * - `result`: The mutation result state
-       * - `waiting`: Boolean indicating if the mutation is in progress (shorthand for `result.waiting`)
-       * - `handle`: Function to execute the mutation
-       * - `handleSubmit`: Shorthand for using `handle` in form submissions with a callback
+       * - `result`: The command result state
+       * - `waiting`: Boolean indicating if the command is in progress (shorthand for `result.waiting`)
+       * - `handle`: Function to execute the command
        *
        * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
        * the `result` inline for custom UI feedback.

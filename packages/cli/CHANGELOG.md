@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.14
+
+### Patch Changes
+
+- 2cad28a: some fixes to wiki commands
+
 ## 1.23.13
 
 ### Patch Changes

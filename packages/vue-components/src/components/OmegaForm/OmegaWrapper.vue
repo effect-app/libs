@@ -105,8 +105,6 @@ const props = withDefaults(defineProps<OmegaWrapperProps>(), {
   isLoading: undefined
 })
 
-watch(() => props.isLoading, (newVal) => console.log(" fml", newVal))
-
 const localForm = props.form || !props.schema
   ? undefined
   : useOmegaForm<From, To>(

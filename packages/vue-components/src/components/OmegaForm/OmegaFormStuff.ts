@@ -56,17 +56,11 @@ export type FormProps<From, To> =
     "onSubmit"
   >
   & {
-    onSubmit?:
-      | ((props: {
-        formApi: OmegaFormParams<From, To>
-        meta: any
-        value: To
-      }) => Promise<any>)
-      | (((props: {
-        formApi: OmegaFormParams<From, To>
-        meta: any
-        value: To
-      }) => RuntimeFiber<any, any>))
+    onSubmit?: (props: {
+      formApi: OmegaFormParams<From, To>
+      meta: any
+      value: To
+    }) => Promise<any> | RuntimeFiber<any, any>
   }
 
 export type OmegaFormParams<From, To> = FormApi<

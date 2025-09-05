@@ -691,11 +691,7 @@ Effect
               // Check if doc directory already exists in git index
               const docInIndex = yield* runNodeCommand("git ls-files")
                 .pipe(
-                  Effect.map((output) => 
-                    output.split('\n').some(line => 
-                      line.startsWith("doc/") || line === "doc"
-                    )
-                  ),
+                  Effect.map((output) => output.split("\n").some((line) => line.startsWith("doc/") || line === "doc")),
                   Effect.catchAll(() => Effect.succeed(false))
                 )
 

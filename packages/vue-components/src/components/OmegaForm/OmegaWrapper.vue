@@ -92,7 +92,7 @@ type OmegaWrapperProps =
   )
   & (
     | {
-      isLoading?: undefined
+      isLoading: undefined
       onSubmit?: FormProps<From, To>["onSubmit"]
     }
     | {

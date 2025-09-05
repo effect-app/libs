@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.8
+
+### Patch Changes
+
+- 5576081: cli command for interacting with wiki (v1)
+
 ## 1.23.7
 
 ### Patch Changes

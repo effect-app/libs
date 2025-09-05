@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.10
+
+### Patch Changes
+
+- 8133014: cli doc always fetch remote to not miss any update (like github wiki interface ones)
+
 ## 1.23.9
 
 ### Patch Changes

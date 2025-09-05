@@ -691,7 +691,11 @@ Effect
               // Check if doc directory already exists in git index
               const docInIndex = yield* runNodeCommand("git ls-files")
                 .pipe(
-                  Effect.map((output) => output.includes("doc/") || output.includes("doc")),
+                  Effect.map((output) => 
+                    output.split('\n').some(line => 
+                      line.startsWith("doc/") || line === "doc"
+                    )
+                  ),
                   Effect.catchAll(() => Effect.succeed(false))
                 )
 
@@ -702,8 +706,10 @@ This suggests the wiki submodule may have been initialized before, or there are 
 
 Required actions before proceeding:
 1. Move existing doc files to GitHub wiki or another location
-2. Remove the doc directory from git index: git rm --cached -r doc/
-3. Re-run this command
+2. Remove the doc directory from filesystem: rm -rf doc
+3. Remove the doc directory from git index: git rm --cached -r doc
+4. Commit the removal: git commit -m "Remove doc directory"
+5. Re-run this command
 
 Operation cancelled for safety.`)
               }

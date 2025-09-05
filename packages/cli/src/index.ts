@@ -725,7 +725,8 @@ Are you sure you want to proceed with the one-time project setup?`,
               yield* Effect.logInfo(`Using project name: ${detectedProjectName}`)
 
               yield* Effect.logInfo("Creating .gitmodules file...")
-              yield* runNodeCommand(`echo '[submodule "doc"]" > .gitmodules`)
+              yield* runNodeCommand(`echo '' >> .gitmodules`)
+              yield* runNodeCommand(`echo '[submodule "doc"]' >> .gitmodules`)
               yield* runNodeCommand(`echo '  path = doc' >> .gitmodules`)
               yield* runNodeCommand(`echo '  url = ../${detectedProjectName}.wiki.git' >> .gitmodules`)
               yield* runNodeCommand(`echo '  branch = master' >> .gitmodules`)

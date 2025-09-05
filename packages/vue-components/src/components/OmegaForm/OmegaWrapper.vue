@@ -1,7 +1,7 @@
 <template>
   <form
     novalidate
-    @submit.prevent.stop="formToUse.handleSubmit()"
+    @submit.prevent.stop="handleFormSubmit()"
   >
     <fieldset :disabled="formIsSubmitting">
       <!-- Render externalForm + default slots if props.form is provided -->
@@ -112,21 +112,25 @@ const localForm = props.form || !props.schema
     {
       ...props,
       onSubmit: typeof props.isLoading !== "undefined"
-        ? ({ value }) =>
-          new Promise<void>((resolve) => {
-            console.log("Submitting form with values:", value, "emitting")
-            instance!.emit("submit", value)
-            // even if the emit would be immediately handled, prop changes are not published/received immediately.
-            const handle = watch(() => props.isLoading, (v) => {
-              if (v) return
-              resolve()
-              handle.stop()
-            })
-          })
+        ? undefined
         : props.onSubmit
     },
     props.omegaConfig
   )
+
+const instance = getCurrentInstance()
+
+const handleFormSubmit = (): void => {
+  if (formIsSubmitting.value) return
+
+  formToUse.value.handleSubmit().then(() => {
+    const formState = formToUse.value.store.state
+    if(formState.isValid) {
+      const values = formState.values
+      instance?.emit("submit", values as unknown as To)
+    }
+  })
+}
 
 const formToUse = computed(() => props.form ?? localForm!)
 
@@ -190,8 +194,6 @@ const formIsSubmitting = useStore(
   formToUse.value.store,
   (state) => state.isSubmitting
 )
-
-const instance = getCurrentInstance()
 
 const subscribedValues = getOmegaStore(
   formToUse.value as unknown as OmegaFormApi<From, To>,

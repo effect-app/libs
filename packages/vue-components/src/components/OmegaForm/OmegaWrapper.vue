@@ -67,7 +67,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
-import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
@@ -110,18 +110,20 @@ const instance = getCurrentInstance()
 // we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
 // so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
 // we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
-const eventOnSubmit: FormProps<From, To>["onSubmit"] = ({ value }) => {
-  new Promise<void>((resolve) => {
-    instance!.emit("submit", value)
-    // even if the emit would be immediately handled, prop changes are not published/received immediately.
-    // so we have to wait for the prop to change to true, and back to false again.
-    const handle = watch(() => props.isLoading, (v) => {
-      if (v) return
-      resolve()
-      handle.stop()
+const eventOnSubmit: ComputedRef<FormProps<From, To>["onSubmit"]> = computed(
+  () => ({ value }) => {
+    new Promise<void>((resolve) => {
+      instance!.emit("submit", value)
+      // even if the emit would be immediately handled, prop changes are not published/received immediately.
+      // so we have to wait for the prop to change to true, and back to false again.
+      const handle = watch(() => props.isLoading, (v) => {
+        if (v) return
+        resolve()
+        handle.stop()
+      })
     })
-  })
-}
+  }
+)
 
 const localForm = props.form || !props.schema
   ? undefined
@@ -130,7 +132,7 @@ const localForm = props.form || !props.schema
     {
       ...props,
       onSubmit: typeof props.isLoading !== "undefined"
-        ? eventOnSubmit
+        ? eventOnSubmit.value
         : props.onSubmit
     },
     props.omegaConfig

@@ -8,7 +8,7 @@
       <template v-if="props.form">
         <slot
           name="externalForm"
-          :subscribed-values="{...subscribedValues, isFormLoading}"
+          :subscribed-values="{ ...subscribedValues, isFormLoading }"
         />
         <slot />
         <!-- default slot -->
@@ -18,7 +18,7 @@
         v-else-if="localForm"
         name="internalForm"
         :form="localForm"
-        :subscribed-values="{...subscribedValues, isFormLoading}"
+        :subscribed-values="{ ...subscribedValues, isFormLoading }"
       />
     </fieldset>
   </form>
@@ -67,7 +67,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
-import { computed, getCurrentInstance, onBeforeMount, watch, watchEffect } from "vue"
+import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
@@ -105,21 +105,20 @@ const props = withDefaults(defineProps<OmegaWrapperProps>(), {
   isLoading: undefined
 })
 
-const localForm = props.form || !props.schema 
-  ? undefined 
+const localForm = props.form || !props.schema
+  ? undefined
   : useOmegaForm<From, To>(
-      props.schema,
-      {
-        ...props,
-        onSubmit: typeof props.isLoading !== "undefined"
-          ? undefined
-          : props.onSubmit
-      },
-      props.omegaConfig
-    )
+    props.schema,
+    {
+      ...props,
+      onSubmit: typeof props.isLoading !== "undefined"
+        ? undefined
+        : props.onSubmit
+    },
+    props.omegaConfig
+  )
 
 const formToUse = computed(() => props.form ?? localForm!)
-
 
 onBeforeMount(() => {
   if (!props.form) return
@@ -198,7 +197,7 @@ const handleFormSubmit = (): void => {
 
   formToUse.value.handleSubmit().then(() => {
     const formState = formToUse.value.store.state
-    if(formState.isValid) {
+    if (formState.isValid) {
       const values = formState.values
       instance?.emit("submit", values as unknown as To)
     }

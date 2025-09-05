@@ -706,7 +706,6 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                   })(
                     fn,
                     ...combinators as [any],
-                    Effect.withSpan("thespan"),
                     // provide the current action span as span context
                     // Tracer.ParentSpan is the same tag used by Effect.withSpan
                     Effect.provideService(Tracer.ParentSpan, span)

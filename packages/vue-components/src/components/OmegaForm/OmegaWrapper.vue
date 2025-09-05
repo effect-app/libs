@@ -94,10 +94,10 @@ type OmegaWrapperProps =
     | {
       onSubmit?: undefined
       // TODO: we would need to rename everywhere.
-      onSubmitAsync: FormProps<From, To>["onSubmit"]
+      submit: FormProps<From, To>["onSubmit"]
     }
     | {
-      onSubmitAsync?: undefined
+      submit?: undefined
       onSubmit: (
         data: To,
         resolve: (value: any) => void,
@@ -127,11 +127,11 @@ const localForm = props.form || !props.schema
     {
       ...props,
       onSubmit: (submitProps) => {
-        const onSubmitAsync = props.onSubmitAsync
-        if (!onSubmitAsync) {
+        const submit = props.submit
+        if (!submit) {
           return eventOnSubmit(submitProps)
         }
-        return onSubmitAsync(submitProps)
+        return submit(submitProps)
       }
     },
     props.omegaConfig

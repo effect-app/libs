@@ -4,49 +4,66 @@
     <p>Loading: {{ isLoading }}</p>
     <OmegaForm
       :schema="schema"
-      @submit="onSubmit"
-      :isLoading="isLoading"
+      :is-loading="isLoading"
       :subscribe="['values', 'isFormValidating', 'isFormLoading', 'isSubmitting']"
       :validators="validators"
+      @submit="onSubmit"
     >
-      <template #internalForm="{ form, subscribedValues: { values, isFormValidating, isFormLoading, isSubmitting } }">
+      <template
+        #internalForm="{
+          form,
+          subscribedValues: {
+            values,
+            isFormValidating,
+            isFormLoading,
+            isSubmitting
+          }
+        }"
+      >
         <div>isSubmitting: {{ isSubmitting }}</div>
         <div>isFormValidating: {{ isFormValidating }}</div>
         <div>isFormLoading: {{ isFormLoading }}</div>
-        <OmegaInput label="asder2" name="asder2" :form="form" />
-        <br />
+        <OmegaInput
+          label="asder2"
+          name="asder2"
+          :form="form"
+        />
+        <br>
         <OmegaErrors />
-        <button type="submit">Submit</button>
+        <button type="submit">
+          Submit
+        </button>
       </template>
     </OmegaForm>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput, OmegaErrors } from "../../src/components/OmegaForm"
+import { ref } from "vue"
+import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 
-const validateNumberOnServer = async ({ value }: { value: { asder2: string } }) => {
-
-  await new Promise(resolve => setTimeout(resolve, 1500))
-  console.log('validateNumberOnServer', value)
+const validateNumberOnServer = async (
+  { value }: { value: { asder2: string } }
+) => {
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+  console.log("validateNumberOnServer", value)
 
   const num = parseInt(value.asder2, 10)
 
   if (isNaN(num)) {
-    console.log('Invalid input: Please enter a valid number')
+    console.log("Invalid input: Please enter a valid number")
     return {
       fields: {
         asder2: {
-          message: 'Invalid input: Please enter a valid number'
+          message: "Invalid input: Please enter a valid number"
         }
       }
     }
   }
 
   if (num % 2 !== 0) {
-    console.log('Number is odd')
+    console.log("Number is odd")
     return {
       fields: {
         asder2: {
@@ -66,11 +83,12 @@ const validators = {
 }
 
 const onSubmit = (data: { asder2: string }) => {
+  console.log("OnSubmit", data)
   isLoading.value = true
   setTimeout(() => {
     isLoading.value = false
-    console.log('Operation complete')
-    console.log('Submitted with @submit event:', data)
+    console.log("Operation complete")
+    console.log("Submitted with @submit event:", data)
   }, 2000)
 }
 </script>

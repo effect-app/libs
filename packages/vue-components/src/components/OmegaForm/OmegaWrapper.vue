@@ -1,9 +1,9 @@
 <template>
   <form
     novalidate
-    @submit.prevent.stop="handleFormSubmit"
+    @submit.prevent.stop="formToUse.handleSubmit()"
   >
-    <fieldset :disabled="isFormLoading">
+    <fieldset :disabled="formIsSubmitting">
       <!-- Render externalForm + default slots if props.form is provided -->
       <template v-if="props.form">
         <slot
@@ -105,6 +105,8 @@ const props = withDefaults(defineProps<OmegaWrapperProps>(), {
   isLoading: undefined
 })
 
+watch(() => props.isLoading, (newVal) => console.log(" fml", newVal))
+
 const localForm = props.form || !props.schema
   ? undefined
   : useOmegaForm<From, To>(
@@ -114,14 +116,13 @@ const localForm = props.form || !props.schema
       onSubmit: typeof props.isLoading !== "undefined"
         ? ({ value }) =>
           new Promise<void>((resolve) => {
+            console.log("Submitting form with values:", value, "emitting")
             instance!.emit("submit", value)
-
-            if (!props.isLoading) {
-              // already finished, just resolve
+            const handle = watch(() => props.isLoading, (v) => {
+              if (v) return
               resolve()
-              return
-            }
-            watch(() => props.isLoading, () => resolve(), { once: true })
+              handle.stop()
+            })
           })
         : props.onSubmit
     },
@@ -191,28 +192,9 @@ const formIsSubmitting = useStore(
   (state) => state.isSubmitting
 )
 
-const formIsValidating = useStore(
-  formToUse.value.store,
-  (state) => state.isFormValidating
-)
-
 const instance = getCurrentInstance()
 
-const isFormLoading = computed(() =>
-  props.isLoading || formIsSubmitting.value || formIsValidating.value
-)
-
-const handleFormSubmit = (): void => {
-  if (isFormLoading.value) return
-
-  formToUse.value.handleSubmit().then(() => {
-    const formState = formToUse.value.store.state
-    if (formState.isValid) {
-      const values = formState.values
-      instance?.emit("submit", values as unknown as To)
-    }
-  })
-}
+const isFormLoading = computed(() => props.isLoading)
 
 const subscribedValues = getOmegaStore(
   formToUse.value as unknown as OmegaFormApi<From, To>,

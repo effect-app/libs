@@ -460,6 +460,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
         handler: (...args: Args) => Effect.Effect<A, E, R>
       ) => {
+        // we capture the definition stack here, so we can append it to later stack traces
         const limit = Error.stackTraceLimit
         Error.stackTraceLimit = 2
         const localErrorDef = new Error()
@@ -467,6 +468,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         if (!errorDef) {
           errorDef = localErrorDef
         }
+
         const action = intl.formatMessage({
           id: `action.${actionName}`,
           defaultMessage: actionName
@@ -521,6 +523,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         const waiting = computed(() => result.value.waiting)
 
         const command = Object.assign((...args: Args) => {
+          // we capture the call site stack here
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
           const errorCall = new Error()
@@ -528,6 +531,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
           let cache: false | string = false
           const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
             if (cache !== false) {
               return cache
             }
@@ -546,8 +552,15 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
               return cache
             }
           }
-          const command = Effect.withSpan(mut(...args), actionName, { captureStackTrace })
-          return runFork(Effect.flatten(command)) // as we run into a RuntimeFiber anyway, we can flatten A/E anyway, so we don't get an Exit<Exit on addObserver
+
+          const command = Effect.withSpan(
+            mut(...args),
+            actionName,
+            { captureStackTrace }
+          )
+
+          // as we run into a RuntimeFiber anyway, we can flatten A/E anyway, so we don't get an Exit<Exit on addObserver
+          return runFork(Effect.flatten(command))
         }, { action })
 
         return reactive({
@@ -666,15 +679,25 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             )
           }),
       /**
-       * Define a Command
-       * @param actionName The internal name of the action. will be used as Span. will be used to lookup user facing name via intl. `action.${actionName}`
-       * @returns A function that can be called to execute the mutation, like directly in a `@click` handler. Error reporting is built-in.
-       * the Effects **only** have access to the `CommandContext` service, which contains the user-facing action name.
-       * The function also has the following properties:
-       * - action: The user-facing name of the action, as defined in the intl messages. Can be used e.g as Button label.
-       * - result: The Result of the mutation
-       * - waiting: Whether the mutation is currently in progress. (shorthand for .result.waiting). Can be used e.g as Button loading/disabled state.
-       * Reporting status to the user is recommended to use the `withDefaultToast` helper, or render the .result inline
+       * Define a Command for handling user actions with built-in error reporting and state management.
+       *
+       * @param actionName The internal identifier for the action. Used as a tracing span and to lookup
+       *                   the user-facing name via internationalization (`action.${actionName}`).
+       * @returns A function that executes the mutation when called (e.g., directly in `@click` handlers).
+       *          Built-in error reporting handles failures automatically.
+       *
+       * **Effect Context**: Effects have access to the `CommandContext` service, which provides
+       * the user-facing action name.
+       *
+       * **Returned Properties**:
+       * - `action`: User-facing action name from intl messages (useful for button labels)
+       * - `result`: The mutation result state
+       * - `waiting`: Boolean indicating if the mutation is in progress (shorthand for `result.waiting`)
+       * - `handle`: Function to execute the mutation
+       * - `handleSubmit`: Shorthand for using `handle` in form submissions with a callback
+       *
+       * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
+       * the `result` inline for custom UI feedback.
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)

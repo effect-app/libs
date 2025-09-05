@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.0
+
+### Minor Changes
+
+- d50dfe6: add support for RuntimeFiber, fix should return the Promise for eventOnSubmit.
+
 ## 3.2.4
 
 ### Patch Changes

@@ -2,37 +2,65 @@
   <form @submit="form.handleSubmit">
     <div>
       <label for="age">Age</label>
-      <form.Field id="age" name="age" type="number">
+      <form.Field
+        id="age"
+        name="age"
+        type="number"
+      >
         <template #default="{ field }">
           <div class="field">
             <input
               :value="field.state.value"
               type="number"
-              @input="
-                e =>
-                  field.handleChange(
-                    Number((e.target as HTMLInputElement).value),
-                  )
-              "
-            />
-            <em v-if="field.state.meta.errors.length > 0" role="alert">
-              {{ field.state.meta.errors.map(e => e?.message).join(", ") }}
+              @input="(e) =>
+              field.handleChange(
+                Number((e.target as HTMLInputElement).value)
+              )"
+            >
+            <em
+              v-if="field.state.meta.errors.length > 0"
+              role="alert"
+            >
+              {{
+                field
+                .state
+                .meta
+                .errors
+                .map((e) => e?.message)
+                .join(", ")
+              }}
             </em>
           </div>
         </template>
       </form.Field>
       <label for="email">Email</label>
-      <form.Field id="email" name="email" type="text">
+      <form.Field
+        id="email"
+        name="email"
+        type="text"
+      >
         <template #default="{ field }">
           <div class="field">
             <input
               :value="field.state.value"
-              @input="
-                e => field.handleChange((e.target as HTMLInputElement).value)
-              "
-            />
-            <em v-if="field.state.meta.errors.length > 0" role="alert">
-              {{ field.state.meta.errors.map(e => e?.message).join(", ") }}
+              @input="(e) =>
+              field.handleChange(
+                (e.target as HTMLInputElement)
+                  .value
+              )"
+            >
+            <em
+              v-if="field.state.meta.errors.length > 0"
+              role="alert"
+            >
+              {{
+                field
+                .state
+                .meta
+                .errors
+                .map((e) => e?.message)
+                .join(", ")
+              }}
             </em>
           </div>
         </template>
@@ -51,7 +79,7 @@
         name="age"
         type="number"
         :validators="{
-          onChange: S.standardSchemaV1(schema.fields['age']),
+          onChange: S.standardSchemaV1(schema.fields['age'])
         }"
       >
         <template #default="{ field }">
@@ -59,15 +87,23 @@
             <input
               :value="field.state.value"
               type="number"
-              @input="
-                e =>
-                  field.handleChange(
-                    Number((e.target as HTMLInputElement).value),
-                  )
-              "
-            />
-            <em v-if="field.state.meta.errors.length > 0" role="alert">
-              {{ field.state.meta.errors.map(e => e?.message).join(", ") }}
+              @input="(e) =>
+              field.handleChange(
+                Number((e.target as HTMLInputElement).value)
+              )"
+            >
+            <em
+              v-if="field.state.meta.errors.length > 0"
+              role="alert"
+            >
+              {{
+                field
+                .state
+                .meta
+                .errors
+                .map((e) => e?.message)
+                .join(", ")
+              }}
             </em>
           </div>
         </template>
@@ -78,7 +114,7 @@
         name="email"
         type="text"
         :validators="{
-          onBlur: S.standardSchemaV1(schema.fields['email']),
+          onBlur: S.standardSchemaV1(schema.fields['email'])
         }"
       >
         <template #default="{ field }">
@@ -86,12 +122,24 @@
             <input
               :value="field.state.value"
               @blur="field.handleBlur"
-              @input="
-                e => field.handleChange((e.target as HTMLInputElement).value)
-              "
-            />
-            <em v-if="field.state.meta.errors.length > 0" role="alert">
-              {{ field.state.meta.errors.map(e => e?.message).join(", ") }}
+              @input="(e) =>
+              field.handleChange(
+                (e.target as HTMLInputElement)
+                  .value
+              )"
+            >
+            <em
+              v-if="field.state.meta.errors.length > 0"
+              role="alert"
+            >
+              {{
+                field
+                .state
+                .meta
+                .errors
+                .map((e) => e?.message)
+                .join(", ")
+              }}
             </em>
           </div>
         </template>
@@ -104,12 +152,12 @@
 </template>
 
 <script setup lang="ts">
-import { useForm, useStore } from "@tanstack/vue-form"
+import { useForm } from "@tanstack/vue-form"
 import { S } from "effect-app"
 
 const schema = S.Struct({
   age: S.Number.pipe(S.lessThan(2)),
-  email: S.Email,
+  email: S.Email
 })
 
 const defaultSchema = S.standardSchemaV1(schema)
@@ -117,27 +165,27 @@ const defaultSchema = S.standardSchemaV1(schema)
 const form = useForm({
   defaultValues: {
     age: 0,
-    email: "test@test.com",
+    email: "test@test.com"
   },
   onSubmit: async ({ value }) => {
     console.log(value)
   },
   validators: {
-    onChange: defaultSchema,
-  },
+    onChange: defaultSchema
+  }
 })
 
 const form2 = useForm({
   defaultValues: {
     age: 1,
-    email: "test2@test.com",
+    email: "test2@test.com"
   },
   onSubmit: async ({ value }) => {
     console.log(value)
-  },
+  }
 })
 
-const errors = form.useStore(v => v.errors)
+const errors = form.useStore((v) => v.errors)
 </script>
 
 <style scoped>

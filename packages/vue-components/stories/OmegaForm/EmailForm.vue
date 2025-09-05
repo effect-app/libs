@@ -5,8 +5,16 @@
     :default-values="defaultValues"
   >
     <template #internalForm="{ form }">
-      <OmegaInput label="email" name="email" :form="form" />
-      <OmegaInput label="confirm" name="confirm" :form="form" />
+      <OmegaInput
+        label="email"
+        name="email"
+        :form="form"
+      />
+      <OmegaInput
+        label="confirm"
+        name="confirm"
+        :form="form"
+      />
       <button>submit</button>
       <OmegaErrors />
     </template>
@@ -15,29 +23,27 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import {
-  OmegaForm,
-  OmegaInput,
-  OmegaErrors,
-} from "../../src/components/OmegaForm"
+import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 
-const schema = S.Struct({
-  email: S.Email,
-  confirm: S.Email,
-}).pipe(
-  S.filter(form => {
-    if (form.email !== form.confirm) {
-      return {
-        path: ["confirm"],
-        message: "Email and confirmation must match!",
+const schema = S
+  .Struct({
+    email: S.Email,
+    confirm: S.Email
+  })
+  .pipe(
+    S.filter((form) => {
+      if (form.email !== form.confirm) {
+        return {
+          path: ["confirm"],
+          message: "Email and confirmation must match!"
+        }
       }
-    }
-  }),
-)
+    })
+  )
 
 const defaultValues = {
   email: "mimmo@asd.it",
-  confirm: "amerelli@asd.it",
+  confirm: "amerelli@asd.it"
 }
 
 const onSubmit = ({ value }: { value: { email: string; confirm: string } }) => {

@@ -6,8 +6,14 @@
   >
     <template #externalForm="{ subscribedValues: { values } }">
       <div>values: {{ values }}</div>
-      <form.Input name="a" label="Nullable value" clearable />
-      <button type="submit">submit</button>
+      <form.Input
+        name="a"
+        label="Nullable value"
+        clearable
+      />
+      <button type="submit">
+        submit
+      </button>
     </template>
   </OmegaForm>
 </template>

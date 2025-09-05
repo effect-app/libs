@@ -17,12 +17,12 @@ const vuetify = createVuetify({
     defaultSet: "mdi",
     aliases,
     sets: {
-      mdi,
-    },
-  },
+      mdi
+    }
+  }
 })
 
-setup(app => {
+setup((app) => {
   // Register Vuetify
   app.use(vuetify)
   // Register highlight.js
@@ -35,10 +35,10 @@ const preview: Preview = {
     controls: {
       matchers: {
         color: /(background|color)$/i,
-        date: /Date$/i,
-      },
-    },
-  },
+        date: /Date$/i
+      }
+    }
+  }
 }
 
 export default preview

@@ -118,21 +118,19 @@ const localForm = props.form || !props.schema
     props.omegaConfig
   )
 
+const formToUse = computed(() => props.form ?? localForm!)
+
 const instance = getCurrentInstance()
 
 const handleFormSubmit = (): void => {
-  if (formIsSubmitting.value) return
-
   formToUse.value.handleSubmit().then(() => {
     const formState = formToUse.value.store.state
-    if(formState.isValid) {
+    if (formState.isValid) {
       const values = formState.values
       instance?.emit("submit", values as unknown as To)
     }
   })
 }
-
-const formToUse = computed(() => props.form ?? localForm!)
 
 onBeforeMount(() => {
   if (!props.form) return

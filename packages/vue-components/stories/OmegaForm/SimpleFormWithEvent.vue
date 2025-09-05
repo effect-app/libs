@@ -13,7 +13,6 @@
         #internalForm="{
           form,
           subscribedValues: {
-            values,
             isFormValidating,
             isSubmitting
           }
@@ -38,6 +37,7 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
+import { isNaN, parseInt } from "lodash"
 import { ref } from "vue"
 import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 

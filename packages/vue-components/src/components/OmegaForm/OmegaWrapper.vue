@@ -67,8 +67,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
-import { runtimeFiberAsPromise } from "effect-app/utils"
-import { isFiber, isRuntimeFiber } from "effect/Fiber"
 import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
@@ -133,11 +131,7 @@ const localForm = props.form || !props.schema
         if (!onSubmitAsync) {
           return eventOnSubmit(submitProps)
         }
-        const v = props.onSubmitAsync(submitProps)
-        if (isFiber(v) && isRuntimeFiber(v)) {
-          return runtimeFiberAsPromise(v)
-        }
-        return v
+        return onSubmitAsync(submitProps)
       }
     },
     props.omegaConfig

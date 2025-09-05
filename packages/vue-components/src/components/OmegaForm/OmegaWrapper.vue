@@ -121,13 +121,12 @@ const instance = getCurrentInstance()
 // we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
 // so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
 // we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
-const eventOnSubmit = computed(
-  () =>
-  ({ value }: Parameters<NonNullable<FormProps<From, To>["onSubmit"]>>[0]) =>
-    new Promise<void>((resolve, reject) => {
-      instance!.emit("submit", value, resolve, reject)
-    })
-)
+const eventOnSubmit = (
+  { value }: Parameters<NonNullable<FormProps<From, To>["onSubmit"]>>[0]
+) =>
+  new Promise<void>((resolve, reject) => {
+    instance!.emit("submit", value, resolve, reject)
+  })
 
 const localForm = props.form || !props.schema
   ? undefined
@@ -138,7 +137,7 @@ const localForm = props.form || !props.schema
       onSubmit: (submitProps) => {
         const onSubmitAsync = props.onSubmitAsync
         if (!onSubmitAsync) {
-          return eventOnSubmit.value(submitProps)
+          return eventOnSubmit(submitProps)
         }
         const v = props.onSubmitAsync(submitProps)
         if (isFiber(v) && isRuntimeFiber(v)) {

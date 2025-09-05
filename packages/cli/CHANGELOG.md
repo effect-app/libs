@@ -1,5 +1,23 @@
 # @effect-app/cli
 
+## 1.23.16
+
+### Patch Changes
+
+- ccbf803: fml
+
+## 1.23.15
+
+### Patch Changes
+
+- 8994599: fix some wiki commands
+
+## 1.23.14
+
+### Patch Changes
+
+- 2cad28a: some fixes to wiki commands
+
 ## 1.23.13
 
 ### Patch Changes

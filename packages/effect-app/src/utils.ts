@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-import { Effect, Option, Record } from "effect"
+import { Cause, Effect, Exit, Option, Record } from "effect"
 import * as Either from "effect/Either"
+import { type RuntimeFiber } from "effect/Fiber"
 import { dual, isFunction } from "effect/Function"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
@@ -858,3 +859,14 @@ export type ExcludeFromTuple<T extends readonly any[], E> = T extends [infer F, 
   ? [F] extends [E] ? ExcludeFromTuple<R, E>
   : [F, ...ExcludeFromTuple<R, E>]
   : []
+
+export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>) =>
+  new Promise((resolve, reject) =>
+    fiber.addObserver((exit) => {
+      if (Exit.isSuccess(exit)) {
+        resolve(exit.value)
+      } else {
+        reject(Cause.squash(exit.cause))
+      }
+    })
+  )

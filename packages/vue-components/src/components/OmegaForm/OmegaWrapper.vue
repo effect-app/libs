@@ -193,6 +193,7 @@ const formIsSubmitting = useStore(
 
 const instance = getCurrentInstance()
 
+// TODO: just remove?
 const isFormLoading = computed(() => props.isLoading)
 
 const subscribedValues = getOmegaStore(
@@ -255,7 +256,9 @@ defineSlots<{
   // Named slot when form is created internally via schema
   internalForm(props: {
     form: OmegaFormReturn<From, To>
-    subscribedValues: typeof subscribedValues.value & { isFormLoading: boolean }
+    subscribedValues: typeof subscribedValues.value & {
+      isFormLoading: boolean /* TODO just remove ? */
+    }
   }): void
   // Named slot when form is passed via props (provides subscribedValues)
   externalForm(props: { subscribedValues: typeof subscribedValues.value }): void

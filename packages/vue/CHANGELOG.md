@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.55.0
+
+### Minor Changes
+
+- 5330e82: cleanup Command.
+
 ## 2.54.5
 
 ### Patch Changes

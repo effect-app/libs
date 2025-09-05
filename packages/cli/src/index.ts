@@ -736,7 +736,7 @@ Are you sure you want to proceed with the one-time project setup?`,
               yield* runNodeCommand(`git submodule add -b master ../${detectedProjectName}.wiki.git doc`)
 
               yield* Effect.logInfo("Committing wiki submodule addition...")
-              yield* runNodeCommand("git commit -m 'Add doc submodule'")
+              yield* runNodeCommand("git add . && git commit -am 'Add doc submodule'")
 
               return yield* Effect.logInfo("Wiki submodule initialized successfully")
             }

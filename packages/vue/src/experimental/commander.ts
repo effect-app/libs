@@ -702,24 +702,29 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
         return (actionName: string): Commander.Gen<RT> & Commander.NonGen<RT> =>
-        // TODO constrain/type combinators
         (
           fn: any,
-          // TODO: combinators can freely take A, E, R and change it to whatever they want, as long as the end result Requires not more than CommandContext | R
           ...combinators: any[]
         ): any => {
+          // we capture the definition stack here, so we can append it to later stack traces
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
           const errorDef = new Error()
           Error.stackTraceLimit = limit
 
           return make(actionName, errorDef)(
-            // we need to use `fn` instead of `fnUntraced` to support non gen
-            // TODO: clean this mess.
+            // we need to use `fn` instead of `fnUntraced` to support non gen:
+            //  - Effect.fnUntraced(() => Effect.succeed(2)) is not supported
+            //  - Effect.fn("...")(() => Effect.succeed(2)) is allowed
+            //
+            //  we skip Effect.fn's automatic span in favor of the parent span
             (...args) =>
               Effect.currentSpan.pipe(
                 Effect.flatMap((span) =>
-                  Effect.fn("bogus", { context: Tracer.DisablePropagation.context(true), captureStackTrace: false })(
+                  Effect.fn("bogus", {
+                    context: Tracer.DisablePropagation.context(true),
+                    captureStackTrace: false
+                  })(
                     fn,
                     ...combinators as [any],
                     Effect.provideService(Tracer.ParentSpan, span)

@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.15
+
+### Patch Changes
+
+- 8994599: fix some wiki commands
+
 ## 1.23.14
 
 ### Patch Changes

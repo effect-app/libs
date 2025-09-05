@@ -67,8 +67,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
-import { runtimeFiberAsPromise } from "effect-app/utils"
-import { isFiber, isRuntimeFiber } from "effect/Fiber"
 import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
@@ -132,14 +130,6 @@ const localForm = props.form || !props.schema
       ...props,
       onSubmit: typeof props.isLoading !== "undefined"
         ? eventOnSubmit
-        : typeof props.onSubmit !== "undefined"
-        ? (data) => {
-          const result = props.onSubmit!(data)
-          if (isFiber(result) && isRuntimeFiber(result)) {
-            return runtimeFiberAsPromise(result)
-          }
-          return result
-        }
         : props.onSubmit
     },
     props.omegaConfig

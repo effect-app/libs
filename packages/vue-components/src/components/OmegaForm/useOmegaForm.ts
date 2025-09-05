@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
-import { S } from "effect-app"
+import { Fiber, S } from "effect-app"
+import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { computed, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide } from "vue"
 import { type InputProps } from "./InputProps"
@@ -216,12 +217,17 @@ export const useOmegaForm = <
       ...(tanstackFormOptions?.validators || {})
     },
     onSubmit: tanstackFormOptions?.onSubmit
-      ? ({ formApi, meta, value }) =>
-        tanstackFormOptions.onSubmit?.({
+      ? ({ formApi, meta, value }) => {
+        const r = tanstackFormOptions.onSubmit!({
           formApi: formApi as OmegaFormApi<From, To>,
           meta,
           value: value as unknown as To
         })
+        if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
+          return runtimeFiberAsPromise(r)
+        }
+        return r
+      }
       : undefined,
     defaultValues: defaultValues.value as any
   }) satisfies OmegaFormApi<To, From>

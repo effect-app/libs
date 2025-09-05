@@ -68,11 +68,11 @@
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
-import { isFiber, isRuntimeFiber, type RuntimeFiber } from "effect/Fiber"
+import { isFiber, isRuntimeFiber } from "effect/Fiber"
 import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
-import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormParams, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
+import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
 import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
 type OmegaWrapperProps =
@@ -96,13 +96,7 @@ type OmegaWrapperProps =
     | {
       onSubmit?: undefined
       // TODO: we would need to rename everywhere.
-      onSubmitAsync:
-        | FormProps<From, To>["onSubmit"]
-        | ((props: {
-          formApi: OmegaFormParams<From, To>
-          meta: any
-          value: To
-        }) => RuntimeFiber<any, any>)
+      onSubmitAsync: FormProps<From, To>["onSubmit"]
     }
     | {
       onSubmitAsync?: undefined

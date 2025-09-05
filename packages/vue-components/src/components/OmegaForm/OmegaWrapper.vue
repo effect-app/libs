@@ -92,34 +92,32 @@ type OmegaWrapperProps =
   )
   & (
     | {
-      isLoading: boolean
-      onSubmit: (data: To) => void
+      onSubmit?: undefined
+      // TODO: we would need to rename everywhere.
+      submit: FormProps<From, To>["onSubmit"]
     }
     | {
-      isLoading?: undefined
-      onSubmit?: FormProps<From, To>["onSubmit"]
+      submit?: undefined
+      onSubmit: (
+        data: To,
+        resolve: (value: any) => void,
+        reject: (value: any) => void
+      ) => void
     }
   )
 
-const props = withDefaults(defineProps<OmegaWrapperProps>(), {
-  isLoading: undefined
-})
+const props = defineProps<OmegaWrapperProps>()
 
 const instance = getCurrentInstance()
 
 // we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
 // so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
 // we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
-const eventOnSubmit: FormProps<From, To>["onSubmit"] = ({ value }) =>
-  new Promise<void>((resolve) => {
-    instance!.emit("submit", value)
-    // even if the emit would be immediately handled, prop changes are not published/received immediately.
-    // so we have to wait for the prop to change to true, and back to false again.
-    const handle = watch(() => props.isLoading, (v) => {
-      if (v) return
-      resolve()
-      handle.stop()
-    })
+const eventOnSubmit = (
+  { value }: Parameters<NonNullable<FormProps<From, To>["onSubmit"]>>[0]
+) =>
+  new Promise<void>((resolve, reject) => {
+    instance!.emit("submit", value, resolve, reject)
   })
 
 const localForm = props.form || !props.schema
@@ -128,9 +126,13 @@ const localForm = props.form || !props.schema
     props.schema,
     {
       ...props,
-      onSubmit: typeof props.isLoading !== "undefined"
-        ? eventOnSubmit
-        : props.onSubmit
+      onSubmit: (submitProps) => {
+        const submit = props.submit
+        if (!submit) {
+          return eventOnSubmit(submitProps)
+        }
+        return submit(submitProps)
+      }
     },
     props.omegaConfig
   )

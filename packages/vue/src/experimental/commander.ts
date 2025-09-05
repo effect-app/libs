@@ -693,7 +693,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           return make(actionName, errorDef)(
             Effect.fnUntraced(
               // fnUntraced only supports generators as first arg, so we convert to generator if needed
-              isGeneratorFunction(fn) ? fn : function*(...args: any[]) {
+              isGeneratorFunction(fn) ? fn : function*(...args) {
                 return yield* fn(...args)
               },
               ...combinators as [any]

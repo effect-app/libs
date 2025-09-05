@@ -97,6 +97,35 @@ Effect
     })()
 
     /**
+     * Updates all packages except Effect and Effect-App ecosystem packages to their latest versions using npm-check-updates.
+     * Excludes core Effect packages, Effect ecosystem packages, Effect Atom packages, and Effect-App packages.
+     * Preserves existing rejections from .ncurc.json configuration.
+     * Runs both at workspace root and recursively in all workspace packages.
+     */
+    const updatePackages = Effect.fn("effa-cli.update-packages.updatePackages")(function*() {
+      const effectFilters = ["effect", "@effect/*", "@effect-atom/*", "effect-app", "@effect-app/*"]
+
+      // read existing .ncurc.json to preserve existing reject patterns
+      let existingRejects: string[] = []
+      const ncurcPath = "./.ncurc.json"
+
+      if (yield* fs.exists(ncurcPath)) {
+        const ncurcContent = yield* fs.readFileString(ncurcPath)
+        const ncurc = JSON.parse(ncurcContent)
+        if (ncurc.reject && Array.isArray(ncurc.reject)) {
+          existingRejects = ncurc.reject
+        }
+      }
+
+      const allRejects = [...existingRejects, ...effectFilters]
+      yield* Effect.logInfo(`Excluding packages from update: ${allRejects.join(", ")}`)
+      const rejectArgs = allRejects.map(filter => `--reject "${filter}"`).join(" ")
+
+      yield* runNodeCommandEC(`pnpm exec ncu -u ${rejectArgs}`)
+      yield* runNodeCommandEC(`pnpm -r exec ncu -u ${rejectArgs}`)
+    })()
+
+    /**
      * Links local effect-app packages by adding file resolutions to package.json.
      * Updates the package.json with file: protocol paths pointing to the local effect-app-libs directory,
      * then runs pnpm install to apply the changes.
@@ -553,6 +582,20 @@ Effect
       )
       .pipe(Command.withDescription("Update effect-app and/or effect packages"))
 
+    const up = Command
+      .make(
+        "up",
+        {},
+        Effect.fn("effa-cli.update-packages")(function*({}) {
+          yield* Effect.logInfo("Updating all packages except Effect/Effect-App ecosystem packages...")
+
+          return yield* updatePackages.pipe(
+            Effect.andThen(runNodeCommandEC("pnpm i"))
+          )
+        })
+      )
+      .pipe(Command.withDescription("Update all packages except Effect/Effect-App ecosystem packages"))
+
     const indexMulti = makeCommandWithWrap(
       "index-multi",
       {},
@@ -833,6 +876,7 @@ Available actions:
         .make("effa")
         .pipe(Command.withSubcommands([
           ue,
+          up,
           link,
           unlink,
           indexMulti,

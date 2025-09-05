@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.13
+
+### Patch Changes
+
+- d9280c7: fix init wiki
+
 ## 1.23.12
 
 ### Patch Changes

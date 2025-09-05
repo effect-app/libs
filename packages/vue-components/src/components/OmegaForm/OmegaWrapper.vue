@@ -66,10 +66,10 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
-import { Cause, Exit, type Record, type S } from "effect-app"
+import { type Record, type S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
-import { isFiber, isRuntimeFiber, type RuntimeFiber } from "effect/Fiber"
-import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
+import { isFiber, isRuntimeFiber, RuntimeFiber } from "effect/Fiber"
+import { computed, type ComputedRef, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormParams, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
@@ -118,12 +118,15 @@ const props = defineProps<OmegaWrapperProps>()
 
 const instance = getCurrentInstance()
 
-const eventOnSubmit: NonNullable<FormProps<From, To>["onSubmit"]> = (
-  { value }
-) =>
+// we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
+// so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
+// we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
+const eventOnSubmit = computed(
+  () => ({ value }: Parameters<NonNullable<FormProps<From, To>["onSubmit"]>>[0]) =>
   new Promise<void>((resolve, reject) => {
     instance!.emit("submit", value, resolve, reject)
   })
+)
 
 const localForm = props.form || !props.schema
   ? undefined
@@ -134,7 +137,7 @@ const localForm = props.form || !props.schema
       onSubmit: (submitProps) => {
         const onSubmitAsync = props.onSubmitAsync
         if (!onSubmitAsync) {
-          return eventOnSubmit(submitProps)
+          return eventOnSubmit.value(submitProps)
         }
         const v = props.onSubmitAsync(submitProps)
         if (isFiber(v) && isRuntimeFiber(v)) {

@@ -1,6 +1,7 @@
 import { type Effect, Option, pipe, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
+import { type RuntimeFiber } from "effect/Fiber"
 import { useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OmegaFormReturn } from "./useOmegaForm"
@@ -55,11 +56,17 @@ export type FormProps<From, To> =
     "onSubmit"
   >
   & {
-    onSubmit?: (props: {
-      formApi: OmegaFormParams<From, To>
-      meta: any
-      value: To
-    }) => Promise<any>
+    onSubmit?:
+      | ((props: {
+        formApi: OmegaFormParams<From, To>
+        meta: any
+        value: To
+      }) => Promise<any>)
+      | (((props: {
+        formApi: OmegaFormParams<From, To>
+        meta: any
+        value: To
+      }) => RuntimeFiber<any, any>))
   }
 
 export type OmegaFormParams<From, To> = FormApi<

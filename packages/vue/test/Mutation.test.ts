@@ -4,6 +4,9 @@ import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
 import { CommandContext, DefaultIntl } from "../src/experimental/commander.js"
 import { Result } from "../src/lib.js"
 import { useExperimental } from "./stubs.js"
+import { RuntimeFiber } from "effect/Fiber"
+
+const unwrap = <A, E>(r: RuntimeFiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
 
 it.live("works", () =>
   Effect
@@ -34,7 +37,7 @@ it.live("works", () =>
       )
       expect(command.action).toBe("Test Action")
 
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
       expect(command.waiting).toBe(false)
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
@@ -77,7 +80,7 @@ it.live("works non-gen", () =>
       )
       expect(command.action).toBe("Test Action")
 
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
       expect(command.waiting).toBe(false)
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
@@ -109,7 +112,7 @@ it.live("has custom action name", () =>
         Effect.tap(() => executed = true)
       )
       expect(command.action).toBe("Test Action Translated")
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -132,7 +135,7 @@ it.live("can map the result", () =>
         Effect.map((_) => _ + _),
         Effect.tap(() => executed = true)
       )
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe("test-valuetest-value") // to confirm that the initial function and map has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -154,7 +157,7 @@ it.live("can receive and use input", () =>
         },
         Effect.tap(() => executed = true)
       )
-      const r = yield* Fiber.join(command.handle(1, "2"))
+      const r = yield* unwrap(command.handle(1, "2"))
 
       expect(r).toEqual({ input1: 1, input2: "2" }) // to confirm that the initial function has ran and received input.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -180,7 +183,7 @@ it.live("can replace the result", () =>
         Effect.zipRight(Effect.succeed(42)),
         Effect.tap(() => executed = true)
       )
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe(42) // to confirm that the initial function and zipRight has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -216,7 +219,7 @@ it.live("with toasts", () =>
         Effect.tap(() => executed = true)
       )
 
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -242,7 +245,7 @@ it.live("interrupted", () =>
         Effect.tap(() => executed = true)
       )
 
-      const r = yield* Fiber.await(command.handle())
+      const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we were interrupted after all :)
       expect(Exit.isInterrupted(r)).toBe(true) // to confirm that the initial function has interrupted
@@ -268,7 +271,7 @@ it.live("fail", () =>
         Effect.tap(() => executed = true)
       )
 
-      const r = yield* Fiber.await(command.handle())
+      const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we failed after all :)
       expect(Exit.isFailure(r) && Cause.isFailure(r.cause)).toBe(true) // to confirm that the initial function has failed
@@ -296,7 +299,7 @@ it.live("fail and recover", () =>
         Effect.tap(() => executed = true)
       )
 
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(executed).toBe(true) // we recovered after all :)
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
@@ -323,7 +326,7 @@ it.live("defect", () =>
         Effect.tap(() => executed = true)
       )
 
-      const r = yield* Fiber.await(command.handle())
+      const r = yield* Fiber.join(command.handle())
       // TODO: confirm we reported error
 
       expect(executed).toBe(false) // we died after all :)
@@ -366,7 +369,7 @@ it.live("works with alt", () =>
       )
       expect(command.action).toBe("Test Action")
 
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
       expect(command.waiting).toBe(false)
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
@@ -400,7 +403,7 @@ it.live("has custom action name with alt", () =>
         )
       )
       expect(command.action).toBe("Test Action Translated")
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -423,7 +426,7 @@ it.live("can map the result with alt", () =>
         Effect.map((_) => _ + _),
         Effect.tap(() => executed = true)
       ))
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe("test-valuetest-value") // to confirm that the initial function and map has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -447,7 +450,7 @@ it.live("can receive and use input with alt", () =>
           Effect.tap(() => executed = true)
         )
       )
-      const r = yield* Fiber.join(command.handle(1, "2"))
+      const r = yield* unwrap(command.handle(1, "2"))
 
       expect(r).toEqual({ input1: 1, input2: "2" }) // to confirm that the initial function has ran and received input.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -475,7 +478,7 @@ it.live("can replace the result with alt", () =>
           Effect.tap(() => executed = true)
         )
       )
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe(42) // to confirm that the initial function and zipRight has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -513,7 +516,7 @@ it.live("with toasts with alt", () =>
         )
       )
 
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -542,7 +545,7 @@ it.live("interrupted with alt", () =>
         )
       )
 
-      const r = yield* Fiber.await(command.handle())
+      const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we were interrupted after all :)
       expect(Exit.isInterrupted(r)).toBe(true) // to confirm that the initial function has interrupted
@@ -570,7 +573,7 @@ it.live("fail with alt", () =>
         )
       )
 
-      const r = yield* Fiber.await(command.handle())
+      const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we failed after all :)
       expect(Exit.isFailure(r) && Cause.isFailure(r.cause)).toBe(true) // to confirm that the initial function has failed
@@ -600,7 +603,7 @@ it.live("fail and recover with alt", () =>
         )
       )
 
-      const r = yield* Fiber.join(command.handle())
+      const r = yield* unwrap(command.handle())
 
       expect(executed).toBe(true) // we recovered after all :)
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
@@ -629,7 +632,7 @@ it.live("defect with alt", () =>
         )
       )
 
-      const r = yield* Fiber.await(command.handle())
+      const r = yield* Fiber.join(command.handle())
       // TODO: confirm we reported error
 
       expect(executed).toBe(false) // we died after all :)

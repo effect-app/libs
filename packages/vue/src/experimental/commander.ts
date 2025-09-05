@@ -540,8 +540,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             { captureStackTrace }
           )
 
-          // as we run into a RuntimeFiber anyway, we can flatten A/E anyway, so we don't get an Exit<Exit on addObserver
-          return runFork(Effect.flatten(command))
+          return runFork(command)
         }, { action })
 
         return reactive({

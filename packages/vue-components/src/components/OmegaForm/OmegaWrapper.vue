@@ -116,6 +116,7 @@ const localForm = props.form || !props.schema
           new Promise<void>((resolve) => {
             console.log("Submitting form with values:", value, "emitting")
             instance!.emit("submit", value)
+            // even if the emit would be immediately handled, prop changes are not published/received immediately.
             const handle = watch(() => props.isLoading, (v) => {
               if (v) return
               resolve()

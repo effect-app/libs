@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.11
+
+### Patch Changes
+
+- 7c2e428: pnpm effa wiki update
+
 ## 1.23.10
 
 ### Patch Changes

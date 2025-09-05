@@ -641,7 +641,6 @@ Effect
         "wiki",
         {
           sync: Args.text({ name: "action" }).pipe(
-            Args.optional,
             Args.withDefault("sync"),
             Args.withDescription("Wiki action to perform (default: sync)")
           )
@@ -655,7 +654,12 @@ Effect
           return yield* runNodeCommand("git submodule update --init --recursive doc")
         })
       )
-      .pipe(Command.withDescription("Manage documentation wiki git submodule (default: sync)"))
+      .pipe(Command.withDescription(
+        `Manage the documentation wiki git submodule.
+
+Available actions:
+- sync: Initialize and update the documentation submodule (default)`
+      ))
 
     const DryRunOption = Options.boolean("dry-run").pipe(
       Options.withDescription("Show what would be done without making changes")

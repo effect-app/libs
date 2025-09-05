@@ -1,0 +1,5 @@
+[submodule "doc"]
+	path = doc
+	url = ../libs.wiki.git
+	branch = master
+  update = merge

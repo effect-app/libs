@@ -67,6 +67,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
+import { runtimeFiberAsPromise } from "effect-app/utils"
+import { isFiber, isRuntimeFiber } from "effect/Fiber"
 import { computed, type ComputedRef, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
@@ -111,7 +113,7 @@ const instance = getCurrentInstance()
 // so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
 // we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
 const eventOnSubmit: ComputedRef<FormProps<From, To>["onSubmit"]> = computed(
-  () => ({ value }) => {
+  () => ({ value }) =>
     new Promise<void>((resolve) => {
       instance!.emit("submit", value)
       // even if the emit would be immediately handled, prop changes are not published/received immediately.
@@ -122,7 +124,6 @@ const eventOnSubmit: ComputedRef<FormProps<From, To>["onSubmit"]> = computed(
         handle.stop()
       })
     })
-  }
 )
 
 const localForm = props.form || !props.schema
@@ -133,6 +134,14 @@ const localForm = props.form || !props.schema
       ...props,
       onSubmit: typeof props.isLoading !== "undefined"
         ? eventOnSubmit.value
+        : typeof props.onSubmit !== "undefined"
+        ? (data) => {
+          const result = props.onSubmit!(data)
+          if (isFiber(result) && isRuntimeFiber(result)) {
+            return runtimeFiberAsPromise(result)
+          }
+          return result
+        }
         : props.onSubmit
     },
     props.omegaConfig

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.55.1
+
+### Patch Changes
+
+- 1dae3ab: fix: use Exit so we don't blow up in native event handlers when extracting a Promise.
+
 ## 2.55.0
 
 ### Minor Changes

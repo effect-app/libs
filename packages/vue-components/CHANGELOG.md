@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.1
+
+### Patch Changes
+
+- a9dd3a8: fix: unwrapping RuntimeFiber should happen inside useOmegaForm instead.
+
 ## 0.18.0
 
 ### Minor Changes

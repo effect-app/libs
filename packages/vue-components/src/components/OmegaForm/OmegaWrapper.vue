@@ -105,6 +105,19 @@ const props = withDefaults(defineProps<OmegaWrapperProps>(), {
   isLoading: undefined
 })
 
+const instance = getCurrentInstance()
+const eventOnSubmit: FormProps<From, To>["onSubmit"] = ({ value }) => {
+  new Promise<void>((resolve) => {
+    instance!.emit("submit", value)
+    // even if the emit would be immediately handled, prop changes are not published/received immediately.
+    const handle = watch(() => props.isLoading, (v) => {
+      if (v) return
+      resolve()
+      handle.stop()
+    })
+  })
+}
+
 const localForm = props.form || !props.schema
   ? undefined
   : useOmegaForm<From, To>(
@@ -112,17 +125,7 @@ const localForm = props.form || !props.schema
     {
       ...props,
       onSubmit: typeof props.isLoading !== "undefined"
-        ? ({ value }) =>
-          new Promise<void>((resolve) => {
-            console.log("Submitting form with values:", value, "emitting")
-            instance!.emit("submit", value)
-            // even if the emit would be immediately handled, prop changes are not published/received immediately.
-            const handle = watch(() => props.isLoading, (v) => {
-              if (v) return
-              resolve()
-              handle.stop()
-            })
-          })
+        ? eventOnSubmit
         : props.onSubmit
     },
     props.omegaConfig
@@ -190,8 +193,6 @@ const formIsSubmitting = useStore(
   formToUse.value.store,
   (state) => state.isSubmitting
 )
-
-const instance = getCurrentInstance()
 
 const subscribedValues = getOmegaStore(
   formToUse.value as unknown as OmegaFormApi<From, To>,

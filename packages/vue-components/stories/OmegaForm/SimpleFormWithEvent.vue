@@ -13,7 +13,6 @@
         #internalForm="{
           form,
           subscribedValues: {
-            values,
             isFormValidating,
             isSubmitting
           }

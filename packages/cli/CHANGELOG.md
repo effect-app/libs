@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.18
+
+### Patch Changes
+
+- 84be367: add command to update all but effect/effect-app packages
+
 ## 1.23.17
 
 ### Patch Changes

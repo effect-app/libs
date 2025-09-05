@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/cli",
-  "version": "1.23.15",
+  "version": "1.23.16",
   "license": "MIT",
   "type": "module",
   "bin": {

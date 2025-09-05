@@ -2,12 +2,12 @@
 import { asResult, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S, Tracer } from "effect-app"
+import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
-import { type YieldWrap } from "effect/Utils"
+import { isGeneratorFunction, type YieldWrap } from "effect/Utils"
 import { computed, reactive } from "vue"
 import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
@@ -691,26 +691,13 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           Error.stackTraceLimit = limit
 
           return make(actionName, errorDef)(
-            // we need to use `fn` instead of `fnUntraced` to support non gen:
-            //  - Effect.fnUntraced(() => Effect.succeed(2)) is not supported
-            //  - Effect.fn("...")(() => Effect.succeed(2)) is allowed
-            //
-            //  we skip Effect.fn's automatic span in favor of the actionName span
-            (...args) =>
-              Effect.currentSpan.pipe(
-                Effect.flatMap((span) =>
-                  Effect.fn("bogus", {
-                    context: Tracer.DisablePropagation.context(true),
-                    captureStackTrace: false
-                  })(
-                    fn,
-                    ...combinators as [any],
-                    // provide the current action span as span context
-                    // Tracer.ParentSpan is the same tag used by Effect.withSpan
-                    Effect.provideService(Tracer.ParentSpan, span)
-                  )(...args)
-                )
-              ) as any
+            Effect.fnUntraced(
+              // fnUntraced only supports generators as first arg, so we convert to generator if needed
+              isGeneratorFunction(fn) ? fn : function*(...args: any[]) {
+                return yield* fn(...args)
+              },
+              ...combinators as [any]
+            ) as any
           )
         }
       },

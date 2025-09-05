@@ -7,14 +7,30 @@
     <template #externalForm="{ subscribedValues: { errors, values: vvv } }">
       <div>Errors: {{ errors }}</div>
       <div>Values: {{ vvv }}</div>
-      <OmegaInput label="first" :form="addForm" name="first" />
+      <OmegaInput
+        label="first"
+        :form="addForm"
+        name="first"
+      />
       <div>+</div>
-      <OmegaInput label="second" :form="addForm" name="second" />
-      <br />
-      <hr />
-      <br />
-      <OmegaInput label="third.fourth" :form="addForm" name="third.fourth" />
-      <OmegaInput label="third.fifth" :form="addForm" name="third.fifth" />
+      <OmegaInput
+        label="second"
+        :form="addForm"
+        name="second"
+      />
+      <br>
+      <hr>
+      <br>
+      <OmegaInput
+        label="third.fourth"
+        :form="addForm"
+        name="third.fourth"
+      />
+      <OmegaInput
+        label="third.fifth"
+        :form="addForm"
+        name="third.fifth"
+      />
     </template>
   </OmegaForm>
 
@@ -26,12 +42,8 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import {
-  OmegaForm,
-  OmegaInput,
-  useOmegaForm,
-} from "../../src/components/OmegaForm"
 import { ref, watch } from "vue"
+import { OmegaForm, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({
@@ -39,8 +51,8 @@ const AddSchema = S.Struct({
   second: S.Number.pipe(S.greaterThan(3)),
   third: S.Struct({
     fourth: S.Number,
-    fifth: S.Number,
-  }),
+    fifth: S.Number
+  })
 })
 
 const addForm = useOmegaForm(
@@ -49,9 +61,9 @@ const addForm = useOmegaForm(
   {
     persistency: {
       policies: ["session", "querystring"],
-      keys: ["first", "third.fourth"],
-    },
-  },
+      keys: ["first", "third.fourth"]
+    }
+  }
 )
 
 const values = addForm.useStore(({ values }) => values)

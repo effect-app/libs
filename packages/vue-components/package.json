@@ -7,7 +7,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs",
-    "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint src",
+    "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint src stories .storybook",
     "ncu": "ncu",
     "clean": "rm -rf dist",
     "autofix": "pnpm lint --fix",

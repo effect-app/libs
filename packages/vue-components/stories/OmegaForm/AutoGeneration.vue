@@ -4,41 +4,35 @@
       <OmegaAutoGen
         :form="form"
         :pick="['string', 'number', 'email']"
-        :sort="
-          Order.mapInput(
-            Order.string,
-            (
-              x: OmegaAutoGenMeta<
-                S.Schema.Encoded<typeof schema>,
-                S.Schema.Type<typeof schema>
-              >,
-            ) => x.name,
-          )
-        "
-        :label-map="
-          a =>
-            Match.value(a).pipe(
-              Match.when('string', () => 'a beautiful string'),
-              Match.when('number', () => 'a big number'),
-              Match.orElse(constUndefined),
-            )
-        "
-        :filter-map="
-          (a, b) => {
-            switch (a) {
-              case 'string':
-                return {
-                  ...b,
-                  label: 'a VERY beautiful string',
-                  clearable: true,
-                }
-              case 'email':
-                return false
-              default:
-                return { ...b, clearable: true }
-            }
+        :sort="Order.mapInput(
+          Order.string,
+          (
+            x: OmegaAutoGenMeta<
+              S.Schema.Encoded<typeof schema>,
+              S.Schema.Type<typeof schema>
+            >
+          ) => x.name
+        )"
+        :label-map="(a) =>
+        Match.value(a).pipe(
+          Match.when('string', () => 'a beautiful string'),
+          Match.when('number', () => 'a big number'),
+          Match.orElse(constUndefined)
+        )"
+        :filter-map="(a, b) => {
+          switch (a) {
+            case 'string':
+              return {
+                ...b,
+                label: 'a VERY beautiful string',
+                clearable: true
+              }
+            case 'email':
+              return false
+            default:
+              return { ...b, clearable: true }
           }
-        "
+        }"
       />
       <v-container>
         <v-row>
@@ -64,15 +58,11 @@
 </template>
 
 <script setup lang="ts">
-import { Match, S } from "effect-app"
-import {
-  OmegaForm,
-  OmegaAutoGen,
-  OmegaInput,
-} from "../../src/components/OmegaForm"
-import { type OmegaAutoGenMeta } from "../../src/components/OmegaForm/OmegaAutoGen.vue"
-import { constUndefined } from "effect/Function"
 import { Order } from "effect"
+import { Match, S } from "effect-app"
+import { constUndefined } from "effect/Function"
+import { OmegaAutoGen, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { type OmegaAutoGenMeta } from "../../src/components/OmegaForm/OmegaAutoGen.vue"
 
 const schema = S.Struct({
   string: S.String,
@@ -80,6 +70,6 @@ const schema = S.Struct({
   boolean: S.Boolean,
   email: S.Email,
   url: S.Url,
-  date: S.Date,
+  date: S.Date
 })
 </script>

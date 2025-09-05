@@ -1,9 +1,27 @@
 <template>
-  <OmegaForm :schema="schema" :subscribe="['values']" :on-submit="console.log">
+  <OmegaForm
+    :schema="schema"
+    :subscribe="['values']"
+    :on-submit="console.log"
+  >
     <template #internalForm="{ form, subscribedValues: { values } }">
-      <OmegaInput label="boolean" :form="form" name="boolean" />
-      <OmegaInput label="switch" :form="form" name="switch" type="switch" />
-      <OmegaInput label="true" :form="form" name="true" type="boolean" />
+      <OmegaInput
+        label="boolean"
+        :form="form"
+        name="boolean"
+      />
+      <OmegaInput
+        label="switch"
+        :form="form"
+        name="switch"
+        type="switch"
+      />
+      <OmegaInput
+        label="true"
+        :form="form"
+        name="true"
+        type="boolean"
+      />
       <pre>{{ values }}</pre>
       <button>submit</button>
     </template>
@@ -17,6 +35,6 @@ import { OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 const schema = S.Struct({
   boolean: S.Boolean.withDefault,
   switch: S.Boolean,
-  true: S.Literal(true),
+  true: S.Literal(true)
 })
 </script>

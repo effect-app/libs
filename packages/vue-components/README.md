@@ -182,3 +182,24 @@ In [tsconfig.json](tsconfig.js), set the following to address [Issue #32](https:
   ]
 }
 ```
+
+### On Submit event
+The :on-submit event could be tricky in `<OmegaForm />` component. 
+This is a prop that is basically a map of Tanstack Form `onSubmit` option and accept a function that return a Promise. If you want to use it as an event, you have to manage the state of loading yourself with `@submit` with a function returning `void`
+
+E.g.
+
+to use it as a Promise based Tanstack way:
+```html
+  <OmegaForm :schema="schema" :on-submit="onSubmit" :subscribe="['values']">
+```
+
+to use it as an event:
+```html
+<OmegaForm :schema="schema" @submit="onSubmit" :is-loading="false" :subscribe="['values']">
+```
+
+this will give you a type error instead, because `:is-loading` is only accepted in event mode
+```html
+  <OmegaForm :schema="schema" :on-submit="onSubmit" :is-loading="false" :subscribe="['values']">
+```

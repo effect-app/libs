@@ -4,6 +4,7 @@ import { provideIntl } from "../src/utils"
 import { type makeIntl } from "@effect-app/vue"
 import { ref } from "vue"
 import SimpleFormComponent from "./OmegaForm/SimpleForm.vue"
+import SimpleFormWithEventComponent from "./OmegaForm/SimpleFormWithEvent.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
 import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefault.vue"
@@ -59,6 +60,13 @@ export const SimpleForm: Story = {
   render: () => ({
     components: { SimpleFormComponent },
     template: "<SimpleFormComponent />",
+  }),
+}
+
+export const SimpleFormWithEvent: Story = {
+  render: () => ({
+    components: { SimpleFormWithEventComponent },
+    template: "<SimpleFormWithEventComponent />",
   }),
 }
 

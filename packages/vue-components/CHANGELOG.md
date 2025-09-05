@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.5
+
+### Patch Changes
+
+- one more try
+
 ## 0.18.4
 
 ### Patch Changes

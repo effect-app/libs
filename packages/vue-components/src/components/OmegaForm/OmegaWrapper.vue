@@ -92,12 +92,12 @@ type OmegaWrapperProps =
   )
   & (
     | {
-      isLoading: undefined
-      onSubmit?: FormProps<From, To>["onSubmit"]
-    }
-    | {
       isLoading: boolean
       onSubmit: (data: To) => void
+    }
+    | {
+      isLoading?: undefined
+      onSubmit?: FormProps<From, To>["onSubmit"]
     }
   )
 

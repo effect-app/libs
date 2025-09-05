@@ -122,15 +122,19 @@ const eventOnSubmit: FormProps<From, To>["onSubmit"] = ({ value }) =>
     })
   })
 
+const onSubmit = typeof props.isLoading !== "undefined"
+  ? eventOnSubmit
+  : typeof props.onSubmit !== "undefined"
+  ? props.onSubmit
+  : undefined
+
 const localForm = props.form || !props.schema
   ? undefined
   : useOmegaForm<From, To>(
     props.schema,
     {
       ...props,
-      onSubmit: typeof props.isLoading !== "undefined"
-        ? eventOnSubmit
-        : props.onSubmit
+      onSubmit
     },
     props.omegaConfig
   )
@@ -184,6 +188,7 @@ onBeforeMount(() => {
     ...formToUse.value.options,
     ...filteredProps
   }
+  if (onSubmit) mergedOptions.onSubmit = onSubmit
 
   formToUse.value.options = Object.fromEntries(
     // TODO

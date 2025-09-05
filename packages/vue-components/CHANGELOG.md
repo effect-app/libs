@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.6
+
+### Patch Changes
+
+- ead8b04: fix: override onSubmit
+
 ## 0.18.5
 
 ### Patch Changes

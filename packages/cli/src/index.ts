@@ -646,19 +646,37 @@ Effect
           )
         },
         Effect.fn("effa-cli.wiki")(function*({ sync: action }) {
-          if (action !== "sync") {
-            return yield* Effect.fail(`Unknown wiki action: ${action}. Available actions: sync`)
-          }
+          switch (action) {
+            case "sync": {
+              yield* Effect.logInfo("Initializing/updating git submodule for documentation...")
+              return yield* runNodeCommand("git submodule update --init --recursive --remote doc")
+            }
+            case "update": {
+              yield* Effect.logInfo("Pulling latest changes from remote submodule...")
+              yield* runNodeCommand("git submodule update --init --recursive --remote doc")
 
-          yield* Effect.logInfo("Initializing/updating git submodule for documentation...")
-          return yield* runNodeCommand("git submodule update --init --recursive --remote doc")
+              const commitMessage = yield* Prompt.text({
+                message: "Enter commit message:",
+                default: "update doc"
+              })
+
+              yield* Effect.logInfo("Committing and pushing changes in submodule...")
+              yield* runNodeCommand(`git -C doc add . && git -C doc commit -m '${commitMessage}' && git -C doc push`)
+
+              return yield* Effect.logInfo("Submodule updated and pushed successfully")
+            }
+            default: {
+              return yield* Effect.fail(`Unknown wiki action: ${action}. Available actions: sync, update`)
+            }
+          }
         })
       )
       .pipe(Command.withDescription(
         `Manage the documentation wiki git submodule.
 
 Available actions:
-- sync: Initialize and update the documentation submodule (default)`
+- sync: Initialize and update the documentation submodule (default)
+- update: Pull latest changes from remote, commit and push changes within the submodule`
       ))
 
     const DryRunOption = Options.boolean("dry-run").pipe(

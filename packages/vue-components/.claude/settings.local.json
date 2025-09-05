@@ -3,7 +3,11 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:tanstack.com)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(npm ls:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(npx playwright:*)",
+      "Bash(open \"http://localhost:6006/?path=/story/components-omegaform--simple-form\")"
     ],
     "deny": [],
     "ask": []

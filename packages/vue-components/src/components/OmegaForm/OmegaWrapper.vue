@@ -8,7 +8,7 @@
       <template v-if="props.form">
         <slot
           name="externalForm"
-          :subscribed-values="{ ...subscribedValues, isFormLoading }"
+          :subscribed-values="subscribedValues"
         />
         <slot />
         <!-- default slot -->
@@ -18,7 +18,7 @@
         v-else-if="localForm"
         name="internalForm"
         :form="localForm"
-        :subscribed-values="{ ...subscribedValues, isFormLoading }"
+        :subscribed-values="subscribedValues"
       />
     </fieldset>
   </form>
@@ -76,7 +76,7 @@ import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmega
 type OmegaWrapperProps =
   & {
     omegaConfig?: OmegaConfig<From>
-    subscribe?: (K | "isFormLoading")[]
+    subscribe?: K[]
     showErrorsOn?: ShowErrorsOn
   }
   & Omit<FormProps<From, To>, "onSubmit">
@@ -193,12 +193,9 @@ const formIsSubmitting = useStore(
 
 const instance = getCurrentInstance()
 
-// TODO: just remove?
-const isFormLoading = computed(() => props.isLoading)
-
 const subscribedValues = getOmegaStore(
   formToUse.value as unknown as OmegaFormApi<From, To>,
-  props.subscribe?.filter((s) => s !== "isFormLoading") as K[]
+  props.subscribe
 )
 
 const formSubmissionAttempts = useStore(
@@ -256,9 +253,7 @@ defineSlots<{
   // Named slot when form is created internally via schema
   internalForm(props: {
     form: OmegaFormReturn<From, To>
-    subscribedValues: typeof subscribedValues.value & {
-      isFormLoading: boolean /* TODO just remove ? */
-    }
+    subscribedValues: typeof subscribedValues.value
   }): void
   // Named slot when form is passed via props (provides subscribedValues)
   externalForm(props: { subscribedValues: typeof subscribedValues.value }): void

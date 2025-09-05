@@ -5,7 +5,7 @@
     <OmegaForm
       :schema="schema"
       :is-loading="isLoading"
-      :subscribe="['values', 'isFormValidating', 'isFormLoading', 'isSubmitting']"
+      :subscribe="['values', 'isFormValidating', 'isSubmitting']"
       :validators="validators"
       @submit="onSubmit"
     >
@@ -15,14 +15,12 @@
           subscribedValues: {
             values,
             isFormValidating,
-            isFormLoading,
             isSubmitting
           }
         }"
       >
         <div>isSubmitting: {{ isSubmitting }}</div>
         <div>isFormValidating: {{ isFormValidating }}</div>
-        <div>isFormLoading: {{ isFormLoading }}</div>
         <OmegaInput
           label="asder2"
           name="asder2"

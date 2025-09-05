@@ -38,7 +38,7 @@ Effect
         )
 
     /**
-     * Executes a shell command using Node.js Command API with inherited stdio streams.
+     * Executes a shell command using Node.js Command API and captures output as string.
      * The command is run through the system shell (/bin/sh) for proper command parsing.
      *
      * @param cmd - The shell command to execute
@@ -49,8 +49,6 @@ Effect
       NodeCommand
         .make("sh", "-c", cmd)
         .pipe(
-          NodeCommand.stdout("inherit"),
-          NodeCommand.stderr("inherit"),
           cwd ? NodeCommand.workingDirectory(cwd) : identity,
           NodeCommand.string
         )

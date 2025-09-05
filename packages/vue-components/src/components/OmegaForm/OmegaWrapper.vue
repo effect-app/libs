@@ -66,11 +66,12 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
-import { type Record, type S } from "effect-app"
-import { computed, type ComputedRef, getCurrentInstance, onBeforeMount, watch } from "vue"
+import { Cause, Exit, type Record, type S } from "effect-app"
+import { isRuntimeFiber, type RuntimeFiber } from "effect/Fiber"
+import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
-import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
+import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormParams, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
 import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
 type OmegaWrapperProps =
@@ -92,38 +93,46 @@ type OmegaWrapperProps =
   )
   & (
     | {
-      isLoading?: undefined
-      onSubmit?: FormProps<From, To>["onSubmit"]
+      onSubmit?: undefined
+      // TODO: we would need to rename everywhere.
+      onSubmitAsync:
+        | FormProps<From, To>["onSubmit"]
+        | ((props: {
+          formApi: OmegaFormParams<From, To>
+          meta: any
+          value: To
+        }) => RuntimeFiber<any, any>)
     }
     | {
-      isLoading: boolean
-      onSubmit: (data: To) => void
+      onSubmitAsync?: undefined
+      onSubmit: (
+        data: To,
+        resolve: (value: any) => void,
+        reject: (value: any) => void
+      ) => void
     }
   )
 
-const props = withDefaults(defineProps<OmegaWrapperProps>(), {
-  isLoading: undefined
-})
+const props = defineProps<OmegaWrapperProps>()
 
 const instance = getCurrentInstance()
 
-// we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
-// so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
-// we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
-const eventOnSubmit: ComputedRef<FormProps<From, To>["onSubmit"]> = computed(
-  () => ({ value }) => {
-    new Promise<void>((resolve) => {
-      instance!.emit("submit", value)
-      // even if the emit would be immediately handled, prop changes are not published/received immediately.
-      // so we have to wait for the prop to change to true, and back to false again.
-      const handle = watch(() => props.isLoading, (v) => {
-        if (v) return
-        resolve()
-        handle.stop()
-      })
+const eventOnSubmit: FormProps<From, To>["onSubmit"] = ({ value }) => {
+  new Promise<void>((resolve, reject) => {
+    instance!.emit("submit", value, resolve, reject)
+  })
+}
+
+const asPromise = <A, E>(fiber: RuntimeFiber<A, E>) =>
+  new Promise((resolve, reject) =>
+    fiber.addObserver((exit) => {
+      if (Exit.isSuccess(exit)) {
+        resolve(exit.value)
+      } else {
+        reject(Cause.squash(exit.cause))
+      }
     })
-  }
-)
+  )
 
 const localForm = props.form || !props.schema
   ? undefined
@@ -131,9 +140,17 @@ const localForm = props.form || !props.schema
     props.schema,
     {
       ...props,
-      onSubmit: typeof props.isLoading !== "undefined"
-        ? eventOnSubmit.value
-        : props.onSubmit
+      onSubmit: (submitProps) => {
+        const onSubmitAsync = props.onSubmitAsync
+        if (!onSubmitAsync) {
+          return eventOnSubmit(submitProps)
+        }
+        const v = props.onSubmitAsync(submitProps)
+        if (isRuntimeFiber(v)) {
+          return asPromise(v)
+        }
+        return v
+      }
     },
     props.omegaConfig
   )

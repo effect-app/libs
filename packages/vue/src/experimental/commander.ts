@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { asResult, reportRuntimeError } from "@effect-app/vue"
+import { reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
-import { type Result } from "@effect-atom/atom/Result"
+import * as Result from "@effect-atom/atom/Result"
 import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S, Tracer } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { type YieldWrap } from "effect/Utils"
-import { computed, reactive } from "vue"
+import { computed, ComputedRef, reactive, shallowRef } from "vue"
 import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
+import { tuple } from "effect-app/Function"
 
 export const DefaultIntl = {
   de: {
@@ -70,12 +71,12 @@ export const wrapEmitSubmit = <A>(
 export declare namespace Commander {
   export interface CommandProps<A, E> {
     action: string
-    result: Result<A, E>
+    result: Result.Result<A, E>
     waiting: boolean
   }
 
   export interface CommandOut<Args extends Array<any>, A, E> extends CommandProps<A, E> {
-    handle: (...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>
+    handle: (...args: Args) => RuntimeFiber<Result.Result<A, E>, never>
   }
 
   type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
@@ -427,6 +428,51 @@ export declare namespace Commander {
   }
 }
 
+// the action also ends up as a Result
+export const asResult: {
+  <A, E, R>(
+    handler: Effect.Effect<A, E, R>
+  ): readonly [ComputedRef<Result.Result<A, E>>, Effect.Effect<Result.Result<A, E>, never, R>]
+  <Args extends readonly any[], A, E, R>(
+    handler: (...args: Args) => Effect.Effect<A, E, R>
+  ): readonly [ComputedRef<Result.Result<A, E>>, (...args: Args) => Effect.Effect<Result.Result<A, E>, never, R>]
+} = <Args extends readonly any[], A, E, R>(
+  handler: Effect.Effect<A, E, R> | ((...args: Args) => Effect.Effect<A, E, R>)
+) => {
+  const state = shallowRef<Result.Result<A, E>>(Result.initial())
+
+  const act = Effect.isEffect(handler)
+    ? Effect
+      .sync(() => {
+        state.value = Result.initial(true)
+      })
+      .pipe(
+        Effect.zipRight(Effect.suspend(() =>
+          handler.pipe(
+            Effect.exit,
+            Effect.map(Result.fromExit),
+            Effect.tap((r) => Effect.sync(() => (state.value = r)))
+          )
+        ))
+      )
+    : (...args: Args) =>
+      Effect
+        .sync(() => {
+          state.value = Result.initial(true)
+        })
+        .pipe(
+          Effect.zipRight(Effect.suspend(() =>
+            handler(...args).pipe(
+              Effect.exit,
+              Effect.map(Result.fromExit),
+              Effect.tap((result) => Effect.sync(() => (state.value = result)))
+            )
+          ))
+        )
+
+  return tuple(computed(() => state.value), act) as any
+}
+
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Commander extends Effect.Service<Commander>()("Commander", {
   dependencies: [WithToast.Default, Confirm.Default],
@@ -541,7 +587,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           )
 
           // as we run into a RuntimeFiber anyway, we can flatten A/E anyway, so we don't get an Exit<Exit on addObserver
-          return runFork(Effect.flatten(command))
+          return runFork(command)
         }, { action })
 
         return reactive({

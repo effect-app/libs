@@ -1,5 +1,35 @@
 # @effect-app/vue
 
+## 2.54.4
+
+### Patch Changes
+
+- a73193a: fix toast
+
+## 2.54.3
+
+### Patch Changes
+
+- fix type
+
+## 2.54.2
+
+### Patch Changes
+
+- 667a106: enable override
+
+## 2.54.1
+
+### Patch Changes
+
+- 52cd239: fix type
+
+## 2.54.0
+
+### Minor Changes
+
+- 60e4105: enhance toasts.
+
 ## 2.53.4
 
 ### Patch Changes

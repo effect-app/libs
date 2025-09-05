@@ -636,6 +636,31 @@ Effect
         Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo")
       )
 
+    const wiki = Command
+      .make(
+        "wiki",
+        {
+          sync: Args.text({ name: "action" }).pipe(
+            Args.withDefault("sync"),
+            Args.withDescription("Wiki action to perform (default: sync)")
+          )
+        },
+        Effect.fn("effa-cli.wiki")(function*({ sync: action }) {
+          if (action !== "sync") {
+            return yield* Effect.fail(`Unknown wiki action: ${action}. Available actions: sync`)
+          }
+
+          yield* Effect.logInfo("Initializing/updating git submodule for documentation...")
+          return yield* runNodeCommand("git submodule update --init --recursive --remote doc")
+        })
+      )
+      .pipe(Command.withDescription(
+        `Manage the documentation wiki git submodule.
+
+Available actions:
+- sync: Initialize and update the documentation submodule (default)`
+      ))
+
     const DryRunOption = Options.boolean("dry-run").pipe(
       Options.withDescription("Show what would be done without making changes")
     )
@@ -683,6 +708,7 @@ Effect
           indexMulti,
           packagejson,
           packagejsonPackages,
+          wiki,
           nuke
         ])),
       {

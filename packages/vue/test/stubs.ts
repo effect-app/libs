@@ -6,12 +6,12 @@ import { ref } from "vue"
 import { Commander } from "../src/experimental/commander.js"
 import { I18n } from "../src/experimental/intl.js"
 import { makeExperimental } from "../src/experimental/makeExperimental.js"
-import { Toast, type ToastId } from "../src/experimental/toast.js"
+import * as Toast from "../src/experimental/toast.js"
 import { type MakeIntlReturn } from "../src/makeIntl.js"
 
 const fakeToastLayer = (toasts: any[] = []) =>
-  Toast.toLayer(Effect.sync(() => {
-    const dismiss = (id: ToastId) => {
+  Toast.Toast.toLayer(Effect.sync(() => {
+    const dismiss = (id: Toast.ToastId) => {
       const idx = toasts.findIndex((_) => _.id === id)
       if (idx > -1) {
         const toast = toasts[idx]
@@ -19,7 +19,7 @@ const fakeToastLayer = (toasts: any[] = []) =>
         toasts.splice(idx, 1)
       }
     }
-    const fakeToast = (message: string, options?: { timeout?: number; id?: ToastId }) => {
+    const fakeToast = (message: string, options?: Toast.ToastOpts) => {
       const id = options?.id ?? Math.random().toString(36).substring(2, 15)
       console.log(`Toast [${id}]: ${message}`, options)
 
@@ -41,13 +41,13 @@ const fakeToastLayer = (toasts: any[] = []) =>
       }
       return id
     }
-    return {
+    return Toast.wrap({
       error: fakeToast,
       warning: fakeToast,
       success: fakeToast,
       info: fakeToast,
       dismiss
-    }
+    })
   }))
 
 export const fakeIntlLayer = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) =>

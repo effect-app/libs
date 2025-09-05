@@ -460,6 +460,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       <Args extends ReadonlyArray<any>, A, E, R extends RT | CommandContext>(
         handler: (...args: Args) => Effect.Effect<A, E, R>
       ) => {
+        // we capture the definition stack here, so we can append it to later stack traces
         const limit = Error.stackTraceLimit
         Error.stackTraceLimit = 2
         const localErrorDef = new Error()
@@ -467,6 +468,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         if (!errorDef) {
           errorDef = localErrorDef
         }
+
         const action = intl.formatMessage({
           id: `action.${actionName}`,
           defaultMessage: actionName
@@ -521,6 +523,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         const waiting = computed(() => result.value.waiting)
 
         const command = Object.assign((...args: Args) => {
+          // we capture the call site stack here
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
           const errorCall = new Error()
@@ -528,6 +531,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
           let cache: false | string = false
           const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
             if (cache !== false) {
               return cache
             }
@@ -546,8 +552,15 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
               return cache
             }
           }
-          const command = Effect.withSpan(mut(...args), actionName, { captureStackTrace })
-          return runFork(Effect.flatten(command)) // as we run into a RuntimeFiber anyway, we can flatten A/E anyway, so we don't get an Exit<Exit on addObserver
+
+          const command = Effect.withSpan(
+            mut(...args),
+            actionName,
+            { captureStackTrace }
+          )
+
+          // as we run into a RuntimeFiber anyway, we can flatten A/E anyway, so we don't get an Exit<Exit on addObserver
+          return runFork(Effect.flatten(command))
         }, { action })
 
         return reactive({
@@ -588,114 +601,135 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         )
       }),
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
-      withDefaultToast: <A, E, R>(errorRenderer?: (e: E) => string | undefined) =>
-      (
-        self: Effect.Effect<A, E, R>
-      ) =>
-        Effect.gen(function*() {
-          const { action } = yield* CommandContext
+      withDefaultToast:
+        <A, E, R>(options?: { errorRenderer?: (e: E) => string | undefined; onWaiting?: null; onSuccess?: null }) =>
+        (
+          self: Effect.Effect<A, E, R>
+        ) =>
+          Effect.gen(function*() {
+            const { action } = yield* CommandContext
 
-          const defaultWarnMessage = intl.formatMessage(
-            { id: "handle.with_warnings" },
-            { action }
-          )
-          const defaultErrorMessage = intl.formatMessage(
-            { id: "handle.with_errors" },
-            { action }
-          )
-          function renderError(e: E): string {
-            if (errorRenderer) {
-              const m = errorRenderer(e)
-              if (m) {
-                return m
-              }
-            }
-            if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
-              if (typeof e === "object" && e !== null) {
-                if ("message" in e) {
-                  return `${e.message}`
-                }
-                if ("_tag" in e) {
-                  return `${e._tag}`
-                }
-              }
-              return ""
-            }
-            const e2: SupportedErrors | S.ParseResult.ParseError = e
-            return Match.value(e2).pipe(
-              Match.tags({
-                ParseError: (e) => {
-                  console.warn(e.toString())
-                  return intl.formatMessage({ id: "validation.failed" })
-                }
-              }),
-              Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+            const defaultWarnMessage = intl.formatMessage(
+              { id: "handle.with_warnings" },
+              { action }
             )
-          }
+            const defaultErrorMessage = intl.formatMessage(
+              { id: "handle.with_errors" },
+              { action }
+            )
+            function renderError(e: E): string {
+              if (options?.errorRenderer) {
+                const m = options.errorRenderer(e)
+                if (m) {
+                  return m
+                }
+              }
+              if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
+                if (typeof e === "object" && e !== null) {
+                  if ("message" in e) {
+                    return `${e.message}`
+                  }
+                  if ("_tag" in e) {
+                    return `${e._tag}`
+                  }
+                }
+                return ""
+              }
+              const e2: SupportedErrors | S.ParseResult.ParseError = e
+              return Match.value(e2).pipe(
+                Match.tags({
+                  ParseError: (e) => {
+                    console.warn(e.toString())
+                    return intl.formatMessage({ id: "validation.failed" })
+                  }
+                }),
+                Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+              )
+            }
 
-          return yield* self.pipe(
-            withToast({
-              onWaiting: intl.formatMessage(
-                { id: "handle.waiting" },
-                { action }
-              ),
-              onSuccess: (a) =>
-                intl.formatMessage({ id: "handle.success" }, { action })
-                + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-              onFailure: Option.match({
-                onNone: () =>
-                  intl.formatMessage(
-                    { id: "handle.unexpected_error2" },
-                    {
-                      action,
-                      error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
-                    }
-                  ),
-                onSome: (e) =>
-                  S.is(OperationFailure)(e)
-                    ? {
-                      level: "warn",
-                      message: defaultWarnMessage + e.message ? "\n" + e.message : ""
-                    }
-                    : `${defaultErrorMessage}:\n` + renderError(e)
+            return yield* self.pipe(
+              withToast({
+                onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
+                  { id: "handle.waiting" },
+                  { action }
+                ),
+                onSuccess: options?.onSuccess === null
+                  ? null
+                  : (a) =>
+                    intl.formatMessage({ id: "handle.success" }, { action })
+                    + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
+                onFailure: Option.match({
+                  onNone: () =>
+                    intl.formatMessage(
+                      { id: "handle.unexpected_error2" },
+                      {
+                        action,
+                        error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
+                      }
+                    ),
+                  onSome: (e) =>
+                    S.is(OperationFailure)(e)
+                      ? {
+                        level: "warn",
+                        message: defaultWarnMessage + e.message ? "\n" + e.message : ""
+                      }
+                      : `${defaultErrorMessage}:\n` + renderError(e)
+                })
               })
-            })
-          )
-        }),
+            )
+          }),
       /**
-       * Define a Command
-       * @param actionName The internal name of the action. will be used as Span. will be used to lookup user facing name via intl. `action.${actionName}`
-       * @returns A function that can be called to execute the mutation, like directly in a `@click` handler. Error reporting is built-in.
-       * the Effects **only** have access to the `CommandContext` service, which contains the user-facing action name.
-       * The function also has the following properties:
-       * - action: The user-facing name of the action, as defined in the intl messages. Can be used e.g as Button label.
-       * - result: The Result of the mutation
-       * - waiting: Whether the mutation is currently in progress. (shorthand for .result.waiting). Can be used e.g as Button loading/disabled state.
-       * Reporting status to the user is recommended to use the `withDefaultToast` helper, or render the .result inline
+       * Define a Command for handling user actions with built-in error reporting and state management.
+       *
+       * @param actionName The internal identifier for the action. Used as a tracing span and to lookup
+       *                   the user-facing name via internationalization (`action.${actionName}`).
+       * @returns A function that executes the mutation when called (e.g., directly in `@click` handlers).
+       *          Built-in error reporting handles failures automatically.
+       *
+       * **Effect Context**: Effects have access to the `CommandContext` service, which provides
+       * the user-facing action name.
+       *
+       * **Returned Properties**:
+       * - `action`: User-facing action name from intl messages (useful for button labels)
+       * - `result`: The mutation result state
+       * - `waiting`: Boolean indicating if the mutation is in progress (shorthand for `result.waiting`)
+       * - `handle`: Function to execute the mutation
+       * - `handleSubmit`: Shorthand for using `handle` in form submissions with a callback
+       *
+       * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
+       * the `result` inline for custom UI feedback.
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
         return (actionName: string): Commander.Gen<RT> & Commander.NonGen<RT> =>
-        // TODO constrain/type combinators
         (
           fn: any,
-          // TODO: combinators can freely take A, E, R and change it to whatever they want, as long as the end result Requires not more than CommandContext | R
           ...combinators: any[]
         ): any => {
+          // we capture the definition stack here, so we can append it to later stack traces
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
           const errorDef = new Error()
           Error.stackTraceLimit = limit
 
           return make(actionName, errorDef)(
-            // we need to use `fn` instead of `fnUntraced` to support non gen
-            // TODO: clean this mess.
+            // we need to use `fn` instead of `fnUntraced` to support non gen:
+            //  - Effect.fnUntraced(() => Effect.succeed(2)) is not supported
+            //  - Effect.fn("...")(() => Effect.succeed(2)) is allowed
+            //
+            //  we skip Effect.fn's automatic span in favor of the actionName span
             (...args) =>
               Effect.currentSpan.pipe(
                 Effect.flatMap((span) =>
-                  Effect.fn("bogus", { context: Tracer.DisablePropagation.context(true), captureStackTrace: false })(
+                  Effect.fn("bogus", {
+                    context: Tracer.DisablePropagation.context(true),
+                    captureStackTrace: false
+                  })(
                     fn,
                     ...combinators as [any],
+                    Effect.withSpan("thespan"),
+                    // provide the current action span as span context
+                    // Tracer.ParentSpan is the same tag used by Effect.withSpan
                     Effect.provideService(Tracer.ParentSpan, span)
                   )(...args)
                 )

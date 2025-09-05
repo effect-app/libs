@@ -717,7 +717,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             //  - Effect.fnUntraced(() => Effect.succeed(2)) is not supported
             //  - Effect.fn("...")(() => Effect.succeed(2)) is allowed
             //
-            //  we skip Effect.fn's automatic span in favor of the parent span
+            //  we skip Effect.fn's automatic span in favor of the actionName span
             (...args) =>
               Effect.currentSpan.pipe(
                 Effect.flatMap((span) =>
@@ -727,6 +727,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                   })(
                     fn,
                     ...combinators as [any],
+                    Effect.withSpan("thespan"),
+                    // provide the current action span as span context
+                    // Tracer.ParentSpan is the same tag used by Effect.withSpan
                     Effect.provideService(Tracer.ParentSpan, span)
                   )(...args)
                 )

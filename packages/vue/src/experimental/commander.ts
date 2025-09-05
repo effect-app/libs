@@ -717,7 +717,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         }
       },
 
-      alt: makeCommand as <RT>(runtime: Runtime.Runtime<RT>) => (
+      alt: makeCommand as unknown as <RT>(runtime: Runtime.Runtime<RT>) => (
         actionName: string
       ) => <Args extends Array<any>, A, E, R extends RT | CommandContext>(
         handler: (...args: Args) => Effect.Effect<A, E, R>

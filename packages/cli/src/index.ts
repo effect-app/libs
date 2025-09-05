@@ -657,13 +657,87 @@ Effect
 
               const commitMessage = yield* Prompt.text({
                 message: "Enter commit message:",
-                default: "update doc"
+                default: "update doc",
+                validate: (input) =>
+                  input.trim().length > 0
+                    ? Effect.succeed(input.trim())
+                    : Effect.fail("Commit message cannot be empty")
               })
 
               yield* Effect.logInfo("Committing and pushing changes in submodule...")
               yield* runNodeCommand(`git -C doc add . && git -C doc commit -m '${commitMessage}' && git -C doc push`)
 
               return yield* Effect.logInfo("Submodule updated and pushed successfully")
+            }
+            case "init-wiki": {
+              yield* Effect.logInfo("⚠️  IMPORTANT: This is a one-time project setup command!")
+
+              const confirmation = yield* Prompt.confirm({
+                message: `This command will initialize the wiki submodule for this project.
+
+⚠️  WARNING: This is NOT the command to use for local submodule initialization!
+
+This command should only be run ONCE in the entire project history by a project maintainer to:
+- Set up the initial .gitmodules configuration
+- Add the wiki submodule to the repository
+- Commit the submodule configuration
+
+For normal local development, use 'effa wiki sync' instead.
+
+Are you sure you want to proceed with the one-time project setup?`,
+                initial: false
+              })
+
+              if (!confirmation) {
+                return yield* Effect.logInfo("Operation cancelled. Use 'effa wiki sync' for normal wiki operations.")
+              }
+
+              yield* Effect.logInfo("Extracting project name from git remote...")
+              const remoteUrl = yield* NodeCommand
+                .make("git", "config", "--get", "remote.origin.url")
+                .pipe(NodeCommand.string)
+
+              // Extract project name from URL (supports both SSH and HTTPS)
+              // Examples:
+              // - git@github.com:user/project-name.git -> project-name
+              // - https://github.com/user/project-name.git -> project-name
+              let detectedProjectName = remoteUrl
+                .split("/")
+                .pop()
+                ?.replace(/\.git$/, "")
+                ?.trim()
+
+              yield* detectedProjectName
+                ? Effect.logInfo(`Detected project name from git remote: ${detectedProjectName}`)
+                : Effect.logWarning("Could not determine project name from git remote")
+
+              detectedProjectName = yield* Prompt.text({
+                message: detectedProjectName
+                  ? "Please confirm or modify the project name:"
+                  : "Please enter the project name:",
+                ...detectedProjectName && { default: detectedProjectName },
+                validate: (input) =>
+                  input.trim().length > 0
+                    ? Effect.succeed(input.trim())
+                    : Effect.fail("Project name cannot be empty")
+              })
+
+              yield* Effect.logInfo(`Using project name: ${detectedProjectName}`)
+
+              yield* Effect.logInfo("Creating .gitmodules file...")
+              yield* runNodeCommand(`echo '[submodule "doc"]" > .gitmodules`)
+              yield* runNodeCommand(`echo '  path = doc' >> .gitmodules`)
+              yield* runNodeCommand(`echo '  url = ../${detectedProjectName}.wiki.git' >> .gitmodules`)
+              yield* runNodeCommand(`echo '  branch = master' >> .gitmodules`)
+              yield* runNodeCommand(`echo '  update = merge' >> .gitmodules`)
+
+              yield* Effect.logInfo("Adding git submodule for documentation wiki...")
+              yield* runNodeCommand(`git submodule add -b master ../${detectedProjectName}.wiki.git doc`)
+
+              yield* Effect.logInfo("Committing wiki submodule addition...")
+              yield* runNodeCommand("git commit -m 'Add doc submodule'")
+
+              return yield* Effect.logInfo("Wiki submodule initialized successfully")
             }
             default: {
               return yield* Effect.fail(`Unknown wiki action: ${action}. Available actions: sync, update`)
@@ -676,7 +750,8 @@ Effect
 
 Available actions:
 - sync: Initialize and update the documentation submodule (default)
-- update: Pull latest changes from remote, commit and push changes within the submodule`
+- update: Pull latest changes from remote, commit and push changes within the submodule
+- init-wiki: Set up the wiki submodule for the project (one-time setup)`
       ))
 
     const DryRunOption = Options.boolean("dry-run").pipe(

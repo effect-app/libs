@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.9
+
+### Patch Changes
+
+- 35f8488: fix sync cli command
+
 ## 1.23.8
 
 ### Patch Changes

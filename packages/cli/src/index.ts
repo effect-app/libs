@@ -651,7 +651,7 @@ Effect
           }
 
           yield* Effect.logInfo("Initializing/updating git submodule for documentation...")
-          return yield* runNodeCommand("git submodule update --init --recursive doc")
+          return yield* runNodeCommand("git submodule update --init --recursive --remote doc")
         })
       )
       .pipe(Command.withDescription(

@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.12
+
+### Patch Changes
+
+- 9ff7964: add wiki-init
+
 ## 1.23.11
 
 ### Patch Changes

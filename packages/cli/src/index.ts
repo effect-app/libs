@@ -27,7 +27,7 @@ Effect
      * @param cwd - Optional working directory to execute the command in
      * @returns An Effect that succeeds with the exit code or fails with a PlatformError
      */
-    const runNodeCommand = (cmd: string, cwd?: string) =>
+    const runNodeCommandEC = (cmd: string, cwd?: string) =>
       NodeCommand
         .make("sh", "-c", cmd)
         .pipe(
@@ -35,6 +35,24 @@ Effect
           NodeCommand.stderr("inherit"),
           cwd ? NodeCommand.workingDirectory(cwd) : identity,
           NodeCommand.exitCode
+        )
+
+    /**
+     * Executes a shell command using Node.js Command API with inherited stdio streams.
+     * The command is run through the system shell (/bin/sh) for proper command parsing.
+     *
+     * @param cmd - The shell command to execute
+     * @param cwd - Optional working directory to execute the command in
+     * @returns An Effect that succeeds with the command output or fails with a PlatformError
+     */
+    const runNodeCommand = (cmd: string, cwd?: string) =>
+      NodeCommand
+        .make("sh", "-c", cmd)
+        .pipe(
+          NodeCommand.stdout("inherit"),
+          NodeCommand.stderr("inherit"),
+          cwd ? NodeCommand.workingDirectory(cwd) : identity,
+          NodeCommand.string
         )
 
     /**
@@ -62,8 +80,8 @@ Effect
     const updateEffectAppPackages = Effect.fn("effa-cli.ue.updateEffectAppPackages")(function*() {
       const filters = ["effect-app", "@effect-app/*"]
       for (const filter of filters) {
-        yield* runNodeCommand(`pnpm exec ncu -u --filter "${filter}"`)
-        yield* runNodeCommand(`pnpm -r exec ncu -u --filter "${filter}"`)
+        yield* runNodeCommandEC(`pnpm exec ncu -u --filter "${filter}"`)
+        yield* runNodeCommandEC(`pnpm -r exec ncu -u --filter "${filter}"`)
       }
     })()
 
@@ -75,8 +93,8 @@ Effect
     const updateEffectPackages = Effect.fn("effa-cli.ue.updateEffectPackages")(function*() {
       const effectFilters = ["effect", "@effect/*", "@effect-atom/*"]
       for (const filter of effectFilters) {
-        yield* runNodeCommand(`pnpm exec ncu -u --filter "${filter}"`)
-        yield* runNodeCommand(`pnpm -r exec ncu -u --filter "${filter}"`)
+        yield* runNodeCommandEC(`pnpm exec ncu -u --filter "${filter}"`)
+        yield* runNodeCommandEC(`pnpm -r exec ncu -u --filter "${filter}"`)
       }
     })()
 
@@ -110,7 +128,7 @@ Effect
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
       yield* Effect.logInfo("Updated package.json with local file resolutions")
 
-      yield* runNodeCommand("pnpm i")
+      yield* runNodeCommandEC("pnpm i")
 
       yield* Effect.logInfo("Successfully linked local packages")
     })
@@ -143,7 +161,7 @@ Effect
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
       yield* Effect.logInfo("Removed effect-app file resolutions from package.json")
 
-      yield* runNodeCommand("pnpm i")
+      yield* runNodeCommandEC("pnpm i")
       yield* Effect.logInfo("Successfully unlinked local packages")
     })()
 
@@ -190,7 +208,7 @@ Effect
                     )
 
                     const eslintArgs = existingFiles.map((f) => `"../${f}"`).join(" ")
-                    yield* runNodeCommand(`cd api && pnpm eslint --fix ${eslintArgs}`)
+                    yield* runNodeCommandEC(`cd api && pnpm eslint --fix ${eslintArgs}`)
                     break
                   }
                   i++
@@ -230,7 +248,7 @@ Effect
 
                 yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
 
-                yield* runNodeCommand(`pnpm eslint --fix "${indexFile}"`)
+                yield* runNodeCommandEC(`pnpm eslint --fix "${indexFile}"`)
               })
             )
           )
@@ -452,7 +470,7 @@ Effect
               : wrapOption.value
 
             yield* Effect.logInfo(`Spawning child command: ${val}`)
-            yield* runNodeCommand(val)
+            yield* runNodeCommandEC(val)
           }
 
           return
@@ -520,17 +538,17 @@ Effect
           switch (prompted) {
             case "effect-app":
               return yield* updateEffectAppPackages.pipe(
-                Effect.andThen(runNodeCommand("pnpm i"))
+                Effect.andThen(runNodeCommandEC("pnpm i"))
               )
 
             case "effect":
               return yield* updateEffectPackages.pipe(
-                Effect.andThen(runNodeCommand("pnpm i"))
+                Effect.andThen(runNodeCommandEC("pnpm i"))
               )
             case "both":
               return yield* updateEffectPackages.pipe(
                 Effect.andThen(updateEffectAppPackages),
-                Effect.andThen(runNodeCommand("pnpm i"))
+                Effect.andThen(runNodeCommandEC("pnpm i"))
               )
           }
         })
@@ -649,11 +667,11 @@ Effect
           switch (action) {
             case "sync": {
               yield* Effect.logInfo("Initializing/updating git submodule for documentation...")
-              return yield* runNodeCommand("git submodule update --init --recursive --remote doc")
+              return yield* runNodeCommandEC("git submodule update --init --recursive --remote doc")
             }
             case "update": {
               yield* Effect.logInfo("Pulling latest changes from remote submodule...")
-              yield* runNodeCommand("git submodule update --init --recursive --remote doc")
+              yield* runNodeCommandEC("git submodule update --init --recursive --remote doc")
 
               const commitMessage = yield* Prompt.text({
                 message: "Enter commit message:",
@@ -665,12 +683,32 @@ Effect
               })
 
               yield* Effect.logInfo("Committing and pushing changes in submodule...")
-              yield* runNodeCommand(`git -C doc add . && git -C doc commit -m '${commitMessage}' && git -C doc push`)
+              yield* runNodeCommandEC(`git -C doc add . && git -C doc commit -m '${commitMessage}' && git -C doc push`)
 
               return yield* Effect.logInfo("Submodule updated and pushed successfully")
             }
             case "init-wiki": {
               yield* Effect.logInfo("⚠️  IMPORTANT: This is a one-time project setup command!")
+
+              // Check if doc directory already exists in git index
+              const docInIndex = yield* runNodeCommand("git ls-files")
+                .pipe(
+                  Effect.map((output) => output.includes("doc/")),
+                  Effect.catchAll(() => Effect.succeed(false))
+                )
+
+              if (docInIndex) {
+                return yield* Effect.logError(`❌ ERROR: A 'doc' directory already exists in the git index!
+
+This suggests the wiki submodule may have been initialized before, or there are conflicting files.
+
+Required actions before proceeding:
+1. Move existing doc files to GitHub wiki or another location
+2. Remove the doc directory from git index: git rm --cached -r doc/
+3. Re-run this command
+
+Operation cancelled for safety.`)
+              }
 
               const confirmation = yield* Prompt.confirm({
                 message: `This command will initialize the wiki submodule for this project.
@@ -693,9 +731,7 @@ Are you sure you want to proceed with the one-time project setup?`,
               }
 
               yield* Effect.logInfo("Extracting project name from git remote...")
-              const remoteUrl = yield* NodeCommand
-                .make("git", "config", "--get", "remote.origin.url")
-                .pipe(NodeCommand.string)
+              const remoteUrl = yield* runNodeCommand("git config --get remote.origin.url")
 
               // Extract project name from URL (supports both SSH and HTTPS)
               // Examples:
@@ -725,18 +761,18 @@ Are you sure you want to proceed with the one-time project setup?`,
               yield* Effect.logInfo(`Using project name: ${detectedProjectName}`)
 
               yield* Effect.logInfo("Creating .gitmodules file...")
-              yield* runNodeCommand(`echo '' >> .gitmodules`)
-              yield* runNodeCommand(`echo '[submodule "doc"]' >> .gitmodules`)
-              yield* runNodeCommand(`echo '  path = doc' >> .gitmodules`)
-              yield* runNodeCommand(`echo '  url = ../${detectedProjectName}.wiki.git' >> .gitmodules`)
-              yield* runNodeCommand(`echo '  branch = master' >> .gitmodules`)
-              yield* runNodeCommand(`echo '  update = merge' >> .gitmodules`)
+              yield* runNodeCommandEC(`echo '' >> .gitmodules`)
+              yield* runNodeCommandEC(`echo '[submodule "doc"]' >> .gitmodules`)
+              yield* runNodeCommandEC(`echo '  path = doc' >> .gitmodules`)
+              yield* runNodeCommandEC(`echo '  url = ../${detectedProjectName}.wiki.git' >> .gitmodules`)
+              yield* runNodeCommandEC(`echo '  branch = master' >> .gitmodules`)
+              yield* runNodeCommandEC(`echo '  update = merge' >> .gitmodules`)
 
               yield* Effect.logInfo("Adding git submodule for documentation wiki...")
-              yield* runNodeCommand(`git submodule add -b master ../${detectedProjectName}.wiki.git doc`)
+              yield* runNodeCommandEC(`git submodule add -b master ../${detectedProjectName}.wiki.git doc`)
 
               yield* Effect.logInfo("Committing wiki submodule addition...")
-              yield* runNodeCommand("git add . && git commit -am 'Add doc submodule'")
+              yield* runNodeCommandEC("git add . && git commit -am 'Add doc submodule'")
 
               return yield* Effect.logInfo("Wiki submodule initialized successfully")
             }
@@ -771,16 +807,16 @@ Available actions:
           yield* Effect.logInfo(dryRun ? "Performing dry run cleanup..." : "Performing nuclear cleanup...")
 
           if (dryRun) {
-            yield* runNodeCommand(
+            yield* runNodeCommandEC(
               "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -print \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -print \\)"
             )
           } else {
-            yield* runNodeCommand(
+            yield* runNodeCommandEC(
               "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -exec rm -rf -- {} + \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -delete \\)"
             )
 
             if (storePrune) {
-              yield* runNodeCommand(
+              yield* runNodeCommandEC(
                 "pnpm store prune"
               )
             }

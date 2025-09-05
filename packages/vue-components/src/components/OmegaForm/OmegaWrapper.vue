@@ -112,7 +112,17 @@ const localForm = props.form || !props.schema
     {
       ...props,
       onSubmit: typeof props.isLoading !== "undefined"
-        ? undefined
+        ? ({ value }) =>
+          new Promise<void>((resolve) => {
+            instance!.emit("submit", value)
+
+            if (!props.isLoading) {
+              // already finished, just resolve
+              resolve()
+              return
+            }
+            watch(() => props.isLoading, () => resolve(), { once: true })
+          })
         : props.onSubmit
     },
     props.omegaConfig

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.3
+
+### Patch Changes
+
+- 14b9578: fix: onSubmit type
+
 ## 0.18.2
 
 ### Patch Changes

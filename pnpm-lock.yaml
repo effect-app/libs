@@ -233,6 +233,9 @@ importers:
       '@types/node':
         specifier: ~24.3.1
         version: 24.3.1
+      effect-app:
+        specifier: workspace:*
+        version: link:../effect-app
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -349,6 +352,9 @@ importers:
       effect:
         specifier: ^3.17.13
         version: 3.17.13(patch_hash=8a7ab95fd9fa8c8e9437f45a153400d23a44a0aec31774b236d7b803121d56b8)
+      effect-app:
+        specifier: workspace:*
+        version: link:../effect-app
       madge:
         specifier: 8.0.0
         version: 8.0.0(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))

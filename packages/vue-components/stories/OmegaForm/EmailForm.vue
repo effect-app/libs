@@ -1,8 +1,8 @@
 <template>
   <OmegaForm
     :schema="schema"
-    :on-submit="onSubmit"
     :default-values="defaultValues"
+    @submit="onSubmit"
   >
     <template #internalForm="{ form }">
       <OmegaInput
@@ -46,7 +46,7 @@ const defaultValues = {
   confirm: "amerelli@asd.it"
 }
 
-const onSubmit = ({ value }: { value: { email: string; confirm: string } }) => {
+const onSubmit = (value: { email: string; confirm: string }) => {
   console.log(value)
 }
 </script>

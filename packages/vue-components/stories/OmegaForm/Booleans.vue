@@ -2,7 +2,7 @@
   <OmegaForm
     :schema="schema"
     :subscribe="['values']"
-    :on-submit="console.log"
+    @submit="console.log"
   >
     <template #internalForm="{ form, subscribedValues: { values } }">
       <OmegaInput

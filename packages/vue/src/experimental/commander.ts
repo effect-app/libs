@@ -74,14 +74,22 @@ export declare namespace Commander {
     waiting: boolean
   }
 
-  export interface CommandOut<Args extends Array<any>, A, E> extends CommandProps<A, E> {
+  export interface CommandOut<Args extends Array<any>, A, E, R> extends CommandProps<A, E> {
+    /** click handlers */
     handle: (...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>
+
+    // TODO: if we keep them, it would probably be nicer as an option api, deciding the return value like in Atom?
+    /** @experimental */
+    compose: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, R>
+    /** @experimental */
+    compose2: (...args: Args) => Effect.Effect<A, E, R>
   }
 
   type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
     Args,
     Effect.Effect.Success<Eff>,
-    Effect.Effect.Error<Eff>
+    Effect.Effect.Error<Eff>,
+    Effect.Effect.Context<Eff>
   >
 
   export type Gen<RT> = {
@@ -92,6 +100,9 @@ export declare namespace Commander {
       AEff,
       [Eff] extends [never] ? never
         : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+        : never,
+      [Eff] extends [never] ? never
+        : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
         : never
     >
     <
@@ -503,7 +514,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
         const waiting = computed(() => result.value.waiting)
 
-        const command = Object.assign((...args: Args) => {
+        const handle = Object.assign((...args: Args) => {
           // we capture the call site stack here
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
@@ -543,11 +554,93 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           return runFork(command)
         }, { action })
 
+        const compose = Object.assign((...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = Effect.withSpan(
+            exec(...args),
+            actionName,
+            { captureStackTrace }
+          )
+
+          return command
+        }, { action })
+
+        const compose2 = Object.assign((...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = Effect.withSpan(
+            exec(...args).pipe(Effect.flatten),
+            actionName,
+            { captureStackTrace }
+          )
+
+          return command
+        }, { action })
+
         return reactive({
           result,
           waiting,
           action,
-          handle: command
+          handle,
+          compose,
+          compose2
         })
       }
     }
@@ -706,7 +799,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         actionName: string
       ) => <Args extends Array<any>, A, E, R extends RT | CommandContext>(
         handler: (...args: Args) => Effect.Effect<A, E, R>
-      ) => Commander.CommandOut<Args, A, E>
+      ) => Commander.CommandOut<Args, A, E, R>
     }
   })
 }) {}

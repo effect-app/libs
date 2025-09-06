@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.2
+
+### Patch Changes
+
+- f5da9d0: update packages
+
 ## 3.3.1
 
 ### Patch Changes

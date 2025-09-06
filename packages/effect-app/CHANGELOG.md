@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.1
+
+### Patch Changes
+
+- d670d5a: runtimefiber errors should be wrapped
+
 ## 3.3.0
 
 ### Minor Changes

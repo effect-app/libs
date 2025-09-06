@@ -51,7 +51,7 @@ export type FormProps<From, To> =
       FormValidateOrFn<From> | undefined,
       FormAsyncValidateOrFn<From> | undefined,
       FormAsyncValidateOrFn<From> | undefined,
-      FormAsyncValidateOrFn<From> | undefined
+      Record<string, any> | undefined // TODO
     >,
     "onSubmit"
   >
@@ -73,7 +73,7 @@ export type OmegaFormParams<From, To> = FormApi<
   FormValidateOrFn<From> | undefined,
   FormAsyncValidateOrFn<From> | undefined,
   FormAsyncValidateOrFn<From> | undefined,
-  FormAsyncValidateOrFn<From> | undefined
+  Record<string, any> | undefined
 >
 
 export type OmegaFormState<From, To> = FormState<
@@ -88,7 +88,8 @@ export type OmegaFormState<From, To> = FormState<
   FormAsyncValidateOrFn<From> | undefined
 >
 
-export type OmegaFormApi<From, To> =
+// TODO: stitch TSubmitMeta somehow
+export type OmegaFormApi<From, To, TSubmitMeta = Record<string, any> | undefined> =
   & OmegaFormParams<From, To>
   & VueFormApi<
     From,
@@ -100,7 +101,7 @@ export type OmegaFormApi<From, To> =
     FormValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
-    FormAsyncValidateOrFn<From> | undefined
+    TSubmitMeta
   >
 
 export type FormComponent<T, S> = VueFormApi<

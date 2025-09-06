@@ -209,7 +209,7 @@ export const useOmegaForm = <
     FormValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
-    FormAsyncValidateOrFn<From> | undefined
+    Record<string, any> | undefined
   >({
     ...tanstackFormOptions,
     validators: {

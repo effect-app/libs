@@ -31,7 +31,7 @@ Type 'FieldApi<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>, FieldValid
   /* in out TFormOnSubmit*/ FormValidateOrFn<From> | undefined,
   /* in out TFormOnSubmitAsync*/ FormAsyncValidateOrFn<From> | undefined,
   /* in out TFormOnServer*/ FormAsyncValidateOrFn<From> | undefined,
-  /* in out TParentSubmitMeta*/ FormAsyncValidateOrFn<From> | undefined
+  /* in out TParentSubmitMeta*/ Record<string, any> | undefined
 >
 
 export type InputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {

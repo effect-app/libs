@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.4
+
+### Patch Changes
+
+- f9aee77: some fixes
+
 ## 3.3.3
 
 ### Patch Changes

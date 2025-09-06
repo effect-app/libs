@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.21
+
+### Patch Changes
+
+- f9aee77: some fixes
+
 ## 1.23.20
 
 ### Patch Changes

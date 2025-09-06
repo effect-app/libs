@@ -17,7 +17,8 @@
     "@types/node": "~24.3.1",
     "json5": "^2.2.3",
     "typescript": "~5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "effect-app": "workspace:*"
   },
   "typesVersions": {
     "*": {

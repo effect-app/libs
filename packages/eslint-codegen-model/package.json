@@ -34,7 +34,8 @@
     "@types/lodash": "4.17.20",
     "effect": "^3.17.13",
     "madge": "8.0.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "effect-app": "workspace:*"
   },
   "main": "index.js",
   "author": "Wessel van der Veen & Scott vanBommel",

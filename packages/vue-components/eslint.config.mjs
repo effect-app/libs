@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 
-import { vueConfig } from "../../eslint.vue.config.mjs"
+import { vueConfig } from "effect-app/eslint.vue.config"
 
 import path from "node:path"
 import { fileURLToPath } from "node:url"

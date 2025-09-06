@@ -119,7 +119,7 @@ Effect
 
       const allRejects = [...existingRejects, ...effectFilters]
       yield* Effect.logInfo(`Excluding packages from update: ${allRejects.join(", ")}`)
-      const rejectArgs = allRejects.map(filter => `--reject "${filter}"`).join(" ")
+      const rejectArgs = allRejects.map((filter) => `--reject "${filter}"`).join(" ")
 
       yield* runNodeCommandEC(`pnpm exec ncu -u ${rejectArgs}`)
       yield* runNodeCommandEC(`pnpm -r exec ncu -u ${rejectArgs}`)
@@ -698,21 +698,39 @@ Effect
     const wiki = Command
       .make(
         "wiki",
-        {
-          sync: Args.text({ name: "action" }).pipe(
-            Args.withDefault("sync"),
-            Args.withDescription("Wiki action to perform (default: sync)")
-          )
-        },
-        Effect.fn("effa-cli.wiki")(function*({ sync: action }) {
+        {},
+        Effect.fn("effa-cli.wiki")(function*() {
+          const action = yield* Prompt.select({
+            choices: [{
+              title: "sync",
+              description: "Initialize and update the documentation submodule",
+              value: "sync"
+            }, {
+              title: "update",
+              description: "Pull latest changes from remote, commit and push changes within the submodule",
+              value: "update"
+            }],
+            message: "Select wiki action"
+          })
+
+          const syncCommand = runNodeCommandEC("git submodule update --init --recursive --remote doc")
+
           switch (action) {
             case "sync": {
               yield* Effect.logInfo("Initializing/updating git submodule for documentation...")
-              return yield* runNodeCommandEC("git submodule update --init --recursive --remote doc")
+
+              if ((yield* syncCommand) !== 0) {
+                return yield* Effect.fail(`Failed to sync submodule`)
+              }
+
+              break
             }
             case "update": {
               yield* Effect.logInfo("Pulling latest changes from remote submodule...")
-              yield* runNodeCommandEC("git submodule update --init --recursive --remote doc")
+
+              if ((yield* syncCommand) !== 0) {
+                return yield* Effect.fail(`Failed to sync submodule`)
+              }
 
               const commitMessage = yield* Prompt.text({
                 message: "Enter commit message:",
@@ -724,22 +742,92 @@ Effect
               })
 
               yield* Effect.logInfo("Committing and pushing changes in submodule...")
-              yield* runNodeCommandEC(`git -C doc add . && git -C doc commit -m '${commitMessage}' && git -C doc push`)
 
-              return yield* Effect.logInfo("Submodule updated and pushed successfully")
+              if (
+                (yield* runNodeCommandEC(
+                  `git -C doc add . && git -C doc commit -m '${commitMessage}' && git -C doc push`
+                )) === 0
+              ) {
+                yield* Effect.logInfo("Submodule updated and pushed successfully")
+              }
+
+              break
             }
-            case "init-wiki": {
-              yield* Effect.logInfo("⚠️  IMPORTANT: This is a one-time project setup command!")
+            default: {
+              action satisfies never
+              return yield* Effect.fail(`Unknown wiki action: ${action}. Available actions: sync, update`)
+            }
+          }
 
-              // Check if doc directory already exists in git index
-              const docInIndex = yield* runNodeCommand("git ls-files")
-                .pipe(
-                  Effect.map((output) => output.split("\n").some((line) => line.startsWith("doc/") || line === "doc")),
-                  Effect.catchAll(() => Effect.succeed(false))
-                )
+          // check if references to submodule have changed in main repo
+          // and offer to commit these changes
+          const statusOutput = yield* runNodeCommand("git status --porcelain")
 
-              if (docInIndex) {
-                return yield* Effect.logError(`❌ ERROR: A 'doc' directory already exists in the git index!
+          const hasSubmoduleChanges = statusOutput
+            .split("\n")
+            .some((line) => line.trim().endsWith("doc") && line.trim().startsWith("M "))
+
+          if (hasSubmoduleChanges) {
+            const shouldCommitSubmodule = yield* Prompt.confirm({
+              message: "Changes to the submodule detected in main repository. Commit these changes?",
+              initial: false
+            })
+
+            if (
+              shouldCommitSubmodule
+            ) {
+              const mainCommitMessage = yield* Prompt.text({
+                message: "Enter commit message for main repository:",
+                default: "update doc submodule reference",
+                validate: (input) =>
+                  input.trim().length > 0
+                    ? Effect.succeed(input.trim())
+                    : Effect.fail("Commit message cannot be empty")
+              })
+
+              if (
+                (yield* runNodeCommandEC(
+                  `git commit -m '${mainCommitMessage}' doc`
+                )) === 0
+              ) {
+                yield* Effect.logInfo("Main repository updated with submodule changes successfully")
+              } else {
+                yield* Effect.logError("Failed to commit submodule changes in main repository")
+              }
+            } else {
+              yield* Effect.logInfo("Remember to commit the submodule changes in the main repository later.")
+            }
+          } else {
+            yield* Effect.logInfo("No changes to the submodule detected in main repository.")
+          }
+        })
+      )
+      .pipe(Command.withDescription(
+        `Manage the documentation wiki git submodule with interactive action selection.
+
+Available actions:
+- sync: Initialize and update the documentation submodule from remote
+- update: Pull latest changes, commit and push changes within the submodule
+
+After any action, automatically detects and offers to commit submodule reference changes in the main repository.`
+      ))
+
+    const initWiki = Command
+      .make(
+        "init-wiki",
+        {},
+        Effect.fn("effa-cli.initWiki")(function*({}) {
+          yield* Effect.logInfo("⚠️  IMPORTANT: This is a one-time project setup command!")
+
+          // check if doc directory already exists in git index
+          const docInIndex = yield* runNodeCommand("git ls-files")
+            .pipe(
+              Effect.map((output) => output.split("\n").some((line) => line.startsWith("doc/") || line === "doc")),
+              Effect.catchAll(() => Effect.succeed(false))
+            )
+
+          if (docInIndex) {
+            return yield* Effect.logError(`❌ ERROR: A 'doc' directory already exists in the git index!
 
 This suggests the wiki submodule may have been initialized before, or there are conflicting files.
 
@@ -751,10 +839,10 @@ Required actions before proceeding:
 5. Re-run this command
 
 Operation cancelled for safety.`)
-              }
+          }
 
-              const confirmation = yield* Prompt.confirm({
-                message: `This command will initialize the wiki submodule for this project.
+          const confirmation = yield* Prompt.confirm({
+            message: `This command will initialize the wiki submodule for this project.
 
 ⚠️  WARNING: This is NOT the command to use for local submodule initialization!
 
@@ -766,86 +854,73 @@ This command should only be run ONCE in the entire project history by a project 
 For normal local development, use 'effa wiki sync' instead.
 
 Are you sure you want to proceed with the one-time project setup?`,
-                initial: false
-              })
+            initial: false
+          })
 
-              if (!confirmation) {
-                return yield* Effect.logInfo("Operation cancelled. Use 'effa wiki sync' for normal wiki operations.")
-              }
-
-              yield* Effect.logInfo("Extracting project name from git remote...")
-              const remoteUrl = yield* runNodeCommand("git config --get remote.origin.url")
-
-              // Extract project name from URL (supports both SSH and HTTPS)
-              // Examples:
-              // - git@github.com:user/project-name.git -> project-name
-              // - https://github.com/user/project-name.git -> project-name
-              let detectedProjectName = remoteUrl
-                .split("/")
-                .pop()
-                ?.replace(/\.git$/, "")
-                ?.trim()
-
-              yield* detectedProjectName
-                ? Effect.logInfo(`Detected project name from git remote: ${detectedProjectName}`)
-                : Effect.logWarning("Could not determine project name from git remote")
-
-              detectedProjectName = yield* Prompt.text({
-                message: detectedProjectName
-                  ? "Please confirm or modify the project name:"
-                  : "Please enter the project name:",
-                ...detectedProjectName && { default: detectedProjectName },
-                validate: (input) =>
-                  input.trim().length > 0
-                    ? Effect.succeed(input.trim())
-                    : Effect.fail("Project name cannot be empty")
-              })
-
-              yield* Effect.logInfo(`Using project name: ${detectedProjectName}`)
-
-              yield* Effect.logInfo("Creating .gitmodules file...")
-              yield* runNodeCommandEC(`echo '' >> .gitmodules`)
-              yield* runNodeCommandEC(`echo '[submodule "doc"]' >> .gitmodules`)
-              yield* runNodeCommandEC(`echo '  path = doc' >> .gitmodules`)
-              yield* runNodeCommandEC(`echo '  url = ../${detectedProjectName}.wiki.git' >> .gitmodules`)
-              yield* runNodeCommandEC(`echo '  branch = master' >> .gitmodules`)
-              yield* runNodeCommandEC(`echo '  update = merge' >> .gitmodules`)
-
-              yield* Effect.logInfo("Adding git submodule for documentation wiki...")
-              yield* runNodeCommandEC(`git submodule add -b master ../${detectedProjectName}.wiki.git doc`)
-
-              yield* Effect.logInfo("Committing wiki submodule addition...")
-              yield* runNodeCommandEC("git add . && git commit -am 'Add doc submodule'")
-
-              return yield* Effect.logInfo("Wiki submodule initialized successfully")
-            }
-            default: {
-              return yield* Effect.fail(`Unknown wiki action: ${action}. Available actions: sync, update`)
-            }
+          if (!confirmation) {
+            return yield* Effect.logInfo("Operation cancelled. Use 'effa wiki sync' for normal wiki operations.")
           }
+
+          yield* Effect.logInfo("Extracting project name from git remote...")
+          const remoteUrl = yield* runNodeCommand("git config --get remote.origin.url")
+
+          // extract project name from URL (supports both SSH and HTTPS)
+          //
+          // - git@github.com:user/project-name.git -> project-name
+          // - https://github.com/user/project-name.git -> project-name
+          let detectedProjectName = remoteUrl
+            .split("/")
+            .pop()
+            ?.replace(/\.git$/, "")
+            ?.trim()
+
+          yield* detectedProjectName
+            ? Effect.logInfo(`Detected project name from git remote: ${detectedProjectName}`)
+            : Effect.logWarning("Could not determine project name from git remote")
+
+          detectedProjectName = yield* Prompt.text({
+            message: detectedProjectName
+              ? "Please confirm or modify the project name:"
+              : "Please enter the project name:",
+            ...detectedProjectName && { default: detectedProjectName },
+            validate: (input) =>
+              input.trim().length > 0
+                ? Effect.succeed(input.trim())
+                : Effect.fail("Project name cannot be empty")
+          })
+
+          yield* Effect.logInfo(`Using project name: ${detectedProjectName}`)
+
+          yield* Effect.logInfo("Creating .gitmodules file...")
+          yield* runNodeCommandEC(`echo '' >> .gitmodules`)
+          yield* runNodeCommandEC(`echo '[submodule "doc"]' >> .gitmodules`)
+          yield* runNodeCommandEC(`echo '  path = doc' >> .gitmodules`)
+          yield* runNodeCommandEC(`echo '  url = ../${detectedProjectName}.wiki.git' >> .gitmodules`)
+          yield* runNodeCommandEC(`echo '  branch = master' >> .gitmodules`)
+          yield* runNodeCommandEC(`echo '  update = merge' >> .gitmodules`)
+
+          yield* Effect.logInfo("Adding git submodule for documentation wiki...")
+          yield* runNodeCommandEC(`git submodule add -b master ../${detectedProjectName}.wiki.git doc`)
+
+          yield* Effect.logInfo("Committing wiki submodule addition...")
+          yield* runNodeCommandEC("git add . && git commit -am 'Add doc submodule'")
+
+          return yield* Effect.logInfo("Wiki submodule initialized successfully")
         })
       )
-      .pipe(Command.withDescription(
-        `Manage the documentation wiki git submodule.
-
-Available actions:
-- sync: Initialize and update the documentation submodule (default)
-- update: Pull latest changes from remote, commit and push changes within the submodule
-- init-wiki: Set up the wiki submodule for the project (one-time setup)`
-      ))
-
-    const DryRunOption = Options.boolean("dry-run").pipe(
-      Options.withDescription("Show what would be done without making changes")
-    )
-
-    const PruneStoreOption = Options.boolean("store-prune").pipe(
-      Options.withDescription("Prune the package manager store")
-    )
+      .pipe(Command.withDescription("Set up the wiki submodule for the project (one-time setup)"))
 
     const nuke = Command
       .make(
         "nuke",
-        { dryRun: DryRunOption, storePrune: PruneStoreOption },
+        {
+          dryRun: Options.boolean("dry-run").pipe(
+            Options.withDescription("Show what would be done without making changes")
+          ),
+          storePrune: Options.boolean("store-prune").pipe(
+            Options.withDescription("Prune the package manager store")
+          )
+        },
         Effect.fn("effa-cli.nuke")(function*({ dryRun, storePrune }) {
           yield* Effect.logInfo(dryRun ? "Performing dry run cleanup..." : "Performing nuclear cleanup...")
 
@@ -883,6 +958,7 @@ Available actions:
           packagejson,
           packagejsonPackages,
           wiki,
+          initWiki,
           nuke
         ])),
       {

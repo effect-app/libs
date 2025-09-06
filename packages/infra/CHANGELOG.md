@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.25
+
+### Patch Changes
+
+- f6a3328: export base eslint files so that we import them in projects
+- Updated dependencies [f6a3328]
+  - effect-app@3.3.3
+
 ## 3.0.24
 
 ### Patch Changes
@@ -941,7 +949,6 @@
 ### Patch Changes
 
 - 0230385: improve: rpc spans
-
   - fewer duplicate spans
   - improve name
 

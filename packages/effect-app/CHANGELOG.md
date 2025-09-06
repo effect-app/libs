@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.3
+
+### Patch Changes
+
+- f6a3328: export base eslint files so that we import them in projects
+
 ## 3.3.2
 
 ### Patch Changes

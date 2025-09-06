@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.55.4
+
+### Patch Changes
+
+- f6a3328: export base eslint files so that we import them in projects
+- Updated dependencies [f6a3328]
+  - effect-app@3.3.3
+
 ## 2.55.3
 
 ### Patch Changes

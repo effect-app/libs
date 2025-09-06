@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 1.42.2
+
+### Patch Changes
+
+- f6a3328: export base eslint files so that we import them in projects
+
 ## 1.42.1
 
 ### Patch Changes

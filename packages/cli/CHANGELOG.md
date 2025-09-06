@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.20
+
+### Patch Changes
+
+- f6a3328: export base eslint files so that we import them in projects
+
 ## 1.23.19
 
 ### Patch Changes

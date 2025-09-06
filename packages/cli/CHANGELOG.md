@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.19
+
+### Patch Changes
+
+- 539e2f2: minor wiki command enhancements
+
 ## 1.23.18
 
 ### Patch Changes

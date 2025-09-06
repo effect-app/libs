@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-import { Cause, Effect, Exit, Option, Record } from "effect"
+import { Cause, Effect, Exit, Option, Record, Runtime } from "effect"
 import * as Either from "effect/Either"
 import { type RuntimeFiber } from "effect/Fiber"
 import { dual, isFunction } from "effect/Function"
@@ -866,7 +866,8 @@ export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>) =>
       if (Exit.isSuccess(exit)) {
         resolve(exit.value)
       } else {
-        reject(Cause.squash(exit.cause))
+        // errors really should be of type Error, so we wrap in FiberFailure just as default Effect
+        reject(Runtime.makeFiberFailure(exit.cause))
       }
     })
   )

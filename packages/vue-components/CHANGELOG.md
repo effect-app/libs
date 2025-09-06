@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 0.18.10
+
+### Patch Changes
+
+- f6a3328: export base eslint files so that we import them in projects
+- Updated dependencies [f6a3328]
+  - effect-app@3.3.3
+  - @effect-app/vue@2.55.4
+
 ## 0.18.9
 
 ### Patch Changes
@@ -957,12 +966,10 @@
   **BREAKING CHANGE (v0.4.0):** Users upgrading from v0.3.x need to adjust their `OmegaForm` templates.
 
   The `#default` slot has been replaced:
-
   - If you **do not** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#internalForm`.
   - If you **do** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#externalForm`.
 
   Additionally, when using the `#externalForm` slot (passing an external `form` prop):
-
   - **Do not** use the `form` instance provided by the slot template variables.
   - Use your **externally created/passed** `form` instance directly within the template.
 

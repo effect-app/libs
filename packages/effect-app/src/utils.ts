@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-import { Cause, Effect, Exit, Option, Record, Runtime } from "effect"
+import { Effect, Exit, Option, Record, Runtime } from "effect"
 import * as Either from "effect/Either"
 import { type RuntimeFiber } from "effect/Fiber"
 import { dual, isFunction } from "effect/Function"

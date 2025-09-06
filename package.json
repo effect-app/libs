@@ -38,7 +38,7 @@
     "test-packages": "pnpm packages test:run",
     "testsuite-packages": "pnpm packages testsuite",
     "watch-packages": "pnpm packages build && pnpm packages watch",
-    "build:tsc": "effect-app-cli packagejson-packages tsc --build ./tsconfig.all.json",
+    "build:tsc": "node packages/cli/dist/index.js packagejson-packages tsc --build ./tsconfig.all.json",
     "watch": "pnpm build:tsc --watch",
     "build": "cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",

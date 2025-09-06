@@ -1,6 +1,6 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { augmentedConfig } from "./eslint.base.config.mjs"
+import { augmentedConfig } from "./src/eslint.base.config.mjs"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -12,7 +12,8 @@ export default [
       "**/*.js",
       "**/*.jsx",
       "**/*.d.ts",
-      "node_modules/"
+      "node_modules/",
+      "src/eslint.*.config.mjs"
     ]
   },
   {

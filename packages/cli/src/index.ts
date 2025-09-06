@@ -377,7 +377,16 @@ Effect
                 ...cur !== "./index" && !cur.includes("/internal/") && { [cur]: filteredExportEntries[cur] }
               }),
               {} as Record<string, unknown>
-            )
+            ),
+          // Preserve ESLint config exports for effect-app package
+          ...(JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8")).name === "effect-app" && {
+            "./eslint.base.config": {
+              "default": "./src/eslint.base.config.mjs"
+            },
+            "./eslint.vue.config": {
+              "default": "./src/eslint.vue.config.mjs"
+            }
+          })
         }
 
         const pkgJson = JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8"))

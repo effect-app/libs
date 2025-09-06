@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.12
+
+### Patch Changes
+
+- 419f7b7: untype TSubmitMeta
+
 ## 0.18.11
 
 ### Patch Changes

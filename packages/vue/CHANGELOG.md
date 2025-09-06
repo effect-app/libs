@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.55.6
+
+### Patch Changes
+
+- 18546b5: compose test
+
 ## 2.55.5
 
 ### Patch Changes

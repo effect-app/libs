@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 0.18.13
+
+### Patch Changes
+
+- 18546b5: compose test
+- Updated dependencies [18546b5]
+  - @effect-app/vue@2.55.6
+
 ## 0.18.12
 
 ### Patch Changes

@@ -39,7 +39,7 @@
     "@azure/cosmos": "^4.5.1",
     "@azure/service-bus": "^7.9.5",
     "@effect/experimental": "^0.54.6",
-    "@effect/platform": "^0.90.6",
+    "@effect/platform": "^0.90.7",
     "@effect/rpc": "^0.69.2",
     "@effect/sql": "^0.44.2",
     "@effect/vitest": "^0.25.1",

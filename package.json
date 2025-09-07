@@ -60,7 +60,7 @@
     "dprint-plugin-markup": "^0.23.3",
     "dprint-plugin-yaml": "^0.5.1",
     "@dprint/typescript": "^0.95.11",
-    "@ben_12/eslint-plugin-dprint": "^1.7.4",
+    "@ben_12/eslint-plugin-dprint": "^1.7.5",
     "dprint": "^0.50.1",
     "@changesets/cli": "^2.29.6",
     "@effect-app/cli": "^1.23.21",

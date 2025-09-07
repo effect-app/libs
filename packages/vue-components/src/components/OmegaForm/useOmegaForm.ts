@@ -224,7 +224,7 @@ export const useOmegaForm = <
     },
     onSubmit: tanstackFormOptions?.onSubmit
       ? ({ formApi, meta, value }) =>
-        wrapWithSpan(meta?.span, async () => {
+        wrapWithSpan(meta?.currentSpan, async () => {
           const r = tanstackFormOptions.onSubmit!({
             formApi: formApi as OmegaFormApi<From, To>,
             meta,

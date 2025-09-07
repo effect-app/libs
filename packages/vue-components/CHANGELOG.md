@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.15
+
+### Patch Changes
+
+- dfa8bbf: experiment
+
 ## 0.18.14
 
 ### Patch Changes

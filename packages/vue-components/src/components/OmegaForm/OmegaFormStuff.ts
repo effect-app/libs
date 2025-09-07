@@ -60,7 +60,7 @@ export type FormProps<From, To> =
       formApi: OmegaFormParams<From, To>
       meta: any
       value: To
-    }) => Promise<any> | RuntimeFiber<any, any>
+    }) => Promise<any> | RuntimeFiber<any, any> | Effect.Effect<RuntimeFiber<any, any>, any, never>
   }
 
 export type OmegaFormParams<From, To> = FormApi<

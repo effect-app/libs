@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
-import { Fiber, S } from "effect-app"
+import { Effect, Fiber, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { computed, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide } from "vue"
@@ -35,7 +35,8 @@ export type OmegaConfig<T> = {
 interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   filterItems?: FilterItems
-  clear: () => void
+  /** @experimental */
+  handleSubmitEffect: (meta?: Record<string, any>) => Effect.Effect<void, never, never>
 }
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
@@ -226,6 +227,16 @@ export const useOmegaForm = <
         if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
           return runtimeFiberAsPromise(r)
         }
+        if (Effect.isEffect(r)) {
+          return Effect.runPromise(
+            r.pipe(
+              meta?.currentSpan
+                ? Effect.withParentSpan(meta.currentSpan)
+                : (_) => _,
+              Effect.flatMap((_) => Fiber.join(_))
+            )
+          )
+        }
         return r
       }
       : undefined,
@@ -311,7 +322,17 @@ export const useOmegaForm = <
   const formWithExtras: OF<From, To> = Object.assign(form, {
     meta,
     filterItems,
-    clear
+    clear,
+    /** @experimental */
+    handleSubmitEffect: (meta?: Record<string, any>) =>
+      Effect.currentSpan.pipe(
+        Effect.orDie,
+        Effect
+          .flatMap((span) =>
+            // TODO: fix type of handleSubmit, TSubmitMeta is somehow async validator :D
+            Effect.promise(() => form.handleSubmit({ currentSpan: span, ...meta }))
+          )
+      )
   })
 
   provide(OmegaFormKey, formWithExtras)

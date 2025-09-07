@@ -325,13 +325,14 @@ export const useOmegaForm = <
     window.removeEventListener("blur", saveDataInUrl)
   })
 
+  const handleSubmit = form.handleSubmit
   const formWithExtras: OF<From, To> = Object.assign(form, {
     meta,
     filterItems,
     clear,
     handleSubmit: () => {
       const span = api.trace.getSpan(api.context.active())
-      return form.handleSubmit({ currentSpan: span, ...meta })
+      return handleSubmit({ currentSpan: span, ...meta })
     }
     // /** @experimental */
     // handleSubmitEffect: (meta?: Record<string, any>) =>

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.18
+
+### Patch Changes
+
+- fix circle
+
 ## 0.18.17
 
 ### Patch Changes

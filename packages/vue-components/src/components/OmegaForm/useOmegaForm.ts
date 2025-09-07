@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
-import { Effect, Fiber, S } from "effect-app"
+import { Effect, Fiber, Option, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { computed, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide } from "vue"
@@ -326,11 +326,10 @@ export const useOmegaForm = <
     /** @experimental */
     handleSubmitEffect: (meta?: Record<string, any>) =>
       Effect.currentSpan.pipe(
-        Effect.orDie,
+        Effect.option,
         Effect
           .flatMap((span) =>
-            // TODO: fix type of handleSubmit, TSubmitMeta is somehow async validator :D
-            Effect.promise(() => form.handleSubmit({ currentSpan: span, ...meta }))
+            Effect.promise(() => form.handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
           )
       )
   })

@@ -601,8 +601,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           )
 
           return Effect.currentSpan.pipe(
-            Effect.orDie,
-            Effect.map((span) => runFork(command.pipe(Effect.withParentSpan(span))))
+            Effect.option,
+            Effect.map((span) => runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command))
           )
         }, { action })
 

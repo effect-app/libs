@@ -602,7 +602,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
           return Effect.currentSpan.pipe(
             Effect.option,
-            Effect.map((span) => runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command))
+            Effect.map((span) =>
+              runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command)
+            )
           )
         }, { action })
 
@@ -782,16 +784,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           self: Effect.Effect<A, E, R>
         ) =>
           Effect.gen(function*() {
-            const { action } = yield* CommandContext
+            const cc = yield* CommandContext
 
-            const defaultWarnMessage = intl.formatMessage(
-              { id: "handle.with_warnings" },
-              { action }
-            )
-            const defaultErrorMessage = intl.formatMessage(
-              { id: "handle.with_errors" },
-              { action }
-            )
             function renderError(e: E): string {
               if (options?.errorRenderer) {
                 const m = options.errorRenderer(e)
@@ -826,19 +820,19 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
               withToast({
                 onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
                   { id: "handle.waiting" },
-                  { action }
+                  { action: cc.action }
                 ),
                 onSuccess: options?.onSuccess === null
                   ? null
                   : (a) =>
-                    intl.formatMessage({ id: "handle.success" }, { action })
+                    intl.formatMessage({ id: "handle.success" }, { action: cc.action })
                     + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
                 onFailure: Option.match({
                   onNone: () =>
                     intl.formatMessage(
                       { id: "handle.unexpected_error2" },
                       {
-                        action,
+                        action: cc.action,
                         error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
                       }
                     ),
@@ -846,9 +840,19 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                     S.is(OperationFailure)(e)
                       ? {
                         level: "warn",
-                        message: defaultWarnMessage + e.message ? "\n" + e.message : ""
+                        message: intl.formatMessage(
+                            { id: "handle.with_warnings" },
+                            { action: cc.action }
+                          ) + e.message
+                          ? "\n" + e.message
+                          : ""
                       }
-                      : `${defaultErrorMessage}:\n` + renderError(e)
+                      : `${
+                        intl.formatMessage(
+                          { id: "handle.with_errors" },
+                          { action: cc.action }
+                        )
+                      }:\n` + renderError(e)
                 })
               })
             )

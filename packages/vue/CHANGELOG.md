@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.55.10
+
+### Patch Changes
+
+- 042746b: read cc action dynamically
+
 ## 2.55.9
 
 ### Patch Changes

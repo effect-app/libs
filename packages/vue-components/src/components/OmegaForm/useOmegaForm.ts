@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import * as api from "@opentelemetry/api"
 import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
-import { Effect, Fiber, Option, S } from "effect-app"
+import { Effect, Fiber, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { computed, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide } from "vue"
@@ -35,8 +36,8 @@ export type OmegaConfig<T> = {
 interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   filterItems?: FilterItems
-  /** @experimental */
-  handleSubmitEffect: (meta?: Record<string, any>) => Effect.Effect<void, never, never>
+  // /** @experimental */
+  // handleSubmitEffect: (meta?: Record<string, any>) => Effect.Effect<void, never, never>
 }
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
@@ -200,6 +201,10 @@ export const useOmegaForm = <
     }
   })
 
+  const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {
+    return span ? api.context.with(api.trace.setSpan(api.context.active(), span), toWrap) : toWrap()
+  }
+
   const form = useForm<
     From,
     FormValidateOrFn<From> | undefined,
@@ -218,27 +223,28 @@ export const useOmegaForm = <
       ...(tanstackFormOptions?.validators || {})
     },
     onSubmit: tanstackFormOptions?.onSubmit
-      ? ({ formApi, meta, value }) => {
-        const r = tanstackFormOptions.onSubmit!({
-          formApi: formApi as OmegaFormApi<From, To>,
-          meta,
-          value: value as unknown as To
-        })
-        if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
-          return runtimeFiberAsPromise(r)
-        }
-        if (Effect.isEffect(r)) {
-          return Effect.runPromise(
-            r.pipe(
-              meta?.currentSpan
-                ? Effect.withParentSpan(meta.currentSpan)
-                : (_) => _,
-              Effect.flatMap((_) => Fiber.join(_))
+      ? ({ formApi, meta, value }) =>
+        wrapWithSpan(meta?.span, async () => {
+          const r = tanstackFormOptions.onSubmit!({
+            formApi: formApi as OmegaFormApi<From, To>,
+            meta,
+            value: value as unknown as To
+          })
+          if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
+            return await runtimeFiberAsPromise(r)
+          }
+          if (Effect.isEffect(r)) {
+            return await Effect.runPromise(
+              r.pipe(
+                // meta?.currentSpan
+                //   ? Effect.withParentSpan(meta.currentSpan)
+                //   : (_) => _,
+                Effect.flatMap((_) => Fiber.join(_))
+              )
             )
-          )
-        }
-        return r
-      }
+          }
+          return r
+        })
       : undefined,
     defaultValues: defaultValues.value as any
   }) satisfies OmegaFormApi<To, From>
@@ -323,15 +329,19 @@ export const useOmegaForm = <
     meta,
     filterItems,
     clear,
-    /** @experimental */
-    handleSubmitEffect: (meta?: Record<string, any>) =>
-      Effect.currentSpan.pipe(
-        Effect.option,
-        Effect
-          .flatMap((span) =>
-            Effect.promise(() => form.handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
-          )
-      )
+    handleSubmit: () => {
+      const span = api.trace.getSpan(api.context.active())
+      return form.handleSubmit({ currentSpan: span, ...meta })
+    }
+    // /** @experimental */
+    // handleSubmitEffect: (meta?: Record<string, any>) =>
+    //   Effect.currentSpan.pipe(
+    //     Effect.option,
+    //     Effect
+    //       .flatMap((span) =>
+    //         Effect.promise(() => form.handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
+    //       )
+    //   )
   })
 
   provide(OmegaFormKey, formWithExtras)

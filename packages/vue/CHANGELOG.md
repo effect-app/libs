@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.55.7
+
+### Patch Changes
+
+- 716909c: experiment
+
 ## 2.55.6
 
 ### Patch Changes

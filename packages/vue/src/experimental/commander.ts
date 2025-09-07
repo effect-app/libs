@@ -83,6 +83,15 @@ export declare namespace Commander {
     compose: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, R>
     /** @experimental */
     compose2: (...args: Args) => Effect.Effect<A, E, R>
+    /**
+     * @experimental
+     * captures the current span and returns an Effect that when run will execute the command
+     */
+    handleEffect: (...args: Args) => Effect.Effect<RuntimeFiber<Exit.Exit<A, E>, never>>
+    /**
+     * @experimental
+     */
+    exec: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, Exclude<R, CommandContext>>
   }
 
   type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
@@ -554,6 +563,49 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           return runFork(command)
         }, { action })
 
+        const handleEffect = Object.assign((...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = Effect.withSpan(
+            exec(...args),
+            actionName,
+            { captureStackTrace }
+          )
+
+          return Effect.currentSpan.pipe(
+            Effect.orDie,
+            Effect.map((span) => runFork(command.pipe(Effect.withParentSpan(span))))
+          )
+        }, { action })
+
         const compose = Object.assign((...args: Args) => {
           // we capture the call site stack here
           const limit = Error.stackTraceLimit
@@ -639,13 +691,64 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           waiting,
           action,
           handle,
+          handleEffect,
           compose,
-          compose2
+          compose2,
+          exec
         })
       }
     }
 
     return {
+      /** experimental */
+      takeOver: <Args extends any[], A, E, R>(command: Commander.CommandOut<Args, A, E, R>) => (...args: Args) => {
+        // we capture the call site stack here
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const errorCall = new Error()
+        const localErrorDef = new Error()
+        Error.stackTraceLimit = limit
+
+        // TODO
+        const errorDef = localErrorDef
+
+        let cache: false | string = false
+        const captureStackTrace = () => {
+          // in case of an error, we want to append the definition stack to the call site stack,
+          // so we can see where the handler was defined too
+
+          if (cache !== false) {
+            return cache
+          }
+          if (errorCall.stack) {
+            const stackDef = errorDef!.stack!.trim().split("\n")
+            const stackCall = errorCall.stack.trim().split("\n")
+            let endStackDef = stackDef.slice(2).join("\n").trim()
+            if (!endStackDef.includes(`(`)) {
+              endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+            }
+            let endStackCall = stackCall.slice(2).join("\n").trim()
+            if (!endStackCall.includes(`(`)) {
+              endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+            }
+            cache = `${endStackDef}\n${endStackCall}`
+            return cache
+          }
+        }
+
+        return Effect.gen(function*() {
+          const ctx = yield* CommandContext
+          ctx.action = command.action
+          return yield* command.exec(...args).pipe(
+            Effect.flatten,
+            Effect.withSpan(
+              command.action,
+              { captureStackTrace }
+            )
+          )
+        })
+      },
+
       /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
       confirmOrInterrupt: Effect.fnUntraced(function*(
         message: string | undefined = undefined

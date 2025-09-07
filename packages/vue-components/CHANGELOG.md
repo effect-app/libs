@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 0.18.17
+
+### Patch Changes
+
+- 70d1eb2: play with exp
+- cf3ebe0: update packages
+- Updated dependencies [cf3ebe0]
+  - @effect-app/vue@2.55.9
+
 ## 0.18.16
 
 ### Patch Changes

@@ -984,7 +984,7 @@ export const makeClient = <RT, RE, RL>(
     get("mutation", () => {
       const mrt = makeRuntime(LegacyMutation.Default)
       const mut = mrt.runSync(LegacyMutation)
-      const rt = Effect.runSync(mrt.runtimeEffect)
+      const rt = mrt.runSync(Effect.runtime<ManagedRuntime.ManagedRuntime.Context<typeof mrt>>())
       return mut(rt)
     })
   const useCommand = () =>

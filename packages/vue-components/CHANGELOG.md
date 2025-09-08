@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 0.19.1
+
+### Patch Changes
+
+- 86af237: fix local meta override
+- Updated dependencies [ebab424]
+- Updated dependencies [3a6c0cb]
+- Updated dependencies [1ed35c9]
+  - @effect-app/vue@2.56.0
+
 ## 0.19.0
 
 ### Minor Changes

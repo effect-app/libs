@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.56.0
+
+### Minor Changes
+
+- ebab424: unify composable api
+- 1ed35c9: move useUnsafeMutation
+
+### Patch Changes
+
+- 3a6c0cb: handle deprecations
+
 ## 2.55.10
 
 ### Patch Changes

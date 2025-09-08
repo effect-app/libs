@@ -939,17 +939,21 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
   return { useSafeQuery: _useSafeQuery, useSafeSuspenseQuery }
 }
 
+// somehow mrt.runtimeEffect doesnt work sync, but this workaround works fine? not sure why though as the layers are generally only sync
+const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.runtime<A>())
+
 type Base = I18n | Toast
-export const makeClient = <RT, RE, RL>(
+export const makeClient = async <RT, RE, RL>(
   baseMrt: ManagedRuntime.ManagedRuntime<RT, never>,
   rootLayer: Layer.Layer<RL | Base, RE>
 ) => {
-  // somehow baseMrt.runtimeEffect doesnt work sync?
-  const baseRt = baseMrt.runSync(Effect.runtime<RT>())
+  const baseRt = managedRuntimeRt(baseMrt)
+
+  // we want to create a managed runtime for query, command and mutation hooks, one per component instance
   const getRt = () => {
     const instance = getCurrentInstance() as {
       __effa?: {
-        rt: ManagedRuntime.ManagedRuntime<I18n | Toast, RE>
+        rt: ManagedRuntime.ManagedRuntime<Base, RE>
         rts: Map<string, any>
       }
     }
@@ -984,7 +988,7 @@ export const makeClient = <RT, RE, RL>(
     get("mutation", () => {
       const mrt = makeRuntime(LegacyMutation.Default)
       const mut = mrt.runSync(LegacyMutation)
-      const rt = mrt.runSync(Effect.runtime<ManagedRuntime.ManagedRuntime.Context<typeof mrt>>())
+      const rt = managedRuntimeRt(mrt)
       return mut(rt)
     })
   const useCommand = () =>

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.18.21
+
+### Patch Changes
+
+- 2558a37: fix types to avoid @submit clash in examples and restores form.clear signature
+
 ## 0.18.20
 
 ### Patch Changes

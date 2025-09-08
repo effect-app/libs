@@ -944,7 +944,8 @@ export const makeClient = <RT, RE, RL>(
   baseMrt: ManagedRuntime.ManagedRuntime<RT, never>,
   rootLayer: Layer.Layer<RL | Base, RE>
 ) => {
-  const baseRt = Effect.runSync(baseMrt.runtimeEffect)
+  // somehow baseMrt.runtimeEffect doesnt work sync?
+  const baseRt = baseMrt.runSync(Effect.runtime<RT>())
   const getRt = () => {
     const instance = getCurrentInstance() as {
       __effa?: {

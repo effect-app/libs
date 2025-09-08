@@ -941,10 +941,10 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
 
 type Base = I18n | Toast
 export const makeClient = <RT, RE, RL>(
-  baseRt: Runtime.Runtime<RT>,
-  baseMemoMap: Layer.MemoMap | undefined,
+  baseMrt: ManagedRuntime.ManagedRuntime<RT, never>,
   rootLayer: Layer.Layer<RL | Base, RE>
 ) => {
+  const baseRt = Effect.runSync(baseMrt.runtimeEffect)
   const getRt = () => {
     const instance = getCurrentInstance() as {
       __effa?: {
@@ -953,7 +953,7 @@ export const makeClient = <RT, RE, RL>(
       }
     }
     if (!instance.__effa) {
-      const rt = ManagedRuntime.make(rootLayer, baseMemoMap)
+      const rt = ManagedRuntime.make(rootLayer, baseMrt.memoMap)
       instance.__effa = { rt, rts: new Map() }
       onUnmounted(() => rt.dispose())
     }

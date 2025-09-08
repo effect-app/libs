@@ -46,7 +46,7 @@ const defaultValues = {
   confirm: "amerelli@asd.it"
 }
 
-const onSubmit = (value: { email: string; confirm: string }) => {
+const onSubmit = ({ value }: { value: { email: string; confirm: string } }) => {
   console.log(value)
 }
 </script>

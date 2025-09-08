@@ -93,7 +93,11 @@ type OmegaWrapperProps =
   & (
     | {
       isLoading: boolean
-      onSubmit: (data: To) => void
+      onSubmit: (data: {
+        formApi: OmegaFormApi<From, To>
+        meta: any
+        value: To
+      }) => void
     }
     | {
       isLoading?: undefined
@@ -110,9 +114,11 @@ const instance = getCurrentInstance()
 // we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
 // so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
 // we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
-const eventOnSubmit: FormProps<From, To>["onSubmit"] = ({ value }) =>
+const eventOnSubmit: FormProps<From, To>["onSubmit"] = (
+  { formApi, meta, value }
+) =>
   new Promise<void>((resolve) => {
-    instance!.emit("submit", value)
+    instance!.emit("submit", { formApi, meta, value })
     // even if the emit would be immediately handled, prop changes are not published/received immediately.
     // so we have to wait for the prop to change to true, and back to false again.
     const handle = watch(() => props.isLoading, (v) => {

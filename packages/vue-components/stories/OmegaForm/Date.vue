@@ -33,7 +33,7 @@ const schema = S.Struct({
   date: S.NullOr(S.Date)
 })
 
-const onSubmit = (value) => {
+const onSubmit = ({ value }) => {
   console.log(value)
 }
 </script>

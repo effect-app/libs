@@ -331,7 +331,7 @@ export const useOmegaForm = <
     meta,
     filterItems,
     clear,
-    handleSubmit: () => {
+    handleSubmit: (meta?: Record<string, any>) => {
       const span = api.trace.getSpan(api.context.active())
       return handleSubmit({ currentSpan: span, ...meta })
     }

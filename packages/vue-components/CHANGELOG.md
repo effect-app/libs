@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.19.0
+
+### Minor Changes
+
+- c9f9f29: uniform onSubmit function signatures to include formApi and meta in OmegaForm components
+
 ## 0.18.21
 
 ### Patch Changes

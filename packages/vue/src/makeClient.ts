@@ -181,6 +181,26 @@ function handleRequest<
   )
 }
 
+const _useUnsafeMutation = makeMutation()
+
+export const useUnsafeMutation: typeof _useUnsafeMutation = <
+  I,
+  E,
+  A,
+  R,
+  Request extends TaggedRequestClassAny,
+  A2 = A,
+  E2 = E,
+  R2 = R
+>(
+  self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+  options?: MutationOptions<A, E, R, A2, E2, R2, I>
+) =>
+  tapHandler(
+    _useUnsafeMutation(self as any, options),
+    Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
+  ) as any
+
 export const makeClient = <Locale extends string, R>(
   // NOTE: underscores to not collide with auto exports in nuxt apps
   _useIntl: MakeIntlReturn<Locale>["useIntl"],
@@ -196,26 +216,7 @@ export const makeClient = <Locale extends string, R>(
   /**
    * Effect results are passed to the caller, including errors.
    */
-  const _useUnsafeMutation = makeMutation()
   const _useSafeQuery = makeQuery(runtime)
-
-  const __useUnsafeMutation: {
-    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandlerWithInput<I, A, E, R, Request>,
-      options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): (i: I) => Effect.Effect<A2, E2, R2>
-    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandler<A, E, R, Request>,
-      options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): Effect.Effect<A2, E2, R2>
-  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-    self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
-    options?: MutationOptions<A, E, R, A2, E2, R2, I>
-  ) =>
-    tapHandler(
-      _useUnsafeMutation(self as any, options),
-      Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
-    ) as any
 
   /**
    * Effect results are converted to Exit, so errors are ignored by default.
@@ -925,7 +926,6 @@ export const makeClient = <Locale extends string, R>(
     buildFormFromSchema: _buildFormFromSchema,
     useSafeQuery: _useSafeQuery,
     useSafeMutation: _useSafeMutation,
-    useUnsafeMutation: __useUnsafeMutation,
     useSafeSuspenseQuery
   }
 }

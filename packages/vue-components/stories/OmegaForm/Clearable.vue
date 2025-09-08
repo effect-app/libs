@@ -2,7 +2,7 @@
   <OmegaForm
     :form="form"
     :subscribe="['values']"
-    :on-submit="() => console.log('submitted1')"
+    @submit="() => console.log('submitted1')"
   >
     <template #externalForm="{ subscribedValues: { values } }">
       <div>values: {{ values }}</div>

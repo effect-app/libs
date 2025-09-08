@@ -209,8 +209,7 @@ export const makeClient = <Locale extends string, R>(
     warning: (message: string) => void
     success: (message: string) => void
   },
-  runtime: ShallowRef<Runtime.Runtime<R> | undefined>,
-  messages: Record<string, string | undefined> = {}
+  runtime: ShallowRef<Runtime.Runtime<R> | undefined>
 ) => {
   // making sure names do not collide with auto exports in nuxt apps, please do not rename..
   /**
@@ -282,7 +281,7 @@ export const makeClient = <Locale extends string, R>(
       action: string,
       options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
     ) {
-      const actionMessage = messages[action] ?? action
+      const actionMessage = intl.formatMessage({ id: `action.${action}`, defaultMessage: action })
       const defaultWarnMessage = intl.formatMessage(
         { id: "handle.with_warnings" },
         { action: actionMessage }
@@ -718,6 +717,7 @@ export const makeClient = <Locale extends string, R>(
     ) as any
   }
 
+  /** @deprecated use OmegaForm */
   const _buildFormFromSchema = <
     From extends Record<PropertyKey, any>,
     To extends Record<PropertyKey, any>,
@@ -916,15 +916,24 @@ export const makeClient = <Locale extends string, R>(
   }
 
   return {
+    /** @deprecated use Command.fn */
     useSafeMutationWithState: _useSafeMutationWithState,
+    /** @deprecated use Command.fn */
     useAndHandleMutation: _useAndHandleMutation,
+    /** @deprecated use Command.fn */
     useAndHandleMutationResult: _useAndHandleMutationResult,
+    /** @deprecated use Command.fn */
     useAndHandleMutationSilently: _useAndHandleMutationSilently,
+    /** @deprecated use Command.fn */
     useAndHandleMutationCustom: _useAndHandleMutationCustom,
+    /** @deprecated use Command.fn */
     makeUseAndHandleMutation: _makeUseAndHandleMutation,
+    /** @deprecated use Command.fn */
     useHandleRequestWithToast: _useHandleRequestWithToast,
+    /** @deprecated use OmegaForm */
     buildFormFromSchema: _buildFormFromSchema,
     useSafeQuery: _useSafeQuery,
+    /** @deprecated use Command.fn */
     useSafeMutation: _useSafeMutation,
     useSafeSuspenseQuery
   }

@@ -381,64 +381,6 @@ function buildFieldInfo(
   return info as any
 }
 
-export const buildFormFromSchema = <
-  From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  C extends Record<PropertyKey, any>,
-  OnSubmitA
->(
-  s:
-    & Schema<
-      To,
-      From,
-      never
-    >
-    & { new(c: C): any; extend: any; fields: S.Struct.Fields },
-  state: Ref<Omit<From, "_tag">>,
-  onSubmit: (a: To) => Promise<OnSubmitA>
-) => {
-  const fields = buildFieldInfoFromFieldsRoot(s).fields
-  const parse = S.decodeUnknownSync<any, any>(S.Struct(Struct.omit(s.fields, "_tag")) as any)
-  const isDirty = ref(false)
-  const isValid = ref(true)
-  const isLoading = ref(false)
-
-  const submit1 = <A>(onSubmit: (a: To) => Promise<A>) => async <T extends Promise<{ valid: boolean }>>(e: T) => {
-    isLoading.value = true
-    try {
-      const r = await e
-      if (!r.valid) return
-      return onSubmit(new s(parse(state.value)))
-    } finally {
-      isLoading.value = false
-    }
-  }
-  const submit = submit1(onSubmit)
-
-  watch(
-    state,
-    (v) => {
-      // TODO: do better
-      isDirty.value = JSON.stringify(v) !== JSON.stringify(state.value)
-    },
-    { deep: true }
-  )
-
-  const submitFromState = () => submit(Promise.resolve({ valid: isValid.value }))
-
-  return {
-    fields,
-    /** optimized for Vuetify v-form submit callback */
-    submit,
-    /** optimized for Native form submit callback or general use */
-    submitFromState,
-    isDirty,
-    isValid,
-    /** includes whole submit, including potential asynchronous validation steps */
-    isLoading
-  }
-}
-
 export function getMetadataFromSchema(
   ast: S.AST.AST
 ): {

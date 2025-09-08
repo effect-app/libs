@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.56.1
+
+### Patch Changes
+
+- adbb1fa: workaround
+
 ## 2.56.0
 
 ### Minor Changes

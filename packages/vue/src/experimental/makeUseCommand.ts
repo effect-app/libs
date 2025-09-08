@@ -1,7 +1,7 @@
 import { Effect } from "effect-app"
 import { Commander } from "./commander.js"
 
-export const makeExperimental = Effect.fnUntraced(function*<R = never>() {
+export const makeUseCommand = Effect.fnUntraced(function*<R = never>() {
   const cmndr = yield* Commander
   const runtime = yield* Effect.runtime<R>()
 

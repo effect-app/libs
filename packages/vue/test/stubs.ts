@@ -5,7 +5,7 @@ import { Effect, Layer } from "effect-app"
 import { ref } from "vue"
 import { Commander } from "../src/experimental/commander.js"
 import { I18n } from "../src/experimental/intl.js"
-import { makeExperimental } from "../src/experimental/makeExperimental.js"
+import { makeUseCommand } from "../src/experimental/makeUseCommand.js"
 import * as Toast from "../src/experimental/toast.js"
 import { type MakeIntlReturn } from "../src/makeIntl.js"
 
@@ -75,5 +75,5 @@ export const useExperimental = (
   const FakeToastLayer = fakeToastLayer(options?.toasts)
   const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
 
-  return Effect.runSync(makeExperimental().pipe(Effect.provide(CommanderLayer)))
+  return Effect.runSync(makeUseCommand().pipe(Effect.provide(CommanderLayer)))
 }

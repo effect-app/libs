@@ -60,9 +60,9 @@
       "types": "./dist/experimental/intl.d.ts",
       "default": "./dist/experimental/intl.js"
     },
-    "./experimental/makeExperimental": {
-      "types": "./dist/experimental/makeExperimental.d.ts",
-      "default": "./dist/experimental/makeExperimental.js"
+    "./experimental/makeUseCommand": {
+      "types": "./dist/experimental/makeUseCommand.d.ts",
+      "default": "./dist/experimental/makeUseCommand.js"
     },
     "./experimental/toast": {
       "types": "./dist/experimental/toast.d.ts",

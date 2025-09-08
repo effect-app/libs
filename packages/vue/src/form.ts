@@ -2,11 +2,11 @@ import { createIntl, type IntlFormatters } from "@formatjs/intl"
 import * as JSONSchema from "effect/JSONSchema"
 import type { ParseError } from "effect/ParseResult"
 import type {} from "intl-messageformat"
-import { Either, Option, pipe, S, Struct } from "effect-app"
+import { Either, Option, pipe, S } from "effect-app"
 import type { Schema } from "effect-app/Schema"
 import type { Unbranded } from "effect-app/Schema/brand"
 import type { IsUnion } from "effect-app/utils"
-import { capitalize, type Ref, ref, watch } from "vue"
+import { capitalize, ref } from "vue"
 
 // type GetSchemaFromProp<T> = T extends Field<infer S, any, any, any> ? S
 //   : never

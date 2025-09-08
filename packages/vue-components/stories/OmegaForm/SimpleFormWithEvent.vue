@@ -79,13 +79,13 @@ const validators = {
   onSubmitAsync: validateNumberOnServer
 }
 
-const onSubmit = (data: { asder2: string }) => {
-  console.log("OnSubmit", data)
+const onSubmit = ({ value }: { value: { asder2: string } }) => {
+  console.log("OnSubmit", value)
   isLoading.value = true
   setTimeout(() => {
     isLoading.value = false
     console.log("Operation complete")
-    console.log("Submitted with @submit event:", data)
+    console.log("Submitted with @submit event:", value)
   }, 2000)
 }
 </script>

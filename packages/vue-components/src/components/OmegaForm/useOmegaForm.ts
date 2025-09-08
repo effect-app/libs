@@ -36,6 +36,7 @@ export type OmegaConfig<T> = {
 interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   filterItems?: FilterItems
+  clear: () => void
   // /** @experimental */
   // handleSubmitEffect: (meta?: Record<string, any>) => Effect.Effect<void, never, never>
 }

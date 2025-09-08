@@ -47,7 +47,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
 
     <OmegaForm
       :schema="schema"
-      :on-submit="console.log"
+      @submit="console.log"
     >
       <template #internalForm="{ form }">
         <OmegaInput

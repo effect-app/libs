@@ -1,7 +1,7 @@
 <template>
   <OmegaForm
     :schema="S.Struct({ myString: S.String })"
-    :on-submit="console.log"
+    @submit="console.log"
   >
     <template #internalForm="{ form }">
       <component

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.1
+
+### Patch Changes
+
+- d731abf: fix: Promise return
+
 ## 2.59.0
 
 ### Minor Changes

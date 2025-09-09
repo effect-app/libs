@@ -8,7 +8,7 @@ import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
-import { computed, type ComputedRef, getCurrentInstance, onBeforeUnmount, onUnmounted, type Ref, ref, shallowRef, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, onBeforeUnmount, onUnmounted, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { Commander } from "./experimental/commander.js"
 import { I18n } from "./experimental/intl.js"
@@ -822,140 +822,138 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
    * Effect results are passed to the caller, including errors.
    */
   // TODO
-  const _useQuery = makeQuery(shallowRef(runtime))
+  const _useQuery = makeQuery(runtime)
 
   /**
    * The difference with useQuery is that this function will return a Promise you can await in the Setup,
    * which ensures that either there always is a latest value, or an error occurs on load.
    * So that Suspense and error boundaries can be used.
    */
-  function useSuspenseQuery<
-    E,
-    A,
-    Request extends TaggedRequestClassAny
-  >(
-    self: RequestHandler<A, E, R, Request>,
-    options?: QueryObserverOptionsCustom<A, E> & {
-      initialData: A | InitialDataFunction<A>
-    }
-  ): Effect.Effect<
-    readonly [
-      ComputedRef<Result.Result<A, E>>,
-      ComputedRef<A>,
-      (
-        options?: RefetchOptions
-      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
-      UseQueryReturnType<any, any>
-    ]
-  >
-  function useSuspenseQuery<
-    Arg,
-    E,
-    A,
-    Request extends TaggedRequestClassAny
-  >(
-    self: RequestHandlerWithInput<Arg, A, E, R, Request>,
-    arg: Arg | WatchSource<Arg>,
-    options?: QueryObserverOptionsCustom<A, E> & {
-      initialData: A | InitialDataFunction<A>
-    }
-  ): Effect.Effect<
-    readonly [
-      ComputedRef<Result.Result<A, E>>,
-      ComputedRef<A>,
-      (
-        options?: RefetchOptions
-      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
-      UseQueryReturnType<any, any>
-    ]
-  >
-  function useSuspenseQuery<
-    E,
-    A,
-    Request extends TaggedRequestClassAny
-  >(
-    self: RequestHandler<A, E, R, Request>,
-    options?: QueryObserverOptionsCustom<A, E>
-  ): Effect.Effect<
-    readonly [
-      ComputedRef<Result.Result<A, E>>,
-      ComputedRef<A>,
-      (
-        options?: RefetchOptions
-      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
-      UseQueryReturnType<any, any>
-    ]
-  >
-  function useSuspenseQuery<
-    Arg,
-    E,
-    A,
-    Request extends TaggedRequestClassAny
-  >(
-    self: RequestHandlerWithInput<Arg, A, E, R, Request>,
-    arg: Arg | WatchSource<Arg>,
-    options?: QueryObserverOptionsCustom<A, E>
-  ): Effect.Effect<
-    readonly [
-      ComputedRef<Result.Result<A, E>>,
-      ComputedRef<A>,
-      (
-        options?: RefetchOptions
-      ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
-      UseQueryReturnType<any, any>
-    ]
-  >
-  function useSuspenseQuery(
-    self: any,
-    argOrOptions?: any,
-    options?: any
-  ) {
-    const [resultRef, latestRef, fetch, uqrt] = _useQuery(
-      self,
-      argOrOptions,
-      { ...options, suspense: true } // experimental_prefetchInRender: true }
-    )
-
-    const isMounted = ref(true)
-    onBeforeUnmount(() => {
-      isMounted.value = false
-    })
-
-    // @effect-diagnostics effect/missingEffectError:off
-    return Effect.gen(function*() {
-      // we want to throw on error so that we can catch cancelled error and skip handling it
-      // what's the difference with just calling `fetch` ?
-      // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
-      const r = yield* Effect.tryPromise(() => uqrt.suspense()).pipe(
-        Effect.catchTag("UnknownException", (err) =>
-          Runtime.isFiberFailure(err.error)
-            ? Effect.failCause(err.error[Runtime.FiberFailureCauseId])
-            : isCancelledError(err.error)
-            ? Effect.interrupt
-            : Effect.die(err.error))
+  const useSuspenseQuery: {
+    <
+      E,
+      A,
+      Request extends TaggedRequestClassAny
+    >(
+      self: RequestHandler<A, E, R, Request>
+    ): (
+      options?: QueryObserverOptionsCustom<A, E> & {
+        initialData: A | InitialDataFunction<A>
+      }
+    ) => Effect.Effect<
+      readonly [
+        ComputedRef<Result.Result<A, E>>,
+        ComputedRef<A>,
+        (
+          options?: RefetchOptions
+        ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        UseQueryReturnType<any, any>
+      ]
+    >
+    <
+      Arg,
+      E,
+      A,
+      Request extends TaggedRequestClassAny
+    >(
+      self: RequestHandlerWithInput<Arg, A, E, R, Request>
+    ): (
+      arg: Arg | WatchSource<Arg>,
+      options?: QueryObserverOptionsCustom<A, E> & {
+        initialData: A | InitialDataFunction<A>
+      }
+    ) => Effect.Effect<
+      readonly [
+        ComputedRef<Result.Result<A, E>>,
+        ComputedRef<A>,
+        (
+          options?: RefetchOptions
+        ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        UseQueryReturnType<any, any>
+      ]
+    >
+    <
+      E,
+      A,
+      Request extends TaggedRequestClassAny
+    >(
+      self: RequestHandler<A, E, R, Request>
+    ): (options?: QueryObserverOptionsCustom<A, E>) => Effect.Effect<
+      readonly [
+        ComputedRef<Result.Result<A, E>>,
+        ComputedRef<A>,
+        (
+          options?: RefetchOptions
+        ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        UseQueryReturnType<any, any>
+      ]
+    >
+    <
+      Arg,
+      E,
+      A,
+      Request extends TaggedRequestClassAny
+    >(
+      self: RequestHandlerWithInput<Arg, A, E, R, Request>
+    ): (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, E>) => Effect.Effect<
+      readonly [
+        ComputedRef<Result.Result<A, E>>,
+        ComputedRef<A>,
+        (
+          options?: RefetchOptions
+        ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        UseQueryReturnType<any, any>
+      ]
+    >
+  } = <Arg, E, A, Request extends TaggedRequestClassAny>(
+    self: RequestHandlerWithInput<Arg, A, E, R, Request> | RequestHandler<A, E, R, Request>
+  ) => {
+    const q = _useQuery(self as any) as any
+    return (argOrOptions?: any, options?: any) => {
+      const [resultRef, latestRef, fetch, uqrt] = q(argOrOptions, { ...options, suspense: true } // experimental_prefetchInRender: true }
       )
-      if (!isMounted.value) {
-        return yield* Effect.interrupt
-      }
-      const result = resultRef.value
-      if (Result.isInitial(result)) {
-        console.error("Internal Error: Promise should be resolved already", {
-          self,
-          argOrOptions,
-          options,
-          r,
-          resultRef
-        })
-        return yield* Effect.die(
-          "Internal Error: Promise should be resolved already"
-        )
-      }
-      if (Result.isFailure(result)) {
-        return yield* Exit.failCause(result.cause)
-      }
 
-      return [resultRef, latestRef, fetch, uqrt] as const
-    })
+      const isMounted = ref(true)
+      onBeforeUnmount(() => {
+        isMounted.value = false
+      })
+
+      // @effect-diagnostics effect/missingEffectError:off
+      return Effect.gen(function*() {
+        // we want to throw on error so that we can catch cancelled error and skip handling it
+        // what's the difference with just calling `fetch` ?
+        // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
+        const r = yield* Effect.tryPromise(() => uqrt.suspense()).pipe(
+          Effect.catchTag("UnknownException", (err) =>
+            Runtime.isFiberFailure(err.error)
+              ? Effect.failCause(err.error[Runtime.FiberFailureCauseId])
+              : isCancelledError(err.error)
+              ? Effect.interrupt
+              : Effect.die(err.error))
+        )
+        if (!isMounted.value) {
+          return yield* Effect.interrupt
+        }
+        const result = resultRef.value
+        if (Result.isInitial(result)) {
+          console.error("Internal Error: Promise should be resolved already", {
+            self,
+            argOrOptions,
+            options,
+            r,
+            resultRef
+          })
+          return yield* Effect.die(
+            "Internal Error: Promise should be resolved already"
+          )
+        }
+        if (Result.isFailure(result)) {
+          return yield* Exit.failCause(result.cause)
+        }
+
+        return [resultRef, latestRef, fetch, uqrt] as const
+      }) as any
+    }
   }
 
   return { useQuery: _useQuery, useSuspenseQuery }

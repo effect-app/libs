@@ -4,7 +4,7 @@ import { type InvalidateOptions, type InvalidateQueryFilters, useQueryClient } f
 import { type Cause, Effect, type Exit, Option } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
-import { computed, type ComputedRef, type Ref, shallowRef } from "vue"
+import { computed, type ComputedRef, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
 
 export const getQueryKey = (h: { name: string }) => {
@@ -47,7 +47,6 @@ export interface Res<A, E> {
   readonly error: Cause.Cause<E> | undefined
 }
 
-export type WatchSource<T = any> = Ref<T> | ComputedRef<T> | (() => T)
 export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   const result = shallowRef(Result.initial() as Result.Result<A, E>)
 

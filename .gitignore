@@ -16,7 +16,7 @@ tsconfig.tsbuildinfo
 .jest-cache
 .next
 .data/
-.npmrc
+
 .cache/
 
 .env.local

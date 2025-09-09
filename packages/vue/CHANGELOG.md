@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.6
+
+### Patch Changes
+
+- 310747d: expose
+
 ## 2.59.5
 
 ### Patch Changes

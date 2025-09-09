@@ -2,7 +2,7 @@
   "name": "@effect-app/eslint-codegen-model",
   "description": "Contains eslint helpers",
   "sideEffects": false,
-  "version": "1.42.2",
+  "version": "1.42.3",
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && tsc --build",
@@ -35,8 +35,8 @@
     "effect": "^3.17.13",
     "madge": "8.0.0",
     "typescript": "~5.9.2",
-  "effect-app": "workspace:*",
-  "@effect-app/eslint-shared-config": "workspace:*"
+    "effect-app": "workspace:*",
+    "@effect-app/eslint-shared-config": "workspace:*"
   },
   "main": "index.js",
   "author": "Wessel van der Veen & Scott vanBommel",

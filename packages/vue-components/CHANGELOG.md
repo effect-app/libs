@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 0.19.12
+
+### Patch Changes
+
+- 8096576: new eslint shared config package
+- 341fbfc: fixes OmegaArray default-items type
+- Updated dependencies [8096576]
+  - effect-app@3.3.6
+  - @effect-app/vue@2.59.2
+
 ## 0.19.11
 
 ### Patch Changes

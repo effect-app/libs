@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.6
+
+### Patch Changes
+
+- 8096576: new eslint shared config package
+
 ## 3.3.5
 
 ### Patch Changes

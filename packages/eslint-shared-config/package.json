@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/eslint-shared-config",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Shared flat ESLint base & vue configs for effect-app monorepo",
   "license": "MIT",
   "private": false,

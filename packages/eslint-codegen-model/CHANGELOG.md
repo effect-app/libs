@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 1.42.3
+
+### Patch Changes
+
+- 8096576: new eslint shared config package
+
 ## 1.42.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.56.3
+
+### Patch Changes
+
+- 5b383d9: implement dispose interfaces
+
 ## 2.56.2
 
 ### Patch Changes

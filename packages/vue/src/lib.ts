@@ -1,8 +1,8 @@
 import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
-import { Cause, type Effect, LogLevel, pipe, type Runtime } from "effect-app"
+import { Cause, type Effect, LogLevel, pipe } from "effect-app"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
-import type { MaybeRefOrGetter, ShallowRef } from "vue"
+import type { MaybeRefOrGetter } from "vue"
 import { reportError } from "./errorReporter.js"
 
 export * as Result from "@effect-atom/atom/Result"
@@ -61,11 +61,6 @@ export function useIntervalPauseWhileProcessing(
   return {
     isActive: iv.isActive
   }
-}
-
-export const getRuntime = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>) => {
-  if (!runtime.value) throw new Error("Effect runtime not set")
-  return runtime.value
 }
 
 /**

@@ -28,8 +28,7 @@ export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
   readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>
 }
 
-export const makeQuery = <R>(runtime: Runtime.Runtime<R>) => {
-  const runPromise = Runtime.runPromise(runtime)
+export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   // TODO: options
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: UndefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, queryClient?: QueryClient): UseQueryReturnType<TData, TError>;
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, queryClient?: QueryClient): UseQueryDefinedReturnType<TData, TError>;
@@ -41,6 +40,7 @@ export const makeQuery = <R>(runtime: Runtime.Runtime<R>) => {
   ) =>
   (arg?: I | WatchSource<I>, options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
   ) => {
+    const runPromise = Runtime.runPromise(getRuntime())
     const arr = arg
     const req: { value: I } = !arg
       ? undefined

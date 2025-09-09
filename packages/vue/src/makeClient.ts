@@ -213,9 +213,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
     const intl = yield* I18n
     const toast = yield* Toast
 
-    return <R>(runtime: Runtime.Runtime<R>) => {
-      const runPromise = Runtime.runPromise(runtime)
-
+    return <R>(getRuntime: () => Runtime.Runtime<R>) => {
       /**
        * Effect results are converted to Exit, so errors are ignored by default.
        * you should use the result ref to render errors!
@@ -751,6 +749,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
         const isDirty = ref(false)
         const isValid = ref(true)
         const isLoading = ref(false)
+        const runPromise = Runtime.runPromise(getRuntime())
 
         const submit1 =
           (onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, R>) =>
@@ -820,14 +819,13 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
   })
 }) {}
 
-const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
-  const runPromise = Runtime.runPromise(runtime)
+const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   // making sure names do not collide with auto exports in nuxt apps, please do not rename..
   /**
    * Effect results are passed to the caller, including errors.
    */
   // TODO
-  const _useQuery = makeQuery(runtime)
+  const _useQuery = makeQuery(getRuntime)
 
   /**
    * The difference with useQuery is that this function will return a Promise you can await in the Setup,
@@ -904,6 +902,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
   } = <Arg, E, A, Request extends TaggedRequestClassAny>(
     self: RequestHandlerWithInput<Arg, A, E, R, Request> | RequestHandler<A, E, R, Request>
   ) => {
+    const runPromise = Runtime.runPromise(getRuntime())
     const q = _useQuery(self as any) as any
     return (argOrOptions?: any, options?: any) => {
       const [resultRef, latestRef, fetch, uqrt] = q(argOrOptions, { ...options, suspense: true } // experimental_prefetchInRender: true }
@@ -962,10 +961,10 @@ const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt
 
 type Base = I18n | Toast
 export const makeClient = <RT, RE, RL>(
-  baseMrt: ManagedRuntime.ManagedRuntime<RT, never>,
+  getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT, never>,
   rootLayer: Layer.Layer<RL | Base, RE>
 ) => {
-  const baseRt = managedRuntimeRt(baseMrt)
+  const getBaseRt = () => managedRuntimeRt(getBaseMrt())
 
   // we want to create a managed runtime for query, command and mutation hooks, one per component instance
   const getRt = () => {
@@ -976,7 +975,7 @@ export const makeClient = <RT, RE, RL>(
       }
     }
     if (!instance.__effa) {
-      const rt = ManagedRuntime.make(rootLayer, baseMrt.memoMap)
+      const rt = ManagedRuntime.make(rootLayer, getBaseMrt().memoMap)
       instance.__effa = { rt, rts: new Map() }
       onUnmounted(() => rt.dispose())
     }
@@ -1007,7 +1006,7 @@ export const makeClient = <RT, RE, RL>(
       const mrt = makeRuntime(LegacyMutation.Default)
       const mut = mrt.runSync(LegacyMutation)
       const rt = managedRuntimeRt(mrt)
-      return mut(rt)
+      return mut(() => rt)
     })
   const useCommand = () =>
     get("command", () => {
@@ -1030,7 +1029,7 @@ export const makeClient = <RT, RE, RL>(
 
   return {
     useCommand,
-    ...mkQuery(baseRt),
+    ...mkQuery(getBaseRt),
     ...keys.reduce((prev, cur) => {
       prev[cur] = ((...args: [any]) => {
         return (getMutation() as any)[cur](...args)

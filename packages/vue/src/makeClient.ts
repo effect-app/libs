@@ -4,7 +4,7 @@ import { type InitialDataFunction, isCancelledError, type QueryObserverResult, t
 import { Cause, Effect, Exit, Layer, ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
-import { constant, identity, pipe, tuple } from "effect-app/Function"
+import { constant, flow, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
@@ -779,12 +779,16 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           return yield* onSubmit(yield* parse(state.value))
         })
 
+
+        const submitFromStatePromise = () => runPromise(submitFromState)
+
         return {
           fields,
           /** optimized for Vuetify v-form submit callback */
           submit,
           /** optimized for Native form submit callback or general use */
           submitFromState,
+          submitFromStatePromise,
           isDirty,
           isValid,
           isLoading
@@ -1004,7 +1008,7 @@ export const makeClient = <RT, RE, RL>(
       const mrt = makeRuntime(LegacyMutation.Default)
       const mut = mrt.runSync(LegacyMutation)
       const rt = managedRuntimeRt(mrt)
-      return Object.assign(mut(rt), { runtime: rt})
+      return mut(rt)
     })
   const useCommand = () =>
     get("command", () => {
@@ -1034,6 +1038,5 @@ export const makeClient = <RT, RE, RL>(
       }) as any
       return prev
     }, {} as { /** @deprecated use useCommand */ [K in keyof mut]: mut[K] }),
-    useRuntime() { return getMutation().runtime }
   }
 }

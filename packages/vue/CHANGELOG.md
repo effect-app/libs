@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.0
+
+### Minor Changes
+
+- 52f9ef9: curry query api
+
 ## 2.58.2
 
 ### Patch Changes

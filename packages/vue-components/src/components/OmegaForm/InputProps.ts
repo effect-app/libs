@@ -16,7 +16,7 @@ export type OmegaFieldInternalApi<From extends Record<PropertyKey, any>, TName e
   /* in out TOnDynamicAsync*/ FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
   /* in out TFormOnMount*/ FormValidateOrFn<From> | undefined,
   /* in out TFormOnChange*/ FormValidateOrFn<From> | undefined,
-  /* in out TFormOnChangeAsync*/ FormAsyncValidateOrFn<From> | undefined,
+  /* in out TFormOnChangeAsync*/ any,
   /* in out TFormOnBlur*/ FormValidateOrFn<From> | undefined,
   /* in out TFormOnBlurAsync*/ FormAsyncValidateOrFn<From> | undefined,
   /* in out TFormOnSubmit*/ FormValidateOrFn<From> | undefined,

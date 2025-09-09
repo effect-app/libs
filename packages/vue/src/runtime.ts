@@ -8,7 +8,15 @@ export function makeAppRuntime<A, E>(layer: Layer.Layer<A, E>) {
     )
     const mrt = ManagedRuntime.make(layer)
     yield* mrt.runtimeEffect
-    return mrt as ManagedRuntime.ManagedRuntime<A, never> // as we initialise here, there is no more error left.
+    return Object.assign(mrt as ManagedRuntime.ManagedRuntime<A, never>, {
+      [Symbol.dispose]() {
+        return Effect.runSync(mrt.disposeEffect)
+      },
+
+      [Symbol.asyncDispose]() {
+        return mrt.dispose()
+      }
+    }) // as we initialise here, there is no more error left.
   })
 }
 

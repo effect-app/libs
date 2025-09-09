@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.57.0
+
+### Minor Changes
+
+- 4462bb1: cleanup toast and mapHandler legacy
+
 ## 2.56.4
 
 ### Patch Changes

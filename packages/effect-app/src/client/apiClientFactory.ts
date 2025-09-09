@@ -206,6 +206,8 @@ const makeApiClientFactory = Effect
                 moduleName: meta.moduleName
               })
 
+              const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
+
               const fields = Struct.omit(Request.fields, "_tag")
               const requestAttr = h._tag
               // @ts-expect-error doc
@@ -215,9 +217,8 @@ const makeApiClientFactory = Effect
                     Effect.flatMap((client) =>
                       (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>
                     ),
-                    Effect.provide(requestLevelLayers),
+                    Effect.provide(layers),
                     Effect.provide(mr),
-                    Effect.provide(requestNameLayer)
                   ),
                   ...requestMeta,
                   raw: {
@@ -226,9 +227,8 @@ const makeApiClientFactory = Effect
                         (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>
                       ),
                       Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
-                      Effect.provide(requestLevelLayers),
+                      Effect.provide(layers),
                       Effect.provide(mr),
-                      Effect.provide(requestNameLayer)
                     ),
 
                     ...requestMeta
@@ -240,9 +240,8 @@ const makeApiClientFactory = Effect
                       Effect.flatMap((client) =>
                         (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
                       ),
-                      Effect.provide(requestLevelLayers),
+                      Effect.provide(layers),
                       Effect.provide(mr),
-                      Effect.provide(requestNameLayer)
                     ),
 
                   ...requestMeta,
@@ -254,9 +253,8 @@ const makeApiClientFactory = Effect
                           (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
                         ),
                         Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
-                        Effect.provide(requestLevelLayers),
+                        Effect.provide(layers),
                         Effect.provide(mr),
-                        Effect.provide(requestNameLayer)
                       ),
 
                     ...requestMeta

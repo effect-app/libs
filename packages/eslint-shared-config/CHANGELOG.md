@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.6
+
+### Patch Changes
+
+- 41ba3e9: fix publication
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.5
 
 ### Patch Changes

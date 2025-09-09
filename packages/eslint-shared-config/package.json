@@ -12,7 +12,7 @@
     "pub": "pnpm prepublish && npm publish --access public",
     "prepublish": "echo 'No build step for config package'",
     "postpublish": "echo 'Published @effect-app/eslint-shared-config'",
-    "prepack": "PNPM_NODE_LINKER=hoisted pnpm install --ignore-scripts --no-frozen-lockfile && patch-package || echo 'patch already applied'"
+    "prepack": "pnpm install --ignore-scripts --no-frozen-lockfile && patch-package || echo 'patch already applied'"
   },
   "exports": {
     "./eslint.base.config": {

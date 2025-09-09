@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.22
+
+### Patch Changes
+
+- a3ac3bb: fix export (?)
+
 ## 1.23.21
 
 ### Patch Changes

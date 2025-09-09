@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.8
+
+### Patch Changes
+
+- f503246: fix missing dep
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.7
 
 ### Patch Changes

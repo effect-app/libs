@@ -4,7 +4,7 @@ import { type InitialDataFunction, isCancelledError, type QueryObserverResult, t
 import { Cause, Effect, Exit, Layer, ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
-import { constant, pipe, tuple } from "effect-app/Function"
+import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
@@ -16,13 +16,13 @@ import { makeUseCommand } from "./experimental/makeUseCommand.js"
 import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
-import { asResult, makeMutation, type MutationOptions, mutationResultToVue, type Res } from "./mutate.js"
+import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res } from "./mutate.js"
 import { type KnownFiberFailure, makeQuery, type QueryObserverOptionsCustom } from "./query.js"
 
-const tapHandler = <A, E, R, I>(
+const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
-  map: (self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-) => Effect.isEffect(handler) ? map(handler) : (i: I) => map(handler(i))
+  map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
+) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
 
 /**
  * Use this after handling an error yourself, still continueing on the Error track, but the error will not be reported.
@@ -112,6 +112,7 @@ type ActResp<A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
 
 export const suppressToast = constant(Effect.succeed(undefined))
 
+/** handles errors as specified and reports defects */
 function handleRequest<
   E extends ResponseErrors,
   A,
@@ -184,23 +185,25 @@ function handleRequest<
   )
 }
 
-const _useUnsafeMutation = makeMutation()
+const _useMutation = makeMutation()
 
-export const useUnsafeMutation: typeof _useUnsafeMutation = <
+/**
+ * Pass an Effect or a function that returns an Effect, e.g from a client action
+ * Executes query cache invalidation based on default rules or provided option.
+ * adds a span with the mutation name
+ */
+export const useMutation: typeof _useMutation = <
   I,
   E,
   A,
   R,
-  Request extends TaggedRequestClassAny,
-  A2 = A,
-  E2 = E,
-  R2 = R
+  Request extends TaggedRequestClassAny
 >(
   self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
-  options?: MutationOptions<A, E, R, A2, E2, R2, I>
+  options?: MutationOptionsBase
 ) =>
-  tapHandler(
-    _useUnsafeMutation(self as any, options),
+  mapHandler(
+    _useMutation(self as any, options),
     Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
   ) as any
 
@@ -209,6 +212,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
   effect: Effect.gen(function*() {
     const intl = yield* I18n
     const toast = yield* Toast
+
     return <R>(runtime: Runtime.Runtime<R>) => {
       /**
        * Effect results are converted to Exit, so errors are ignored by default.
@@ -233,18 +237,22 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
         self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
         options?: MutationOptions<A, E, R, A2, E2, R2, I>
       ) => {
-        const unsafe = _useUnsafeMutation(self as any, options)
+        const unsafe = _useMutation(self as any, options)
 
-        const [a, b] = asResult(tapHandler(unsafe, Effect.tapDefect(reportRuntimeError)) as any)
+        type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
+        const mh = options?.mapHandler ?? identity as MH
+
+        const [a, b] = asResult(mapHandler(mapHandler(unsafe as any, mh), Effect.tapDefect(reportRuntimeError)) as any)
         return [
           a,
-          tapHandler(
+          mapHandler(
             b,
             Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
           )
         ] as const as any
       }
 
+      /** handles errors as toasts and reports defects */
       const _useHandleRequestWithToast = () => {
         return handleRequestWithToast
         /**
@@ -427,7 +435,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
       ): any => {
         const handleRequestWithToast = _useHandleRequestWithToast()
         const handler = self.handler
-        const [a, b] = asResult(_useUnsafeMutation({
+        const unsafe = _useMutation({
           ...self,
           handler: Effect.isEffect(handler)
             ? (pipe(
@@ -439,7 +447,13 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
                 Effect.annotateCurrentSpan({ action }),
                 Effect.zipRight(handler(...args))
               )
-        }, options ? dropUndefinedT(options) : undefined))
+        }, options ? dropUndefinedT(options) : undefined)
+
+        type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
+        const mh = options?.mapHandler ?? identity as MH
+
+        // Effect.tapDefect(reportRuntimeError) handled in toast handler,
+        const [a, b] = asResult(mapHandler(unsafe, mh) as any)
 
         return tuple(
           a,
@@ -651,7 +665,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           options?: LowOptsOptional<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): ActResp<A2, E2, R2>
       } = (self: any, action: string, options: any) => {
-        const [a, b] = asResult(_useUnsafeMutation({
+        const unsafe = _useMutation({
           ...self,
           handler: Effect.isEffect(self.handler)
             ? (pipe(
@@ -663,7 +677,12 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
                 Effect.annotateCurrentSpan({ action }),
                 Effect.andThen(self.handler(...args))
               )
-        }, options ? dropUndefinedT(options) : undefined))
+        }, options ? dropUndefinedT(options) : undefined)
+
+        type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
+        const mh = options?.mapHandler ?? identity as MH
+
+        const [a, b] = asResult(mapHandler(mapHandler(unsafe as any, mh), Effect.tapDefect(reportRuntimeError)) as any)
 
         return tuple(
           computed(() => mutationResultToVue(a.value)),
@@ -783,7 +802,10 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
         useAndHandleMutationCustom: _useAndHandleMutationCustom,
         /** @deprecated use Command.fn */
         makeUseAndHandleMutation: _makeUseAndHandleMutation,
-        /** @deprecated use Command.fn */
+        /**
+         * handles errors as toasts and reports defects
+         * @deprecated use Command.fn
+         */
         useHandleRequestWithToast: _useHandleRequestWithToast,
         /** @deprecated use OmegaForm */
         buildFormFromSchema: _buildFormFromSchema,

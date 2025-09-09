@@ -3,7 +3,7 @@ import * as Result from "@effect-atom/atom/Result"
 import { type InvalidateOptions, type InvalidateQueryFilters, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, type Exit, Option } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
-import { identity, tuple } from "effect-app/Function"
+import { tuple } from "effect-app/Function"
 import { computed, type ComputedRef, type Ref, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
 
@@ -67,12 +67,7 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
-export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
-  /**
-   * Map the handler; cache invalidation is already done in this handler.
-   * This is useful for e.g navigating, as you know caches have already updated.
-   */
-  mapHandler?: (handler: Effect.Effect<A, E, R>, input: I) => Effect.Effect<A2, E2, R2>
+export interface MutationOptionsBase {
   /**
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
    * This can be overridden by providing a function that returns an array of filters and options.
@@ -81,6 +76,17 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> {
     filters?: InvalidateQueryFilters | undefined
     options?: InvalidateOptions | undefined
   }[]
+}
+
+/** @deprecated prefer more basic @see MutationOptionsBase and separate useMutation from Command.fn */
+export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> extends MutationOptionsBase {
+  /**
+   * Map the handler; cache invalidation is already done in this handler.
+   * This is useful for e.g navigating, as you know caches have already updated.
+   *
+   * @deprecated use `Command.fn` instead of `useMutation*` with `mapHandler` option.
+   */
+  mapHandler?: (handler: Effect.Effect<A, E, R>, input: I) => Effect.Effect<A2, E2, R2>
 }
 
 // TODO: more efficient invalidation, including args etc
@@ -137,22 +143,26 @@ export const asResult: {
 }
 
 export const makeMutation = () => {
-  /**
-   * Pass a function that returns an Effect, e.g from a client action, or an Effect
-   * Returns a tuple with state ref and execution function which reports errors as Toast.
-   */
   const useMutation: {
-    <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+    /**
+     * Pass a function that returns an Effect, e.g from a client action
+     * Executes query cache invalidation based on default rules or provided option.
+     */
+    <I, E, A, R, Request extends TaggedRequestClassAny>(
       self: RequestHandlerWithInput<I, A, E, R, Request>,
-      options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): (i: I) => Effect.Effect<A2, E2, R2>
-    <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      options?: MutationOptionsBase
+    ): (i: I) => Effect.Effect<A, E, R>
+    /**
+     * Pass an Effect, e.g from a client action
+     * Executes query cache invalidation based on default rules or provided option.
+     */
+    <E, A, R, Request extends TaggedRequestClassAny>(
       self: RequestHandler<A, E, R, Request>,
-      options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): Effect.Effect<A2, E2, R2>
-  } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
+      options?: MutationOptionsBase
+    ): Effect.Effect<A, E, R>
+  } = <I, E, A, R, Request extends TaggedRequestClassAny>(
     self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
-    options?: MutationOptions<A, E, R, A2, E2, R2, I>
+    options?: MutationOptionsBase
   ) => {
     const queryClient = useQueryClient()
 
@@ -193,21 +203,13 @@ export const makeMutation = () => {
         .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
     })
 
-    type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
-    const mapHandler = options?.mapHandler ?? identity as MH
-
-    const handle = (self: Effect.Effect<A, E, R>, i: I | void = void 0) => (mapHandler(
-      Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache }),
-      i as I
-    ))
+    const handle = (self: Effect.Effect<A, E, R>) =>
+      Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache })
 
     const handler = self.handler
-    const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
+    const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i))
 
     return r as any
   }
   return useMutation
 }
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface MakeMutation2 extends ReturnType<typeof makeMutation> {}

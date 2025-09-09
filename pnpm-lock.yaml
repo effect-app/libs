@@ -313,6 +313,9 @@ importers:
       '@ben_12/eslint-plugin-dprint':
         specifier: 1.7.5
         version: 1.7.5(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.23.3)(dprint-plugin-yaml@0.5.1)(eslint@9.35.0)
+      '@dprint/formatter':
+        specifier: ^0.4.1
+        version: 0.4.1
       '@dprint/typescript':
         specifier: ^0.95.11
         version: 0.95.11

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.60.0
+
+### Minor Changes
+
+- 83207fc: improve nuxt use
+
 ## 2.59.8
 
 ### Patch Changes

@@ -822,14 +822,14 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
    * Effect results are passed to the caller, including errors.
    */
   // TODO
-  const _useSafeQuery = makeQuery(shallowRef(runtime))
+  const _useQuery = makeQuery(shallowRef(runtime))
 
   /**
-   * The difference with useSafeQuery is that this function will return a Promise you can await in the Setup,
+   * The difference with useQuery is that this function will return a Promise you can await in the Setup,
    * which ensures that either there always is a latest value, or an error occurs on load.
    * So that Suspense and error boundaries can be used.
    */
-  function useSafeSuspenseQuery<
+  function useSuspenseQuery<
     E,
     A,
     Request extends TaggedRequestClassAny
@@ -848,7 +848,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       UseQueryReturnType<any, any>
     ]
   >
-  function useSafeSuspenseQuery<
+  function useSuspenseQuery<
     Arg,
     E,
     A,
@@ -869,7 +869,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       UseQueryReturnType<any, any>
     ]
   >
-  function useSafeSuspenseQuery<
+  function useSuspenseQuery<
     E,
     A,
     Request extends TaggedRequestClassAny
@@ -886,7 +886,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       UseQueryReturnType<any, any>
     ]
   >
-  function useSafeSuspenseQuery<
+  function useSuspenseQuery<
     Arg,
     E,
     A,
@@ -905,12 +905,12 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       UseQueryReturnType<any, any>
     ]
   >
-  function useSafeSuspenseQuery(
+  function useSuspenseQuery(
     self: any,
     argOrOptions?: any,
     options?: any
   ) {
-    const [resultRef, latestRef, fetch, uqrt] = _useSafeQuery(
+    const [resultRef, latestRef, fetch, uqrt] = _useQuery(
       self,
       argOrOptions,
       { ...options, suspense: true } // experimental_prefetchInRender: true }
@@ -958,7 +958,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
     })
   }
 
-  return { useSafeQuery: _useSafeQuery, useSafeSuspenseQuery }
+  return { useQuery: _useQuery, useSuspenseQuery }
 }
 
 // somehow mrt.runtimeEffect doesnt work sync, but this workaround works fine? not sure why though as the layers are generally only sync

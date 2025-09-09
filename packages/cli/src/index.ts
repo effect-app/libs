@@ -147,6 +147,7 @@ Effect
         "@effect-app/infra": "file:" + effectAppLibsPath + "/packages/infra",
         "@effect-app/vue": "file:" + effectAppLibsPath + "/packages/vue",
         "@effect-app/vue-components": "file:" + effectAppLibsPath + "/packages/vue-components",
+        "@effect-app/eslint-shared-config": "file:" + effectAppLibsPath + "/packages/eslint-shared-config",
         ...packages.reduce((acc, p) => ({ ...acc, [p]: `file:${effectAppLibsPath}/node_modules/${p}` }), {})
       }
 

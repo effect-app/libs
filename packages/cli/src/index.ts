@@ -378,18 +378,24 @@ Effect
               }),
               {} as Record<string, unknown>
             ),
-          // Preserve ESLint config exports for effect-app package
-          ...(JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8")).name === "effect-app" && {
-            "./eslint.base.config": {
-              "default": "./src/eslint.base.config.mjs"
-            },
-            "./eslint.vue.config": {
-              "default": "./src/eslint.vue.config.mjs"
-            }
+          // add ESLint config exports if the corresponding files exist (this is for effa-app package)
+          ...(((yield* fs.exists(p + "/src/eslint.base.config.mjs"))
+            || (yield* fs.exists(p + "/src/eslint.vue.config.mjs"))) && {
+            ...((yield* fs.exists(p + "/src/eslint.base.config.mjs")) && {
+              "./eslint.base.config": {
+                "default": "./src/eslint.base.config.mjs"
+              }
+            }),
+            ...((yield* fs.exists(p + "/src/eslint.vue.config.mjs")) && {
+              "./eslint.vue.config": {
+                "default": "./src/eslint.vue.config.mjs"
+              }
+            })
           })
         }
 
         const pkgJson = JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8"))
+
         pkgJson.exports = packageExports
 
         yield* Effect.logInfo(`Writing updated package.json for ${p}`)

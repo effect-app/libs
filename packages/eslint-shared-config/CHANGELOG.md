@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.5
+
+### Patch Changes
+
+- 9c1de6c: trying to internally patch benten+2
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.4
 
 ### Patch Changes

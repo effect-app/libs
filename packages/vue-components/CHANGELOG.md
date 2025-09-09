@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 0.19.15
+
+### Patch Changes
+
+- f35da3c: porting more to eslint shared config package
+  - effect-app@3.3.6
+  - @effect-app/vue@2.59.4
+
 ## 0.19.14
 
 ### Patch Changes

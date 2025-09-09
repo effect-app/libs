@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.5
+
+### Patch Changes
+
+- 5951e0a: expose runtime
+
 ## 2.59.4
 
 ### Patch Changes

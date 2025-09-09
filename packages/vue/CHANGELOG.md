@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.8
+
+### Patch Changes
+
+- 48e4c52: remove type aware rule
+
 ## 2.59.7
 
 ### Patch Changes

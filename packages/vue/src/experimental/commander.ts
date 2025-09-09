@@ -723,7 +723,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             return cache
           }
           if (errorCall.stack) {
-            const stackDef = errorDef!.stack!.trim().split("\n")
+            const stackDef = errorDef.stack!.trim().split("\n")
             const stackCall = errorCall.stack.trim().split("\n")
             let endStackDef = stackDef.slice(2).join("\n").trim()
             if (!endStackDef.includes(`(`)) {

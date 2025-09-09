@@ -986,7 +986,7 @@ export const makeClient = <RT, RE, RL>(
       instance.__effa = { rt, rts: new Map() }
       onUnmounted(() => rt.dispose())
     }
-    return instance.__effa!
+    return instance.__effa
   }
 
   const makeRuntime = <A, E>(l: Layer.Layer<A, E, Base>) => {

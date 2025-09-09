@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.5
+
+### Patch Changes
+
+- 47e83ca: update cli
+
 ## 3.3.4
 
 ### Patch Changes

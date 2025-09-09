@@ -50,6 +50,8 @@ export type FormProps<From, To> =
       FormAsyncValidateOrFn<From> | undefined,
       FormValidateOrFn<From> | undefined,
       FormAsyncValidateOrFn<From> | undefined,
+      FormValidateOrFn<From> | undefined,
+      FormAsyncValidateOrFn<From> | undefined,
       FormAsyncValidateOrFn<From> | undefined,
       Record<string, any> | undefined // TODO
     >,
@@ -72,6 +74,8 @@ export type OmegaFormParams<From, To> = FormApi<
   FormAsyncValidateOrFn<From> | undefined,
   FormValidateOrFn<From> | undefined,
   FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
   FormAsyncValidateOrFn<From> | undefined,
   Record<string, any> | undefined
 >
@@ -81,6 +85,8 @@ export type OmegaFormState<From, To> = FormState<
   FormValidateOrFn<From> | undefined,
   FormValidateOrFn<From> | undefined,
   StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
   FormValidateOrFn<From> | undefined,
   FormAsyncValidateOrFn<From> | undefined,
   FormValidateOrFn<From> | undefined,
@@ -100,6 +106,8 @@ export type OmegaFormApi<From, To, TSubmitMeta = Record<string, any> | undefined
     FormAsyncValidateOrFn<From> | undefined,
     FormValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
     TSubmitMeta
   >
@@ -113,8 +121,10 @@ export type FormComponent<T, S> = VueFormApi<
   FormAsyncValidateOrFn<T> | undefined,
   FormValidateOrFn<T> | undefined,
   FormAsyncValidateOrFn<T> | undefined,
+  FormValidateOrFn<T> | undefined,
   FormAsyncValidateOrFn<T> | undefined,
-  FormAsyncValidateOrFn<T> | undefined
+  FormAsyncValidateOrFn<T> | undefined,
+  Record<string, any> | undefined
 >
 
 export type FormType<

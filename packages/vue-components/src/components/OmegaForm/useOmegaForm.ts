@@ -215,6 +215,8 @@ export const useOmegaForm = <
     FormAsyncValidateOrFn<From> | undefined,
     FormValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
+    FormValidateOrFn<From> | undefined,
+    FormAsyncValidateOrFn<From> | undefined,
     FormAsyncValidateOrFn<From> | undefined,
     Record<string, any> | undefined
   >({

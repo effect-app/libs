@@ -1026,6 +1026,7 @@ export const makeClient = <RT, RE, RL>(
   type mut = ReturnType<typeof getMutation>
 
   return {
+    runtime: baseMrt,
     useCommand,
     ...mkQuery(baseRt),
     ...keys.reduce((prev, cur) => {

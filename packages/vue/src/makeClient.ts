@@ -943,7 +943,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
 const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.runtime<A>())
 
 type Base = I18n | Toast
-export const makeClient = async <RT, RE, RL>(
+export const makeClient = <RT, RE, RL>(
   baseMrt: ManagedRuntime.ManagedRuntime<RT, never>,
   rootLayer: Layer.Layer<RL | Base, RE>
 ) => {

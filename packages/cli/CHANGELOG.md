@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.23
+
+### Patch Changes
+
+- 8096576: new eslint shared config package
+
 ## 1.23.22
 
 ### Patch Changes

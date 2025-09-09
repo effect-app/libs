@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.59.2
+
+### Patch Changes
+
+- 8096576: new eslint shared config package
+- Updated dependencies [8096576]
+  - effect-app@3.3.6
+
 ## 2.59.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.7
+
+### Patch Changes
+
+- 569fec4: trying to have an autonomous shared-config eslint
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.6
 
 ### Patch Changes

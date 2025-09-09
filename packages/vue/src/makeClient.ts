@@ -1004,7 +1004,7 @@ export const makeClient = <RT, RE, RL>(
       const mrt = makeRuntime(LegacyMutation.Default)
       const mut = mrt.runSync(LegacyMutation)
       const rt = managedRuntimeRt(mrt)
-      return mut(rt)
+      return Object.assign(mut(rt), { runtime: rt})
     })
   const useCommand = () =>
     get("command", () => {
@@ -1026,7 +1026,6 @@ export const makeClient = <RT, RE, RL>(
   type mut = ReturnType<typeof getMutation>
 
   return {
-    runtime: baseMrt,
     useCommand,
     ...mkQuery(baseRt),
     ...keys.reduce((prev, cur) => {
@@ -1034,6 +1033,7 @@ export const makeClient = <RT, RE, RL>(
         return (getMutation() as any)[cur](...args)
       }) as any
       return prev
-    }, {} as { /** @deprecated use useCommand */ [K in keyof mut]: mut[K] })
+    }, {} as { /** @deprecated use useCommand */ [K in keyof mut]: mut[K] }),
+    useRuntime() { return getMutation().runtime }
   }
 }

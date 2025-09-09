@@ -6,6 +6,13 @@
   "private": false,
   "type": "module",
   "sideEffects": false,
+  "scripts": {
+    "watch": "pnpm build -w",
+    "build": "echo 'Nothing to build (config only)'",
+    "pub": "pnpm prepublish && npm publish --access public",
+    "prepublish": "echo 'No build step for config package'",
+    "postpublish": "echo 'Published @effect-app/eslint-shared-config'"
+  },
   "exports": {
     "./eslint.base.config": {
       "default": "./src/eslint.base.config.mjs"
@@ -33,5 +40,8 @@
   },
   "dependencies": {
     "@effect-app/eslint-codegen-model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
   }
 }

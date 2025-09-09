@@ -11,7 +11,8 @@
     "build": "echo 'Nothing to build (config only)'",
     "pub": "pnpm prepublish && npm publish --access public",
     "prepublish": "echo 'No build step for config package'",
-    "postpublish": "echo 'Published @effect-app/eslint-shared-config'"
+    "postpublish": "echo 'Published @effect-app/eslint-shared-config'",
+    "prepack": "PNPM_NODE_LINKER=hoisted pnpm install --ignore-scripts --no-frozen-lockfile && patch-package || echo 'patch already applied'"
   },
   "exports": {
     "./eslint.base.config": {
@@ -30,7 +31,7 @@
     "eslint-plugin-codegen": "^0.17.0",
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
     "eslint-plugin-unused-imports": "^4.2.0",
-    "@ben_12/eslint-plugin-dprint": "^1.7.5",
+    "@ben_12/eslint-plugin-dprint": "1.7.5",
     "eslint-plugin-formatjs": "^5.4.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "typescript-eslint": "8.43.0",
@@ -48,6 +49,12 @@
     "eslint-plugin-prettier": "^5.5.4",
     "@typescript-eslint/eslint-plugin": "8.42.0",
     "@typescript-eslint/parser": "8.42.0"
+  },
+  "bundledDependencies": [
+    "@ben_12/eslint-plugin-dprint"
+  ],
+  "devDependencies": {
+    "patch-package": "^8.0.0"
   },
   "peerDependencies": {
     "eslint": "^9.35.0",

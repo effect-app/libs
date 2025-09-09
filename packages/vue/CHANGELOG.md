@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.58.0
+
+### Minor Changes
+
+- 338ba96: use query
+
 ## 2.57.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.24
+
+### Patch Changes
+
+- f35da3c: porting more to eslint shared config package
+
 ## 1.23.23
 
 ### Patch Changes

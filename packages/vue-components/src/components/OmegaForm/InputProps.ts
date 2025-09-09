@@ -12,24 +12,17 @@ export type OmegaFieldInternalApi<From extends Record<PropertyKey, any>, TName e
   /* in out TOnBlurAsync*/ FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>>,
   /* in out TOnSubmit*/ FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
   /* in out TOnSubmitAsync*/ FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+  /* in out TOnDynamic*/ FieldValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
+  /* in out TOnDynamicAsync*/ FieldAsyncValidateOrFn<From, TName, DeepValue<From, TName>> | undefined,
   /* in out TFormOnMount*/ FormValidateOrFn<From> | undefined,
   /* in out TFormOnChange*/ FormValidateOrFn<From> | undefined,
-  // using `any` for now to silence:
-  /*
-Type 'FieldApi<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>, FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<...>>> | undefined, ... 14 more ..., FormAsyncValidateOrFn<...> | undefined>' is not assignable to type 'OmegaFieldInternalApi<From, any>'.
-  The types of 'form.options.defaultState' are incompatible between these types.
-    Type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, StandardSchemaV1<From, To>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>> | undefined' is not assignable to type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, FormAsyncValidateOrFn<From>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>> | undefined'.
-      Type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, StandardSchemaV1<From, To>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>>' is not assignable to type 'Partial<FormState<From, FormValidateOrFn<From> | undefined, FormValidateOrFn<From> | undefined, FormAsyncValidateOrFn<From>, ... 4 more ..., FormAsyncValidateOrFn<...> | undefined>>'.
-        Types of property 'errorMap' are incompatible.
-          Type 'FormValidationErrorMap<undefined, undefined, Record<string, StandardSchemaV1Issue[]>, undefined, undefined, undefined, undefined, undefined> | undefined' is not assignable to type 'FormValidationErrorMap<undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined> | undefined'.
-            Type 'FormValidationErrorMap<undefined, undefined, Record<string, StandardSchemaV1Issue[]>, undefined, undefined, undefined, undefined, undefined>' is not assignable to type 'FormValidationErrorMap<undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>'.
-              Type 'Record<string, StandardSchemaV1Issue[]>' is not assignable to type 'undefined'.
-  */
-  /* in out TFormOnChangeAsync*/ any, // FormAsyncValidateOrFn<From>,
+  /* in out TFormOnChangeAsync*/ any,
   /* in out TFormOnBlur*/ FormValidateOrFn<From> | undefined,
   /* in out TFormOnBlurAsync*/ FormAsyncValidateOrFn<From> | undefined,
   /* in out TFormOnSubmit*/ FormValidateOrFn<From> | undefined,
   /* in out TFormOnSubmitAsync*/ FormAsyncValidateOrFn<From> | undefined,
+  /* in out TFormOnDynamic*/ FormValidateOrFn<From> | undefined,
+  /* in out TFormOnDynamicAsync*/ FormAsyncValidateOrFn<From> | undefined,
   /* in out TFormOnServer*/ FormAsyncValidateOrFn<From> | undefined,
   /* in out TParentSubmitMeta*/ Record<string, any> | undefined
 >

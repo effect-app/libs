@@ -156,50 +156,50 @@ export const makeQuery = <R>(runtime: Runtime.Runtime<R>) => {
   }
 
   const useQuery: {
-    // required options, with initialData
     <E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandler<A, E, R, Request>
-    ): (
+    ): {
+         // required options, with initialData 
+      (
       options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
         initialData: A | InitialDataFunction<A>
       }
-    ) => readonly [
+    ): readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
       (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
+    // optional options, optional A
+    (options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>): readonly [
+      ComputedRef<Result.Result<A, E>>,
+      ComputedRef<A | undefined>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+      UseQueryReturnType<any, any>
+    ]}
     <Arg, E, A, Request extends TaggedRequestClassAny>(
       self: RequestHandlerWithInput<Arg, A, E, R, Request>
-    ): (
+    ): {
+          // required options, with initialData
+      (
       arg: Arg | WatchSource<Arg>,
       options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
         initialData: A | InitialDataFunction<A>
       }
-    ) => readonly [
+    ) : readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A>,
       (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
     ]
-
     // optional options, optional A
-    <E, A, Request extends TaggedRequestClassAny>(
-      self: RequestHandler<A, E, R, Request>
-    ): (options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>) => readonly [
+  (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>) : readonly [
       ComputedRef<Result.Result<A, E>>,
       ComputedRef<A | undefined>,
       (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
       UseQueryReturnType<any, any>
-    ]
-    <Arg, E, A, Request extends TaggedRequestClassAny>(
-      self: RequestHandlerWithInput<Arg, A, E, R, Request>
-    ): (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>) => readonly [
-      ComputedRef<Result.Result<A, E>>,
-      ComputedRef<A | undefined>,
-      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
-      UseQueryReturnType<any, any>
-    ]
+    ]}
+
   } = (
     self: any
   ) => {

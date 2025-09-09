@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.4
+
+### Patch Changes
+
+- 75327b5: fix overloads
+
 ## 2.59.3
 
 ### Patch Changes

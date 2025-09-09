@@ -415,12 +415,13 @@ importers:
       eslint-plugin-vue:
         specifier: ^10.4.0
         version: 10.4.0(@typescript-eslint/parser@8.42.0(eslint@9.35.0)(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))(eslint@9.35.0)(vue-eslint-parser@10.2.0(eslint@9.35.0))
-      typescript:
-        specifier: ~5.9.2
-        version: 5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)
       typescript-eslint:
         specifier: 8.42.0
         version: 8.42.0(eslint@9.35.0)(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))
+    devDependencies:
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)
 
   packages/infra:
     dependencies:

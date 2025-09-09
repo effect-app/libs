@@ -394,6 +394,9 @@ importers:
       eslint-watch:
         specifier: ^8.0.0
         version: 8.0.0(eslint@9.35.0)
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
       typescript:
         specifier: ~5.9.2
         version: 5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)

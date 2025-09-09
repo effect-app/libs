@@ -4,7 +4,7 @@ import { type InitialDataFunction, isCancelledError, type QueryObserverResult, t
 import { Cause, Effect, Exit, Layer, ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
-import { constant, flow, identity, pipe, tuple } from "effect-app/Function"
+import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
@@ -779,7 +779,6 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           return yield* onSubmit(yield* parse(state.value))
         })
 
-
         const submitFromStatePromise = () => runPromise(submitFromState)
 
         return {
@@ -1037,6 +1036,6 @@ export const makeClient = <RT, RE, RL>(
         return (getMutation() as any)[cur](...args)
       }) as any
       return prev
-    }, {} as { /** @deprecated use useCommand */ [K in keyof mut]: mut[K] }),
+    }, {} as { /** @deprecated use useCommand */ [K in keyof mut]: mut[K] })
   }
 }

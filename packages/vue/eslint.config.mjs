@@ -19,7 +19,6 @@ export default [
     rules: {
       "@typescript-eslint/no-empty-interface": "off",
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
     }
   }
 ]

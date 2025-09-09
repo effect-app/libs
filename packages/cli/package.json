@@ -18,7 +18,8 @@
     "json5": "^2.2.3",
     "typescript": "~5.9.2",
     "vitest": "^3.2.4",
-    "effect-app": "workspace:*"
+    "effect-app": "workspace:*",
+    "@effect-app/eslint-shared-config": "workspace:*"
   },
   "typesVersions": {
     "*": {

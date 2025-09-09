@@ -1,0 +1,47 @@
+{
+  "name": "@effect-app/eslint-shared-config",
+  "version": "0.0.1",
+  "description": "Shared flat ESLint base & vue configs for effect-app monorepo",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "watch": "pnpm build -w",
+    "build": "echo 'Nothing to build (config only)'",
+    "pub": "pnpm prepublish && npm publish --access public",
+    "prepublish": "echo 'No build step for config package'",
+    "postpublish": "echo 'Published @effect-app/eslint-shared-config'"
+  },
+  "exports": {
+    "./eslint.base.config": {
+      "default": "./src/eslint.base.config.mjs"
+    },
+    "./eslint.vue.config": {
+      "default": "./src/eslint.vue.config.mjs"
+    }
+  },
+  "peerDependencies": {
+    "eslint": "^9.35.0",
+    "typescript": "~5.9.2",
+    "@eslint/js": "9.35.0",
+    "@eslint/eslintrc": "^3.3.1",
+    "@typescript-eslint/parser": "8.42.0",
+    "typescript-eslint": "8.42.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-codegen": "^0.17.0",
+    "eslint-plugin-sort-destructure-keys": "^2.0.0",
+    "eslint-plugin-unused-imports": "^4.2.0",
+    "@ben_12/eslint-plugin-dprint": "^1.7.5",
+    "eslint-plugin-formatjs": "^5.4.0",
+    "eslint-plugin-vue": "^10.4.0",
+    "@vue/eslint-config-typescript": "^14.6.0"
+  },
+  "dependencies": {
+    "@effect-app/eslint-codegen-model": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}

@@ -33,7 +33,8 @@
     "redlock": "^4.2.0",
     "strip-ansi": "^7.1.0",
     "typescript": "~5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@effect-app/eslint-shared-config": "workspace:*"
   },
   "peerDependencies": {
     "@azure/cosmos": "^4.5.1",

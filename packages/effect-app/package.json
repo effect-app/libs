@@ -20,6 +20,7 @@
     "@types/node": "~24.3.1",
     "@types/uuid": "^10.0.0",
     "@types/validator": "^13.15.3",
+    "@effect-app/eslint-shared-config": "workspace:*",
     "fast-check": "~4.3.0",
     "typescript": "~5.9.2",
     "vitest": "^3.2.4"
@@ -279,12 +280,6 @@
     "./validation/validators": {
       "types": "./dist/validation/validators.d.ts",
       "default": "./dist/validation/validators.js"
-    },
-    "./eslint.base.config": {
-      "default": "./src/eslint.base.config.mjs"
-    },
-    "./eslint.vue.config": {
-      "default": "./src/eslint.vue.config.mjs"
     }
   },
   "scripts": {

@@ -1,6 +1,6 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { augmentedConfig } from "effect-app/eslint.base.config"
+import { augmentedConfig } from "@effect-app/eslint-shared-config/eslint.base.config"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -19,6 +19,7 @@ export default [
     rules: {
       "@typescript-eslint/no-empty-interface": "off",
       "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
     }
   }
 ]

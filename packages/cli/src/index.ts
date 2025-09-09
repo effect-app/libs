@@ -377,21 +377,7 @@ Effect
                 ...cur !== "./index" && !cur.includes("/internal/") && { [cur]: filteredExportEntries[cur] }
               }),
               {} as Record<string, unknown>
-            ),
-          // add ESLint config exports if the corresponding files exist (this is for effa-app package)
-          ...(((yield* fs.exists(p + "/src/eslint.base.config.mjs"))
-            || (yield* fs.exists(p + "/src/eslint.vue.config.mjs"))) && {
-            ...((yield* fs.exists(p + "/src/eslint.base.config.mjs")) && {
-              "./eslint.base.config": {
-                "default": "./src/eslint.base.config.mjs"
-              }
-            }),
-            ...((yield* fs.exists(p + "/src/eslint.vue.config.mjs")) && {
-              "./eslint.vue.config": {
-                "default": "./src/eslint.vue.config.mjs"
-              }
-            })
-          })
+            )
         }
 
         const pkgJson = JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8"))
@@ -682,6 +668,7 @@ Effect
 
           const shouldExclude = false
             || packageName.endsWith("eslint-codegen-model")
+            || packageName.endsWith("eslint-shared-config")
             || packageName.endsWith("vue-components")
 
           if (packageJsonExists && srcExists && !shouldExclude) {

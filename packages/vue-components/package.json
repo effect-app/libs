@@ -52,7 +52,9 @@
     "vite": "^7.1.4",
     "vite-plugin-css-injected-by-js": "^3.5.2",
     "vitepress": "^1.6.4",
-    "vue-tsc": "^3.0.6"
+    "vue-tsc": "^3.0.6",
+    "@effect-app/eslint-shared-config": "workspace:*",
+    "vitest": "^3.2.4"
   },
   "files": [
     "src",

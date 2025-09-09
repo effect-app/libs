@@ -279,12 +279,6 @@
     "./validation/validators": {
       "types": "./dist/validation/validators.d.ts",
       "default": "./dist/validation/validators.js"
-    },
-    "./eslint.base.config": {
-      "default": "./src/eslint.base.config.mjs"
-    },
-    "./eslint.vue.config": {
-      "default": "./src/eslint.vue.config.mjs"
     }
   },
   "scripts": {

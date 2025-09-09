@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.3
+
+### Patch Changes
+
+- 9038ca5: fix query types
+
 ## 2.59.2
 
 ### Patch Changes

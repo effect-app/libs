@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.59.7
+
+### Patch Changes
+
+- f443974: simpler
+
 ## 2.59.6
 
 ### Patch Changes

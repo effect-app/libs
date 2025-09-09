@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 export default [
-  ...vueConfig(__dirname, false,  "./dprint.json"),
+  ...vueConfig(__dirname, false),
   {
     ignores: [".output/**", "dist/**", "node_modules/**"],
   },

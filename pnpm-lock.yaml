@@ -56,8 +56,8 @@ importers:
         specifier: ^0.95.11
         version: 0.95.11
       '@effect-app/cli':
-        specifier: ^1.23.21
-        version: 1.23.21(ff2ae6f3fbfa93fa035802b54b3bd8bd)
+        specifier: ^1.23.22
+        version: 1.23.22(ff2ae6f3fbfa93fa035802b54b3bd8bd)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -1091,8 +1091,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.23.21':
-    resolution: {integrity: sha512-GUSQzzgDC/OWEkCaPe8t6aPG+bMQUQPy0afpYRGO8NqaBPybEsWmoua1r2X4iOfJZy1W04ZRBvmWuFuJxdkF8g==}
+  '@effect-app/cli@1.23.22':
+    resolution: {integrity: sha512-C76gqgyqcv44DTzibtpudqHnkJfDUD0mL3ea+SOxuoKKaZ/Qzboc8Kb7KuVxGiO3+aPPBGHrHdVR2gORpZxUag==}
     hasBin: true
 
   '@effect-atom/atom-vue@0.1.20':
@@ -7320,7 +7320,7 @@ snapshots:
   '@dprint/win32-x64@0.50.1':
     optional: true
 
-  '@effect-app/cli@1.23.21(ff2ae6f3fbfa93fa035802b54b3bd8bd)':
+  '@effect-app/cli@1.23.22(ff2ae6f3fbfa93fa035802b54b3bd8bd)':
     dependencies:
       '@effect/cli': 0.69.2(@effect/platform@0.90.7(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(@effect/printer-ansi@0.45.0(@effect/typeclass@0.36.0(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(@effect/printer@0.45.0(@effect/typeclass@0.36.0(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2))
       '@effect/platform-node': 0.96.1(@effect/cluster@0.46.4(5a862f0c7e4b61117043f723556c62f9))(@effect/platform@0.90.7(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(@effect/rpc@0.69.2(@effect/platform@0.90.7(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(@effect/sql@0.44.2(@effect/experimental@0.54.6(@effect/platform@0.90.7(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(@effect/platform@0.90.7(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2)))(effect@3.17.13(patch_hash=df600697c619ed6ebecb7834703859278fdbdc931d55d19f5990d8536e428ad2))

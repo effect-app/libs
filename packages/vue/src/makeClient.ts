@@ -214,6 +214,8 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
     const toast = yield* Toast
 
     return <R>(runtime: Runtime.Runtime<R>) => {
+      const runPromise = Runtime.runPromise(runtime)
+
       /**
        * Effect results are converted to Exit, so errors are ignored by default.
        * you should use the result ref to render errors!
@@ -749,7 +751,6 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
         const isDirty = ref(false)
         const isValid = ref(true)
         const isLoading = ref(false)
-        const runPromise = Runtime.runPromise(runtime)
 
         const submit1 =
           (onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, R>) =>
@@ -817,6 +818,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
 }) {}
 
 const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
+  const runPromise = Runtime.runPromise(runtime)
   // making sure names do not collide with auto exports in nuxt apps, please do not rename..
   /**
    * Effect results are passed to the caller, including errors.
@@ -840,7 +842,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       options?: QueryObserverOptionsCustom<A, E> & {
         initialData: A | InitialDataFunction<A>
       }
-    ) => Effect.Effect<
+    ) => Promise<
       readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A>,
@@ -862,7 +864,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       options?: QueryObserverOptionsCustom<A, E> & {
         initialData: A | InitialDataFunction<A>
       }
-    ) => Effect.Effect<
+    ) => Promise<
       readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A>,
@@ -878,7 +880,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       Request extends TaggedRequestClassAny
     >(
       self: RequestHandler<A, E, R, Request>
-    ): (options?: QueryObserverOptionsCustom<A, E>) => Effect.Effect<
+    ): (options?: QueryObserverOptionsCustom<A, E>) => Promise<
       readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A>,
@@ -895,7 +897,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       Request extends TaggedRequestClassAny
     >(
       self: RequestHandlerWithInput<Arg, A, E, R, Request>
-    ): (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, E>) => Effect.Effect<
+    ): (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, E>) => Promise<
       readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A>,
@@ -919,7 +921,7 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
       })
 
       // @effect-diagnostics effect/missingEffectError:off
-      return Effect.gen(function*() {
+      const eff = Effect.gen(function*() {
         // we want to throw on error so that we can catch cancelled error and skip handling it
         // what's the difference with just calling `fetch` ?
         // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
@@ -952,7 +954,9 @@ const mkQuery = <R>(runtime: Runtime.Runtime<R>) => {
         }
 
         return [resultRef, latestRef, fetch, uqrt] as const
-      }) as any
+      })
+
+      return runPromise(eff)
     }
   }
 

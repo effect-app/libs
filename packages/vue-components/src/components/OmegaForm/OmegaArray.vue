@@ -12,7 +12,9 @@
         :is="form.Field"
         v-for="(_, i) of items"
         :key="`${name}[${Number(i)}]`"
-        :name="`${name}[${Number(i)}]` as DeepKeys<From>"
+        :name="// eslint-disable-next-line
+          `${name}[${Number(i)}]` as DeepKeys<From>
+        "
       >
         <template #default="{ field: subField, state: subState }">
           <slot
@@ -54,7 +56,7 @@ const props = defineProps<
     OmegaInputProps<From, To>,
     "validators" | "options" | "label" | "type" | "items"
   > & {
-    defaultItems?: DeepValue<To, DeepKeys<To>>
+    defaultItems?: DeepValue<From, DeepKeys<From>>
     // deprecated items, caused bugs in state update, use defaultItems instead. It's not a simple Never, because Volar explodes
     items?: "please use `defaultItems` instead"
   }
@@ -72,6 +74,7 @@ const items = computed(() => {
       return acc[curr] as typeof store.value
     }, store.value)
   } catch (e) {
+    console.error(e)
     return []
   }
 })

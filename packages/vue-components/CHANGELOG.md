@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.20.0
+
+### Minor Changes
+
+- 0abdde2: Updates Tanstack Form that passes from peer dependency to standard dependency
+
 ## 0.19.20
 
 ### Patch Changes

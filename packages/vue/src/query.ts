@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type Enabled, type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQueryClient, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type Enabled, type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
@@ -54,7 +54,7 @@ export const makeQuery = <R>(runtime: ShallowRef<Runtime.Runtime<R> | undefined>
     const queryKey = makeQueryKey(q)
     const handler = q.handler
 
-    const r = useQuery<unknown, KnownFiberFailure<E>, A>(
+    const r = useTanstackQuery<unknown, KnownFiberFailure<E>, A>(
       Effect.isEffect(handler)
         ? {
           ...options,

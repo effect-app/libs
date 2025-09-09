@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.58.1
+
+### Patch Changes
+
+- fix typo
+
 ## 2.58.0
 
 ### Minor Changes

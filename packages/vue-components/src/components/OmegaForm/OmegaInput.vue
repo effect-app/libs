@@ -69,5 +69,6 @@ const humanize = (str: string) => {
     .replace(/^./, (char) => char.toUpperCase()) // Capitalize the first letter
     .trim() // Remove leading/trailing spaces
 }
-const i18n = () => props.form.i18nNamespace ? formatMessage({id:`${props.form.i18nNamespace}.fields.${props.name}`, defaultMessage: humanize(props.name)}) : humanize(props.name)
+const fallback = () => formatMessage({id:`general.fields.${props.name}`, defaultMessage: humanize(props.name)})
+const i18n = () => props.form.i18nNamespace ? formatMessage({id:`${props.form.i18nNamespace}.fields.${props.name}`, defaultMessage: fallback()}) : fallback()
 </script>

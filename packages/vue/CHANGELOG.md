@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.60.2
+
+### Patch Changes
+
+- fcdc19f: weird interruption issue
+
 ## 2.60.1
 
 ### Patch Changes

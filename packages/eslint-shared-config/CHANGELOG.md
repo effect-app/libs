@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.11
+
+### Patch Changes
+
+- 3454a27: enable projectService only when ENV var is set
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.10
 
 ### Patch Changes

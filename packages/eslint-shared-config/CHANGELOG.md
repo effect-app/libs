@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.10
+
+### Patch Changes
+
+- 01e379a: always set tsconfigRootDir
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.9
 
 ### Patch Changes

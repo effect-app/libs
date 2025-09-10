@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.21.1
+
+### Patch Changes
+
+- 267295c: fixes typos
+
 ## 0.21.0
 
 ### Minor Changes

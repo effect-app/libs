@@ -28,10 +28,8 @@
 <script
   setup
   lang="ts"
-  generic="
-  From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>
-"
+  generic="From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>"
 >
 import { computed, inject, type Ref } from "vue"
 import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputProps } from "./OmegaFormStuff"

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.21.2
+
+### Patch Changes
+
+- 882a3da: support fallback to general i18n namespace
+
 ## 0.21.1
 
 ### Patch Changes

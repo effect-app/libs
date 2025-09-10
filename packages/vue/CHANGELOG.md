@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.60.7
+
+### Patch Changes
+
+- mm
+
 ## 2.60.6
 
 ### Patch Changes

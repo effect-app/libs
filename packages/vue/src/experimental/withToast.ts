@@ -39,14 +39,14 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
             )
           ),
           Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
-            console.info(
+            yield* Effect.logDebug(
               "WithToast - caught error cause: " + Cause.squash(cause),
               Cause.isInterruptedOnly(cause),
               cause
             )
-            // probably doesn't catch, although sometimes seems to?
+
             if (Cause.isInterruptedOnly(cause)) {
-              if (toastId) yield* toast.dismiss(toastId).pipe(Effect.delay("1 micros"))
+              if (toastId) yield* toast.dismiss(toastId)
               return
             }
 

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.60.1
+
+### Patch Changes
+
+- 515992c: fix toast interruption hopefully.
+
 ## 2.60.0
 
 ### Minor Changes

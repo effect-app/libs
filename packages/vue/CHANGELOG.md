@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.60.3
+
+### Patch Changes
+
+- 6a7e256: dbg log
+
 ## 2.60.2
 
 ### Patch Changes

@@ -133,7 +133,7 @@ watch(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((e: any) => e.message)
           .filter(Boolean),
-        label: props.label
+        label: props.label,
       })
     } else {
       removeError(id)

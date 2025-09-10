@@ -11,10 +11,11 @@ export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 export type OmegaInputProps<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> = {
   form: OmegaFormReturn<From, To> & {
     meta: MetaRecord<From>
+    i18nNamespace?: string
   }
   name: NestedKeyOf<From>
   validators?: FieldValidators<From>
-  label: string
+  label?: string
   options?: { title: string; value: string }[]
   type?: TypeOverride
 }

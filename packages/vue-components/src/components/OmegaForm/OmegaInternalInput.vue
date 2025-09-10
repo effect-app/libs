@@ -34,7 +34,7 @@ defineOptions({
 const props = defineProps<{
   field: OmegaFieldInternalApi<From, Name>
   meta: MetaRecord<From>[NestedKeyOf<From>]
-  label?: string
+  label: string
   options?: { title: string; value: string }[]
   type?: TypeOverride
   validators?: FieldValidators<From>
@@ -133,7 +133,7 @@ watch(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((e: any) => e.message)
           .filter(Boolean),
-        label: props.label ?? fieldApi.name
+        label: props.label,
       })
     } else {
       removeError(id)

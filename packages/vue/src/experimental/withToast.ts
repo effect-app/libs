@@ -44,6 +44,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               if (toastId) yield* toast.dismiss(toastId)
               return
             }
+            yield* Effect.logDebug("WithToast - caught error cause: " + Cause.squash(cause), cause)
             const t = typeof options.onFailure === "string"
               ? options.onFailure
               : options.onFailure(Cause.failureOption(cause), ...args)

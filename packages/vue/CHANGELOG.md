@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.60.4
+
+### Patch Changes
+
+- toast
+
 ## 2.60.3
 
 ### Patch Changes

@@ -39,12 +39,17 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
             )
           ),
           Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
+            yield* Effect.logDebug(
+              "WithToast - caught error cause: " + Cause.squash(cause),
+              Cause.isInterruptedOnly(cause),
+              cause
+            )
             // probably doesn't catch, although sometimes seems to?
             if (Cause.isInterruptedOnly(cause)) {
-              if (toastId) yield* toast.dismiss(toastId)
+              if (toastId) yield* toast.dismiss(toastId).pipe(Effect.delay("1 micros"))
               return
             }
-            yield* Effect.logDebug("WithToast - caught error cause: " + Cause.squash(cause), cause)
+
             const t = typeof options.onFailure === "string"
               ? options.onFailure
               : options.onFailure(Cause.failureOption(cause), ...args)
@@ -58,12 +63,16 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
             yield* toast.error(t, toastId !== undefined ? { ...opts, id: toastId } : opts)
           })),
           Effect.onExit(Effect.fnUntraced(function*(exit) {
-            if (!Exit.isFailure(exit)) { return }
+            if (!Exit.isFailure(exit)) return
+            yield* Effect.logDebug(
+              "WithToast - caught error cause: " + Cause.squash(exit.cause),
+              Cause.isInterruptedOnly(exit.cause),
+              exit.cause
+            )
             if (Cause.isInterruptedOnly(exit.cause)) {
-              if (toastId) yield* toast.dismiss(toastId)
+              if (toastId) yield* toast.dismiss(toastId).pipe(Effect.delay("1 micros"))
               return
             }
-
           })),
           toastId !== undefined ? Effect.provideService(CurrentToastId, CurrentToastId.of({ toastId })) : (_) => _
         )

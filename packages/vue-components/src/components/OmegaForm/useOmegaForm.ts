@@ -22,6 +22,8 @@ type keysRule<T> =
   }
 
 export type OmegaConfig<T> = {
+  i18nNamespace?: string
+
   persistency?: {
     /** Order of importance:
      * - "querystring": Highest priority when persisting
@@ -37,6 +39,7 @@ interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   filterItems?: FilterItems
   clear: () => void
+  i18nNamespace?: string
   // /** @experimental */
   // handleSubmitEffect: (meta?: Record<string, any>) => Effect.Effect<void, never, never>
 }
@@ -330,6 +333,7 @@ export const useOmegaForm = <
 
   const handleSubmit = form.handleSubmit
   const formWithExtras: OF<From, To> = Object.assign(form, {
+    i18nNamespace: omegaConfig?.i18nNamespace,
     meta,
     filterItems,
     clear,

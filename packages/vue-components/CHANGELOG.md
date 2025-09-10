@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.21.0
+
+### Minor Changes
+
+- bc963fa: feat: add support for `i18nNamespace` to localise field labels automatically
+
 ## 0.20.7
 
 ### Patch Changes

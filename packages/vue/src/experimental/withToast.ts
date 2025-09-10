@@ -38,8 +38,12 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
             )
           ),
-          // probably doesn't catch interruption..
           Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
+            // probably doesn't catch, although sometimes seems to?
+            if (Cause.isInterruptedOnly(cause)) {
+              if (toastId) yield* toast.dismiss(toastId)
+              return
+            }
             const t = typeof options.onFailure === "string"
               ? options.onFailure
               : options.onFailure(Cause.failureOption(cause), ...args)

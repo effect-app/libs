@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.12
+
+### Patch Changes
+
+- 885a76f: enableTS is now defined again
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.11
 
 ### Patch Changes

@@ -1,4 +1,4 @@
-import { Cause, Effect, type Option } from "effect-app"
+import { Cause, Effect, Exit, type Option } from "effect-app"
 import { CurrentToastId, Toast } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>> {
@@ -38,11 +38,8 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
             )
           ),
+          // probably doesn't catch interruption..
           Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
-            if (Cause.isInterruptedOnly(cause)) {
-              if (toastId) yield* toast.dismiss(toastId)
-              return
-            }
             const t = typeof options.onFailure === "string"
               ? options.onFailure
               : options.onFailure(Cause.failureOption(cause), ...args)
@@ -54,6 +51,14 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
                 : yield* toast.error(t.message, toastId !== undefined ? { ...opts, id: toastId } : opts)
             }
             yield* toast.error(t, toastId !== undefined ? { ...opts, id: toastId } : opts)
+          })),
+          Effect.onExit(Effect.fnUntraced(function*(exit) {
+            if (!Exit.isFailure(exit)) { return }
+            if (Cause.isInterruptedOnly(exit.cause)) {
+              if (toastId) yield* toast.dismiss(toastId)
+              return
+            }
+
           })),
           toastId !== undefined ? Effect.provideService(CurrentToastId, CurrentToastId.of({ toastId })) : (_) => _
         )

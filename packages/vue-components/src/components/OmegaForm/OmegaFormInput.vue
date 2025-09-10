@@ -39,7 +39,7 @@ if (!form) {
 
 defineProps<{
   name: Name
-  label: string
+  label?: string
   validators?: FieldValidators<From>
   options?: { title: string; value: string }[]
   type?: TypeOverride

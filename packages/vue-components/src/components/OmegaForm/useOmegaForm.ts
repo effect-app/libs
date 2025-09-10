@@ -72,7 +72,7 @@ export interface OmegaFormReturn<From extends Record<PropertyKey, any>, To exten
             never
           > & {
             name: Name
-            label: string
+            label?: string
             validators?: FieldValidators<From>
             options?: {
               title: string

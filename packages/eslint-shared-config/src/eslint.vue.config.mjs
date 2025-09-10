@@ -21,7 +21,7 @@ export function vueConfig(dirName, forceTS = false, dprintConfigFile ) {
   if (!dprintConfigFile) dprintConfigFile = DEFAULT_DPRINT_CONFIG
   console.log("Using dprint config file:", dprintConfigFile)
 
-  const enableTS = !!dirName && (forceTS || process.env["ESLINT_TS"])
+  // const enableTS = !!dirName && (forceTS || process.env["ESLINT_TS"])
 
   return [
     ...baseConfig(dirName, forceTS),
@@ -41,7 +41,7 @@ export function vueConfig(dirName, forceTS = false, dprintConfigFile ) {
             "ts": tseslint.parser,
             "js": tseslint.parser,
           },
-          ...(enableTS && {
+          ...({
             projectService: true,
             tsconfigRootDir: dirName,
           }),

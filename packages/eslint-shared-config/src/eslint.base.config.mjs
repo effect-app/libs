@@ -65,8 +65,7 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
         parser: tsParser,
         parserOptions: {
           extraFileExtensions: [".vue"], // should be the same as vue config for perfomance reasons (https://typescript-eslint.io/troubleshooting/typed-linting/performance#project-service-issues)
-          ...(enableTS
-            && {
+          ...({
               tsconfigRootDir: dirName,
               projectService: true
             })

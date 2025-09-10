@@ -41,9 +41,9 @@ export function vueConfig(dirName, forceTS = false, dprintConfigFile ) {
             "ts": tseslint.parser,
             "js": tseslint.parser,
           },
-          ...({
+          tsconfigRootDir: dirName,
+          ...(enableTS && {
             projectService: true,
-            tsconfigRootDir: dirName,
           }),
           extraFileExtensions: [".vue"]
         }

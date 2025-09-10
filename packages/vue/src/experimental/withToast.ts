@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit, type Option } from "effect-app"
+import { Cause, Effect, type Option } from "effect-app"
 import { CurrentToastId, Toast } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>> {
@@ -61,19 +61,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
                 : yield* toast.error(t.message, toastId !== undefined ? { ...opts, id: toastId } : opts)
             }
             yield* toast.error(t, toastId !== undefined ? { ...opts, id: toastId } : opts)
-          })),
-          Effect.onExit(Effect.fnUntraced(function*(exit) {
-            if (!Exit.isFailure(exit)) return
-            console.info(
-              "WithToast - caught error cause: " + Cause.squash(exit.cause),
-              Cause.isInterruptedOnly(exit.cause),
-              exit.cause
-            )
-            if (Cause.isInterruptedOnly(exit.cause)) {
-              if (toastId) yield* toast.dismiss(toastId).pipe(Effect.delay("1 micros"))
-              return
-            }
-          })),
+          }, Effect.uninterruptible)),
           toastId !== undefined ? Effect.provideService(CurrentToastId, CurrentToastId.of({ toastId })) : (_) => _
         )
       })

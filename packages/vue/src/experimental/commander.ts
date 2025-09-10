@@ -507,7 +507,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                   message: `Unexpected Error trying to ${actionName}`
                 }
                 yield* reportRuntimeError(cause, extra)
-              })
+              }, Effect.uninterruptible)
             )
           )
 

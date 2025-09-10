@@ -39,7 +39,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
             )
           ),
           Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
-            yield* Effect.logDebug(
+            console.info(
               "WithToast - caught error cause: " + Cause.squash(cause),
               Cause.isInterruptedOnly(cause),
               cause
@@ -64,7 +64,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
           })),
           Effect.onExit(Effect.fnUntraced(function*(exit) {
             if (!Exit.isFailure(exit)) return
-            yield* Effect.logDebug(
+            console.info(
               "WithToast - caught error cause: " + Cause.squash(exit.cause),
               Cause.isInterruptedOnly(exit.cause),
               exit.cause

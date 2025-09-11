@@ -1261,6 +1261,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       alt2: ((rt: any) => {
         const cmd = makeCommand(rt)
         return (id: any) => {
+          id = typeof id === "object" || typeof id === "function" ? id.name : id
           const context = makeContext(id)
           const idCmd = cmd(id)
           // TODO: implement proper tracing stack
@@ -1276,11 +1277,16 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ), context)
             ))
         }
-      }) as unknown as <RT>(runtime: Runtime.Runtime<RT>) => <const Id extends string>(
-        id: Id
+      }) as unknown as <RT>(
+        runtime: Runtime.Runtime<RT>
+      ) => <const Id extends string, MutArgs extends Array<any>, MutA, MutE, MutR>(
+        id: Id | { name: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
       ) => <Args extends Array<any>, A, E, R extends RT | CommandContext>(
         handler: (
-          ctx: Effect.fn.Gen & Commander.CommandContextLocal<Id>
+          ctx: Effect.fn.Gen & Commander.CommandContextLocal<Id> & {
+            // todo: only if we passed in one
+            mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
+          }
         ) => (...args: Args) => Effect.Effect<A, E, R>
       ) => Commander.CommandOut<Args, A, E, R, Id>,
 

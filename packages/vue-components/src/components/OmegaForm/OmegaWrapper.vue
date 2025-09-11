@@ -126,11 +126,15 @@ const eventOnSubmit: FormProps<From, To>["onSubmit"] = (
     })
   })
 
-const onSubmit = typeof props.isLoading !== "undefined"
-  ? eventOnSubmit
+  // we need to keep onSubmit reactive or it can't pick up local state changes, inside forms
+  // which is the whole point of having props
+const onSubmit_ = typeof props.isLoading !== "undefined"
+  ? computed(() => eventOnSubmit)
   : typeof props.onSubmit !== "undefined"
-  ? props.onSubmit
+  ? computed(() => props.onSubmit)
   : undefined
+
+const onSubmit = onSubmit_?.value ? (...args: [any]) => onSubmit_!.value!(...args) : undefined
 
 const localForm = props.form || !props.schema
   ? undefined

@@ -56,8 +56,8 @@ export type FormProps<From, To> =
       FormAsyncValidateOrFn<From> | undefined,
       Record<string, any> | undefined // TODO
     >,
-    "onSubmit" |
-    "defaultValues"
+    | "onSubmit"
+    | "defaultValues"
   >
   & {
     // when defaultValues are allowed to be undefined, then they should also be allowed to be partial

@@ -8,6 +8,11 @@ import { useExperimental } from "./stubs.js"
 
 const unwrap = <A, E>(r: RuntimeFiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
 
+declare const mutation: {
+  name: "myMutation"
+  mutate: (a: number, b: string) => Effect.Effect<number, boolean, CommandContext>
+}
+
 it.live("works", () =>
   Effect
     .gen(function*() {
@@ -46,6 +51,10 @@ it.live("works", () =>
       expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
+
+      const wrap = Command.wrap(mutation)
+      wrap()
+      wrap((_, ...args) => Effect.tap(_, () => console.log("called with", _, args)))
     }))
 
 it.live("works non-gen", () =>

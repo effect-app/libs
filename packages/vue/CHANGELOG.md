@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 2.61.2
+
+### Patch Changes
+
+- 2c48e28: enable updating command name
+- 2c48e28: override action name
+
 ## 2.61.1
 
 ### Patch Changes

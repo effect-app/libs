@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.61.1
+
+### Patch Changes
+
+- f42d895: pass action to toast too
+
 ## 2.61.0
 
 ### Minor Changes

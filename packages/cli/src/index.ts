@@ -37,21 +37,21 @@ Effect
           NodeCommand.exitCode
         )
 
-    /**
-     * Executes a shell command using Node.js Command API and captures output as string.
-     * The command is run through the system shell (/bin/sh) for proper command parsing.
-     *
-     * @param cmd - The shell command to execute
-     * @param cwd - Optional working directory to execute the command in
-     * @returns An Effect that succeeds with the command output or fails with a PlatformError
-     */
-    const runNodeCommand = (cmd: string, cwd?: string) =>
-      NodeCommand
-        .make("sh", "-c", cmd)
-        .pipe(
-          cwd ? NodeCommand.workingDirectory(cwd) : identity,
-          NodeCommand.string
-        )
+    // /**
+    //  * Executes a shell command using Node.js Command API and captures output as string.
+    //  * The command is run through the system shell (/bin/sh) for proper command parsing.
+    //  *
+    //  * @param cmd - The shell command to execute
+    //  * @param cwd - Optional working directory to execute the command in
+    //  * @returns An Effect that succeeds with the command output or fails with a PlatformError
+    //  */
+    // const runNodeCommand = (cmd: string, cwd?: string) =>
+    //   NodeCommand
+    //     .make("sh", "-c", cmd)
+    //     .pipe(
+    //       cwd ? NodeCommand.workingDirectory(cwd) : identity,
+    //       NodeCommand.string
+    //     )
 
     /**
      * Executes a bash script file using Node.js Command API with inherited stdio streams.

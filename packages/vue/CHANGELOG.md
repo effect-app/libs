@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.63.0
+
+### Minor Changes
+
+- 2dcfc4b: enhance Command with id/namespace/namespaced
+
 ## 2.62.1
 
 ### Patch Changes

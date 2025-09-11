@@ -1290,7 +1290,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         id: Id | { name: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
       ) => <Args extends Array<any>, A, E, R extends RT | CommandContext>(
         handler: (
-          ctx: Effect.fn.Gen & Commander.CommandContextLocal<Id> & {
+          ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id> & {
             // todo: only if we passed in one
             mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
           }

@@ -2,7 +2,7 @@
 import { asResult, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
+import { Cause, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { type RuntimeFiber } from "effect/Fiber"
@@ -40,9 +40,9 @@ export const DefaultIntl = {
   }
 }
 
-export class CommandContext extends Context.Tag("CommandContext")<
+export class CommandContext extends Effect.Tag("CommandContext")<
   CommandContext,
-  { action: string; name: string }
+  { action: string; baseName: string; namespace: string; namespaced: (key: string) => string }
 >() {}
 
 export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
@@ -775,11 +775,13 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           errorDef = localErrorDef
         }
 
+        const namespace = `action.${actionName}`
+
         const action = intl.formatMessage({
-          id: `action.${actionName}`,
+          id: namespace,
           defaultMessage: actionName
         })
-        const context = { action, name: actionName }
+        const context = { action, baseName: actionName, namespace, namespaced: (k: string) => `${namespace}.${k}` }
 
         const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
           self.pipe(

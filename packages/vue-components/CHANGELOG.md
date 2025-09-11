@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.22.17
+
+### Patch Changes
+
+- 1c4b568: fix: onSubmit must remain reactive
+
 ## 0.22.16
 
 ### Patch Changes

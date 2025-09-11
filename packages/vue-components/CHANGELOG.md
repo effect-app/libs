@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 0.22.1
+
+### Patch Changes
+
+- 41fcc23: add experimental wrap
+- Updated dependencies [41fcc23]
+- Updated dependencies [84f8ec7]
+  - @effect-app/vue@2.60.8
+
 ## 0.22.0
 
 ### Minor Changes

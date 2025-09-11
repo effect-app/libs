@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 2.60.8
+
+### Patch Changes
+
+- 41fcc23: add experimental wrap
+- 84f8ec7: make name a const and available on Command out
+
 ## 2.60.7
 
 ### Patch Changes

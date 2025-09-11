@@ -1184,7 +1184,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       renderError,
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
       withDefaultToast: <A, E, R, Args extends ReadonlyArray<unknown>>(
-        options?: () => {
+        options?: {
           errorRenderer?: ErrorRenderer<E, Args>
           onWaiting?: null | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
           onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
@@ -1200,16 +1200,16 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           return yield* self.pipe(
             (_) =>
               withToast<A, E, Args, R>({
-                onWaiting: options?.().onWaiting === null ? null : intl.formatMessage(
+                onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
                   { id: "handle.waiting" },
                   { action: cc.action }
                 ),
-                onSuccess: options?.().onSuccess === null
+                onSuccess: options?.onSuccess === null
                   ? null
                   : (a, ..._args) =>
                     intl.formatMessage({ id: "handle.success" }, { action: cc.action })
                     + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-                onFailure: defaultFailureMessageHandler(cc.action, options?.().errorRenderer)
+                onFailure: defaultFailureMessageHandler(cc.action, options?.errorRenderer)
               })(_, ...args)
           )
         }),

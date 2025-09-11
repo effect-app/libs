@@ -7,6 +7,7 @@ import { Commander } from "../src/experimental/commander.js"
 import { I18n } from "../src/experimental/intl.js"
 import { makeUseCommand } from "../src/experimental/makeUseCommand.js"
 import * as Toast from "../src/experimental/toast.js"
+import { WithToast } from "../src/experimental/withToast.js"
 import { type MakeIntlReturn } from "../src/makeIntl.js"
 
 const fakeToastLayer = (toasts: any[] = []) =>
@@ -74,6 +75,8 @@ export const useExperimental = (
   const FakeIntlLayer = fakeIntlLayer(options?.messages)
   const FakeToastLayer = fakeToastLayer(options?.toasts)
   const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
+  const WithToastLayer = WithToast.Default.pipe(Layer.provide(FakeToastLayer))
+  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer)
 
-  return Effect.runSync(makeUseCommand().pipe(Effect.provide(CommanderLayer)))
+  return Effect.runSync(makeUseCommand<WithToast | Toast.Toast>().pipe(Effect.provide(layers)))
 }

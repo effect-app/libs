@@ -96,7 +96,8 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
       })
   })
 }) {
-  static readonly handle = <A, E, Args extends ReadonlyArray<unknown>, WaiR = never, SucR = never, ErrR = never>(
+  static readonly handle = <A, E, Args extends ReadonlyArray<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
     options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
-  ) => this.use((_) => _(options))
+  ): (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, R | WaiR | SucR | ErrR | WithToast> =>
+  (self, ...args) => this.use((_) => _<A, E, Args, R, WaiR, SucR, ErrR>(options)(self, ...args))
 }

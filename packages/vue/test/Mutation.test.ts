@@ -8,10 +8,10 @@ import { useExperimental } from "./stubs.js"
 
 const unwrap = <A, E>(r: RuntimeFiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
 
-declare const mutation: {
-  name: "myMutation"
-  mutate: (a: number, b: string) => Effect.Effect<number, boolean, CommandContext>
-}
+// declare const mutation: {
+//   name: "myMutation"
+//   mutate: (a: number, b: string) => Effect.Effect<number, boolean, CommandContext>
+// }
 
 it.live("works", () =>
   Effect
@@ -224,7 +224,11 @@ it.live("with toasts", () =>
         Effect.tap(() =>
           Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
         ),
-        Command.withDefaultToast(),
+        // WithToast.handle({
+        //   onFailure: "failed",
+        //   onSuccess: () => Effect.map(CommandContext, (_) => _.action),
+        //   onWaiting: null
+        // }),
         Effect.tap(() => executed = true)
       )
 

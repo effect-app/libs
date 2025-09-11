@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.0.29
+
+### Patch Changes
+
+- 4000c95: track const action name
+- Updated dependencies [4000c95]
+  - effect-app@3.3.7
+
 ## 3.0.28
 
 ### Patch Changes

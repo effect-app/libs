@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.3.7
+
+### Patch Changes
+
+- 4000c95: track const action name
+
 ## 3.3.6
 
 ### Patch Changes

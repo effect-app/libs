@@ -47,12 +47,14 @@ export function makePathWithBody(
   return path.build(pars, { ignoreSearch: true, ignoreConstraints: true })
 }
 
-export type Requests = Record<string, any>
+export type Requests<ModuleName extends string = string> = { meta: { moduleName: ModuleName } } & RequestsAny
+export type RequestsAny = Record<string, any>
 
-export type Client<M extends Requests> = RequestHandlers<
+export type Client<M extends RequestsAny, ModuleName extends string> = RequestHandlers<
   never,
   never,
-  M
+  M,
+  ModuleName
 >
 
 export type ExtractResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.Type<T>
@@ -80,33 +82,47 @@ export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
 }
 
-export interface RequestHandler<A, E, R, Request extends TaggedRequestClassAny> {
+export interface RequestHandler<A, E, R, Request extends TaggedRequestClassAny, Name extends string> {
   handler: Effect.Effect<A, E, R>
-  name: string
+  name: Name
   options?: ClientForOptions
   Request: Request
 }
 
-export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedRequestClassAny> {
+export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedRequestClassAny, Name extends string> {
   handler: (i: I) => Effect.Effect<A, E, R>
-  name: string
+  name: Name
   options?: ClientForOptions
   Request: Request
 }
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
-export type RequestHandlers<R, E, M extends Requests> = {
-  [K in keyof M]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
-    ? RequestHandler<S.Schema.Type<M[K]["success"]>, S.Schema.Type<M[K]["failure"]> | E, R, M[K]> & {
-      raw: RequestHandler<S.Schema.Type<M[K]["success"]>, S.Schema.Type<M[K]["failure"]> | E, R, M[K]>
-    }
+export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
+  [K in keyof M]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true ?
+      & RequestHandler<
+        S.Schema.Type<M[K]["success"]>,
+        S.Schema.Type<M[K]["failure"]> | E,
+        R,
+        M[K],
+        `${ModuleName}.${K & string}`
+      >
+      & {
+        raw: RequestHandler<
+          S.Schema.Type<M[K]["success"]>,
+          S.Schema.Type<M[K]["failure"]> | E,
+          R,
+          M[K],
+          `${ModuleName}.${K & string}`
+        >
+      }
     :
       & RequestHandlerWithInput<
         Omit<S.Schema.Type<M[K]>, Cruft>,
         S.Schema.Type<M[K]["success"]>,
         S.Schema.Type<M[K]["failure"]> | E,
         R,
-        M[K]
+        M[K],
+        `${ModuleName}.${K & string}`
       >
       & {
         raw: RequestHandlerWithInput<
@@ -114,7 +130,8 @@ export type RequestHandlers<R, E, M extends Requests> = {
           S.Schema.Encoded<M[K]["success"]>,
           S.Schema.Type<M[K]["failure"]> | E,
           R,
-          M[K]
+          M[K],
+          `${ModuleName}.${K & string}`
         >
       }
 }

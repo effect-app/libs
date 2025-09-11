@@ -13,7 +13,7 @@ import { HttpClient, HttpClientRequest } from "../http.js"
 import * as Option from "../Option.js"
 import * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
-import type { Client, ClientForOptions, Requests } from "./clientFor.js"
+import type { Client, ClientForOptions, Requests, RequestsAny } from "./clientFor.js"
 
 export interface ApiConfig {
   url: string
@@ -80,7 +80,7 @@ export const RpcSerializationLayer = (config: ApiConfig) =>
     HttpClientLayer(config)
   )
 
-type RpcHandlers<M extends Requests> = {
+type RpcHandlers<M extends RequestsAny> = {
   [K in keyof M]: Rpc.Rpc<M[K]["_tag"], M[K], M[K]["success"], M[K]["failure"]>
 }
 
@@ -218,7 +218,7 @@ const makeApiClientFactory = Effect
                       (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>
                     ),
                     Effect.provide(layers),
-                    Effect.provide(mr),
+                    Effect.provide(mr)
                   ),
                   ...requestMeta,
                   raw: {
@@ -228,7 +228,7 @@ const makeApiClientFactory = Effect
                       ),
                       Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
                       Effect.provide(layers),
-                      Effect.provide(mr),
+                      Effect.provide(mr)
                     ),
 
                     ...requestMeta
@@ -241,7 +241,7 @@ const makeApiClientFactory = Effect
                         (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
                       ),
                       Effect.provide(layers),
-                      Effect.provide(mr),
+                      Effect.provide(mr)
                     ),
 
                   ...requestMeta,
@@ -254,7 +254,7 @@ const makeApiClientFactory = Effect
                         ),
                         Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
                         Effect.provide(layers),
-                        Effect.provide(mr),
+                        Effect.provide(mr)
                       ),
 
                     ...requestMeta
@@ -262,25 +262,25 @@ const makeApiClientFactory = Effect
                 }
 
               return prev
-            }, {} as Client<M>))
+            }, {} as Client<M, M["meta"]["moduleName"]>))
         }
       })
 
     const register: ManagedRuntime.ManagedRuntime<any, any>[] = []
     yield* Effect.addFinalizer(() => Effect.forEach(register, (mr) => mr.disposeEffect))
 
-    const cacheL = new Map<any, Map<any, Client<any>>>()
+    const cacheL = new Map<any, Map<any, Client<any, any>>>()
 
     function makeClientForCached(requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) {
       let cache = cacheL.get(requestLevelLayers)
       if (!cache) {
-        cache = new Map<any, Client<any>>()
+        cache = new Map<any, Client<any, any>>()
         cacheL.set(requestLevelLayers, cache)
       }
 
       return <M extends Requests>(
         models: M
-      ): Effect.Effect<Client<Omit<M, "meta">>> =>
+      ): Effect.Effect<Client<Omit<M, "meta">, M["meta"]["moduleName"]>> =>
         Effect.gen(function*() {
           const found = cache.get(models)
           if (found) {

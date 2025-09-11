@@ -238,6 +238,9 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
 
 const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
 
+// const client = ApiClientFactory.makeFor(Layer.empty)(Something)
+// client.pipe(Effect.map(c => c.DoSomething.name))
+
 export class SomethingService extends Effect.Service<SomethingService>()("SomethingService", {
   dependencies: [],
   effect: Effect.gen(function*() {

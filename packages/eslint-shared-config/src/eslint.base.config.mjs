@@ -195,7 +195,8 @@ export function augmentedConfig(dirName, forceTS = false, project = undefined) {
                 "memberExpression.linePerExpression": true,
                 "binaryExpression.linePerExpression": true,
                 "importDeclaration.forceSingleLine": true,
-                "exportDeclaration.forceSingleLine": true
+                "exportDeclaration.forceSingleLine": true,
+                "lineWidth": 120,
               }
           },
         ],

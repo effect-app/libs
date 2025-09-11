@@ -14,14 +14,12 @@
       >
         Effect Schema
       </a>
-      as the schema definition. All of this allows you to create forms in a
-      declarative way. We also use
+      as the schema definition. All of this allows you to create forms in a declarative way. We also use
       <a
         href="https://vuetifyjs.com/"
         target="_blank"
-      >Vuetify</a> as peer dependency for the UI components, but you can use any
-      other UI library you want or custom inputs. Here are some examples of how
-      to write forms using different approaches
+      >Vuetify</a> as peer dependency for the UI components, but you can use any other UI library you want or custom
+      inputs. Here are some examples of how to write forms using different approaches
     </p>
     <p>for our example, we will use the following dependencies</p>
     <pre v-highlightjs>
@@ -65,11 +63,9 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
 
     <p>
       <code>OmegaInput</code>
-      is a component that will render a form input based on the schema. It's
-      alread embedded inside the
+      is a component that will render a form input based on the schema. It's alread embedded inside the
       <code>OmegaForm</code>
-      component, so you don't need to import it separately or pass form as a
-      prop:
+      component, so you don't need to import it separately or pass form as a prop:
     </p>
     <pre v-highlightjs>
 <code class="vue">{{ `<OmegaForm :schema="schema">
@@ -109,8 +105,8 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
 
     <h2>Using the useOmegaForm hook</h2>
     <p>
-      The useOmegaForm hook is a hook that returns the form instance and the
-      values. It's a good way to create a form in a functional way.
+      The useOmegaForm hook is a hook that returns the form instance and the values. It's a good way to create a form in
+      a functional way.
     </p>
     <pre v-highlightjs><code class="typescript">{{ `const form = useOmegaForm(schema)` }}</code></pre>
     <p>
@@ -133,8 +129,8 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
   </OmegaForm>` }}</code></pre>
     <p>
       <strong>Note:</strong> the template name is <code>externalForm</code>
-      because the form is not inside the component, it's outside. And you don't
-      have access to the form instance inside the template variables anymore.
+      because the form is not inside the component, it's outside. And you don't have access to the form instance inside
+      the template variables anymore.
     </p>
 
     <h3>Using custom inputs</h3>
@@ -185,12 +181,10 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
   </template>
 </OmegaForm>` }}</code></pre>
     <p>
-      because When Vue's template compiler encounters <code>form.Input</code>,
-      it try to resolve or analyze the form object and its Input property
-      earlier in the rendering pipeline. Since form.Input is provided by the
-      parent OmegaForm through the slot, this direct usage inside the slot might
-      create a tighter, more immediate dependency loop that the
-      compiler/renderer detects or falls into, leading to the stack overflow.
+      because When Vue's template compiler encounters <code>form.Input</code>, it try to resolve or analyze the form
+      object and its Input property earlier in the rendering pipeline. Since form.Input is provided by the parent
+      OmegaForm through the slot, this direct usage inside the slot might create a tighter, more immediate dependency
+      loop that the compiler/renderer detects or falls into, leading to the stack overflow.
     </p>
   </div>
 </template>

@@ -69,6 +69,8 @@ const items = computed(() => {
   const normalizedPath = props.name.replace(/\[/g, ".").replace(/\]/g, "")
   try {
     return normalizedPath.split(".").reduce((acc, curr) => {
+      // if the one of the node is undefined or null, all their branches and leaves need to be set as undefined or null
+      if (!acc) return acc
       return acc[curr] as typeof store.value
     }, store.value)
   } catch (e) {

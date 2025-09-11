@@ -85,13 +85,13 @@ export function vueConfig(dirName, forceTS = false, dprintConfigFile ) {
             config: {
               // The markup_fmt configuration of dprint
               // See also https://dprint.dev/plugins/markup_fmt/config/
+              "lineWidth": 120,
             },
           },
         ],
         "@ben_12/dprint/typescript": [
           "error",
             {
-              // Usa lo stesso file config risolto in modo assoluto
               configFile: dprintConfigFile,
               config: {
                 indentWidth: 2,
@@ -103,6 +103,7 @@ export function vueConfig(dirName, forceTS = false, dprintConfigFile ) {
                 "binaryExpression.linePerExpression": true,
                 "importDeclaration.forceSingleLine": true,
                 "exportDeclaration.forceSingleLine": true,
+                "lineWidth": 120,
               },
             },
         ],

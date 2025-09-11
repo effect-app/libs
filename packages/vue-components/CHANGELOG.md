@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.22.10
+
+### Patch Changes
+
+- c7dbdc6: Fixes nullish struct navigation
+
 ## 0.22.9
 
 ### Patch Changes

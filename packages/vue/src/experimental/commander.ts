@@ -1086,85 +1086,93 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         )
       }),
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
-      withDefaultToast:
-        <A, E, R>(options?: { errorRenderer?: (e: E) => string | undefined; onWaiting?: null; onSuccess?: null }) =>
-        (
-          self: Effect.Effect<A, E, R>
-        ) =>
-          Effect.gen(function*() {
-            const cc = yield* CommandContext
+      withDefaultToast: <A, E, R, Args extends ReadonlyArray<unknown>>(
+        options?: {
+          errorRenderer?: (e: E, ...args: Args) => string | undefined
+          onWaiting?: null
+          onSuccess?: null
+        }
+      ) =>
+      (
+        self: Effect.Effect<A, E, R>,
+        ...args: Args
+      ) =>
+        Effect.gen(function*() {
+          const cc = yield* CommandContext
 
-            function renderError(e: E): string {
-              if (options?.errorRenderer) {
-                const m = options.errorRenderer(e)
-                if (m) {
-                  return m
-                }
+          function renderError(e: E, ...args: Args): string {
+            if (options?.errorRenderer) {
+              const m = options.errorRenderer(e, ...args)
+              if (m) {
+                return m
               }
-              if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
-                if (typeof e === "object" && e !== null) {
-                  if ("message" in e) {
-                    return `${e.message}`
-                  }
-                  if ("_tag" in e) {
-                    return `${e._tag}`
-                  }
-                }
-                return ""
-              }
-              const e2: SupportedErrors | S.ParseResult.ParseError = e
-              return Match.value(e2).pipe(
-                Match.tags({
-                  ParseError: (e) => {
-                    console.warn(e.toString())
-                    return intl.formatMessage({ id: "validation.failed" })
-                  }
-                }),
-                Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
-              )
             }
+            if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
+              if (typeof e === "object" && e !== null) {
+                if ("message" in e) {
+                  return `${e.message}`
+                }
+                if ("_tag" in e) {
+                  return `${e._tag}`
+                }
+              }
+              return ""
+            }
+            const e2: SupportedErrors | S.ParseResult.ParseError = e
+            return Match.value(e2).pipe(
+              Match.tags({
+                ParseError: (e) => {
+                  console.warn(e.toString())
+                  return intl.formatMessage({ id: "validation.failed" })
+                }
+              }),
+              Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+            )
+          }
 
-            return yield* self.pipe(
-              withToast({
+          return yield* self.pipe(
+            (_) =>
+              withToast<A, E, Args, R>({
                 onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
                   { id: "handle.waiting" },
                   { action: cc.action }
                 ),
                 onSuccess: options?.onSuccess === null
                   ? null
-                  : (a) =>
+                  : (a, ..._args) =>
                     intl.formatMessage({ id: "handle.success" }, { action: cc.action })
                     + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-                onFailure: Option.match({
-                  onNone: () =>
-                    intl.formatMessage(
-                      { id: "handle.unexpected_error2" },
-                      {
-                        action: cc.action,
-                        error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
-                      }
-                    ),
-                  onSome: (e) =>
-                    S.is(OperationFailure)(e)
-                      ? {
-                        level: "warn",
-                        message: intl.formatMessage(
-                            { id: "handle.with_warnings" },
+                onFailure: (o, ...args) =>
+                  Option.match(o, {
+                    onNone: () =>
+                      intl.formatMessage(
+                        { id: "handle.unexpected_error2" },
+                        {
+                          action: cc.action,
+                          error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
+                        }
+                      ),
+                    onSome: (e) =>
+                      S.is(OperationFailure)(e)
+                        ? {
+                          level: "warn",
+                          message: intl.formatMessage(
+                              { id: "handle.with_warnings" },
+                              { action: cc.action }
+                            ) + e.message
+                            ? "\n" + e.message
+                            : ""
+                        }
+                        : `${
+                          intl.formatMessage(
+                            { id: "handle.with_errors" },
                             { action: cc.action }
-                          ) + e.message
-                          ? "\n" + e.message
-                          : ""
-                      }
-                      : `${
-                        intl.formatMessage(
-                          { id: "handle.with_errors" },
-                          { action: cc.action }
-                        )
-                      }:\n` + renderError(e)
-                })
-              })
-            )
-          }),
+                          )
+                        }:\n` + renderError(e, ...args)
+                  })
+              })(_, ...args)
+          )
+        }),
       /**
        * Define a Command for handling user actions with built-in error reporting and state management.
        *

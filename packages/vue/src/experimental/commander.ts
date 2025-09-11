@@ -68,11 +68,13 @@ export const wrapEmitSubmit = <A>(
 }
 
 export declare namespace Commander {
-  export interface CommandProps<A, E, Id extends string> {
+  export interface CommandContextLocal<Id extends string> {
     id: Id
     namespace: `action.${Id}`
     namespaced: <K extends string>(k: K) => `action.${Id}.${K}`
     action: string
+  }
+  export interface CommandProps<A, E, Id extends string> extends CommandContextLocal<Id> {
     result: Result<A, E>
     waiting: boolean
   }
@@ -766,6 +768,23 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     const withToast = yield* WithToast
     const { confirm, confirmOrInterrupt } = yield* Confirm
 
+    const makeContext = <Id extends string>(id: Id) => {
+      const namespace = `action.${id}` as const
+
+      const action = intl.formatMessage({
+        id: namespace,
+        defaultMessage: id
+      })
+      const context = {
+        action,
+        id,
+        namespace,
+        namespaced: <const K extends string>(k: K) => `${namespace}.${k}` as const
+      }
+
+      return context
+    }
+
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
       return <const Id extends string>(id: Id, errorDef?: Error) =>
@@ -781,18 +800,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           errorDef = localErrorDef
         }
 
-        const namespace = `action.${id}` as const
-
-        const action = intl.formatMessage({
-          id: namespace,
-          defaultMessage: id
-        })
-        const context = {
-          action,
-          id,
-          namespace,
-          namespaced: <const K extends string>(k: K) => `${namespace}.${k}` as const
-        }
+        const context = makeContext(id)
+        const action = context.action
 
         const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
           self.pipe(
@@ -1175,7 +1184,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       renderError,
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
       withDefaultToast: <A, E, R, Args extends ReadonlyArray<unknown>>(
-        options?: {
+        options?: () => {
           errorRenderer?: ErrorRenderer<E, Args>
           onWaiting?: null | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
           onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
@@ -1191,16 +1200,16 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           return yield* self.pipe(
             (_) =>
               withToast<A, E, Args, R>({
-                onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
+                onWaiting: options?.().onWaiting === null ? null : intl.formatMessage(
                   { id: "handle.waiting" },
                   { action: cc.action }
                 ),
-                onSuccess: options?.onSuccess === null
+                onSuccess: options?.().onSuccess === null
                   ? null
                   : (a, ..._args) =>
                     intl.formatMessage({ id: "handle.success" }, { action: cc.action })
                     + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-                onFailure: defaultFailureMessageHandler(cc.action, options?.errorRenderer)
+                onFailure: defaultFailureMessageHandler(cc.action, options?.().errorRenderer)
               })(_, ...args)
           )
         }),
@@ -1248,6 +1257,32 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           )
         }
       },
+
+      alt2: ((rt: any) => {
+        const cmd = makeCommand(rt)
+        return (id: any) => {
+          const context = makeContext(id)
+          const idCmd = cmd(id)
+          // TODO: implement proper tracing stack
+          return (cb: any) =>
+            idCmd(cb(
+              Object.assign((fn: any, ...combinators: any[]) =>
+                Effect.fnUntraced(
+                  // fnUntraced only supports generators as first arg, so we convert to generator if needed
+                  isGeneratorFunction(fn) ? fn : function*(...args) {
+                    return yield* fn(...args)
+                  },
+                  ...combinators as [any]
+                ), context)
+            ))
+        }
+      }) as unknown as <RT>(runtime: Runtime.Runtime<RT>) => <const Id extends string>(
+        id: Id
+      ) => <Args extends Array<any>, A, E, R extends RT | CommandContext>(
+        handler: (
+          ctx: Effect.fn.Gen & Commander.CommandContextLocal<Id>
+        ) => (...args: Args) => Effect.Effect<A, E, R>
+      ) => Commander.CommandOut<Args, A, E, R, Id>,
 
       /** @experimental */
       alt: makeCommand as unknown as <RT>(runtime: Runtime.Runtime<RT>) => <const Id extends string>(

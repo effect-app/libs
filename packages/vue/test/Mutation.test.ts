@@ -13,6 +13,65 @@ const unwrap = <A, E>(r: RuntimeFiber<Exit.Exit<A, E>, never>) => Fiber.join(r).
 //   mutate: (a: number, b: string) => Effect.Effect<number, boolean, CommandContext>
 // }
 
+describe("alt2", () => {
+  it.live("works", () =>
+    Effect
+      .gen(function*() {
+        const toasts: any[] = []
+        const Command = useExperimental({ toasts })
+
+        let executed = false
+
+        const command = Command.alt2("Test Action")((fn) =>
+          fn(
+            function*() {
+              expect(command.id).toBe("Test Action")
+              expect(command.namespace).toBe("action.Test Action")
+              expect(command.namespaced("a")).toBe("action.Test Action.a")
+              expect(fn.id).toBe(command.id)
+              expect(fn.namespace).toBe(command.namespace)
+              expect(fn.namespaced("a")).toBe(command.namespaced("a"))
+
+              expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
+              expect(command.waiting).toBe(true)
+
+              expect(yield* CommandContext).toMatchObject({ action: "Test Action", id: "Test Action" })
+
+              expect(toasts.length).toBe(0)
+
+              return "test-value"
+            },
+            Effect.tap(Effect.fnUntraced(function*() {
+              expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
+            })),
+            Effect.tap(() =>
+              Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+            ),
+            Effect.tap(() => executed = true)
+          )
+        )
+        console.log(command)
+        expect(command.action).toBe("Test Action")
+        expect(command.id).toBe("Test Action")
+        expect(command.namespace).toBe("action.Test Action")
+        expect(command.namespaced("a")).toBe("action.Test Action.a")
+
+        const r = yield* unwrap(command.handle())
+        expect(command.waiting).toBe(false)
+
+        expect(r).toBe("test-value") // to confirm that the initial function has ran.
+        expect(executed).toBe(true) // to confirm that the combinators have ran.
+
+        expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+
+        expect(toasts.length).toBe(0)
+
+        // const wrap = Command.wrap(mutation)
+        // wrap()
+        // wrap((_, ...args) => Effect.tap(_, () => console.log("called with", _, args)))
+      }))
+})
+
 it.live("works", () =>
   Effect
     .gen(function*() {

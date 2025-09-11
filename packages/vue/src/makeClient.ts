@@ -197,9 +197,10 @@ export const useMutation: typeof _useMutation = <
   E,
   A,
   R,
-  Request extends TaggedRequestClassAny
+  Request extends TaggedRequestClassAny,
+  Name extends string
 >(
-  self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+  self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
   options?: MutationOptionsBase
 ) =>
   mapHandler(
@@ -219,22 +220,22 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
        * you should use the result ref to render errors!
        */
       const _useSafeMutation: {
-        <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-          self: RequestHandlerWithInput<I, A, E, R, Request>,
+        <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+          self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
           options?: MutationOptions<A, E, R, A2, E2, R2, I>
         ): readonly [
           ComputedRef<Result.Result<A2, E2>>,
           (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
         ]
-        <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-          self: RequestHandler<A, E, R, Request>,
+        <E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+          self: RequestHandler<A, E, R, Request, Name>,
           options?: MutationOptions<A, E, R, A2, E2, R2>
         ): readonly [
           ComputedRef<Result.Result<A2, E2>>,
           Effect.Effect<Exit.Exit<A2, E2>, never, R2>
         ]
-      } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-        self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+      } = <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+        self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
         options?: MutationOptions<A, E, R, A2, E2, R2, I>
       ) => {
         const unsafe = _useMutation(self as any, options)
@@ -395,6 +396,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -405,7 +407,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandlerWithInput<I, A, E, R, Request>,
+          self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
           action: string,
           options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): Resp<I, A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
@@ -414,6 +416,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -424,12 +427,12 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandler<A, E, R, Request>,
+          self: RequestHandler<A, E, R, Request, Name>,
           action: string,
           options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): ActResp<A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
-      } = <E extends ResponseErrors, A, R, Request extends TaggedRequestClassAny, I>(
-        self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+      } = <E extends ResponseErrors, A, R, Request extends TaggedRequestClassAny, Name extends string, I>(
+        self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
         action: any,
         options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
       ): any => {
@@ -473,6 +476,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -483,7 +487,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandlerWithInput<I, A, E, R, Request>,
+          self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
           action: string,
           options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): Resp<I, A2, E2, R2>
@@ -492,6 +496,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -502,7 +507,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandler<A, E, R, Request>,
+          self: RequestHandler<A, E, R, Request, Name>,
           action: string,
           options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): ActResp<A2, E2, R2>
@@ -535,6 +540,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
             A,
             R,
             Request extends TaggedRequestClassAny,
+            Name extends string,
             A2 = A,
             E2 extends ResponseErrors = E,
             R2 = R,
@@ -545,7 +551,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
             EDefect = never,
             RDefect = never
           >(
-            self: RequestHandlerWithInput<I, A, E, R, Request>,
+            self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
             action: string,
             options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
           ): Resp<I, A2, E2, R2>
@@ -553,6 +559,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
             E extends ResponseErrors,
             A,
             Request extends TaggedRequestClassAny,
+            Name extends string,
             A2 = A,
             E2 extends ResponseErrors = E,
             R2 = R,
@@ -563,7 +570,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
             EDefect = never,
             RDefect = never
           >(
-            self: RequestHandler<A, E, R, Request>,
+            self: RequestHandler<A, E, R, Request, Name>,
             action: string,
             options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
           ): ActResp<A2, E2, R2>
@@ -581,6 +588,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -591,7 +599,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandlerWithInput<I, A, E, R, Request>,
+          self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
           action: string,
           options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): Resp<I, A2, E2, R>
@@ -600,6 +608,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -610,7 +619,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandler<A, E, R, Request>,
+          self: RequestHandler<A, E, R, Request, Name>,
           action: string,
           options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): ActResp<void, never, R>
@@ -631,6 +640,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -641,7 +651,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandlerWithInput<I, A, E, R, Request>,
+          self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
           action: string,
           options?: LowOptsOptional<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): Resp<I, A2, E2, R2>
@@ -650,6 +660,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           A,
           R,
           Request extends TaggedRequestClassAny,
+          Name extends string,
           A2 = A,
           E2 extends ResponseErrors = E,
           R2 = R,
@@ -660,7 +671,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           EDefect = never,
           RDefect = never
         >(
-          self: RequestHandler<A, E, R, Request>,
+          self: RequestHandler<A, E, R, Request, Name>,
           action: string,
           options?: LowOptsOptional<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
         ): ActResp<A2, E2, R2>
@@ -700,22 +711,22 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
        * you should use the result ref to render errors!
        */
       const _useSafeMutationWithState: {
-        <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-          self: RequestHandlerWithInput<I, A, E, R, Request>,
+        <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+          self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
           options?: MutationOptions<A, E, R, A2, E2, R2, I>
         ): readonly [
           ComputedRef<Res<A, E>>,
           (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
         ]
-        <E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-          self: RequestHandler<A, E, R, Request>,
+        <E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+          self: RequestHandler<A, E, R, Request, Name>,
           options?: MutationOptions<A, E, R, A2, E2, R2>
         ): readonly [
           ComputedRef<Res<A, E>>,
           Effect.Effect<Exit.Exit<A2, E2>, never, R2>
         ]
-      } = <I, E, A, R, Request extends TaggedRequestClassAny, A2 = A, E2 = E, R2 = R>(
-        self: RequestHandlerWithInput<I, A, E, R, Request> | RequestHandler<A, E, R, Request>,
+      } = <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+        self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
         options?: MutationOptions<A, E, R, A2, E2, R2, I>
       ) => {
         const [a, b] = _useSafeMutation(self as any, options)
@@ -836,9 +847,10 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     <
       E,
       A,
-      Request extends TaggedRequestClassAny
+      Request extends TaggedRequestClassAny,
+      Name extends string
     >(
-      self: RequestHandler<A, E, R, Request>
+      self: RequestHandler<A, E, R, Request, Name>
     ): {
       (options?: QueryObserverOptionsCustom<A, E>): Promise<
         readonly [
@@ -869,9 +881,10 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       Arg,
       E,
       A,
-      Request extends TaggedRequestClassAny
+      Request extends TaggedRequestClassAny,
+      Name extends string
     >(
-      self: RequestHandlerWithInput<Arg, A, E, R, Request>
+      self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
     ): {
       (
         arg: Arg | WatchSource<Arg>,
@@ -899,8 +912,8 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         ]
       >
     }
-  } = <Arg, E, A, Request extends TaggedRequestClassAny>(
-    self: RequestHandlerWithInput<Arg, A, E, R, Request> | RequestHandler<A, E, R, Request>
+  } = <Arg, E, A, Request extends TaggedRequestClassAny, Name extends string>(
+    self: RequestHandlerWithInput<Arg, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
   ) => {
     const runPromise = Runtime.runPromise(getRuntime())
     const q = _useQuery(self as any) as any

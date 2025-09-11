@@ -33,10 +33,10 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: UndefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, queryClient?: QueryClient): UseQueryReturnType<TData, TError>;
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, queryClient?: QueryClient): UseQueryDefinedReturnType<TData, TError>;
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: UseQueryOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>, queryClient?: QueryClient): UseQueryReturnType<TData, TError>;
-  const useQuery_ = <I, A, E, Request extends TaggedRequestClassAny>(
+  const useQuery_ = <I, A, E, Request extends TaggedRequestClassAny, Name extends string>(
     q:
-      | RequestHandlerWithInput<I, A, E, R, Request>
-      | RequestHandler<A, E, R, Request>
+      | RequestHandlerWithInput<I, A, E, R, Request, Name>
+      | RequestHandler<A, E, R, Request, Name>
   ) =>
   (arg?: I | WatchSource<I>, options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
   ) => {
@@ -156,8 +156,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   }
 
   const useQuery: {
-    <E, A, Request extends TaggedRequestClassAny>(
-      self: RequestHandler<A, E, R, Request>
+    <E, A, Request extends TaggedRequestClassAny, Name extends string>(
+      self: RequestHandler<A, E, R, Request, Name>
     ): {
       // required options, with initialData
       (
@@ -178,8 +178,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         UseQueryReturnType<any, any>
       ]
     }
-    <Arg, E, A, Request extends TaggedRequestClassAny>(
-      self: RequestHandlerWithInput<Arg, A, E, R, Request>
+    <Arg, E, A, Request extends TaggedRequestClassAny, Name extends string>(
+      self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
     ): {
       // required options, with initialData
       (
@@ -268,11 +268,11 @@ export const useUpdateQuery = () => {
 
   const f: {
     <A>(
-      query: RequestHandler<A, any, any, any>,
+      query: RequestHandler<A, any, any, any, any>,
       updater: (data: NoInfer<A>) => NoInfer<A>
     ): void
     <I, A>(
-      query: RequestHandlerWithInput<I, A, any, any, any>,
+      query: RequestHandlerWithInput<I, A, any, any, any, any>,
       input: I,
       updater: (data: NoInfer<A>) => NoInfer<A>
     ): void

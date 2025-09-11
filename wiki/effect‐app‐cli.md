@@ -27,8 +27,6 @@ node packages/cli/dist/index.js effa <command>
 | `effa index-multi` | Monitor controller and index files for auto-eslint fixes |
 | `effa packagejson` | Generate and monitor export mappings for root package.json |
 | `effa packagejson-packages` | Generate and monitor export mappings for all packages |
-| `effa wiki` | Interactive wiki submodule management (sync/update) |
-| `effa init-wiki` | **[Maintainer Only]** One-time wiki submodule setup |
 | `effa nuke` | Nuclear cleanup - remove all generated files and directories |
 
 ## Available Commands
@@ -145,94 +143,6 @@ pnpm effa packagejson-packages
 3. Excludes: `*eslint-codegen-model`, `*vue-components`
 4. Generates exports for all found packages
 5. Monitors each package for changes
-
-### `effa wiki` - Documentation Wiki Management
-
-Manages the documentation wiki git submodule with interactive action selection for updating and synchronizing documentation.
-
-```bash
-pnpm effa wiki
-```
-
-**⚠️ ACHTUNG - Important Git Submodule Behavior:**
-> **Submodule operations will change the commit reference in the main project repository!**
-> When you run `effa wiki`, the git submodule reference in your main project may be updated to point to the latest commit in the submodule.
-> **The CLI will automatically detect these changes and offer to commit the new submodule reference** in the main project repository.
-
-**Interactive Selection:**
-When you run the command, you'll get a menu to choose the action:
-- **sync**: Initialize and update the documentation submodule from remote  
-- **update**: Pull latest changes, commit and push changes within the submodule
-
-**Available Actions:**
-
-#### `sync`
-Updates or initializes the documentation submodule from remote:
-
-💡 **Run this periodically to keep your local documentation up-to-date**
-
-**What it does:**
-- Runs `git submodule update --init --recursive --remote doc`
-- Pulls the latest changes from the remote submodule repository
-- Automatically detects if submodule reference changed in main repo
-- Offers to commit the submodule reference changes
-
-#### `update`
-Interactive workflow to update and commit changes within the submodule:
-
-**What it does:**
-1. Pulls latest changes from remote submodule (same as sync)
-2. Prompts for a commit message (default: "update doc")  
-3. Stages all changes in the submodule
-4. Commits and pushes changes to the remote submodule repository
-5. Automatically detects if submodule reference changed in main repo
-6. Offers to commit the submodule reference changes
-
-### `effa init-wiki` - Wiki Submodule Setup
-
-**⚠️ PROJECT MAINTAINER ONLY - ONE-TIME SETUP COMMAND**
-
-Sets up the wiki submodule for the project. This is a standalone command that should only be run once in the project's entire history by a project maintainer.
-
-```bash
-pnpm effa init-wiki
-```
-
-**What it does:**
-1. **Safety checks**: Verifies no existing `doc` directory exists in git index
-2. **Confirmation prompt**: Requires explicit confirmation with detailed warnings
-3. **Project detection**: Extracts project name from git remote URL (supports SSH and HTTPS)
-4. **Manual override**: Allows manual project name input or modification
-5. **Submodule setup**: Creates `.gitmodules` configuration file
-6. **Repository integration**: Adds the wiki submodule (`../{project-name}.wiki.git`) 
-7. **Automatic commit**: Commits the submodule configuration to the main repository
-
-**⚠️ CRITICAL WARNINGS:**
-- **NOT for local development**: This is NOT the command for local submodule initialization!
-- **ONE-TIME ONLY**: Should only be run ONCE by a project maintainer during initial project setup
-- **Repository modification**: Modifies the main repository by adding submodule configuration  
-- **Use `effa wiki sync` instead** for normal local development submodule initialization
-
-**Safety Features:**
-- Checks for existing `doc` directory conflicts before proceeding
-- Requires explicit user confirmation with detailed warnings
-- Provides clear guidance for different scenarios
-- Auto-detects project name but allows manual override
-
-**Example workflow:**
-```bash
-# Project maintainer runs this ONCE during project setup:
-pnpm effa init-wiki
-# ⚠️  IMPORTANT: This is a one-time project setup command!
-# This command will initialize the wiki submodule for this project...
-# Detected project name from git remote: my-awesome-project
-# Please confirm or modify the project name: my-awesome-project
-# ✅ Wiki submodule initialized successfully
-
-# Later, other developers use:
-pnpm effa wiki
-# Choose: sync
-```
 
 ### `effa nuke` - Nuclear Cleanup
 

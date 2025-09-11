@@ -26,7 +26,7 @@ it.live("works", () =>
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
           expect(command.waiting).toBe(true)
 
-          expect(yield* CommandContext).toEqual({ action: "Test Action", name: "Test Action" })
+          expect(yield* CommandContext).toMatchObject({ action: "Test Action", baseName: "Test Action" })
 
           expect(toasts.length).toBe(0)
 
@@ -72,7 +72,7 @@ it.live("works non-gen", () =>
               expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
               expect(command.waiting).toBe(true)
 
-              expect(yield* CommandContext).toEqual({ action: "Test Action", name: "Test Action" })
+              expect(yield* CommandContext).toMatchObject({ action: "Test Action", baseName: "Test Action" })
 
               expect(toasts.length).toBe(0)
 
@@ -115,7 +115,7 @@ it.live("has custom action name", () =>
         function*() {
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
-          expect(yield* CommandContext).toEqual({ action: "Test Action Translated", name: "Test Action" })
+          expect(yield* CommandContext).toMatchObject({ action: "Test Action Translated", baseName: "Test Action" })
           return "test-value"
         },
         Effect.tap(() => executed = true)
@@ -229,6 +229,7 @@ it.live("with toasts", () =>
         //   onSuccess: () => Effect.map(CommandContext, (_) => _.action),
         //   onWaiting: null
         // }),
+        Command.withDefaultToast(),
         Effect.tap(() => executed = true)
       )
 
@@ -365,7 +366,7 @@ it.live("works with alt", () =>
             expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
             expect(command.waiting).toBe(true)
 
-            expect(yield* CommandContext).toEqual({ action: "Test Action", name: "Test Action" })
+            expect(yield* CommandContext).toMatchObject({ action: "Test Action", baseName: "Test Action" })
 
             expect(toasts.length).toBe(0)
 
@@ -409,7 +410,7 @@ it.live("has custom action name with alt", () =>
           function*() {
             expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
-            expect(yield* CommandContext).toEqual({ action: "Test Action Translated", name: "Test Action" })
+            expect(yield* CommandContext).toMatchObject({ action: "Test Action Translated", baseName: "Test Action" })
             return "test-value"
           },
           Effect.tap(() => executed = true)

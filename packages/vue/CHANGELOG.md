@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.64.1
+
+### Patch Changes
+
+- 87bbd76: nongen
+
 ## 2.64.0
 
 ### Minor Changes

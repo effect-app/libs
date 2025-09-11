@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.62.1
+
+### Patch Changes
+
+- 30f967e: expose defaultFailureMessageHandler
+
 ## 2.62.0
 
 ### Minor Changes

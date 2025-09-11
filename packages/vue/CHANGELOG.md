@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.61.0
+
+### Minor Changes
+
+- 83f3df4: pass args to Commmand.withDefaultToast
+
 ## 2.60.10
 
 ### Patch Changes

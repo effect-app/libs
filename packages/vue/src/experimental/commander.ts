@@ -78,6 +78,8 @@ export declare namespace Commander {
   }
 
   export interface CommandOut<Args extends Array<any>, A, E, R, Id extends string> extends CommandProps<A, E, Id> {
+    new(): {}
+
     /** click handlers */
     handle: (...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>
 

@@ -22,13 +22,14 @@ describe("alt2", () => {
 
         let executed = false
 
-        const command = Command.alt2({
+        const someMutation = {
           name: "Test Action",
-          mutate: null as any as (a: number, b: string) => Effect.Effect<string, number, boolean>
-        })((fn) =>
+          mutate: (() => {}) as unknown as (a: number, b: string) => Effect.Effect<string, number, boolean>
+        }
+        const command = Command.alt2(someMutation)((fn) =>
           fn(
             function*() {
-              const b = fn.mutate
+              expect(typeof fn.mutate).toBe("function")
               expect(command.id).toBe("Test Action")
               expect(command.namespace).toBe("action.Test Action")
               expect(command.namespaced("a")).toBe("action.Test Action.a")

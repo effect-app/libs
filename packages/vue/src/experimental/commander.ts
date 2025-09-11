@@ -1260,21 +1260,28 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
       alt2: ((rt: any) => {
         const cmd = makeCommand(rt)
-        return (id: any) => {
-          id = typeof id === "object" || typeof id === "function" ? id.name : id
+        return (_id: any) => {
+          const isObject = typeof _id === "object" || typeof _id === "function"
+          const id = isObject ? _id.name : _id
           const context = makeContext(id)
           const idCmd = cmd(id)
           // TODO: implement proper tracing stack
           return (cb: any) =>
             idCmd(cb(
-              Object.assign((fn: any, ...combinators: any[]) =>
-                Effect.fnUntraced(
-                  // fnUntraced only supports generators as first arg, so we convert to generator if needed
-                  isGeneratorFunction(fn) ? fn : function*(...args) {
-                    return yield* fn(...args)
-                  },
-                  ...combinators as [any]
-                ), context)
+              Object.assign(
+                (fn: any, ...combinators: any[]) =>
+                  Effect.fnUntraced(
+                    // fnUntraced only supports generators as first arg, so we convert to generator if needed
+                    isGeneratorFunction(fn) ? fn : function*(...args) {
+                      return yield* fn(...args)
+                    },
+                    ...combinators as [any]
+                  ),
+                context,
+                isObject
+                  ? { mutate: _id.mutate }
+                  : {}
+              )
             ))
         }
       }) as unknown as <RT>(

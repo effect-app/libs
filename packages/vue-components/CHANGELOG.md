@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.22.0
+
+### Minor Changes
+
+- 4419d11: feat: allow partial defaultValues
+
 ## 0.21.2
 
 ### Patch Changes

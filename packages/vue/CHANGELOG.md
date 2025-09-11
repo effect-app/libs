@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.61.4
+
+### Patch Changes
+
+- a8b7074: fix WithToast.handle
+
 ## 2.61.3
 
 ### Patch Changes

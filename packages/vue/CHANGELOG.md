@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.61.3
+
+### Patch Changes
+
+- 1fc3d2c: expand withToast with effect support
+
 ## 2.61.2
 
 ### Patch Changes

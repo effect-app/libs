@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.60.10
+
+### Patch Changes
+
+- dedf2e6: say my name
+
 ## 2.60.9
 
 ### Patch Changes

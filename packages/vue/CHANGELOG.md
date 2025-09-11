@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.64.2
+
+### Patch Changes
+
+- ceedc93: fix typos
+
 ## 2.64.1
 
 ### Patch Changes

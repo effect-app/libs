@@ -1085,10 +1085,19 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             )
         )
       }),
+      updateAction:
+        <Args extends Array<any>>(update: (currentActionName: string, ...args: Args) => string) =>
+        <A, E, R>(_: Effect.Effect<A, E, R>, ...input: Args) =>
+          Effect.updateService(
+            _,
+            CommandContext,
+            (c) => ({ ...c, action: update(c.action, ...input) })
+          ),
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
       withDefaultToast: <A, E, R, Args extends ReadonlyArray<unknown>>(
         options?: {
           errorRenderer?: (e: E, action: string, ...args: Args) => string | undefined
+          actionNameRenderer?: (action: string, ...args: Args) => string
           onWaiting?: null // TODO? | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
           onSuccess?: null // TODO? | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
         }

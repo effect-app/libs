@@ -68,13 +68,14 @@ export const wrapEmitSubmit = <A>(
 }
 
 export declare namespace Commander {
-  export interface CommandProps<A, E> {
+  export interface CommandProps<A, E, Name extends string> {
+    name: Name
     action: string
     result: Result<A, E>
     waiting: boolean
   }
 
-  export interface CommandOut<Args extends Array<any>, A, E, R> extends CommandProps<A, E> {
+  export interface CommandOut<Args extends Array<any>, A, E, R, Name extends string> extends CommandProps<A, E, Name> {
     /** click handlers */
     handle: (...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>
 
@@ -94,14 +95,16 @@ export declare namespace Commander {
     exec: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, Exclude<R, CommandContext>>
   }
 
-  type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>> = CommandOut<
-    Args,
-    Effect.Effect.Success<Eff>,
-    Effect.Effect.Error<Eff>,
-    Effect.Effect.Context<Eff>
-  >
+  type CommandOutHelper<Args extends Array<any>, Eff extends Effect.Effect<any, any, any>, Name extends string> =
+    CommandOut<
+      Args,
+      Effect.Effect.Success<Eff>,
+      Effect.Effect.Error<Eff>,
+      Effect.Effect.Context<Eff>,
+      Name
+    >
 
-  export type Gen<RT> = {
+  export type Gen<RT, Name extends string> = {
     <Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext>>, AEff, Args extends Array<any>>(
       body: (...args: Args) => Generator<Eff, AEff, never>
     ): CommandOut<
@@ -112,7 +115,8 @@ export declare namespace Commander {
         : never,
       [Eff] extends [never] ? never
         : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-        : never
+        : never,
+      Name
     >
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
@@ -133,7 +137,7 @@ export declare namespace Commander {
         >,
         ...args: NoInfer<Args>
       ) => A
-    ): CommandOutHelper<Args, A>
+    ): CommandOutHelper<Args, A, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -155,7 +159,7 @@ export declare namespace Commander {
         ...args: NoInfer<Args>
       ) => A,
       b: (_: A, ...args: NoInfer<Args>) => B
-    ): CommandOutHelper<Args, B>
+    ): CommandOutHelper<Args, B, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -179,7 +183,7 @@ export declare namespace Commander {
       ) => A,
       b: (_: A, ...args: NoInfer<Args>) => B,
       c: (_: B, ...args: NoInfer<Args>) => C
-    ): CommandOutHelper<Args, C>
+    ): CommandOutHelper<Args, C, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -205,7 +209,7 @@ export declare namespace Commander {
       b: (_: A, ...args: NoInfer<Args>) => B,
       c: (_: B, ...args: NoInfer<Args>) => C,
       d: (_: C, ...args: NoInfer<Args>) => D
-    ): CommandOutHelper<Args, D>
+    ): CommandOutHelper<Args, D, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -233,7 +237,7 @@ export declare namespace Commander {
       c: (_: B, ...args: NoInfer<Args>) => C,
       d: (_: C, ...args: NoInfer<Args>) => D,
       e: (_: D, ...args: NoInfer<Args>) => E
-    ): CommandOutHelper<Args, E>
+    ): CommandOutHelper<Args, E, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -263,7 +267,7 @@ export declare namespace Commander {
       d: (_: C, ...args: NoInfer<Args>) => D,
       e: (_: D, ...args: NoInfer<Args>) => E,
       f: (_: E, ...args: NoInfer<Args>) => F
-    ): CommandOutHelper<Args, F>
+    ): CommandOutHelper<Args, F, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -295,7 +299,7 @@ export declare namespace Commander {
       e: (_: D, ...args: NoInfer<Args>) => E,
       f: (_: E, ...args: NoInfer<Args>) => F,
       g: (_: F, ...args: NoInfer<Args>) => G
-    ): CommandOutHelper<Args, G>
+    ): CommandOutHelper<Args, G, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -329,7 +333,7 @@ export declare namespace Commander {
       f: (_: E, ...args: NoInfer<Args>) => F,
       g: (_: F, ...args: NoInfer<Args>) => G,
       h: (_: G, ...args: NoInfer<Args>) => H
-    ): CommandOutHelper<Args, H>
+    ): CommandOutHelper<Args, H, Name>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
@@ -365,35 +369,35 @@ export declare namespace Commander {
       g: (_: F, ...args: NoInfer<Args>) => G,
       h: (_: G, ...args: NoInfer<Args>) => H,
       i: (_: H, ...args: NoInfer<Args>) => I
-    ): CommandOutHelper<Args, I>
+    ): CommandOutHelper<Args, I, Name>
   }
 
-  export type NonGen<RT> = {
+  export type NonGen<RT, Name extends string> = {
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, Args extends Array<any>>(
       body: (...args: Args) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
       c: (_: C, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
       c: (_: C, ...args: NoInfer<Args>) => D,
       d: (_: D, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
@@ -401,7 +405,7 @@ export declare namespace Commander {
       c: (_: C, ...args: NoInfer<Args>) => D,
       d: (_: D, ...args: NoInfer<Args>) => E,
       e: (_: E, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
@@ -410,7 +414,7 @@ export declare namespace Commander {
       d: (_: D, ...args: NoInfer<Args>) => E,
       e: (_: E, ...args: NoInfer<Args>) => F,
       f: (_: F, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
@@ -420,7 +424,7 @@ export declare namespace Commander {
       e: (_: E, ...args: NoInfer<Args>) => F,
       f: (_: F, ...args: NoInfer<Args>) => G,
       g: (_: G, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, H, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
@@ -431,7 +435,7 @@ export declare namespace Commander {
       f: (_: F, ...args: NoInfer<Args>) => G,
       g: (_: G, ...args: NoInfer<Args>) => H,
       h: (_: H, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
     <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, H, I, Args extends Array<any>>(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
@@ -443,7 +447,7 @@ export declare namespace Commander {
       g: (_: G, ...args: NoInfer<Args>) => H,
       h: (_: H, ...args: NoInfer<Args>) => I,
       i: (_: H, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff>
+    ): CommandOutHelper<Args, Eff, Name>
   }
 }
 
@@ -689,6 +693,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         }, { action })
 
         return reactive({
+          name: actionName,
           result,
           waiting,
           action,
@@ -702,54 +707,56 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     }
 
     return {
-      /** experimental */
-      takeOver: <Args extends any[], A, E, R>(command: Commander.CommandOut<Args, A, E, R>) => (...args: Args) => {
-        // we capture the call site stack here
-        const limit = Error.stackTraceLimit
-        Error.stackTraceLimit = 2
-        const errorCall = new Error()
-        const localErrorDef = new Error()
-        Error.stackTraceLimit = limit
+      /** @experimental */
+      takeOver:
+        <Args extends any[], A, E, R, const Name extends string>(command: Commander.CommandOut<Args, A, E, R, Name>) =>
+        (...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          const localErrorDef = new Error()
+          Error.stackTraceLimit = limit
 
-        // TODO
-        const errorDef = localErrorDef
+          // TODO
+          const errorDef = localErrorDef
 
-        let cache: false | string = false
-        const captureStackTrace = () => {
-          // in case of an error, we want to append the definition stack to the call site stack,
-          // so we can see where the handler was defined too
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
 
-          if (cache !== false) {
-            return cache
-          }
-          if (errorCall.stack) {
-            const stackDef = errorDef.stack!.trim().split("\n")
-            const stackCall = errorCall.stack.trim().split("\n")
-            let endStackDef = stackDef.slice(2).join("\n").trim()
-            if (!endStackDef.includes(`(`)) {
-              endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+            if (cache !== false) {
+              return cache
             }
-            let endStackCall = stackCall.slice(2).join("\n").trim()
-            if (!endStackCall.includes(`(`)) {
-              endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+            if (errorCall.stack) {
+              const stackDef = errorDef.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
             }
-            cache = `${endStackDef}\n${endStackCall}`
-            return cache
           }
-        }
 
-        return Effect.gen(function*() {
-          const ctx = yield* CommandContext
-          ctx.action = command.action
-          return yield* command.exec(...args).pipe(
-            Effect.flatten,
-            Effect.withSpan(
-              command.action,
-              { captureStackTrace }
+          return Effect.gen(function*() {
+            const ctx = yield* CommandContext
+            ctx.action = command.action
+            return yield* command.exec(...args).pipe(
+              Effect.flatten,
+              Effect.withSpan(
+                command.action,
+                { captureStackTrace }
+              )
             )
-          )
-        })
-      },
+          })
+        },
 
       /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
       confirmOrInterrupt: Effect.fnUntraced(function*(
@@ -879,7 +886,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return (actionName: string): Commander.Gen<RT> & Commander.NonGen<RT> =>
+        return <const Name extends string>(actionName: Name): Commander.Gen<RT, Name> & Commander.NonGen<RT, Name> =>
         (
           fn: any,
           ...combinators: any[]
@@ -902,11 +909,12 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         }
       },
 
-      alt: makeCommand as unknown as <RT>(runtime: Runtime.Runtime<RT>) => (
-        actionName: string
+      alt: makeCommand as unknown as <RT>(runtime: Runtime.Runtime<RT>) => <const Name extends string>(
+        actionName: Name
       ) => <Args extends Array<any>, A, E, R extends RT | CommandContext>(
         handler: (...args: Args) => Effect.Effect<A, E, R>
-      ) => Commander.CommandOut<Args, A, E, R>
+      ) => Commander.CommandOut<Args, A, E, R, Name>,
+
     }
   })
 }) {}

@@ -1,5 +1,5 @@
 ---
-"@effect-app/vue-components": minor
+"@effect-app/vue-components": patch
 ---
 
 Fixes nullish struct navigation

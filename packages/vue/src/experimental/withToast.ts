@@ -1,43 +1,72 @@
 import { Cause, Effect, type Option } from "effect-app"
 import { CurrentToastId, Toast } from "./toast.js"
 
-export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>> {
+export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, SucR, ErrR> {
   timeout?: number
-  onWaiting: string | ((...args: Args) => string) | null
-  onSuccess: string | ((a: A, ...args: Args) => string) | null
+  onWaiting:
+    | string
+    | ((...args: Args) => string | null)
+    | null
+    | ((
+      ...args: Args
+    ) => Effect.Effect<string | null, never, WaiR>)
+  onSuccess:
+    | string
+    | ((a: A, ...args: Args) => string | null)
+    | null
+    | ((
+      a: A,
+      ...args: Args
+    ) => Effect.Effect<string | null, never, SucR>)
   onFailure:
     | string
     | ((
       error: Option.Option<E>,
       ...args: Args
     ) => string | { level: "warn" | "error"; message: string })
+    | ((
+      error: Option.Option<E>,
+      ...args: Args
+    ) => Effect.Effect<string | { level: "warn" | "error"; message: string }, never, ErrR>)
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class WithToast extends Effect.Service<WithToast>()("WithToast", {
   effect: Effect.gen(function*() {
     const toast = yield* Toast
-    return <A, E, Args extends ReadonlyArray<unknown>, R>(
-      options: ToastOptions<A, E, Args>
+    return <A, E, Args extends ReadonlyArray<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
+      options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
     ) =>
       Effect.fnUntraced(function*(self: Effect.Effect<A, E, R>, ...args: Args) {
         const baseTimeout = options.timeout ?? 3_000
-        const toastId = options.onWaiting === null ? undefined : yield* toast.info(
-          // .loading
-          typeof options.onWaiting === "string"
-            ? options.onWaiting
-            : options.onWaiting(...args)
-          // TODO: timeout forever?
+
+        const wrapEffect = <I, A, E, R, Args extends Array<any>>(
+          m: I | ((...args: Args) => A) | ((...args: Args) => Effect.Effect<A, E, R>)
+        ) => {
+          if (typeof m === "function") {
+            return (...args: Args): Effect.Effect<A | I, E, R> => {
+              const r = (m as any)(...args)
+              if (Effect.isEffect(r)) return r as Effect.Effect<A, E, R>
+              return Effect.succeed(r)
+            }
+          }
+          return (): Effect.Effect<A | I, E, R> => Effect.succeed(m)
+        }
+        const t = yield* wrapEffect(options.onWaiting)(...args)
+        const toastId = t === null ? undefined : yield* toast.info(
+          t // TODO: timeout forever?
         )
         return yield* self.pipe(
-          Effect.tap((a) =>
-            options.onSuccess === null ? Effect.void : toast.success(
-              typeof options.onSuccess === "string"
-                ? options.onSuccess
-                : options.onSuccess(a, ...args),
+          Effect.tap(Effect.fnUntraced(function*(a) {
+            const t = yield* wrapEffect(options.onSuccess)(a, ...args)
+            if (t === null) {
+              return
+            }
+            yield* toast.success(
+              t,
               toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
             )
-          ),
+          })),
           Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
             yield* Effect.logDebug(
               "WithToast - caught error cause: " + Cause.squash(cause),
@@ -50,9 +79,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               return
             }
 
-            const t = typeof options.onFailure === "string"
-              ? options.onFailure
-              : options.onFailure(Cause.failureOption(cause), ...args)
+            const t = yield* wrapEffect(options.onFailure)(Cause.failureOption(cause), ...args)
             const opts = { timeout: baseTimeout * 2 }
 
             if (typeof t === "object") {
@@ -66,4 +93,8 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
         )
       })
   })
-}) {}
+}) {
+  static readonly handle = <A, E, Args extends ReadonlyArray<unknown>, WaiR = never, SucR = never, ErrR = never>(
+    options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
+  ) => this.use((_) => _(options))
+}

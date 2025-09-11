@@ -42,7 +42,7 @@ export const DefaultIntl = {
 
 export class CommandContext extends Context.Tag("CommandContext")<
   CommandContext,
-  { action: string }
+  { action: string; name: string }
 >() {}
 
 export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
@@ -779,7 +779,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           id: `action.${actionName}`,
           defaultMessage: actionName
         })
-        const context = { action }
+        const context = { action, name: actionName }
 
         const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
           self.pipe(
@@ -1097,9 +1097,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       withDefaultToast: <A, E, R, Args extends ReadonlyArray<unknown>>(
         options?: {
           errorRenderer?: (e: E, action: string, ...args: Args) => string | undefined
-          actionNameRenderer?: (action: string, ...args: Args) => string
-          onWaiting?: null // TODO? | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
-          onSuccess?: null // TODO? | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
+          onWaiting?: null | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
+          onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
         }
       ) =>
       (

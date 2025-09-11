@@ -56,9 +56,13 @@ export type FormProps<From, To> =
       FormAsyncValidateOrFn<From> | undefined,
       Record<string, any> | undefined // TODO
     >,
-    "onSubmit"
+    "onSubmit" |
+    "defaultValues"
   >
   & {
+    // when defaultValues are allowed to be undefined, then they should also be allowed to be partial
+    // this fixes validator issues where a defaultValue of "" leads to "requires at least 1 character", while manually emptying the field changes it to "is required"
+    defaultValues?: Partial<From>
     onSubmit?: (props: {
       formApi: OmegaFormParams<From, To>
       meta: any

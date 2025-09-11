@@ -1088,9 +1088,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
       withDefaultToast: <A, E, R, Args extends ReadonlyArray<unknown>>(
         options?: {
-          errorRenderer?: (e: E, ...args: Args) => string | undefined
-          onWaiting?: null
-          onSuccess?: null
+          errorRenderer?: (e: E, action: string, ...args: Args) => string | undefined
+          onWaiting?: null // TODO? | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
+          onSuccess?: null // TODO? | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
         }
       ) =>
       (
@@ -1102,7 +1102,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
           function renderError(e: E, ...args: Args): string {
             if (options?.errorRenderer) {
-              const m = options.errorRenderer(e, ...args)
+              const m = options.errorRenderer(e, cc.action, ...args)
               if (m) {
                 return m
               }

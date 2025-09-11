@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.64.0
+
+### Minor Changes
+
+- 8d5a320: add alt2 for testing
+
 ## 2.63.1
 
 ### Patch Changes

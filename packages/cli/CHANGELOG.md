@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.23.25
+
+### Patch Changes
+
+- e31d54f: remove out of date wiki commands
+
 ## 1.23.24
 
 ### Patch Changes

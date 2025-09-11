@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.62.0
+
+### Minor Changes
+
+- f2b00e9: improve CommandContext
+
 ## 2.61.4
 
 ### Patch Changes

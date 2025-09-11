@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.63.1
+
+### Patch Changes
+
+- 7a20d60: enable cls
+
 ## 2.63.0
 
 ### Minor Changes

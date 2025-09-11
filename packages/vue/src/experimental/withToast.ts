@@ -30,6 +30,20 @@ export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, S
     ) => Effect.Effect<string | { level: "warn" | "error"; message: string }, never, ErrR>)
 }
 
+// unifies any input to be an effect.
+const wrapEffect = <I, A, E, R, Args extends Array<any>>(
+  m: I | ((...args: Args) => A) | ((...args: Args) => Effect.Effect<A, E, R>)
+) => {
+  if (typeof m === "function") {
+    return (...args: Args): Effect.Effect<A | I, E, R> => {
+      const r = (m as any)(...args)
+      if (Effect.isEffect(r)) return r as Effect.Effect<A, E, R>
+      return Effect.succeed(r)
+    }
+  }
+  return (): Effect.Effect<A | I, E, R> => Effect.succeed(m)
+}
+
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class WithToast extends Effect.Service<WithToast>()("WithToast", {
   effect: Effect.gen(function*() {
@@ -40,18 +54,6 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
       Effect.fnUntraced(function*(self: Effect.Effect<A, E, R>, ...args: Args) {
         const baseTimeout = options.timeout ?? 3_000
 
-        const wrapEffect = <I, A, E, R, Args extends Array<any>>(
-          m: I | ((...args: Args) => A) | ((...args: Args) => Effect.Effect<A, E, R>)
-        ) => {
-          if (typeof m === "function") {
-            return (...args: Args): Effect.Effect<A | I, E, R> => {
-              const r = (m as any)(...args)
-              if (Effect.isEffect(r)) return r as Effect.Effect<A, E, R>
-              return Effect.succeed(r)
-            }
-          }
-          return (): Effect.Effect<A | I, E, R> => Effect.succeed(m)
-        }
         const t = yield* wrapEffect(options.onWaiting)(...args)
         const toastId = t === null ? undefined : yield* toast.info(
           t // TODO: timeout forever?

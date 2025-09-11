@@ -85,7 +85,7 @@ export function vueConfig(dirName, forceTS = false, dprintConfigFile ) {
             config: {
               // The markup_fmt configuration of dprint
               // See also https://dprint.dev/plugins/markup_fmt/config/
-              "lineWidth": 120,
+              "printWidth": 120,
             },
           },
         ],

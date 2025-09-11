@@ -16,7 +16,7 @@
   "toml": {},
   "malva": {},
   "markup": {
-    "lineWidth": 120,
+    "printWidth": 120
   },
   "yaml": {},
   "excludes": [

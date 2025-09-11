@@ -752,6 +752,8 @@ export declare namespace Commander {
   }
 }
 
+type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
+
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Commander extends Effect.Service<Commander>()("Commander", {
   dependencies: [WithToast.Default, Confirm.Default],
@@ -1009,6 +1011,69 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       }
     }
 
+    const renderError =
+      <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
+      (e: E, ...args: Args): string => {
+        if (errorRenderer) {
+          const m = errorRenderer(e, action, ...args)
+          if (m) {
+            return m
+          }
+        }
+        if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
+          if (typeof e === "object" && e !== null) {
+            if ("message" in e) {
+              return `${e.message}`
+            }
+            if ("_tag" in e) {
+              return `${e._tag}`
+            }
+          }
+          return ""
+        }
+        const e2: SupportedErrors | S.ParseResult.ParseError = e
+        return Match.value(e2).pipe(
+          Match.tags({
+            ParseError: (e) => {
+              console.warn(e.toString())
+              return intl.formatMessage({ id: "validation.failed" })
+            }
+          }),
+          Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+        )
+      }
+
+    const defaultFailureMessageHandler =
+      <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
+      (o: Option.Option<E>, ...args: Args) =>
+        Option.match(o, {
+          onNone: () =>
+            intl.formatMessage(
+              { id: "handle.unexpected_error2" },
+              {
+                action,
+                error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
+              }
+            ),
+          onSome: (e) =>
+            S.is(OperationFailure)(e)
+              ? {
+                level: "warn" as const,
+                message: intl.formatMessage(
+                    { id: "handle.with_warnings" },
+                    { action }
+                  ) + e.message
+                  ? "\n" + e.message
+                  : ""
+              }
+              : `${
+                intl.formatMessage(
+                  { id: "handle.with_errors" },
+                  { action }
+                )
+              }:\n` + renderError(action, errorRenderer)(e, ...args)
+        })
+
     return {
       /** @experimental */
       takeOver:
@@ -1095,10 +1160,12 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             CommandContext,
             (c) => ({ ...c, action: update(c.action, ...input) })
           ),
+      defaultFailureMessageHandler,
+      renderError,
       /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
       withDefaultToast: <A, E, R, Args extends ReadonlyArray<unknown>>(
         options?: {
-          errorRenderer?: (e: E, action: string, ...args: Args) => string | undefined
+          errorRenderer?: ErrorRenderer<E, Args>
           onWaiting?: null | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
           onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
         }
@@ -1109,36 +1176,6 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       ) =>
         Effect.gen(function*() {
           const cc = yield* CommandContext
-
-          function renderError(e: E, ...args: Args): string {
-            if (options?.errorRenderer) {
-              const m = options.errorRenderer(e, cc.action, ...args)
-              if (m) {
-                return m
-              }
-            }
-            if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
-              if (typeof e === "object" && e !== null) {
-                if ("message" in e) {
-                  return `${e.message}`
-                }
-                if ("_tag" in e) {
-                  return `${e._tag}`
-                }
-              }
-              return ""
-            }
-            const e2: SupportedErrors | S.ParseResult.ParseError = e
-            return Match.value(e2).pipe(
-              Match.tags({
-                ParseError: (e) => {
-                  console.warn(e.toString())
-                  return intl.formatMessage({ id: "validation.failed" })
-                }
-              }),
-              Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
-            )
-          }
 
           return yield* self.pipe(
             (_) =>
@@ -1152,34 +1189,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                   : (a, ..._args) =>
                     intl.formatMessage({ id: "handle.success" }, { action: cc.action })
                     + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-                onFailure: (o, ...args) =>
-                  Option.match(o, {
-                    onNone: () =>
-                      intl.formatMessage(
-                        { id: "handle.unexpected_error2" },
-                        {
-                          action: cc.action,
-                          error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
-                        }
-                      ),
-                    onSome: (e) =>
-                      S.is(OperationFailure)(e)
-                        ? {
-                          level: "warn",
-                          message: intl.formatMessage(
-                              { id: "handle.with_warnings" },
-                              { action: cc.action }
-                            ) + e.message
-                            ? "\n" + e.message
-                            : ""
-                        }
-                        : `${
-                          intl.formatMessage(
-                            { id: "handle.with_errors" },
-                            { action: cc.action }
-                          )
-                        }:\n` + renderError(e, ...args)
-                  })
+                onFailure: defaultFailureMessageHandler(cc.action, options?.errorRenderer)
               })(_, ...args)
           )
         }),

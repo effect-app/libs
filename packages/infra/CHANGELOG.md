@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.0.30
+
+### Patch Changes
+
+- 5f4a178: fix provide devmode
+
 ## 3.0.29
 
 ### Patch Changes

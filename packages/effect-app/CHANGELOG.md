@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.4.0
+
+### Minor Changes
+
+- 923f0d8: improve defaultFailureMessageHandler
+
 ## 3.3.7
 
 ### Patch Changes

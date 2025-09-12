@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.66.0
+
+### Minor Changes
+
+- 923f0d8: improve defaultFailureMessageHandler
+
+### Patch Changes
+
+- Updated dependencies [923f0d8]
+  - effect-app@3.4.0
+
 ## 2.65.0
 
 ### Minor Changes

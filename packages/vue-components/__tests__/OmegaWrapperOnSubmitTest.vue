@@ -212,7 +212,7 @@ const handleSubmit1 = (data: { name: string }) => {
 const schema2 = S.Struct({ username: S.String })
 const submittedData2 = ref<string>("")
 
-const handleSubmit2 = async ({ value }: { value: { username: string } }) => {
+const handleSubmit2 = async (value: { username: string }) => {
   await new Promise((resolve) => setTimeout(resolve, 50))
   const username = value.username || "empty"
   submittedData2.value = username.toUpperCase()

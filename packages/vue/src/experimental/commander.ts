@@ -57,16 +57,6 @@ export const wrapEmit = <A, Event extends string>(
 ) =>
 (value: A) => new Promise<void>((resolve) => emit(event, value, resolve))
 
-/**
- * Shorthand of @see wrapEmit to wrap emit calls for OmegaForm form submission callback
- */
-export const wrapEmitSubmit = <A>(
-  emit: EmitWithCallback<A, "submit">
-) => {
-  const submit = wrapEmit(emit, "submit")
-  return ({ value }: { value: A }) => submit(value)
-}
-
 export declare namespace Commander {
   export interface CommandContextLocal<Id extends string> {
     id: Id

@@ -79,7 +79,7 @@ const validators = {
   onSubmitAsync: validateNumberOnServer
 }
 
-const onSubmit = ({ value }: { value: { asder2: string } }) => {
+const onSubmit = (value: { asder2: string }) => {
   console.log("OnSubmit", value)
   isLoading.value = true
   setTimeout(() => {

@@ -71,6 +71,11 @@ import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
 import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
+type OnSubmit = NonNullable<FormProps<From, To>["onSubmit"]>
+type OnSubmitArg = Parameters<OnSubmit>[0]
+  type OnSubmitEmit = (value: To, meta: OnSubmitArg["meta"], formApi: OnSubmitArg["formApi"]) => void
+  type OnSubmitAwaitable = (value: To, meta: OnSubmitArg["meta"], formApi: OnSubmitArg["formApi"]) => ReturnType<OnSubmit>
+
 type OmegaWrapperProps =
   & {
     omegaConfig?: OmegaConfig<From>
@@ -91,15 +96,11 @@ type OmegaWrapperProps =
   & (
     | {
       isLoading: boolean
-      onSubmit: (data: {
-        formApi: OmegaFormApi<From, To>
-        meta: any
-        value: To
-      }) => void
+      onSubmit: OnSubmitEmit
     }
     | {
       isLoading?: undefined
-      onSubmit?: FormProps<From, To>["onSubmit"]
+      onSubmit?: OnSubmitAwaitable
     }
   )
 
@@ -112,11 +113,9 @@ const instance = getCurrentInstance()
 // we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
 // so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
 // we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
-const eventOnSubmit: FormProps<From, To>["onSubmit"] = (
-  { formApi, meta, value }
-) =>
+const eventOnSubmit: OnSubmitAwaitable = (value, meta, formApi) =>
   new Promise<void>((resolve) => {
-    instance!.emit("submit", { formApi, meta, value })
+    instance!.emit("submit", value, meta, formApi)
     // even if the emit would be immediately handled, prop changes are not published/received immediately.
     // so we have to wait for the prop to change to true, and back to false again.
     const handle = watch(() => props.isLoading, (v) => {
@@ -134,7 +133,7 @@ const onSubmit_ = typeof props.isLoading !== "undefined"
   ? computed(() => props.onSubmit)
   : undefined
 
-const onSubmit = onSubmit_?.value ? (...args: [any]) => onSubmit_!.value!(...args) : undefined
+const onSubmitHandler = onSubmit_?.value ? ({formApi, meta, value }: OnSubmitArg) => onSubmit_!.value!(value, meta, formApi) : undefined
 
 const localForm = props.form || !props.schema
   ? undefined
@@ -142,7 +141,7 @@ const localForm = props.form || !props.schema
     props.schema,
     {
       ...props,
-      onSubmit
+      onSubmit: onSubmitHandler
     },
     props.omegaConfig
   )
@@ -196,7 +195,7 @@ onBeforeMount(() => {
     ...formToUse.value.options,
     ...filteredProps
   }
-  if (onSubmit) mergedOptions.onSubmit = onSubmit
+  if (onSubmitHandler) mergedOptions.onSubmit = onSubmitHandler
 
   formToUse.value.options = Object.fromEntries(
     // TODO

@@ -119,7 +119,7 @@ onMounted(() => {
 })
 
 const form = useOmegaForm(schema, {
-  onSubmit: ({ value }) => {
+  onSubmit: async (value) => {
     console.log(value)
   }
 })

@@ -1,5 +1,17 @@
 # @effect-app/vue
 
+## 2.67.0
+
+### Minor Changes
+
+- 68e91c9: rename `name` to `id`
+- 68e91c9: support also effect function with id
+
+### Patch Changes
+
+- Updated dependencies [68e91c9]
+  - effect-app@3.5.0
+
 ## 2.66.0
 
 ### Minor Changes

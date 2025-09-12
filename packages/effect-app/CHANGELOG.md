@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.5.0
+
+### Minor Changes
+
+- 68e91c9: rename `name` to `id`
+
 ## 3.4.0
 
 ### Minor Changes

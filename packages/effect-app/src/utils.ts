@@ -871,3 +871,17 @@ export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>) =>
       }
     })
   )
+
+// unifies any input to be an effect.
+export const wrapEffect = <I, A, E, R, Args extends Array<any>>(
+  m: ((...args: Args) => A) | ((...args: Args) => Effect.Effect<A, E, R>) | I
+) => {
+  if (typeof m === "function") {
+    return (...args: Args): Effect.Effect<A | I, E, R> => {
+      const r = (m as any)(...args)
+      if (Effect.isEffect(r)) return r as Effect.Effect<A, E, R>
+      return Effect.succeed(r)
+    }
+  }
+  return (): Effect.Effect<A | I, E, R> => Effect.succeed(m)
+}

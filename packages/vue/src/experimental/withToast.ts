@@ -1,4 +1,5 @@
 import { Cause, Effect, type Option } from "effect-app"
+import { wrapEffect } from "effect-app/utils"
 import { CurrentToastId, Toast } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, SucR, ErrR> {
@@ -30,25 +31,11 @@ export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, S
     ) => Effect.Effect<string | { level: "warn" | "error"; message: string }, never, ErrR>)
 }
 
-// unifies any input to be an effect.
-const wrapEffect = <I, A, E, R, Args extends Array<any>>(
-  m: I | ((...args: Args) => A) | ((...args: Args) => Effect.Effect<A, E, R>)
-) => {
-  if (typeof m === "function") {
-    return (...args: Args): Effect.Effect<A | I, E, R> => {
-      const r = (m as any)(...args)
-      if (Effect.isEffect(r)) return r as Effect.Effect<A, E, R>
-      return Effect.succeed(r)
-    }
-  }
-  return (): Effect.Effect<A | I, E, R> => Effect.succeed(m)
-}
-
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class WithToast extends Effect.Service<WithToast>()("WithToast", {
   effect: Effect.gen(function*() {
     const toast = yield* Toast
-    return <A, E, Args extends ReadonlyArray<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
+    return <A, E, Args extends Array<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
       options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
     ) =>
       Effect.fnUntraced(function*(self: Effect.Effect<A, E, R>, ...args: Args) {
@@ -96,7 +83,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
       })
   })
 }) {
-  static readonly handle = <A, E, Args extends ReadonlyArray<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
+  static readonly handle = <A, E, Args extends Array<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
     options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
   ): (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, R | WaiR | SucR | ErrR | WithToast> =>
   (self, ...args) => this.use((_) => _<A, E, Args, R, WaiR, SucR, ErrR>(options)(self, ...args))

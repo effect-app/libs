@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.67.1
+
+### Patch Changes
+
+- 68135fb: carry id
+
 ## 2.67.0
 
 ### Minor Changes

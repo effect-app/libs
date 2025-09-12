@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.23.1
+
+### Patch Changes
+
+- 7c39181: reduce amount of args
+
 ## 0.23.0
 
 ### Minor Changes

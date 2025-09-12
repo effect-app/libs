@@ -203,10 +203,13 @@ export const useMutation: typeof _useMutation = <
   self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
   options?: MutationOptionsBase
 ) =>
-  mapHandler(
-    _useMutation(self as any, options),
-    Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
-  ) as any
+  Object.assign(
+    mapHandler(
+      _useMutation(self as any, options),
+      Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
+    ) as any,
+    { id: self.id }
+  )
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMutation", {

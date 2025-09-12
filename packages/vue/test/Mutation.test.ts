@@ -23,9 +23,31 @@ describe("alt2", () => {
         let executed = false
 
         const someMutation = {
-          name: "Test Action",
-          mutate: (() => {}) as unknown as (a: number, b: string) => Effect.Effect<string, number, boolean>
-        }
+          id: "Test Action",
+          mutate: (() => {}) as unknown as (a: number, b: string) => Effect.Effect<string, number, CommandContext>
+        } as const
+        const someMutation2 = Object.assign(
+          (() => {}) as unknown as (a: number, b: string) => Effect.Effect<string, number, CommandContext>,
+          {
+            id: "Test Action"
+          } as const
+        )
+        const command1 = Command.alt2(someMutation2)((fn) =>
+          fn(
+            function*() {
+              expect(typeof fn.mutate).toBe("function")
+              expect(fn.id).toBe("Test Action")
+              expect(fn.namespace).toBe("action.Test Action")
+              expect(fn.namespaced("a")).toBe("action.Test Action.a")
+            }
+          )
+        )
+        yield* unwrap(command1.handle())
+        expect(command1.action).toBe("Test Action")
+        expect(command1.id).toBe("Test Action")
+        expect(command1.namespace).toBe("action.Test Action")
+        expect(command1.namespaced("a")).toBe("action.Test Action.a")
+
         const command = Command.alt2(someMutation)((fn) =>
           fn(
             function*() {
@@ -55,7 +77,7 @@ describe("alt2", () => {
             Effect.tap(() => executed = true)
           )
         )
-        console.log(command)
+
         expect(command.action).toBe("Test Action")
         expect(command.id).toBe("Test Action")
         expect(command.namespace).toBe("action.Test Action")

@@ -30,9 +30,9 @@ export const reportRuntimeError = (cause: Cause.Cause<unknown>, extras?: Record<
 
 // $Project/$Configuration.Index
 // -> "$Project", "$Configuration", "Index"
-export const makeQueryKey = ({ name, options }: { name: string; options?: ClientForOptions }) =>
+export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForOptions }) =>
   pipe(
-    name.split("/"),
+    id.split("/"),
     (split) => split.filter((_) => !options || !options?.skipQueryKey?.includes(_)).map((_) => "$" + _)
   )
     .join(".")

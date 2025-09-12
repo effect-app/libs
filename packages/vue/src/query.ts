@@ -75,7 +75,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
               handler
                 .pipe(
                   Effect.tapDefect(reportRuntimeError),
-                  Effect.withSpan(`query ${q.name}`, { captureStackTrace: false }),
+                  Effect.withSpan(`query ${q.id}`, { captureStackTrace: false }),
                   meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
                 ),
               { signal }
@@ -100,7 +100,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
               handler(req.value)
                 .pipe(
                   Effect.tapDefect(reportRuntimeError),
-                  Effect.withSpan(`query ${q.name}`, { captureStackTrace: false }),
+                  Effect.withSpan(`query ${q.id}`, { captureStackTrace: false }),
                   meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
                 ),
               { signal }

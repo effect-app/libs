@@ -82,16 +82,16 @@ export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
 }
 
-export interface RequestHandler<A, E, R, Request extends TaggedRequestClassAny, Name extends string> {
+export interface RequestHandler<A, E, R, Request extends TaggedRequestClassAny, Id extends string> {
   handler: Effect.Effect<A, E, R>
-  name: Name
+  id: Id
   options?: ClientForOptions
   Request: Request
 }
 
-export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedRequestClassAny, Name extends string> {
+export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedRequestClassAny, Id extends string> {
   handler: (i: I) => Effect.Effect<A, E, R>
-  name: Name
+  id: Id
   options?: ClientForOptions
   Request: Request
 }

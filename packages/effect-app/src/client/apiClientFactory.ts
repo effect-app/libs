@@ -192,12 +192,12 @@ const makeApiClientFactory = Effect
               const Request = h
               const Response = h.success
 
-              const requestName = `${meta.moduleName}.${cur as string}`
+              const id = `${meta.moduleName}.${cur as string}`
                 .replaceAll(".js", "")
 
               const requestMeta = {
                 Request,
-                name: requestName,
+                id,
                 options
               }
 

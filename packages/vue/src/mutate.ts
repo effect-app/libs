@@ -7,13 +7,13 @@ import { tuple } from "effect-app/Function"
 import { computed, type ComputedRef, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
 
-export const getQueryKey = (h: { name: string }) => {
+export const getQueryKey = (h: { id: string }) => {
   const key = makeQueryKey(h)
   const ns = key.filter((_) => _.startsWith("$"))
   // we invalidate the parent namespace e.g $project/$configuration.get, we invalidate $project
   // for $project/$configuration/$something.get, we invalidate $project/$configuration
   const k = ns.length ? ns.length > 1 ? ns.slice(0, ns.length - 1) : ns : undefined
-  if (!k) throw new Error("empty query key for: " + h.name)
+  if (!k) throw new Error("empty query key for: " + h.id)
   return k
 }
 
@@ -180,7 +180,7 @@ export const makeMutation = () => {
       const queryKey = getQueryKey(self)
 
       if (options?.queryInvalidation) {
-        const opts = options.queryInvalidation(queryKey, self.name)
+        const opts = options.queryInvalidation(queryKey, self.id)
         if (!opts.length) {
           return Effect.void
         }

@@ -760,6 +760,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
     const { confirm, confirmOrInterrupt } = yield* Confirm
 
     const makeContext = <Id extends string>(id: Id) => {
+      if (!id) throw new Error("must specify an id")
       const namespace = `action.${id}` as const
 
       const action = intl.formatMessage({
@@ -1261,7 +1262,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         const cmd = makeCommand(rt)
         return (_id: any) => {
           const isObject = typeof _id === "object" || typeof _id === "function"
-          const id = isObject ? _id.name : _id
+          const id = isObject ? _id.id : _id
           const context = makeContext(id)
           const idCmd = cmd(id)
           // TODO: implement proper tracing stack
@@ -1278,7 +1279,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                   ),
                 context,
                 isObject
-                  ? { mutate: _id.mutate }
+                  ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined }
                   : {}
               )
             ))
@@ -1286,7 +1287,10 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       }) as unknown as <RT>(
         runtime: Runtime.Runtime<RT>
       ) => <const Id extends string, MutArgs extends Array<unknown>, MutA, MutE, MutR>(
-        id: Id | { name: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
+        id:
+          | Id
+          | { id: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
+          | ((...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>) & { id: Id }
       ) => <Args extends Array<unknown>, A, E, R extends RT | CommandContext>(
         handler: (
           ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id> & {
@@ -1307,7 +1311,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       wrap: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
         return <const Id extends string, Args extends Array<unknown>, A, E, R>(
-          mutation: { mutate: (...args: Args) => Effect.Effect<A, E, R>; name: Id }
+          mutation:
+            | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
+            | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id }
         ): Commander.GenWrap<RT, Id, Args, A, E, R> & Commander.NonGenWrap<RT, Id, Args, A, E, R> =>
         (
           ...combinators: any[]
@@ -1318,11 +1324,13 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           const errorDef = new Error()
           Error.stackTraceLimit = limit
 
-          return make(mutation.name, errorDef)(
+          const mutate = "mutate" in mutation ? mutation.mutate : mutation
+
+          return make(mutation.id, errorDef)(
             Effect.fnUntraced(
               // fnUntraced only supports generators as first arg, so we convert to generator if needed
-              isGeneratorFunction(mutation.mutate) ? mutation.mutate : function*(...args: Args) {
-                return yield* mutation.mutate(...args)
+              isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
+                return yield* mutate(...args)
               },
               ...combinators as [any]
             ) as any

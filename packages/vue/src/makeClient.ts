@@ -126,7 +126,7 @@ function handleRequest<
   RDefect = never
 >(
   f: Effect.Effect<Exit.Exit<A, E>, never, R> | ((i: I) => Effect.Effect<Exit.Exit<A, E>, never, R>),
-  name: string,
+  id: string,
   action: string,
   options: {
     onSuccess: (a: A, i: I) => Effect.Effect<void, ESuccess, RSuccess>
@@ -168,7 +168,7 @@ function handleRequest<
             })
         })
       ),
-      Effect.withSpan(`mutation ${name}`, { captureStackTrace: false })
+      Effect.withSpan(`mutation ${id}`, { captureStackTrace: false })
     )
   return Object.assign(
     Effect.isEffect(f)
@@ -190,7 +190,7 @@ const _useMutation = makeMutation()
 /**
  * Pass an Effect or a function that returns an Effect, e.g from a client action
  * Executes query cache invalidation based on default rules or provided option.
- * adds a span with the mutation name
+ * adds a span with the mutation id
  */
 export const useMutation: typeof _useMutation = <
   I,
@@ -205,7 +205,7 @@ export const useMutation: typeof _useMutation = <
 ) =>
   mapHandler(
     _useMutation(self as any, options),
-    Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
+    Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
   ) as any
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
@@ -248,7 +248,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           a,
           mapHandler(
             b,
-            Effect.withSpan(`mutation ${self.name}`, { captureStackTrace: false })
+            Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
           )
         ] as const as any
       }
@@ -276,7 +276,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
           RDefect = never
         >(
           f: Effect.Effect<Exit.Exit<A2, E2>, never, R2> | ((i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>),
-          name: string,
+          id: string,
           action: string,
           options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
         ) {
@@ -294,7 +294,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
             { action: actionMessage }
           )
 
-          return handleRequest<E2, A2, R2, any, ESuccess, RSuccess, EError, RError, EDefect, RDefect>(f, name, action, {
+          return handleRequest<E2, A2, R2, any, ESuccess, RSuccess, EError, RError, EDefect, RDefect>(f, id, action, {
             onSuccess: Effect.fnUntraced(function*(a, i) {
               const message = options.successMessage ? yield* options.successMessage(a, i) : defaultSuccessMessage
                 + (S.is(OperationSuccess)(a) && a.message
@@ -460,7 +460,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
 
         return tuple(
           a,
-          handleRequestWithToast(b as any, self.name, action, options)
+          handleRequestWithToast(b as any, self.id, action, options)
         )
       }
       //
@@ -697,7 +697,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
 
         return tuple(
           computed(() => mutationResultToVue(a.value)),
-          handleRequest(b as any, self.name, action, {
+          handleRequest(b as any, self.id, action, {
             onSuccess: suppressToast,
             onDefect: suppressToast,
             onFail: suppressToast,

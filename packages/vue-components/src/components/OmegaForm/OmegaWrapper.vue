@@ -73,8 +73,8 @@ import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmega
 
 type OnSubmit = NonNullable<FormProps<From, To>["onSubmit"]>
 type OnSubmitArg = Parameters<OnSubmit>[0]
-  type OnSubmitEmit = (value: To, meta: OnSubmitArg["meta"], formApi: OnSubmitArg["formApi"]) => void
-  type OnSubmitAwaitable = (value: To, meta: OnSubmitArg["meta"], formApi: OnSubmitArg["formApi"]) => ReturnType<OnSubmit>
+  type OnSubmitEmit = (value: To, extra: Pick<OnSubmitArg, "formApi" | "meta">) => void
+  type OnSubmitAwaitable = (value: To, extra: Pick<OnSubmitArg, "formApi" | "meta">) => ReturnType<OnSubmit>
 
 type OmegaWrapperProps =
   & {
@@ -113,9 +113,9 @@ const instance = getCurrentInstance()
 // we prefer to use the standard abstraction in Vue which separates props (going down) and event emits (going back up)
 // so if isLoading + @submit are provided, we wrap them into a Promise, so that TanStack Form can properly track the submitting state.
 // we use this approach because it means we can keep relying on the built-in beaviour of TanStack Form, and we dont have to re-implement/keep in sync/break any internals.
-const eventOnSubmit: OnSubmitAwaitable = (value, meta, formApi) =>
+const eventOnSubmit: OnSubmitAwaitable = (value, extra) =>
   new Promise<void>((resolve) => {
-    instance!.emit("submit", value, meta, formApi)
+    instance!.emit("submit", value, extra)
     // even if the emit would be immediately handled, prop changes are not published/received immediately.
     // so we have to wait for the prop to change to true, and back to false again.
     const handle = watch(() => props.isLoading, (v) => {
@@ -133,7 +133,7 @@ const onSubmit_ = typeof props.isLoading !== "undefined"
   ? computed(() => props.onSubmit)
   : undefined
 
-const onSubmitHandler = onSubmit_?.value ? ({formApi, meta, value }: OnSubmitArg) => onSubmit_!.value!(value, meta, formApi) : undefined
+const onSubmitHandler = onSubmit_?.value ? ({formApi, meta, value }: OnSubmitArg) => onSubmit_!.value!(value, { meta, formApi }) : undefined
 
 const localForm = props.form || !props.schema
   ? undefined

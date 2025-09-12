@@ -98,7 +98,7 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedReque
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true ?
+  [K in keyof M as K extends string ? Uncapitalize<K> : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true ?
       & RequestHandler<
         S.Schema.Type<M[K]["success"]>,
         S.Schema.Type<M[K]["failure"]> | E,

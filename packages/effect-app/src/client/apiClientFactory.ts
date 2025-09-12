@@ -210,8 +210,9 @@ const makeApiClientFactory = Effect
 
               const fields = Struct.omit(Request.fields, "_tag")
               const requestAttr = h._tag
+              const key = (cur as string)[0]!.toLowerCase() + (cur as string).slice(1)
               // @ts-expect-error doc
-              prev[cur] = Object.keys(fields).length === 0
+              prev[key] = Object.keys(fields).length === 0
                 ? {
                   handler: TheClient.pipe(
                     Effect.flatMap((client) =>

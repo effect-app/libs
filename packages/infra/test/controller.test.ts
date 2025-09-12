@@ -4,7 +4,7 @@ import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra
 import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Context, Effect, Layer, S, Scope } from "effect-app"
-import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
+import { ApiClientFactory, InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import * as RpcX from "effect-app/rpc"
 import { MiddlewareMaker } from "effect-app/rpc"
@@ -237,6 +237,9 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
 }, { success: S.NumberFromString }) {}
 
 const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
+
+const client = ApiClientFactory.makeFor(Layer.empty)(Something)
+console.log(client.pipe(Effect.map((c) => c.getSomething2.id)))
 
 // const client = ApiClientFactory.makeFor(Layer.empty)(Something)
 // client.pipe(Effect.map(c => c.DoSomething.name))

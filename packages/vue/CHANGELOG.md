@@ -1,5 +1,15 @@
 # @effect-app/vue
 
+## 2.65.0
+
+### Minor Changes
+
+- 6c1d4ae: improve: try to adjust the Form onSubmit props so that they are more ergonomic to bind to
+
+### Patch Changes
+
+- effect-app@3.3.7
+
 ## 2.64.2
 
 ### Patch Changes

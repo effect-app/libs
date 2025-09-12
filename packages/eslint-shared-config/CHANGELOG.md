@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.0.13
+
+### Patch Changes
+
+- e366964: 120 line width
+  - @effect-app/eslint-codegen-model@1.42.3
+
 ## 0.0.12
 
 ### Patch Changes

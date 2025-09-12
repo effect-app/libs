@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.67.2
+
+### Patch Changes
+
+- 189219b: context, context, context
+
 ## 2.67.1
 
 ### Patch Changes

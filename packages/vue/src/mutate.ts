@@ -17,6 +17,10 @@ export const getQueryKey = (h: { id: string }) => {
   return k
 }
 
+export const getQueryKeyInt = (id: string) => {
+  return getQueryKey({ id })
+}
+
 export function mutationResultToVue<A, E>(
   mutationResult: Result.Result<A, E>
 ): Res<A, E> {
@@ -141,6 +145,52 @@ export const asResult: {
   return tuple(computed(() => state.value), act) as any
 }
 
+export const useInvalidateQueries = (id: string, options?: MutationOptionsBase["queryInvalidation"]) => {
+  const queryClient = useQueryClient()
+
+  const invalidateQueries = (
+    filters?: InvalidateQueryFilters,
+    options?: InvalidateOptions
+  ) =>
+    Effect.currentSpan.pipe(
+      Effect.orElseSucceed(() => null),
+      Effect.flatMap((span) =>
+        Effect.promise(() => queryClient.invalidateQueries(filters, { ...options, updateMeta: { span } }))
+      )
+    )
+
+  const invalidateCache = Effect.suspend(() => {
+    const queryKey = getQueryKeyInt(id)
+
+    if (options) {
+      const opts = options(queryKey, id)
+      if (!opts.length) {
+        return Effect.void
+      }
+      return Effect
+        .andThen(
+          Effect.annotateCurrentSpan({ queryKey, opts }),
+          Effect.forEach(opts, (_) => invalidateQueries(_.filters, _.options), { concurrency: "inherit" })
+        )
+        .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
+    }
+
+    if (!queryKey) return Effect.void
+
+    return Effect
+      .andThen(
+        Effect.annotateCurrentSpan({ queryKey }),
+        invalidateQueries({ queryKey })
+      )
+      .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
+  })
+
+  const handle = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache })
+
+  return handle
+}
+
 export const makeMutation = () => {
   const useMutation: {
     /**
@@ -163,48 +213,7 @@ export const makeMutation = () => {
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
     options?: MutationOptionsBase
   ) => {
-    const queryClient = useQueryClient()
-
-    const invalidateQueries = (
-      filters?: InvalidateQueryFilters,
-      options?: InvalidateOptions
-    ) =>
-      Effect.currentSpan.pipe(
-        Effect.orElseSucceed(() => null),
-        Effect.flatMap((span) =>
-          Effect.promise(() => queryClient.invalidateQueries(filters, { ...options, updateMeta: { span } }))
-        )
-      )
-
-    const invalidateCache = Effect.suspend(() => {
-      const queryKey = getQueryKey(self)
-
-      if (options?.queryInvalidation) {
-        const opts = options.queryInvalidation(queryKey, self.id)
-        if (!opts.length) {
-          return Effect.void
-        }
-        return Effect
-          .andThen(
-            Effect.annotateCurrentSpan({ queryKey, opts }),
-            Effect.forEach(opts, (_) => invalidateQueries(_.filters, _.options), { concurrency: "inherit" })
-          )
-          .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
-      }
-
-      if (!queryKey) return Effect.void
-
-      return Effect
-        .andThen(
-          Effect.annotateCurrentSpan({ queryKey }),
-          invalidateQueries({ queryKey })
-        )
-        .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
-    })
-
-    const handle = (self: Effect.Effect<A, E, R>) =>
-      Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache })
-
+    const handle = useInvalidateQueries(self.id, options?.queryInvalidation)
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i))
 

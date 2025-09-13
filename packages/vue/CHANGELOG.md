@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.69.0
+
+### Minor Changes
+
+- b104088: add new helpers and move old to legacy
+
 ## 2.68.0
 
 ### Minor Changes

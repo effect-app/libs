@@ -16,7 +16,7 @@
   "dependencies": {
     "@babel/generator": "7.28.3",
     "@babel/parser": "7.28.4",
-    "@typescript-eslint/utils": "8.42.0",
+    "@typescript-eslint/utils": "8.43.0",
     "eslint-plugin-codegen": "0.17.0",
     "glob": "8.1.0",
     "io-ts": "2.2.22",

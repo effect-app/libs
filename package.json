@@ -7,7 +7,7 @@
       "effect": "patches/effect.patch",
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
-  "typescript": "patches/typescript.patch"
+      "typescript": "patches/typescript.patch"
     }
   },
   "engines": {
@@ -28,7 +28,7 @@
     "testsuite": "pnpm -r testsuite",
     "up-all": "pnpm --recursive update",
     "u": "pnpm run update && pnpm i && pnpm dedupe",
-    "update": "ncu -u && pnpm -r ncu -u",
+    "update": "ncu -u && pnpm -r exec ncu -u",
     "ncu": "ncu",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx",
     "packages": "pnpm -r --workspace-concurrency 1",
@@ -56,19 +56,19 @@
   },
   "devDependencies": {
     "dprint": "^0.50.1",
-    "@changesets/cli": "^2.29.6",
-    "@effect-app/cli": "^1.23.24",
+    "@changesets/cli": "^2.29.7",
+    "@effect-app/cli": "^1.23.25",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
-    "@effect/language-service": "0.38.1",
-    "@effect/platform": "^0.90.7",
+    "@effect/language-service": "0.40.0",
+    "@effect/platform": "^0.90.9",
     "@effect/platform-node": "^0.96.1",
     "@tsconfig/strictest": "^2.0.5",
     "@types/lodash": "^4.17.20",
-    "@types/node": "~24.3.1",
-    "@typescript-eslint/eslint-plugin": "8.42.0",
-    "@typescript-eslint/parser": "8.42.0",
-    "@typescript-eslint/scope-manager": "8.42.0",
+    "@types/node": "~24.3.3",
+    "@typescript-eslint/eslint-plugin": "8.43.0",
+    "@typescript-eslint/parser": "8.43.0",
+    "@typescript-eslint/scope-manager": "8.43.0",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "concurrently": "^9.2.1",
@@ -81,7 +81,7 @@
     "madge": "^8.0.0",
     "module-alias": "^2.2.3",
     "nodemon": "^3.1.10",
-    "npm-check-updates": "^18.0.3",
+    "npm-check-updates": "^18.1.1",
     "ts-patch": "^3.3.0",
     "ts-plugin-sort-import-suggestions": "^1.0.4",
     "ts-transform-paths": "^3.0.0",
@@ -90,7 +90,7 @@
     "tsx": "^4.20.5",
     "typescript": "~5.9.2",
     "unplugin-auto-import": "^20.1.0",
-    "vite": "^7.1.4",
+    "vite": "^7.1.5",
     "vitest": "^3.2.4"
   }
 }

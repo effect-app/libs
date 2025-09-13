@@ -9,15 +9,15 @@
     "date-fns": "^4.1.0",
     "nanoid": "^5.1.5",
     "path-parser": "^6.1.0",
-    "query-string": "^9.2.2",
+    "query-string": "^9.3.0",
     "ts-pattern": "^5.8.0",
     "ts-toolbelt": "^9.6.0",
-    "uuid": "^12.0.0",
+    "uuid": "^13.0.0",
     "validator": "^13.15.15"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "~24.3.1",
+    "@types/node": "~24.3.3",
     "@types/uuid": "^10.0.0",
     "@types/validator": "^13.15.3",
     "@effect-app/eslint-shared-config": "workspace:*",
@@ -26,7 +26,7 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.90.7",
+    "@effect/platform": "^0.90.9",
     "effect": "^3.17.13"
   },
   "typesVersions": {

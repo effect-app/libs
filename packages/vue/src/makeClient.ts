@@ -17,7 +17,7 @@ import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
 import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res } from "./mutate.js"
-import { type KnownFiberFailure, makeQuery, type QueryObserverOptionsCustom } from "./query.js"
+import { type CustomDefinedInitialQueryOptions, type CustomUndefinedInitialQueryOptions, type KnownFiberFailure, makeQuery } from "./query.js"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -856,7 +856,7 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     >(
       self: RequestHandler<A, E, R, Request, Name>
     ): {
-      (options?: QueryObserverOptionsCustom<A, E, TData>): Promise<
+      (options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
           ComputedRef<Result.Result<TData, E>>,
           ComputedRef<TData>,
@@ -867,7 +867,7 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         ]
       >
       (
-        options?: QueryObserverOptionsCustom<A, E, TData> & {
+        options?: CustomDefinedInitialQueryOptions<A, E, TData> & {
           initialData: TData | InitialDataFunction<TData>
         }
       ): Promise<
@@ -893,9 +893,7 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     ): {
       (
         arg: Arg | WatchSource<Arg>,
-        options?: QueryObserverOptionsCustom<A, E, TData> & {
-          initialData: TData | InitialDataFunction<TData>
-        }
+        options?: CustomDefinedInitialQueryOptions<A, E, TData>
       ): Promise<
         readonly [
           ComputedRef<Result.Result<TData, E>>,
@@ -906,7 +904,7 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
           UseQueryReturnType<any, any>
         ]
       >
-      (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, E, TData>): Promise<
+      (arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
           ComputedRef<Result.Result<TData, E>>,
           ComputedRef<TData>,

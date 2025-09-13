@@ -4,42 +4,47 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type DefaultError, type DefinedInitialQueryOptions, type InitialDataFunction, type QueryKey, type QueryObserverResult, type RefetchOptions, type UndefinedInitialQueryOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryOptions, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
-import { computed, type ComputedRef, ref, shallowRef, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
 import { makeQueryKey, reportRuntimeError } from "./lib.js"
 
-export interface QueryObserverOptionsCustom<
-  TQueryFnData = unknown,
-  TError = Error,
-  TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
-> extends Omit<DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn"> {
-}
-
-// TODO: if we use these in our public facing function we'll get the dreaded typescript error of isn't portable blabla @tanstack/vue-query/build/modern/types.js
-type CustomUseQueryOptions<
+// we must use interface extends, or we get the dreaded typescript error of isn't portable blabla @tanstack/vue-query/build/modern/types.js
+// but because how they are dealing with some extends clause, we loose all properties except initialData
+// so we actually reconstruct the interfaces here from the ground up :/
+export interface CustomUseQueryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn">
-type CustomUndefinedInitialQueryOptions<
+> extends
+  Omit<
+    QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
+    "queryKey" | "queryFn" | "initialData" | "enabled"
+  >
+{
+  enabled?: MaybeRefOrGetter<boolean | undefined> | (() => Enabled<TQueryFnData, TError, TQueryData, TQueryKey>)
+}
+export interface CustomUndefinedInitialQueryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> = Omit<UndefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">
-type CustomDefinedInitialQueryOptions<
+> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryKey> {
+  initialData?: undefined | InitialDataFunction<NonUndefinedGuard<TQueryFnData>> | NonUndefinedGuard<TQueryFnData>
+}
+export interface CustomDefinedInitialQueryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> = Omit<DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">
+> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryKey> {
+  initialData: NonUndefinedGuard<TQueryFnData> | (() => NonUndefinedGuard<TQueryFnData>)
+}
 
 export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
   readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>
@@ -213,9 +218,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     ): {
       // required options, with initialData
       (
-        options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData> & {
-          initialData: A | InitialDataFunction<A>
-        }
+        options: CustomDefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,
@@ -223,7 +226,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         UseQueryReturnType<any, any>
       ]
       // optional options, optional A
-      (options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData>): readonly [
+      (options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>): readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
@@ -236,9 +239,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       // required options, with initialData
       (
         arg: Arg | WatchSource<Arg>,
-        options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData> & {
-          initialData: A | InitialDataFunction<A>
-        }
+        options: CustomDefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,
@@ -246,7 +247,10 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         UseQueryReturnType<any, any>
       ]
       // optional options, optional A
-      (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData>): readonly [
+      (
+        arg: Arg | WatchSource<Arg>,
+        options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
+      ): readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,

@@ -73,8 +73,8 @@ import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmega
 
 type OnSubmit = NonNullable<FormProps<From, To>["onSubmit"]>
 type OnSubmitArg = Parameters<OnSubmit>[0]
-  type OnSubmitEmit = (value: To, extra: Pick<OnSubmitArg, "formApi" | "meta">) => void
-  type OnSubmitAwaitable = (value: To, extra: Pick<OnSubmitArg, "formApi" | "meta">) => ReturnType<OnSubmit>
+type OnSubmitEmit = (value: To, extra: Pick<OnSubmitArg, "formApi" | "meta">) => void
+type OnSubmitAwaitable = (value: To, extra: Pick<OnSubmitArg, "formApi" | "meta">) => ReturnType<OnSubmit>
 
 type OmegaWrapperProps =
   & {

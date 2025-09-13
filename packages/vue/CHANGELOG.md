@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.67.4
+
+### Patch Changes
+
+- 9c37e48: fix vue query select
+
 ## 2.67.3
 
 ### Patch Changes

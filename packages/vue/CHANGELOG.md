@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.69.1
+
+### Patch Changes
+
+- 08ecb10: expose "Command"
+
 ## 2.69.0
 
 ### Minor Changes

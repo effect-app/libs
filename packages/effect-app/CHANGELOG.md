@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.6.0
+
+### Minor Changes
+
+- 3d49d81: update packages
+
 ## 3.5.0
 
 ### Minor Changes

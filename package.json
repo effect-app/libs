@@ -69,7 +69,6 @@
     "@typescript-eslint/eslint-plugin": "8.43.0",
     "@typescript-eslint/parser": "8.43.0",
     "@typescript-eslint/scope-manager": "8.43.0",
-    "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "concurrently": "^9.2.1",
     "effect": "^3.17.13",

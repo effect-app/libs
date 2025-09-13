@@ -74,22 +74,25 @@ export declare namespace Commander {
     new(): {}
 
     /** click handlers */
-    handle: (...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>
+    handle: ((...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
+      effect: (...args: Args) => Effect.Effect<A, E, R>
+      promise: (...args: Args) => Promise<A>
+    }
 
-    // TODO: if we keep them, it would probably be nicer as an option api, deciding the return value like in Atom?
-    /** @experimental */
-    compose: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, R>
-    /** @experimental */
-    compose2: (...args: Args) => Effect.Effect<A, E, R>
-    /**
-     * @experimental
-     * captures the current span and returns an Effect that when run will execute the command
-     */
-    handleEffect: (...args: Args) => Effect.Effect<RuntimeFiber<Exit.Exit<A, E>, never>>
-    /**
-     * @experimental
-     */
-    exec: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, Exclude<R, CommandContext>>
+    // // TODO: if we keep them, it would probably be nicer as an option api, deciding the return value like in Atom?
+    // /** @experimental */
+    // compose: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, R>
+    // /** @experimental */
+    // compose2: (...args: Args) => Effect.Effect<A, E, R>
+    // /**
+    //  * @experimental
+    //  * captures the current span and returns an Effect that when run will execute the command
+    //  */
+    // handleEffect: (...args: Args) => Effect.Effect<RuntimeFiber<Exit.Exit<A, E>, never>>
+    // /**
+    //  * @experimental
+    //  */
+    // exec: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, Exclude<R, CommandContext>>
   }
 
   type CommandOutHelper<Args extends Array<unknown>, Eff extends Effect.Effect<any, any, any>, Id extends string> =
@@ -751,13 +754,160 @@ export declare namespace Commander {
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
 
+const renderErrorMaker = I18n.use(
+  ({ intl }) =>
+  <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
+  (e: E, ...args: Args): string => {
+    if (errorRenderer) {
+      const m = errorRenderer(e, action, ...args)
+      if (m) {
+        return m
+      }
+    }
+    if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
+      if (typeof e === "object" && e !== null) {
+        if ("message" in e) {
+          return `${e.message}`
+        }
+        if ("_tag" in e) {
+          return `${e._tag}`
+        }
+      }
+      return ""
+    }
+    const e2: SupportedErrors | S.ParseResult.ParseError = e
+    return Match.value(e2).pipe(
+      Match.tags({
+        ParseError: (e) => {
+          console.warn(e.toString())
+          return intl.formatMessage({ id: "validation.failed" })
+        }
+      }),
+      Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+    )
+  }
+)
+
+const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
+  actionMaker:
+    | string
+    | ((o: Option.Option<E>, ...args: Args) => string)
+    | ((o: Option.Option<E>, ...args: Args) => Effect.Effect<string, AME, AMR>),
+  errorRenderer?: ErrorRenderer<E, Args>
+) =>
+  Effect.fnUntraced(function*(o: Option.Option<E>, ...args: Args) {
+    const action = yield* wrapEffect(actionMaker)(o, ...args)
+    const { intl } = yield* I18n
+    const renderError = yield* renderErrorMaker
+
+    return Option.match(o, {
+      onNone: () =>
+        intl.formatMessage(
+          { id: "handle.unexpected_error2" },
+          {
+            action,
+            error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
+          }
+        ),
+      onSome: (e) =>
+        S.is(OperationFailure)(e)
+          ? {
+            level: "warn" as const,
+            message: intl.formatMessage(
+                { id: "handle.with_warnings" },
+                { action }
+              ) + e.message
+              ? "\n" + e.message
+              : ""
+          }
+          : `${
+            intl.formatMessage(
+              { id: "handle.with_errors" },
+              { action }
+            )
+          }:\n` + renderError(action, errorRenderer)(e, ...args)
+    })
+  })
+
+export const CommanderStatic = {
+  /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
+  confirmOrInterrupt: Effect.fnUntraced(function*(
+    message: string | undefined = undefined
+  ) {
+    const context = yield* CommandContext
+    const { intl } = yield* I18n
+
+    yield* Confirm.confirmOrInterrupt(
+      message
+        ?? intl.formatMessage(
+          { id: "handle.confirmation" },
+          { action: context.action }
+        )
+    )
+  }),
+  /** Version of @see confirm that automatically includes the action name in the default messages */
+  confirm: Effect.fnUntraced(function*(
+    message: string | undefined = undefined
+  ) {
+    const context = yield* CommandContext
+    const { intl } = yield* I18n
+    return yield* Confirm.confirm(
+      message
+        ?? intl.formatMessage(
+          { id: "handle.confirmation" },
+          { action: context.action }
+        )
+    )
+  }),
+  updateAction:
+    <Args extends Array<unknown>>(update: (currentActionId: string, ...args: Args) => string) =>
+    <A, E, R>(_: Effect.Effect<A, E, R>, ...input: Args) =>
+      Effect.updateService(
+        _,
+        CommandContext,
+        (c) => ({ ...c, action: update(c.action, ...input) })
+      ),
+  defaultFailureMessageHandler,
+  renderError: renderErrorMaker,
+  /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
+  withDefaultToast: <A, E, R, Args extends Array<unknown>>(
+    options?: {
+      errorRenderer?: ErrorRenderer<E, Args>
+      onWaiting?: null | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
+      onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
+    }
+  ) =>
+  (
+    self: Effect.Effect<A, E, R>,
+    ...args: Args
+  ) =>
+    Effect.gen(function*() {
+      const cc = yield* CommandContext
+      const { intl } = yield* I18n
+      const withToast = yield* WithToast
+      return yield* self.pipe(
+        (_) =>
+          withToast<A, E, Args, R, never, never, I18n>({
+            onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
+              { id: "handle.waiting" },
+              { action: cc.action }
+            ),
+            onSuccess: options?.onSuccess === null
+              ? null
+              : (a, ..._args) =>
+                intl.formatMessage({ id: "handle.success" }, { action: cc.action })
+                + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
+            onFailure: defaultFailureMessageHandler(cc.action, options?.errorRenderer)
+          })(_, ...args)
+      )
+    })
+}
+
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Commander extends Effect.Service<Commander>()("Commander", {
   dependencies: [WithToast.Default, Confirm.Default],
   effect: Effect.gen(function*() {
     const { intl } = yield* I18n
-    const withToast = yield* WithToast
-    const { confirm, confirmOrInterrupt } = yield* Confirm
 
     const makeContext = <Id extends string>(id: Id) => {
       if (!id) throw new Error("must specify an id")
@@ -1025,196 +1175,57 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       }
     }
 
-    const renderError =
-      <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
-      (e: E, ...args: Args): string => {
-        if (errorRenderer) {
-          const m = errorRenderer(e, action, ...args)
-          if (m) {
-            return m
-          }
-        }
-        if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
-          if (typeof e === "object" && e !== null) {
-            if ("message" in e) {
-              return `${e.message}`
-            }
-            if ("_tag" in e) {
-              return `${e._tag}`
-            }
-          }
-          return ""
-        }
-        const e2: SupportedErrors | S.ParseResult.ParseError = e
-        return Match.value(e2).pipe(
-          Match.tags({
-            ParseError: (e) => {
-              console.warn(e.toString())
-              return intl.formatMessage({ id: "validation.failed" })
-            }
-          }),
-          Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
-        )
-      }
-
-    const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
-      actionMaker:
-        | string
-        | ((o: Option.Option<E>, ...args: Args) => string)
-        | ((o: Option.Option<E>, ...args: Args) => Effect.Effect<string, AME, AMR>),
-      errorRenderer?: ErrorRenderer<E, Args>
-    ) =>
-      Effect.fnUntraced(function*(o: Option.Option<E>, ...args: Args) {
-        const action = yield* wrapEffect(actionMaker)(o, ...args)
-
-        return Option.match(o, {
-          onNone: () =>
-            intl.formatMessage(
-              { id: "handle.unexpected_error2" },
-              {
-                action,
-                error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
-              }
-            ),
-          onSome: (e) =>
-            S.is(OperationFailure)(e)
-              ? {
-                level: "warn" as const,
-                message: intl.formatMessage(
-                    { id: "handle.with_warnings" },
-                    { action }
-                  ) + e.message
-                  ? "\n" + e.message
-                  : ""
-              }
-              : `${
-                intl.formatMessage(
-                  { id: "handle.with_errors" },
-                  { action }
-                )
-              }:\n` + renderError(action, errorRenderer)(e, ...args)
-        })
-      })
-
     return {
-      /** @experimental */
-      takeOver:
-        <Args extends any[], A, E, R, const Id extends string>(command: Commander.CommandOut<Args, A, E, R, Id>) =>
-        (...args: Args) => {
-          // we capture the call site stack here
-          const limit = Error.stackTraceLimit
-          Error.stackTraceLimit = 2
-          const errorCall = new Error()
-          const localErrorDef = new Error()
-          Error.stackTraceLimit = limit
+      // /** @experimental */
+      // takeOver:
+      //   <Args extends any[], A, E, R, const Id extends string>(command: Commander.CommandOut<Args, A, E, R, Id>) =>
+      //   (...args: Args) => {
+      //     // we capture the call site stack here
+      //     const limit = Error.stackTraceLimit
+      //     Error.stackTraceLimit = 2
+      //     const errorCall = new Error()
+      //     const localErrorDef = new Error()
+      //     Error.stackTraceLimit = limit
 
-          // TODO
-          const errorDef = localErrorDef
+      //     // TODO
+      //     const errorDef = localErrorDef
 
-          let cache: false | string = false
-          const captureStackTrace = () => {
-            // in case of an error, we want to append the definition stack to the call site stack,
-            // so we can see where the handler was defined too
+      //     let cache: false | string = false
+      //     const captureStackTrace = () => {
+      //       // in case of an error, we want to append the definition stack to the call site stack,
+      //       // so we can see where the handler was defined too
 
-            if (cache !== false) {
-              return cache
-            }
-            if (errorCall.stack) {
-              const stackDef = errorDef.stack!.trim().split("\n")
-              const stackCall = errorCall.stack.trim().split("\n")
-              let endStackDef = stackDef.slice(2).join("\n").trim()
-              if (!endStackDef.includes(`(`)) {
-                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-              }
-              let endStackCall = stackCall.slice(2).join("\n").trim()
-              if (!endStackCall.includes(`(`)) {
-                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-              }
-              cache = `${endStackDef}\n${endStackCall}`
-              return cache
-            }
-          }
+      //       if (cache !== false) {
+      //         return cache
+      //       }
+      //       if (errorCall.stack) {
+      //         const stackDef = errorDef.stack!.trim().split("\n")
+      //         const stackCall = errorCall.stack.trim().split("\n")
+      //         let endStackDef = stackDef.slice(2).join("\n").trim()
+      //         if (!endStackDef.includes(`(`)) {
+      //           endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+      //         }
+      //         let endStackCall = stackCall.slice(2).join("\n").trim()
+      //         if (!endStackCall.includes(`(`)) {
+      //           endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+      //         }
+      //         cache = `${endStackDef}\n${endStackCall}`
+      //         return cache
+      //       }
+      //     }
 
-          return Effect.gen(function*() {
-            const ctx = yield* CommandContext
-            ctx.action = command.action
-            return yield* command.exec(...args).pipe(
-              Effect.flatten,
-              Effect.withSpan(
-                command.action,
-                { captureStackTrace }
-              )
-            )
-          })
-        },
-
-      /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
-      confirmOrInterrupt: Effect.fnUntraced(function*(
-        message: string | undefined = undefined
-      ) {
-        const context = yield* CommandContext
-        yield* confirmOrInterrupt(
-          message
-            ?? intl.formatMessage(
-              { id: "handle.confirmation" },
-              { action: context.action }
-            )
-        )
-      }),
-      /** Version of @see confirm that automatically includes the action name in the default messages */
-      confirm: Effect.fnUntraced(function*(
-        message: string | undefined = undefined
-      ) {
-        const context = yield* CommandContext
-        return yield* confirm(
-          message
-            ?? intl.formatMessage(
-              { id: "handle.confirmation" },
-              { action: context.action }
-            )
-        )
-      }),
-      updateAction:
-        <Args extends Array<unknown>>(update: (currentActionId: string, ...args: Args) => string) =>
-        <A, E, R>(_: Effect.Effect<A, E, R>, ...input: Args) =>
-          Effect.updateService(
-            _,
-            CommandContext,
-            (c) => ({ ...c, action: update(c.action, ...input) })
-          ),
-      defaultFailureMessageHandler,
-      renderError,
-      /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
-      withDefaultToast: <A, E, R, Args extends Array<unknown>>(
-        options?: {
-          errorRenderer?: ErrorRenderer<E, Args>
-          onWaiting?: null | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
-          onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
-        }
-      ) =>
-      (
-        self: Effect.Effect<A, E, R>,
-        ...args: Args
-      ) =>
-        Effect.gen(function*() {
-          const cc = yield* CommandContext
-
-          return yield* self.pipe(
-            (_) =>
-              withToast<A, E, Args, R>({
-                onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
-                  { id: "handle.waiting" },
-                  { action: cc.action }
-                ),
-                onSuccess: options?.onSuccess === null
-                  ? null
-                  : (a, ..._args) =>
-                    intl.formatMessage({ id: "handle.success" }, { action: cc.action })
-                    + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-                onFailure: defaultFailureMessageHandler(cc.action, options?.errorRenderer)
-              })(_, ...args)
-          )
-        }),
+      //     return Effect.gen(function*() {
+      //       const ctx = yield* CommandContext
+      //       ctx.action = command.action
+      //       return yield* command.exec(...args).pipe(
+      //         Effect.flatten,
+      //         Effect.withSpan(
+      //           command.action,
+      //           { captureStackTrace }
+      //         )
+      //       )
+      //     })
+      //   },
       /**
        * Define a Command for handling user actions with built-in error reporting and state management.
        *

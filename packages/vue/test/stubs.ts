@@ -76,7 +76,7 @@ export const useExperimental = (
   const FakeToastLayer = fakeToastLayer(options?.toasts)
   const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
   const WithToastLayer = WithToast.Default.pipe(Layer.provide(FakeToastLayer))
-  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer)
+  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer)
 
-  return Effect.runSync(makeUseCommand<WithToast | Toast.Toast>().pipe(Effect.provide(layers)))
+  return Effect.runSync(makeUseCommand<WithToast | Toast.Toast | I18n>().pipe(Effect.provide(layers)))
 }

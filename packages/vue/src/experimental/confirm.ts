@@ -16,5 +16,6 @@ export class Confirm extends Effect.Service<Confirm>()("Confirm", {
       )
 
     return { confirm, confirmOrInterrupt }
-  })
+  }),
+  accessors: true
 }) {}

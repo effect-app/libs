@@ -11,7 +11,6 @@ import { ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
 import { computed, type ComputedRef, ref, shallowRef, watch, type WatchSource } from "vue"
 import { makeQueryKey, reportRuntimeError } from "./lib.js"
-import "@tanstack/vue-query/build/modern/types.js"
 
 export interface QueryObserverOptionsCustom<
   TQueryFnData = unknown,
@@ -21,7 +20,7 @@ export interface QueryObserverOptionsCustom<
 > extends Omit<DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn"> {
 }
 
-// TODO: if we use these in our public facing function we'll get the dreaded typescript error of isn't portable blabla vue-query/build/types.js
+// TODO: if we use these in our public facing function we'll get the dreaded typescript error of isn't portable blabla @tanstack/vue-query/build/modern/types.js
 type CustomUseQueryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.67.7
+
+### Patch Changes
+
+- fix type
+
 ## 2.67.6
 
 ### Patch Changes

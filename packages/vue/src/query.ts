@@ -34,7 +34,7 @@ export interface CustomUndefinedInitialQueryOptions<
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryKey> {
+> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey> {
   initialData?: undefined | InitialDataFunction<NonUndefinedGuard<TQueryFnData>> | NonUndefinedGuard<TQueryFnData>
 }
 export interface CustomDefinedInitialQueryOptions<
@@ -42,7 +42,7 @@ export interface CustomDefinedInitialQueryOptions<
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryKey> {
+> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey> {
   initialData: NonUndefinedGuard<TQueryFnData> | (() => NonUndefinedGuard<TQueryFnData>)
 }
 

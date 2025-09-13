@@ -1262,16 +1262,7 @@ export const makeClient = <RT, RE, RL>(
   ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation))))
 
   const legacy = {
-    /** @deprecated use OmegaForm */
-    buildFormFromSchema: mutations.buildFormFromSchema,
-    /** @deprecated use Command pattern */
-    makeUseAndHandleMutation: mutations.makeUseAndHandleMutation,
-    /** @deprecated use Command pattern */
-    useAndHandleMutation: mutations.useAndHandleMutation,
-    /** @deprecated use Command pattern */
-    useSafeMutation: mutations.useSafeMutation,
-    /** @deprecated use Command pattern */
-    useSafeMutationWithState: mutations.useSafeMutationWithState,
+    ...mutations,
     /** @deprecated use .query on the clientFor(x).Action */
     useQuery,
     /** @deprecated use .suspense on the clientFor(x).Action */

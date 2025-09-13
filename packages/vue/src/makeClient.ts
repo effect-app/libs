@@ -11,7 +11,7 @@ import { dropUndefinedT } from "effect-app/utils"
 import { type RuntimeFiber } from "effect/Fiber"
 import { computed, type ComputedRef, getCurrentInstance, onBeforeUnmount, onUnmounted, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
-import { Commander } from "./experimental/commander.js"
+import { Commander, CommanderStatic } from "./experimental/commander.js"
 import { I18n } from "./experimental/intl.js"
 import { makeUseCommand } from "./experimental/makeUseCommand.js"
 import { Toast } from "./experimental/toast.js"
@@ -1278,7 +1278,15 @@ export const makeClient = <RT, RE, RL>(
     useSuspenseQuery
   }
 
+  const Command = {
+    fn: (...args: [any]) => useCommand().fn(...args),
+    wrap: (...args: [any]) => useCommand().wrap(...args),
+    alt2: (...args: [any]) => useCommand().alt2(...args),
+    ...CommanderStatic
+  } as ReturnType<typeof useCommand>
+
   return {
+    Command,
     useCommand,
     clientFor,
     legacy

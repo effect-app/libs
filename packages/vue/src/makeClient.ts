@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Result from "@effect-atom/atom/Result"
-import { type InitialDataFunction, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type InitialDataFunction, type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Cause, Effect, Exit, Layer, ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
-import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
 import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
+import { type RuntimeFiber } from "effect/Fiber"
 import { computed, type ComputedRef, getCurrentInstance, onBeforeUnmount, onUnmounted, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { Commander } from "./experimental/commander.js"
@@ -18,6 +19,9 @@ import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
 import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res } from "./mutate.js"
 import { type CustomDefinedInitialQueryOptions, type CustomUndefinedInitialQueryOptions, type KnownFiberFailure, makeQuery } from "./query.js"
+
+import { camelCase } from "change-case"
+import { type ApiClientFactory } from "effect-app/client"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -975,8 +979,9 @@ const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt
 
 type Base = I18n | Toast
 export const makeClient = <RT, RE, RL>(
-  getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT, never>,
-  rootLayer: Layer.Layer<RL | Base, RE>
+  getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT | ApiClientFactory, never>,
+  rootLayer: Layer.Layer<RL | Base, RE>,
+  clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>
 ) => {
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
 
@@ -1050,9 +1055,262 @@ export const makeClient = <RT, RE, RL>(
     },
     {} as { [K in keyof mut]: mut[K] }
   )
+  const query = mkQuery(getBaseRt)
+  const useQuery = query.useQuery
+  const useSuspenseQuery = query.useSuspenseQuery
+
+  // Glorious rpc client helpers
+  // TODO:
+  // - reusable; extract to lib
+  // - reduce duplication for Types
+
+  const mapQuery = <M extends Requests>(
+    client: RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+  ) => {
+    const queries = Struct.keys(client).reduce(
+      (acc, key) => {
+        ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
+          id: client[key].id
+        })
+        ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(client[key] as any), {
+          id: client[key].id
+        })
+        return acc
+      },
+      {} as
+        & {
+          [Key in keyof typeof client as `${ToCamel<string & Key>}Query`]: typeof client[Key] extends
+            RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>
+            ? ReturnType<typeof useQuery<I, E, A, Request, Id>> & { id: Id }
+            : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer Request, infer Id>
+              ? ReturnType<typeof useQuery<E, A, Request, Id>> & { id: Id }
+            : never
+        }
+        // todo: or suspense as an Option?
+        & {
+          [Key in keyof typeof client as `${ToCamel<string & Key>}SuspenseQuery`]: typeof client[Key] extends
+            RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>
+            ? ReturnType<typeof useSuspenseQuery<I, E, A, Request, Id>> & { id: Id }
+            : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer Request, infer Id>
+              ? ReturnType<typeof useSuspenseQuery<E, A, Request, Id>> & { id: Id }
+            : never
+        }
+    )
+    return queries
+  }
+
+  const mapMutation = <M extends Requests>(
+    client: RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+  ) => {
+    const Command = useCommand()
+    const wrap = Command.wrap
+    const fn_ = Command.fn
+    const mutations = Struct.keys(client).reduce(
+      (acc, key) => {
+        const mut = useMutation(client[key] as any)
+        const fn = fn_(client[key].id)
+        ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
+          mut,
+          { wrap: wrap(mut), fn },
+          wrap
+        )
+        return acc
+      },
+      {} as {
+        [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]:
+          & (typeof client[Key] extends
+            RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id> ?
+              & ReturnType<typeof useMutation<I, E, A, R, Request, Id>>
+              & (typeof client[Key] extends
+                RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+                ? Commander.CommandContextLocal<Id>
+                : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+                  ? Commander.CommandContextLocal<Id>
+                : never)
+            : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id> ?
+                & ReturnType<typeof useMutation<E, A, R, Request, Id>>
+                & (typeof client[Key] extends
+                  RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+                  ? Commander.CommandContextLocal<Id>
+                  : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+                    ? Commander.CommandContextLocal<Id>
+                  : never)
+            : never)
+          & (typeof client[Key] extends
+            RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+            ? Commander.CommandContextLocal<Id>
+            : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+              ? Commander.CommandContextLocal<Id>
+            : never)
+          & (typeof client[Key] extends
+            RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+            ? ReturnType<typeof useMutation<I, E, A, R, Request, Id>>
+            : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+              ? ReturnType<typeof useMutation<E, A, R, Request, Id>>
+            : never)
+          & {
+            wrap: typeof client[Key] extends
+              RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer _Request, infer Id>
+              ? ReturnType<typeof wrap<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id>
+              : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer _Request, infer Id>
+                ? ReturnType<typeof wrap<Id, [], A, E, never>> & Commander.CommandContextLocal<Id>
+              : never
+            fn: typeof client[Key] extends
+              RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+              ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id>
+              : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+                ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id>
+              : never
+          }
+      }
+    )
+    return mutations
+  }
+
+  // make available .query, .suspense and .mutate for each operation
+  // and a .helpers with all mutations and queries
+  const mapClient = <M extends Requests>(
+    queryInvalidation?: QueryInvalidation<M>
+  ) =>
+  (
+    client: RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+  ) => {
+    const Command = useCommand()
+    const wrap = Command.wrap
+    const fn_ = Command.fn
+    const extended = Struct.keys(client).reduce(
+      (acc, key) => {
+        const fn = fn_(client[key].id)
+        const awesome = {
+          ...client[key],
+          ...fn,
+          query: useQuery(client[key] as any),
+          suspense: useSuspenseQuery(client[key] as any)
+        }
+        const mutate = useMutation(
+          client[key] as any,
+          queryInvalidation?.[key] ? { queryInvalidation: queryInvalidation[key] } : undefined
+        )
+        ;(acc as any)[key] = Object.assign(mutate, { wrap: wrap({ mutate, id: awesome.id }), fn }, awesome, fn)
+        return acc
+      },
+      {} as {
+        [Key in keyof typeof client]:
+          & (typeof client[Key] extends
+            RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+            ? Commander.CommandContextLocal<Id>
+            : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+              ? Commander.CommandContextLocal<Id>
+            : never)
+          & (typeof client[Key] extends
+            RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+            ? Commander.CommandContextLocal<Id>
+            : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+              ? Commander.CommandContextLocal<Id>
+            : never)
+          & (typeof client[Key] extends
+            RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+            ? ReturnType<typeof useMutation<I, E, A, R, Request, Id>>
+            : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+              ? ReturnType<typeof useMutation<E, A, R, Request, Id>>
+            : never)
+          & {
+            wrap: typeof client[Key] extends
+              RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer _Request, infer Id>
+              ? ReturnType<typeof wrap<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id>
+              : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer _Request, infer Id>
+                ? ReturnType<typeof wrap<Id, [], A, E, never>> & Commander.CommandContextLocal<Id>
+              : never
+            fn: typeof client[Key] extends
+              RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+              ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id>
+              : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+                ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id>
+              : never
+          }
+          & typeof client[Key]
+          & {
+            query: typeof client[Key] extends
+              RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>
+              ? ReturnType<typeof useQuery<I, E, A, Request, Id>>
+              : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer Request, infer Id>
+                ? ReturnType<typeof useQuery<E, A, Request, Id>>
+              : never
+            // TODO or suspense as Option?
+            suspense: typeof client[Key] extends
+              RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>
+              ? ReturnType<typeof useSuspenseQuery<I, E, A, Request, Id>>
+              : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer Request, infer Id>
+                ? ReturnType<typeof useSuspenseQuery<E, A, Request, Id>>
+              : never
+            // mutate: typeof client[Key] extends
+            //   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+            //   ? ReturnType<typeof useMutation<I, E, A, R, Request, Id>>
+            //   : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+            //     ? ReturnType<typeof useMutation<E, A, R, Request, Id>>
+            //   : never
+          }
+      }
+    )
+    return Object.assign(extended, { helpers: { ...mapMutation(client), ...mapQuery(client) } })
+  }
+
+  // todo; invalidateQueries should perhaps be configured in the Request impl themselves?
+  const clientFor = <M extends Requests>(
+    m: M,
+    queryInvalidation?: QueryInvalidation<M>
+  ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation))))
+
+  const legacy = {
+    /** @deprecated use OmegaForm */
+    buildFormFromSchema: mutations.buildFormFromSchema,
+    /** @deprecated use Command pattern */
+    makeUseAndHandleMutation: mutations.makeUseAndHandleMutation,
+    /** @deprecated use Command pattern */
+    useAndHandleMutation: mutations.useAndHandleMutation,
+    /** @deprecated use Command pattern */
+    useSafeMutation: mutations.useSafeMutation,
+    /** @deprecated use Command pattern */
+    useSafeMutationWithState: mutations.useSafeMutationWithState,
+    /** @deprecated use .query on the clientFor(x).Action */
+    useQuery,
+    /** @deprecated use .suspense on the clientFor(x).Action */
+    useSuspenseQuery
+  }
+
   return {
     useCommand,
-    ...mkQuery(getBaseRt),
-    ...mutations
+    clientFor,
+    legacy
   }
 }
+
+export type QueryInvalidation<M> = {
+  [K in keyof M]?: (defaultKey: string[], name: string) => {
+    filters?: InvalidateQueryFilters | undefined
+    options?: InvalidateOptions | undefined
+  }[]
+}
+
+export type ToCamel<S extends string | number | symbol> = S extends string
+  ? S extends `${infer Head}_${infer Tail}` ? `${Uncapitalize<Head>}${Capitalize<ToCamel<Tail>>}`
+  : Uncapitalize<S>
+  : never
+
+export interface CommandBase<I extends ReadonlyArray<any>, A = void> {
+  handle: (...input: I) => A
+  waiting: boolean
+  action: string
+}
+
+// export interface Command<I extends ReadonlyArray<any>> extends CommandBase<I, void> {}
+
+export interface EffectCommand<I extends ReadonlyArray<any>, A = unknown, E = unknown>
+  extends CommandBase<I, RuntimeFiber<A, E>>
+{}
+
+export interface UnaryCommand<I, A = unknown, E = unknown> extends CommandBase<[I], RuntimeFiber<A, E>> {}
+
+export interface CommandFromRequest<I extends abstract new(...args: any) => any, A = unknown, E = unknown>
+  extends UnaryCommand<ConstructorParameters<I>[0], A, E>
+{}

@@ -9,6 +9,7 @@
     "@tanstack/query-core": "5.83.1",
     "@tanstack/vue-query": "5.83.1",
     "@vueuse/core": "^13.9.0",
+    "change-case": "^5.4.4",
     "effect-app": "workspace:*",
     "query-string": "^9.2.2"
   },
@@ -22,6 +23,7 @@
     "vue": "^3.5.21"
   },
   "devDependencies": {
+    "@effect-app/eslint-shared-config": "workspace:*",
     "@effect/vitest": "^0.25.1",
     "@formatjs/icu-messageformat-parser": "^2.11.2",
     "@types/node": "~24.3.1",
@@ -30,8 +32,7 @@
     "json5": "^2.2.3",
     "typescript": "~5.9.2",
     "vite": "^7.1.4",
-    "vitest": "^3.2.4",
-    "@effect-app/eslint-shared-config": "workspace:*"
+    "vitest": "^3.2.4"
   },
   "typesVersions": {
     "*": {

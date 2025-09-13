@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.70.1
+
+### Patch Changes
+
+- 03935b8: fix: mutation query invalidation options
+
 ## 2.70.0
 
 ### Minor Changes

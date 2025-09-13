@@ -2,12 +2,12 @@
 import * as Result from "@effect-atom/atom/Result"
 import { type InvalidateOptions, type InvalidateQueryFilters, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, type Exit, Option } from "effect-app"
-import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import type { ClientForOptions, RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
 import { computed, type ComputedRef, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
 
-export const getQueryKey = (h: { id: string }) => {
+export const getQueryKey = (h: { id: string; options?: ClientForOptions }) => {
   const key = makeQueryKey(h)
   const ns = key.filter((_) => _.startsWith("$"))
   // we invalidate the parent namespace e.g $project/$configuration.get, we invalidate $project
@@ -15,10 +15,6 @@ export const getQueryKey = (h: { id: string }) => {
   const k = ns.length ? ns.length > 1 ? ns.slice(0, ns.length - 1) : ns : undefined
   if (!k) throw new Error("empty query key for: " + h.id)
   return k
-}
-
-export const getQueryKeyInt = (id: string) => {
-  return getQueryKey({ id })
 }
 
 export function mutationResultToVue<A, E>(
@@ -145,7 +141,10 @@ export const asResult: {
   return tuple(computed(() => state.value), act) as any
 }
 
-export const useInvalidateQueries = (id: string, options?: MutationOptionsBase["queryInvalidation"]) => {
+export const useInvalidateQueries = (
+  self: { id: string; options?: ClientForOptions },
+  options?: MutationOptionsBase["queryInvalidation"]
+) => {
   const queryClient = useQueryClient()
 
   const invalidateQueries = (
@@ -160,10 +159,10 @@ export const useInvalidateQueries = (id: string, options?: MutationOptionsBase["
     )
 
   const invalidateCache = Effect.suspend(() => {
-    const queryKey = getQueryKeyInt(id)
+    const queryKey = getQueryKey(self)
 
     if (options) {
-      const opts = options(queryKey, id)
+      const opts = options(queryKey, self.id)
       if (!opts.length) {
         return Effect.void
       }
@@ -213,7 +212,7 @@ export const makeMutation = () => {
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
     options?: MutationOptionsBase
   ) => {
-    const handle = useInvalidateQueries(self.id, options?.queryInvalidation)
+    const handle = useInvalidateQueries(self, options?.queryInvalidation)
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i))
 

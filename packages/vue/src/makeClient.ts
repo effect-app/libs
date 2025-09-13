@@ -851,12 +851,11 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       E,
       A,
       Request extends TaggedRequestClassAny,
-      Name extends string,
-      TData = A
+      Name extends string
     >(
       self: RequestHandler<A, E, R, Request, Name>
     ): {
-      (options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
+      <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
           ComputedRef<Result.Result<TData, E>>,
           ComputedRef<TData>,
@@ -866,7 +865,7 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
           UseQueryReturnType<any, any>
         ]
       >
-      (
+      <TData = A>(
         options?: CustomDefinedInitialQueryOptions<A, E, TData> & {
           initialData: TData | InitialDataFunction<TData>
         }
@@ -886,12 +885,11 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       E,
       A,
       Request extends TaggedRequestClassAny,
-      Name extends string,
-      TData = A
+      Name extends string
     >(
       self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
     ): {
-      (
+      <TData = A>(
         arg: Arg | WatchSource<Arg>,
         options?: CustomDefinedInitialQueryOptions<A, E, TData>
       ): Promise<
@@ -904,7 +902,7 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
           UseQueryReturnType<any, any>
         ]
       >
-      (arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
+      <TData = A>(arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
           ComputedRef<Result.Result<TData, E>>,
           ComputedRef<TData>,

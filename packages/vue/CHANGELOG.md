@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.68.0
+
+### Minor Changes
+
+- a0b1ba3: separate static commander so that we can access these outside vue context
+
 ## 2.67.7
 
 ### Patch Changes

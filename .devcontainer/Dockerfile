@@ -1,5 +1,5 @@
 # Specifies which operating system image to use.
-FROM mcr.microsoft.com/vscode/devcontainers/base:focal
+FROM mcr.microsoft.com/vscode/devcontainers/base:ubuntu
 
 WORKDIR /home/vscode
 
@@ -27,15 +27,12 @@ RUN curl https://get.volta.sh | bash
 WORKDIR /workspaces/macs-configurator
 
 # and install node and pnpm
-RUN volta install node@22
+RUN volta install node@24
 RUN npm i -g pnpm
 
 RUN echo 
 
 ENV SHELL=/bin/bash
-RUN curl -L "https://humanlog.io/install.sh" | sh
-COPY humanlog.sh /tmp/
-RUN cat /tmp/humanlog.sh >> ~/.bashrc
 
 RUN echo 
 

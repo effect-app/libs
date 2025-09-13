@@ -4,25 +4,43 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type Enabled, type InitialDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type DefaultError, type DefinedInitialQueryOptions, type InitialDataFunction, type QueryKey, type QueryObserverResult, type RefetchOptions, type UndefinedInitialQueryOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
-import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, ref, shallowRef, watch, type WatchSource } from "vue"
 import { makeQueryKey, reportRuntimeError } from "./lib.js"
+import "@tanstack/vue-query/build/modern/types.js"
 
 export interface QueryObserverOptionsCustom<
   TQueryFnData = unknown,
   TError = Error,
   TData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey
+> extends Omit<DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn"> {
+}
+
+// TODO: if we use these in our public facing function we'll get the dreaded typescript error of isn't portable blabla vue-query/build/types.js
+type CustomUseQueryOptions<
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData,
   TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> extends
-  Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn" | "enabled">
-{
-  enabled?: MaybeRefOrGetter<boolean | undefined> | (() => Enabled<TQueryFnData, TError, TQueryData, TQueryKey>)
-}
+> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>, "queryKey" | "queryFn">
+type CustomUndefinedInitialQueryOptions<
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey
+> = Omit<UndefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">
+type CustomDefinedInitialQueryOptions<
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey
+> = Omit<DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">
 
 export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
   readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>
@@ -30,15 +48,49 @@ export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
 
 export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   // TODO: options
+  // Defined: has an initialValue
+  // Undefined: has no initialValue, even when placeholderData set?
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: UndefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, queryClient?: QueryClient): UseQueryReturnType<TData, TError>;
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: DefinedInitialQueryOptions<TQueryFnData, TError, TData, TQueryKey>, queryClient?: QueryClient): UseQueryDefinedReturnType<TData, TError>;
   // declare function useQuery<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(options: UseQueryOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>, queryClient?: QueryClient): UseQueryReturnType<TData, TError>;
-  const useQuery_ = <I, A, E, Request extends TaggedRequestClassAny, Name extends string>(
+  const useQuery_ = <I, A, E, Request extends TaggedRequestClassAny, Name extends string, TData = A>(
     q:
       | RequestHandlerWithInput<I, A, E, R, Request, Name>
       | RequestHandler<A, E, R, Request, Name>
-  ) =>
-  (arg?: I | WatchSource<I>, options: QueryObserverOptionsCustom<unknown, KnownFiberFailure<E>, A> = {} // TODO
+  ): {
+    (
+      arg?: I | WatchSource<I>,
+      options?: CustomUndefinedInitialQueryOptions<A, E, TData>
+    ): readonly [
+      ComputedRef<Result.Result<TData, E>>,
+      ComputedRef<TData | undefined>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
+      UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+    ]
+    (
+      arg?: I | WatchSource<I>,
+      options?: CustomDefinedInitialQueryOptions<A, E, TData>
+    ): readonly [
+      ComputedRef<Result.Result<TData, E>>,
+      ComputedRef<TData>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
+      UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+    ]
+    (
+      arg?: I | WatchSource<I>,
+      options?: CustomUseQueryOptions<A, E, TData>
+    ): readonly [
+      ComputedRef<Result.Result<TData, E>>,
+      ComputedRef<TData>,
+      (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
+      UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+    ]
+  } =>
+  (
+    arg?: I | WatchSource<I>,
+    // todo QueryKey type would be [string, ...string[]], but with I it would be [string, ...string[], I]
+    options?
+    // TODO
   ) => {
     const runPromise = Runtime.runPromise(getRuntime())
     const arr = arg
@@ -54,7 +106,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     const queryKey = makeQueryKey(q)
     const handler = q.handler
 
-    const r = useTanstackQuery<unknown, KnownFiberFailure<E>, A>(
+    const r = useTanstackQuery<A, KnownFiberFailure<E>, TData>(
+      // @ts-expect-error overload madnessks
       Effect.isEffect(handler)
         ? {
           ...options,
@@ -108,8 +161,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         }
     )
 
-    const latestSuccess = shallowRef<A>()
-    const result = computed((): Result.Result<A, E> =>
+    const latestSuccess = shallowRef<TData>()
+    const result = computed((): Result.Result<TData, E> =>
       swrToQuery({
         error: r.error.value ?? undefined,
         data: r.data.value ?? latestSuccess.value, // we fall back to existing data, as tanstack query might loose it when the key changes
@@ -131,7 +184,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
           Effect.flatMap((span) => Effect.promise(() => r.refetch({ ...options, updateMeta: { span } })))
         ),
       r
-    ] as const
+    ] as any
   }
 
   function swrToQuery<E, A>(r: {
@@ -156,45 +209,45 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   }
 
   const useQuery: {
-    <E, A, Request extends TaggedRequestClassAny, Name extends string>(
+    <E, A, Request extends TaggedRequestClassAny, Name extends string, TData = A>(
       self: RequestHandler<A, E, R, Request, Name>
     ): {
       // required options, with initialData
       (
-        options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
+        options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData> & {
           initialData: A | InitialDataFunction<A>
         }
       ): readonly [
-        ComputedRef<Result.Result<A, E>>,
-        ComputedRef<A>,
+        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
       ]
       // optional options, optional A
-      (options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>): readonly [
+      (options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData>): readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
       ]
     }
-    <Arg, E, A, Request extends TaggedRequestClassAny, Name extends string>(
+    <Arg, E, A, Request extends TaggedRequestClassAny, Name extends string, TData = A>(
       self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
     ): {
       // required options, with initialData
       (
         arg: Arg | WatchSource<Arg>,
-        options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>> & {
+        options: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData> & {
           initialData: A | InitialDataFunction<A>
         }
       ): readonly [
-        ComputedRef<Result.Result<A, E>>,
-        ComputedRef<A>,
+        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
       ]
       // optional options, optional A
-      (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>>): readonly [
+      (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, KnownFiberFailure<E>, TData>): readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,

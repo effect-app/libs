@@ -851,31 +851,32 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       E,
       A,
       Request extends TaggedRequestClassAny,
-      Name extends string
+      Name extends string,
+      TData = A
     >(
       self: RequestHandler<A, E, R, Request, Name>
     ): {
-      (options?: QueryObserverOptionsCustom<A, E>): Promise<
+      (options?: QueryObserverOptionsCustom<A, E, TData>): Promise<
         readonly [
-          ComputedRef<Result.Result<A, E>>,
-          ComputedRef<A>,
+          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<TData>,
           (
             options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
           UseQueryReturnType<any, any>
         ]
       >
       (
-        options?: QueryObserverOptionsCustom<A, E> & {
-          initialData: A | InitialDataFunction<A>
+        options?: QueryObserverOptionsCustom<A, E, TData> & {
+          initialData: TData | InitialDataFunction<TData>
         }
       ): Promise<
         readonly [
-          ComputedRef<Result.Result<A, E>>,
-          ComputedRef<A>,
+          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<TData>,
           (
             options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
           UseQueryReturnType<any, any>
         ]
       >
@@ -885,32 +886,33 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       E,
       A,
       Request extends TaggedRequestClassAny,
-      Name extends string
+      Name extends string,
+      TData = A
     >(
       self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
     ): {
       (
         arg: Arg | WatchSource<Arg>,
-        options?: QueryObserverOptionsCustom<A, E> & {
-          initialData: A | InitialDataFunction<A>
+        options?: QueryObserverOptionsCustom<A, E, TData> & {
+          initialData: TData | InitialDataFunction<TData>
         }
       ): Promise<
         readonly [
-          ComputedRef<Result.Result<A, E>>,
-          ComputedRef<A>,
+          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<TData>,
           (
             options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
           UseQueryReturnType<any, any>
         ]
       >
-      (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, E>): Promise<
+      (arg: Arg | WatchSource<Arg>, options?: QueryObserverOptionsCustom<A, E, TData>): Promise<
         readonly [
-          ComputedRef<Result.Result<A, E>>,
-          ComputedRef<A>,
+          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<TData>,
           (
             options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
           UseQueryReturnType<any, any>
         ]
       >
@@ -1043,14 +1045,18 @@ export const makeClient = <RT, RE, RL>(
   ]
   type mut = ReturnType<typeof getMutation>
 
-  return {
-    useCommand,
-    ...mkQuery(getBaseRt),
-    ...keys.reduce((prev, cur) => {
+  const mutations = keys.reduce(
+    (prev, cur) => {
       prev[cur] = ((...args: [any]) => {
         return (getMutation() as any)[cur](...args)
       }) as any
       return prev
-    }, {} as { /** @deprecated use useCommand */ [K in keyof mut]: mut[K] })
+    },
+    {} as { [K in keyof mut]: mut[K] }
+  )
+  return {
+    useCommand,
+    ...mkQuery(getBaseRt),
+    ...mutations
   }
 }

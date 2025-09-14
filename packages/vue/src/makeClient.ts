@@ -1278,7 +1278,7 @@ export const makeClient = <RT, RE, RL>(
     const getOrMakeClient = () => (client ??= clientFor__(m, queryInvalidation))
 
     // initialize on first use..
-    const proxy = Struct.keys(m).reduce((acc, key) => {
+    const proxy = Struct.keys(m).concat(["helpers"]).reduce((acc, key) => {
       Object.defineProperty(acc, key, {
         configurable: true,
         get() {

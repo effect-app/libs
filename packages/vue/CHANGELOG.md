@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.73.2
+
+### Patch Changes
+
+- fix helpers
+
 ## 2.73.1
 
 ### Patch Changes

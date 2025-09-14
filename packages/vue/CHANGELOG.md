@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.71.0
+
+### Minor Changes
+
+- f9b5fcd: allow overriding the i18nkey
+
 ## 2.70.1
 
 ### Patch Changes

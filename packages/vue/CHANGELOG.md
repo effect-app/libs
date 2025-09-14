@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.72.0
+
+### Minor Changes
+
+- a380576: feat: add support for passing the current client to query invalidation
+
 ## 2.71.0
 
 ### Minor Changes

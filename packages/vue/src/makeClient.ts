@@ -16,7 +16,7 @@ import { I18n } from "./experimental/intl.js"
 import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
-import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res } from "./mutate.js"
+import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res, useMakeMutation } from "./mutate.js"
 import { type CustomDefinedInitialQueryOptions, type CustomUndefinedInitialQueryOptions, type KnownFiberFailure, makeQuery } from "./query.js"
 
 import { camelCase } from "change-case"
@@ -220,7 +220,7 @@ export const useMutation: typeof _useMutation = <
  * adds a span with the mutation id
  */
 export const useMutationInt = (): typeof _useMutation => {
-  const _useMutation = makeMutation()
+  const _useMutation = useMakeMutation()
   return <
     I,
     E,

@@ -837,6 +837,8 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
   })
 }) {}
 
+export type ClientFrom<M extends Requests> = RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+
 const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   // making sure names do not collide with auto exports in nuxt apps, please do not rename..
   /**
@@ -1065,7 +1067,7 @@ export const makeClient = <RT, RE, RL>(
   // - reduce duplication for Types
 
   const mapQuery = <M extends Requests>(
-    client: RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+    client: ClientFrom<M>
   ) => {
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
@@ -1100,7 +1102,7 @@ export const makeClient = <RT, RE, RL>(
   }
 
   const mapMutation = <M extends Requests>(
-    client: RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+    client: ClientFrom<M>
   ) => {
     const Command = useCommand()
     const wrap = Command.wrap
@@ -1170,14 +1172,15 @@ export const makeClient = <RT, RE, RL>(
   // make available .query, .suspense and .mutate for each operation
   // and a .helpers with all mutations and queries
   const mapClient = <M extends Requests>(
-    queryInvalidation?: QueryInvalidation<M>
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) =>
   (
-    client: RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+    client: ClientFrom<M>
   ) => {
     const Command = useCommand()
     const wrap = Command.wrap
     const fn_ = Command.fn
+    const invalidation = queryInvalidation?.(client)
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
         const fn = fn_(client[key].id)
@@ -1189,7 +1192,7 @@ export const makeClient = <RT, RE, RL>(
         }
         const mutate = useMutation(
           client[key] as any,
-          queryInvalidation?.[key] ? { queryInvalidation: queryInvalidation[key] } : undefined
+          invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
         )
         ;(acc as any)[key] = Object.assign(mutate, { wrap: wrap({ mutate, id: awesome.id }), fn }, awesome, fn)
         return acc
@@ -1258,7 +1261,7 @@ export const makeClient = <RT, RE, RL>(
   // todo; invalidateQueries should perhaps be configured in the Request impl themselves?
   const clientFor = <M extends Requests>(
     m: M,
-    queryInvalidation?: QueryInvalidation<M>
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation))))
 
   const legacy = {

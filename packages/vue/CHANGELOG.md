@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.73.1
+
+### Patch Changes
+
+- eb082c1: fix locale input
+
 ## 2.73.0
 
 ### Minor Changes

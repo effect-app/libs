@@ -43,7 +43,7 @@ export const DefaultIntl = {
 
 export class CommandContext extends Effect.Tag("CommandContext")<
   CommandContext,
-  { id: string; action: string; namespace: string; namespaced: (key: string) => string }
+  { id: string; i18nKey: string; action: string; namespace: string; namespaced: (key: string) => string }
 >() {}
 
 export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
@@ -909,17 +909,24 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
   effect: Effect.gen(function*() {
     const { intl } = yield* I18n
 
-    const makeContext = <Id extends string>(id: Id) => {
+    const makeContext = <const Id extends string, const I18nKey extends string = Id>(
+      id: Id,
+      customI18nKey?: I18nKey
+    ) => {
       if (!id) throw new Error("must specify an id")
+      const i18nKey: I18nKey = customI18nKey ?? id as unknown as I18nKey
+
+      // TODO: should we also update the namespace??
       const namespace = `action.${id}` as const
 
       const action = intl.formatMessage({
-        id: namespace,
+        id: i18nKey,
         defaultMessage: id
       })
       const context = {
         action,
         id,
+        i18nKey,
         namespace,
         namespaced: <const K extends string>(k: K) => `${namespace}.${k}` as const
       }
@@ -929,8 +936,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
-      return <const Id extends string>(id: Id, errorDef?: Error) => {
-        const context = makeContext(id)
+      return <const Id extends string>(id: Id, customI18nKey?: string, errorDef?: Error) => {
+        const context = makeContext(id, customI18nKey)
 
         return Object.assign(<Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext>(
           handler: (...args: Args) => Effect.Effect<A, E, R>
@@ -1248,7 +1255,10 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return <const Id extends string>(id: Id): Commander.Gen<RT, Id> & Commander.NonGen<RT, Id> =>
+        return <const Id extends string, const I18nKey extends string = Id>(
+          id: Id,
+          customI18nKey?: I18nKey
+        ): Commander.Gen<RT, Id> & Commander.NonGen<RT, Id> =>
           Object.assign((
             fn: any,
             ...combinators: any[]
@@ -1259,7 +1269,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             const errorDef = new Error()
             Error.stackTraceLimit = limit
 
-            return make(id, errorDef)(
+            return make(id, customI18nKey, errorDef)(
               Effect.fnUntraced(
                 // fnUntraced only supports generators as first arg, so we convert to generator if needed
                 isGeneratorFunction(fn) ? fn : function*(...args) {
@@ -1273,11 +1283,11 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
       alt2: ((rt: any) => {
         const cmd = makeCommand(rt)
-        return (_id: any) => {
+        return (_id: any, customI18nKey?: string) => {
           const isObject = typeof _id === "object" || typeof _id === "function"
           const id = isObject ? _id.id : _id
           const context = makeContext(id)
-          const idCmd = cmd(id)
+          const idCmd = cmd(id, customI18nKey)
           // TODO: implement proper tracing stack
           return Object.assign((cb: any) =>
             idCmd(cb(
@@ -1317,7 +1327,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
       /** @experimental */
       alt: makeCommand as unknown as <RT>(runtime: Runtime.Runtime<RT>) => <const Id extends string>(
-        id: Id
+        id: Id,
+        customI18nKey?: string
       ) =>
         & Commander.CommandContextLocal<Id>
         & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext>(
@@ -1330,7 +1341,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         return <const Id extends string, Args extends Array<unknown>, A, E, R>(
           mutation:
             | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
-            | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id }
+            | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
+          customI18nKey?: string
         ):
           & Commander.CommandContextLocal<Id>
           & Commander.GenWrap<RT, Id, Args, A, E, R>
@@ -1346,7 +1358,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
             const mutate = "mutate" in mutation ? mutation.mutate : mutation
 
-            return make(mutation.id, errorDef)(
+            return make(mutation.id, customI18nKey, errorDef)(
               Effect.fnUntraced(
                 // fnUntraced only supports generators as first arg, so we convert to generator if needed
                 isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {

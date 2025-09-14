@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.75.5
+
+### Patch Changes
+
+- 9e2331d: const state
+
 ## 2.75.4
 
 ### Patch Changes

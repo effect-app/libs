@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.72.1
+
+### Patch Changes
+
+- 76a1b35: fix: namespace
+
 ## 2.72.0
 
 ### Minor Changes

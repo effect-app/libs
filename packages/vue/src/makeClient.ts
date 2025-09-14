@@ -981,6 +981,7 @@ const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt
 
 type Base = I18n | Toast
 export const makeClient = <RT, RE, RL>(
+  // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT | ApiClientFactory, never>,
   rootLayer: Layer.Layer<RL | Base, RE>,
   clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>
@@ -1258,11 +1259,39 @@ export const makeClient = <RT, RE, RL>(
     return Object.assign(extended, { helpers: { ...mapMutation(client), ...mapQuery(client) } })
   }
 
-  // todo; invalidateQueries should perhaps be configured in the Request impl themselves?
-  const clientFor = <M extends Requests>(
+  // TODO: Clean up this delay initialisation messs
+  // TODO; invalidateQueries should perhaps be configured in the Request impl themselves?
+  const clientFor__ = <M extends Requests>(
     m: M,
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation))))
+
+  // delay client creation until first access
+  // the idea is that we don't need the useNuxtApp().$runtime (only available at later initialisation stage)
+  // until we are at a place where it is available..
+  const clientFor = <M extends Requests>(
+    m: M,
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
+  ) => {
+    type Client = ReturnType<typeof clientFor__<M>>
+    let client: Client | undefined = undefined
+    const getOrMakeClient = () => (client ??= clientFor__(m, queryInvalidation))
+
+    // initialize on first use..
+    const proxy = Struct.keys(m).reduce((acc, key) => {
+      Object.defineProperty(acc, key, {
+        configurable: true,
+        get() {
+          const v = getOrMakeClient()[key as any]
+          // cache on first use.
+          Object.defineProperty(acc, key, { value: v })
+          return v
+        }
+      })
+      return acc
+    }, {} as Client)
+    return proxy
+  }
 
   const legacy = {
     ...mutations,

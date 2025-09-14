@@ -25,7 +25,9 @@ export const DefaultIntl = {
       "Die Anfrage war nicht erfolgreich:\n{error}\nWir wurden benachrichtigt und werden das Problem in Kürze beheben.",
     "handle.response_error": "Die Antwort konnte nicht verarbeitet werden:\n{error}",
     "handle.request_error": "Die Anfrage konnte nicht gesendet werden:\n{error}",
-    "handle.unexpected_error2": "{action} unerwarteter Fehler, probieren sie es in kurze nochmals."
+    "handle.unexpected_error2": "{action} unerwarteter Fehler, probieren sie es in kurze nochmals.",
+
+    "handle.unexpected_error": "Unerwarteter Fehler:\n{error}"
   },
   en: {
     "handle.confirmation": "Confirm {action}?",
@@ -37,7 +39,9 @@ export const DefaultIntl = {
       "There was an error in processing the response:\n{error}\nWe have been notified and will fix the problem shortly.",
     "handle.request_error": "There was an error in the request:\n{error}",
     "handle.response_error": "The request was not successful:\n{error}",
-    "handle.unexpected_error2": "{action} unexpected error, please try again shortly."
+    "handle.unexpected_error2": "{action} unexpected error, please try again shortly.",
+
+    "handle.unexpected_error": "Unexpected Error:\n{error}"
   }
 }
 

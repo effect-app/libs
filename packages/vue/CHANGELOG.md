@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.72.3
+
+### Patch Changes
+
+- add missing i18n key
+
 ## 2.72.2
 
 ### Patch Changes

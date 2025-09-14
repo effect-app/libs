@@ -18,6 +18,7 @@ import { WithToast } from "./withToast.js"
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
 type FnOptions<I18nCustomKey extends string> = {
   i18nCustomKey?: I18nCustomKey
+  /** passed to the i18n formatMessage calls so you can use it in translation messages */
   i18nValues?: ComputedRef<IntlRecord> | (() => IntlRecord)
 }
 

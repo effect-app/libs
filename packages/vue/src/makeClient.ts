@@ -1151,9 +1151,9 @@ export const makeClient = <RT>(
           & {
             wrap: typeof client[Key] extends
               RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer _Request, infer Id>
-              ? ReturnType<typeof wrap<Id, [I], A, E, never, Id>> & Commander.CommandContextLocal<Id, Id>
+              ? ReturnType<typeof wrap<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id, Id>
               : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer _Request, infer Id>
-                ? ReturnType<typeof wrap<Id, [], A, E, never, Id>> & Commander.CommandContextLocal<Id, Id>
+                ? ReturnType<typeof wrap<Id, [], A, E, never>> & Commander.CommandContextLocal<Id, Id>
               : never
             fn: typeof client[Key] extends
               RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
@@ -1219,9 +1219,9 @@ export const makeClient = <RT>(
           & {
             wrap: typeof client[Key] extends
               RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer _Request, infer Id>
-              ? ReturnType<typeof wrap<Id, [I], A, E, never, Id>> & Commander.CommandContextLocal<Id, Id>
+              ? ReturnType<typeof wrap<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id, Id>
               : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer _Request, infer Id>
-                ? ReturnType<typeof wrap<Id, [], A, E, never, Id>> & Commander.CommandContextLocal<Id, Id>
+                ? ReturnType<typeof wrap<Id, [], A, E, never>> & Commander.CommandContextLocal<Id, Id>
               : never
             fn: typeof client[Key] extends
               RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>

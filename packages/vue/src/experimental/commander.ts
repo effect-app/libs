@@ -18,13 +18,18 @@ import { WithToast } from "./withToast.js"
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
 type FnOptions<I18nCustomKey extends string, State extends IntlRecord> = {
   i18nCustomKey?: I18nCustomKey
-  /** passed to the i18n formatMessage calls so you can use it in translation messages */
-  i18nValues?: ComputedRef<State> | (() => State)
+  /**
+   * passed to the i18n formatMessage calls so you can use it in translation messagee
+   * including the Command `action` string.
+   * Automatically wrapped with Computed if just a thunk.
+   * provided as Command.state tag, so you can access it in the function.
+   */
+  state?: ComputedRef<State> | (() => State)
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
   i18nCustomKey?: I18nCustomKey | undefined
-  i18nValues?: IntlRecord | undefined
+  state?: IntlRecord | undefined
 }
 
 export const DefaultIntl = {
@@ -1094,7 +1099,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       const action = intl.formatMessage({
         id: namespace,
         defaultMessage: id
-      }, options?.i18nValues)
+      }, options?.state)
       const context = {
         action,
         id,
@@ -1106,11 +1111,11 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       return context
     }
 
-    const getI18nValues = <const I18nKey extends string>(options?: FnOptions<I18nKey, any>) => {
-      const i18nValues = !options?.i18nValues ? undefined : typeof options.i18nValues === "function"
-        ? computed(options.i18nValues)
-        : options.i18nValues
-      return i18nValues
+    const getStateValues = <const I18nKey extends string>(options?: FnOptions<I18nKey, any>) => {
+      const state = !options?.state ? undefined : typeof options.state === "function"
+        ? computed(options.state)
+        : options.state
+      return state
     }
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
@@ -1121,7 +1126,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         errorDef?: Error
       ) => {
         const id = typeof id_ === "string" ? id_ : id_.id
-        const i18nValues = getI18nValues(options)
+        const state = getStateValues(options)
 
         return Object.assign(
           <Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
@@ -1137,9 +1142,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             }
 
             const key = `Commander.Command.${id}.state` as const
-            const state = Context.GenericTag<typeof key, State>(key)
+            const stateTag = Context.GenericTag<typeof key, State>(key)
 
-            const makeContext_ = () => makeContext(id, { ...options, i18nValues: i18nValues?.value })
+            const makeContext_ = () => makeContext(id, { ...options, state: state?.value })
             const initialContext = makeContext_()
             const action = computed(() => makeContext_().action)
 
@@ -1188,8 +1193,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 Effect.sync(() => makeContext_())
               ),
               Effect.provideServiceEffect(
-                state,
-                Effect.sync(() => i18nValues?.value)
+                stateTag,
+                Effect.sync(() => state?.value)
               ), // todo; service make errors?
               (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))
             )
@@ -1455,7 +1460,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return <const Id extends string, State extends IntlRecord, const I18nKey extends string = Id>(
+        return <const Id extends string, State extends IntlRecord = IntlRecord, const I18nKey extends string = Id>(
           id: Id | { id: Id },
           options?: FnOptions<I18nKey, State>
         ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> & {
@@ -1482,7 +1487,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ) as any
               )
             },
-            makeContext(typeof id === "string" ? id : id.id, { ...options, i18nValues: getI18nValues(options)?.value }),
+            makeContext(typeof id === "string" ? id : id.id, { ...options, state: getStateValues(options)?.value }),
             {
               state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
                 `Commander.Command.${typeof id === "string" ? id : id.id}.state`
@@ -1496,7 +1501,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         return (_id: any, options?: FnOptions<string, IntlRecord>) => {
           const isObject = typeof _id === "object" || typeof _id === "function"
           const id = isObject ? _id.id : _id
-          const context = makeContext(id, { ...options, i18nValues: getI18nValues(options)?.value })
+          const context = makeContext(id, { ...options, state: getStateValues(options)?.value })
           const idCmd = cmd(id, options)
           // TODO: implement proper tracing stack
           return Object.assign((cb: any) =>
@@ -1564,7 +1569,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           A,
           E,
           R,
-          State extends IntlRecord,
+          State extends IntlRecord = IntlRecord,
           I18nKey extends string = Id
         >(
           mutation:
@@ -1595,7 +1600,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ...combinators as [any]
               ) as any
             )
-          }, makeContext(mutation.id, { ...options, i18nValues: getI18nValues(options)?.value }))
+          }, makeContext(mutation.id, { ...options, state: getStateValues(options)?.value }))
       }
     }
   })

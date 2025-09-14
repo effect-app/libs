@@ -1120,7 +1120,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
-      return <const Id extends string, State extends IntlRecord, const I18nKey extends string = Id>(
+      return <const Id extends string, const State extends IntlRecord, const I18nKey extends string = Id>(
         id_: Id | { id: Id },
         options?: FnOptions<I18nKey, State>,
         errorDef?: Error
@@ -1460,7 +1460,11 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return <const Id extends string, State extends IntlRecord = IntlRecord, const I18nKey extends string = Id>(
+        return <
+          const Id extends string,
+          const State extends IntlRecord = IntlRecord,
+          const I18nKey extends string = Id
+        >(
           id: Id | { id: Id },
           options?: FnOptions<I18nKey, State>
         ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> & {
@@ -1569,7 +1573,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           A,
           E,
           R,
-          State extends IntlRecord = IntlRecord,
+          const State extends IntlRecord = IntlRecord,
           I18nKey extends string = Id
         >(
           mutation:

@@ -2,7 +2,7 @@
 import { asResult, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
+import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
@@ -16,10 +16,10 @@ import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
 
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
-type FnOptions<I18nCustomKey extends string> = {
+type FnOptions<I18nCustomKey extends string, State extends IntlRecord> = {
   i18nCustomKey?: I18nCustomKey
   /** passed to the i18n formatMessage calls so you can use it in translation messages */
-  i18nValues?: ComputedRef<IntlRecord> | (() => IntlRecord)
+  i18nValues?: ComputedRef<State> | (() => State)
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -132,7 +132,11 @@ export declare namespace Commander {
   >
 
   export type Gen<RT, Id extends string, I18nKey extends string> = {
-    <Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext>>, AEff, Args extends Array<unknown>>(
+    <
+      Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>,
+      AEff,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => Generator<Eff, AEff, never>
     ): CommandOut<
       Args,
@@ -150,7 +154,7 @@ export declare namespace Commander {
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
       Args extends Array<unknown>,
-      A extends Effect.Effect<any, any, RT | CommandContext>
+      A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -171,7 +175,7 @@ export declare namespace Commander {
       AEff,
       Args extends Array<unknown>,
       A,
-      B extends Effect.Effect<any, any, RT | CommandContext>
+      B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -194,7 +198,7 @@ export declare namespace Commander {
       Args extends Array<unknown>,
       A,
       B,
-      C extends Effect.Effect<any, any, RT | CommandContext>
+      C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -219,7 +223,7 @@ export declare namespace Commander {
       A,
       B,
       C,
-      D extends Effect.Effect<any, any, RT | CommandContext>
+      D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -246,7 +250,7 @@ export declare namespace Commander {
       B,
       C,
       D,
-      E extends Effect.Effect<any, any, RT | CommandContext>
+      E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -275,7 +279,7 @@ export declare namespace Commander {
       C,
       D,
       E,
-      F extends Effect.Effect<any, any, RT | CommandContext>
+      F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -306,7 +310,7 @@ export declare namespace Commander {
       D,
       E,
       F,
-      G extends Effect.Effect<any, any, RT | CommandContext>
+      G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -339,7 +343,7 @@ export declare namespace Commander {
       E,
       F,
       G,
-      H extends Effect.Effect<any, any, RT | CommandContext>
+      H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -374,7 +378,7 @@ export declare namespace Commander {
       F,
       G,
       H,
-      I extends Effect.Effect<any, any, RT | CommandContext>
+      I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       body: (...args: Args) => Generator<Eff, AEff, never>,
       a: (
@@ -401,32 +405,65 @@ export declare namespace Commander {
   }
 
   export type NonGen<RT, Id extends string, I18nKey extends string> = {
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      C,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
       c: (_: C, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      C,
+      D,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
       c: (_: C, ...args: NoInfer<Args>) => D,
       d: (_: D, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
@@ -434,7 +471,16 @@ export declare namespace Commander {
       d: (_: D, ...args: NoInfer<Args>) => E,
       e: (_: E, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
@@ -443,7 +489,17 @@ export declare namespace Commander {
       e: (_: E, ...args: NoInfer<Args>) => F,
       f: (_: F, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F,
+      G,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
@@ -453,7 +509,18 @@ export declare namespace Commander {
       f: (_: F, ...args: NoInfer<Args>) => G,
       g: (_: G, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, H, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F,
+      G,
+      H,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
@@ -464,7 +531,19 @@ export declare namespace Commander {
       g: (_: G, ...args: NoInfer<Args>) => H,
       h: (_: H, ...args: NoInfer<Args>) => Eff
     ): CommandOutHelper<Args, Eff, Id, I18nKey>
-    <Eff extends Effect.Effect<any, any, RT | CommandContext>, A, B, C, D, E, F, G, H, I, Args extends Array<unknown>>(
+    <
+      Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      A,
+      B,
+      C,
+      D,
+      E,
+      F,
+      G,
+      H,
+      I,
+      Args extends Array<unknown>
+    >(
       body: (...args: Args) => A,
       a: (_: A, ...args: NoInfer<Args>) => B,
       b: (_: B, ...args: NoInfer<Args>) => C,
@@ -483,12 +562,12 @@ export declare namespace Commander {
       Args,
       AEff,
       EEff,
-      REff, // TODO: only allowed to be RT | CommandContext
+      REff, // TODO: only allowed to be RT | CommandContext | `Commander.Command.${Id}.state`
       Id,
       I18nKey
     >
     <
-      A extends Effect.Effect<any, any, RT | CommandContext>
+      A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       a: (
         _: Effect.Effect<
@@ -501,7 +580,7 @@ export declare namespace Commander {
     ): CommandOutHelper<Args, A, Id, I18nKey>
     <
       A,
-      B extends Effect.Effect<any, any, RT | CommandContext>
+      B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       a: (
         _: Effect.Effect<
@@ -516,7 +595,7 @@ export declare namespace Commander {
     <
       A,
       B,
-      C extends Effect.Effect<any, any, RT | CommandContext>
+      C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       a: (
         _: Effect.Effect<
@@ -533,7 +612,7 @@ export declare namespace Commander {
       A,
       B,
       C,
-      D extends Effect.Effect<any, any, RT | CommandContext>
+      D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       a: (
         _: Effect.Effect<
@@ -552,7 +631,7 @@ export declare namespace Commander {
       B,
       C,
       D,
-      E extends Effect.Effect<any, any, RT | CommandContext>
+      E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       a: (
         _: Effect.Effect<
@@ -573,7 +652,7 @@ export declare namespace Commander {
       C,
       D,
       E,
-      F extends Effect.Effect<any, any, RT | CommandContext>
+      F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       a: (
         _: Effect.Effect<
@@ -596,7 +675,7 @@ export declare namespace Commander {
       D,
       E,
       F,
-      G extends Effect.Effect<any, any, RT | CommandContext>
+      G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
       a: (
         _: Effect.Effect<
@@ -613,7 +692,7 @@ export declare namespace Commander {
       f: (_: E, ...args: NoInfer<Args>) => F,
       g: (_: F, ...args: NoInfer<Args>) => G
     ): CommandOutHelper<Args, G, Id, I18nKey>
-    <A, B, C, D, E, F, G, H extends Effect.Effect<any, any, RT | CommandContext>>(
+    <A, B, C, D, E, F, G, H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
         _: Effect.Effect<
           AEff,
@@ -630,7 +709,7 @@ export declare namespace Commander {
       g: (_: F, ...args: NoInfer<Args>) => G,
       h: (_: G, ...args: NoInfer<Args>) => H
     ): CommandOutHelper<Args, H, Id, I18nKey>
-    <A, B, C, D, E, F, G, H, I extends Effect.Effect<any, any, RT | CommandContext>>(
+    <A, B, C, D, E, F, G, H, I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
         _: Effect.Effect<
           AEff,
@@ -653,7 +732,10 @@ export declare namespace Commander {
   export type NonGenWrap<RT, Id extends string, I18nKey extends string, Args extends Array<unknown>, AEff, EEff, REff> =
     {
       (): CommandOutHelper<Args, Effect.Effect<AEff, EEff, REff>, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -663,7 +745,11 @@ export declare namespace Commander {
           ...args: NoInfer<Args>
         ) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -674,7 +760,12 @@ export declare namespace Commander {
         ) => B,
         b: (_: B, ...args: NoInfer<Args>) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, C, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        C,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -686,7 +777,13 @@ export declare namespace Commander {
         b: (_: B, ...args: NoInfer<Args>) => C,
         c: (_: C, ...args: NoInfer<Args>) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, C, D, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        C,
+        D,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -699,7 +796,14 @@ export declare namespace Commander {
         c: (_: C, ...args: NoInfer<Args>) => D,
         d: (_: D, ...args: NoInfer<Args>) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, C, D, E, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        C,
+        D,
+        E,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -713,7 +817,15 @@ export declare namespace Commander {
         d: (_: D, ...args: NoInfer<Args>) => E,
         e: (_: E, ...args: NoInfer<Args>) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, C, D, E, F, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        C,
+        D,
+        E,
+        F,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -728,7 +840,16 @@ export declare namespace Commander {
         e: (_: E, ...args: NoInfer<Args>) => F,
         f: (_: F, ...args: NoInfer<Args>) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, C, D, E, F, G, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        C,
+        D,
+        E,
+        F,
+        G,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -744,7 +865,17 @@ export declare namespace Commander {
         f: (_: F, ...args: NoInfer<Args>) => G,
         g: (_: G, ...args: NoInfer<Args>) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, C, D, E, F, G, H, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        C,
+        D,
+        E,
+        F,
+        G,
+        H,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -761,7 +892,18 @@ export declare namespace Commander {
         g: (_: G, ...args: NoInfer<Args>) => H,
         h: (_: H, ...args: NoInfer<Args>) => Eff
       ): CommandOutHelper<Args, Eff, Id, I18nKey>
-      <Eff extends Effect.Effect<any, any, RT | CommandContext>, B, C, D, E, F, G, H, I, Args extends Array<unknown>>(
+      <
+        Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+        B,
+        C,
+        D,
+        E,
+        F,
+        G,
+        H,
+        I,
+        Args extends Array<unknown>
+      >(
         a: (
           _: Effect.Effect<
             AEff,
@@ -964,7 +1106,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       return context
     }
 
-    const getI18nValues = <const I18nKey extends string>(options?: FnOptions<I18nKey>) => {
+    const getI18nValues = <const I18nKey extends string>(options?: FnOptions<I18nKey, any>) => {
       const i18nValues = !options?.i18nValues ? undefined : typeof options.i18nValues === "function"
         ? computed(options.i18nValues)
         : options.i18nValues
@@ -973,260 +1115,270 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
-      return <const Id extends string, const I18nKey extends string = Id>(
+      return <const Id extends string, State extends IntlRecord, const I18nKey extends string = Id>(
         id_: Id | { id: Id },
-        options?: FnOptions<I18nKey>,
+        options?: FnOptions<I18nKey, State>,
         errorDef?: Error
       ) => {
         const id = typeof id_ === "string" ? id_ : id_.id
         const i18nValues = getI18nValues(options)
 
-        return Object.assign(<Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext>(
-          handler: (...args: Args) => Effect.Effect<A, E, R>
-        ) => {
-          // we capture the definition stack here, so we can append it to later stack traces
-          const limit = Error.stackTraceLimit
-          Error.stackTraceLimit = 2
-          const localErrorDef = new Error()
-          Error.stackTraceLimit = limit
-          if (!errorDef) {
-            errorDef = localErrorDef
-          }
+        return Object.assign(
+          <Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+            handler: (...args: Args) => Effect.Effect<A, E, R>
+          ) => {
+            // we capture the definition stack here, so we can append it to later stack traces
+            const limit = Error.stackTraceLimit
+            Error.stackTraceLimit = 2
+            const localErrorDef = new Error()
+            Error.stackTraceLimit = limit
+            if (!errorDef) {
+              errorDef = localErrorDef
+            }
 
-          const makeContext_ = () => makeContext(id, { ...options, i18nValues: i18nValues?.value })
-          const initialContext = makeContext_()
-          const action = computed(() => makeContext_().action)
+            const key = `Commander.Command.${id}.state` as const
+            const state = Context.GenericTag<typeof key, State>(key)
 
-          const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-            self.pipe(
-              Effect.tapErrorCause(
-                Effect.fnUntraced(function*(cause) {
-                  if (Cause.isInterruptedOnly(cause)) {
-                    console.info(`Interrupted while trying to ${id}`)
-                    return
-                  }
+            const makeContext_ = () => makeContext(id, { ...options, i18nValues: i18nValues?.value })
+            const initialContext = makeContext_()
+            const action = computed(() => makeContext_().action)
 
-                  const fail = Cause.failureOption(cause)
-                  if (Option.isSome(fail)) {
-                    // if (fail.value._tag === "SuppressErrors") {
-                    //   console.info(
-                    //     `Suppressed error trying to ${action}`,
-                    //     fail.value,
-                    //   )
-                    //   return
-                    // }
-                    const message = `Failure trying to ${id}`
-                    yield* reportMessage(message, {
-                      action: id,
-                      error: fail.value
-                    })
-                    return
-                  }
+            const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+              self.pipe(
+                Effect.tapErrorCause(
+                  Effect.fnUntraced(function*(cause) {
+                    if (Cause.isInterruptedOnly(cause)) {
+                      console.info(`Interrupted while trying to ${id}`)
+                      return
+                    }
 
-                  const context = yield* CommandContext
-                  const extra = {
-                    action: context.action,
-                    message: `Unexpected Error trying to ${id}`
-                  }
-                  yield* reportRuntimeError(cause, extra)
-                }, Effect.uninterruptible)
+                    const fail = Cause.failureOption(cause)
+                    if (Option.isSome(fail)) {
+                      // if (fail.value._tag === "SuppressErrors") {
+                      //   console.info(
+                      //     `Suppressed error trying to ${action}`,
+                      //     fail.value,
+                      //   )
+                      //   return
+                      // }
+                      const message = `Failure trying to ${id}`
+                      yield* reportMessage(message, {
+                        action: id,
+                        error: fail.value
+                      })
+                      return
+                    }
+
+                    const context = yield* CommandContext
+                    const extra = {
+                      action: context.action,
+                      message: `Unexpected Error trying to ${id}`
+                    }
+                    yield* reportRuntimeError(cause, extra)
+                  }, Effect.uninterruptible)
+                )
               )
+
+            const theHandler = flow(
+              handler,
+              errorReporter,
+              // all must be within the Effect.fn to fit within the Span
+              Effect.provideServiceEffect(
+                CommandContext,
+                Effect.sync(() => makeContext_())
+              ),
+              Effect.provideServiceEffect(
+                state,
+                Effect.sync(() => i18nValues?.value)
+              ), // todo; service make errors?
+              (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))
             )
 
-          const theHandler = flow(
-            handler,
-            errorReporter,
-            // all must be within the Effect.fn to fit within the Span
-            Effect.provideServiceEffect(
-              CommandContext,
-              Effect.sync(() => makeContext_())
-            ), // todo; service make errors?
-            (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))
-          )
+            const [result, exec] = asResult(theHandler)
 
-          const [result, exec] = asResult(theHandler)
+            const waiting = computed(() => result.value.waiting)
 
-          const waiting = computed(() => result.value.waiting)
+            const handle = Object.assign((...args: Args) => {
+              // we capture the call site stack here
+              const limit = Error.stackTraceLimit
+              Error.stackTraceLimit = 2
+              const errorCall = new Error()
+              Error.stackTraceLimit = limit
 
-          const handle = Object.assign((...args: Args) => {
-            // we capture the call site stack here
-            const limit = Error.stackTraceLimit
-            Error.stackTraceLimit = 2
-            const errorCall = new Error()
-            Error.stackTraceLimit = limit
+              let cache: false | string = false
+              const captureStackTrace = () => {
+                // in case of an error, we want to append the definition stack to the call site stack,
+                // so we can see where the handler was defined too
 
-            let cache: false | string = false
-            const captureStackTrace = () => {
-              // in case of an error, we want to append the definition stack to the call site stack,
-              // so we can see where the handler was defined too
-
-              if (cache !== false) {
-                return cache
-              }
-              if (errorCall.stack) {
-                const stackDef = errorDef!.stack!.trim().split("\n")
-                const stackCall = errorCall.stack.trim().split("\n")
-                let endStackDef = stackDef.slice(2).join("\n").trim()
-                if (!endStackDef.includes(`(`)) {
-                  endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+                if (cache !== false) {
+                  return cache
                 }
-                let endStackCall = stackCall.slice(2).join("\n").trim()
-                if (!endStackCall.includes(`(`)) {
-                  endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                if (errorCall.stack) {
+                  const stackDef = errorDef!.stack!.trim().split("\n")
+                  const stackCall = errorCall.stack.trim().split("\n")
+                  let endStackDef = stackDef.slice(2).join("\n").trim()
+                  if (!endStackDef.includes(`(`)) {
+                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+                  }
+                  let endStackCall = stackCall.slice(2).join("\n").trim()
+                  if (!endStackCall.includes(`(`)) {
+                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                  }
+                  cache = `${endStackDef}\n${endStackCall}`
+                  return cache
                 }
-                cache = `${endStackDef}\n${endStackCall}`
-                return cache
               }
-            }
 
-            const command = Effect.withSpan(
-              exec(...args),
-              id,
-              { captureStackTrace }
-            )
-
-            return runFork(command)
-          }, { action })
-
-          const handleEffect = Object.assign((...args: Args) => {
-            // we capture the call site stack here
-            const limit = Error.stackTraceLimit
-            Error.stackTraceLimit = 2
-            const errorCall = new Error()
-            Error.stackTraceLimit = limit
-
-            let cache: false | string = false
-            const captureStackTrace = () => {
-              // in case of an error, we want to append the definition stack to the call site stack,
-              // so we can see where the handler was defined too
-
-              if (cache !== false) {
-                return cache
-              }
-              if (errorCall.stack) {
-                const stackDef = errorDef!.stack!.trim().split("\n")
-                const stackCall = errorCall.stack.trim().split("\n")
-                let endStackDef = stackDef.slice(2).join("\n").trim()
-                if (!endStackDef.includes(`(`)) {
-                  endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-                }
-                let endStackCall = stackCall.slice(2).join("\n").trim()
-                if (!endStackCall.includes(`(`)) {
-                  endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-                }
-                cache = `${endStackDef}\n${endStackCall}`
-                return cache
-              }
-            }
-
-            const command = Effect.withSpan(
-              exec(...args),
-              id,
-              { captureStackTrace }
-            )
-
-            return Effect.currentSpan.pipe(
-              Effect.option,
-              Effect.map((span) =>
-                runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command)
+              const command = Effect.withSpan(
+                exec(...args),
+                id,
+                { captureStackTrace }
               )
-            )
-          }, { action })
 
-          const compose = Object.assign((...args: Args) => {
-            // we capture the call site stack here
-            const limit = Error.stackTraceLimit
-            Error.stackTraceLimit = 2
-            const errorCall = new Error()
-            Error.stackTraceLimit = limit
+              return runFork(command)
+            }, { action })
 
-            let cache: false | string = false
-            const captureStackTrace = () => {
-              // in case of an error, we want to append the definition stack to the call site stack,
-              // so we can see where the handler was defined too
+            const handleEffect = Object.assign((...args: Args) => {
+              // we capture the call site stack here
+              const limit = Error.stackTraceLimit
+              Error.stackTraceLimit = 2
+              const errorCall = new Error()
+              Error.stackTraceLimit = limit
 
-              if (cache !== false) {
-                return cache
-              }
-              if (errorCall.stack) {
-                const stackDef = errorDef!.stack!.trim().split("\n")
-                const stackCall = errorCall.stack.trim().split("\n")
-                let endStackDef = stackDef.slice(2).join("\n").trim()
-                if (!endStackDef.includes(`(`)) {
-                  endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              let cache: false | string = false
+              const captureStackTrace = () => {
+                // in case of an error, we want to append the definition stack to the call site stack,
+                // so we can see where the handler was defined too
+
+                if (cache !== false) {
+                  return cache
                 }
-                let endStackCall = stackCall.slice(2).join("\n").trim()
-                if (!endStackCall.includes(`(`)) {
-                  endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                if (errorCall.stack) {
+                  const stackDef = errorDef!.stack!.trim().split("\n")
+                  const stackCall = errorCall.stack.trim().split("\n")
+                  let endStackDef = stackDef.slice(2).join("\n").trim()
+                  if (!endStackDef.includes(`(`)) {
+                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+                  }
+                  let endStackCall = stackCall.slice(2).join("\n").trim()
+                  if (!endStackCall.includes(`(`)) {
+                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                  }
+                  cache = `${endStackDef}\n${endStackCall}`
+                  return cache
                 }
-                cache = `${endStackDef}\n${endStackCall}`
-                return cache
               }
-            }
 
-            const command = Effect.withSpan(
-              exec(...args),
+              const command = Effect.withSpan(
+                exec(...args),
+                id,
+                { captureStackTrace }
+              )
+
+              return Effect.currentSpan.pipe(
+                Effect.option,
+                Effect.map((span) =>
+                  runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command)
+                )
+              )
+            }, { action, state })
+
+            const compose = Object.assign((...args: Args) => {
+              // we capture the call site stack here
+              const limit = Error.stackTraceLimit
+              Error.stackTraceLimit = 2
+              const errorCall = new Error()
+              Error.stackTraceLimit = limit
+
+              let cache: false | string = false
+              const captureStackTrace = () => {
+                // in case of an error, we want to append the definition stack to the call site stack,
+                // so we can see where the handler was defined too
+
+                if (cache !== false) {
+                  return cache
+                }
+                if (errorCall.stack) {
+                  const stackDef = errorDef!.stack!.trim().split("\n")
+                  const stackCall = errorCall.stack.trim().split("\n")
+                  let endStackDef = stackDef.slice(2).join("\n").trim()
+                  if (!endStackDef.includes(`(`)) {
+                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+                  }
+                  let endStackCall = stackCall.slice(2).join("\n").trim()
+                  if (!endStackCall.includes(`(`)) {
+                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                  }
+                  cache = `${endStackDef}\n${endStackCall}`
+                  return cache
+                }
+              }
+
+              const command = Effect.withSpan(
+                exec(...args),
+                id,
+                { captureStackTrace }
+              )
+
+              return command
+            }, { action })
+
+            const compose2 = Object.assign((...args: Args) => {
+              // we capture the call site stack here
+              const limit = Error.stackTraceLimit
+              Error.stackTraceLimit = 2
+              const errorCall = new Error()
+              Error.stackTraceLimit = limit
+
+              let cache: false | string = false
+              const captureStackTrace = () => {
+                // in case of an error, we want to append the definition stack to the call site stack,
+                // so we can see where the handler was defined too
+
+                if (cache !== false) {
+                  return cache
+                }
+                if (errorCall.stack) {
+                  const stackDef = errorDef!.stack!.trim().split("\n")
+                  const stackCall = errorCall.stack.trim().split("\n")
+                  let endStackDef = stackDef.slice(2).join("\n").trim()
+                  if (!endStackDef.includes(`(`)) {
+                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+                  }
+                  let endStackCall = stackCall.slice(2).join("\n").trim()
+                  if (!endStackCall.includes(`(`)) {
+                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+                  }
+                  cache = `${endStackDef}\n${endStackCall}`
+                  return cache
+                }
+              }
+
+              const command = Effect.withSpan(
+                exec(...args).pipe(Effect.flatten),
+                id,
+                { captureStackTrace }
+              )
+
+              return command
+            }, { action })
+
+            return reactive({
               id,
-              { captureStackTrace }
-            )
-
-            return command
-          }, { action })
-
-          const compose2 = Object.assign((...args: Args) => {
-            // we capture the call site stack here
-            const limit = Error.stackTraceLimit
-            Error.stackTraceLimit = 2
-            const errorCall = new Error()
-            Error.stackTraceLimit = limit
-
-            let cache: false | string = false
-            const captureStackTrace = () => {
-              // in case of an error, we want to append the definition stack to the call site stack,
-              // so we can see where the handler was defined too
-
-              if (cache !== false) {
-                return cache
-              }
-              if (errorCall.stack) {
-                const stackDef = errorDef!.stack!.trim().split("\n")
-                const stackCall = errorCall.stack.trim().split("\n")
-                let endStackDef = stackDef.slice(2).join("\n").trim()
-                if (!endStackDef.includes(`(`)) {
-                  endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-                }
-                let endStackCall = stackCall.slice(2).join("\n").trim()
-                if (!endStackCall.includes(`(`)) {
-                  endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-                }
-                cache = `${endStackDef}\n${endStackCall}`
-                return cache
-              }
-            }
-
-            const command = Effect.withSpan(
-              exec(...args).pipe(Effect.flatten),
-              id,
-              { captureStackTrace }
-            )
-
-            return command
-          }, { action })
-
-          return reactive({
-            id,
-            namespaced: initialContext.namespaced,
-            namespace: initialContext.namespace,
-            result,
-            waiting,
-            action,
-            handle,
-            handleEffect,
-            compose,
-            compose2,
-            exec
-          })
-        }, { id })
+              namespaced: initialContext.namespaced,
+              namespace: initialContext.namespace,
+              result,
+              waiting,
+              action,
+              handle,
+              handleEffect,
+              compose,
+              compose2,
+              exec
+            })
+          },
+          { id }
+        )
       }
     }
 
@@ -1303,10 +1455,12 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
        */
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return <const Id extends string, const I18nKey extends string = Id>(
+        return <const Id extends string, State extends IntlRecord, const I18nKey extends string = Id>(
           id: Id | { id: Id },
-          options?: FnOptions<I18nKey>
-        ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> =>
+          options?: FnOptions<I18nKey, State>
+        ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> & {
+          state: Context.Tag<`Commander.Command.${Id}.state`, State>
+        } =>
           Object.assign(
             (
               fn: any,
@@ -1328,13 +1482,18 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ) as any
               )
             },
-            makeContext(typeof id === "string" ? id : id.id, { ...options, i18nValues: getI18nValues(options)?.value })
+            makeContext(typeof id === "string" ? id : id.id, { ...options, i18nValues: getI18nValues(options)?.value }),
+            {
+              state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
+                `Commander.Command.${typeof id === "string" ? id : id.id}.state`
+              )
+            }
           )
       },
 
       alt2: ((rt: any) => {
         const cmd = makeCommand(rt)
-        return (_id: any, options?: FnOptions<string>) => {
+        return (_id: any, options?: FnOptions<string, IntlRecord>) => {
           const isObject = typeof _id === "object" || typeof _id === "function"
           const id = isObject ? _id.id : _id
           const context = makeContext(id, { ...options, i18nValues: getI18nValues(options)?.value })
@@ -1375,7 +1534,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         customI18nKey?: I18nKey
       ) =>
         & Commander.CommandContextLocal<Id, I18nKey>
-        & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext>(
+        & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
           handler: (
             ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
               // todo: only if we passed in one
@@ -1392,18 +1551,26 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         customI18nKey?: I18nKey
       ) =>
         & Commander.CommandContextLocal<Id, I18nKey>
-        & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext>(
+        & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
           handler: (...args: Args) => Effect.Effect<A, E, R>
         ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>),
 
       /** @experimental */
       wrap: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return <const Id extends string, Args extends Array<unknown>, A, E, R, I18nKey extends string = Id>(
+        return <
+          const Id extends string,
+          Args extends Array<unknown>,
+          A,
+          E,
+          R,
+          State extends IntlRecord,
+          I18nKey extends string = Id
+        >(
           mutation:
             | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
             | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
-          options?: FnOptions<I18nKey>
+          options?: FnOptions<I18nKey, State>
         ):
           & Commander.CommandContextLocal<Id, I18nKey>
           & Commander.GenWrap<RT, Id, I18nKey, Args, A, E, R>

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.25.1
+
+### Patch Changes
+
+- expose key
+
 ## 0.25.0
 
 ### Minor Changes

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Result from "@effect-atom/atom/Result"
 import { type InitialDataFunction, type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
-import { Cause, Effect, Exit, Layer, ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
+import { Cause, Effect, Exit, type ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
 import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
 import { constant, identity, pipe, tuple } from "effect-app/Function"
@@ -9,11 +9,10 @@ import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import type { Schema } from "effect-app/Schema"
 import { dropUndefinedT } from "effect-app/utils"
 import { type RuntimeFiber } from "effect/Fiber"
-import { computed, type ComputedRef, getCurrentInstance, onBeforeUnmount, onUnmounted, type Ref, ref, watch, type WatchSource } from "vue"
+import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { Commander, CommanderStatic } from "./experimental/commander.js"
 import { I18n } from "./experimental/intl.js"
-import { makeUseCommand } from "./experimental/makeUseCommand.js"
 import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
@@ -214,6 +213,33 @@ export const useMutation: typeof _useMutation = <
     ) as any,
     { id: self.id }
   )
+
+/**
+ * Pass an Effect or a function that returns an Effect, e.g from a client action
+ * Executes query cache invalidation based on default rules or provided option.
+ * adds a span with the mutation id
+ */
+export const useMutationInt = (): typeof _useMutation => {
+  const _useMutation = makeMutation()
+  return <
+    I,
+    E,
+    A,
+    R,
+    Request extends TaggedRequestClassAny,
+    Name extends string
+  >(
+    self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
+    options?: MutationOptionsBase
+  ) =>
+    Object.assign(
+      mapHandler(
+        _useMutation(self as any, options),
+        Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
+      ) as any,
+      { id: self.id }
+    )
+}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMutation", {
@@ -980,62 +1006,36 @@ const mkQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
 const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.runtime<A>())
 
 type Base = I18n | Toast
-export const makeClient = <RT, RE, RL>(
+export const makeClient = <RT>(
   // global, but only accessible after startup has completed
-  getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT | ApiClientFactory, never>,
-  rootLayer: Layer.Layer<RL | Base, RE>,
+  getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT | ApiClientFactory | Commander | LegacyMutation | Base, never>,
   clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>
 ) => {
+  const getRt = Effect.runtime<RT | ApiClientFactory | Commander | LegacyMutation | Base>()
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
-
-  // we want to create a managed runtime for query, command and mutation hooks, one per component instance
-  const getRt = () => {
-    const instance = getCurrentInstance() as {
-      __effa?: {
-        rt: ManagedRuntime.ManagedRuntime<Base, RE>
-        rts: Map<string, any>
-      }
+  const makeCommand = Effect.gen(function*() {
+    const cmd = yield* Commander
+    const rt = yield* getRt
+    return {
+      fn: cmd.fn(rt),
+      wrap: cmd.wrap(rt),
+      alt: cmd.alt(rt),
+      alt2: cmd.alt2(rt)
     }
-    if (!instance.__effa) {
-      const rt = ManagedRuntime.make(rootLayer, getBaseMrt().memoMap)
-      instance.__effa = { rt, rts: new Map() }
-      onUnmounted(() => rt.dispose())
-    }
-    return instance.__effa
-  }
+  })
+  const makeMutation = Effect.gen(function*() {
+    const mut = yield* LegacyMutation
 
-  const makeRuntime = <A, E>(l: Layer.Layer<A, E, Base>) => {
-    const ctx = getRt()
-    const rt = ManagedRuntime.make(Layer.mergeAll(l.pipe(Layer.provide(rootLayer)), rootLayer), ctx.rt.memoMap)
-    onUnmounted(() => rt.dispose())
-    return rt
-  }
+    return mut(() => getBaseMrt().runSync(getRt))
+  })
+  let cmd: Effect.Effect.Success<typeof makeCommand>
+  const useCommand = () => cmd ??= getBaseMrt().runSync(makeCommand)
+  let mut: Effect.Effect.Success<typeof makeMutation>
+  const getMutation = () => mut ??= getBaseMrt().runSync(makeMutation)
 
-  const get = <A>(key: string, maker: () => A) => {
-    const ctx = getRt()
-    const existing = ctx.rts.get(key)
-    if (existing) {
-      return existing as A
-    }
+  let m: ReturnType<typeof useMutationInt>
+  const useMutation = () => m ??= useMutationInt()
 
-    const made = maker()
-    ctx.rts.set(key, made)
-    return made
-  }
-  // const getQuery = () => get("query", LegacyQuery.Default)
-  const getMutation = () =>
-    get("mutation", () => {
-      const mrt = makeRuntime(LegacyMutation.Default)
-      const mut = mrt.runSync(LegacyMutation)
-      const rt = managedRuntimeRt(mrt)
-      return mut(() => rt)
-    })
-  const useCommand = () =>
-    get("command", () => {
-      const mrt = makeRuntime(Commander.Default)
-      const cmd = mrt.runSync(makeUseCommand())
-      return cmd
-    })
   const keys: readonly (keyof ReturnType<typeof getMutation>)[] = [
     "useSafeMutationWithState",
     "useAndHandleMutation",
@@ -1058,14 +1058,10 @@ export const makeClient = <RT, RE, RL>(
     },
     {} as { [K in keyof mut]: mut[K] }
   )
+
   const query = mkQuery(getBaseRt)
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
-
-  // Glorious rpc client helpers
-  // TODO:
-  // - reusable; extract to lib
-  // - reduce duplication for Types
 
   const mapQuery = <M extends Requests>(
     client: ClientFrom<M>
@@ -1108,9 +1104,10 @@ export const makeClient = <RT, RE, RL>(
     const Command = useCommand()
     const wrap = Command.wrap
     const fn_ = Command.fn
+    const mutation = useMutation()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        const mut = useMutation(client[key] as any)
+        const mut = mutation(client[key] as any)
         const fn = fn_(client[key].id)
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
           mut,
@@ -1123,7 +1120,7 @@ export const makeClient = <RT, RE, RL>(
         [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]:
           & (typeof client[Key] extends
             RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id> ?
-              & ReturnType<typeof useMutation<I, E, A, R, Request, Id>>
+              & ReturnType<typeof mutation<I, E, A, R, Request, Id>>
               & (typeof client[Key] extends
                 RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
                 ? Commander.CommandContextLocal<Id, Id>
@@ -1131,7 +1128,7 @@ export const makeClient = <RT, RE, RL>(
                   ? Commander.CommandContextLocal<Id, Id>
                 : never)
             : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id> ?
-                & ReturnType<typeof useMutation<E, A, R, Request, Id>>
+                & ReturnType<typeof mutation<E, A, R, Request, Id>>
                 & (typeof client[Key] extends
                   RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
                   ? Commander.CommandContextLocal<Id, Id>
@@ -1147,9 +1144,9 @@ export const makeClient = <RT, RE, RL>(
             : never)
           & (typeof client[Key] extends
             RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-            ? ReturnType<typeof useMutation<I, E, A, R, Request, Id>>
+            ? ReturnType<typeof mutation<I, E, A, R, Request, Id>>
             : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-              ? ReturnType<typeof useMutation<E, A, R, Request, Id>>
+              ? ReturnType<typeof mutation<E, A, R, Request, Id>>
             : never)
           & {
             wrap: typeof client[Key] extends
@@ -1179,6 +1176,7 @@ export const makeClient = <RT, RE, RL>(
     client: ClientFrom<M>
   ) => {
     const Command = useCommand()
+    const mutation = useMutation()
     const wrap = Command.wrap
     const fn_ = Command.fn
     const invalidation = queryInvalidation?.(client)
@@ -1191,7 +1189,7 @@ export const makeClient = <RT, RE, RL>(
           query: useQuery(client[key] as any),
           suspense: useSuspenseQuery(client[key] as any)
         }
-        const mutate = useMutation(
+        const mutate = mutation(
           client[key] as any,
           invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
         )
@@ -1214,9 +1212,9 @@ export const makeClient = <RT, RE, RL>(
             : never)
           & (typeof client[Key] extends
             RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-            ? ReturnType<typeof useMutation<I, E, A, R, Request, Id>>
+            ? ReturnType<typeof mutation<I, E, A, R, Request, Id>>
             : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-              ? ReturnType<typeof useMutation<E, A, R, Request, Id>>
+              ? ReturnType<typeof mutation<E, A, R, Request, Id>>
             : never)
           & {
             wrap: typeof client[Key] extends
@@ -1304,6 +1302,7 @@ export const makeClient = <RT, RE, RL>(
   const Command = {
     fn: (...args: [any]) => useCommand().fn(...args),
     wrap: (...args: [any]) => useCommand().wrap(...args),
+    alt: (...args: [any]) => useCommand().alt(...args),
     alt2: (...args: [any]) => useCommand().alt2(...args),
     ...CommanderStatic
   } as ReturnType<typeof useCommand>

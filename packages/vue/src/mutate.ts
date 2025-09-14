@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Result from "@effect-atom/atom/Result"
-import { type InvalidateOptions, type InvalidateQueryFilters, useQueryClient } from "@tanstack/vue-query"
+import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, type Exit, Option } from "effect-app"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
@@ -141,12 +141,11 @@ export const asResult: {
   return tuple(computed(() => state.value), act) as any
 }
 
-export const useInvalidateQueries = (
+export const invalidateQueries = (
+  queryClient: QueryClient,
   self: { id: string; options?: ClientForOptions },
   options?: MutationOptionsBase["queryInvalidation"]
 ) => {
-  const queryClient = useQueryClient()
-
   const invalidateQueries = (
     filters?: InvalidateQueryFilters,
     options?: InvalidateOptions
@@ -191,6 +190,8 @@ export const useInvalidateQueries = (
 }
 
 export const makeMutation = () => {
+  const queryClient = useQueryClient()
+
   const useMutation: {
     /**
      * Pass a function that returns an Effect, e.g from a client action
@@ -212,7 +213,7 @@ export const makeMutation = () => {
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
     options?: MutationOptionsBase
   ) => {
-    const handle = useInvalidateQueries(self, options?.queryInvalidation)
+    const handle = invalidateQueries(queryClient, self, options?.queryInvalidation)
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i))
 

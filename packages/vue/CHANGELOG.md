@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.75.0
+
+### Minor Changes
+
+- 9855837: add dynamic values for i18n
+
 ## 2.74.2
 
 ### Patch Changes

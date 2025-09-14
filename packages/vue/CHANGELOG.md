@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.75.3
+
+### Patch Changes
+
+- 655d69e: play with state tag
+
 ## 2.75.2
 
 ### Patch Changes

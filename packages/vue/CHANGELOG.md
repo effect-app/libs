@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.74.0
+
+### Minor Changes
+
+- a125927: cleanup global setup
+
 ## 2.73.2
 
 ### Patch Changes

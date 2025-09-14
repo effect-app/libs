@@ -1,5 +1,17 @@
 # @effect-app/vue-components
 
+## 0.25.0
+
+### Minor Changes
+
+- form intl provider should be providing a composable
+
+### Patch Changes
+
+- Updated dependencies [6272279]
+- Updated dependencies
+  - @effect-app/vue@2.73.0
+
 ## 0.24.7
 
 ### Patch Changes

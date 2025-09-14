@@ -15,7 +15,7 @@ export interface IntlShape<T = string> extends ResolvedIntlConfig<T>, IntlFormat
 
 export const makeIntl = <Locale extends string>(
   messages: Record<Locale, Record<string, string>>,
-  defaultLocale: NoInfer<Locale>
+  setup: () => Ref<NoInfer<Locale>>
 ) => {
   const intlCache = createIntlCache()
 

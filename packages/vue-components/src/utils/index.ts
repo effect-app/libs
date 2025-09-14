@@ -1,16 +1,16 @@
 import { type makeIntl } from "@effect-app/vue"
 import { inject, type InjectionKey, provide } from "vue"
 
-const intlKey = Symbol() as InjectionKey<
-  ReturnType<ReturnType<typeof makeIntl>["useIntl"]>
+const useIntlKey = Symbol() as InjectionKey<
+  ReturnType<typeof makeIntl>["useIntl"]
 >
 export const useIntl = () => {
-  const intl = inject(intlKey)
-  if (!intl) {
+  const useIntl = inject(useIntlKey)
+  if (!useIntl) {
     throw new Error("useIntl must be used within a IntlProvider")
   }
-  return intl
+  return useIntl()
 }
 export const provideIntl = (
-  intl: ReturnType<ReturnType<typeof makeIntl>["useIntl"]>
-) => provide(intlKey, intl)
+  intl: ReturnType<typeof makeIntl>["useIntl"]
+) => provide(useIntlKey, intl)

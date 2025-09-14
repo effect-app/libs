@@ -1,5 +1,15 @@
 # @effect-app/vue
 
+## 2.73.0
+
+### Minor Changes
+
+- form intl provider should be providing a composable
+
+### Patch Changes
+
+- 6272279: expand inject helpers
+
 ## 2.72.4
 
 ### Patch Changes

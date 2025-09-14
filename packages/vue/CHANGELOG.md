@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.72.2
+
+### Patch Changes
+
+- b26833d: improve inputs
+
 ## 2.72.1
 
 ### Patch Changes

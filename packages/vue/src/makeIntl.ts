@@ -2,7 +2,7 @@
 import { createIntl, createIntlCache, type Formatters, type IntlFormatters, type MessageDescriptor, type ResolvedIntlConfig } from "@formatjs/intl"
 import { typedKeysOf } from "effect-app/utils"
 import { type FormatXMLElementFn, type Options as IntlMessageFormatOptions, type PrimitiveType } from "intl-messageformat"
-import { type Ref, ref, watch } from "vue"
+import { type Ref, watch } from "vue"
 import { translate } from "./form.js"
 import { makeContext } from "./makeContext.js"
 
@@ -15,7 +15,8 @@ export interface IntlShape<T = string> extends ResolvedIntlConfig<T>, IntlFormat
 
 export const makeIntl = <Locale extends string>(
   messages: Record<Locale, Record<string, string>>,
-  setup: () => Ref<NoInfer<Locale>>
+  // TODO: changing locale should really be a page reload, as you don't want to listen to the locale changing at every place
+  localeRef: Ref<NoInfer<Locale>>
 ) => {
   const intlCache = createIntlCache()
 
@@ -23,7 +24,7 @@ export const makeIntl = <Locale extends string>(
     (acc, cur) => {
       acc[cur] = createIntl<Locale>(
         {
-          defaultLocale,
+          defaultLocale: localeRef.value,
           locale: cur,
           messages: messages[cur]
         },
@@ -34,7 +35,7 @@ export const makeIntl = <Locale extends string>(
     {} as Record<Locale, IntlShape<Locale>>
   )
 
-  const LocaleContext = makeContext(ref<Locale>(defaultLocale) as Ref<Locale>)
+  const LocaleContext = makeContext(localeRef)
 
   const useIntl = () => {
     const locale = LocaleContext.use()

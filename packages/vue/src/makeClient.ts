@@ -1300,12 +1300,14 @@ export const makeClient = <RT>(
   }
 
   const Command = {
-    fn: (...args: [any]) => useCommand().fn(...args),
-    wrap: (...args: [any]) => useCommand().wrap(...args),
-    alt: (...args: [any]) => useCommand().alt(...args),
-    alt2: (...args: [any]) => useCommand().alt2(...args),
+    ...{
+      fn: (...args: [any]) => useCommand().fn(...args),
+      wrap: (...args: [any]) => useCommand().wrap(...args),
+      alt: (...args: [any]) => useCommand().alt(...args),
+      alt2: (...args: [any]) => useCommand().alt2(...args)
+    } as ReturnType<typeof useCommand>,
     ...CommanderStatic
-  } as ReturnType<typeof useCommand>
+  }
 
   return {
     Command,

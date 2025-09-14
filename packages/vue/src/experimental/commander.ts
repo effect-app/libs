@@ -15,6 +15,17 @@ import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
 
+type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
+type FnOptions<I18nCustomKey extends string> = {
+  i18nCustomKey?: I18nCustomKey
+  i18nValues?: ComputedRef<IntlRecord> | (() => IntlRecord)
+}
+
+type FnOptionsInternal<I18nCustomKey extends string> = {
+  i18nCustomKey?: I18nCustomKey | undefined
+  i18nValues?: IntlRecord | undefined
+}
+
 export const DefaultIntl = {
   de: {
     "handle.confirmation": "{action} bestätigen?",
@@ -929,11 +940,10 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
     const makeContext = <const Id extends string, const I18nKey extends string = Id>(
       id: Id,
-      customI18nKey: I18nKey | undefined,
-      computedValues?: Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
+      options?: FnOptionsInternal<I18nKey>
     ) => {
       if (!id) throw new Error("must specify an id")
-      const i18nKey: I18nKey = customI18nKey ?? id as unknown as I18nKey
+      const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
 
       const namespace = `action.${i18nKey}` as const
 
@@ -941,7 +951,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       const action = intl.formatMessage({
         id: namespace,
         defaultMessage: id
-      }, computedValues)
+      }, options?.i18nValues)
       const context = {
         action,
         id,
@@ -953,15 +963,22 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       return context
     }
 
+    const getI18nValues = <const I18nKey extends string>(options?: FnOptions<I18nKey>) => {
+      const i18nValues = !options?.i18nValues ? undefined : typeof options.i18nValues === "function"
+        ? computed(options.i18nValues)
+        : options.i18nValues
+      return i18nValues
+    }
+
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
-      return <const Id extends string>(
+      return <const Id extends string, const I18nKey extends string = Id>(
         id_: Id | { id: Id },
-        customI18nKey?: string,
-        computeI18nValues?: ComputedRef<Record<string, PrimitiveType | FormatXMLElementFn<string, string>>>,
+        options?: FnOptions<I18nKey>,
         errorDef?: Error
       ) => {
         const id = typeof id_ === "string" ? id_ : id_.id
+        const i18nValues = getI18nValues(options)
 
         return Object.assign(<Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext>(
           handler: (...args: Args) => Effect.Effect<A, E, R>
@@ -975,8 +992,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             errorDef = localErrorDef
           }
 
-          const initialContext = makeContext(id, customI18nKey, computeI18nValues?.value)
-          const action = computed(() => makeContext(id, customI18nKey, computeI18nValues?.value).action)
+          const makeContext_ = () => makeContext(id, { ...options, i18nValues: i18nValues?.value })
+          const initialContext = makeContext_()
+          const action = computed(() => makeContext_().action)
 
           const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
             self.pipe(
@@ -1020,7 +1038,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             // all must be within the Effect.fn to fit within the Span
             Effect.provideServiceEffect(
               CommandContext,
-              Effect.sync(() => makeContext(id, customI18nKey, computeI18nValues?.value))
+              Effect.sync(() => makeContext_())
             ), // todo; service make errors?
             (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))
           )
@@ -1286,38 +1304,40 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         const make = makeCommand(runtime)
         return <const Id extends string, const I18nKey extends string = Id>(
           id: Id | { id: Id },
-          customI18nKey?: I18nKey,
-          computeI18nValues?: ComputedRef<Record<string, PrimitiveType | FormatXMLElementFn<string, string>>>
+          options?: FnOptions<I18nKey>
         ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> =>
-          Object.assign((
-            fn: any,
-            ...combinators: any[]
-          ): any => {
-            // we capture the definition stack here, so we can append it to later stack traces
-            const limit = Error.stackTraceLimit
-            Error.stackTraceLimit = 2
-            const errorDef = new Error()
-            Error.stackTraceLimit = limit
+          Object.assign(
+            (
+              fn: any,
+              ...combinators: any[]
+            ): any => {
+              // we capture the definition stack here, so we can append it to later stack traces
+              const limit = Error.stackTraceLimit
+              Error.stackTraceLimit = 2
+              const errorDef = new Error()
+              Error.stackTraceLimit = limit
 
-            return make(id, customI18nKey, computeI18nValues, errorDef)(
-              Effect.fnUntraced(
-                // fnUntraced only supports generators as first arg, so we convert to generator if needed
-                isGeneratorFunction(fn) ? fn : function*(...args) {
-                  return yield* fn(...args)
-                },
-                ...combinators as [any]
-              ) as any
-            )
-          }, makeContext(typeof id === "string" ? id : id.id, customI18nKey))
+              return make(id, options, errorDef)(
+                Effect.fnUntraced(
+                  // fnUntraced only supports generators as first arg, so we convert to generator if needed
+                  isGeneratorFunction(fn) ? fn : function*(...args) {
+                    return yield* fn(...args)
+                  },
+                  ...combinators as [any]
+                ) as any
+              )
+            },
+            makeContext(typeof id === "string" ? id : id.id, { ...options, i18nValues: getI18nValues(options)?.value })
+          )
       },
 
       alt2: ((rt: any) => {
         const cmd = makeCommand(rt)
-        return (_id: any, customI18nKey?: string) => {
+        return (_id: any, options?: FnOptions<string>) => {
           const isObject = typeof _id === "object" || typeof _id === "function"
           const id = isObject ? _id.id : _id
-          const context = makeContext(id, customI18nKey)
-          const idCmd = cmd(id, customI18nKey)
+          const context = makeContext(id, { ...options, i18nValues: getI18nValues(options)?.value })
+          const idCmd = cmd(id, options)
           // TODO: implement proper tracing stack
           return Object.assign((cb: any) =>
             idCmd(cb(
@@ -1382,8 +1402,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
           mutation:
             | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
             | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
-          customI18nKey?: I18nKey,
-          computeI18nValues?: ComputedRef<Record<string, PrimitiveType | FormatXMLElementFn<string, string>>>
+          options?: FnOptions<I18nKey>
         ):
           & Commander.CommandContextLocal<Id, I18nKey>
           & Commander.GenWrap<RT, Id, I18nKey, Args, A, E, R>
@@ -1399,7 +1418,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
             const mutate = "mutate" in mutation ? mutation.mutate : mutation
 
-            return make(mutation.id, customI18nKey, computeI18nValues, errorDef)(
+            return make(mutation.id, options, errorDef)(
               Effect.fnUntraced(
                 // fnUntraced only supports generators as first arg, so we convert to generator if needed
                 isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
@@ -1408,7 +1427,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ...combinators as [any]
               ) as any
             )
-          }, makeContext(mutation.id, customI18nKey))
+          }, makeContext(mutation.id, { ...options, i18nValues: getI18nValues(options)?.value }))
       }
     }
   })

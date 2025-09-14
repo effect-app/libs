@@ -924,7 +924,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
     const makeContext = <const Id extends string, const I18nKey extends string = Id>(
       id: Id,
-      customI18nKey?: I18nKey
+      customI18nKey: I18nKey | undefined
     ) => {
       if (!id) throw new Error("must specify an id")
       const i18nKey: I18nKey = customI18nKey ?? id as unknown as I18nKey
@@ -948,7 +948,8 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
-      return <const Id extends string>(id: Id, customI18nKey?: string, errorDef?: Error) => {
+      return <const Id extends string>(id_: Id | { id: Id }, customI18nKey?: string, errorDef?: Error) => {
+        const id = typeof id_ === "string" ? id_ : id_.id
         const context = makeContext(id, customI18nKey)
 
         return Object.assign(<Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext>(
@@ -1268,7 +1269,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
         return <const Id extends string, const I18nKey extends string = Id>(
-          id: Id,
+          id: Id | { id: Id },
           customI18nKey?: I18nKey
         ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> =>
           Object.assign((
@@ -1290,7 +1291,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ...combinators as [any]
               ) as any
             )
-          }, makeContext(id))
+          }, makeContext(typeof id === "string" ? id : id.id, customI18nKey))
       },
 
       alt2: ((rt: any) => {
@@ -1298,7 +1299,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         return (_id: any, customI18nKey?: string) => {
           const isObject = typeof _id === "object" || typeof _id === "function"
           const id = isObject ? _id.id : _id
-          const context = makeContext(id)
+          const context = makeContext(id, customI18nKey)
           const idCmd = cmd(id, customI18nKey)
           // TODO: implement proper tracing stack
           return Object.assign((cb: any) =>

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.75.2
+
+### Patch Changes
+
+- b805ed3: improve api
+
 ## 2.75.1
 
 ### Patch Changes

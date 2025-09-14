@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.72.4
+
+### Patch Changes
+
+- f5929b7: integrate delayed clientFor
+
 ## 2.72.3
 
 ### Patch Changes

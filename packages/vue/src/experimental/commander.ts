@@ -944,7 +944,7 @@ const renderErrorMaker = I18n.use(
   (e: E, ...args: Args): string => {
     if (errorRenderer) {
       const m = errorRenderer(e, action, ...args)
-      if (m) {
+      if (m !== undefined) {
         return m
       }
     }
@@ -1069,19 +1069,37 @@ export const CommanderStatic = {
       const cc = yield* CommandContext
       const { intl } = yield* I18n
       const withToast = yield* WithToast
+      const customWaiting = cc.namespaced("waiting")
+      const hasCustomWaiting = !!intl.messages[customWaiting]
+      const customSuccess = cc.namespaced("success")
+      const hasCustomSuccess = !!intl.messages[customSuccess]
+      const customFailure = cc.namespaced("failure")
+      const hasCustomFailure = !!intl.messages[customFailure]
       return yield* self.pipe(
         (_) =>
           withToast<A, E, Args, R, never, never, I18n>({
-            onWaiting: options?.onWaiting === null ? null : intl.formatMessage(
-              { id: "handle.waiting" },
-              { action: cc.action }
-            ),
+            onWaiting: options?.onWaiting === null ? null : hasCustomWaiting
+              ? intl.formatMessage({
+                id: customWaiting
+              }, cc.state)
+              : intl.formatMessage(
+                { id: "handle.waiting" },
+                { action: cc.action }
+              ),
             onSuccess: options?.onSuccess === null
               ? null
               : (a, ..._args) =>
-                intl.formatMessage({ id: "handle.success" }, { action: cc.action })
-                + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : ""),
-            onFailure: defaultFailureMessageHandler(cc.action, options?.errorRenderer)
+                hasCustomSuccess
+                  ? intl.formatMessage(
+                    { id: customSuccess },
+                    cc.state
+                  )
+                  : (intl.formatMessage({ id: "handle.success" }, { action: cc.action })
+                    + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : "")),
+            onFailure: defaultFailureMessageHandler(
+              hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
+              options?.errorRenderer
+            )
           })(_, ...args)
       )
     })

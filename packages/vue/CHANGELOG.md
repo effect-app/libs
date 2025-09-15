@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.76.0
+
+### Minor Changes
+
+- bf8bcae: improve Command/Toast i18n
+
 ## 2.75.6
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.75.6
+
+### Patch Changes
+
+- 5e95031: fix missing helpers
+
 ## 2.75.5
 
 ### Patch Changes

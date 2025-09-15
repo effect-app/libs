@@ -1102,16 +1102,17 @@ export const makeClient = <RT>(
     client: ClientFrom<M>
   ) => {
     const Command = useCommand()
-    const wrap = Command.wrap
+    const wrap_ = Command.wrap
     const fn_ = Command.fn
     const mutation = useMutation()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
         const mut = mutation(client[key] as any)
         const fn = fn_(client[key].id)
+        const wrap = wrap_(mut)
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
           mut,
-          { wrap: wrap(mut), fn },
+          { wrap, fn },
           wrap
         )
         return acc
@@ -1151,9 +1152,9 @@ export const makeClient = <RT>(
           & {
             wrap: typeof client[Key] extends
               RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer _Request, infer Id>
-              ? ReturnType<typeof wrap<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id, Id>
+              ? ReturnType<typeof wrap_<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id, Id>
               : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer _Request, infer Id>
-                ? ReturnType<typeof wrap<Id, [], A, E, never>> & Commander.CommandContextLocal<Id, Id>
+                ? ReturnType<typeof wrap_<Id, [], A, E, never>> & Commander.CommandContextLocal<Id, Id>
               : never
             fn: typeof client[Key] extends
               RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>

@@ -45,7 +45,8 @@ export const DefaultIntl = {
     "handle.request_error": "Die Anfrage konnte nicht gesendet werden:\n{error}",
     "handle.unexpected_error2": "{action} unerwarteter Fehler, probieren sie es in kurze nochmals.",
 
-    "handle.unexpected_error": "Unerwarteter Fehler:\n{error}"
+    "handle.unexpected_error": "Unerwarteter Fehler:\n{error}",
+    "handle.not_found": "Das gesuchte war nicht gefunden"
   },
   en: {
     "handle.confirmation": "Confirm {action}?",
@@ -59,7 +60,8 @@ export const DefaultIntl = {
     "handle.response_error": "The request was not successful:\n{error}",
     "handle.unexpected_error2": "{action} unexpected error, please try again shortly.",
 
-    "handle.unexpected_error": "Unexpected Error:\n{error}"
+    "handle.unexpected_error": "Unexpected Error:\n{error}",
+    "handle.not_found": "The requested item was not found."
   }
 }
 
@@ -962,6 +964,9 @@ const renderErrorMaker = I18n.use(
     const e2: SupportedErrors | S.ParseResult.ParseError = e
     return Match.value(e2).pipe(
       Match.tags({
+        NotFoundError: (e) => {
+          return intl.formatMessage({ id: "handle.not_found" }, { type: e.type, id: e.id })
+        },
         ParseError: (e) => {
           console.warn(e.toString())
           return intl.formatMessage({ id: "validation.failed" })

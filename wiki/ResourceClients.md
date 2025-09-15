@@ -26,3 +26,13 @@ If you need to invalidate queries in another namespace, you can pass the followi
 A Command captures the start of a user interaction (e.g button click), procceses the input, performs side effects,
 all of this wrapped in a tracing span and defect reporting. To handle status updated to the UI, Commands return Results, and you can compose various handling like automatic Toast on Wait, Succeed and Failure.
 All queries and mutations have a strict namespace and name, which is then used for span names, i18n, etc.
+
+### I18n
+
+Commands require an Identifier, it can either be manually specified, or derived from a provided Mutation.
+The base intl key for each command is `action.${Command.id}`, e.g: `action.HelloWorld.SetState`.
+Each Command has a reactive `action` property, which is a formatted message based on the base intl key, and the computed `state` provided when creating the Command.
+The `action` property can be used as button labels or titles, and will be used by the `Command.withDefaultToast()` implementation unless overriden.
+Each Toast stage can be further customised by adding messages with namespaced i18n keys for: `waiting`, `failure` and `success`
+e.g: `action.HelloWorld.SetState.waiting`.
+Various default copy lives in [DefaultIntl](../../../packages/vue/src/experimental/commander.ts)

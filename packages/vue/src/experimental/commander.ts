@@ -65,7 +65,14 @@ export const DefaultIntl = {
 
 export class CommandContext extends Effect.Tag("CommandContext")<
   CommandContext,
-  { id: string; i18nKey: string; action: string; namespace: string; namespaced: (key: string) => string }
+  {
+    id: string
+    i18nKey: string
+    action: string
+    namespace: string
+    namespaced: (key: string) => string
+    state?: IntlRecord | undefined
+  }
 >() {}
 
 export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
@@ -86,11 +93,11 @@ export declare namespace Commander {
     i18nKey: I18nKey
     namespace: `action.${I18nKey}`
     namespaced: <K extends string>(k: K) => `action.${I18nKey}.${K}`
-    action: string
   }
   export interface CommandProps<A, E, Id extends string, I18nKey extends string>
     extends CommandContextLocal<Id, I18nKey>
   {
+    action: string
     result: Result<A, E>
     waiting: boolean
   }
@@ -1086,6 +1093,25 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
   effect: Effect.gen(function*() {
     const { intl } = yield* I18n
 
+    const makeBaseInfo = <const Id extends string, const I18nKey extends string = Id>(
+      id: Id,
+      options?: Pick<FnOptionsInternal<I18nKey>, "i18nCustomKey">
+    ) => {
+      if (!id) throw new Error("must specify an id")
+      const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
+
+      const namespace = `action.${i18nKey}` as const
+
+      const context = {
+        id,
+        i18nKey,
+        namespace,
+        namespaced: <const K extends string>(k: K) => `${namespace}.${k}` as const
+      }
+
+      return context
+    }
+
     const makeContext = <const Id extends string, const I18nKey extends string = Id>(
       id: Id,
       options?: FnOptionsInternal<I18nKey>
@@ -1100,13 +1126,11 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         id: namespace,
         defaultMessage: id
       }, options?.state)
-      const context = {
+      const context = CommandContext.of({
+        ...makeBaseInfo(id, options),
         action,
-        id,
-        i18nKey,
-        namespace,
-        namespaced: <const K extends string>(k: K) => `${namespace}.${k}` as const
-      }
+        state: options?.state
+      })
 
       return context
     }
@@ -1189,13 +1213,14 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
               errorReporter,
               // all must be within the Effect.fn to fit within the Span
               Effect.provideServiceEffect(
+                stateTag,
+                Effect.sync(() => state?.value)
+              ),
+              Effect.provideServiceEffect(
                 CommandContext,
                 Effect.sync(() => makeContext_())
               ),
-              Effect.provideServiceEffect(
-                stateTag,
-                Effect.sync(() => state?.value)
-              ), // todo; service make errors?
+              // todo; service make errors?
               (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))
             )
 
@@ -1491,7 +1516,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ) as any
               )
             },
-            makeContext(typeof id === "string" ? id : id.id, { ...options, state: getStateValues(options)?.value }),
+            makeBaseInfo(typeof id === "string" ? id : id.id, options),
             {
               state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
                 `Commander.Command.${typeof id === "string" ? id : id.id}.state`
@@ -1505,7 +1530,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
         return (_id: any, options?: FnOptions<string, IntlRecord>) => {
           const isObject = typeof _id === "object" || typeof _id === "function"
           const id = isObject ? _id.id : _id
-          const context = makeContext(id, { ...options, state: getStateValues(options)?.value })
+          const baseInfo = makeBaseInfo(id, options)
           const idCmd = cmd(id, options)
           // TODO: implement proper tracing stack
           return Object.assign((cb: any) =>
@@ -1519,12 +1544,12 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                     },
                     ...combinators as [any]
                   ),
-                context,
+                baseInfo,
                 isObject
                   ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined }
                   : {}
               )
-            )), context)
+            )), baseInfo)
         }
       }) as unknown as <RT>(
         runtime: Runtime.Runtime<RT>
@@ -1604,7 +1629,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 ...combinators as [any]
               ) as any
             )
-          }, makeContext(mutation.id, { ...options, state: getStateValues(options)?.value }))
+          }, makeBaseInfo(mutation.id, options))
       }
     }
   })

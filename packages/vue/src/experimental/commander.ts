@@ -1538,6 +1538,11 @@ export class CommanderImpl<RT> {
    *
    * @param id The internal identifier for the action. Used as a tracing span and to lookup
    *                   the user-facing name via internationalization (`action.${id}`).
+   * @param options Optional configuration for internationalization and state.
+   * @param options.i18nCustomKey Custom i18n key to use instead of `id` (e.g., for grouping similar actions)
+   * @param options.state Optional reactive state object (or function returning one) that is
+   *                     made available to the command effects and can be used for i18n interpolation.
+   *                     The state is captured at the start of each command execution and remains stable throughout.
    * @returns A function that executes the command when called (e.g., directly in `@click` handlers).
    *          Built-in error reporting handles failures automatically.
    *
@@ -1549,6 +1554,8 @@ export class CommanderImpl<RT> {
    * - `result`: The command result state
    * - `waiting`: Boolean indicating if the command is in progress (shorthand for `result.waiting`)
    * - `handle`: Function to execute the command
+   * - `exec`: The raw Effect that will be executed when calling `handle` (for advanced use cases)
+   * - `i18nKey`, `namespace`, `namespaced`: Helpers for internationalization keys
    *
    * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
    * the `result` inline for custom UI feedback.
@@ -1653,7 +1660,33 @@ export class CommanderImpl<RT> {
       handler: (...args: Args) => Effect.Effect<A, E, R>
     ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>)
 
-  /** @experimental */
+  /**
+   * Define a Command for handling user actions with built-in error reporting and state management.
+   *
+   * @param mutation The mutation function to take the identifier and initial handler from. Used as a tracing span and to lookup
+   *                   the user-facing name via internationalization (`action.${id}`).
+   * @param options Optional configuration for internationalization and state.
+   * @param options.i18nCustomKey Custom i18n key to use instead of `id` (e.g., for grouping similar actions)
+   * @param options.state Optional reactive state object (or function returning one) that is
+   *                     made available to the command effects and can be used for i18n interpolation.
+   *                     The state is captured at the start of each command execution and remains stable throughout.
+   * @returns A function that executes the command when called (e.g., directly in `@click` handlers).
+   *          Built-in error reporting handles failures automatically.
+   *
+   * **Effect Context**: Effects have access to the `CommandContext` service, which provides
+   * the user-facing action name.
+   *
+   * **Returned Properties**:
+   * - `action`: User-facing action name from intl messages (useful for button labels)
+   * - `result`: The command result state
+   * - `waiting`: Boolean indicating if the command is in progress (shorthand for `result.waiting`)
+   * - `handle`: Function to execute the command
+   * - `exec`: The raw Effect that will be executed when calling `handle` (for advanced use cases)
+   * - `i18nKey`, `namespace`, `namespaced`: Helpers for internationalization keys
+   *
+   * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
+   * the `result` inline for custom UI feedback.
+   */
   wrap = <
     const Id extends string,
     Args extends Array<unknown>,

@@ -66,12 +66,12 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
-export interface MutationOptionsBase {
+export interface MutationOptionsBase<I extends readonly any[], A, E> {
   /**
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
    * This can be overridden by providing a function that returns an array of filters and options.
    */
-  queryInvalidation?: (defaultKey: string[], name: string) => {
+  queryInvalidation?: (defaultKey: string[], name: string, input: I, exit: Exit.Exit<A, E>) => {
     filters?: InvalidateQueryFilters | undefined
     options?: InvalidateOptions | undefined
   }[]

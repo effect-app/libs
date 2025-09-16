@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Result from "@effect-atom/atom/Result"
 import { type InitialDataFunction, type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
+import { camelCase } from "change-case"
 import { Cause, Effect, Exit, type ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
+import { type ApiClientFactory } from "effect-app/client"
 import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests, TaggedRequestClassAny } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
 import { constant, identity, pipe, tuple } from "effect-app/Function"
@@ -13,15 +15,12 @@ import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type
 import { reportMessage } from "./errorReporter.js"
 import { type Commander, CommanderStatic } from "./experimental/commander.js"
 import { I18n } from "./experimental/intl.js"
+import { type CommanderResolved, makeUseCommand } from "./experimental/makeUseCommand.js"
 import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
 import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res, useMakeMutation } from "./mutate.js"
 import { type CustomDefinedInitialQueryOptions, type CustomUndefinedInitialQueryOptions, type KnownFiberFailure, makeQuery } from "./query.js"
-
-import { camelCase } from "change-case"
-import { type ApiClientFactory } from "effect-app/client"
-import { makeUseCommand } from "./experimental/makeUseCommand.js"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -1293,8 +1292,9 @@ export const makeClient = <RT>(
     useSuspenseQuery
   }
 
-  const Command = {
+  const Command: CommanderResolved<RT> = {
     ...{
+      // delay initialisation until first use...
       fn: (...args: [any]) => useCommand().fn(...args),
       wrap: (...args: [any]) => useCommand().wrap(...args),
       alt: (...args: [any]) => useCommand().alt(...args),

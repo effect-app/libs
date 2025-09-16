@@ -4,7 +4,9 @@ import { Commander, type CommanderImpl, CommanderStatic } from "./commander.js"
 type X<X> = X
 
 // helps retain JSDoc
-export interface CommanderResolved<RT> extends X<typeof CommanderStatic>, CommanderImpl<RT> {
+export interface CommanderResolved<RT>
+  extends X<typeof CommanderStatic>, Pick<CommanderImpl<RT>, "fn" | "wrap" | "alt" | "alt2">
+{
 }
 
 export const makeUseCommand = Effect.fnUntraced(function*<R = never>() {

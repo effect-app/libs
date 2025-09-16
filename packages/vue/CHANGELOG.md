@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.13
+
+### Patch Changes
+
+- enhance query jsdocs
+
 ## 2.77.12
 
 ### Patch Changes

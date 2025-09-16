@@ -16,7 +16,7 @@ import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
 
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
-type FnOptions<I18nCustomKey extends string, State extends IntlRecord> = {
+type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefined> = {
   i18nCustomKey?: I18nCustomKey
   /**
    * passed to the i18n formatMessage calls so you can use it in translation messagee
@@ -1158,16 +1158,19 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       return context
     }
 
-    const getStateValues = <const I18nKey extends string>(options?: FnOptions<I18nKey, any>) => {
-      const state = !options?.state ? undefined : typeof options.state === "function"
-        ? computed(options.state)
-        : options.state
+    const getStateValues = <const I18nKey extends string, State extends IntlRecord | undefined>(
+      options?: FnOptions<I18nKey, State>
+    ): ComputedRef<State> => {
+      const state_ = options?.state
+      const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function"
+        ? computed(state_)
+        : state_
       return state
     }
 
     const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
       const runFork = Runtime.runFork(runtime)
-      return <const Id extends string, const State extends IntlRecord, const I18nKey extends string = Id>(
+      return <const Id extends string, const State extends IntlRecord | undefined, const I18nKey extends string = Id>(
         id_: Id | { id: Id },
         options?: FnOptions<I18nKey, State>,
         errorDef?: Error
@@ -1231,20 +1234,20 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 )
               )
 
+            const currentState = Effect.sync(() => state.value)
+
             const theHandler = flow(
               handler,
               errorReporter,
               // all must be within the Effect.fn to fit within the Span
               Effect.provideServiceEffect(
                 stateTag,
-                Effect.sync(() => state?.value)
+                currentState
               ),
               Effect.provideServiceEffect(
                 CommandContext,
                 Effect.sync(() => makeContext_())
-              ),
-              // todo; service make errors?
-              (_) => Effect.annotateCurrentSpan({ action }).pipe(Effect.zipRight(_))
+              )
             )
 
             const [result, exec] = asResult(theHandler)
@@ -1282,11 +1285,22 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
                 }
               }
 
-              const command = Effect.withSpan(
-                exec(...args),
-                id,
-                { captureStackTrace }
-              )
+              const command = currentState.pipe(Effect.flatMap((state) =>
+                Effect.withSpan(
+                  exec(...args),
+                  id,
+                  {
+                    captureStackTrace,
+                    attributes: {
+                      input: args,
+                      state,
+                      action: initialContext.action,
+                      id: initialContext.id,
+                      i18nKey: initialContext.i18nKey
+                    }
+                  }
+                )
+              ))
 
               return runFork(command)
             }, { action })

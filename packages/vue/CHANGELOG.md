@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.14
+
+### Patch Changes
+
+- 47b7bb7: improve mutation doc
+
 ## 2.77.13
 
 ### Patch Changes

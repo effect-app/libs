@@ -1292,7 +1292,7 @@ export const makeClient = <RT>(
     useSuspenseQuery
   }
 
-  const Command: CommanderResolved<RT> = {
+  const Command: CommanderResolved<R> = {
     ...{
       // delay initialisation until first use...
       fn: (...args: [any]) => useCommand().fn(...args),

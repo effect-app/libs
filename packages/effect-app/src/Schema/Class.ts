@@ -1,106 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect, type ParseResult, pipe, Struct as Struct2, type Types } from "effect"
+import { pipe, Struct as Struct2 } from "effect"
 import type { Schema, Struct } from "effect/Schema"
 import * as S from "effect/Schema"
-import type { ParseOptions } from "effect/SchemaAST"
 import type { Simplify } from "effect/Types"
-import type { AST } from "./schema.js"
 
 type ClassAnnotations<Self, A> =
   | S.Annotations.Schema<Self>
   | readonly [
+    // Annotations for the "to" schema
     S.Annotations.Schema<Self> | undefined,
-    S.Annotations.Schema<Self>?,
+    // Annotations for the "transformation schema
+    (S.Annotations.Schema<Self> | undefined)?,
+    // Annotations for the "from" schema
     S.Annotations.Schema<A>?
   ]
 
-type RequiredKeys<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K> ? never : K
-}[keyof T]
-
 export interface EnhancedClass<Self, Fields extends Struct.Fields, I, R, C, Inherited, Proto>
-  extends Schema<Self, I, R>, PropsExtensions<Fields>
+  extends S.Class<Self, Fields, I, R, C, Inherited, Proto>, /* Reason for enhancement */ PropsExtensions<Fields>
 {
-  new(
-    props: RequiredKeys<C> extends never ? void | Simplify<C> : Simplify<C>,
-    disableValidation?: boolean
-  ): Struct.Type<Fields> & Omit<Inherited, keyof Fields> & Proto
-
-  readonly fields: Simplify<Fields>
-
-  readonly extend: <Extended = never>(identifier: string) => <NewFields extends Struct.Fields>(
-    newFieldsOr: NewFields | HasFields<NewFields>,
-    annotations?: ClassAnnotations<Extended, Struct.Type<Fields & NewFields>>
-  ) => [Extended] extends [never] ? MissingSelfGeneric<"Base.extend">
-    : EnhancedClass<
-      Extended,
-      Fields & NewFields,
-      Simplify<I & Struct.Encoded<NewFields>>,
-      R | Struct.Context<NewFields>,
-      Simplify<C & S.Struct.Constructor<NewFields>>,
-      Self,
-      Proto
-    >
-
-  readonly transformOrFail: <Transformed = never>(identifier: string) => <
-    NewFields extends Struct.Fields,
-    R2,
-    R3
-  >(
-    fields: NewFields,
-    options: {
-      readonly decode: (
-        input: Types.Simplify<Struct.Type<Fields>>,
-        options: ParseOptions,
-        ast: AST.Transformation
-      ) => Effect.Effect<Types.Simplify<Struct.Type<Fields & NewFields>>, ParseResult.ParseIssue, R2>
-      readonly encode: (
-        input: Types.Simplify<Struct.Type<Fields & NewFields>>,
-        options: ParseOptions,
-        ast: AST.Transformation
-      ) => Effect.Effect<Struct.Type<Fields>, ParseResult.ParseIssue, R3>
-    },
-    annotations?: ClassAnnotations<Transformed, Struct.Type<Fields & NewFields>>
-  ) => [Transformed] extends [never] ? MissingSelfGeneric<"Base.transform">
-    : EnhancedClass<
-      Transformed,
-      Fields & NewFields,
-      I,
-      R | Struct.Context<NewFields> | R2 | R3,
-      C & Struct.Constructor<NewFields>,
-      Self,
-      Proto
-    >
-
-  readonly transformOrFailFrom: <Transformed = never>(identifier: string) => <
-    NewFields extends Struct.Fields,
-    R2,
-    R3
-  >(
-    fields: NewFields,
-    options: {
-      readonly decode: (
-        input: Types.Simplify<I>,
-        options: ParseOptions,
-        ast: AST.Transformation
-      ) => Effect.Effect<Types.Simplify<I & Struct.Encoded<NewFields>>, ParseResult.ParseIssue, R2>
-      readonly encode: (
-        input: Types.Simplify<I & Struct.Encoded<NewFields>>,
-        options: ParseOptions,
-        ast: AST.Transformation
-      ) => Effect.Effect<I, ParseResult.ParseIssue, R3>
-    },
-    annotations?: ClassAnnotations<Transformed, Struct.Type<Fields & NewFields>>
-  ) => [Transformed] extends [never] ? MissingSelfGeneric<"Base.transformFrom">
-    : EnhancedClass<
-      Transformed,
-      Fields & NewFields,
-      I,
-      R | Struct.Context<NewFields> | R2 | R3,
-      Simplify<C & S.Struct.Constructor<NewFields>>,
-      Self,
-      Proto
-    >
 }
 type MissingSelfGeneric<Usage extends string, Params extends string = ""> =
   `Missing \`Self\` generic - use \`class Self extends ${Usage}<Self>()(${Params}{ ... })\``

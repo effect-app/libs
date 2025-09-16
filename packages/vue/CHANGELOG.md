@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.15
+
+### Patch Changes
+
+- 3943a58: fix missing shape
+
 ## 2.77.14
 
 ### Patch Changes

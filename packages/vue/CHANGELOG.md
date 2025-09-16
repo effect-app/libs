@@ -1,5 +1,15 @@
 # @effect-app/vue
 
+## 2.77.0
+
+### Minor Changes
+
+- 44b3c85: doc: add Toast info.
+
+### Patch Changes
+
+- b052411: improve: add span attributes to commands.
+
 ## 2.76.0
 
 ### Minor Changes

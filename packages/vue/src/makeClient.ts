@@ -64,17 +64,12 @@ export interface MutationExt<
 {
 }
 
-export type MutationWithExtensions<RT, Req> =
-  & (Req extends RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-    ? Commander.CommandContextLocal<Id, Id>
-    : Req extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-      ? Commander.CommandContextLocal<Id, Id>
-    : never)
-  & (Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
-    ? MutationExtWithInput<RT, Id, [I], A, E, R>
-    : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id>
-      ? MutationExtWithInput<RT, Id, [], A, E, R>
-    : never)
+export type MutationWithExtensions<RT, Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
+  ? MutationExtWithInput<RT, Id, [I], A, E, R>
+  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id>
+    ? MutationExtWithInput<RT, Id, [], A, E, R>
+  : never
 
 /**
  * Use this after handling an error yourself, still continueing on the Error track, but the error will not be reported.
@@ -1219,7 +1214,7 @@ export const makeClient = <RT>(
       },
       {} as {
         [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
-          RT,
+          R,
           typeof client[Key]
         >
       }
@@ -1256,7 +1251,7 @@ export const makeClient = <RT>(
       },
       {} as {
         [Key in keyof typeof client]:
-          & MutationWithExtensions<RT, typeof client[Key]>
+          & MutationWithExtensions<R, typeof client[Key]>
           & {
             query: typeof client[Key] extends
               RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>

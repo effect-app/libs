@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.6.1
+
+### Patch Changes
+
+- d38a50a: align S.Class to original, adding missing make.
+
 ## 3.6.0
 
 ### Minor Changes

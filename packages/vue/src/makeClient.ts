@@ -87,7 +87,6 @@ export interface QueriesWithInput<RT, Request extends TaggedRequestClassAny, Id 
    * The difference with useQuery is that this function will return a Promise you can await in the Setup,
    * which ensures that either there always is a latest value, or an error occurs on load.
    * So that Suspense and error boundaries can be used.
-   * @deprecated use client helpers instead (.suspense())
    */
   suspense: ReturnType<typeof useSuspenseQuery_<I, E, A, Request, Id>>
 }
@@ -101,7 +100,6 @@ export interface QueriesWithoutInput<RT, Request extends TaggedRequestClassAny, 
    * The difference with useQuery is that this function will return a Promise you can await in the Setup,
    * which ensures that either there always is a latest value, or an error occurs on load.
    * So that Suspense and error boundaries can be used.
-   * @deprecated use client helpers instead (.suspense())
    */
   suspense: ReturnType<typeof useSuspenseQuery_<E, A, Request, Id>>
 }
@@ -1045,7 +1043,6 @@ export class QueryImpl<R> {
        * The difference with useQuery is that this function will return a Promise you can await in the Setup,
        * which ensures that either there always is a latest value, or an error occurs on load.
        * So that Suspense and error boundaries can be used.
-       * @deprecated use client helpers instead (.suspense())
        */
       <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
@@ -1061,7 +1058,6 @@ export class QueryImpl<R> {
        * The difference with useQuery is that this function will return a Promise you can await in the Setup,
        * which ensures that either there always is a latest value, or an error occurs on load.
        * So that Suspense and error boundaries can be used.
-       * @deprecated use client helpers instead (.suspense())
        */
       <TData = A>(
         options?: CustomDefinedInitialQueryOptions<A, E, TData> & {
@@ -1082,7 +1078,6 @@ export class QueryImpl<R> {
      * The difference with useQuery is that this function will return a Promise you can await in the Setup,
      * which ensures that either there always is a latest value, or an error occurs on load.
      * So that Suspense and error boundaries can be used.
-     * @deprecated use client helpers instead (.suspense())
      */
     <
       Arg,
@@ -1097,7 +1092,6 @@ export class QueryImpl<R> {
        * The difference with useQuery is that this function will return a Promise you can await in the Setup,
        * which ensures that either there always is a latest value, or an error occurs on load.
        * So that Suspense and error boundaries can be used.
-       * @deprecated use client helpers instead (.suspense())
        */
       <TData = A>(
         arg: Arg | WatchSource<Arg>,
@@ -1116,7 +1110,6 @@ export class QueryImpl<R> {
        * The difference with useQuery is that this function will return a Promise you can await in the Setup,
        * which ensures that either there always is a latest value, or an error occurs on load.
        * So that Suspense and error boundaries can be used.
-       * @deprecated use client helpers instead (.suspense())
        */
       <TData = A>(arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [

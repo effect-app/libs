@@ -51,11 +51,19 @@ export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
 }
 
 export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
+  /**
+   * Effect results are passed to the caller, including errors.
+   * @deprecated use client helpers instead (.query())
+   */
   const useQuery_ = <I, A, E, Request extends TaggedRequestClassAny, Name extends string>(
     q:
       | RequestHandlerWithInput<I, A, E, R, Request, Name>
       | RequestHandler<A, E, R, Request, Name>
   ): {
+    /**
+     * Effect results are passed to the caller, including errors.
+     * @deprecated use client helpers instead (.query())
+     */
     <TData = A>(
       arg?: I | WatchSource<I>,
       options?: CustomUndefinedInitialQueryOptions<A, E, TData>
@@ -65,6 +73,10 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
       UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
     ]
+    /**
+     * Effect results are passed to the caller, including errors.
+     * @deprecated use client helpers instead (.query())
+     */
     <TData = A>(
       arg?: I | WatchSource<I>,
       options?: CustomDefinedInitialQueryOptions<A, E, TData>
@@ -74,6 +86,10 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
       UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
     ]
+    /**
+     * Effect results are passed to the caller, including errors.
+     * @deprecated use client helpers instead (.query())
+     */
     <TData = A>(
       arg?: I | WatchSource<I>,
       options?: CustomUseQueryOptions<A, E, TData>
@@ -84,6 +100,10 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
     ]
   } =>
+  /**
+   * Effect results are passed to the caller, including errors.
+   * @deprecated use client helpers instead (.query())
+   */
   <TData = A>(
     arg?: I | WatchSource<I>,
     // todo QueryKey type would be [string, ...string[]], but with I it would be [string, ...string[], I]

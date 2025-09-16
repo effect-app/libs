@@ -1317,6 +1317,7 @@ export const makeClient = <RT>(
       },
       {} as {
         [Key in keyof typeof client]:
+          & typeof client[Key]
           & MutationWithExtensions<R, typeof client[Key]>
           & Queries<typeof client[Key]>
       }

@@ -13,6 +13,9 @@ it.skip("works", () => {
   const c0 = legacy.useSafeMutation(null as any)
   const c = legacy.useQuery(null as any)
   const d = legacy.useSuspenseQuery(null as any)
+
+  const e = client.GetSomething2.wrap(null as any)
+  const f = client.GetSomething2.fn(null as any)
   expect(true).toBe(true)
   console.log({
     a,
@@ -20,6 +23,8 @@ it.skip("works", () => {
     c0,
     b,
     c,
-    d
+    d,
+    e,
+    f
   })
 })

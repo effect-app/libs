@@ -28,9 +28,12 @@ const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
 
 export interface MutationExtensions<RT, Id extends string, I extends any[], A, E, R> {
-  /** @see Command.wrap */
+  /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
+   * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
+   * see Command.wrap for details */
   wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
-  /** @see Command.fn */
+  /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
+   * see Command.fn for details */
   fn: Commander.CommanderFn<RT, Id, Id, undefined>
 }
 

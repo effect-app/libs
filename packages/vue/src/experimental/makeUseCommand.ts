@@ -1,11 +1,22 @@
 import { Effect } from "effect-app"
 import { Commander, CommanderStatic } from "./commander.js"
 
+type X<X> = X
+
+// try to preserve JSDoc..
+export interface CommanderResolved extends X<typeof CommanderStatic> {
+  alt: ReturnType<Commander["alt"]>
+  fn: ReturnType<Commander["fn"]>
+  wrap: ReturnType<Commander["wrap"]>
+  alt2: ReturnType<Commander["alt2"]>
+  withDefaultToast: typeof CommanderStatic.withDefaultToast
+}
+
 export const makeUseCommand = Effect.fnUntraced(function*<R = never>() {
   const cmndr = yield* Commander
   const runtime = yield* Effect.runtime<R>()
 
-  return {
+  const command = {
     ...cmndr,
     alt: cmndr.alt(runtime),
     fn: cmndr.fn(runtime),
@@ -13,4 +24,6 @@ export const makeUseCommand = Effect.fnUntraced(function*<R = never>() {
     alt2: cmndr.alt2(runtime),
     ...CommanderStatic
   }
+
+  return command as CommanderResolved
 })

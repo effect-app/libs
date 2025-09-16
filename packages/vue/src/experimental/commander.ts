@@ -1441,16 +1441,33 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
             }, { action })
 
             return reactive({
+              /** static */
               id,
-              namespaced: initialContext.namespaced,
+
+              /** the base i18n key, based on id by default. static */
+              i18nKey: initialContext.i18nKey,
+              /** the `action.` namespace based on i18nKey.. static */
               namespace: initialContext.namespace,
+
+              /** easy generate namespaced 18n keys, based on namespace. static */
+              namespaced: initialContext.namespaced,
+
+              /** reactive */
               result,
+              /** reactive */
               waiting,
+              /** reactive */
               action,
+
               handle,
+
+              /** experimental */
               handleEffect,
+              /** experimental */
               compose,
+              /** experimental */
               compose2,
+              /** experimental */
               exec
             })
           },
@@ -1510,29 +1527,30 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       //       )
       //     })
       //   },
-      /**
-       * Define a Command for handling user actions with built-in error reporting and state management.
-       *
-       * @param id The internal identifier for the action. Used as a tracing span and to lookup
-       *                   the user-facing name via internationalization (`action.${id}`).
-       * @returns A function that executes the command when called (e.g., directly in `@click` handlers).
-       *          Built-in error reporting handles failures automatically.
-       *
-       * **Effect Context**: Effects have access to the `CommandContext` service, which provides
-       * the user-facing action name.
-       *
-       * **Returned Properties**:
-       * - `action`: User-facing action name from intl messages (useful for button labels)
-       * - `result`: The command result state
-       * - `waiting`: Boolean indicating if the command is in progress (shorthand for `result.waiting`)
-       * - `handle`: Function to execute the command
-       *
-       * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
-       * the `result` inline for custom UI feedback.
-       */
+
       fn: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return <
+        /**
+         * Define a Command for handling user actions with built-in error reporting and state management.
+         *
+         * @param id The internal identifier for the action. Used as a tracing span and to lookup
+         *                   the user-facing name via internationalization (`action.${id}`).
+         * @returns A function that executes the command when called (e.g., directly in `@click` handlers).
+         *          Built-in error reporting handles failures automatically.
+         *
+         * **Effect Context**: Effects have access to the `CommandContext` service, which provides
+         * the user-facing action name.
+         *
+         * **Returned Properties**:
+         * - `action`: User-facing action name from intl messages (useful for button labels)
+         * - `result`: The command result state
+         * - `waiting`: Boolean indicating if the command is in progress (shorthand for `result.waiting`)
+         * - `handle`: Function to execute the command
+         *
+         * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
+         * the `result` inline for custom UI feedback.
+         */
+        const f = <
           const Id extends string,
           const State extends IntlRecord = IntlRecord,
           const I18nKey extends string = Id
@@ -1570,64 +1588,69 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
               )
             }
           )
+        return f
       },
 
-      alt2: ((rt: any) => {
+      /** @experimental */
+      alt2: <RT>(rt: Runtime.Runtime<RT>) => {
         const cmd = makeCommand(rt)
-        return (_id: any, options?: FnOptions<string, IntlRecord>) => {
-          const isObject = typeof _id === "object" || typeof _id === "function"
-          const id = isObject ? _id.id : _id
-          const baseInfo = makeBaseInfo(id, options)
-          const idCmd = cmd(id, options)
-          // TODO: implement proper tracing stack
-          return Object.assign((cb: any) =>
-            idCmd(cb(
-              Object.assign(
-                (fn: any, ...combinators: any[]) =>
-                  Effect.fnUntraced(
-                    // fnUntraced only supports generators as first arg, so we convert to generator if needed
-                    isGeneratorFunction(fn) ? fn : function*(...args) {
-                      return yield* fn(...args)
-                    },
-                    ...combinators as [any]
-                  ),
-                baseInfo,
-                isObject
-                  ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined }
-                  : {}
-              )
-            )), baseInfo)
-        }
-      }) as unknown as <RT>(
-        runtime: Runtime.Runtime<RT>
-      ) => <
-        const Id extends string,
-        MutArgs extends Array<unknown>,
-        MutA,
-        MutE,
-        MutR,
-        const I18nKey extends string = Id
-      >(
-        id:
-          | Id
-          | { id: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
-          | ((...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
-        customI18nKey?: I18nKey
-      ) =>
-        & Commander.CommandContextLocal<Id, I18nKey>
-        & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-          handler: (
-            ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
-              // todo: only if we passed in one
-              mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
-            }
-          ) => (...args: Args) => Effect.Effect<A, E, R>
-        ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>),
+        /** @experimental */
+        const f: <
+          const Id extends string,
+          MutArgs extends Array<unknown>,
+          MutA,
+          MutE,
+          MutR,
+          const I18nKey extends string = Id
+        >(
+          id:
+            | Id
+            | { id: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
+            | ((...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
+          options?: FnOptions<I18nKey, IntlRecord>
+        ) =>
+          & Commander.CommandContextLocal<Id, I18nKey>
+          & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+            handler: (
+              ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
+                // todo: only if we passed in one
+                mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
+              }
+            ) => (...args: Args) => Effect.Effect<A, E, R>
+          ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>) = (
+            _id,
+            options?
+          ) => {
+            const isObject = typeof _id === "object" || typeof _id === "function"
+            const id = isObject ? _id.id : _id
+            const baseInfo = makeBaseInfo(id, options)
+            const idCmd = cmd(id, options)
+            // TODO: implement proper tracing stack
+            return Object.assign((cb: any) =>
+              idCmd(cb(
+                Object.assign(
+                  (fn: any, ...combinators: any[]) =>
+                    Effect.fnUntraced(
+                      // fnUntraced only supports generators as first arg, so we convert to generator if needed
+                      isGeneratorFunction(fn) ? fn : function*(...args) {
+                        return yield* fn(...args)
+                      },
+                      ...combinators as [any]
+                    ),
+                  baseInfo,
+                  isObject
+                    ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined }
+                    : {}
+                )
+              )), baseInfo) as any
+          }
+        return f
+      },
 
       /** @experimental */
       alt: makeCommand as unknown as <RT>(
         runtime: Runtime.Runtime<RT>
-      ) => <const Id extends string, const I18nKey extends string = Id>(
+      ) => /** @experimental */ <const Id extends string, const I18nKey extends string = Id>(
         id: Id,
         customI18nKey?: I18nKey
       ) =>
@@ -1639,7 +1662,9 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
       /** @experimental */
       wrap: <RT>(runtime: Runtime.Runtime<RT>) => {
         const make = makeCommand(runtime)
-        return <
+
+        /** @experimental */
+        const f = <
           const Id extends string,
           Args extends Array<unknown>,
           A,
@@ -1677,6 +1702,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
               ) as any
             )
           }, makeBaseInfo(mutation.id, options))
+        return f
       }
     }
   })

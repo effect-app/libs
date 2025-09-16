@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.3
+
+### Patch Changes
+
+- f6cd23d: fix commander jsdoc
+
 ## 2.77.2
 
 ### Patch Changes

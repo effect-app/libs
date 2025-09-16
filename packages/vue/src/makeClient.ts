@@ -38,11 +38,11 @@ export interface MutationExtensions<RT, Id extends string, I extends any[], A, E
 export interface MutationExtWithInput<
   RT,
   Id extends string,
-  I extends any[],
+  I,
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, I, A, E, R> {
+> extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, [I], A, E, R> {
   /**
    * Call the endpoint with input
    */
@@ -66,7 +66,7 @@ export interface MutationExt<
 
 export type MutationWithExtensions<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
-  ? MutationExtWithInput<RT, Id, [I], A, E, R>
+  ? MutationExtWithInput<RT, Id, I, A, E, R>
   : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? MutationExt<RT, Id, A, E, R>
   : never
 

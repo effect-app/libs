@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.1
+
+### Patch Changes
+
+- dc9fad7: try to preserve jsdoc
+
 ## 2.77.0
 
 ### Minor Changes

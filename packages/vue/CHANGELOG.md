@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.8
+
+### Patch Changes
+
+- 9b7e9d8: improve doc
+
 ## 2.77.7
 
 ### Patch Changes

@@ -27,6 +27,55 @@ const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
 
+export interface MutationExtensions<RT, Id extends string, I extends any[], A, E, R> {
+  /** @see Command.wrap */
+  wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  /** @see Command.fn */
+  fn: Commander.CommanderFn<RT, Id, Id, undefined>
+}
+
+/** my other doc */
+export interface MutationExtWithInput<
+  RT,
+  Id extends string,
+  I extends any[],
+  A,
+  E,
+  R
+> extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, I, A, E, R> {
+  /**
+   * Call the endpoint with input
+   */
+  (i: I): Effect.Effect<A, E, R>
+}
+
+/** my other doc */
+export interface MutationExt<
+  RT,
+  Id extends string,
+  A,
+  E,
+  R
+> extends
+  Commander.CommandContextLocal<Id, Id>,
+  Commander.CommanderWrap<RT, Id, Id, undefined, [], A, E, R>,
+  MutationExtensions<RT, Id, [], A, E, R>,
+  Effect.Effect<A, E, R>
+{
+}
+
+export type MutationWithExtensions<RT, Req> =
+  & (Req extends RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
+    ? Commander.CommandContextLocal<Id, Id>
+    : Req extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
+      ? Commander.CommandContextLocal<Id, Id>
+    : never)
+  & (Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
+    ? MutationExtWithInput<RT, Id, [I], A, E, R>
+    : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id>
+      ? MutationExtWithInput<RT, Id, [], A, E, R>
+    : never)
+
 /**
  * Use this after handling an error yourself, still continueing on the Error track, but the error will not be reported.
  */
@@ -1155,14 +1204,12 @@ export const makeClient = <RT>(
     client: ClientFrom<M>
   ) => {
     const Command = useCommand()
-    const wrap_ = Command.wrap
-    const fn_ = Command.fn
     const mutation = useMutation()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
         const mut = mutation(client[key] as any)
-        const fn = fn_(client[key].id)
-        const wrap = wrap_(mut)
+        const fn = Command.fn(client[key].id)
+        const wrap = Command.wrap(mut)
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
           mut,
           { wrap, fn },
@@ -1171,51 +1218,10 @@ export const makeClient = <RT>(
         return acc
       },
       {} as {
-        [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]:
-          & (typeof client[Key] extends
-            RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id> ?
-              & ReturnType<typeof mutation<I, E, A, R, Request, Id>>
-              & (typeof client[Key] extends
-                RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-                ? Commander.CommandContextLocal<Id, Id>
-                : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-                  ? Commander.CommandContextLocal<Id, Id>
-                : never)
-            : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id> ?
-                & ReturnType<typeof mutation<E, A, R, Request, Id>>
-                & (typeof client[Key] extends
-                  RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-                  ? Commander.CommandContextLocal<Id, Id>
-                  : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-                    ? Commander.CommandContextLocal<Id, Id>
-                  : never)
-            : never)
-          & (typeof client[Key] extends
-            RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-            ? Commander.CommandContextLocal<Id, Id>
-            : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-              ? Commander.CommandContextLocal<Id, Id>
-            : never)
-          & (typeof client[Key] extends
-            RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-            ? ReturnType<typeof mutation<I, E, A, R, Request, Id>>
-            : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-              ? ReturnType<typeof mutation<E, A, R, Request, Id>>
-            : never)
-          & {
-            wrap: typeof client[Key] extends
-              RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer _Request, infer Id>
-              ? ReturnType<typeof wrap_<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id, Id>
-              : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer _Request, infer Id>
-                ? ReturnType<typeof wrap_<Id, [], A, E, never>> & Commander.CommandContextLocal<Id, Id>
-              : never
-            fn: typeof client[Key] extends
-              RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-              ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id, Id>
-              : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-                ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id, Id>
-              : never
-          }
+        [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
+          RT,
+          typeof client[Key]
+        >
       }
     )
     return mutations
@@ -1231,12 +1237,10 @@ export const makeClient = <RT>(
   ) => {
     const Command = useCommand()
     const mutation = useMutation()
-    const wrap = Command.wrap
-    const fn_ = Command.fn
     const invalidation = queryInvalidation?.(client)
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
-        const fn = fn_(client[key].id)
+        const fn = Command.fn(client[key].id)
         const awesome = {
           ...client[key],
           ...fn,
@@ -1247,44 +1251,12 @@ export const makeClient = <RT>(
           client[key] as any,
           invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
         )
-        ;(acc as any)[key] = Object.assign(mutate, { wrap: wrap({ mutate, id: awesome.id }), fn }, awesome, fn)
+        ;(acc as any)[key] = Object.assign(mutate, { wrap: Command.wrap({ mutate, id: awesome.id }), fn }, awesome, fn)
         return acc
       },
       {} as {
         [Key in keyof typeof client]:
-          & (typeof client[Key] extends
-            RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-            ? Commander.CommandContextLocal<Id, Id>
-            : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-              ? Commander.CommandContextLocal<Id, Id>
-            : never)
-          & (typeof client[Key] extends
-            RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-            ? Commander.CommandContextLocal<Id, Id>
-            : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-              ? Commander.CommandContextLocal<Id, Id>
-            : never)
-          & (typeof client[Key] extends
-            RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-            ? ReturnType<typeof mutation<I, E, A, R, Request, Id>>
-            : typeof client[Key] extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-              ? ReturnType<typeof mutation<E, A, R, Request, Id>>
-            : never)
-          & {
-            wrap: typeof client[Key] extends
-              RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer _Request, infer Id>
-              ? ReturnType<typeof wrap<Id, [I], A, E, never>> & Commander.CommandContextLocal<Id, Id>
-              : typeof client[Key] extends RequestHandler<infer A, infer E, infer _R, infer _Request, infer Id>
-                ? ReturnType<typeof wrap<Id, [], A, E, never>> & Commander.CommandContextLocal<Id, Id>
-              : never
-            fn: typeof client[Key] extends
-              RequestHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id>
-              ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id, Id>
-              : typeof client[Key] extends RequestHandler<infer _A, infer _E, infer _R, infer _Request, infer Id>
-                ? ReturnType<typeof fn_<Id>> & Commander.CommandContextLocal<Id, Id>
-              : never
-          }
-          & typeof client[Key]
+          & MutationWithExtensions<RT, typeof client[Key]>
           & {
             query: typeof client[Key] extends
               RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>

@@ -90,12 +90,31 @@ export const wrapEmit = <A, Event extends string>(
 (value: A) => new Promise<void>((resolve) => emit(event, value, resolve))
 
 export declare namespace Commander {
+  export type CommanderBase<RT, Id extends string, I18nKey extends string, State> =
+    & Commander.Gen<RT, Id, I18nKey>
+    & Commander.NonGen<RT, Id, I18nKey>
+    & Commander.CommandContextLocal<Id, I18nKey>
+    & {
+      state: Context.Tag<`Commander.Command.${Id}.state`, State>
+    }
+
+  export type CommanderFn<RT, Id extends string, I18nKey extends string, State> = CommanderBase<RT, Id, I18nKey, State>
+
+  export type CommanderWrap<RT, Id extends string, I18nCustomKey extends string, State, I extends any[], A, E, R> =
+    & CommandContextLocal<Id, I18nCustomKey>
+    & GenWrap<RT, Id, I18nCustomKey, I, A, E, R>
+    & NonGenWrap<RT, Id, I18nCustomKey, I, A, E, R>
+    & {
+      state: Context.Tag<`Commander.Command.${Id}.state`, State>
+    }
+
   export interface CommandContextLocal<Id extends string, I18nKey extends string> {
     id: Id
     i18nKey: I18nKey
     namespace: `action.${I18nKey}`
     namespaced: <K extends string>(k: K) => `action.${I18nKey}.${K}`
   }
+
   export interface CommandProps<A, E, Id extends string, I18nKey extends string>
     extends CommandContextLocal<Id, I18nKey>
   {
@@ -1700,31 +1719,36 @@ export class CommanderImpl<RT> {
       | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
       | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
     options?: FnOptions<I18nKey, State>
-  ):
-    & Commander.CommandContextLocal<Id, I18nKey>
-    & Commander.GenWrap<RT, Id, I18nKey, Args, A, E, R>
-    & Commander.NonGenWrap<RT, Id, I18nKey, Args, A, E, R> =>
-    Object.assign((
-      ...combinators: any[]
-    ): any => {
-      // we capture the definition stack here, so we can append it to later stack traces
-      const limit = Error.stackTraceLimit
-      Error.stackTraceLimit = 2
-      const errorDef = new Error()
-      Error.stackTraceLimit = limit
+  ): Commander.CommanderWrap<RT, Id, I18nKey, State, Args, A, E, R> =>
+    Object.assign(
+      (
+        ...combinators: any[]
+      ): any => {
+        // we capture the definition stack here, so we can append it to later stack traces
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const errorDef = new Error()
+        Error.stackTraceLimit = limit
 
-      const mutate = "mutate" in mutation ? mutation.mutate : mutation
+        const mutate = "mutate" in mutation ? mutation.mutate : mutation
 
-      return this.makeCommand(mutation.id, options, errorDef)(
-        Effect.fnUntraced(
-          // fnUntraced only supports generators as first arg, so we convert to generator if needed
-          isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
-            return yield* mutate(...args)
-          },
-          ...combinators as [any]
-        ) as any
-      )
-    }, makeBaseInfo(mutation.id, options))
+        return this.makeCommand(mutation.id, options, errorDef)(
+          Effect.fnUntraced(
+            // fnUntraced only supports generators as first arg, so we convert to generator if needed
+            isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
+              return yield* mutate(...args)
+            },
+            ...combinators as [any]
+          ) as any
+        )
+      },
+      makeBaseInfo(mutation.id, options),
+      {
+        state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
+          `Commander.Command.${mutation.id}.state`
+        )
+      }
+    )
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off

@@ -70,47 +70,6 @@ export type MutationWithExtensions<RT, Req> = Req extends
   : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? MutationExt<RT, Id, A, E, R>
   : never
 
-// TODO - we should use manually jsdoc things
-// TODO: extract signatures to interfaces, and include RT! not any
-// declare const a: QueriesWithInput<any, any, any, any, any, any>
-// const b = a.query()
-
-declare const useQuery_: QueryImpl<any>["useQuery"]
-declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
-export interface QueriesWithInput<RT, Request extends TaggedRequestClassAny, Id extends string, I, A, E> {
-  /**
-   * Effect results are passed to the caller, including errors.
-   */
-  query: ReturnType<typeof useQuery_<I, E, A, Request, Id>>
-  // TODO or suspense as Option?
-  /**
-   * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-   * which ensures that either there always is a latest value, or an error occurs on load.
-   * So that Suspense and error boundaries can be used.
-   */
-  suspense: ReturnType<typeof useSuspenseQuery_<I, E, A, Request, Id>>
-}
-export interface QueriesWithoutInput<RT, Request extends TaggedRequestClassAny, Id extends string, A, E> {
-  /**
-   * Effect results are passed to the caller, including errors.
-   */
-  query: ReturnType<typeof useQuery_<E, A, Request, Id>>
-  // TODO or suspense as Option?
-  /**
-   * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-   * which ensures that either there always is a latest value, or an error occurs on load.
-   * So that Suspense and error boundaries can be used.
-   */
-  suspense: ReturnType<typeof useSuspenseQuery_<E, A, Request, Id>>
-}
-
-export type Queries<RT, Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>
-  ? QueriesWithInput<RT, Request, Id, I, A, E>
-  : Req extends RequestHandler<infer A, infer E, infer _R, infer Request, infer Id>
-    ? QueriesWithoutInput<RT, Request, Id, A, E>
-  : never
-
 /**
  * Use this after handling an error yourself, still continueing on the Error track, but the error will not be reported.
  */
@@ -1230,6 +1189,39 @@ export const makeClient = <RT>(
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
 
+  interface QueriesWithInput<Request extends TaggedRequestClassAny, Id extends string, I, A, E> {
+    /**
+     * Effect results are passed to the caller, including errors.
+     */
+    query: ReturnType<typeof query.useQuery<I, E, A, Request, Id>>
+    // TODO or suspense as Option?
+    /**
+     * The difference with useQuery is that this function will return a Promise you can await in the Setup,
+     * which ensures that either there always is a latest value, or an error occurs on load.
+     * So that Suspense and error boundaries can be used.
+     */
+    suspense: ReturnType<typeof query.useSuspenseQuery<I, E, A, Request, Id>>
+  }
+  interface QueriesWithoutInput<Request extends TaggedRequestClassAny, Id extends string, A, E> {
+    /**
+     * Effect results are passed to the caller, including errors.
+     */
+    query: ReturnType<typeof query.useQuery<E, A, Request, Id>>
+    // TODO or suspense as Option?
+    /**
+     * The difference with useQuery is that this function will return a Promise you can await in the Setup,
+     * which ensures that either there always is a latest value, or an error occurs on load.
+     * So that Suspense and error boundaries can be used.
+     */
+    suspense: ReturnType<typeof query.useSuspenseQuery<E, A, Request, Id>>
+  }
+
+  type Queries<Req> = Req extends RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>
+    ? QueriesWithInput<Request, Id, I, A, E>
+    : Req extends RequestHandler<infer A, infer E, infer _R, infer Request, infer Id>
+      ? QueriesWithoutInput<Request, Id, A, E>
+    : never
+
   const mapQuery = <M extends Requests>(
     client: ClientFrom<M>
   ) => {
@@ -1246,13 +1238,12 @@ export const makeClient = <RT>(
       {} as
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as `${ToCamel<string & Key>}Query`]: Queries<RT, typeof client[Key]>["query"]
+          [Key in keyof typeof client as `${ToCamel<string & Key>}Query`]: Queries<typeof client[Key]>["query"]
         }
         // todo: or suspense as an Option?
         & {
           // apparently can't get JSDoc in here..
           [Key in keyof typeof client as `${ToCamel<string & Key>}SuspenseQuery`]: Queries<
-            RT,
             typeof client[Key]
           >["suspense"]
         }

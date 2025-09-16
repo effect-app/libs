@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.4
+
+### Patch Changes
+
+- 1db9eee: jsdoc hunt continues
+
 ## 2.77.3
 
 ### Patch Changes

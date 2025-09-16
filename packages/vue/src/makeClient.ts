@@ -67,8 +67,7 @@ export interface MutationExt<
 export type MutationWithExtensions<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
   ? MutationExtWithInput<RT, Id, [I], A, E, R>
-  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id>
-    ? MutationExtWithInput<RT, Id, [], A, E, R>
+  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? MutationExt<RT, Id, A, E, R>
   : never
 
 /**

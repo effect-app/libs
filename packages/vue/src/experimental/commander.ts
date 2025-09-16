@@ -1120,590 +1120,585 @@ export const CommanderStatic = {
     })
 }
 
+const makeBaseInfo = <const Id extends string, const I18nKey extends string = Id>(
+  id: Id,
+  options?: Pick<FnOptionsInternal<I18nKey>, "i18nCustomKey">
+) => {
+  if (!id) throw new Error("must specify an id")
+  const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
+
+  const namespace = `action.${i18nKey}` as const
+
+  const context = {
+    id,
+    i18nKey,
+    namespace,
+    namespaced: <const K extends string>(k: K) => `${namespace}.${k}` as const
+  }
+
+  return context
+}
+
+const getStateValues = <const I18nKey extends string, State extends IntlRecord | undefined>(
+  options?: FnOptions<I18nKey, State>
+): ComputedRef<State> => {
+  const state_ = options?.state
+  const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function"
+    ? computed(state_)
+    : state_
+  return state
+}
+
+// class preserves JSDoc throughout..
+export class CommanderImpl<RT> {
+  private runFork: <A, E>(
+    effect: Effect.Effect<A, E, RT>,
+    options?: Runtime.RunForkOptions | undefined
+  ) => RuntimeFiber<A, E>
+
+  constructor(private readonly rt: Runtime.Runtime<RT>, private readonly intl: I18n) {
+    this.runFork = Runtime.runFork(this.rt)
+  }
+
+  readonly makeContext = <const Id extends string, const I18nKey extends string = Id>(
+    id: Id,
+    options?: FnOptionsInternal<I18nKey>
+  ) => {
+    if (!id) throw new Error("must specify an id")
+    const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
+
+    const namespace = `action.${i18nKey}` as const
+
+    // must remain stable through out single call
+    const action = this.intl.formatMessage({
+      id: namespace,
+      defaultMessage: id
+    }, options?.state)
+    const context = CommandContext.of({
+      ...makeBaseInfo(id, options),
+      action,
+      state: options?.state
+    })
+
+    return context
+  }
+
+  readonly makeCommand = <
+    const Id extends string,
+    const State extends IntlRecord | undefined,
+    const I18nKey extends string = Id
+  >(
+    id_: Id | { id: Id },
+    options?: FnOptions<I18nKey, State>,
+    errorDef?: Error
+  ) => {
+    const id = typeof id_ === "string" ? id_ : id_.id
+    const state = getStateValues(options)
+
+    return Object.assign(
+      <Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+        handler: (...args: Args) => Effect.Effect<A, E, R>
+      ) => {
+        // we capture the definition stack here, so we can append it to later stack traces
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const localErrorDef = new Error()
+        Error.stackTraceLimit = limit
+        if (!errorDef) {
+          errorDef = localErrorDef
+        }
+
+        const key = `Commander.Command.${id}.state` as const
+        const stateTag = Context.GenericTag<typeof key, State>(key)
+
+        const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
+        const initialContext = makeContext_()
+        const action = computed(() => makeContext_().action)
+
+        const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+          self.pipe(
+            Effect.tapErrorCause(
+              Effect.fnUntraced(function*(cause) {
+                if (Cause.isInterruptedOnly(cause)) {
+                  console.info(`Interrupted while trying to ${id}`)
+                  return
+                }
+
+                const fail = Cause.failureOption(cause)
+                if (Option.isSome(fail)) {
+                  // if (fail.value._tag === "SuppressErrors") {
+                  //   console.info(
+                  //     `Suppressed error trying to ${action}`,
+                  //     fail.value,
+                  //   )
+                  //   return
+                  // }
+                  const message = `Failure trying to ${id}`
+                  yield* reportMessage(message, {
+                    action: id,
+                    error: fail.value
+                  })
+                  return
+                }
+
+                const context = yield* CommandContext
+                const extra = {
+                  action: context.action,
+                  message: `Unexpected Error trying to ${id}`
+                }
+                yield* reportRuntimeError(cause, extra)
+              }, Effect.uninterruptible)
+            )
+          )
+
+        const currentState = Effect.sync(() => state.value)
+
+        const theHandler = flow(
+          handler,
+          errorReporter,
+          // all must be within the Effect.fn to fit within the Span
+          Effect.provideServiceEffect(
+            stateTag,
+            currentState
+          ),
+          Effect.provideServiceEffect(
+            CommandContext,
+            Effect.sync(() => makeContext_())
+          )
+        )
+
+        const [result, exec] = asResult(theHandler)
+
+        const waiting = computed(() => result.value.waiting)
+
+        const handle = Object.assign((...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = currentState.pipe(Effect.flatMap((state) =>
+            Effect.withSpan(
+              exec(...args),
+              id,
+              {
+                captureStackTrace,
+                attributes: {
+                  input: args,
+                  state,
+                  action: initialContext.action,
+                  id: initialContext.id,
+                  i18nKey: initialContext.i18nKey
+                }
+              }
+            )
+          ))
+
+          return this.runFork(command)
+        }, { action })
+
+        const handleEffect = Object.assign((...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = Effect.withSpan(
+            exec(...args),
+            id,
+            { captureStackTrace }
+          )
+
+          return Effect.currentSpan.pipe(
+            Effect.option,
+            Effect.map((span) =>
+              this.runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command)
+            )
+          )
+        }, { action, state })
+
+        const compose = Object.assign((...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = Effect.withSpan(
+            exec(...args),
+            id,
+            { captureStackTrace }
+          )
+
+          return command
+        }, { action })
+
+        const compose2 = Object.assign((...args: Args) => {
+          // we capture the call site stack here
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            // in case of an error, we want to append the definition stack to the call site stack,
+            // so we can see where the handler was defined too
+
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = Effect.withSpan(
+            exec(...args).pipe(Effect.flatten),
+            id,
+            { captureStackTrace }
+          )
+
+          return command
+        }, { action })
+
+        return reactive({
+          /** static */
+          id,
+
+          /** the base i18n key, based on id by default. static */
+          i18nKey: initialContext.i18nKey,
+          /** the `action.` namespace based on i18nKey.. static */
+          namespace: initialContext.namespace,
+
+          /** easy generate namespaced 18n keys, based on namespace. static */
+          namespaced: initialContext.namespaced,
+
+          /** reactive */
+          result,
+          /** reactive */
+          waiting,
+          /** reactive */
+          action,
+
+          handle,
+
+          /** experimental */
+          handleEffect,
+          /** experimental */
+          compose,
+          /** experimental */
+          compose2,
+          /** experimental */
+          exec
+        })
+      },
+      { id }
+    )
+  }
+
+  // /** @experimental */
+  // takeOver:
+  //   <Args extends any[], A, E, R, const Id extends string>(command: Commander.CommandOut<Args, A, E, R, Id,I18nKey>) =>
+  //   (...args: Args) => {
+  //     // we capture the call site stack here
+  //     const limit = Error.stackTraceLimit
+  //     Error.stackTraceLimit = 2
+  //     const errorCall = new Error()
+  //     const localErrorDef = new Error()
+  //     Error.stackTraceLimit = limit
+
+  //     // TODO
+  //     const errorDef = localErrorDef
+
+  //     let cache: false | string = false
+  //     const captureStackTrace = () => {
+  //       // in case of an error, we want to append the definition stack to the call site stack,
+  //       // so we can see where the handler was defined too
+
+  //       if (cache !== false) {
+  //         return cache
+  //       }
+  //       if (errorCall.stack) {
+  //         const stackDef = errorDef.stack!.trim().split("\n")
+  //         const stackCall = errorCall.stack.trim().split("\n")
+  //         let endStackDef = stackDef.slice(2).join("\n").trim()
+  //         if (!endStackDef.includes(`(`)) {
+  //           endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+  //         }
+  //         let endStackCall = stackCall.slice(2).join("\n").trim()
+  //         if (!endStackCall.includes(`(`)) {
+  //           endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+  //         }
+  //         cache = `${endStackDef}\n${endStackCall}`
+  //         return cache
+  //       }
+  //     }
+
+  //     return Effect.gen(function*() {
+  //       const ctx = yield* CommandContext
+  //       ctx.action = command.action
+  //       return yield* command.exec(...args).pipe(
+  //         Effect.flatten,
+  //         Effect.withSpan(
+  //           command.action,
+  //           { captureStackTrace }
+  //         )
+  //       )
+  //     })
+  //   },
+
+  /**
+   * Define a Command for handling user actions with built-in error reporting and state management.
+   *
+   * @param id The internal identifier for the action. Used as a tracing span and to lookup
+   *                   the user-facing name via internationalization (`action.${id}`).
+   * @returns A function that executes the command when called (e.g., directly in `@click` handlers).
+   *          Built-in error reporting handles failures automatically.
+   *
+   * **Effect Context**: Effects have access to the `CommandContext` service, which provides
+   * the user-facing action name.
+   *
+   * **Returned Properties**:
+   * - `action`: User-facing action name from intl messages (useful for button labels)
+   * - `result`: The command result state
+   * - `waiting`: Boolean indicating if the command is in progress (shorthand for `result.waiting`)
+   * - `handle`: Function to execute the command
+   *
+   * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
+   * the `result` inline for custom UI feedback.
+   */
+  fn = <
+    const Id extends string,
+    const State extends IntlRecord = IntlRecord,
+    const I18nKey extends string = Id
+  >(
+    id: Id | { id: Id },
+    options?: FnOptions<I18nKey, State>
+  ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> & {
+    state: Context.Tag<`Commander.Command.${Id}.state`, State>
+  } =>
+    Object.assign(
+      (
+        fn: any,
+        ...combinators: any[]
+      ): any => {
+        // we capture the definition stack here, so we can append it to later stack traces
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const errorDef = new Error()
+        Error.stackTraceLimit = limit
+
+        return this.makeCommand(id, options, errorDef)(
+          Effect.fnUntraced(
+            // fnUntraced only supports generators as first arg, so we convert to generator if needed
+            isGeneratorFunction(fn) ? fn : function*(...args) {
+              return yield* fn(...args)
+            },
+            ...combinators as [any]
+          ) as any
+        )
+      },
+      makeBaseInfo(typeof id === "string" ? id : id.id, options),
+      {
+        state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
+          `Commander.Command.${typeof id === "string" ? id : id.id}.state`
+        )
+      }
+    )
+
+  /** @experimental */
+  alt2: <
+    const Id extends string,
+    MutArgs extends Array<unknown>,
+    MutA,
+    MutE,
+    MutR,
+    const I18nKey extends string = Id
+  >(
+    id:
+      | Id
+      | { id: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
+      | ((...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
+    options?: FnOptions<I18nKey, IntlRecord>
+  ) =>
+    & Commander.CommandContextLocal<Id, I18nKey>
+    & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+      handler: (
+        ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
+          // todo: only if we passed in one
+          mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
+        }
+      ) => (...args: Args) => Effect.Effect<A, E, R>
+    ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>) = (
+      _id,
+      options?
+    ) => {
+      const isObject = typeof _id === "object" || typeof _id === "function"
+      const id = isObject ? _id.id : _id
+      const baseInfo = makeBaseInfo(id, options)
+      const idCmd = this.makeCommand(id, options)
+      // TODO: implement proper tracing stack
+      return Object.assign((cb: any) =>
+        idCmd(cb(
+          Object.assign(
+            (fn: any, ...combinators: any[]) =>
+              Effect.fnUntraced(
+                // fnUntraced only supports generators as first arg, so we convert to generator if needed
+                isGeneratorFunction(fn) ? fn : function*(...args) {
+                  return yield* fn(...args)
+                },
+                ...combinators as [any]
+              ),
+            baseInfo,
+            isObject
+              ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined }
+              : {}
+          )
+        )), baseInfo) as any
+    }
+
+  /** @experimental */
+  alt = this.makeCommand as unknown as <const Id extends string, const I18nKey extends string = Id>(
+    id: Id,
+    customI18nKey?: I18nKey
+  ) =>
+    & Commander.CommandContextLocal<Id, I18nKey>
+    & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+      handler: (...args: Args) => Effect.Effect<A, E, R>
+    ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>)
+
+  /** @experimental */
+  wrap = <
+    const Id extends string,
+    Args extends Array<unknown>,
+    A,
+    E,
+    R,
+    const State extends IntlRecord = IntlRecord,
+    I18nKey extends string = Id
+  >(
+    mutation:
+      | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
+      | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
+    options?: FnOptions<I18nKey, State>
+  ):
+    & Commander.CommandContextLocal<Id, I18nKey>
+    & Commander.GenWrap<RT, Id, I18nKey, Args, A, E, R>
+    & Commander.NonGenWrap<RT, Id, I18nKey, Args, A, E, R> =>
+    Object.assign((
+      ...combinators: any[]
+    ): any => {
+      // we capture the definition stack here, so we can append it to later stack traces
+      const limit = Error.stackTraceLimit
+      Error.stackTraceLimit = 2
+      const errorDef = new Error()
+      Error.stackTraceLimit = limit
+
+      const mutate = "mutate" in mutation ? mutation.mutate : mutation
+
+      return this.makeCommand(mutation.id, options, errorDef)(
+        Effect.fnUntraced(
+          // fnUntraced only supports generators as first arg, so we convert to generator if needed
+          isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
+            return yield* mutate(...args)
+          },
+          ...combinators as [any]
+        ) as any
+      )
+    }, makeBaseInfo(mutation.id, options))
+}
+
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Commander extends Effect.Service<Commander>()("Commander", {
   dependencies: [WithToast.Default, Confirm.Default],
   effect: Effect.gen(function*() {
-    const { intl } = yield* I18n
-
-    const makeBaseInfo = <const Id extends string, const I18nKey extends string = Id>(
-      id: Id,
-      options?: Pick<FnOptionsInternal<I18nKey>, "i18nCustomKey">
-    ) => {
-      if (!id) throw new Error("must specify an id")
-      const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
-
-      const namespace = `action.${i18nKey}` as const
-
-      const context = {
-        id,
-        i18nKey,
-        namespace,
-        namespaced: <const K extends string>(k: K) => `${namespace}.${k}` as const
-      }
-
-      return context
-    }
-
-    const makeContext = <const Id extends string, const I18nKey extends string = Id>(
-      id: Id,
-      options?: FnOptionsInternal<I18nKey>
-    ) => {
-      if (!id) throw new Error("must specify an id")
-      const i18nKey: I18nKey = options?.i18nCustomKey ?? id as unknown as I18nKey
-
-      const namespace = `action.${i18nKey}` as const
-
-      // must remain stable through out single call
-      const action = intl.formatMessage({
-        id: namespace,
-        defaultMessage: id
-      }, options?.state)
-      const context = CommandContext.of({
-        ...makeBaseInfo(id, options),
-        action,
-        state: options?.state
-      })
-
-      return context
-    }
-
-    const getStateValues = <const I18nKey extends string, State extends IntlRecord | undefined>(
-      options?: FnOptions<I18nKey, State>
-    ): ComputedRef<State> => {
-      const state_ = options?.state
-      const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function"
-        ? computed(state_)
-        : state_
-      return state
-    }
-
-    const makeCommand = <RT>(runtime: Runtime.Runtime<RT>) => {
-      const runFork = Runtime.runFork(runtime)
-      return <const Id extends string, const State extends IntlRecord | undefined, const I18nKey extends string = Id>(
-        id_: Id | { id: Id },
-        options?: FnOptions<I18nKey, State>,
-        errorDef?: Error
-      ) => {
-        const id = typeof id_ === "string" ? id_ : id_.id
-        const state = getStateValues(options)
-
-        return Object.assign(
-          <Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-            handler: (...args: Args) => Effect.Effect<A, E, R>
-          ) => {
-            // we capture the definition stack here, so we can append it to later stack traces
-            const limit = Error.stackTraceLimit
-            Error.stackTraceLimit = 2
-            const localErrorDef = new Error()
-            Error.stackTraceLimit = limit
-            if (!errorDef) {
-              errorDef = localErrorDef
-            }
-
-            const key = `Commander.Command.${id}.state` as const
-            const stateTag = Context.GenericTag<typeof key, State>(key)
-
-            const makeContext_ = () => makeContext(id, { ...options, state: state?.value })
-            const initialContext = makeContext_()
-            const action = computed(() => makeContext_().action)
-
-            const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-              self.pipe(
-                Effect.tapErrorCause(
-                  Effect.fnUntraced(function*(cause) {
-                    if (Cause.isInterruptedOnly(cause)) {
-                      console.info(`Interrupted while trying to ${id}`)
-                      return
-                    }
-
-                    const fail = Cause.failureOption(cause)
-                    if (Option.isSome(fail)) {
-                      // if (fail.value._tag === "SuppressErrors") {
-                      //   console.info(
-                      //     `Suppressed error trying to ${action}`,
-                      //     fail.value,
-                      //   )
-                      //   return
-                      // }
-                      const message = `Failure trying to ${id}`
-                      yield* reportMessage(message, {
-                        action: id,
-                        error: fail.value
-                      })
-                      return
-                    }
-
-                    const context = yield* CommandContext
-                    const extra = {
-                      action: context.action,
-                      message: `Unexpected Error trying to ${id}`
-                    }
-                    yield* reportRuntimeError(cause, extra)
-                  }, Effect.uninterruptible)
-                )
-              )
-
-            const currentState = Effect.sync(() => state.value)
-
-            const theHandler = flow(
-              handler,
-              errorReporter,
-              // all must be within the Effect.fn to fit within the Span
-              Effect.provideServiceEffect(
-                stateTag,
-                currentState
-              ),
-              Effect.provideServiceEffect(
-                CommandContext,
-                Effect.sync(() => makeContext_())
-              )
-            )
-
-            const [result, exec] = asResult(theHandler)
-
-            const waiting = computed(() => result.value.waiting)
-
-            const handle = Object.assign((...args: Args) => {
-              // we capture the call site stack here
-              const limit = Error.stackTraceLimit
-              Error.stackTraceLimit = 2
-              const errorCall = new Error()
-              Error.stackTraceLimit = limit
-
-              let cache: false | string = false
-              const captureStackTrace = () => {
-                // in case of an error, we want to append the definition stack to the call site stack,
-                // so we can see where the handler was defined too
-
-                if (cache !== false) {
-                  return cache
-                }
-                if (errorCall.stack) {
-                  const stackDef = errorDef!.stack!.trim().split("\n")
-                  const stackCall = errorCall.stack.trim().split("\n")
-                  let endStackDef = stackDef.slice(2).join("\n").trim()
-                  if (!endStackDef.includes(`(`)) {
-                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-                  }
-                  let endStackCall = stackCall.slice(2).join("\n").trim()
-                  if (!endStackCall.includes(`(`)) {
-                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-                  }
-                  cache = `${endStackDef}\n${endStackCall}`
-                  return cache
-                }
-              }
-
-              const command = currentState.pipe(Effect.flatMap((state) =>
-                Effect.withSpan(
-                  exec(...args),
-                  id,
-                  {
-                    captureStackTrace,
-                    attributes: {
-                      input: args,
-                      state,
-                      action: initialContext.action,
-                      id: initialContext.id,
-                      i18nKey: initialContext.i18nKey
-                    }
-                  }
-                )
-              ))
-
-              return runFork(command)
-            }, { action })
-
-            const handleEffect = Object.assign((...args: Args) => {
-              // we capture the call site stack here
-              const limit = Error.stackTraceLimit
-              Error.stackTraceLimit = 2
-              const errorCall = new Error()
-              Error.stackTraceLimit = limit
-
-              let cache: false | string = false
-              const captureStackTrace = () => {
-                // in case of an error, we want to append the definition stack to the call site stack,
-                // so we can see where the handler was defined too
-
-                if (cache !== false) {
-                  return cache
-                }
-                if (errorCall.stack) {
-                  const stackDef = errorDef!.stack!.trim().split("\n")
-                  const stackCall = errorCall.stack.trim().split("\n")
-                  let endStackDef = stackDef.slice(2).join("\n").trim()
-                  if (!endStackDef.includes(`(`)) {
-                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-                  }
-                  let endStackCall = stackCall.slice(2).join("\n").trim()
-                  if (!endStackCall.includes(`(`)) {
-                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-                  }
-                  cache = `${endStackDef}\n${endStackCall}`
-                  return cache
-                }
-              }
-
-              const command = Effect.withSpan(
-                exec(...args),
-                id,
-                { captureStackTrace }
-              )
-
-              return Effect.currentSpan.pipe(
-                Effect.option,
-                Effect.map((span) =>
-                  runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command)
-                )
-              )
-            }, { action, state })
-
-            const compose = Object.assign((...args: Args) => {
-              // we capture the call site stack here
-              const limit = Error.stackTraceLimit
-              Error.stackTraceLimit = 2
-              const errorCall = new Error()
-              Error.stackTraceLimit = limit
-
-              let cache: false | string = false
-              const captureStackTrace = () => {
-                // in case of an error, we want to append the definition stack to the call site stack,
-                // so we can see where the handler was defined too
-
-                if (cache !== false) {
-                  return cache
-                }
-                if (errorCall.stack) {
-                  const stackDef = errorDef!.stack!.trim().split("\n")
-                  const stackCall = errorCall.stack.trim().split("\n")
-                  let endStackDef = stackDef.slice(2).join("\n").trim()
-                  if (!endStackDef.includes(`(`)) {
-                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-                  }
-                  let endStackCall = stackCall.slice(2).join("\n").trim()
-                  if (!endStackCall.includes(`(`)) {
-                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-                  }
-                  cache = `${endStackDef}\n${endStackCall}`
-                  return cache
-                }
-              }
-
-              const command = Effect.withSpan(
-                exec(...args),
-                id,
-                { captureStackTrace }
-              )
-
-              return command
-            }, { action })
-
-            const compose2 = Object.assign((...args: Args) => {
-              // we capture the call site stack here
-              const limit = Error.stackTraceLimit
-              Error.stackTraceLimit = 2
-              const errorCall = new Error()
-              Error.stackTraceLimit = limit
-
-              let cache: false | string = false
-              const captureStackTrace = () => {
-                // in case of an error, we want to append the definition stack to the call site stack,
-                // so we can see where the handler was defined too
-
-                if (cache !== false) {
-                  return cache
-                }
-                if (errorCall.stack) {
-                  const stackDef = errorDef!.stack!.trim().split("\n")
-                  const stackCall = errorCall.stack.trim().split("\n")
-                  let endStackDef = stackDef.slice(2).join("\n").trim()
-                  if (!endStackDef.includes(`(`)) {
-                    endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-                  }
-                  let endStackCall = stackCall.slice(2).join("\n").trim()
-                  if (!endStackCall.includes(`(`)) {
-                    endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-                  }
-                  cache = `${endStackDef}\n${endStackCall}`
-                  return cache
-                }
-              }
-
-              const command = Effect.withSpan(
-                exec(...args).pipe(Effect.flatten),
-                id,
-                { captureStackTrace }
-              )
-
-              return command
-            }, { action })
-
-            return reactive({
-              /** static */
-              id,
-
-              /** the base i18n key, based on id by default. static */
-              i18nKey: initialContext.i18nKey,
-              /** the `action.` namespace based on i18nKey.. static */
-              namespace: initialContext.namespace,
-
-              /** easy generate namespaced 18n keys, based on namespace. static */
-              namespaced: initialContext.namespaced,
-
-              /** reactive */
-              result,
-              /** reactive */
-              waiting,
-              /** reactive */
-              action,
-
-              handle,
-
-              /** experimental */
-              handleEffect,
-              /** experimental */
-              compose,
-              /** experimental */
-              compose2,
-              /** experimental */
-              exec
-            })
-          },
-          { id }
-        )
-      }
-    }
-
-    return {
-      // /** @experimental */
-      // takeOver:
-      //   <Args extends any[], A, E, R, const Id extends string>(command: Commander.CommandOut<Args, A, E, R, Id,I18nKey>) =>
-      //   (...args: Args) => {
-      //     // we capture the call site stack here
-      //     const limit = Error.stackTraceLimit
-      //     Error.stackTraceLimit = 2
-      //     const errorCall = new Error()
-      //     const localErrorDef = new Error()
-      //     Error.stackTraceLimit = limit
-
-      //     // TODO
-      //     const errorDef = localErrorDef
-
-      //     let cache: false | string = false
-      //     const captureStackTrace = () => {
-      //       // in case of an error, we want to append the definition stack to the call site stack,
-      //       // so we can see where the handler was defined too
-
-      //       if (cache !== false) {
-      //         return cache
-      //       }
-      //       if (errorCall.stack) {
-      //         const stackDef = errorDef.stack!.trim().split("\n")
-      //         const stackCall = errorCall.stack.trim().split("\n")
-      //         let endStackDef = stackDef.slice(2).join("\n").trim()
-      //         if (!endStackDef.includes(`(`)) {
-      //           endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-      //         }
-      //         let endStackCall = stackCall.slice(2).join("\n").trim()
-      //         if (!endStackCall.includes(`(`)) {
-      //           endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-      //         }
-      //         cache = `${endStackDef}\n${endStackCall}`
-      //         return cache
-      //       }
-      //     }
-
-      //     return Effect.gen(function*() {
-      //       const ctx = yield* CommandContext
-      //       ctx.action = command.action
-      //       return yield* command.exec(...args).pipe(
-      //         Effect.flatten,
-      //         Effect.withSpan(
-      //           command.action,
-      //           { captureStackTrace }
-      //         )
-      //       )
-      //     })
-      //   },
-
-      fn: <RT>(runtime: Runtime.Runtime<RT>) => {
-        const make = makeCommand(runtime)
-        /**
-         * Define a Command for handling user actions with built-in error reporting and state management.
-         *
-         * @param id The internal identifier for the action. Used as a tracing span and to lookup
-         *                   the user-facing name via internationalization (`action.${id}`).
-         * @returns A function that executes the command when called (e.g., directly in `@click` handlers).
-         *          Built-in error reporting handles failures automatically.
-         *
-         * **Effect Context**: Effects have access to the `CommandContext` service, which provides
-         * the user-facing action name.
-         *
-         * **Returned Properties**:
-         * - `action`: User-facing action name from intl messages (useful for button labels)
-         * - `result`: The command result state
-         * - `waiting`: Boolean indicating if the command is in progress (shorthand for `result.waiting`)
-         * - `handle`: Function to execute the command
-         *
-         * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
-         * the `result` inline for custom UI feedback.
-         */
-        const f = <
-          const Id extends string,
-          const State extends IntlRecord = IntlRecord,
-          const I18nKey extends string = Id
-        >(
-          id: Id | { id: Id },
-          options?: FnOptions<I18nKey, State>
-        ): Commander.Gen<RT, Id, I18nKey> & Commander.NonGen<RT, Id, I18nKey> & {
-          state: Context.Tag<`Commander.Command.${Id}.state`, State>
-        } =>
-          Object.assign(
-            (
-              fn: any,
-              ...combinators: any[]
-            ): any => {
-              // we capture the definition stack here, so we can append it to later stack traces
-              const limit = Error.stackTraceLimit
-              Error.stackTraceLimit = 2
-              const errorDef = new Error()
-              Error.stackTraceLimit = limit
-
-              return make(id, options, errorDef)(
-                Effect.fnUntraced(
-                  // fnUntraced only supports generators as first arg, so we convert to generator if needed
-                  isGeneratorFunction(fn) ? fn : function*(...args) {
-                    return yield* fn(...args)
-                  },
-                  ...combinators as [any]
-                ) as any
-              )
-            },
-            makeBaseInfo(typeof id === "string" ? id : id.id, options),
-            {
-              state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
-                `Commander.Command.${typeof id === "string" ? id : id.id}.state`
-              )
-            }
-          )
-        return f
-      },
-
-      /** @experimental */
-      alt2: <RT>(rt: Runtime.Runtime<RT>) => {
-        const cmd = makeCommand(rt)
-        /** @experimental */
-        const f: <
-          const Id extends string,
-          MutArgs extends Array<unknown>,
-          MutA,
-          MutE,
-          MutR,
-          const I18nKey extends string = Id
-        >(
-          id:
-            | Id
-            | { id: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
-            | ((...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
-          options?: FnOptions<I18nKey, IntlRecord>
-        ) =>
-          & Commander.CommandContextLocal<Id, I18nKey>
-          & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-            handler: (
-              ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
-                // todo: only if we passed in one
-                mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
-              }
-            ) => (...args: Args) => Effect.Effect<A, E, R>
-          ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>) = (
-            _id,
-            options?
-          ) => {
-            const isObject = typeof _id === "object" || typeof _id === "function"
-            const id = isObject ? _id.id : _id
-            const baseInfo = makeBaseInfo(id, options)
-            const idCmd = cmd(id, options)
-            // TODO: implement proper tracing stack
-            return Object.assign((cb: any) =>
-              idCmd(cb(
-                Object.assign(
-                  (fn: any, ...combinators: any[]) =>
-                    Effect.fnUntraced(
-                      // fnUntraced only supports generators as first arg, so we convert to generator if needed
-                      isGeneratorFunction(fn) ? fn : function*(...args) {
-                        return yield* fn(...args)
-                      },
-                      ...combinators as [any]
-                    ),
-                  baseInfo,
-                  isObject
-                    ? { mutate: "mutate" in _id ? _id.mutate : typeof _id === "function" ? _id : undefined }
-                    : {}
-                )
-              )), baseInfo) as any
-          }
-        return f
-      },
-
-      /** @experimental */
-      alt: makeCommand as unknown as <RT>(
-        runtime: Runtime.Runtime<RT>
-      ) => /** @experimental */ <const Id extends string, const I18nKey extends string = Id>(
-        id: Id,
-        customI18nKey?: I18nKey
-      ) =>
-        & Commander.CommandContextLocal<Id, I18nKey>
-        & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-          handler: (...args: Args) => Effect.Effect<A, E, R>
-        ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey>),
-
-      /** @experimental */
-      wrap: <RT>(runtime: Runtime.Runtime<RT>) => {
-        const make = makeCommand(runtime)
-
-        /** @experimental */
-        const f = <
-          const Id extends string,
-          Args extends Array<unknown>,
-          A,
-          E,
-          R,
-          const State extends IntlRecord = IntlRecord,
-          I18nKey extends string = Id
-        >(
-          mutation:
-            | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
-            | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
-          options?: FnOptions<I18nKey, State>
-        ):
-          & Commander.CommandContextLocal<Id, I18nKey>
-          & Commander.GenWrap<RT, Id, I18nKey, Args, A, E, R>
-          & Commander.NonGenWrap<RT, Id, I18nKey, Args, A, E, R> =>
-          Object.assign((
-            ...combinators: any[]
-          ): any => {
-            // we capture the definition stack here, so we can append it to later stack traces
-            const limit = Error.stackTraceLimit
-            Error.stackTraceLimit = 2
-            const errorDef = new Error()
-            Error.stackTraceLimit = limit
-
-            const mutate = "mutate" in mutation ? mutation.mutate : mutation
-
-            return make(mutation.id, options, errorDef)(
-              Effect.fnUntraced(
-                // fnUntraced only supports generators as first arg, so we convert to generator if needed
-                isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
-                  return yield* mutate(...args)
-                },
-                ...combinators as [any]
-              ) as any
-            )
-          }, makeBaseInfo(mutation.id, options))
-        return f
-      }
-    }
+    const i18n = yield* I18n
+    return <RT>(rt: Runtime.Runtime<RT>) => new CommanderImpl(rt, i18n)
   })
 }) {}

@@ -11,7 +11,7 @@ import { dropUndefinedT } from "effect-app/utils"
 import { type RuntimeFiber } from "effect/Fiber"
 import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
-import { Commander, CommanderStatic } from "./experimental/commander.js"
+import { type Commander, CommanderStatic } from "./experimental/commander.js"
 import { I18n } from "./experimental/intl.js"
 import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
@@ -21,6 +21,7 @@ import { type CustomDefinedInitialQueryOptions, type CustomUndefinedInitialQuery
 
 import { camelCase } from "change-case"
 import { type ApiClientFactory } from "effect-app/client"
+import { makeUseCommand } from "./experimental/makeUseCommand.js"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -1011,18 +1012,10 @@ export const makeClient = <RT>(
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT | ApiClientFactory | Commander | LegacyMutation | Base, never>,
   clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>
 ) => {
-  const getRt = Effect.runtime<RT | ApiClientFactory | Commander | LegacyMutation | Base>()
+  type R = RT | ApiClientFactory | Commander | LegacyMutation | Base
+  const getRt = Effect.runtime<R>()
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
-  const makeCommand = Effect.gen(function*() {
-    const cmd = yield* Commander
-    const rt = yield* getRt
-    return {
-      fn: cmd.fn(rt),
-      wrap: cmd.wrap(rt),
-      alt: cmd.alt(rt),
-      alt2: cmd.alt2(rt)
-    }
-  })
+  const makeCommand = makeUseCommand<R>()
   const makeMutation = Effect.gen(function*() {
     const mut = yield* LegacyMutation
 

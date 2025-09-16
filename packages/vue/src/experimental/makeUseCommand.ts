@@ -1,29 +1,22 @@
 import { Effect } from "effect-app"
-import { Commander, CommanderStatic } from "./commander.js"
+import { Commander, type CommanderImpl, CommanderStatic } from "./commander.js"
 
 type X<X> = X
 
-// try to preserve JSDoc..
-export interface CommanderResolved extends X<typeof CommanderStatic> {
-  alt: ReturnType<Commander["alt"]>
-  fn: ReturnType<Commander["fn"]>
-  wrap: ReturnType<Commander["wrap"]>
-  alt2: ReturnType<Commander["alt2"]>
-  withDefaultToast: typeof CommanderStatic.withDefaultToast
+// helps retain JSDoc
+export interface CommanderResolved<RT> extends X<typeof CommanderStatic>, CommanderImpl<RT> {
 }
 
 export const makeUseCommand = Effect.fnUntraced(function*<R = never>() {
   const cmndr = yield* Commander
   const runtime = yield* Effect.runtime<R>()
 
+  const comm = cmndr(runtime)
+
   const command = {
-    ...cmndr,
-    alt: cmndr.alt(runtime),
-    fn: cmndr.fn(runtime),
-    wrap: cmndr.wrap(runtime),
-    alt2: cmndr.alt2(runtime),
+    ...comm,
     ...CommanderStatic
   }
 
-  return command as CommanderResolved
+  return command as CommanderResolved<R>
 })

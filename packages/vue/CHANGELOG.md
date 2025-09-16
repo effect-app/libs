@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.9
+
+### Patch Changes
+
+- ff77370: improve jsdoc of client mutations
+
 ## 2.77.8
 
 ### Patch Changes

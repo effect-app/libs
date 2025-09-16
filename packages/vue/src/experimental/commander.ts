@@ -1058,7 +1058,17 @@ export const CommanderStatic = {
       ),
   defaultFailureMessageHandler,
   renderError: renderErrorMaker,
-  /** Version of withDefaultToast that automatically includes the action name in the default messages and uses intl */
+  /**
+   * Version of withDefaultToast that automatically includes the action name in the default messages and uses intl.
+   * uses the Command id as i18n namespace.  `action.{id}` is the main action name,
+   * and `action.{id}.waiting`, `action.{id}.success`, `action.{id}.failure` can be used to override the default messages for the respective states.
+   *
+   * the computed `state` provided to the Command can be used for interpolation in the i18n messages. (the state is captured at the start of each command execution and remains stable throughout)
+   *
+   * Note: if you provide `onWaiting` or `onSuccess` as `null`, no toast will be shown for that state.
+   * If you provide a string or function, it will be used instead of the i18n message.
+   * If you provide an `errorRenderer`, it will be used to render errors in the failure message.
+   */
   withDefaultToast: <A, E, R, Args extends Array<unknown>>(
     options?: {
       errorRenderer?: ErrorRenderer<E, Args>

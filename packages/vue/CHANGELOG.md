@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.12
+
+### Patch Changes
+
+- d9f2132: fix input
+
 ## 2.77.11
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.77.7
+
+### Patch Changes
+
+- overload jsdoc
+
 ## 2.77.6
 
 ### Patch Changes

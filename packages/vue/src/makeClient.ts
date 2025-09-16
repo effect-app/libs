@@ -254,6 +254,11 @@ export class LegacyMutationImpl<RT> {
    * @deprecated use `Command.fn` and friends instead
    */
   readonly useSafeMutation: {
+    /**
+     * Effect results are converted to Exit, so errors are ignored by default.
+     * you should use the result ref to render errors!
+     * @deprecated use `Command.fn` and friends instead
+     */
     <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
@@ -261,6 +266,11 @@ export class LegacyMutationImpl<RT> {
       ComputedRef<Result.Result<A2, E2>>,
       (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
+    /**
+     * Effect results are converted to Exit, so errors are ignored by default.
+     * you should use the result ref to render errors!
+     * @deprecated use `Command.fn` and friends instead
+     */
     <E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
@@ -429,6 +439,11 @@ export class LegacyMutationImpl<RT> {
    * @deprecated use `Command.fn` and friends instead
    */
   readonly useAndHandleMutationResult: {
+    /**
+     * Pass a function that returns an Effect, e.g from a client action, give it a name.
+     * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       I,
       E extends ResponseErrors,
@@ -450,6 +465,11 @@ export class LegacyMutationImpl<RT> {
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): Resp<I, A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
+    /**
+     * Pass a function that returns an Effect, e.g from a client action, give it a name.
+     * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       E extends ResponseErrors,
       A,
@@ -511,6 +531,12 @@ export class LegacyMutationImpl<RT> {
    * @deprecated use `Command.fn` and friends instead
    */
   readonly useAndHandleMutation: {
+    /**
+     * Pass a function that returns an Effect, e.g from a client action, give it a name.
+     * Returns a tuple with state ref and execution function which reports success and errors as Toast.
+     *
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       I,
       E extends ResponseErrors,
@@ -532,6 +558,12 @@ export class LegacyMutationImpl<RT> {
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): Resp<I, A2, E2, R2>
+    /**
+     * Pass a function that returns an Effect, e.g from a client action, give it a name.
+     * Returns a tuple with state ref and execution function which reports success and errors as Toast.
+     *
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       E extends ResponseErrors,
       A,
@@ -625,6 +657,11 @@ export class LegacyMutationImpl<RT> {
    * @deprecated use `Command.fn` and friends instead
    */
   readonly useAndHandleMutationSilently: {
+    /**
+     * The same as @see useAndHandleMutation, but does not display any toasts by default.
+     * Messages for success, error and defect toasts can be provided in the Options.
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       I,
       E extends ResponseErrors,
@@ -646,6 +683,11 @@ export class LegacyMutationImpl<RT> {
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): Resp<I, A2, E2, R>
+    /**
+     * The same as @see useAndHandleMutation, but does not display any toasts by default.
+     * Messages for success, error and defect toasts can be provided in the Options.
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       E extends ResponseErrors,
       A,
@@ -678,6 +720,11 @@ export class LegacyMutationImpl<RT> {
    * @deprecated use `Command.fn` and friends instead
    */
   readonly useAndHandleMutationCustom: {
+    /**
+     * The same as @see useAndHandleMutation, but does not act on success, error or defect by default.
+     * Actions for success, error and defect can be provided in the Options.
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       I,
       E extends ResponseErrors,
@@ -699,6 +746,11 @@ export class LegacyMutationImpl<RT> {
       action: string,
       options?: LowOptsOptional<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): Resp<I, A2, E2, R2>
+    /**
+     * The same as @see useAndHandleMutation, but does not act on success, error or defect by default.
+     * Actions for success, error and defect can be provided in the Options.
+     * @deprecated use `Command.fn` and friends instead
+     */
     <
       E extends ResponseErrors,
       A,
@@ -756,6 +808,11 @@ export class LegacyMutationImpl<RT> {
    * @deprecated use `Command.fn` and friends instead
    */
   readonly useSafeMutationWithState: {
+    /**
+     * Effect results are converted to Exit, so errors are ignored by default.
+     * you should use the result ref to render errors!
+     * @deprecated use `Command.fn` and friends instead
+     */
     <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
@@ -763,6 +820,11 @@ export class LegacyMutationImpl<RT> {
       ComputedRef<Res<A, E>>,
       (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
+    /**
+     * Effect results are converted to Exit, so errors are ignored by default.
+     * you should use the result ref to render errors!
+     * @deprecated use `Command.fn` and friends instead
+     */
     <E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2>

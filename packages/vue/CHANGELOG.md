@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.78.1
+
+### Patch Changes
+
+- 29557ba: hopefully fix updated vue state to be available after fetch
+
 ## 2.78.0
 
 ### Minor Changes

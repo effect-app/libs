@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.79.0
+
+### Minor Changes
+
+- 5e39d08: replace client.X with non mutate/query request, move mutation to .mutate
+
 ## 2.78.1
 
 ### Patch Changes

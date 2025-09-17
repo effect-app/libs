@@ -1062,7 +1062,7 @@ export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMuta
   })
 }) {}
 
-export type ClientFrom<M extends Requests> = RequestHandlers<never, never, Omit<M, "meta">, M["meta"]["moduleName"]>
+export type ClientFrom<M extends Requests> = RequestHandlers<never, never, M, M["meta"]["moduleName"]>
 
 export class QueryImpl<R> {
   constructor(readonly getRuntime: () => Runtime.Runtime<R>) {
@@ -1445,7 +1445,7 @@ export const makeClient = <RT>(
       Object.defineProperty(acc, key, {
         configurable: true,
         get() {
-          const v = getOrMakeClient()[key as any]
+          const v = (getOrMakeClient() as any)[key as any]
           // cache on first use.
           Object.defineProperty(acc, key, { value: v })
           return v

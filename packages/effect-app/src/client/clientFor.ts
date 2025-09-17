@@ -96,9 +96,18 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedReque
   Request: Request
 }
 
+type Req = {
+  new(...args: any[]): any
+  _tag: string
+  fields: S.Struct.Fields
+  success: S.Schema.All
+  failure: S.Schema.All
+  config?: Record<string, any>
+}
+
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true ?
+  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true ?
       & RequestHandler<
         S.Schema.Type<M[K]["success"]>,
         S.Schema.Type<M[K]["failure"]> | E,

@@ -34,8 +34,8 @@ type Req = S.Schema.All & {
   new(...args: any[]): any
   _tag: string
   fields: S.Struct.Fields
-  success: S.Schema.Any
-  failure: S.Schema.Any
+  success: S.Schema.All
+  failure: S.Schema.All
   config?: Record<string, any>
 }
 
@@ -280,7 +280,7 @@ const makeApiClientFactory = Effect
 
       return <M extends Requests>(
         models: M
-      ): Effect.Effect<Client<Omit<M, "meta">, M["meta"]["moduleName"]>> =>
+      ): Effect.Effect<Client<M, M["meta"]["moduleName"]>> =>
         Effect.gen(function*() {
           const found = cache.get(models)
           if (found) {

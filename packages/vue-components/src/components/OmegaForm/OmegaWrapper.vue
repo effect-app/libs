@@ -161,7 +161,8 @@ onBeforeMount(() => {
     "showErrorsOn",
     "asyncAlways",
     "form",
-    "schema"
+    "schema",
+    "canSubmitWhenInvalid"
   ])
 
   const filteredProps = Object.fromEntries(

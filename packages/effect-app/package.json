@@ -17,8 +17,8 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "~24.3.3",
-    "@types/uuid": "^10.0.0",
+    "@types/node": "~24.5.1",
+    "@types/uuid": "^11.0.0",
     "@types/validator": "^13.15.3",
     "@effect-app/eslint-shared-config": "workspace:*",
     "fast-check": "~4.3.0",

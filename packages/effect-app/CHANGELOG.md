@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.7.0
+
+### Minor Changes
+
+- 6d8c512: update packages
+
 ## 3.6.1
 
 ### Patch Changes

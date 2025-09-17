@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.2.1
+
+### Patch Changes
+
+- cec6576: set @typescript-eslint/unbound-method as error (note: it's a type aware rule)
+  - @effect-app/eslint-codegen-model@1.44.0
+
 ## 0.2.0
 
 ### Minor Changes

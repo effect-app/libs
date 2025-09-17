@@ -1,5 +1,16 @@
 # @effect-app/vue-components
 
+## 0.27.0
+
+### Minor Changes
+
+- 999bba5: fix: form submit should use the schema to parse the input.
+
+### Patch Changes
+
+- effect-app@3.7.0
+- @effect-app/vue@2.78.0
+
 ## 0.26.0
 
 ### Minor Changes

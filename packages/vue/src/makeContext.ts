@@ -5,7 +5,7 @@ export const makeContext: {
     use: () => T
     provide: (locale: T) => void
   }
-  <T>(def?: T | undefined): {
+  <T>(def?: T): {
     use: () => T | undefined
     provide: (locale: T) => void
   }

@@ -1172,7 +1172,7 @@ const getStateValues = <const I18nKey extends string, State extends IntlRecord |
 export class CommanderImpl<RT> {
   private runFork: <A, E>(
     effect: Effect.Effect<A, E, RT>,
-    options?: Runtime.RunForkOptions | undefined
+    options?: Runtime.RunForkOptions
   ) => RuntimeFiber<A, E>
 
   constructor(private readonly rt: Runtime.Runtime<RT>, private readonly intl: I18n) {

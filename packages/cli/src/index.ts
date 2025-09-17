@@ -7,7 +7,8 @@ import { NodeContext, NodeRuntime } from "@effect/platform-node"
 
 import { type CommandExecutor } from "@effect/platform/CommandExecutor"
 import { type PlatformError } from "@effect/platform/Error"
-import { Effect, identity, Option, Stream, type Types } from "effect"
+import { Data, Effect, identity, Option, pipe, Schema, Stream, type Types } from "effect"
+import * as yaml from "js-yaml"
 import { ExtractExportMappingsService } from "./extract.js"
 import { packages } from "./shared.js"
 
@@ -35,6 +36,14 @@ Effect
           NodeCommand.stderr("inherit"),
           cwd ? NodeCommand.workingDirectory(cwd) : identity,
           NodeCommand.exitCode
+        )
+
+    const runNodeCommandString = (cmd: string, cwd?: string) =>
+      NodeCommand
+        .make("sh", "-c", cmd)
+        .pipe(
+          cwd ? NodeCommand.workingDirectory(cwd) : identity,
+          NodeCommand.string
         )
 
     // /**
@@ -698,6 +707,261 @@ Effect
         Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo")
       )
 
+    const gist = Command
+      .make(
+        "gist",
+        {
+          config: Options.file("config").pipe(
+            Options.withDefault("gists.yaml"),
+            Options.withDescription("Path to YAML configuration file")
+          )
+        },
+        Effect.fn("effa-cli.gist")(function*({ config }) {
+          yield* Effect.logInfo(`Reading configuration from ${config}`)
+
+          const configExists = yield* fs.exists(config)
+          if (!configExists) {
+            return yield* Effect.fail(new Error(`Configuration file not found: ${config}`))
+          }
+
+          const configContent = yield* fs.readFileString(config)
+
+          const configData = yield* Effect
+            .try(
+              {
+                try: () => yaml.load(configContent),
+                catch(error) {
+                  return Effect.fail(new Error(`Failed to parse YAML configuration: ${error}`))
+                }
+              }
+            )
+            .pipe(
+              Effect.andThen(Schema.decodeUnknown(Schema.Struct({
+                gists: Schema.Record({
+                  key: Schema.String,
+                  value: Schema.Struct({
+                    description: Schema.String,
+                    public: Schema.Boolean,
+                    files: Schema.Array(Schema.String)
+                  })
+                }),
+                settings: Schema.Struct({
+                  token_env: Schema.String,
+                  base_directory: Schema.String
+                })
+              })))
+            )
+
+          const token = process.env[configData.settings.token_env]
+          if (!token) {
+            return yield* Effect.fail(
+              new Error(`GitHub token not found in environment variable: ${configData.settings.token_env}`)
+            )
+          }
+
+          const extractGistIdFromUrl = (url: string): Option.Option<string> => {
+            // extract ID from URL: https://gist.github.com/user/ID
+            const gistId = url.trim().split("/").pop()
+            return gistId && gistId.length > 0 ? Option.some(gistId) : Option.none()
+          }
+
+          const cacheGistDescription = "GIST_CACHE_DO_NOT_EDIT_effa_cli_internal"
+
+          class GistCacheNotFound extends Data.TaggedError("GistCacheNotFound")<{
+            readonly reason: string
+          }> {}
+
+          /**
+           * Gist cache mapping YAML configuration names to GitHub gist IDs.
+           *
+           * Since GitHub gists don't have user-defined names, we maintain a cache
+           * that maps the human-readable names from our YAML config to actual gist IDs.
+           * This allows us to:
+           * - Update existing gists instead of creating duplicates
+           * - Clean up obsolete entries when gists are removed from config
+           * - Persist the name->ID mapping across CLI runs
+           *
+           * The cache itself is stored as a secret GitHub gist for persistence.
+           */
+          const CacheSchema = Schema.Array(Schema.Struct({
+            name: Schema.String,
+            id: Schema.String
+          }))
+          type CacheType = Schema.Schema.Type<typeof CacheSchema>
+
+          const loadGistCache = Effect
+            .gen(
+              function*() {
+                // search for existing cache gist
+                const output = yield* runNodeCommandString(`gh gist list --filter "${cacheGistDescription}"`)
+                  .pipe(Effect.orElse(() => Effect.succeed("")))
+
+                const lines = output.trim().split("\n").filter((line: string) => line.trim())
+
+                // extract first gist ID (should be our cache gist)
+                const firstLine = lines[0]
+                if (!firstLine) {
+                  return yield* new GistCacheNotFound({ reason: "Empty gist list output" })
+                }
+
+                const parts = firstLine.split(/\s+/)
+                const gistId = parts[0]?.trim()
+
+                if (!gistId) {
+                  return yield* new GistCacheNotFound({ reason: "No gist ID found in output" })
+                }
+
+                // read cache gist content
+                const cacheContent = yield* runNodeCommandString(`gh gist view ${gistId}`)
+                  .pipe(Effect.orElse(() => Effect.succeed("")))
+
+                const cache = yield* pipe(
+                  cacheContent,
+                  pipe(Schema.parseJson(CacheSchema), Schema.decodeUnknown),
+                  Effect.orElse(() => Effect.fail(new GistCacheNotFound({ reason: "Failed to parse cache JSON" })))
+                )
+
+                return { cache, gistId }
+              }
+            )
+            .pipe(
+              Effect.catchTag("GistCacheNotFound", () =>
+                Effect.gen(function*() {
+                  // cache doesn't exist, create it
+                  yield* Effect.logInfo("Cache gist not found, creating new cache...")
+                  const initialCache: CacheType = []
+                  const cacheJson = yield* pipe(
+                    initialCache,
+                    pipe(Schema.parseJson(CacheSchema), Schema.encodeUnknown)
+                  )
+
+                  const gistUrl = yield* runNodeCommandString(
+                    `echo '${cacheJson}' | gh gist create --desc="${cacheGistDescription}" -`
+                  )
+
+                  const gistIdOption = extractGistIdFromUrl(gistUrl)
+                  if (Option.isNone(gistIdOption)) {
+                    return yield* Effect.fail(new Error(`Could not extract gist ID from URL: ${gistUrl}`))
+                  }
+
+                  yield* Effect.logInfo(`Created new cache gist with ID: ${gistIdOption.value}`)
+
+                  return { cache: initialCache, gistId: gistIdOption.value }
+                }))
+            )
+
+          const saveGistCache = ({ cache, gistId }: { cache: CacheType; gistId: string }) =>
+            Effect.gen(function*() {
+              const cacheJson = yield* pipe(
+                cache,
+                pipe(Schema.parseJson(CacheSchema), Schema.encodeUnknown)
+              )
+
+              yield* runNodeCommandEC(`echo '${cacheJson}' | gh gist edit ${gistId} -`)
+            })
+
+          const { cache, gistId } = yield* loadGistCache
+
+          const gistCache = [...cache] // make mutable copy
+
+          for (const [name, gistConfig] of Object.entries(configData.gists)) {
+            const { description, files, public: isPublic } = gistConfig
+
+            yield* Effect.logInfo(`Processing gist: ${name}`)
+
+            const validFiles: string[] = []
+            for (const filePath of files) {
+              const fullPath = path.join(configData.settings.base_directory, filePath)
+              const fileExists = yield* fs.exists(fullPath)
+
+              if (!fileExists) {
+                yield* Effect.logWarning(`File not found: ${fullPath}, skipping...`)
+                continue
+              }
+
+              validFiles.push(`"${fullPath}"`)
+            }
+
+            if (validFiles.length === 0) {
+              yield* Effect.logWarning(`No valid files found for gist: ${name}, skipping gist creation`)
+              continue
+            }
+
+            const existingCacheEntry = gistCache.find((entry) => entry.name === name)
+
+            if (existingCacheEntry) {
+              yield* Effect.logInfo(`Updating existing gist: ${name} (ID: ${existingCacheEntry.id})`)
+
+              for (const filePath of validFiles) {
+                const cleanPath = filePath.replace(/"/g, "")
+                const fileName = path.basename(cleanPath)
+                const editCommand = [
+                  "gh",
+                  "gist",
+                  "edit",
+                  existingCacheEntry.id,
+                  "-f",
+                  fileName,
+                  cleanPath
+                ]
+                  .join(" ")
+
+                yield* runNodeCommandEC(editCommand)
+              }
+            } else {
+              const ghCommand = [
+                "gh",
+                "gist",
+                "create",
+                `--desc="${description}"`,
+                isPublic ? "--public" : "",
+                ...validFiles
+              ]
+                .filter((x) => !!x)
+                .join(" ")
+
+              yield* Effect.logInfo(`Creating gist: ${name} with ${validFiles.length} file(s)`)
+
+              // capture the created gist URL
+              const gistUrl = yield* runNodeCommandString(ghCommand)
+
+              // extract ID from URL
+              const gistId = extractGistIdFromUrl(gistUrl)
+              if (Option.isSome(gistId)) {
+                gistCache.push({ name, id: gistId.value })
+                yield* Effect.logInfo(`Created gist with ID: ${gistId.value}`)
+              } else {
+                yield* Effect.logWarning(`Could not extract gist ID from URL: ${gistUrl}`)
+              }
+            }
+          }
+
+          // remove gists from cache that are no longer in the configuration
+          const configGistNames = new Set(Object.entries(configData.gists).map(([name]) => name))
+          const initialCacheLength = gistCache.length
+
+          for (let i = gistCache.length - 1; i >= 0; i--) {
+            const cacheEntry = gistCache[i]
+            if (cacheEntry && !configGistNames.has(cacheEntry.name)) {
+              yield* Effect.logInfo(`Removing obsolete gist from cache: ${cacheEntry.name} (ID: ${cacheEntry.id})`)
+              gistCache.splice(i, 1)
+            }
+          }
+
+          if (gistCache.length < initialCacheLength) {
+            yield* Effect.logInfo(`Cleaned up ${initialCacheLength - gistCache.length} obsolete gist(s) from cache`)
+          }
+
+          yield* Effect.logInfo(gistCache)
+
+          yield* saveGistCache({ cache: gistCache, gistId })
+          yield* Effect.logInfo("Updated gist cache")
+
+          yield* Effect.logInfo("Gist creation completed")
+        })
+      )
+      .pipe(Command.withDescription("Create GitHub gists from files specified in YAML configuration"))
+
     const nuke = Command
       .make(
         "nuke",
@@ -745,6 +1009,7 @@ Effect
           indexMulti,
           packagejson,
           packagejsonPackages,
+          gist,
           nuke
         ])),
       {

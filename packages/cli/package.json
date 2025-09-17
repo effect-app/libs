@@ -11,9 +11,11 @@
   "dependencies": {
     "@effect/cli": "^0.69.2",
     "@effect/platform-node": "^0.96.1",
+    "js-yaml": "4.1.0",
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "~24.5.1",
     "json5": "^2.2.3",
     "typescript": "~5.9.2",

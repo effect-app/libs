@@ -180,7 +180,14 @@ export const invalidateQueries = (
         Effect.annotateCurrentSpan({ queryKey }),
         invalidateQueries({ queryKey })
       )
-      .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
+      .pipe(
+        Effect.tap(
+          // hand over control back to the event loop so that state can be updated..
+          // TODO: should we do this in general on any mutation, regardless of invalidation?
+          Effect.sleep(0)
+        ),
+        Effect.withSpan("client.query.invalidation", { captureStackTrace: false })
+      )
   })
 
   const handle = <A, E, R>(self: Effect.Effect<A, E, R>) =>

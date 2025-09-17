@@ -1323,7 +1323,7 @@ export const makeClient = <RT>(
       (acc, key) => {
         const mut = client[key].handler as any
         const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap(mut)
+        const wrap = Command.wrap({ mutate: mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
           mut,
           { wrap, fn },
@@ -1390,8 +1390,6 @@ export const makeClient = <RT>(
           (mutate) => Object.assign(mutate, { wrap: Command.wrap({ mutate, id: client[key].id }), fn })
         )
         const awesome = {
-          ...client[key],
-          ...fn,
           mutate,
           query: useQuery(client[key] as any),
           suspense: useSuspenseQuery(client[key] as any)
@@ -1401,13 +1399,13 @@ export const makeClient = <RT>(
           Effect.isEffect(h_)
             ? () => h_
             : (...args: [any]) => h_(...args),
-          awesome
+          client[key],
+          fn
         )
         ;(acc as any)[key] = Object.assign(
           h,
-          { wrap: Command.wrap(h), fn },
           awesome,
-          fn
+          { wrap: Command.wrap(h), fn }
         )
         return acc
       },

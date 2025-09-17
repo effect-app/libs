@@ -9,7 +9,7 @@ import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
 import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { type Schema } from "effect-app/Schema"
-import { dropUndefinedT } from "effect-app/utils"
+import { dropUndefinedT, extendM } from "effect-app/utils"
 import { type RuntimeFiber } from "effect/Fiber"
 import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
@@ -26,6 +26,54 @@ const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
+
+export interface RequestExtensions<RT, Id extends string, I extends any[], A, E, R> {
+  /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
+   * The Request function will be taken as the first member of the Command, the Command required input will be the Request input.
+   * see Command.wrap for details */
+  wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
+   * see Command.fn for details */
+  fn: Commander.CommanderFn<RT, Id, Id, undefined>
+}
+
+/** my other doc */
+export interface RequestExtWithInput<
+  RT,
+  Id extends string,
+  I,
+  A,
+  E,
+  R
+> extends Commander.CommandContextLocal<Id, Id>, RequestExtensions<RT, Id, [I], A, E, R> {
+  /**
+   * Request the endpoint with input
+   */
+  (i: I): Effect.Effect<A, E, R>
+}
+
+/**
+ * Request the endpoint
+ */
+export interface RequestExt<
+  RT,
+  Id extends string,
+  A,
+  E,
+  R
+> extends
+  Commander.CommandContextLocal<Id, Id>,
+  Commander.CommanderWrap<RT, Id, Id, undefined, [], A, E, R>,
+  RequestExtensions<RT, Id, [], A, E, R>,
+  Effect.Effect<A, E, R>
+{
+}
+
+export type RequestWithExtensions<RT, Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
+  ? RequestExtWithInput<RT, Id, I, A, E, R>
+  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, A, E, R>
+  : never
 
 export interface MutationExtensions<RT, Id extends string, I extends any[], A, E, R> {
   /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
@@ -48,11 +96,17 @@ export interface MutationExtWithInput<
 > extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, [I], A, E, R> {
   /**
    * Call the endpoint with input
+   * Invalidate queries based on namespace of this mutation.
+   * Do not use for queries.
    */
   (i: I): Effect.Effect<A, E, R>
 }
 
-/** my other doc */
+/**
+ * Call the endpoint
+ * Invalidate queries based on namespace of this mutation.
+ * Do not use for queries.
+ */
 export interface MutationExt<
   RT,
   Id extends string,
@@ -1261,6 +1315,32 @@ export const makeClient = <RT>(
     return queries
   }
 
+  const mapRequest = <M extends Requests>(
+    client: ClientFrom<M>
+  ) => {
+    const Command = useCommand()
+    const mutations = Struct.keys(client).reduce(
+      (acc, key) => {
+        const mut = client[key].handler as any
+        const fn = Command.fn(client[key].id)
+        const wrap = Command.wrap(mut)
+        ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
+          mut,
+          { wrap, fn },
+          wrap
+        )
+        return acc
+      },
+      {} as {
+        [Key in keyof typeof client as `${ToCamel<string & Key>}Request`]: RequestWithExtensions<
+          R,
+          typeof client[Key]
+        >
+      }
+    )
+    return mutations
+  }
+
   const mapMutation = <M extends Requests>(
     client: ClientFrom<M>
   ) => {
@@ -1302,27 +1382,44 @@ export const makeClient = <RT>(
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
         const fn = Command.fn(client[key].id)
+        const mutate = extendM(
+          mutation(
+            client[key] as any,
+            invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
+          ),
+          (mutate) => Object.assign(mutate, { wrap: Command.wrap({ mutate, id: client[key].id }), fn })
+        )
         const awesome = {
           ...client[key],
           ...fn,
+          mutate,
           query: useQuery(client[key] as any),
           suspense: useSuspenseQuery(client[key] as any)
         }
-        const mutate = mutation(
-          client[key] as any,
-          invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
+        const h_ = client[key].handler
+        const h = Object.assign(
+          Effect.isEffect(h_)
+            ? () => h_
+            : (...args: [any]) => h_(...args),
+          awesome
         )
-        ;(acc as any)[key] = Object.assign(mutate, { wrap: Command.wrap({ mutate, id: awesome.id }), fn }, awesome, fn)
+        ;(acc as any)[key] = Object.assign(
+          h,
+          { wrap: Command.wrap(h), fn },
+          awesome,
+          fn
+        )
         return acc
       },
       {} as {
         [Key in keyof typeof client]:
           & typeof client[Key]
-          & MutationWithExtensions<R, typeof client[Key]>
+          & RequestWithExtensions<R, typeof client[Key]>
+          & { mutate: MutationWithExtensions<R, typeof client[Key]> }
           & Queries<typeof client[Key]>
       }
     )
-    return Object.assign(extended, { helpers: { ...mapMutation(client), ...mapQuery(client) } })
+    return Object.assign(extended, { helpers: { ...mapRequest(client), ...mapMutation(client), ...mapQuery(client) } })
   }
 
   // TODO: Clean up this delay initialisation messs

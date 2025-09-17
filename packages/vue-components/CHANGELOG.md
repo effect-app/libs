@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.5
+
+### Patch Changes
+
+- eb31e11: fixes new setting collision with persistency
+
 ## 0.27.4
 
 ### Patch Changes

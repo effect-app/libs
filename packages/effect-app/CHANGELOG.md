@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.7.1
+
+### Patch Changes
+
+- 4da7f79: cleanup helpers namespace
+
 ## 3.7.0
 
 ### Minor Changes

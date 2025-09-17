@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 2.79.1
+
+### Patch Changes
+
+- 4da7f79: cleanup helpers namespace
+- Updated dependencies [4da7f79]
+  - effect-app@3.7.1
+
 ## 2.79.0
 
 ### Minor Changes

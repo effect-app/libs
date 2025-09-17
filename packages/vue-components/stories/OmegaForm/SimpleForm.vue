@@ -18,8 +18,7 @@
             v-model="inputProps.field.state.value"
             :name="inputProps.name"
             style="border: 1px solid red"
-            @change="(e: any) =>
-            inputProps.field.handleChange(e.target.value)"
+            @change="(e: any) => inputProps.field.handleChange(e.target.value)"
           >
         </template>
       </OmegaInput>

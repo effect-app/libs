@@ -17,8 +17,7 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>"
+  generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
 import { computed, type ComputedRef, getCurrentInstance, nextTick, onMounted, ref, useId, watch, watchEffect } from "vue"
@@ -133,7 +132,7 @@ watch(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((e: any) => e.message)
           .filter(Boolean),
-        label: props.label,
+        label: props.label
       })
     } else {
       removeError(id)

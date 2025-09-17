@@ -27,10 +27,11 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>,
+  generic="
+  From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  K extends keyof OmegaFormState<From, To> =
-    keyof OmegaFormState<From, To>"
+  K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>
+"
 >
 /**
  * Form component that wraps TanStack Form's useForm hook
@@ -125,15 +126,17 @@ const eventOnSubmit: OnSubmitAwaitable = (value, extra) =>
     })
   })
 
-  // we need to keep onSubmit reactive or it can't pick up local state changes, inside forms
-  // which is the whole point of having props
+// we need to keep onSubmit reactive or it can't pick up local state changes, inside forms
+// which is the whole point of having props
 const onSubmit_ = typeof props.isLoading !== "undefined"
   ? computed(() => eventOnSubmit)
   : typeof props.onSubmit !== "undefined"
   ? computed(() => props.onSubmit)
   : undefined
 
-const onSubmitHandler = onSubmit_?.value ? ({formApi, meta, value }: OnSubmitArg) => onSubmit_!.value!(value, { meta, formApi }) : undefined
+const onSubmitHandler = onSubmit_?.value
+  ? ({ formApi, meta, value }: OnSubmitArg) => onSubmit_!.value!(value, { meta, formApi })
+  : undefined
 
 const localForm = props.form || !props.schema
   ? undefined
@@ -232,8 +235,7 @@ watch(
     const errorList = Object
       .values(currentErrors)
       .filter(
-        (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> =>
-          Boolean(fieldErrors)
+        (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> => Boolean(fieldErrors)
       )
       .flatMap((fieldErrors) =>
         Object

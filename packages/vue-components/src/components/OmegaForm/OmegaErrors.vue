@@ -90,9 +90,7 @@ const showedGeneralErrors = computed(() => {
 
   return generalErrors
     .value
-    .filter((record): record is Record<string, StandardSchemaV1Issue[]> =>
-      Boolean(record)
-    )
+    .filter((record): record is Record<string, StandardSchemaV1Issue[]> => Boolean(record))
     .flatMap((errorRecord) =>
       Object
         .values(errorRecord)
@@ -100,8 +98,7 @@ const showedGeneralErrors = computed(() => {
         .flatMap((issues) =>
           issues
             .filter(
-              (issue): issue is StandardSchemaV1Issue & { message: string } =>
-                Boolean(issue?.message)
+              (issue): issue is StandardSchemaV1Issue & { message: string } => Boolean(issue?.message)
             )
             .map((issue) => issue.message)
         )

@@ -28,13 +28,16 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>"
+  generic="
+  // dprint ignore - somehow with 120 chars, this becomes a mess. should report it.
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+"
 >
 import { computed, inject, type Ref } from "vue"
+import { useIntl } from "../../utils"
 import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
-import { useIntl } from "../../utils";
 
 const props = defineProps<OmegaInputProps<From, To>>()
 
@@ -64,11 +67,14 @@ const schema = computed(() => {
 
 const { formatMessage } = useIntl()
 const humanize = (str: string) => {
-  return str 
+  return str
     .replace(/([A-Z])/g, " $1") // Add space before capital letters
     .replace(/^./, (char) => char.toUpperCase()) // Capitalize the first letter
     .trim() // Remove leading/trailing spaces
 }
-const fallback = () => formatMessage({id:`general.fields.${props.name}`, defaultMessage: humanize(props.name)})
-const i18n = () => props.form.i18nNamespace ? formatMessage({id:`${props.form.i18nNamespace}.fields.${props.name}`, defaultMessage: fallback()}) : fallback()
+const fallback = () => formatMessage({ id: `general.fields.${props.name}`, defaultMessage: humanize(props.name) })
+const i18n = () =>
+  props.form.i18nNamespace
+    ? formatMessage({ id: `${props.form.i18nNamespace}.fields.${props.name}`, defaultMessage: fallback() })
+    : fallback()
 </script>

@@ -15,8 +15,10 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, string>,
-  To extends Record<PropertyKey, string>"
+  generic="
+  From extends Record<PropertyKey, string>,
+  To extends Record<PropertyKey, string>
+"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { Array as A, Order, pipe } from "effect-app"
@@ -30,23 +32,19 @@ export type OmegaAutoGenMeta<
 > = Omit<OmegaInputProps<From, To>, "form">
 type NewMeta = OmegaAutoGenMeta<From, To>
 
-const mapObject =
-  <K extends string, A, B>(fn: (value: A, key: K) => B) =>
-  (obj: Record<K, A>): Record<K, B> =>
-    Object.fromEntries(
-      (Object.entries(obj) as [K, A][]).map(([k, v]) => [k, fn(v, k)])
-    ) as Record<K, B> // Cast needed for Object.fromEntries
+const mapObject = <K extends string, A, B>(fn: (value: A, key: K) => B) => (obj: Record<K, A>): Record<K, B> =>
+  Object.fromEntries(
+    (Object.entries(obj) as [K, A][]).map(([k, v]) => [k, fn(v, k)])
+  ) as Record<K, B> // Cast needed for Object.fromEntries
 
 const filterRecord =
-  <K extends string, V>(predicate: (value: V, key: K) => boolean) =>
-  (obj: Record<K, V>): Record<K, V> =>
+  <K extends string, V>(predicate: (value: V, key: K) => boolean) => (obj: Record<K, V>): Record<K, V> =>
     Object.fromEntries(
       (Object.entries(obj) as [K, V][]).filter(([k, v]) => predicate(v, k))
     ) as Record<K, V>
 
 const filterMapRecord =
-  <K extends string, A, B>(fn: (value: A, key: K) => false | B) =>
-  (obj: Record<K, A>): Record<K, B> =>
+  <K extends string, A, B>(fn: (value: A, key: K) => false | B) => (obj: Record<K, A>): Record<K, B> =>
     (Object.entries(obj) as [K, A][]).reduce(
       (acc, [key, value]) => {
         const result = fn(value, key)

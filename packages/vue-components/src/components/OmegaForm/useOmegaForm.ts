@@ -106,6 +106,7 @@ export const useOmegaForm = <
 ): OmegaFormReturn<From, To> => {
   if (!schema) throw new Error("Schema is required")
   const standardSchema = S.standardSchemaV1(schema)
+  const decode = S.decode(schema)
 
   const { filterItems, meta } = generateMetaFromSchema(schema)
 
@@ -231,10 +232,12 @@ export const useOmegaForm = <
     onSubmit: tanstackFormOptions?.onSubmit
       ? ({ formApi, meta, value }) =>
         wrapWithSpan(meta?.currentSpan, async () => {
+          // validators only validate, they don't actually transform, so we have to do that manually here.
+          const parsedValue = await Effect.runPromise(decode(value))
           const r = tanstackFormOptions.onSubmit!({
             formApi: formApi as OmegaFormApi<From, To>,
             meta,
-            value: value as unknown as To
+            value: parsedValue
           })
           if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
             return await runtimeFiberAsPromise(r)

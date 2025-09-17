@@ -809,6 +809,8 @@ Effect
 
                 if (!gistId) {
                   return yield* new GistCacheNotFound({ reason: "No gist ID found in output" })
+                } else {
+                  yield* Effect.logInfo(`Found existing cache gist with ID: ${gistId}`)
                 }
 
                 // read cache gist content
@@ -816,7 +818,7 @@ Effect
                   .pipe(Effect.orElse(() => Effect.succeed("")))
 
                 const cache = yield* pipe(
-                  cacheContent,
+                  cacheContent.split(cacheGistDescription)[1]?.trim(),
                   pipe(Schema.parseJson(CacheSchema), Schema.decodeUnknown),
                   Effect.orElse(() => Effect.fail(new GistCacheNotFound({ reason: "Failed to parse cache JSON" })))
                 )

@@ -659,6 +659,12 @@ Effect
           )
         },
         Effect.fn("effa-cli.gist")(function*({ config }) {
+          if ((yield* runGetExitCode("gh --version")) !== 0) {
+            return yield* Effect.logError(
+              "GitHub CLI (gh) is not installed or not found in PATH. Please install it to use the gist command."
+            )
+          }
+
           return yield* GistHandler.handler({
             YAMLPath: config
           })

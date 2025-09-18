@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.10
+
+### Patch Changes
+
+- 0bd6311: fix props
+
 ## 0.27.9
 
 ### Patch Changes

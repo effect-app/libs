@@ -160,9 +160,6 @@ importers:
       '@effect/platform-node':
         specifier: ^0.96.1
         version: 0.96.1(@effect/cluster@0.46.4(3c06abf4be666ae03f52e0363730c93a))(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/rpc@0.69.2(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/sql@0.44.2(@effect/experimental@0.54.6(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a))
-      '@effect/schema':
-        specifier: ^0.75.5
-        version: 0.75.5(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a))
       js-yaml:
         specifier: 4.1.0
         version: 4.1.0
@@ -1235,12 +1232,6 @@ packages:
     peerDependencies:
       '@effect/platform': ^0.90.6
       effect: ^3.17.11
-
-  '@effect/schema@0.75.5':
-    resolution: {integrity: sha512-TQInulTVCuF+9EIbJpyLP6dvxbQJMphrnRqgexm/Ze39rSjfhJuufF7XvU3SxTgg3HnL7B/kpORTJbHhlE6thw==}
-    deprecated: this package has been merged into the main effect package
-    peerDependencies:
-      effect: ^3.9.2
 
   '@effect/sql@0.44.2':
     resolution: {integrity: sha512-DEcvriHvj88zu7keruH9NcHQzam7yQzLNLJO6ucDXMCAwWzYZSJOsmkxBznRFv8ylFtccSclKH2fuj+wRKPjCQ==}
@@ -7510,11 +7501,6 @@ snapshots:
     dependencies:
       '@effect/platform': 0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a))
       effect: 3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)
-
-  '@effect/schema@0.75.5(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a))':
-    dependencies:
-      effect: 3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)
-      fast-check: 4.3.0
 
   '@effect/sql@0.44.2(@effect/experimental@0.54.6(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a))':
     dependencies:

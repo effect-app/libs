@@ -95,7 +95,7 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
     ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["failure"]> | E,
-      R,
+      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
       M[K],
       `${ModuleName}.${K & string}`
     >
@@ -103,7 +103,7 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
       Omit<S.Schema.Type<M[K]>, Cruft>,
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["failure"]> | E,
-      R,
+      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
       M[K],
       `${ModuleName}.${K & string}`
     >

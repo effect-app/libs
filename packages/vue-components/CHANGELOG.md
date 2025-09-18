@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.14
+
+### Patch Changes
+
+- pass form
+
 ## 0.27.13
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.11
+
+### Patch Changes
+
+- d110b30: m
+
 ## 0.27.10
 
 ### Patch Changes

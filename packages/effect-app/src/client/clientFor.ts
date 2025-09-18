@@ -91,40 +91,20 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true ?
-      & RequestHandler<
-        S.Schema.Type<M[K]["success"]>,
-        S.Schema.Type<M[K]["failure"]> | E,
-        R,
-        M[K],
-        `${ModuleName}.${K & string}`
-      >
-      & {
-        raw: RequestHandler<
-          S.Schema.Encoded<M[K]["success"]>,
-          S.Schema.Type<M[K]["failure"]> | E,
-          R,
-          M[K],
-          `${ModuleName}.${K & string}`
-        >
-      }
-    :
-      & RequestHandlerWithInput<
-        Omit<S.Schema.Type<M[K]>, Cruft>,
-        S.Schema.Type<M[K]["success"]>,
-        S.Schema.Type<M[K]["failure"]> | E,
-        R,
-        M[K],
-        `${ModuleName}.${K & string}`
-      >
-      & {
-        raw: RequestHandlerWithInput<
-          Omit<S.Schema.Type<M[K]>, Cruft>,
-          S.Schema.Encoded<M[K]["success"]>,
-          S.Schema.Type<M[K]["failure"]> | E,
-          R,
-          M[K],
-          `${ModuleName}.${K & string}`
-        >
-      }
+  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
+    ? RequestHandler<
+      S.Schema.Type<M[K]["success"]>,
+      S.Schema.Type<M[K]["failure"]> | E,
+      R,
+      M[K],
+      `${ModuleName}.${K & string}`
+    >
+    : RequestHandlerWithInput<
+      Omit<S.Schema.Type<M[K]>, Cruft>,
+      S.Schema.Type<M[K]["success"]>,
+      S.Schema.Type<M[K]["failure"]> | E,
+      R,
+      M[K],
+      `${ModuleName}.${K & string}`
+    >
 }

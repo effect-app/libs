@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.13
+
+### Patch Changes
+
+- d094661: able to set input
+
 ## 0.27.12
 
 ### Patch Changes

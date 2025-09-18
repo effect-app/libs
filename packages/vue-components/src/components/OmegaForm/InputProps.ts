@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DeepKeys, DeepValue, FieldApi, FieldAsyncValidateOrFn, FieldValidateAsyncFn, FieldValidateFn, FieldValidateOrFn, FormAsyncValidateOrFn, FormValidateOrFn, StandardSchemaV1 } from "@tanstack/vue-form"
-import { type TypeOverride } from "./OmegaFormStuff"
 
 export type OmegaFieldInternalApi<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = FieldApi<
   /* in out TParentData*/ From,
@@ -41,7 +40,7 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
   error: boolean
   field: OmegaFieldInternalApi<From, TName>
   setRealDirty: () => void
-  type: TypeOverride | "unknown"
+  type: string
   label: string
   options?: { title: string; value: string }[]
 }

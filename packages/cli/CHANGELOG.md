@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.26.1
+
+### Patch Changes
+
+- d1a6901: check gh presence
+
 ## 1.26.0
 
 ### Minor Changes

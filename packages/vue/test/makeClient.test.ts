@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Effect } from "effect-app"
-import { Something, useClient } from "./stubs.js"
+import { Something, useClient, useExperimental } from "./stubs.js"
 
 it.skip("works", () => {
   const { clientFor, legacy } = useClient()
   const client = clientFor(Something)
+  const Command = useExperimental()
 
   // just for jsdoc / type testing.
   const a0 = client.GetSomething2(null as any)
@@ -21,9 +22,13 @@ it.skip("works", () => {
 
   // @ts-expect-error dependencies required that are not provided
   const e0 = client.GetSomething2WithDependencies.wrap().handle // not available as we require dependencies not provided by the runtime
+  // @ts-expect-error dependencies required that are not provided
+  const e000 = Command.wrap(client.GetSomething2WithDependencies)().handle // not available as we require dependencies not provided by the runtime
   const e00 = client.GetSomething2WithDependencies.wrap((_) => _ as Effect.Effect<number, never, never>).handle(
     null as any
   )
+  const e0000 =
+    Command.wrap(client.GetSomething2WithDependencies)((_) => _ as Effect.Effect<number, never, never>).handle
   // @ts-expect-error dependencies required that are not provided
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)
   // @ts-expect-error dependencies required that are not provided
@@ -45,6 +50,8 @@ it.skip("works", () => {
     e,
     e0,
     e00,
+    e000,
+    e0000,
     e1,
     e2,
     f,

@@ -66,11 +66,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
-import { computed, getCurrentInstance, onBeforeMount, watch } from "vue"
+import { computed, getCurrentInstance, onBeforeMount, provide, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
-import { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
+import { type OmegaConfig, OmegaFormKey, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
 type OnSubmit = NonNullable<FormProps<From, To>["onSubmit"]>
 type OnSubmitArg = Parameters<OnSubmit>[0]
@@ -278,6 +278,8 @@ defineSlots<{
   // Named slot when form is passed via props (provides subscribedValues)
   externalForm(props: { subscribedValues: typeof subscribedValues.value }): void
 }>()
+
+provide(OmegaFormKey, formToUse.value)
 </script>
 
 <style scoped>

@@ -2,7 +2,8 @@
 import * as Result from "@effect-atom/atom/Result"
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, type Exit, Option } from "effect-app"
-import type { ClientForOptions, RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import { type Req } from "effect-app/client"
+import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
 import { computed, type ComputedRef, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
@@ -202,7 +203,7 @@ export const makeMutation = () => {
      * Pass a function that returns an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <I, E, A, R, Request extends TaggedRequestClassAny, Id extends string>(
+    <I, E, A, R, Request extends Req, Id extends string>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Id>,
       options?: MutationOptionsBase
     ): ((i: I) => Effect.Effect<A, E, R>) & { readonly id: Id }
@@ -210,11 +211,11 @@ export const makeMutation = () => {
      * Pass an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <E, A, R, Request extends TaggedRequestClassAny, Id extends string>(
+    <E, A, R, Request extends Req, Id extends string>(
       self: RequestHandler<A, E, R, Request, Id>,
       options?: MutationOptionsBase
     ): Effect.Effect<A, E, R> & { readonly id: Id }
-  } = <I, E, A, R, Request extends TaggedRequestClassAny, Id extends string>(
+  } = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
     options?: MutationOptionsBase
   ) => {
@@ -237,7 +238,7 @@ export const useMakeMutation = () => {
      * Pass a function that returns an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <I, E, A, R, Request extends TaggedRequestClassAny, Id extends string>(
+    <I, E, A, R, Request extends Req, Id extends string>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Id>,
       options?: MutationOptionsBase
     ): ((i: I) => Effect.Effect<A, E, R>) & { readonly id: Id }
@@ -245,11 +246,11 @@ export const useMakeMutation = () => {
      * Pass an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <E, A, R, Request extends TaggedRequestClassAny, Id extends string>(
+    <E, A, R, Request extends Req, Id extends string>(
       self: RequestHandler<A, E, R, Request, Id>,
       options?: MutationOptionsBase
     ): Effect.Effect<A, E, R> & { readonly id: Id }
-  } = <I, E, A, R, Request extends TaggedRequestClassAny, Id extends string>(
+  } = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
     options?: MutationOptionsBase
   ) => {

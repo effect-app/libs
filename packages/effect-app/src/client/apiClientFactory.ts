@@ -30,7 +30,7 @@ export const DefaultApiConfig = Config.all({
     .pipe(Config.option)
 })
 
-type Req = S.Schema.All & {
+export type Req = S.Schema.All & {
   new(...args: any[]): any
   _tag: string
   fields: S.Struct.Fields

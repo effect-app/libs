@@ -3,8 +3,8 @@ import * as Result from "@effect-atom/atom/Result"
 import { type InitialDataFunction, type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
 import { Cause, Effect, Exit, type ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
-import { type ApiClientFactory } from "effect-app/client"
-import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import { type ApiClientFactory, type Req } from "effect-app/client"
+import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
 import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
@@ -133,7 +133,7 @@ declare const useQuery_: QueryImpl<any>["useQuery"]
 // eslint-disable-next-line unused-imports/no-unused-vars
 declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
 
-export interface QueriesWithInput<Request extends TaggedRequestClassAny, Id extends string, I, A, E> {
+export interface QueriesWithInput<Request extends Req, Id extends string, I, A, E> {
   /**
    * Effect results are passed to the caller, including errors.
    */
@@ -146,7 +146,7 @@ export interface QueriesWithInput<Request extends TaggedRequestClassAny, Id exte
    */
   suspense: ReturnType<typeof useSuspenseQuery_<I, E, A, Request, Id>>
 }
-export interface QueriesWithoutInput<Request extends TaggedRequestClassAny, Id extends string, A, E> {
+export interface QueriesWithoutInput<Request extends Req, Id extends string, A, E> {
   /**
    * Effect results are passed to the caller, including errors.
    */
@@ -340,7 +340,7 @@ export const useMutation: typeof _useMutation = <
   E,
   A,
   R,
-  Request extends TaggedRequestClassAny,
+  Request extends Req,
   Name extends string
 >(
   self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
@@ -366,7 +366,7 @@ export const useMutationInt = (): typeof _useMutation => {
     E,
     A,
     R,
-    Request extends TaggedRequestClassAny,
+    Request extends Req,
     Name extends string
   >(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
@@ -399,7 +399,7 @@ export class LegacyMutationImpl<RT> {
      * you should use the result ref to render errors!
      * @deprecated use `Command.fn` and friends instead
      */
-    <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+    <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
@@ -411,14 +411,14 @@ export class LegacyMutationImpl<RT> {
      * you should use the result ref to render errors!
      * @deprecated use `Command.fn` and friends instead
      */
-    <E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+    <E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
       ComputedRef<Result.Result<A2, E2>>,
       Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
-  } = <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+  } = <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) => {
@@ -589,7 +589,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -614,7 +614,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -630,7 +630,7 @@ export class LegacyMutationImpl<RT> {
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
     ): ActResp<A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
-  } = <E extends ResponseErrors, A, R, Request extends TaggedRequestClassAny, Name extends string, I>(
+  } = <E extends ResponseErrors, A, R, Request extends Req, Name extends string, I>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
     action: any,
     options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
@@ -682,7 +682,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -708,7 +708,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -753,7 +753,7 @@ export class LegacyMutationImpl<RT> {
         E extends ResponseErrors,
         A,
         R,
-        Request extends TaggedRequestClassAny,
+        Request extends Req,
         Name extends string,
         A2 = A,
         E2 extends ResponseErrors = E,
@@ -773,7 +773,7 @@ export class LegacyMutationImpl<RT> {
         E extends ResponseErrors,
         A,
         R,
-        Request extends TaggedRequestClassAny,
+        Request extends Req,
         Name extends string,
         A2 = A,
         E2 extends ResponseErrors = E,
@@ -807,7 +807,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -832,7 +832,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -870,7 +870,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -895,7 +895,7 @@ export class LegacyMutationImpl<RT> {
       E extends ResponseErrors,
       A,
       R,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string,
       A2 = A,
       E2 extends ResponseErrors = E,
@@ -953,7 +953,7 @@ export class LegacyMutationImpl<RT> {
      * you should use the result ref to render errors!
      * @deprecated use `Command.fn` and friends instead
      */
-    <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+    <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
@@ -965,14 +965,14 @@ export class LegacyMutationImpl<RT> {
      * you should use the result ref to render errors!
      * @deprecated use `Command.fn` and friends instead
      */
-    <E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+    <E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
       self: RequestHandler<A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
       ComputedRef<Res<A, E>>,
       Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
-  } = <I, E, A, R, Request extends TaggedRequestClassAny, Name extends string, A2 = A, E2 = E, R2 = R>(
+  } = <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
     options?: MutationOptions<A, E, R, A2, E2, R2, I>
   ) => {
@@ -1090,7 +1090,7 @@ export class QueryImpl<R> {
     <
       E,
       A,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string
     >(
       self: RequestHandler<A, E, R, Request, Name>
@@ -1139,7 +1139,7 @@ export class QueryImpl<R> {
       Arg,
       E,
       A,
-      Request extends TaggedRequestClassAny,
+      Request extends Req,
       Name extends string
     >(
       self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
@@ -1178,7 +1178,7 @@ export class QueryImpl<R> {
         ]
       >
     }
-  } = <Arg, E, A, Request extends TaggedRequestClassAny, Name extends string>(
+  } = <Arg, E, A, Request extends Req, Name extends string>(
     self: RequestHandlerWithInput<Arg, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
   ) => {
     const runPromise = Runtime.runPromise(this.getRuntime())

@@ -7,6 +7,7 @@ import type { Path } from "path-parser"
 import qs from "query-string"
 import type * as Effect from "../Effect.js"
 import type * as S from "../Schema.js"
+import { type Req } from "./apiClientFactory.js"
 
 export function makePathWithQuery(
   path: Path,
@@ -70,39 +71,22 @@ type IsEmpty<T> = keyof T extends never ? true
 
 type Cruft = "_tag" | Request.RequestTypeId | typeof S.symbolSerializable | typeof S.symbolWithResult
 
-export type TaggedRequestClassAny = S.Schema.Any & {
-  readonly _tag: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly success: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly failure: any
-}
-
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
 }
 
-export interface RequestHandler<A, E, R, Request extends TaggedRequestClassAny, Id extends string> {
+export interface RequestHandler<A, E, R, Request extends Req, Id extends string> {
   handler: Effect.Effect<A, E, R>
   id: Id
   options?: ClientForOptions
   Request: Request
 }
 
-export interface RequestHandlerWithInput<I, A, E, R, Request extends TaggedRequestClassAny, Id extends string> {
+export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
   handler: (i: I) => Effect.Effect<A, E, R>
   id: Id
   options?: ClientForOptions
   Request: Request
-}
-
-type Req = {
-  new(...args: any[]): any
-  _tag: string
-  fields: S.Struct.Fields
-  success: S.Schema.All
-  failure: S.Schema.All
-  config?: Record<string, any>
 }
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
@@ -117,7 +101,7 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
       >
       & {
         raw: RequestHandler<
-          S.Schema.Type<M[K]["success"]>,
+          S.Schema.Encoded<M[K]["success"]>,
           S.Schema.Type<M[K]["failure"]> | E,
           R,
           M[K],

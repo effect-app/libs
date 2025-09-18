@@ -34,7 +34,7 @@ export class GistEntry extends Schema.Class<GistEntry>("GistEntry")({
  * would result in the same file_name when flattened to the gist structure.
  *
  * @example
- * // These paths would collide in a gist:
+ * // These paths would collide in a gist
  * ["src/config.json", "dist/config.json"] // Both become "config.json"
  *
  * @see {@link https://docs.github.com/articles/creating-gists | GitHub Gist Documentation}
@@ -271,7 +271,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
         is_public: boolean
         cache: GistCache
       }) {
-        yield* Effect.logInfo(`Creating gist: ${gist_name} with ${files.length} file(s)`)
+        yield* Effect.logInfo(`Creating gist ${gist_name} with ${files.length} file(s)`)
 
         const ghCommand = [
           "gh",
@@ -327,7 +327,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
         gist_name: string
         file_name: string
       }) {
-        yield* Effect.logInfo(`Removing file from gist: ${gist_name}`)
+        yield* Effect.logInfo(`Removing file ${file_name} from gist ${gist_name}`)
         return yield* runGetExitCodeSuppressed(`gh gist edit ${gist_id} --remove "${file_name}"`)
       }
     )
@@ -339,7 +339,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
         file_name: string
         file_path: string
       }) {
-        yield* Effect.logInfo(`Updating file ${file_name} located at ${file_path} of gist: ${gist_name}`)
+        yield* Effect.logInfo(`Updating file ${file_name} located at ${file_path} of gist ${gist_name}`)
         const editCommand = [
           "gh",
           "gist",
@@ -461,7 +461,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
         for (const [name, gistConfig] of Object.entries(config.gists)) {
           const { description, files_with_name, public: is_public } = gistConfig
 
-          yield* Effect.logInfo(`Processing gist: ${name}`)
+          yield* Effect.logInfo(`Processing gist ${name}`)
 
           const filesOnDiskWithFullPath = yield* Effect
             .all(
@@ -492,7 +492,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
           // if the gist's name exists in cache, update the existing gist
           // otherwise, create a new gist and update the local cache
           if (fromCache) {
-            yield* Effect.logInfo(`Updating existing gist: ${fromCache.name} (ID: ${fromCache.id})`)
+            yield* Effect.logInfo(`Updating existing gist ${fromCache.name} (ID: ${fromCache.id})`)
 
             // get current files in the gist to detect removed files
             const gistFileNames = yield* GH.getGistFileNames({
@@ -534,7 +534,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
                 })
               })
             } else {
-              yield* Effect.logWarning(`No valid files found for gist: ${name}, skipping creation...`)
+              yield* Effect.logWarning(`No valid files found for gist ${name}, skipping creation...`)
             }
           }
 

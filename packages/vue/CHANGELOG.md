@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.80.0
+
+### Minor Changes
+
+- 3cb4c4a: simplify requests/client, drop raw for now, fix missing schema context in request handlers
+
+### Patch Changes
+
+- Updated dependencies [3cb4c4a]
+  - effect-app@3.8.0
+
 ## 2.79.2
 
 ### Patch Changes

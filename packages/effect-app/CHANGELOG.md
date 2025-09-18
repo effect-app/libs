@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.8.0
+
+### Minor Changes
+
+- 3cb4c4a: simplify requests/client, drop raw for now, fix missing schema context in request handlers
+
 ## 3.7.1
 
 ### Patch Changes

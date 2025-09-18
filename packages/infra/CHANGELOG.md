@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 3.2.2
+
+### Patch Changes
+
+- Updated dependencies [3cb4c4a]
+  - effect-app@3.8.0
+
 ## 3.2.1
 
 ### Patch Changes

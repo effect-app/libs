@@ -204,7 +204,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
           if (!gist_id) {
             return yield* new GistCacheNotFound({ reason: "No gist ID found in output" })
           } else {
-            yield* Effect.logInfo(`Found existing cache gist with ID: ${gist_id}`)
+            yield* Effect.logInfo(`Found existing cache gist with ID ${gist_id}`)
           }
 
           // read cache gist content
@@ -241,7 +241,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
               Option.match({
                 onNone: () => Effect.dieMessage(`Could not extract cache's gist ID from URL: ${gistUrl}`),
                 onSome: (id) =>
-                  Effect.succeed(id).pipe(Effect.tap(Effect.logInfo(`Created new cache gist with ID: ${id}`)))
+                  Effect.succeed(id).pipe(Effect.tap(Effect.logInfo(`Created new cache gist with ID ${id}`)))
               })
             )
 
@@ -301,7 +301,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
                     entries: [...cache.entries, { name: gist_name, id }]
                   })
                 )
-                .pipe(Effect.tap(Effect.logInfo(`Created gist with ID: ${id}`)))
+                .pipe(Effect.tap(Effect.logInfo(`Created gist with ID ${id}`)))
           })
         )
       }
@@ -312,7 +312,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
         gist_id: string
         gist_name: string
       }) {
-        yield* Effect.logInfo(`Retrieving file names from gist ${gist_name} with ID: ${gist_id}`)
+        yield* Effect.logInfo(`Retrieving file names from gist ${gist_name} with ID ${gist_id}`)
         const output = yield* runGetStringSuppressed(`gh gist view ${gist_id} --files`)
         return output
           .trim()
@@ -355,6 +355,27 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
       }
     )
 
+    const addFileToGist = Effect.fn("addFileToGist")(
+      function*({ file_path, gist_id, gist_name }: {
+        gist_id: string
+        gist_name: string
+        file_path: string
+      }) {
+        yield* Effect.logInfo(`Adding file ${file_path} to gist ${gist_name}`)
+        const editCommand = [
+          "gh",
+          "gist",
+          "edit",
+          gist_id,
+          "-a",
+          `"${file_path}"`
+        ]
+          .join(" ")
+
+        return yield* runGetExitCodeSuppressed(editCommand)
+      }
+    )
+
     return {
       /**
        * Loads the gist cache from GitHub, containing mappings of YAML configuration names to gist IDs.
@@ -363,6 +384,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
        * @returns An Effect that yields a GistCache containing the loaded cache entries and cache gist ID
        */
       loadGistCache,
+
       /**
        * Saves the current gist cache state to the GitHub cache gist.
        * Updates the existing cache gist with the current mappings of names to gist IDs.
@@ -371,6 +393,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
        * @returns An Effect that succeeds when the cache is successfully saved
        */
       saveGistCache,
+
       /**
        * Creates a new GitHub gist with the specified files and updates the local cache.
        * Generates a GitHub CLI command to create the gist and extracts the resulting gist ID.
@@ -383,6 +406,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
        * @returns An Effect that yields an updated GistCache with the new gist entry
        */
       createGistWithFiles,
+
       /**
        * Retrieves file names from a GitHub gist.
        * Fetches the list of files contained in the specified gist.
@@ -410,7 +434,16 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
        * @param file_path - The local path of the file to update in the gist
        * @returns An Effect that succeeds when the file is updated
        */
-      updateFileOfGist
+      updateFileOfGist,
+
+      /**
+       * Adds a new file to a specified GitHub gist.
+       * @param gist_id - The ID of the gist to modify
+       * @param gist_name - The human-readable name of the gist (for logging purposes)
+       * @param file_path - The local path of the file to add to the gist
+       * @returns An Effect that succeeds when the file is added
+       */
+      addFileToGist
     }
   })
 }) {}
@@ -487,18 +520,20 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
             )
             .pipe(Effect.map(Array.getSomes))
 
-          const fromCache = (yield* SynchronizedRef.get(cache)).entries.find((_) => _.name === name)
+          const gistFromCache = (yield* SynchronizedRef.get(cache)).entries.find((_) => _.name === name)
 
           // if the gist's name exists in cache, update the existing gist
           // otherwise, create a new gist and update the local cache
-          if (fromCache) {
-            yield* Effect.logInfo(`Updating existing gist ${fromCache.name} (ID: ${fromCache.id})`)
+          if (gistFromCache) {
+            yield* Effect.logInfo(`Updating existing gist ${gistFromCache.name} with ID ${gistFromCache.id}`)
 
             // get current files in the gist to detect removed files
-            const gistFileNames = yield* GH.getGistFileNames({
-              gist_id: fromCache.id,
-              gist_name: fromCache.name
-            })
+            const gistFileNames = new Set(
+              yield* GH.getGistFileNames({
+                gist_id: gistFromCache.id,
+                gist_name: gistFromCache.name
+              })
+            )
 
             const expectedFiles = new Set(filesOnDiskWithFullPath.map(({ name }) => name))
 
@@ -506,8 +541,8 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
             for (const gf of gistFileNames) {
               if (!expectedFiles.has(gf)) {
                 yield* GH.removeFileFromGist({
-                  gist_id: fromCache.id,
-                  gist_name: fromCache.name,
+                  gist_id: gistFromCache.id,
+                  gist_name: gistFromCache.name,
                   file_name: gf
                 })
               }
@@ -515,12 +550,20 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
 
             // update/add files from configuration
             for (const f of filesOnDiskWithFullPath) {
-              yield* GH.updateFileOfGist({
-                gist_id: fromCache.id,
-                gist_name: fromCache.name,
-                file_name: f.name,
-                file_path: f.path
-              })
+              if (gistFileNames.has(f.name)) {
+                yield* GH.updateFileOfGist({
+                  gist_id: gistFromCache.id,
+                  gist_name: gistFromCache.name,
+                  file_name: f.name,
+                  file_path: f.path
+                })
+              } else {
+                yield* GH.addFileToGist({
+                  gist_id: gistFromCache.id,
+                  gist_name: gistFromCache.name,
+                  file_path: f.path
+                })
+              }
             }
           } else {
             if (filesOnDiskWithFullPath.length !== 0) {
@@ -552,7 +595,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
                 const cacheEntry = newEntries[i]
                 if (cacheEntry && !configGistNames.has(cacheEntry.name)) {
                   yield* Effect.logInfo(
-                    `Obsolete gist ${cacheEntry.name} with ID: ${cacheEntry.id}) will be removed from cache`
+                    `Obsolete gist ${cacheEntry.name} with ID ${cacheEntry.id}) will be removed from cache`
                   )
                   newEntries.splice(i, 1)
                 }

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.1
+
+### Patch Changes
+
+- 75d3a8a: fix: don't allow running when runtime does not provide required dependencies
+
 ## 2.80.0
 
 ### Minor Changes

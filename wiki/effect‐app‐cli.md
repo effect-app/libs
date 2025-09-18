@@ -27,6 +27,7 @@ node packages/cli/dist/index.js effa <command>
 | `effa index-multi` | Monitor controller and index files for auto-eslint fixes |
 | `effa packagejson` | Generate and monitor export mappings for root package.json |
 | `effa packagejson-packages` | Generate and monitor export mappings for all packages |
+| `effa gist` | Create GitHub gists from files specified in YAML configuration |
 | `effa nuke` | Nuclear cleanup - remove all generated files and directories |
 
 ## Available Commands
@@ -173,6 +174,70 @@ pnpm effa nuke --store-prune
 ```
 
 **⚠️ Warning:** This command permanently deletes files and directories. Use `--dry-run` first to preview the cleanup.
+
+### `effa gist` - GitHub Gist Management
+
+Creates and manages GitHub gists from files specified in YAML configuration.
+
+```bash
+pnpm effa gist [options]
+```
+
+**Options:**
+- `--config <path>`: Path to YAML configuration file (default: `gists.yaml`)
+
+**Environment Variables:**
+- `GIST_GITHUB_TOKEN`: GitHub Personal Access Token with gist permissions
+
+**Example Usage:**
+```bash
+# Using default config file (gists.yaml)
+GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist
+
+# Using custom config file
+GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist --config my-gists.yaml
+```
+
+**YAML Configuration Format:**
+```yaml
+settings:
+  base_directory: "/path/to/your/files"
+  token_env: "GIST_GITHUB_TOKEN"
+
+gists:
+  my-config:
+    description: "My project configuration files"
+    public: false
+    files:
+      - "package.json"
+      - "tsconfig.json"
+      - ".eslintrc.js"
+
+  shared-utils:
+    description: "Utility functions and helpers"
+    public: true
+    files:
+      - "src/utils/helpers.ts"
+      - "src/types/common.ts"
+```
+
+**What it does:**
+1. **Smart Updates**:
+   - Creates new gists for new entries
+   - Updates existing gists when files change
+   - Removes files from gists when removed from config
+2. **File Processing**:
+   - Validates all files exist before processing
+   - Logs warnings for missing files
+   - Uses GitHub CLI (`gh`) for all gist operations
+3. **GitHub Integration**:
+   - Supports both public and private gists
+   - Handles file name collisions (GitHub gists have flat structure)
+
+**Requirements:**
+- GitHub CLI (`gh`) installed and configured
+- GitHub Personal Access Token with gist scope
+- YAML configuration file with proper structure
 
 ## Wrap Functionality
 

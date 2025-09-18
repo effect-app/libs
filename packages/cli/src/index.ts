@@ -2,13 +2,15 @@
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
 import { Args, Command, Options, Prompt } from "@effect/cli"
-import { Command as NodeCommand, FileSystem, Path } from "@effect/platform"
+import { FileSystem, Path } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
 
 import { type CommandExecutor } from "@effect/platform/CommandExecutor"
 import { type PlatformError } from "@effect/platform/Error"
-import { Effect, identity, Option, Stream, type Types } from "effect"
+import { Effect, Layer, Option, Stream, type Types } from "effect"
 import { ExtractExportMappingsService } from "./extract.js"
+import { GistHandler } from "./gist.js"
+import { RunCommandService } from "./os-command.js"
 import { packages } from "./shared.js"
 
 Effect
@@ -16,60 +18,9 @@ Effect
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const extractExportMappings = yield* ExtractExportMappingsService
+    const { runGetExitCode } = yield* RunCommandService
 
     yield* Effect.addFinalizer(() => Effect.logInfo(`CLI has finished executing`))
-
-    /**
-     * Executes a shell command using Node.js Command API with inherited stdio streams.
-     * The command is run through the system shell (/bin/sh) for proper command parsing.
-     *
-     * @param cmd - The shell command to execute
-     * @param cwd - Optional working directory to execute the command in
-     * @returns An Effect that succeeds with the exit code or fails with a PlatformError
-     */
-    const runNodeCommandEC = (cmd: string, cwd?: string) =>
-      NodeCommand
-        .make("sh", "-c", cmd)
-        .pipe(
-          NodeCommand.stdout("inherit"),
-          NodeCommand.stderr("inherit"),
-          cwd ? NodeCommand.workingDirectory(cwd) : identity,
-          NodeCommand.exitCode
-        )
-
-    // /**
-    //  * Executes a shell command using Node.js Command API and captures output as string.
-    //  * The command is run through the system shell (/bin/sh) for proper command parsing.
-    //  *
-    //  * @param cmd - The shell command to execute
-    //  * @param cwd - Optional working directory to execute the command in
-    //  * @returns An Effect that succeeds with the command output or fails with a PlatformError
-    //  */
-    // const runNodeCommand = (cmd: string, cwd?: string) =>
-    //   NodeCommand
-    //     .make("sh", "-c", cmd)
-    //     .pipe(
-    //       cwd ? NodeCommand.workingDirectory(cwd) : identity,
-    //       NodeCommand.string
-    //     )
-
-    /**
-     * Executes a bash script file using Node.js Command API with inherited stdio streams.
-     * The script file is executed directly through the shell (/bin/sh).
-     *
-     * @param file - The path to the bash script file to execute
-     * @param cwd - Optional working directory to execute the script in
-     * @returns An Effect that succeeds with the output or fails with a PlatformError
-     */
-    // const runBashFile = (file: string, cwd?: string) =>
-    //   NodeCommand
-    //     .make("sh", file)
-    //     .pipe(
-    //       NodeCommand.stdout("inherit"),
-    //       NodeCommand.stderr("inherit"),
-    //       cwd ? NodeCommand.workingDirectory(cwd) : identity,
-    //       NodeCommand.string
-    //     )
 
     /**
      * Updates effect-app packages to their latest versions using npm-check-updates.
@@ -78,8 +29,8 @@ Effect
     const updateEffectAppPackages = Effect.fn("effa-cli.ue.updateEffectAppPackages")(function*() {
       const filters = ["effect-app", "@effect-app/*"]
       for (const filter of filters) {
-        yield* runNodeCommandEC(`pnpm exec ncu -u --filter "${filter}"`)
-        yield* runNodeCommandEC(`pnpm -r exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm -r exec ncu -u --filter "${filter}"`)
       }
     })()
 
@@ -91,8 +42,8 @@ Effect
     const updateEffectPackages = Effect.fn("effa-cli.ue.updateEffectPackages")(function*() {
       const effectFilters = ["effect", "@effect/*", "@effect-atom/*"]
       for (const filter of effectFilters) {
-        yield* runNodeCommandEC(`pnpm exec ncu -u --filter "${filter}"`)
-        yield* runNodeCommandEC(`pnpm -r exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm -r exec ncu -u --filter "${filter}"`)
       }
     })()
 
@@ -121,8 +72,8 @@ Effect
       yield* Effect.logInfo(`Excluding packages from update: ${allRejects.join(", ")}`)
       const rejectArgs = allRejects.map((filter) => `--reject "${filter}"`).join(" ")
 
-      yield* runNodeCommandEC(`pnpm exec ncu -u ${rejectArgs}`)
-      yield* runNodeCommandEC(`pnpm -r exec ncu -u ${rejectArgs}`)
+      yield* runGetExitCode(`pnpm exec ncu -u ${rejectArgs}`)
+      yield* runGetExitCode(`pnpm -r exec ncu -u ${rejectArgs}`)
     })()
 
     /**
@@ -156,7 +107,7 @@ Effect
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
       yield* Effect.logInfo("Updated package.json with local file resolutions")
 
-      yield* runNodeCommandEC("pnpm i")
+      yield* runGetExitCode("pnpm i")
 
       yield* Effect.logInfo("Successfully linked local packages")
     })
@@ -189,7 +140,7 @@ Effect
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
       yield* Effect.logInfo("Removed effect-app file resolutions from package.json")
 
-      yield* runNodeCommandEC("pnpm i")
+      yield* runGetExitCode("pnpm i")
       yield* Effect.logInfo("Successfully unlinked local packages")
     })()
 
@@ -236,7 +187,7 @@ Effect
                     )
 
                     const eslintArgs = existingFiles.map((f) => `"../${f}"`).join(" ")
-                    yield* runNodeCommandEC(`cd api && pnpm eslint --fix ${eslintArgs}`)
+                    yield* runGetExitCode(`cd api && pnpm eslint --fix ${eslintArgs}`)
                     break
                   }
                   i++
@@ -276,7 +227,7 @@ Effect
 
                 yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
 
-                yield* runNodeCommandEC(`pnpm eslint --fix "${indexFile}"`)
+                yield* runGetExitCode(`pnpm eslint --fix "${indexFile}"`)
               })
             )
           )
@@ -499,7 +450,7 @@ Effect
               : wrapOption.value
 
             yield* Effect.logInfo(`Spawning child command: ${val}`)
-            yield* runNodeCommandEC(val)
+            yield* runGetExitCode(val)
           }
 
           return
@@ -567,17 +518,17 @@ Effect
           switch (prompted) {
             case "effect-app":
               return yield* updateEffectAppPackages.pipe(
-                Effect.andThen(runNodeCommandEC("pnpm i"))
+                Effect.andThen(runGetExitCode("pnpm i"))
               )
 
             case "effect":
               return yield* updateEffectPackages.pipe(
-                Effect.andThen(runNodeCommandEC("pnpm i"))
+                Effect.andThen(runGetExitCode("pnpm i"))
               )
             case "both":
               return yield* updateEffectPackages.pipe(
                 Effect.andThen(updateEffectAppPackages),
-                Effect.andThen(runNodeCommandEC("pnpm i"))
+                Effect.andThen(runGetExitCode("pnpm i"))
               )
           }
         })
@@ -592,7 +543,7 @@ Effect
           yield* Effect.logInfo("Updating all packages except Effect/Effect-App ecosystem packages...")
 
           return yield* updatePackages.pipe(
-            Effect.andThen(runNodeCommandEC("pnpm i"))
+            Effect.andThen(runGetExitCode("pnpm i"))
           )
         })
       )
@@ -698,6 +649,23 @@ Effect
         Command.withDescription("Generate and update package.json exports mappings for all packages in monorepo")
       )
 
+    const gist = Command
+      .make(
+        "gist",
+        {
+          config: Options.file("config").pipe(
+            Options.withDefault("gists.yaml"),
+            Options.withDescription("Path to YAML configuration file")
+          )
+        },
+        Effect.fn("effa-cli.gist")(function*({ config }) {
+          return yield* GistHandler.handler({
+            YAMLPath: config
+          })
+        })
+      )
+      .pipe(Command.withDescription("Create GitHub gists from files specified in YAML configuration"))
+
     const nuke = Command
       .make(
         "nuke",
@@ -713,16 +681,16 @@ Effect
           yield* Effect.logInfo(dryRun ? "Performing dry run cleanup..." : "Performing nuclear cleanup...")
 
           if (dryRun) {
-            yield* runNodeCommandEC(
+            yield* runGetExitCode(
               "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -print \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -print \\)"
             )
           } else {
-            yield* runNodeCommandEC(
+            yield* runGetExitCode(
               "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -exec rm -rf -- {} + \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -delete \\)"
             )
 
             if (storePrune) {
-              yield* runNodeCommandEC(
+              yield* runGetExitCode(
                 "pnpm store prune"
               )
             }
@@ -745,6 +713,7 @@ Effect
           indexMulti,
           packagejson,
           packagejsonPackages,
+          gist,
           nuke
         ])),
       {
@@ -757,6 +726,14 @@ Effect
   })()
   .pipe(
     Effect.scoped,
-    Effect.provide(NodeContext.layer),
+    Effect.provide(
+      Layer.provideMerge(
+        Layer.merge(
+          GistHandler.Default,
+          RunCommandService.Default
+        ),
+        NodeContext.layer
+      )
+    ),
     NodeRuntime.runMain
   )

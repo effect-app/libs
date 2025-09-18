@@ -1,0 +1,20 @@
+gists:
+  "cli-config":
+    description: "Package configuration and main source for Effect-App CLI"
+    public: false
+    files:
+      - "package.json"
+      - "packages/cli/src/index.ts"
+
+  "test-files":
+    description: "Test YAML files for gist functionality"
+    public: false
+    files:
+      - "gists.yaml"
+
+settings:
+  # GitHub token environment variable name
+  token_env: "GIST_GITHUB_TOKEN"
+
+  # Base directory for files (relative to where the CLI is run)
+  base_directory: "."

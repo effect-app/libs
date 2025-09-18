@@ -11,9 +11,11 @@
   "dependencies": {
     "@effect/cli": "^0.69.2",
     "@effect/platform-node": "^0.96.1",
+    "js-yaml": "4.1.0",
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "~24.5.1",
     "json5": "^2.2.3",
     "typescript": "~5.9.2",
@@ -37,25 +39,17 @@
       "types": "./dist/extract.d.ts",
       "default": "./dist/extract.js"
     },
-    "./link": {
-      "types": "./dist/link.d.ts",
-      "default": "./dist/link.js"
+    "./gist": {
+      "types": "./dist/gist.d.ts",
+      "default": "./dist/gist.js"
     },
-    "./old": {
-      "types": "./dist/old.d.ts",
-      "default": "./dist/old.js"
+    "./os-command": {
+      "types": "./dist/os-command.d.ts",
+      "default": "./dist/os-command.js"
     },
     "./shared": {
       "types": "./dist/shared.d.ts",
       "default": "./dist/shared.js"
-    },
-    "./sync": {
-      "types": "./dist/sync.d.ts",
-      "default": "./dist/sync.js"
-    },
-    "./unlink": {
-      "types": "./dist/unlink.d.ts",
-      "default": "./dist/unlink.js"
     }
   },
   "scripts": {

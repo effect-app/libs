@@ -9,8 +9,10 @@ import path from "path"
 import { RunCommandService } from "./os-command.js"
 
 //
+//
 // Schemas
 //
+
 export class GistEntry extends Schema.Class<GistEntry>("GistEntry")({
   description: Schema.String,
   public: Schema.Boolean,
@@ -134,6 +136,7 @@ export class GistCache {
 }
 
 //
+//
 // Errors
 //
 class GistCacheNotFound extends Data.TaggedError("GistCacheNotFound")<{
@@ -144,6 +147,7 @@ class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
   readonly reason: string
 }> {}
 
+//
 //
 // Services
 //
@@ -410,10 +414,6 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
     }
   })
 }) {}
-
-//
-// Handler
-//
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {

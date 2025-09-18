@@ -39,25 +39,17 @@
       "types": "./dist/extract.d.ts",
       "default": "./dist/extract.js"
     },
-    "./link": {
-      "types": "./dist/link.d.ts",
-      "default": "./dist/link.js"
+    "./gist": {
+      "types": "./dist/gist.d.ts",
+      "default": "./dist/gist.js"
     },
-    "./old": {
-      "types": "./dist/old.d.ts",
-      "default": "./dist/old.js"
+    "./os-command": {
+      "types": "./dist/os-command.d.ts",
+      "default": "./dist/os-command.js"
     },
     "./shared": {
       "types": "./dist/shared.d.ts",
       "default": "./dist/shared.js"
-    },
-    "./sync": {
-      "types": "./dist/sync.d.ts",
-      "default": "./dist/sync.js"
-    },
-    "./unlink": {
-      "types": "./dist/unlink.d.ts",
-      "default": "./dist/unlink.js"
     }
   },
   "scripts": {

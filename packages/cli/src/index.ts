@@ -2,14 +2,15 @@
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
 import { Args, Command, Options, Prompt } from "@effect/cli"
-import { Command as NodeCommand, FileSystem, Path } from "@effect/platform"
+import { FileSystem, Path } from "@effect/platform"
 import { NodeContext, NodeRuntime } from "@effect/platform-node"
 
 import { type CommandExecutor } from "@effect/platform/CommandExecutor"
 import { type PlatformError } from "@effect/platform/Error"
-import { Data, Effect, identity, Option, pipe, Schema, Stream, type Types } from "effect"
-import * as yaml from "js-yaml"
+import { Effect, Layer, Option, Stream, type Types } from "effect"
 import { ExtractExportMappingsService } from "./extract.js"
+import { GistHandler } from "./gist.js"
+import { RunCommandService } from "./os-command.js"
 import { packages } from "./shared.js"
 
 Effect
@@ -17,68 +18,9 @@ Effect
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const extractExportMappings = yield* ExtractExportMappingsService
+    const { runGetExitCode } = yield* RunCommandService
 
     yield* Effect.addFinalizer(() => Effect.logInfo(`CLI has finished executing`))
-
-    /**
-     * Executes a shell command using Node.js Command API with inherited stdio streams.
-     * The command is run through the system shell (/bin/sh) for proper command parsing.
-     *
-     * @param cmd - The shell command to execute
-     * @param cwd - Optional working directory to execute the command in
-     * @returns An Effect that succeeds with the exit code or fails with a PlatformError
-     */
-    const runNodeCommandEC = (cmd: string, cwd?: string) =>
-      NodeCommand
-        .make("sh", "-c", cmd)
-        .pipe(
-          NodeCommand.stdout("inherit"),
-          NodeCommand.stderr("inherit"),
-          cwd ? NodeCommand.workingDirectory(cwd) : identity,
-          NodeCommand.exitCode
-        )
-
-    const runNodeCommandString = (cmd: string, cwd?: string) =>
-      NodeCommand
-        .make("sh", "-c", cmd)
-        .pipe(
-          cwd ? NodeCommand.workingDirectory(cwd) : identity,
-          NodeCommand.string
-        )
-
-    // /**
-    //  * Executes a shell command using Node.js Command API and captures output as string.
-    //  * The command is run through the system shell (/bin/sh) for proper command parsing.
-    //  *
-    //  * @param cmd - The shell command to execute
-    //  * @param cwd - Optional working directory to execute the command in
-    //  * @returns An Effect that succeeds with the command output or fails with a PlatformError
-    //  */
-    // const runNodeCommand = (cmd: string, cwd?: string) =>
-    //   NodeCommand
-    //     .make("sh", "-c", cmd)
-    //     .pipe(
-    //       cwd ? NodeCommand.workingDirectory(cwd) : identity,
-    //       NodeCommand.string
-    //     )
-
-    /**
-     * Executes a bash script file using Node.js Command API with inherited stdio streams.
-     * The script file is executed directly through the shell (/bin/sh).
-     *
-     * @param file - The path to the bash script file to execute
-     * @param cwd - Optional working directory to execute the script in
-     * @returns An Effect that succeeds with the output or fails with a PlatformError
-     */
-    // const runBashFile = (file: string, cwd?: string) =>
-    //   NodeCommand
-    //     .make("sh", file)
-    //     .pipe(
-    //       NodeCommand.stdout("inherit"),
-    //       NodeCommand.stderr("inherit"),
-    //       cwd ? NodeCommand.workingDirectory(cwd) : identity,
-    //       NodeCommand.string
-    //     )
 
     /**
      * Updates effect-app packages to their latest versions using npm-check-updates.
@@ -87,8 +29,8 @@ Effect
     const updateEffectAppPackages = Effect.fn("effa-cli.ue.updateEffectAppPackages")(function*() {
       const filters = ["effect-app", "@effect-app/*"]
       for (const filter of filters) {
-        yield* runNodeCommandEC(`pnpm exec ncu -u --filter "${filter}"`)
-        yield* runNodeCommandEC(`pnpm -r exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm -r exec ncu -u --filter "${filter}"`)
       }
     })()
 
@@ -100,8 +42,8 @@ Effect
     const updateEffectPackages = Effect.fn("effa-cli.ue.updateEffectPackages")(function*() {
       const effectFilters = ["effect", "@effect/*", "@effect-atom/*"]
       for (const filter of effectFilters) {
-        yield* runNodeCommandEC(`pnpm exec ncu -u --filter "${filter}"`)
-        yield* runNodeCommandEC(`pnpm -r exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm exec ncu -u --filter "${filter}"`)
+        yield* runGetExitCode(`pnpm -r exec ncu -u --filter "${filter}"`)
       }
     })()
 
@@ -130,8 +72,8 @@ Effect
       yield* Effect.logInfo(`Excluding packages from update: ${allRejects.join(", ")}`)
       const rejectArgs = allRejects.map((filter) => `--reject "${filter}"`).join(" ")
 
-      yield* runNodeCommandEC(`pnpm exec ncu -u ${rejectArgs}`)
-      yield* runNodeCommandEC(`pnpm -r exec ncu -u ${rejectArgs}`)
+      yield* runGetExitCode(`pnpm exec ncu -u ${rejectArgs}`)
+      yield* runGetExitCode(`pnpm -r exec ncu -u ${rejectArgs}`)
     })()
 
     /**
@@ -165,7 +107,7 @@ Effect
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
       yield* Effect.logInfo("Updated package.json with local file resolutions")
 
-      yield* runNodeCommandEC("pnpm i")
+      yield* runGetExitCode("pnpm i")
 
       yield* Effect.logInfo("Successfully linked local packages")
     })
@@ -198,7 +140,7 @@ Effect
       yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
       yield* Effect.logInfo("Removed effect-app file resolutions from package.json")
 
-      yield* runNodeCommandEC("pnpm i")
+      yield* runGetExitCode("pnpm i")
       yield* Effect.logInfo("Successfully unlinked local packages")
     })()
 
@@ -245,7 +187,7 @@ Effect
                     )
 
                     const eslintArgs = existingFiles.map((f) => `"../${f}"`).join(" ")
-                    yield* runNodeCommandEC(`cd api && pnpm eslint --fix ${eslintArgs}`)
+                    yield* runGetExitCode(`cd api && pnpm eslint --fix ${eslintArgs}`)
                     break
                   }
                   i++
@@ -285,7 +227,7 @@ Effect
 
                 yield* Effect.logInfo(`Root change detected: ${event.path}, fixing: ${indexFile}`)
 
-                yield* runNodeCommandEC(`pnpm eslint --fix "${indexFile}"`)
+                yield* runGetExitCode(`pnpm eslint --fix "${indexFile}"`)
               })
             )
           )
@@ -508,7 +450,7 @@ Effect
               : wrapOption.value
 
             yield* Effect.logInfo(`Spawning child command: ${val}`)
-            yield* runNodeCommandEC(val)
+            yield* runGetExitCode(val)
           }
 
           return
@@ -576,17 +518,17 @@ Effect
           switch (prompted) {
             case "effect-app":
               return yield* updateEffectAppPackages.pipe(
-                Effect.andThen(runNodeCommandEC("pnpm i"))
+                Effect.andThen(runGetExitCode("pnpm i"))
               )
 
             case "effect":
               return yield* updateEffectPackages.pipe(
-                Effect.andThen(runNodeCommandEC("pnpm i"))
+                Effect.andThen(runGetExitCode("pnpm i"))
               )
             case "both":
               return yield* updateEffectPackages.pipe(
                 Effect.andThen(updateEffectAppPackages),
-                Effect.andThen(runNodeCommandEC("pnpm i"))
+                Effect.andThen(runGetExitCode("pnpm i"))
               )
           }
         })
@@ -601,7 +543,7 @@ Effect
           yield* Effect.logInfo("Updating all packages except Effect/Effect-App ecosystem packages...")
 
           return yield* updatePackages.pipe(
-            Effect.andThen(runNodeCommandEC("pnpm i"))
+            Effect.andThen(runGetExitCode("pnpm i"))
           )
         })
       )
@@ -717,249 +659,9 @@ Effect
           )
         },
         Effect.fn("effa-cli.gist")(function*({ config }) {
-          yield* Effect.logInfo(`Reading configuration from ${config}`)
-
-          const configExists = yield* fs.exists(config)
-          if (!configExists) {
-            return yield* Effect.fail(new Error(`Configuration file not found: ${config}`))
-          }
-
-          const configContent = yield* fs.readFileString(config)
-
-          const configData = yield* Effect
-            .try(
-              {
-                try: () => yaml.load(configContent),
-                catch(error) {
-                  return Effect.fail(new Error(`Failed to parse YAML configuration: ${error}`))
-                }
-              }
-            )
-            .pipe(
-              Effect.andThen(Schema.decodeUnknown(Schema.Struct({
-                gists: Schema.Record({
-                  key: Schema.String,
-                  value: Schema.Struct({
-                    description: Schema.String,
-                    public: Schema.Boolean,
-                    files: Schema.Array(Schema.String)
-                  })
-                }),
-                settings: Schema.Struct({
-                  token_env: Schema.String,
-                  base_directory: Schema.String
-                })
-              })))
-            )
-
-          const token = process.env[configData.settings.token_env]
-          if (!token) {
-            return yield* Effect.fail(
-              new Error(`GitHub token not found in environment variable: ${configData.settings.token_env}`)
-            )
-          }
-
-          const extractGistIdFromUrl = (url: string): Option.Option<string> => {
-            // extract ID from URL: https://gist.github.com/user/ID
-            const gistId = url.trim().split("/").pop()
-            return gistId && gistId.length > 0 ? Option.some(gistId) : Option.none()
-          }
-
-          const cacheGistDescription = "GIST_CACHE_DO_NOT_EDIT_effa_cli_internal"
-
-          class GistCacheNotFound extends Data.TaggedError("GistCacheNotFound")<{
-            readonly reason: string
-          }> {}
-
-          /**
-           * Gist cache mapping YAML configuration names to GitHub gist IDs.
-           *
-           * Since GitHub gists don't have user-defined names, we maintain a cache
-           * that maps the human-readable names from our YAML config to actual gist IDs.
-           * This allows us to:
-           * - Update existing gists instead of creating duplicates
-           * - Clean up obsolete entries when gists are removed from config
-           * - Persist the name->ID mapping across CLI runs
-           *
-           * The cache itself is stored as a secret GitHub gist for persistence.
-           */
-          const CacheSchema = Schema.Array(Schema.Struct({
-            name: Schema.String,
-            id: Schema.String
-          }))
-          type CacheType = Schema.Schema.Type<typeof CacheSchema>
-
-          const loadGistCache = Effect
-            .gen(
-              function*() {
-                // search for existing cache gist
-                const output = yield* runNodeCommandString(`gh gist list --filter "${cacheGistDescription}"`)
-                  .pipe(Effect.orElse(() => Effect.succeed("")))
-
-                const lines = output.trim().split("\n").filter((line: string) => line.trim())
-
-                // extract first gist ID (should be our cache gist)
-                const firstLine = lines[0]
-                if (!firstLine) {
-                  return yield* new GistCacheNotFound({ reason: "Empty gist list output" })
-                }
-
-                const parts = firstLine.split(/\s+/)
-                const gistId = parts[0]?.trim()
-
-                if (!gistId) {
-                  return yield* new GistCacheNotFound({ reason: "No gist ID found in output" })
-                } else {
-                  yield* Effect.logInfo(`Found existing cache gist with ID: ${gistId}`)
-                }
-
-                // read cache gist content
-                const cacheContent = yield* runNodeCommandString(`gh gist view ${gistId}`)
-                  .pipe(Effect.orElse(() => Effect.succeed("")))
-
-                const cache = yield* pipe(
-                  cacheContent.split(cacheGistDescription)[1]?.trim(),
-                  pipe(Schema.parseJson(CacheSchema), Schema.decodeUnknown),
-                  Effect.orElse(() => Effect.fail(new GistCacheNotFound({ reason: "Failed to parse cache JSON" })))
-                )
-
-                return { cache, gistId }
-              }
-            )
-            .pipe(
-              Effect.catchTag("GistCacheNotFound", () =>
-                Effect.gen(function*() {
-                  // cache doesn't exist, create it
-                  yield* Effect.logInfo("Cache gist not found, creating new cache...")
-                  const initialCache: CacheType = []
-                  const cacheJson = yield* pipe(
-                    initialCache,
-                    pipe(Schema.parseJson(CacheSchema), Schema.encodeUnknown)
-                  )
-
-                  const gistUrl = yield* runNodeCommandString(
-                    `echo '${cacheJson}' | gh gist create --desc="${cacheGistDescription}" -`
-                  )
-
-                  const gistIdOption = extractGistIdFromUrl(gistUrl)
-                  if (Option.isNone(gistIdOption)) {
-                    return yield* Effect.fail(new Error(`Could not extract gist ID from URL: ${gistUrl}`))
-                  }
-
-                  yield* Effect.logInfo(`Created new cache gist with ID: ${gistIdOption.value}`)
-
-                  return { cache: initialCache, gistId: gistIdOption.value }
-                }))
-            )
-
-          const saveGistCache = ({ cache, gistId }: { cache: CacheType; gistId: string }) =>
-            Effect.gen(function*() {
-              const cacheJson = yield* pipe(
-                cache,
-                pipe(Schema.parseJson(CacheSchema), Schema.encodeUnknown)
-              )
-
-              yield* runNodeCommandEC(`echo '${cacheJson}' | gh gist edit ${gistId} -`)
-            })
-
-          const { cache, gistId } = yield* loadGistCache
-
-          const gistCache = [...cache] // make mutable copy
-
-          for (const [name, gistConfig] of Object.entries(configData.gists)) {
-            const { description, files, public: isPublic } = gistConfig
-
-            yield* Effect.logInfo(`Processing gist: ${name}`)
-
-            const validFiles: string[] = []
-            for (const filePath of files) {
-              const fullPath = path.join(configData.settings.base_directory, filePath)
-              const fileExists = yield* fs.exists(fullPath)
-
-              if (!fileExists) {
-                yield* Effect.logWarning(`File not found: ${fullPath}, skipping...`)
-                continue
-              }
-
-              validFiles.push(`"${fullPath}"`)
-            }
-
-            if (validFiles.length === 0) {
-              yield* Effect.logWarning(`No valid files found for gist: ${name}, skipping gist creation`)
-              continue
-            }
-
-            const existingCacheEntry = gistCache.find((entry) => entry.name === name)
-
-            if (existingCacheEntry) {
-              yield* Effect.logInfo(`Updating existing gist: ${name} (ID: ${existingCacheEntry.id})`)
-
-              for (const filePath of validFiles) {
-                const cleanPath = filePath.replace(/"/g, "")
-                const fileName = path.basename(cleanPath)
-                const editCommand = [
-                  "gh",
-                  "gist",
-                  "edit",
-                  existingCacheEntry.id,
-                  "-f",
-                  fileName,
-                  cleanPath
-                ]
-                  .join(" ")
-
-                yield* runNodeCommandEC(editCommand)
-              }
-            } else {
-              const ghCommand = [
-                "gh",
-                "gist",
-                "create",
-                `--desc="${description}"`,
-                isPublic ? "--public" : "",
-                ...validFiles
-              ]
-                .filter((x) => !!x)
-                .join(" ")
-
-              yield* Effect.logInfo(`Creating gist: ${name} with ${validFiles.length} file(s)`)
-
-              // capture the created gist URL
-              const gistUrl = yield* runNodeCommandString(ghCommand)
-
-              // extract ID from URL
-              const gistId = extractGistIdFromUrl(gistUrl)
-              if (Option.isSome(gistId)) {
-                gistCache.push({ name, id: gistId.value })
-                yield* Effect.logInfo(`Created gist with ID: ${gistId.value}`)
-              } else {
-                yield* Effect.logWarning(`Could not extract gist ID from URL: ${gistUrl}`)
-              }
-            }
-          }
-
-          // remove gists from cache that are no longer in the configuration
-          const configGistNames = new Set(Object.entries(configData.gists).map(([name]) => name))
-          const initialCacheLength = gistCache.length
-
-          for (let i = gistCache.length - 1; i >= 0; i--) {
-            const cacheEntry = gistCache[i]
-            if (cacheEntry && !configGistNames.has(cacheEntry.name)) {
-              yield* Effect.logInfo(`Removing obsolete gist from cache: ${cacheEntry.name} (ID: ${cacheEntry.id})`)
-              gistCache.splice(i, 1)
-            }
-          }
-
-          if (gistCache.length < initialCacheLength) {
-            yield* Effect.logInfo(`Cleaned up ${initialCacheLength - gistCache.length} obsolete gist(s) from cache`)
-          }
-
-          yield* Effect.logInfo(gistCache)
-
-          yield* saveGistCache({ cache: gistCache, gistId })
-          yield* Effect.logInfo("Updated gist cache")
-
-          yield* Effect.logInfo("Gist creation completed")
+          return yield* GistHandler.handler({
+            YAMLPath: config
+          })
         })
       )
       .pipe(Command.withDescription("Create GitHub gists from files specified in YAML configuration"))
@@ -979,16 +681,16 @@ Effect
           yield* Effect.logInfo(dryRun ? "Performing dry run cleanup..." : "Performing nuclear cleanup...")
 
           if (dryRun) {
-            yield* runNodeCommandEC(
+            yield* runGetExitCode(
               "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -print \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -print \\)"
             )
           } else {
-            yield* runNodeCommandEC(
+            yield* runGetExitCode(
               "find . -depth \\( -type d \\( -name 'node_modules' -o -name '.nuxt' -o -name 'dist' -o -name '.output' -o -name '.nitro' -o -name '.cache' -o -name 'test-results' -o -name 'test-out' -o -name 'coverage' \\) -exec rm -rf -- {} + \\) -o \\( -type f \\( -name '*.log' -o -name '*.tsbuildinfo' \\) -delete \\)"
             )
 
             if (storePrune) {
-              yield* runNodeCommandEC(
+              yield* runGetExitCode(
                 "pnpm store prune"
               )
             }
@@ -1024,6 +726,14 @@ Effect
   })()
   .pipe(
     Effect.scoped,
-    Effect.provide(NodeContext.layer),
+    Effect.provide(
+      Layer.provideMerge(
+        Layer.merge(
+          GistHandler.Default,
+          RunCommandService.Default
+        ),
+        NodeContext.layer
+      )
+    ),
     NodeRuntime.runMain
   )

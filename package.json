@@ -57,7 +57,7 @@
   "devDependencies": {
     "dprint": "^0.50.2",
     "@changesets/cli": "^2.29.7",
-    "@effect-app/cli": "^1.24.0",
+    "@effect-app/cli": "^1.26.0",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.40.0",

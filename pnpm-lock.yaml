@@ -47,8 +47,8 @@ importers:
         specifier: ^2.29.7
         version: 2.29.7(@types/node@24.5.1)
       '@effect-app/cli':
-        specifier: ^1.24.0
-        version: 1.24.0(e889b3c3ed2f3723732e598d0a13afb1)
+        specifier: ^1.26.0
+        version: 1.26.0(e889b3c3ed2f3723732e598d0a13afb1)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -1134,8 +1134,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.24.0':
-    resolution: {integrity: sha512-VEPV4jUjup9xvDDxrdRplyyRQf5OixUjvH57ou9soAtvXmpJ0aXOJwSjL2AggQQBj9nJ/13DM3ETQfzyhJcXPw==}
+  '@effect-app/cli@1.26.0':
+    resolution: {integrity: sha512-unttLEQzzlHrOxOl5S2+OAslrLPQW1S/COAwvrAS1j+A+bi7jr931YF0SIop7XbSnnOR0XWEI+p5DoT0YeYNJw==}
     hasBin: true
 
   '@effect-atom/atom-vue@0.1.20':
@@ -7385,10 +7385,11 @@ snapshots:
   '@dprint/win32-x64@0.50.2':
     optional: true
 
-  '@effect-app/cli@1.24.0(e889b3c3ed2f3723732e598d0a13afb1)':
+  '@effect-app/cli@1.26.0(e889b3c3ed2f3723732e598d0a13afb1)':
     dependencies:
       '@effect/cli': 0.69.2(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/printer-ansi@0.45.0(@effect/typeclass@0.36.0(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/printer@0.45.0(@effect/typeclass@0.36.0(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a))
       '@effect/platform-node': 0.96.1(@effect/cluster@0.46.4(3c06abf4be666ae03f52e0363730c93a))(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/rpc@0.69.2(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/sql@0.44.2(@effect/experimental@0.54.6(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(@effect/platform@0.90.9(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a)))(effect@3.17.13(patch_hash=7b69194433eb44e6347c29e506edd8dff724302dc19f8883bb35c21c2f3aea8a))
+      js-yaml: 4.1.0
       node-watch: 0.7.4
     transitivePeerDependencies:
       - '@effect/cluster'

@@ -33,6 +33,8 @@ export type OmegaConfig<T> = {
     overrideDefaultValues?: boolean
     id?: string
   } & keysRule<T>
+
+  input?: any
 }
 
 interface OF<From, To> extends OmegaFormApi<From, To> {
@@ -52,9 +54,21 @@ type __VLS_PrettifyLocal<T> =
   }
   & {}
 
-export interface OmegaFormReturn<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>>
-  extends OF<From, To>
-{
+type DefaultProps<From> = {
+  label?: string
+  validators?: FieldValidators<From>
+  options?: {
+    title: string
+    value: string
+  }[]
+  type?: TypeOverride
+}
+
+export interface OmegaFormReturn<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  Props = DefaultProps<From>
+> extends OF<From, To> {
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
   Input: <Name extends DeepKeys<From>>(
     __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
@@ -63,23 +77,19 @@ export interface OmegaFormReturn<From extends Record<PropertyKey, any>, To exten
     __VLS_setup?: Promise<{
       props:
         & __VLS_PrettifyLocal<
-          Pick<
+          & Pick<
             & Partial<{}>
             & Omit<
               {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
               never
             >,
             never
-          > & {
+          >
+          & {
             name: Name
-            label?: string
-            validators?: FieldValidators<From>
-            options?: {
-              title: string
-              value: string
-            }[]
-            type?: TypeOverride
-          } & Partial<{}>
+          }
+          & Props
+          & Partial<{}>
         >
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
@@ -98,12 +108,13 @@ export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   From extends Record<PropertyKey, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  To extends Record<PropertyKey, any>
+  To extends Record<PropertyKey, any>,
+  Props = DefaultProps<From>
 >(
   schema: S.Schema<To, From, never>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
   omegaConfig?: OmegaConfig<To>
-): OmegaFormReturn<From, To> => {
+): OmegaFormReturn<From, To, Props> => {
   if (!schema) throw new Error("Schema is required")
   const standardSchema = S.standardSchemaV1(schema)
   const decode = S.decode(schema)
@@ -358,7 +369,7 @@ export const useOmegaForm = <
   provide(OmegaFormKey, formWithExtras)
 
   return Object.assign(formWithExtras, {
-    Input: OmegaFormInput,
+    Input: omegaConfig?.input ?? OmegaFormInput as any,
     Field: form.Field
   })
 }

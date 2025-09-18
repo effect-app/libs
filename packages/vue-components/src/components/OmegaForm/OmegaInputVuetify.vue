@@ -18,7 +18,7 @@
       @change="(e: any) => inputProps.field.handleChange(e.target.checked)"
     />
     <v-text-field
-      v-if="inputProps.type === 'email' || inputProps.type === 'string'"
+      v-if="inputProps.type === 'email' || inputProps.type === 'string' || inputProps.type === 'password'"
       :id="inputProps.id"
       :required="inputProps.required"
       :min-length="inputProps.minLength"

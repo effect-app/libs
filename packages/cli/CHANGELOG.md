@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.26.2
+
+### Patch Changes
+
+- 73288cc: move GH check
+
 ## 1.26.1
 
 ### Patch Changes

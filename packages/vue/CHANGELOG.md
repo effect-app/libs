@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.2
+
+### Patch Changes
+
+- a861b88: fix RT generic
+
 ## 2.80.1
 
 ### Patch Changes

@@ -3,7 +3,8 @@
 // import necessary modules from the libraries
 import { FileSystem, Path } from "@effect/platform"
 
-import { Array, Config, Data, Effect, Option, ParseResult, pipe, Schema, SynchronizedRef } from "effect"
+import { Array, Config, Data, Effect, Option, ParseResult, pipe, Redacted, Schema, SynchronizedRef } from "effect"
+
 import * as yaml from "js-yaml"
 import path from "path"
 import { RunCommandService } from "./os-command.js"
@@ -382,7 +383,24 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
       }
     )
 
+    const login = Effect.fn("GHGistService.login")(function*(token: string) {
+      const isLogged = yield* runGetExitCode(`echo ${token} | gh auth login --with-token`).pipe(Effect.orDie)
+      if (isLogged !== 0) {
+        return yield* Effect.fail(new Error("Failed to log in to GitHub CLI with provided token"))
+      } else {
+        yield* Effect.logInfo("Successfully logged in to GitHub CLI")
+      }
+    })
+
     return {
+      /** Logs into GitHub using the GitHub CLI.
+       * This is a prerequisite for other gist operations.
+       * @param token - The GitHub personal access token with gist permissions
+       *
+       * @returns An Effect that succeeds when login is successful
+       */
+      login,
+
       /**
        * Loads the gist cache from GitHub, containing mappings of YAML configuration names to gist IDs.
        * If no cache exists, creates a new empty cache gist.
@@ -493,6 +511,8 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
 
         yield* Effect.logInfo(`Using GitHub token from environment variable: ${config.settings.token_env}`)
         yield* Effect.logInfo(`Token loaded: ${redactedToken}`) // this will show <redacted> in logs
+
+        yield* GH.login(Redacted.value(redactedToken))
 
         const cache = yield* SynchronizedRef.make<GistCache>(yield* GH.loadGistCache())
 

@@ -11,7 +11,7 @@ import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
 import * as Option from "../Option.js"
-import * as S from "../Schema.js"
+import type * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, Requests, RequestsAny } from "./clientFor.js"
 
@@ -30,7 +30,7 @@ export const DefaultApiConfig = Config.all({
     .pipe(Config.option)
 })
 
-type Req = S.Schema.All & {
+export type Req = S.Schema.All & {
   new(...args: any[]): any
   _tag: string
   fields: S.Struct.Fields
@@ -190,7 +190,6 @@ const makeApiClientFactory = Effect
               const h = filtered[cur]!
 
               const Request = h
-              const Response = h.success
 
               const id = `${meta.moduleName}.${cur as string}`
                 .replaceAll(".js", "")
@@ -220,19 +219,7 @@ const makeApiClientFactory = Effect
                     Effect.provide(layers),
                     Effect.provide(mr)
                   ),
-                  ...requestMeta,
-                  raw: {
-                    handler: TheClient.pipe(
-                      Effect.flatMap((client) =>
-                        (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>
-                      ),
-                      Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
-                      Effect.provide(layers),
-                      Effect.provide(mr)
-                    ),
-
-                    ...requestMeta
-                  }
+                  ...requestMeta
                 }
                 : {
                   handler: (req: any) =>
@@ -244,21 +231,7 @@ const makeApiClientFactory = Effect
                       Effect.provide(mr)
                     ),
 
-                  ...requestMeta,
-                  raw: {
-                    handler: (req: any) =>
-                      // @effect-diagnostics effect/missingEffectContext:off
-                      TheClient.pipe(
-                        Effect.flatMap((client) =>
-                          (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
-                        ),
-                        Effect.flatMap((res) => S.encode(Response)(res)), // TODO,
-                        Effect.provide(layers),
-                        Effect.provide(mr)
-                      ),
-
-                    ...requestMeta
-                  }
+                  ...requestMeta
                 }
 
               return prev

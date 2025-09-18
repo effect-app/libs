@@ -1,7 +1,8 @@
 import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
 import { Cause, type Effect, LogLevel, pipe } from "effect-app"
-import type { ClientForOptions, RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import { type Req } from "effect-app/client"
+import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import type { MaybeRefOrGetter } from "vue"
 import { reportError } from "./errorReporter.js"
 
@@ -68,11 +69,11 @@ export function useIntervalPauseWhileProcessing(
  * use the `mapHandler` in options instead, as it will be executed *after* invalidating caches, instead of before.
  */
 export const mapHandler: {
-  <I, E, R, A, E2, A2, R2, Request extends TaggedRequestClassAny, Name extends string>(
+  <I, E, R, A, E2, A2, R2, Request extends Req, Name extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
     map: (handler: (i: I) => Effect.Effect<A, E, R>) => (i: I) => Effect.Effect<A2, E2, R2>
   ): RequestHandlerWithInput<I, A2, E2, R2, Request, Name>
-  <E, A, R, E2, A2, R2, Request extends TaggedRequestClassAny, Name extends string>(
+  <E, A, R, E2, A2, R2, Request extends Req, Name extends string>(
     self: RequestHandler<A, E, R, Request, Name>,
     map: (handler: Effect.Effect<A, E, R>) => Effect.Effect<A2, E2, R2>
   ): RequestHandler<A2, E2, R2, Request, Name>

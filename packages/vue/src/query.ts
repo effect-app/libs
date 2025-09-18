@@ -6,7 +6,8 @@ import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
-import type { RequestHandler, RequestHandlerWithInput, TaggedRequestClassAny } from "effect-app/client/clientFor"
+import { type Req } from "effect-app/client"
+import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
 import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
@@ -52,7 +53,7 @@ export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
 
 export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
   const useQuery_: {
-    <I, A, E, Request extends TaggedRequestClassAny, Name extends string>(
+    <I, A, E, Request extends Req, Name extends string>(
       q:
         | RequestHandlerWithInput<I, A, E, R, Request, Name>
         | RequestHandler<A, E, R, Request, Name>
@@ -87,7 +88,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
       ]
     }
-  } = <I, A, E, Request extends TaggedRequestClassAny, Name extends string>(
+  } = <I, A, E, Request extends Req, Name extends string>(
     q:
       | RequestHandlerWithInput<I, A, E, R, Request, Name>
       | RequestHandler<A, E, R, Request, Name>
@@ -218,7 +219,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
      * Effect results are passed to the caller, including errors.
      * @deprecated use client helpers instead (.query())
      */
-    <E, A, Request extends TaggedRequestClassAny, Name extends string>(
+    <E, A, Request extends Req, Name extends string>(
       self: RequestHandler<A, E, R, Request, Name>
     ): {
       // required options, with initialData
@@ -248,7 +249,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
      * Effect results are passed to the caller, including errors.
      * @deprecated use client helpers instead (.query())
      */
-    <Arg, E, A, Request extends TaggedRequestClassAny, Name extends string>(
+    <Arg, E, A, Request extends Req, Name extends string>(
       self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
     ): {
       // required options, with initialData

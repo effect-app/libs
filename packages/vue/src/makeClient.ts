@@ -160,11 +160,21 @@ export interface QueriesWithoutInput<Request extends Req, Id extends string, A, 
   suspense: ReturnType<typeof useSuspenseQuery_<E, A, Request, Id>>
 }
 
-export type Queries<Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer _R, infer Request, infer Id>
-  ? QueriesWithInput<Request, Id, I, A, E>
-  : Req extends RequestHandler<infer A, infer E, infer _R, infer Request, infer Id>
-    ? QueriesWithoutInput<Request, Id, A, E>
+export type MissingDependencies<RT, R> = {
+  message: "Dependencies required that are not provided by the runtime"
+  dependencies: Exclude<R, RT>
+}
+
+export type Queries<RT, Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? Exclude<R, RT> extends never ? QueriesWithInput<Request, Id, I, A, E>
+  : {
+    query: MissingDependencies<RT, R>
+    suspense: MissingDependencies<RT, R>
+  }
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? Exclude<R, RT> extends never ? QueriesWithoutInput<Request, Id, A, E>
+    : { query: MissingDependencies<RT, R>; suspense: MissingDependencies<RT, R> }
   : never
 
 /**
@@ -1302,12 +1312,13 @@ export const makeClient = <RT>(
       {} as
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as `${ToCamel<string & Key>}Query`]: Queries<typeof client[Key]>["query"]
+          [Key in keyof typeof client as `${ToCamel<string & Key>}Query`]: Queries<RT, typeof client[Key]>["query"]
         }
         // todo: or suspense as an Option?
         & {
           // apparently can't get JSDoc in here..
           [Key in keyof typeof client as `${ToCamel<string & Key>}SuspenseQuery`]: Queries<
+            RT,
             typeof client[Key]
           >["suspense"]
         }
@@ -1414,7 +1425,7 @@ export const makeClient = <RT>(
           & typeof client[Key]
           & RequestWithExtensions<R, typeof client[Key]>
           & { mutate: MutationWithExtensions<R, typeof client[Key]> }
-          & Queries<typeof client[Key]>
+          & Queries<RT, typeof client[Key]>
       }
     )
     return Object.assign(extended, { helpers: { ...mapRequest(client), ...mapMutation(client), ...mapQuery(client) } })

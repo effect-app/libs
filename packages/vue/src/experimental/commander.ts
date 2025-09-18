@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { asResult, reportRuntimeError } from "@effect-app/vue"
+import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
 import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
@@ -591,14 +591,15 @@ export declare namespace Commander {
   }
 
   export type GenWrap<RT, Id extends string, I18nKey extends string, Args extends Array<unknown>, AEff, EEff, REff> = {
-    (): CommandOut<
-      Args,
-      AEff,
-      EEff,
-      REff, // TODO: only allowed to be RT | CommandContext | `Commander.Command.${Id}.state`
-      Id,
-      I18nKey
-    >
+    (): Exclude<REff, RT> extends never ? CommandOut<
+        Args,
+        AEff,
+        EEff,
+        REff,
+        Id,
+        I18nKey
+      >
+      : MissingDependencies<RT, REff>
     <
       A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
@@ -764,7 +765,8 @@ export declare namespace Commander {
 
   export type NonGenWrap<RT, Id extends string, I18nKey extends string, Args extends Array<unknown>, AEff, EEff, REff> =
     {
-      (): CommandOutHelper<Args, Effect.Effect<AEff, EEff, REff>, Id, I18nKey>
+      (): Exclude<REff, RT> extends never ? CommandOutHelper<Args, Effect.Effect<AEff, EEff, REff>, Id, I18nKey>
+        : MissingDependencies<RT, REff>
       <
         Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
         Args extends Array<unknown>

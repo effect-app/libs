@@ -91,7 +91,14 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.NumberFromString }) {}
 
-export const Something = { GetSomething2, meta: { moduleName: "Something" as const } }
+export class GetSomething2WithDependencies extends Req<GetSomething2WithDependencies>()("GetSomething2", {
+  id: S.String
+}, {
+  success: S.NumberFromString as S.Schema<number, string, "dep-a">,
+  failure: S.String as S.Schema<string, string, "dep-b">
+}) {}
+
+export const Something = { GetSomething2, GetSomething2WithDependencies, meta: { moduleName: "Something" as const } }
 
 export const useClient = (
   options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }

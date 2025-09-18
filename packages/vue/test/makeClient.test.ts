@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { type Effect } from "effect-app"
 import { Something, useClient } from "./stubs.js"
 
 it.skip("works", () => {
@@ -18,6 +19,17 @@ it.skip("works", () => {
   const e = client.GetSomething2.wrap(null as any)
   const f = client.GetSomething2.fn(null as any)
 
+  // @ts-expect-error dependencies required that are not provided
+  const e0 = client.GetSomething2WithDependencies.wrap().handle // not available as we require dependencies not provided by the runtime
+  const e00 = client.GetSomething2WithDependencies.wrap((_) => _ as Effect.Effect<number, never, never>).handle(
+    null as any
+  )
+  // @ts-expect-error dependencies required that are not provided
+  const e1 = client.GetSomething2WithDependencies.suspense(null as any)
+  // @ts-expect-error dependencies required that are not provided
+  const e2 = client.GetSomething2WithDependencies.query(null as any)
+  const f0 = client.GetSomething2WithDependencies.fn(null as any)
+
   const g = client.GetSomething2.mutate.wrap(null as any)
   const h = client.GetSomething2.mutate.fn(null as any)
 
@@ -31,7 +43,12 @@ it.skip("works", () => {
     c,
     d,
     e,
+    e0,
+    e00,
+    e1,
+    e2,
     f,
+    f0,
     g,
     h
   })

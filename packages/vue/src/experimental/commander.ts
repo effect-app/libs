@@ -599,7 +599,7 @@ export declare namespace Commander {
         Id,
         I18nKey
       >
-      : MissingDependencies<RT, REff>
+      : MissingDependencies<RT, REff> & {}
     <
       A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
     >(
@@ -766,7 +766,7 @@ export declare namespace Commander {
   export type NonGenWrap<RT, Id extends string, I18nKey extends string, Args extends Array<unknown>, AEff, EEff, REff> =
     {
       (): Exclude<REff, RT> extends never ? CommandOutHelper<Args, Effect.Effect<AEff, EEff, REff>, Id, I18nKey>
-        : MissingDependencies<RT, REff>
+        : MissingDependencies<RT, REff> & {}
       <
         Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
         Args extends Array<unknown>

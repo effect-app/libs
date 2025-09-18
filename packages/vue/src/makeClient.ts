@@ -169,12 +169,12 @@ export type Queries<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
   ? Exclude<R, RT> extends never ? QueriesWithInput<Request, Id, I, A, E>
   : {
-    query: MissingDependencies<RT, R>
-    suspense: MissingDependencies<RT, R>
+    query: MissingDependencies<RT, R> & {}
+    suspense: MissingDependencies<RT, R> & {}
   }
   : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
     ? Exclude<R, RT> extends never ? QueriesWithoutInput<Request, Id, A, E>
-    : { query: MissingDependencies<RT, R>; suspense: MissingDependencies<RT, R> }
+    : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
   : never
 
 /**
@@ -1247,15 +1247,16 @@ export class QueryImpl<R> {
 const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.runtime<A>())
 
 type Base = I18n | Toast
-export const makeClient = <RT>(
+type Mix = ApiClientFactory | Commander | LegacyMutation | Base
+export const makeClient = <RT_>(
   // global, but only accessible after startup has completed
-  getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT | ApiClientFactory | Commander | LegacyMutation | Base, never>,
+  getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
   clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>
 ) => {
-  type R = RT | ApiClientFactory | Commander | LegacyMutation | Base
-  const getRt = Effect.runtime<R>()
+  type RT = RT_ | Mix
+  const getRt = Effect.runtime<RT>()
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
-  const makeCommand = makeUseCommand<R>()
+  const makeCommand = makeUseCommand<RT>()
   const makeMutation = Effect.gen(function*() {
     const mut = yield* LegacyMutation
 
@@ -1280,7 +1281,7 @@ export const makeClient = <RT>(
     "buildFormFromSchema",
     "useSafeMutation"
   ] as const satisfies readonly (keyof ReturnType<typeof getMutation>)[]
-  type mut = Pick<LegacyMutationImpl<R>, typeof keys[number]>
+  type mut = Pick<LegacyMutationImpl<RT>, typeof keys[number]>
 
   const mutations = keys.reduce(
     (prev, cur) => {
@@ -1289,7 +1290,7 @@ export const makeClient = <RT>(
       }) as any
       return prev
     },
-    {} as Pick<LegacyMutationImpl<R>, typeof keys[number]>
+    {} as Pick<LegacyMutationImpl<RT>, typeof keys[number]>
   )
 
   const query = new QueryImpl(getBaseRt)
@@ -1344,7 +1345,7 @@ export const makeClient = <RT>(
       },
       {} as {
         [Key in keyof typeof client as `${ToCamel<string & Key>}Request`]: RequestWithExtensions<
-          R,
+          RT,
           typeof client[Key]
         >
       }
@@ -1371,7 +1372,7 @@ export const makeClient = <RT>(
       },
       {} as {
         [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
-          R,
+          RT,
           typeof client[Key]
         >
       }
@@ -1423,8 +1424,8 @@ export const makeClient = <RT>(
       {} as {
         [Key in keyof typeof client]:
           & typeof client[Key]
-          & RequestWithExtensions<R, typeof client[Key]>
-          & { mutate: MutationWithExtensions<R, typeof client[Key]> }
+          & RequestWithExtensions<RT, typeof client[Key]>
+          & { mutate: MutationWithExtensions<RT, typeof client[Key]> }
           & Queries<RT, typeof client[Key]>
       }
     )
@@ -1465,12 +1466,12 @@ export const makeClient = <RT>(
     return proxy
   }
 
-  const legacy: Legacy<R> = {
+  const legacy: Legacy<RT> = {
     ...mutations,
     ...query
   }
 
-  const Command: CommanderResolved<R> = {
+  const Command: CommanderResolved<RT> = {
     ...{
       // delay initialisation until first use...
       fn: (...args: [any]) => useCommand().fn(...args),

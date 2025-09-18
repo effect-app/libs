@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.9
+
+### Patch Changes
+
+- a25f62e: add password field support for vuetify
+
 ## 0.27.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.12
+
+### Patch Changes
+
+- 13bcd90: provide form value from within component
+
 ## 0.27.11
 
 ### Patch Changes

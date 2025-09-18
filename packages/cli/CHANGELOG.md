@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.26.3
+
+### Patch Changes
+
+- 25d353c: proper login
+
 ## 1.26.2
 
 ### Patch Changes

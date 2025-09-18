@@ -158,6 +158,12 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
     const CACHE_GIST_DESCRIPTION = "GIST_CACHE_DO_NOT_EDIT_effa_cli_internal"
     const { runGetExitCode, runGetString } = yield* RunCommandService
 
+    if ((yield* runGetExitCode("gh --version").pipe(Effect.orDie)) !== 0) {
+      return yield* Effect.dieMessage(
+        "GitHub CLI (gh) is not installed or not found in PATH. Please install it to use the gist command."
+      )
+    }
+
     // the client cannot recover from PlatformErrors, so we convert failures into defects to clean up the signatures
     const runGetExitCodeSuppressed = (...args: Parameters<typeof runGetExitCode>) => {
       return runGetExitCode(...args).pipe(

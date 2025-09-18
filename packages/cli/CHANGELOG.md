@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.26.0
+
+### Minor Changes
+
+- 2bcc323: add cli gist command to work with github gist files
+
 ## 1.25.0
 
 ### Minor Changes

@@ -19,6 +19,7 @@ import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefa
 import SimpleFormWithEventComponent from "./OmegaForm/SimpleFormWithEvent.vue"
 import SumExampleComponent from "./OmegaForm/SumExample.vue"
 import TanstackComponent from "./OmegaForm/Tanstack.vue"
+import UnionComponent from "./OmegaForm/Union.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -157,5 +158,12 @@ export const Tanstack: Story = {
   render: () => ({
     components: { TanstackComponent },
     template: "<TanstackComponent />"
+  })
+}
+
+export const Union: Story = {
+  render: () => ({
+    components: { UnionComponent },
+    template: "<UnionComponent />"
   })
 }

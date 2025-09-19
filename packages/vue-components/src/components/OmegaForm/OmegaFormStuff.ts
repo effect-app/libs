@@ -2,7 +2,7 @@ import { type Effect, Option, pipe, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { type RuntimeFiber } from "effect/Fiber"
-import { useIntl } from "../../utils"
+import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OmegaFormReturn } from "./useOmegaForm"
 
@@ -253,8 +253,8 @@ export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
   acc: Partial<MetaRecord<T>> = {}
 ): MetaRecord<T> | FieldMeta => {
-  // unwraps class..
-  // TODO: might want to recursively unwrap.
+  // unwraps class (Class are transformations)
+  // this calls createMeta recursively, so wrapped transformations are also unwrapped
   if (property && property._tag === "Transformation") {
     return createMeta<T>({
       parent,
@@ -284,9 +284,8 @@ export const createMeta = <T = any>(
           .filter(
             (t) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
           )
-          // unwrap classes..
-          // TODO: might want to recursively unwrap.
-          .map((_) => _._tag === "Transformation" ? _.from : _)
+          // unwraps class (Class are transformations)
+          .map(getTransformationFrom)
 
         const hasStructMembers = nonNullTypes.some(
           (t) => "propertySignatures" in t

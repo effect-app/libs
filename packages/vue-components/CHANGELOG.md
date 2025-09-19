@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.15
+
+### Patch Changes
+
+- a5f120c: fix: unwrap classes inside unions.
+
 ## 0.27.14
 
 ### Patch Changes

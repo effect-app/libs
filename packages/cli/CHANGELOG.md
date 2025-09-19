@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.26.4
+
+### Patch Changes
+
+- 36aba87: move gh presence check when logging in because of freakin' services initializations
+
 ## 1.26.3
 
 ### Patch Changes

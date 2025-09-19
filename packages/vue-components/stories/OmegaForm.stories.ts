@@ -38,7 +38,7 @@ const meta: StoryMeta<typeof OmegaForm> = {
     (story) => ({
       components: { story },
       setup() {
-        provideIntl(mockIntl)
+        provideIntl(() => mockIntl)
         return {}
       },
       template: "<story />"

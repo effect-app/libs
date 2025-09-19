@@ -45,6 +45,7 @@
     "vite-plugin-css-injected-by-js": "^3.5.2",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.4",
+    "vue-router": "^4.2.2",
     "vue-tsc": "^3.0.7"
   },
   "files": [

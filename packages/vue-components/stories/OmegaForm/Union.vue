@@ -1,17 +1,14 @@
 <template>
   <OmegaForm
-    :schema="schema"
-    :default-values="defaultValues"
+    :form="form"
     :subscribe="['values']"
-    @submit="onSubmit"
   >
-    <template #internalForm="{ form, subscribedValues: { values }}">
-      <OmegaInput
+    <template #externalForm="{ subscribedValues: { values }}">
+      <form.Input
         label="title"
         name="title"
-        :form="form"
       />
-      <OmegaInput
+      <form.Input
         label="union"
         name="union._tag"
         type="select"
@@ -19,17 +16,14 @@
           { title: 'A', value: 'A' },
           { title: 'B', value: 'B' }
         ]"
-        :form="form"
       />
-      <OmegaInput
+      <form.Input
         v-if="values.union._tag === 'A'"
-        :form="form"
         label="union a value"
         name="union.a"
       />
-      <OmegaInput
+      <form.Input
         v-else
-        :form="form"
         label="union b value"
         name="union.b"
       />
@@ -41,12 +35,18 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { OmegaErrors, OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
 
+class A extends S.TaggedClass<A>()("A", {
+  a: S.String
+}) {}
+class B extends S.TaggedClass<B>()("B", {
+  b: S.Number
+}) {}
 const schema = S
   .Struct({
     title: S.String,
-    union: S.Union(S.TaggedStruct("A", { a: S.String }), S.TaggedStruct("B", { b: S.Number }))
+    union: S.Union(A, B)
   })
 
 const defaultValues: typeof schema.Encoded = {
@@ -57,4 +57,8 @@ const defaultValues: typeof schema.Encoded = {
 const onSubmit = (value: typeof schema.Type) => {
   console.log(value)
 }
+const form = useOmegaForm(schema, {
+  defaultValues,
+  onSubmit: async ({value}) => onSubmit(value)
+})
 </script>

@@ -253,6 +253,8 @@ export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
   acc: Partial<MetaRecord<T>> = {}
 ): MetaRecord<T> | FieldMeta => {
+  // unwraps class..
+  // TODO: might want to recursively unwrap.
   if (property && property._tag === "Transformation") {
     return createMeta<T>({
       parent,
@@ -276,9 +278,15 @@ export const createMeta = <T = any>(
 
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
-        const nonNullTypes = p.type.types.filter(
-          (t) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
-        )
+        const nonNullTypes = p
+          .type
+          .types
+          .filter(
+            (t) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
+          )
+          // unwrap classes..
+          // TODO: might want to recursively unwrap.
+          .map((_) => _._tag === "Transformation" ? _.from : _)
 
         const hasStructMembers = nonNullTypes.some(
           (t) => "propertySignatures" in t

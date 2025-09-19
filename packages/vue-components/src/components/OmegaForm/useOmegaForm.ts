@@ -54,7 +54,7 @@ type __VLS_PrettifyLocal<T> =
   }
   & {}
 
-type DefaultProps<From> = {
+export type DefaultInputProps<From> = {
   label?: string
   validators?: FieldValidators<From>
   options?: {
@@ -67,7 +67,7 @@ type DefaultProps<From> = {
 export interface OmegaFormReturn<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  Props = DefaultProps<From>
+  Props = DefaultInputProps<From>
 > extends OF<From, To> {
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
   Input: <Name extends DeepKeys<From>>(
@@ -109,7 +109,7 @@ export const useOmegaForm = <
   From extends Record<PropertyKey, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   To extends Record<PropertyKey, any>,
-  Props = DefaultProps<From>
+  Props = DefaultInputProps<From>
 >(
   schema: S.Schema<To, From, never>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,

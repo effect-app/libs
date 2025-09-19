@@ -29,7 +29,8 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>"
+  K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>,
+    Props = DefaultInputProps<From>"
 >
 /**
  * Form component that wraps TanStack Form's useForm hook
@@ -68,7 +69,7 @@ import { computed, getCurrentInstance, onBeforeMount, provide, watch } from "vue
 import { getOmegaStore } from "./getOmegaStore"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
 import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
-import { type OmegaConfig, OmegaFormKey, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
+import { type DefaultInputProps, type OmegaConfig, OmegaFormKey, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
 type OnSubmit = NonNullable<FormProps<From, To>["onSubmit"]>
 type OnSubmitArg = Parameters<OnSubmit>[0]
@@ -84,7 +85,7 @@ type OmegaWrapperProps =
   & Omit<FormProps<From, To>, "onSubmit">
   & (
     | {
-      form: OmegaFormReturn<From, To>
+      form: OmegaFormReturn<From, To, Props>
       schema?: undefined
     }
     | {

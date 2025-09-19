@@ -36,6 +36,7 @@
 <script setup lang="ts">
 import { S } from "effect-app"
 import { OmegaErrors, OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
+import { watch } from "vue"
 
 class A extends S.TaggedClass<A>()("A", {
   a: S.String
@@ -61,4 +62,17 @@ const form = useOmegaForm(schema, {
   defaultValues,
   onSubmit: async ({value}) => onSubmit(value)
 })
+
+// to reset the error state, it however doesn't work
+// if you one time get union b error into the error state
+// then try to submit a valid union a, you get an error about b.
+// test; try to reset form when union type changes.
+// sadly doesn't help :S
+const values = form.useStore(_ => _.values)
+watch(values, (cur, prev) => { 
+  if (cur.union._tag !== prev.union._tag) {
+    console.log('resetting form')
+    form.reset(cur)
+  }
+}, { deep: true })
 </script>

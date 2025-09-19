@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 0.27.16
+
+### Patch Changes
+
+- 9cd6370: improve types
+
 ## 0.27.15
 
 ### Patch Changes

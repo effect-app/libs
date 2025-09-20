@@ -10,6 +10,7 @@ import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeU
 import { OmegaInput } from "../.."
 import { type InputProps } from "./InputProps"
 import { provideOmegaErrors } from "./OmegaErrorsContext"
+import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
 import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
 
 type keysRule<T> =
@@ -47,10 +48,15 @@ const eHoc = (errorProps: ReturnType<typeof provideOmegaErrors>) => {
   ): ConcreteComponent<P> {
     return {
       setup() {
+        console.log({ errorProps })
+        return {
+          ...errorProps
+        }
       },
-      render() {
+      render(props) {
+        console.log({ props })
         return h(WrappedComponent, {
-          ...errorProps,
+          ...props,
           on: this.$listeners,
           attrs: this.$attrs,
           scopedSlots: this.$scopedSlots
@@ -485,6 +491,6 @@ export const useOmegaForm = <
   return Object.assign(formWithExtras, {
     Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,
     Field: form.Field,
-    Errors: eHoc(context) as any
+    Errors: eHoc(context)(OmegaErrorsInternal) as any
   })
 }

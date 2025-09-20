@@ -1,51 +1,42 @@
 <template>
   <OmegaForm :form="exampleForm">
-    <OmegaInput
+    <exampleForm.Input
       label="aString"
-      :form="exampleForm"
       name="aString"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aStringMin2"
-      :form="exampleForm"
       name="aStringMin2"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aStringMin2Max4"
-      :form="exampleForm"
       name="aStringMin2Max4"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aStringMin2Max3Nullable"
-      :form="exampleForm"
       name="aStringMin2Max3Nullable"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aNumber"
-      :form="exampleForm"
       name="aNumber"
       type="range"
       :step="0.1"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aNumberMin2"
-      :form="exampleForm"
       name="aNumberMin2"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aNumberMin2Max"
-      :form="exampleForm"
       name="aNumberMin2Max"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aNumberMin2Max4Nullable"
-      :form="exampleForm"
       name="aNumberMin2Max4Nullable"
       clearable
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aSelect"
-      :form="exampleForm"
       name="aSelect"
       :options="[
         { title: 'a', value: 'a' },
@@ -53,9 +44,8 @@
         { title: 'c', value: 'c' }
       ]"
     />
-    <OmegaInput
+    <exampleForm.Input
       label="aMultiple"
-      :form="exampleForm"
       name="aMultiple"
       type="autocomplete"
       :options="[
@@ -76,12 +66,13 @@
     >
       Reset
     </button>
+    <exampleForm.Errors />
   </OmegaForm>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
+import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
 
 const exampleForm = useOmegaForm(
   S.Struct({
@@ -99,7 +90,7 @@ const exampleForm = useOmegaForm(
     aMultiple: S.Array(S.String)
   }),
   {
-    onSubmit: ({
+    onSubmit: async ({
       value
     }: {
       value: {

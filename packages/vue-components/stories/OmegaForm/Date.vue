@@ -4,9 +4,10 @@
     @submit="onSubmit"
   >
     <template #internalForm="{ form }">
-      <form.Input
+      <OmegaInput
         label="date"
         name="date"
+        :form="form"
       >
         <template #default="{ field }">
           <input
@@ -17,16 +18,16 @@
             }"
           >
         </template>
-      </form.Input>
+      </OmegaInput>
       <button>submit</button>
-      <form.Errors />
+      <OmegaErrors />
     </template>
   </OmegaForm>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm } from "../../src/components/OmegaForm"
+import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   date: S.NullOr(S.Date)

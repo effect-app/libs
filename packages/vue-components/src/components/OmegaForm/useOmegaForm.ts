@@ -53,10 +53,11 @@ const eHoc = (errorProps: ReturnType<typeof provideOmegaErrors>) => {
           ...errorProps
         }
       },
-      render(props) {
-        console.log({ props })
+      render({ errors, generalErrors, showErrors }: any) {
         return h(WrappedComponent, {
-          ...props,
+          errors,
+          generalErrors,
+          showErrors,
           on: this.$listeners,
           attrs: this.$attrs,
           scopedSlots: this.$scopedSlots

@@ -27,10 +27,12 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>,
+  generic="
+  From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
   K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>,
-    Props = DefaultInputProps<From>"
+  Props = DefaultInputProps<From>
+"
 >
 /**
  * Form component that wraps TanStack Form's useForm hook
@@ -223,13 +225,13 @@ const formSubmissionAttempts = useStore(
   (state) => state.submissionAttempts
 )
 
-const errors = computed(() => formToUse.value.useStore((state) => state.errors))
+const errors = formToUse.value.useStore((state) => state.errors)
 
 watch(
-  () => [formToUse.value.filterItems, errors.value.value],
+  () => [formToUse.value.filterItems, errors.value],
   () => {
     const filterItems: FilterItems | undefined = formToUse.value.filterItems
-    const currentErrors = errors.value.value
+    const currentErrors = errors.value
     if (!filterItems) return {}
     if (!currentErrors) return {}
     const errorList = Object
@@ -264,7 +266,7 @@ watch(
   }
 )
 
-provideOmegaErrors(formSubmissionAttempts, errors.value, props.showErrorsOn)
+provideOmegaErrors(formSubmissionAttempts, errors, props.showErrorsOn)
 
 defineSlots<{
   // Default slot (no props)

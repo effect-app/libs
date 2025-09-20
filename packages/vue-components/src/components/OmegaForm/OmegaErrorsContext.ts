@@ -9,15 +9,19 @@ export const OmegaErrorsKey = Symbol() as InjectionKey<{
   clearErrors: () => void
   showErrors: Ref<boolean>
   showErrorsOn: ShowErrorsOn
-  generalErrors: Ref<
-    (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+  generalErrors: Readonly<
+    Ref<
+      (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+    >
   >
 }>
 
 export function provideOmegaErrors(
   formSubmissionAttempts: Ref<number>,
-  generalErrors: Ref<
-    (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+  generalErrors: Readonly<
+    Ref<
+      (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+    >
   >,
   showErrorsOn: ShowErrorsOn = "onSubmit"
 ) {

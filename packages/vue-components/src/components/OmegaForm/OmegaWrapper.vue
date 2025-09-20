@@ -65,12 +65,11 @@
  * </Form>
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type StandardSchemaV1Issue, useStore } from "@tanstack/vue-form"
+import { useStore } from "@tanstack/vue-form"
 import { type Record, type S } from "effect-app"
 import { computed, getCurrentInstance, onBeforeMount, provide, watch } from "vue"
 import { getOmegaStore } from "./getOmegaStore"
-import { provideOmegaErrors } from "./OmegaErrorsContext"
-import { type FilterItems, type FormProps, type OmegaFormApi, type OmegaFormState, type ShowErrorsOn } from "./OmegaFormStuff"
+import { type FormProps, type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"
 import { type DefaultInputProps, type OmegaConfig, OmegaFormKey, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
 type OnSubmit = NonNullable<FormProps<From, To>["onSubmit"]>
@@ -82,7 +81,6 @@ type OmegaWrapperProps =
   & {
     omegaConfig?: OmegaConfig<From>
     subscribe?: K[]
-    showErrorsOn?: ShowErrorsOn
   }
   & Omit<FormProps<From, To>, "onSubmit">
   & (
@@ -159,7 +157,6 @@ onBeforeMount(() => {
   const excludedKeys: Set<keyof typeof props> = new Set([
     "omegaConfig",
     "subscribe",
-    "showErrorsOn",
     "asyncAlways",
     "form",
     "schema",
@@ -219,54 +216,6 @@ const subscribedValues = getOmegaStore(
   formToUse.value as unknown as OmegaFormApi<From, To>,
   props.subscribe
 )
-
-const formSubmissionAttempts = useStore(
-  formToUse.value.store,
-  (state) => state.submissionAttempts
-)
-
-const errors = formToUse.value.useStore((state) => state.errors)
-
-watch(
-  () => [formToUse.value.filterItems, errors.value],
-  () => {
-    const filterItems: FilterItems | undefined = formToUse.value.filterItems
-    const currentErrors = errors.value
-    if (!filterItems) return {}
-    if (!currentErrors) return {}
-    const errorList = Object
-      .values(currentErrors)
-      .filter(
-        (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> => Boolean(fieldErrors)
-      )
-      .flatMap((fieldErrors) =>
-        Object
-          .values(fieldErrors)
-          .flat()
-          .map((issue: StandardSchemaV1Issue) => issue.message)
-      )
-
-    if (errorList.some((e) => e === filterItems.message)) {
-      // TODO: Investigate if filterItems.items should be typed based on DeepKeys<To>.
-      filterItems.items.forEach((item: keyof From) => {
-        const m = formToUse.value.getFieldMeta(item as any)
-        if (m) {
-          formToUse.value.setFieldMeta(item as any, {
-            ...m,
-            errorMap: {
-              onSubmit: [
-                { path: [item as string], message: filterItems.message }
-              ]
-            }
-          })
-        }
-      })
-    }
-    return {}
-  }
-)
-
-provideOmegaErrors(formSubmissionAttempts, errors, props.showErrorsOn)
 
 defineSlots<{
   // Default slot (no props)

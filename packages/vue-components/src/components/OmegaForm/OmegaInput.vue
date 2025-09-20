@@ -28,9 +28,11 @@
 <script
   setup
   lang="ts"
-  generic="// dprint ignore - somehow with 120 chars, this becomes a mess. should report it.
+  generic="
+  // dprint ignore - somehow with 120 chars, this becomes a mess. should report it.
   From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>"
+  To extends Record<PropertyKey, any>
+"
 >
 import { computed, inject, type Ref } from "vue"
 import { useIntl } from "../../utils"

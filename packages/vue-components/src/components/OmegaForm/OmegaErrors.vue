@@ -76,20 +76,26 @@ import { mdiLink } from "@mdi/js"
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
 import { computed, getCurrentInstance } from "vue"
 import { useIntl } from "../../utils"
-import { useOmegaErrors } from "./OmegaErrorsContext"
+import { type OmegaError } from "./OmegaFormStuff"
 
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VAlert"]
 
-const { errors, generalErrors, showErrors } = useOmegaErrors()
+const props = defineProps<
+  {
+    errors: readonly OmegaError[]
+    generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+    showErrors: boolean
+  }
+>()
 
 const { trans } = useIntl()
 
 const showedGeneralErrors = computed(() => {
-  if (!generalErrors.value) return []
+  if (!props.generalErrors) return []
 
-  return generalErrors
-    .value
+  return props
+    .generalErrors
     .filter((record): record is Record<string, StandardSchemaV1Issue[]> => Boolean(record))
     .flatMap((errorRecord) =>
       Object

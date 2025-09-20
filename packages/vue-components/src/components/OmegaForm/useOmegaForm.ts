@@ -2,14 +2,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as api from "@opentelemetry/api"
-import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
+import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, useStore } from "@tanstack/vue-form"
 import { Effect, Fiber, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
-import { computed, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide } from "vue"
+import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide, watch } from "vue"
+import { OmegaInput } from "../.."
 import { type InputProps } from "./InputProps"
-import OmegaFormInput from "./OmegaFormInput.vue"
-import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, type TypeOverride } from "./OmegaFormStuff"
+import { provideOmegaErrors } from "./OmegaErrorsContext"
+import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
 
 type keysRule<T> =
   | {
@@ -21,8 +22,47 @@ type keysRule<T> =
     banKeys?: NestedKeyOf<T>[]
   }
 
+const fHoc = (form: OF<any, any>) => {
+  return function FormHoc<P>(
+    WrappedComponent: Component<P>
+  ): ConcreteComponent<P> {
+    return {
+      setup() {
+      },
+      render() {
+        return h(WrappedComponent, {
+          form,
+          on: this.$listeners,
+          attrs: this.$attrs,
+          scopedSlots: this.$scopedSlots
+        } as any)
+      }
+    }
+  }
+}
+
+const eHoc = (errorProps: ReturnType<typeof provideOmegaErrors>) => {
+  return function FormHoc<P>(
+    WrappedComponent: Component<P>
+  ): ConcreteComponent<P> {
+    return {
+      setup() {
+      },
+      render() {
+        return h(WrappedComponent, {
+          ...errorProps,
+          on: this.$listeners,
+          attrs: this.$attrs,
+          scopedSlots: this.$scopedSlots
+        } as any)
+      }
+    }
+  }
+}
+
 export type OmegaConfig<T> = {
   i18nNamespace?: string
+  showErrorsOn: ShowErrorsOn
 
   persistency?: {
     /** Order of importance:
@@ -97,6 +137,33 @@ export interface OmegaFormReturn<
       slots: {
         default(props: InputProps<From, Name>): void
       }
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
+  Errors: (
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & Props
+          & Partial<{}>
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {}
       emit: {}
     }>
   ) => import("vue").VNode & {
@@ -366,10 +433,58 @@ export const useOmegaForm = <
     //   )
   })
 
+  const formSubmissionAttempts = useStore(
+    formWithExtras.store,
+    (state) => state.submissionAttempts
+  )
+
+  const errors = formWithExtras.useStore((state) => state.errors)
+
+  watch(
+    () => [formWithExtras.filterItems, errors.value],
+    () => {
+      const filterItems: FilterItems | undefined = formWithExtras.filterItems
+      const currentErrors = errors.value
+      if (!filterItems) return {}
+      if (!currentErrors) return {}
+      const errorList = Object
+        .values(currentErrors)
+        .filter(
+          (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> => Boolean(fieldErrors)
+        )
+        .flatMap((fieldErrors) =>
+          Object
+            .values(fieldErrors)
+            .flat()
+            .map((issue: StandardSchemaV1Issue) => issue.message)
+        )
+
+      if (errorList.some((e) => e === filterItems.message)) {
+        // TODO: Investigate if filterItems.items should be typed based on DeepKeys<To>.
+        filterItems.items.forEach((item: keyof From) => {
+          const m = formWithExtras.getFieldMeta(item as any)
+          if (m) {
+            formWithExtras.setFieldMeta(item as any, {
+              ...m,
+              errorMap: {
+                onSubmit: [
+                  { path: [item as string], message: filterItems.message }
+                ]
+              }
+            })
+          }
+        })
+      }
+      return {}
+    }
+  )
+
   provide(OmegaFormKey, formWithExtras)
+  const context = provideOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
 
   return Object.assign(formWithExtras, {
-    Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : OmegaFormInput as any,
-    Field: form.Field
+    Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,
+    Field: form.Field,
+    Errors: eHoc(context) as any
   })
 }

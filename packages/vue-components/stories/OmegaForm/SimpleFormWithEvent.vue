@@ -20,12 +20,13 @@
       >
         <div>isSubmitting: {{ isSubmitting }}</div>
         <div>isFormValidating: {{ isFormValidating }}</div>
-        <form.Input
+        <OmegaInput
           label="asder2"
           name="asder2"
+          :form="form"
         />
         <br>
-        <form.Errors />
+        <OmegaErrors />
         <button type="submit">
           Submit
         </button>
@@ -37,7 +38,7 @@
 <script setup lang="ts">
 import { S } from "effect-app"
 import { ref } from "vue"
-import { OmegaForm } from "../../src/components/OmegaForm"
+import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
 
 const validateNumberOnServer = async (
   { value }: { value: { asder2: string } }

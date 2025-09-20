@@ -5,25 +5,23 @@
     @submit="onSubmit"
   >
     <template #internalForm="{ form }">
-      <OmegaInput
+      <form.Input
         label="email"
         name="email"
-        :form="form"
       />
-      <OmegaInput
+      <form.Input
         label="confirm"
         name="confirm"
-        :form="form"
       />
       <button>submit</button>
-      <OmegaErrors />
+      <form.Errors />
     </template>
   </OmegaForm>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { OmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S
   .Struct({

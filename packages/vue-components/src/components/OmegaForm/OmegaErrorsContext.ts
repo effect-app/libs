@@ -1,5 +1,5 @@
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
-import { computed, inject, type InjectionKey, provide, readonly, type Ref, ref } from "vue"
+import { computed, inject, type InjectionKey, readonly, type Ref, ref } from "vue"
 import { type OmegaError, type ShowErrorsOn } from "./OmegaFormStuff"
 
 export const OmegaErrorsKey = Symbol() as InjectionKey<{
@@ -16,7 +16,7 @@ export const OmegaErrorsKey = Symbol() as InjectionKey<{
   >
 }>
 
-export function provideOmegaErrors(
+export function buildOmegaErrors(
   formSubmissionAttempts: Ref<number>,
   generalErrors: Readonly<
     Ref<
@@ -54,8 +54,6 @@ export function provideOmegaErrors(
     generalErrors,
     showErrorsOn: showErrorsOn ?? "onSubmit"
   }
-
-  provide(OmegaErrorsKey, context)
 
   return context
 }

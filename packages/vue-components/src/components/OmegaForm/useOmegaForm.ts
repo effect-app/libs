@@ -6,10 +6,10 @@ import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type 
 import { Effect, Fiber, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
-import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, provide, watch } from "vue"
+import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
 import { OmegaInput } from "../.."
 import { type InputProps } from "./InputProps"
-import { provideOmegaErrors } from "./OmegaErrorsContext"
+import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
 import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
 
@@ -42,7 +42,7 @@ const fHoc = (form: OF<any, any>) => {
   }
 }
 
-const eHoc = (errorProps: ReturnType<typeof provideOmegaErrors>) => {
+const eHoc = (errorProps: ReturnType<typeof buildOmegaErrors>) => {
   return function FormHoc<P>(
     WrappedComponent: Component<P>
   ): ConcreteComponent<P> {
@@ -69,7 +69,7 @@ const eHoc = (errorProps: ReturnType<typeof provideOmegaErrors>) => {
 
 export type OmegaConfig<T> = {
   i18nNamespace?: string
-  showErrorsOn: ShowErrorsOn
+  showErrorsOn?: ShowErrorsOn
 
   persistency?: {
     /** Order of importance:
@@ -486,8 +486,8 @@ export const useOmegaForm = <
     }
   )
 
-  provide(OmegaFormKey, formWithExtras)
-  const context = provideOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
+  //  provide(OmegaFormKey, formWithExtras)
+  const context = buildOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
 
   return Object.assign(formWithExtras, {
     Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,

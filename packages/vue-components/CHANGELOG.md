@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.5
+
+### Patch Changes
+
+- e4a6c30: potential fix for custom input
+- 72139ad: fix autogen
+
 ## 1.0.0-next.4
 
 ### Patch Changes

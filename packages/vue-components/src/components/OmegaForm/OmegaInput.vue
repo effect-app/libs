@@ -1,5 +1,6 @@
 <template>
-  <form.Field
+  <component
+    :is="form.Field"
     :name="name"
     :validators="{
       onChange: schema,
@@ -21,7 +22,7 @@
         </template>
       </OmegaInternalInput>
     </template>
-  </form.Field>
+  </component>
 </template>
 
 <script

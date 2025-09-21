@@ -48,6 +48,7 @@ export type TypeOverride =
   | "select"
   | "multiple"
   | "boolean"
+  | "radio"
   | "autocomplete"
   | "autocompletemultiple"
   | "switch"

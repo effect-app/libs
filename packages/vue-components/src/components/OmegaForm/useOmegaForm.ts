@@ -7,7 +7,6 @@ import { Effect, Fiber, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
-import { OmegaForm, OmegaInput } from "../.."
 import { getOmegaStore } from "./getOmegaStore"
 import { type InputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
@@ -15,6 +14,8 @@ import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
 import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, OmegaFormState, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
+import OmegaInput from "./OmegaInput.vue"
+import OmegaForm from "./OmegaWrapper.vue"
 
 type keysRule<T> =
   | {

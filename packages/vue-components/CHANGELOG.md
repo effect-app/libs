@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.7
+
+### Patch Changes
+
+- d1565aa: type improvements
+
 ## 1.0.0-next.6
 
 ### Patch Changes

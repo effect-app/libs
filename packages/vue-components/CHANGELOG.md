@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.8
+
+### Patch Changes
+
+- f470651: add getInputType util
+
 ## 1.0.0-next.7
 
 ### Patch Changes

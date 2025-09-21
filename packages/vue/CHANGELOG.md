@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.2
+
+### Patch Changes
+
+- 1b2a645: $ apparently not allowed
+
 ## 2.80.3-next.1
 
 ### Patch Changes

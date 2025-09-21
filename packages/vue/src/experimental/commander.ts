@@ -1196,12 +1196,12 @@ export class CommanderImpl<RT> {
     const action = this.intl.formatMessage({
       id: namespace,
       defaultMessage: id
-    }, { ...options?.state, $isLabel: false })
+    }, { ...options?.state, _isLabel: false })
 
     const label = this.intl.formatMessage({
       id: namespace,
       defaultMessage: id
-    }, { ...options?.state, $isLabel: true })
+    }, { ...options?.state, _isLabel: true })
 
     const context = CommandContext.of({
       ...makeBaseInfo(id, options),

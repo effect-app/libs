@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.2
+
+### Patch Changes
+
+- f7e9412: apply hoc to custom input
+
 ## 1.0.0-next.1
 
 ### Patch Changes

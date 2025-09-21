@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.6
+
+### Patch Changes
+
+- 838f11a: cleanup
+
 ## 1.0.0-next.5
 
 ### Patch Changes

@@ -71,6 +71,7 @@ export class CommandContext extends Effect.Tag("CommandContext")<
     id: string
     i18nKey: string
     action: string
+    label: string
     namespace: string
     namespaced: (key: string) => string
     state?: IntlRecord | undefined
@@ -119,6 +120,7 @@ export declare namespace Commander {
     extends CommandContextLocal<Id, I18nKey>
   {
     action: string
+    label: string
     result: Result<A, E>
     waiting: boolean
   }
@@ -1195,9 +1197,16 @@ export class CommanderImpl<RT> {
       id: namespace,
       defaultMessage: id
     }, options?.state)
+
+    const label = this.intl.formatMessage({
+      id: namespace,
+      defaultMessage: id
+    }, { ...options?.state, $isLabel: true })
+
     const context = CommandContext.of({
       ...makeBaseInfo(id, options),
       action,
+      label,
       state: options?.state
     })
 

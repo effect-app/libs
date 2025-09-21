@@ -1512,6 +1512,7 @@ export interface CommandBase<I extends ReadonlyArray<any>, A = void> {
   handle: (...input: I) => A
   waiting: boolean
   action: string
+  label: string
 }
 
 // export interface Command<I extends ReadonlyArray<any>> extends CommandBase<I, void> {}

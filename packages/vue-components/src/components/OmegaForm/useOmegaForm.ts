@@ -31,16 +31,27 @@ const fHoc = (form: OF<any, any>) => {
   return function FormHoc<P>(
     WrappedComponent: Component<P>
   ): ConcreteComponent<P> {
+    //     return defineComponent({
+    //       setup() {
+    //         return {
+    //           child: WrappedComponent,
+    //           form
+    //         }
+    //       },
+    //       template: `<component :is="child" v-bind="$attrs" :form="form" v-on="$listeners">
+    //       <template v-for="(_, name) in $slots" #[name]="scope">
+    //   <slot :name v-bind="scope ?? {}" />
+    // </template>
+    //     </component>`
+    //     })
+
     return {
-      setup() {
-      },
       render() {
         return h(WrappedComponent, {
           form,
           on: this.$listeners,
-          attrs: this.$attrs,
-          scopedSlots: this.$scopedSlots
-        } as any)
+          attrs: this.$attrs
+        } as any, this.$slots)
       }
     }
   }
@@ -582,13 +593,14 @@ export const useOmegaForm = <
   )
 
   //  provide(OmegaFormKey, formWithExtras)
-  const context = buildOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
+  const errorContext = buildOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
 
   return Object.assign(formWithExtras, {
+    errorContext,
     Form: fHoc(formWithExtras)(OmegaForm as any) as any,
     Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,
     Field: form.Field,
-    Errors: eHoc(context)(OmegaErrorsInternal) as any,
+    Errors: eHoc(errorContext)(OmegaErrorsInternal) as any,
     Array: fHoc(formWithExtras)(OmegaArray) as any,
     AutoGen: fHoc(formWithExtras)(OmegaAutoGen as any) as any
   })

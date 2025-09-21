@@ -22,7 +22,6 @@
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
 import { computed, type ComputedRef, getCurrentInstance, nextTick, onMounted, ref, useId, watch, watchEffect } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
-import { useOmegaErrors } from "./OmegaErrorsContext"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
 
@@ -93,7 +92,7 @@ onMounted(() => {
     fieldApi.setValue(null as any)
   }
 })
-const { addError, removeError, showErrors, showErrorsOn } = useOmegaErrors()
+const { addError, removeError, showErrors, showErrorsOn } = (props.field.form as any).errorContext // todo; update types to include extended Omega Form props
 
 const realDirty = ref(false)
 

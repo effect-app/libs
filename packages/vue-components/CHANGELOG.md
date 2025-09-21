@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.15
+
+### Patch Changes
+
+- f9ea6d9: fix types
+
 ## 1.0.0-next.14
 
 ### Patch Changes

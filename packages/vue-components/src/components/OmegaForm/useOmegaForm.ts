@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as api from "@opentelemetry/api"
-import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, useStore } from "@tanstack/vue-form"
+import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, useStore } from "@tanstack/vue-form"
 import { Effect, Fiber, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
@@ -12,7 +12,7 @@ import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, ShowErrorsOn } from "./OmegaFormStuff"
+import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -177,30 +177,302 @@ export interface OmegaFormReturn<
     __VLS_setup?: Promise<{
       props:
         & __VLS_PrettifyLocal<
-          Pick<
+          & Pick<
             & Partial<{}>
             & Omit<
               {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
               never
             >,
             never
-          > & {
-            // form: OmegaInputProps<From, To>["form"]
-            pick?: DeepKeys<From>[]
-            omit?: DeepKeys<From>[]
-            labelMap?: (key: DeepKeys<From>) => string | undefined
-            filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
-            order?: DeepKeys<From>[]
-            sort?: Order.Order<OmegaAutoGenMeta<From, To>>
-          } & {}
+          >
+          & (Omit<OmegaInputProps<From, To>, "validators" | "options" | "label" | "type" | "items" | "form"> & {
+            defaultItems?: DeepValue<From, DeepKeys<From>>
+            items?: "please use `defaultItems` instead"
+          })
+          & {}
         >
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
-        default(props: {
-          child: OmegaAutoGenMeta<From, To>
-        }): void
+        "pre-array"?: (props: {
+          field: import("@tanstack/vue-form").FieldApi<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            Record<string, any> | undefined
+          >
+          state: import("@tanstack/vue-form").FieldState<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
+          >
+        }) => any
+      } & {
+        default?: (props: {
+          subField: import("@tanstack/vue-form").FieldApi<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            Record<string, any> | undefined
+          >
+          subState: import("@tanstack/vue-form").FieldState<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
+          >
+          index: number
+          field: import("@tanstack/vue-form").FieldApi<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            Record<string, any> | undefined
+          >
+        }) => any
+      } & {
+        "post-array"?: (props: {
+          field: import("@tanstack/vue-form").FieldApi<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            Record<string, any> | undefined
+          >
+          state: import("@tanstack/vue-form").FieldState<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
+          >
+        }) => any
+      } & {
+        field?: (props: {
+          field: import("@tanstack/vue-form").FieldApi<
+            From,
+            DeepKeys<From>,
+            DeepValue<From, DeepKeys<From>>,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
+            | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+            Record<string, any> | undefined
+          >
+        }) => any
       }
       emit: {}
     }>

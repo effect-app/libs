@@ -30,20 +30,6 @@ const fHoc = (form: OF<any, any>) => {
   return function FormHoc<P>(
     WrappedComponent: Component<P>
   ): ConcreteComponent<P> {
-    //     return defineComponent({
-    //       setup() {
-    //         return {
-    //           child: WrappedComponent,
-    //           form
-    //         }
-    //       },
-    //       template: `<component :is="child" v-bind="$attrs" :form="form" v-on="$listeners">
-    //       <template v-for="(_, name) in $slots" #[name]="scope">
-    //   <slot :name v-bind="scope ?? {}" />
-    // </template>
-    //     </component>`
-    //     })
-
     return {
       render() {
         return h(WrappedComponent, {

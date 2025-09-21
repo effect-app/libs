@@ -36,10 +36,10 @@
 >
 import { computed, inject, type Ref } from "vue"
 import { useIntl } from "../../utils"
-import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputProps } from "./OmegaFormStuff"
+import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 
-const props = defineProps<OmegaInputProps<From, To>>()
+const props = defineProps<OmegaInputPropsBase<From, To>>()
 
 defineOptions({
   inheritAttrs: false

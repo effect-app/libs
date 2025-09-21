@@ -97,7 +97,7 @@ export type OmegaConfig<T> = {
   input?: any
 }
 
-interface OF<From, To> extends OmegaFormApi<From, To> {
+export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   filterItems?: FilterItems
   clear: () => void

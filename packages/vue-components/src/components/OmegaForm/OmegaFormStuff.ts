@@ -4,7 +4,7 @@ import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, typ
 import { type RuntimeFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
-import { type OmegaFormReturn } from "./useOmegaForm"
+import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
@@ -17,6 +17,17 @@ export type DefaultInputProps<From> = {
   }[]
   type?: TypeOverride
 }
+
+export type OmegaInputPropsBase<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+> = {
+  form: OF<From, To> & {
+    meta: MetaRecord<From>
+    i18nNamespace?: string
+  }
+  name: NestedKeyOf<From>
+} & DefaultInputProps<From>
 
 export type OmegaInputProps<
   From extends Record<PropertyKey, any>,

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.11
+
+### Patch Changes
+
+- c5921b1: export OmegaVuetifyInput
+
 ## 1.0.0-next.10
 
 ### Minor Changes

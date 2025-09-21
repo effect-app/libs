@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.10
+
+### Minor Changes
+
+- 2f72e05: add radio support
+
 ## 1.0.0-next.9
 
 ### Patch Changes

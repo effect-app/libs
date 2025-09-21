@@ -10,6 +10,8 @@ import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeU
 import { OmegaForm, OmegaInput } from "../.."
 import { getOmegaStore } from "./getOmegaStore"
 import { type InputProps } from "./InputProps"
+import OmegaArray from "./OmegaArray.vue"
+import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
 import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, OmegaFormState, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
@@ -49,7 +51,6 @@ const eHoc = (errorProps: ReturnType<typeof buildOmegaErrors>) => {
   ): ConcreteComponent<P> {
     return {
       setup() {
-        console.log({ errorProps })
         return {
           ...errorProps
         }
@@ -165,13 +166,7 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & {
-            errors?: readonly StandardSchemaV1Issue[] | undefined
-            generalErrors?: Readonly<
-              (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
-            >
-            showErrors?: boolean | undefined
-          }
+          & Omit<ReturnType<typeof OmegaErrorsInternal["props"]>, "errors" | "generalErrors" | "showErrors">
           & Partial<{}>
         >
         & import("vue").PublicProps
@@ -183,8 +178,7 @@ export interface OmegaFormReturn<
   ) => import("vue").VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
-
-  Form: <K extends keyof OmegaFormState<To, From>>(
+  Array: (
     __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
     __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
     __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
@@ -199,7 +193,70 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & { subscribe?: K[] }
+          & Omit<ReturnType<typeof OmegaArray<From, To>>["props"], "form">
+          & Partial<{}>
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {
+        // todo
+        default(props: { subField: any; subState: any; index: number; field: any }): void
+        preArray(props: { field: any; state: any }): void
+        postArray(props: { field: any; state: any }): void
+        field(props: { field: any }): void
+      }
+
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
+
+  AutoGen: (
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & Omit<ReturnType<typeof OmegaAutoGen<From, To>>["props"], "form">
+          & Partial<{}>
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {}
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
+
+  Form: <K extends keyof OmegaFormState<To, From>, Props = DefaultInputProps<From>>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & ReturnType<typeof OmegaForm<From, To, K, Props>>["props"]
           & Partial<{}>
         >
         & import("vue").PublicProps
@@ -530,6 +587,8 @@ export const useOmegaForm = <
     Form: fHoc(formWithExtras)(OmegaForm) as any,
     Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,
     Field: form.Field,
-    Errors: eHoc(context)(OmegaErrorsInternal) as any
+    Errors: eHoc(context)(OmegaErrorsInternal) as any,
+    Array: fHoc(formWithExtras)(OmegaArray) as any,
+    AutoGen: fHoc(formWithExtras)(OmegaAutoGen) as any
   })
 }

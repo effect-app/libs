@@ -73,9 +73,8 @@ const eHoc = (errorProps: ReturnType<typeof buildOmegaErrors>) => {
           generalErrors,
           showErrors,
           on: this.$listeners,
-          attrs: this.$attrs,
-          scopedSlots: this.$scopedSlots
-        } as any)
+          attrs: this.$attrs
+        } as any, this.$slots)
       }
     }
   }

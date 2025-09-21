@@ -213,8 +213,8 @@ export interface OmegaFormReturn<
       slots: {
         // todo
         default(props: { subField: any; subState: any; index: number; field: any }): void
-        preArray(props: { field: any; state: any }): void
-        postArray(props: { field: any; state: any }): void
+        ["pre-array"](props: { field: any; state: any }): void
+        ["post-array"](props: { field: any; state: any }): void
         field(props: { field: any }): void
       }
 

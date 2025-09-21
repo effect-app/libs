@@ -7,11 +7,12 @@ import { Effect, Fiber, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
-import { OmegaInput } from "../.."
+import { OmegaForm, OmegaInput } from "../.."
+import { getOmegaStore } from "./getOmegaStore"
 import { type InputProps } from "./InputProps"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
+import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, OmegaFormState, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
 
 type keysRule<T> =
   | {
@@ -164,13 +165,49 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & Props
+          & {
+            errors?: readonly StandardSchemaV1Issue[] | undefined
+            generalErrors?: Readonly<
+              (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+            >
+            showErrors?: boolean | undefined
+          }
           & Partial<{}>
         >
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {}
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
+
+  Form: <K extends keyof OmegaFormState<To, From>>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & { subscribe?: K[] }
+          & Partial<{}>
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {
+        default(props: { subscribedValues: ReturnType<typeof getOmegaStore<To, From, K>>["value"] }): void
+      }
       emit: {}
     }>
   ) => import("vue").VNode & {
@@ -490,6 +527,7 @@ export const useOmegaForm = <
   const context = buildOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
 
   return Object.assign(formWithExtras, {
+    Form: fHoc(formWithExtras)(OmegaForm) as any,
     Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,
     Field: form.Field,
     Errors: eHoc(context)(OmegaErrorsInternal) as any

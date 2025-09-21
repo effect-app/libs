@@ -1,22 +1,18 @@
 <template>
-  <OmegaForm
-    :schema="schema"
-    :subscribe="['values']"
-  >
-    <template #internalForm="{ form, subscribedValues: { values } }">
-      <OmegaInput
+  <form.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values } }">
+      <form.Input
         label="aString"
-        :form="form"
         name="aString"
       />
       <pre>{{ values }}</pre>
     </template>
-  </OmegaForm>
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src"
 
-const schema = S.Struct({ aString: S.UndefinedOr(S.String) })
+const form = useOmegaForm(S.Struct({ aString: S.UndefinedOr(S.String) }))
 </script>

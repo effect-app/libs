@@ -1,40 +1,40 @@
 <template>
-  <OmegaForm
-    :schema="schema"
-    :subscribe="['values']"
-    @submit="console.log"
-  >
-    <template #internalForm="{ form, subscribedValues: { values } }">
-      <OmegaInput
+  <form.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values } }">
+      <form.Input
         label="boolean"
-        :form="form"
         name="boolean"
       />
-      <OmegaInput
+      <form.Input
         label="switch"
-        :form="form"
         name="switch"
         type="switch"
       />
-      <OmegaInput
+      <form.Input
         label="true"
-        :form="form"
         name="true"
         type="boolean"
       />
       <pre>{{ values }}</pre>
       <button>submit</button>
     </template>
-  </OmegaForm>
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src"
 
-const schema = S.Struct({
-  boolean: S.Boolean.withDefault,
-  switch: S.Boolean,
-  true: S.Literal(true)
-})
+const form = useOmegaForm(
+  S.Struct({
+    boolean: S.Boolean.withDefault,
+    switch: S.Boolean,
+    true: S.Literal(true)
+  }),
+  {
+    onSubmit: async ({ value }) => {
+      console.log(value)
+    }
+  }
+)
 </script>

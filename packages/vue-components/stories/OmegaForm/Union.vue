@@ -1,9 +1,6 @@
 <template>
-  <OmegaForm
-    :form="form"
-    :subscribe="['values']"
-  >
-    <template #externalForm="{ subscribedValues: { values } }">
+  <form.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values } }">
       <form.Input
         label="title"
         name="title"
@@ -30,13 +27,13 @@
       <button>submit</button>
       <form.Errors />
     </template>
-  </OmegaForm>
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
 import { watch } from "vue"
-import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 class A extends S.TaggedClass<A>()("A", {
   a: S.String

@@ -1,23 +1,17 @@
 <template>
-  <OmegaForm
-    :schema="S.Struct({ myString: S.String })"
-    @submit="console.log"
-  >
-    <template #internalForm="{ form }">
-      <component
-        :is="form.Input"
-        label="myString"
-        name="myString"
-      >
-        <template #default="{ field }">
-          <div>
-            <input v-model="field.state.value">
-          </div>
-        </template>
-      </component>
-    </template>
-  </OmegaForm>
-  <OmegaForm :form="exampleForm">
+  <form.Form>
+    <form.Input
+      label="myString"
+      name="myString"
+    >
+      <template #default="{ field }">
+        <div>
+          <input v-model="field.state.value">
+        </div>
+      </template>
+    </form.Input>
+  </form.Form>
+  <exampleForm.Form>
     <exampleForm.Input
       label="aString"
       name="aString"
@@ -78,12 +72,12 @@
     >
       Reset
     </button>
-  </OmegaForm>
+  </exampleForm.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   aString: S.String,
@@ -99,10 +93,16 @@ const schema = S.Struct({
   aSelect: S.Union(S.Literal("a"), S.Literal("b"), S.Literal("c"))
 })
 
+const form = useOmegaForm(S.Struct({ myString: S.String }), {
+  onSubmit: async ({ value }) => {
+    console.log(value)
+  }
+})
+
 const exampleForm = useOmegaForm(
   schema,
   {
-    onSubmit: ({
+    onSubmit: async ({
       value
     }: {
       value: {

@@ -26,7 +26,7 @@
 import { type DeepKeys } from "@tanstack/vue-form"
 import { inject } from "vue"
 import type { InputProps } from "./InputProps"
-import type { FieldValidators, OmegaInputProps, TypeOverride } from "./OmegaFormStuff"
+import type { DefaultInputProps, OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import { OmegaFormKey } from "./useOmegaForm"
 
@@ -39,13 +39,11 @@ if (!form) {
   throw new Error("OmegaFormInput must be used within an OmegaForm context")
 }
 
-defineProps<{
-  name: Name
-  label?: string
-  validators?: FieldValidators<From>
-  options?: { title: string; value: string }[]
-  type?: TypeOverride
-}>()
+defineProps<
+  {
+    name: Name
+  } & DefaultInputProps<From>
+>()
 
 defineSlots<{
   default(props: InputProps<From, Name>): void

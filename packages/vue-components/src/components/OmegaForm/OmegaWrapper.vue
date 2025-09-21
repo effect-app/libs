@@ -31,8 +31,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useStore } from "@tanstack/vue-form"
 import { getOmegaStore } from "./getOmegaStore"
-import { type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"
-import { type DefaultInputProps, type OmegaFormReturn } from "./useOmegaForm"
+import { type DefaultInputProps, type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"
+import { type OmegaFormReturn } from "./useOmegaForm"
 
 type OmegaWrapperProps = {
   form: OmegaFormReturn<From, To, Props>

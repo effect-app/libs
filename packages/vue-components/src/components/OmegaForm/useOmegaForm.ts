@@ -13,7 +13,7 @@ import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { type FieldValidators, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, OmegaFormState, ShowErrorsOn, type TypeOverride } from "./OmegaFormStuff"
+import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, OmegaFormState, ShowErrorsOn } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -113,16 +113,6 @@ type __VLS_PrettifyLocal<T> =
     [K in keyof T]: T[K]
   }
   & {}
-
-export type DefaultInputProps<From> = {
-  label?: string
-  validators?: FieldValidators<From>
-  options?: {
-    title: string
-    value: string
-  }[]
-  type?: TypeOverride
-}
 
 export interface OmegaFormReturn<
   From extends Record<PropertyKey, any>,

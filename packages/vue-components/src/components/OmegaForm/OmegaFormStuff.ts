@@ -8,17 +8,27 @@ import { type OmegaFormReturn } from "./useOmegaForm"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
-export type OmegaInputProps<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> = {
-  form: OmegaFormReturn<From, To> & {
+export type DefaultInputProps<From> = {
+  label?: string
+  validators?: FieldValidators<From>
+  options?: {
+    title: string
+    value: string
+  }[]
+  type?: TypeOverride
+}
+
+export type OmegaInputProps<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  InputProps = DefaultInputProps<From>
+> = {
+  form: OmegaFormReturn<From, To, InputProps> & {
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
   name: NestedKeyOf<From>
-  validators?: FieldValidators<From>
-  label?: string
-  options?: { title: string; value: string }[]
-  type?: TypeOverride
-}
+} & DefaultInputProps<From> // InputProps // TODO
 
 export type TypeOverride =
   | "string"

@@ -94,7 +94,7 @@ export type OmegaConfig<T> = {
     id?: string
   } & keysRule<T>
 
-  input?: (form: any) => any
+  input?: any
 }
 
 interface OF<From, To> extends OmegaFormApi<From, To> {
@@ -597,7 +597,7 @@ export const useOmegaForm = <
   return Object.assign(formWithExtras, {
     errorContext,
     Form: fHoc(formWithExtras)(OmegaForm as any) as any,
-    Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,
+    Input: fHoc(formWithExtras)(omegaConfig?.input ?? OmegaInput) as any,
     Field: form.Field,
     Errors: eHoc(errorContext)(OmegaErrorsInternal) as any,
     Array: fHoc(formWithExtras)(OmegaArray) as any,

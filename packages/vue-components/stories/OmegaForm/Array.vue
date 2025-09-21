@@ -1,67 +1,52 @@
 <template>
-  <OmegaForm
-    :form="form"
-    :subscribe="['values']"
-  >
-    <template #externalForm>
-      <OmegaArray
-        :form="form"
-        name="test.Users"
-      >
-        <template #default="{ index, field }">
-          <OmegaInput
-            :form="form"
-            :name="`test.Users[${index}].name`"
-            :label="`name ${index}`"
-            :clearable="true"
-            @click:clear="() => debouncedClear(() => field.removeValue(index))"
-          />
-          <form.Input
-            :name="`test.Users[${index}].age`"
-            :label="`age ${index}`"
-          />
-        </template>
-        <template #field="{ field }">
-          <hr>
-          <v-btn
-            type="button"
-            variant="tonal"
-            @click="field.pushValue({ name: 'Mario Mario', age: 0 })"
-          >
-            add
-          </v-btn>
-        </template>
-      </OmegaArray>
-      <v-btn
-        type="submit"
-        variant="plain"
-      >
-        submit
-      </v-btn>
-    </template>
-  </OmegaForm>
+  <form.Form :subscribe="['values']">
+    <form.Array name="test.Users">
+      <template #default="{ index, field }">
+        <form.Input
+          :name="`test.Users[${index}].name`"
+          :label="`name ${index}`"
+          :clearable="true"
+          @click:clear="() => debouncedClear(() => field.removeValue(index))"
+        />
+        <form.Input
+          :name="`test.Users[${index}].age`"
+          :label="`age ${index}`"
+        />
+      </template>
+      <template #field="{ field }">
+        <hr>
+        <v-btn
+          type="button"
+          variant="tonal"
+          @click="field.pushValue({ name: 'Mario Mario', age: 0 })"
+        >
+          add
+        </v-btn>
+      </template>
+    </form.Array>
+    <v-btn
+      type="submit"
+      variant="plain"
+    >
+      submit
+    </v-btn>
+  </form.Form>
   <br>
   <h2>Passing OmegaArray elements as a prop</h2>
-  <OmegaForm
-    :form="form2"
-    :subscribe="['values']"
-  >
-    <template #externalForm>
-      <OmegaArray
-        :form="form2"
-        name="string"
-        :default-items="randomItems"
-      >
-        <template #default="{ index }">
-          <OmegaInput
-            :form="form2"
-            :name="`string[${index}]`"
-            :label="`string ${index}`"
-          />
-        </template>
-      </OmegaArray>
-    </template>
-  </OmegaForm>
+  <form2.Form :subscribe="['values']">
+    <form2.Array
+      name="string"
+      :default-items="randomItems"
+    >
+      <template #default="{ index }">
+        <OmegaInput
+          :form="form2"
+          :name="`string[${index}]`"
+          :label="`string ${index}`"
+        />
+      </template>
+    </form2.Array>
+  </form2.Form>
   <v-btn @click="randomize">
     randomize
   </v-btn>
@@ -70,7 +55,7 @@
 <script setup lang="ts">
 import { S } from "effect-app"
 import { onMounted, ref } from "vue"
-import { OmegaArray, OmegaForm, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
+import { OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
 
 const debounce = <T extends (...args: any[]) => any>(
   func: T,

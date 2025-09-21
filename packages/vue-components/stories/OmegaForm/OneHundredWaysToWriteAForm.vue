@@ -43,23 +43,16 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
   </template>
 </OmegaForm>` }}</code></pre>
 
-    <OmegaForm
-      :schema="schema"
-      @submit="console.log"
-    >
-      <template #internalForm="{ form }">
-        <OmegaInput
-          label="name"
-          :form="form"
-          name="name"
-        />
-        <OmegaInput
-          label="age"
-          :form="form"
-          name="age"
-        />
-      </template>
-    </OmegaForm>
+    <form.Form>
+      <form.Input
+        label="name"
+        name="name"
+      />
+      <form.Input
+        label="age"
+        name="age"
+      />
+    </form.Form>
 
     <p>
       <code>OmegaInput</code>
@@ -84,24 +77,19 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
     </template>
   </OmegaForm>` }}</code></pre>
 
-    <OmegaForm
-      :schema="schema"
-      :subscribe="['values']"
-    >
-      <template #internalForm="{ form, subscribedValues: { values } }">
-        <component
-          :is="form.Input"
+    <form.Form :subscribe="['values']">
+      <template #default="{ subscribedValues: { values } }">
+        <form.Input
           label="name"
           name="name"
         />
-        <component
-          :is="form.Input"
+        <form.Input
           label="age"
           name="age"
         />
         <pre>{{ values }}</pre>
       </template>
-    </OmegaForm>
+    </form.Form>
 
     <h2>Using the useOmegaForm hook</h2>
     <p>
@@ -191,7 +179,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
+import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   name: S.String,

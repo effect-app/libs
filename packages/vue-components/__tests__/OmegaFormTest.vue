@@ -1,6 +1,6 @@
 <template>
-  <OmegaForm :form="testForm">
-    <OmegaInput name="first" :form="testForm" label="First">
+  <testForm.Form>
+    <testForm.Input name="first" label="First">
       <template #default="{ field }">
         <label for="first">First</label>
         <input
@@ -15,8 +15,8 @@
           @blur="field.handleBlur"
         />
       </template>
-    </OmegaInput>
-    <OmegaInput name="second" :form="testForm" label="Second">
+    </testForm.Input>
+    <testForm.Input name="second" label="Second">
       <template #default="{ field }">
         <label for="second">Second</label>
         <input
@@ -31,15 +31,15 @@
           @blur="field.handleBlur"
         />
       </template>
-    </OmegaInput>
+    </testForm.Input>
     <div data-testid="valuez">{{ valuez }}</div>
-  </OmegaForm>
+  </testForm.Form>
 </template>
 
 <script setup lang="ts">
 import {
   OmegaForm,
-  OmegaInput,
+  testForm.Input,
   useOmegaForm,
 } from "../src/components/OmegaForm"
 import * as S from "effect-app/Schema"

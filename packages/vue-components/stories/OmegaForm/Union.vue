@@ -1,9 +1,6 @@
 <template>
-  <OmegaForm
-    :form="form"
-    :subscribe="['values']"
-  >
-    <template #externalForm="{ subscribedValues: { values }}">
+  <form.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values } }">
       <form.Input
         label="title"
         name="title"
@@ -28,15 +25,15 @@
         name="union.b"
       />
       <button>submit</button>
-      <OmegaErrors />
+      <form.Errors />
     </template>
-  </OmegaForm>
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaErrors, OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
 import { watch } from "vue"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 class A extends S.TaggedClass<A>()("A", {
   a: S.String
@@ -60,7 +57,7 @@ const onSubmit = (value: typeof schema.Type) => {
 }
 const form = useOmegaForm(schema, {
   defaultValues,
-  onSubmit: async ({value}) => onSubmit(value)
+  onSubmit: async ({ value }) => onSubmit(value)
 })
 
 // to reset the error state, it however doesn't work
@@ -68,10 +65,10 @@ const form = useOmegaForm(schema, {
 // then try to submit a valid union a, you get an error about b.
 // test; try to reset form when union type changes.
 // sadly doesn't help :S
-const values = form.useStore(_ => _.values)
-watch(values, (cur, prev) => { 
+const values = form.useStore((_) => _.values)
+watch(values, (cur, prev) => {
   if (cur.union._tag !== prev.union._tag) {
-    console.log('resetting form')
+    console.log("resetting form")
     form.reset(cur)
   }
 }, { deep: true })

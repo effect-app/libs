@@ -1,67 +1,64 @@
 <template>
-  <OmegaForm :schema="schema">
-    <template #internalForm="{ form }">
-      <OmegaAutoGen
-        :form="form"
-        :pick="['string', 'number', 'email']"
-        :sort="Order.mapInput(
-          Order.string,
-          (
-            x: OmegaAutoGenMeta<
-              S.Schema.Encoded<typeof schema>,
-              S.Schema.Type<typeof schema>
-            >
-          ) => x.name
-        )"
-        :label-map="(a) =>
-        Match.value(a).pipe(
-          Match.when('string', () => 'a beautiful string'),
-          Match.when('number', () => 'a big number'),
-          Match.orElse(constUndefined)
-        )"
-        :filter-map="(a, b) => {
-          switch (a) {
-            case 'string':
-              return {
-                ...b,
-                label: 'a VERY beautiful string',
-                clearable: true
-              }
-            case 'email':
-              return false
-            default:
-              return { ...b, clearable: true }
-          }
-        }"
-      />
-      <v-container>
-        <v-row>
-          <OmegaAutoGen
-            :form="form"
-            :omit="['string', 'number', 'email']"
-            :order="['date', 'url']"
+  <form.Form>
+    <OmegaAutoGen
+      :form="form"
+      :pick="['string', 'number', 'email']"
+      :sort="Order.mapInput(
+        Order.string,
+        (
+          x: OmegaAutoGenMeta<
+            typeof schema.Encoded,
+            typeof schema.Type
           >
-            <template #default="{ child }">
-              <v-col cols="4">
-                <OmegaInput
-                  :form="form"
-                  :name="child.name"
-                  :label="child.label"
-                />
-              </v-col>
-            </template>
-          </OmegaAutoGen>
-        </v-row>
-      </v-container>
-    </template>
-  </OmegaForm>
+        ) => x.name
+      )"
+      :label-map="(a) =>
+      Match.value(a).pipe(
+        Match.when('string', () => 'a beautiful string'),
+        Match.when('number', () => 'a big number'),
+        Match.orElse(constUndefined)
+      )"
+      :filter-map="(a, b) => {
+        switch (a) {
+          case 'string':
+            return {
+              ...b,
+              label: 'a VERY beautiful string',
+              clearable: true
+            }
+          case 'email':
+            return false
+          default:
+            return { ...b, clearable: true }
+        }
+      }"
+    />
+    <v-container>
+      <v-row>
+        <OmegaAutoGen
+          :form="form"
+          :omit="['string', 'number', 'email']"
+          :order="['date', 'url']"
+        >
+          <template #default="{ child }">
+            <v-col cols="4">
+              <form.Input
+                :name="child.name"
+                :label="child.label"
+              />
+            </v-col>
+          </template>
+        </OmegaAutoGen>
+      </v-row>
+    </v-container>
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { Order } from "effect"
 import { Match, S } from "effect-app"
 import { constUndefined } from "effect/Function"
-import { OmegaAutoGen, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src"
 import { type OmegaAutoGenMeta } from "../../src/components/OmegaForm/OmegaAutoGen.vue"
 
 const schema = S.Struct({
@@ -72,4 +69,5 @@ const schema = S.Struct({
   url: S.Url,
   date: S.Date
 })
+const form = useOmegaForm(schema)
 </script>

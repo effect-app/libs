@@ -63,7 +63,7 @@
   "dependencies": {
     "@effect-app/vue": "workspace:*",
     "@opentelemetry/api": "^1.9.0",
-    "@tanstack/vue-form": "^1.19.5",
+    "@tanstack/vue-form": "^1.23.0",
     "effect-app": "workspace:*",
     "highlight.js": "^11.11.1",
     "vue3-highlightjs": "^1.0.5"

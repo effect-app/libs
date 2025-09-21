@@ -1,29 +1,23 @@
 <template>
-  <OmegaForm
-    :schema="schema"
-    :default-values="defaultValues"
-    @submit="onSubmit"
-  >
-    <template #internalForm="{ form }">
-      <OmegaInput
-        label="email"
-        name="email"
-        :form="form"
-      />
-      <OmegaInput
-        label="confirm"
-        name="confirm"
-        :form="form"
-      />
-      <button>submit</button>
-      <OmegaErrors />
-    </template>
-  </OmegaForm>
+  <form.Form>
+    <OmegaInput
+      label="email"
+      name="email"
+      :form="form"
+    />
+    <OmegaInput
+      label="confirm"
+      name="confirm"
+      :form="form"
+    />
+    <button>submit</button>
+    <OmegaErrors />
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaErrors, OmegaForm, OmegaInput } from "../../src/components/OmegaForm"
+import { OmegaErrors, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S
   .Struct({
@@ -41,12 +35,13 @@ const schema = S
     })
   )
 
-const defaultValues = {
-  email: "mimmo@asd.it",
-  confirm: "amerelli@asd.it"
-}
-
-const onSubmit = (value: { email: string; confirm: string }) => {
-  console.log(value)
-}
+const form = useOmegaForm(schema, {
+  defaultValues: {
+    email: "mimmo@asd.it",
+    confirm: "amerelli@asd.it"
+  },
+  onSubmit: async (value) => {
+    console.log(value)
+  }
+})
 </script>

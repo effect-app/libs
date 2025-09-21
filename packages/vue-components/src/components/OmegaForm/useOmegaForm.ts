@@ -584,11 +584,11 @@ export const useOmegaForm = <
   const context = buildOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
 
   return Object.assign(formWithExtras, {
-    Form: fHoc(formWithExtras)(OmegaForm) as any,
+    Form: fHoc(formWithExtras)(OmegaForm as any) as any,
     Input: omegaConfig?.input ? omegaConfig.input(formWithExtras) : fHoc(formWithExtras)(OmegaInput) as any,
     Field: form.Field,
     Errors: eHoc(context)(OmegaErrorsInternal) as any,
     Array: fHoc(formWithExtras)(OmegaArray) as any,
-    AutoGen: fHoc(formWithExtras)(OmegaAutoGen) as any
+    AutoGen: fHoc(formWithExtras)(OmegaAutoGen as any) as any
   })
 }

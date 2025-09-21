@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.0
+
+### Major Changes
+
+- 36bac0e: Replace Form/Input/Errors/AutoGen/Array use with form.Form, form.Input, form.Errors, form.AutoGen, form.Array
+
 ## 0.27.16
 
 ### Patch Changes

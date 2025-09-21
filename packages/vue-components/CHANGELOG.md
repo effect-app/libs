@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.3
+
+### Patch Changes
+
+- 88f0bee: fix array slot names
+
 ## 1.0.0-next.2
 
 ### Patch Changes

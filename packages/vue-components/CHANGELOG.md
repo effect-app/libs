@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.9
+
+### Patch Changes
+
+- b754ce0: improve input type
+
 ## 1.0.0-next.8
 
 ### Patch Changes

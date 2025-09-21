@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.1
+
+### Patch Changes
+
+- 959647d: fix missing val
+
 ## 2.80.3-next.0
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.0
+
+### Patch Changes
+
+- c1d2798: add label: string and $isLabel boolean to Commands
+
 ## 2.80.2
 
 ### Patch Changes

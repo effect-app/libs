@@ -1,7 +1,7 @@
 import { type makeIntl } from "@effect-app/vue"
 import type { Meta as StoryMeta, StoryObj } from "@storybook/vue3"
 import { ref } from "vue"
-import { OmegaForm } from "../src/components/OmegaForm"
+import OmegaForm from "../src/components/OmegaForm/OmegaWrapper.vue"
 import { provideIntl } from "../src/utils"
 import ArrayComponent from "./OmegaForm/Array.vue"
 import AutoGenerationComponent from "./OmegaForm/AutoGeneration.vue"
@@ -16,7 +16,6 @@ import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWri
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import SimpleFormComponent from "./OmegaForm/SimpleForm.vue"
 import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefault.vue"
-import SimpleFormWithEventComponent from "./OmegaForm/SimpleFormWithEvent.vue"
 import SumExampleComponent from "./OmegaForm/SumExample.vue"
 import TanstackComponent from "./OmegaForm/Tanstack.vue"
 import UnionComponent from "./OmegaForm/Union.vue"
@@ -61,13 +60,6 @@ export const SimpleForm: Story = {
   render: () => ({
     components: { SimpleFormComponent },
     template: "<SimpleFormComponent />"
-  })
-}
-
-export const SimpleFormWithEvent: Story = {
-  render: () => ({
-    components: { SimpleFormWithEventComponent },
-    template: "<SimpleFormWithEventComponent />"
   })
 }
 

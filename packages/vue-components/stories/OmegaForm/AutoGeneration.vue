@@ -1,7 +1,6 @@
 <template>
   <form.Form>
-    <OmegaAutoGen
-      :form="form"
+    <form.AutoGen
       :pick="['string', 'number', 'email']"
       :sort="Order.mapInput(
         Order.string,
@@ -35,7 +34,7 @@
     />
     <v-container>
       <v-row>
-        <OmegaAutoGen
+        <form.AutoGen
           :form="form"
           :omit="['string', 'number', 'email']"
           :order="['date', 'url']"
@@ -48,7 +47,7 @@
               />
             </v-col>
           </template>
-        </OmegaAutoGen>
+        </form.AutoGen>
       </v-row>
     </v-container>
   </form.Form>
@@ -58,8 +57,7 @@
 import { Order } from "effect"
 import { Match, S } from "effect-app"
 import { constUndefined } from "effect/Function"
-import { useOmegaForm } from "../../src"
-import { type OmegaAutoGenMeta } from "../../src/components/OmegaForm/OmegaAutoGen.vue"
+import { type OmegaAutoGenMeta, useOmegaForm } from "../../src"
 
 const schema = S.Struct({
   string: S.String,

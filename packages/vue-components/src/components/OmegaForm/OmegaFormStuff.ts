@@ -792,3 +792,8 @@ export const nullableInput = <A, I, R>(
       encode: (input) => input
     })
   )
+
+export type OmegaAutoGenMeta<
+  From extends Record<PropertyKey, string>,
+  To extends Record<PropertyKey, string>
+> = Omit<OmegaInputProps<From, To>, "form">

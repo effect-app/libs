@@ -13,7 +13,7 @@ import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, type OmegaFormApi, OmegaFormState, ShowErrorsOn } from "./OmegaFormStuff"
+import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, type OmegaFormApi, OmegaFormState, ShowErrorsOn } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -235,7 +235,9 @@ export interface OmegaFormReturn<
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
-      slots: {}
+      slots: {
+        default(props: { child: OmegaAutoGenMeta<From, To> }): void
+      }
       emit: {}
     }>
   ) => import("vue").VNode & {

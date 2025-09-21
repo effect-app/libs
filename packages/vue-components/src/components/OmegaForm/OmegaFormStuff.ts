@@ -808,3 +808,22 @@ export type OmegaAutoGenMeta<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>
 > = Omit<OmegaInputProps<From, To>, "form">
+
+const supportedInputs = [
+  "button",
+  "checkbox",
+  "color",
+  "date",
+  "email",
+  "number",
+  "password",
+  "radio",
+  "range",
+  "search",
+  "submit",
+  "tel",
+  "text",
+  "time",
+  "url"
+]
+export const getInputType = (input: string) => supportedInputs.includes(input) ? input : "text"

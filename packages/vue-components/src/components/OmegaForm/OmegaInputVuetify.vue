@@ -23,7 +23,7 @@
       :required="inputProps.required"
       :min-length="inputProps.minLength"
       :max-length="inputProps.maxLength"
-      :type="inputProps.type"
+      :type="getInputType(inputProps.type)"
       :name="inputProps.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
@@ -38,7 +38,6 @@
       :required="inputProps.required"
       :min-length="inputProps.minLength"
       :max-length="inputProps.maxLength"
-      :type="inputProps.type"
       :name="inputProps.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
@@ -114,6 +113,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
+import { getInputType } from "../OmegaForm/OmegaFormStuff"
 import type { InputProps } from "./InputProps"
 
 defineProps<{

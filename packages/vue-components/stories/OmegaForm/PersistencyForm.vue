@@ -1,38 +1,33 @@
 <template>
-  <OmegaForm
-    :form="addForm"
+  <addForm.Form
     :subscribe="['errors', 'values']"
     show-errors-on="onChange"
   >
-    <template #externalForm="{ subscribedValues: { errors, values: vvv } }">
+    <template #default="{ subscribedValues: { errors, values: vvv } }">
       <div>Errors: {{ errors }}</div>
       <div>Values: {{ vvv }}</div>
-      <OmegaInput
+      <addForm.Input
         label="first"
-        :form="addForm"
         name="first"
       />
       <div>+</div>
-      <OmegaInput
+      <addForm.Input
         label="second"
-        :form="addForm"
         name="second"
       />
       <br>
       <hr>
       <br>
-      <OmegaInput
+      <addForm.Input
         label="third.fourth"
-        :form="addForm"
         name="third.fourth"
       />
-      <OmegaInput
+      <addForm.Input
         label="third.fifth"
-        :form="addForm"
         name="third.fifth"
       />
     </template>
-  </OmegaForm>
+  </addForm.Form>
 
   <!-- Technically you can do this only with a subscribe but only inside OmegaForm Context -->
   <div>
@@ -43,7 +38,7 @@
 <script setup lang="ts">
 import { S } from "effect-app"
 import { ref, watch } from "vue"
-import { OmegaForm, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({

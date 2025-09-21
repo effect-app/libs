@@ -1,5 +1,5 @@
 <template>
-  <OmegaForm :form="exampleForm">
+  <exampleForm.Form>
     <exampleForm.Input
       label="aString"
       name="aString"
@@ -67,12 +67,12 @@
       Reset
     </button>
     <exampleForm.Errors />
-  </OmegaForm>
+  </exampleForm.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const exampleForm = useOmegaForm(
   S.Struct({

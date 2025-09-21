@@ -4,7 +4,10 @@
     @submit.prevent.stop="form.handleSubmit()"
   >
     <fieldset :disabled="formIsSubmitting || disabled">
-      <slot :subscribed-values="subscribedValues" />
+      <slot
+        name="default"
+        :subscribed-values="subscribedValues"
+      />
     </fieldset>
   </form>
 </template>

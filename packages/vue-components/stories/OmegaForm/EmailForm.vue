@@ -11,13 +11,13 @@
       :form="form"
     />
     <button>submit</button>
-    <OmegaErrors />
+    <form.Errors />
   </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaErrors, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
+import { OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S
   .Struct({

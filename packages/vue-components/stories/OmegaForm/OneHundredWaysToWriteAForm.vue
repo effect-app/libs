@@ -41,7 +41,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
     <OmegaInput label="name" :form="form" name="name" />
     <OmegaInput label="age" :form="form" name="age" />
   </template>
-</OmegaForm>` }}</code></pre>
+</form.Form>` }}</code></pre>
 
     <form.Form>
       <form.Input
@@ -66,7 +66,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
     <component :is="form.Input" label="name" name="name" />
     <component :is="form.Input" label="age" name="age" />
   </template>
-</OmegaForm>` }}</code></pre>
+</form.Form>` }}</code></pre>
     <p>you can also register to the values via the `subscribe` prop</p>
     <pre v-highlightjs>
 <code class="vue">{{ `<OmegaForm :schema="schema" :subscribe="['values']">
@@ -75,7 +75,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
       <component :is="form.Input" label="age" name="age" />
       <pre>\{\{ values \}\}</pre>
     </template>
-  </OmegaForm>` }}</code></pre>
+  </form.Form>` }}</code></pre>
 
     <form.Form :subscribe="['values']">
       <template #default="{ subscribedValues: { values } }">
@@ -101,20 +101,20 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
       Now, you can use the form instance to create the form in the template.
     </p>
     <pre v-highlightjs>
-<code class="vue">{{ `<OmegaForm :form="form">
+<code class="vue">{{ `<form.Form>
     <form.Input" label="name" name="name" />
     <form.Input" label="age" name="age" />
-</OmegaForm>` }}</code></pre>
+</form.Form>` }}</code></pre>
 
     <p>you can still register to the values via the `subscribe` prop</p>
     <pre v-highlightjs>
-<code class="vue">{{ `<OmegaForm :form="form" :subscribe="['values']">
+<code class="vue">{{ `<form.Form :subscribe="['values']">
     <template #externalForm="{ subscribedValues: { values } }">
       <form.Input" label="name" name="name" />
       <form.Input" label="age" name="age" />
       <pre>\{\{ values \}\}</pre>
     </template>
-  </OmegaForm>` }}</code></pre>
+  </form.Form>` }}</code></pre>
     <p>
       <strong>Note:</strong> the template name is <code>externalForm</code>
       because the form is not inside the component, it's outside. And you don't have access to the form instance inside
@@ -126,7 +126,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
       You can use custom inputs by passing an OmegaInput a child component.
     </p>
     <pre v-highlightjs>
-<code class="vue">{{ `<OmegaForm :form="form">
+<code class="vue">{{ `<form.Form>
   <form.Input label="name" name="name">
     <template #default="{ field, label }">
       <label :for="name">\{\{ label \}\}</label>
@@ -139,8 +139,8 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
       />
     </template>
   </form.Input>
-</OmegaForm>` }}</code></pre>
-    <OmegaForm :form="form">
+</form.Form>` }}</code></pre>
+    <form.Form>
       <form.Input
         label="name"
         name="name"
@@ -156,7 +156,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
           >
         </template>
       </form.Input>
-    </OmegaForm>
+    </form.Form>
     <h3>Known issues</h3>
     <p>
       You can't write something like this:
@@ -167,7 +167,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
     <form.Input label="name" name="name" />
     <form.Input label="age" name="age" />
   </template>
-</OmegaForm>` }}</code></pre>
+</form.Form>` }}</code></pre>
     <p>
       because When Vue's template compiler encounters <code>form.Input</code>, it try to resolve or analyze the form
       object and its Input property earlier in the rendering pipeline. Since form.Input is provided by the parent
@@ -179,7 +179,7 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   name: S.String,

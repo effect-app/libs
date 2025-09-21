@@ -1,17 +1,13 @@
-import { describe, it, expect } from "vitest"
-import * as S from "effect-app/Schema"
-import {
-  generateMetaFromSchema,
-  type MetaRecord,
-} from "../src/components/OmegaForm"
-import { NonEmptyString255 } from "effect-app/Schema"
 import { mount } from "@vue/test-utils"
-import OmegaForm from "./OmegaFormTest.vue"
+import * as S from "effect-app/Schema"
+import { NonEmptyString255 } from "effect-app/Schema"
+import { describe, expect, it } from "vitest"
+import { generateMetaFromSchema, type MetaRecord } from "../src/components/OmegaForm"
 import OmegaIntlProvider from "./OmegaIntlProvider.vue"
 
 class kkk extends S.Class<kkk>("kkk")({
   lll: S.String.pipe(S.minLength(10)).pipe(S.maxLength(21)),
-  mmm: S.Number.pipe(S.between(10, 20)),
+  mmm: S.Number.pipe(S.between(10, 20))
 }) {}
 
 class bbb extends S.Class<bbb>("bbb")({
@@ -20,7 +16,7 @@ class bbb extends S.Class<bbb>("bbb")({
   jjj: S.UndefinedOr(S.String.pipe(S.maxLength(4))),
   nnn: S.Number.pipe(S.between(10, 20)),
   kkk,
-  ooo: S.String.pipe(S.minLength(1)).pipe(S.maxLength(23)),
+  ooo: S.String.pipe(S.minLength(1)).pipe(S.maxLength(23))
 }) {}
 
 describe("OmegaForm", () => {
@@ -33,9 +29,9 @@ describe("OmegaForm", () => {
         fff: S.Union(S.Literal("left"), S.Literal("right"), S.Literal("both")),
         zzz: S.NullOr(S.Number.pipe(S.between(10, 20))).pipe(
           S.annotations({
-            message: () => "foobar",
-          }),
-        ),
+            message: () => "foobar"
+          })
+        )
       })
 
       const expectedMeta = {
@@ -44,76 +40,76 @@ describe("OmegaForm", () => {
           minLength: 1,
           nullableOrUndefined: false,
           required: true,
-          type: "string",
+          type: "string"
         },
         "bbb.ccc": {
           maxLength: 2,
           minLength: 1,
           nullableOrUndefined: false,
           required: true,
-          type: "string",
+          type: "string"
         },
         "bbb.ddd": {
           maxLength: 3,
           nullableOrUndefined: "null",
           required: false,
-          type: "string",
+          type: "string"
         },
         "bbb.jjj": {
           maxLength: 4,
           nullableOrUndefined: "undefined",
           required: false,
-          type: "string",
+          type: "string"
         },
         "bbb.kkk.lll": {
           maxLength: 21,
           minLength: 10,
           nullableOrUndefined: false,
           required: true,
-          type: "string",
+          type: "string"
         },
         "bbb.kkk.mmm": {
           maximum: 20,
           minimum: 10,
           nullableOrUndefined: false,
           required: true,
-          type: "number",
+          type: "number"
         },
         "bbb.nnn": {
           maximum: 20,
           minimum: 10,
           nullableOrUndefined: false,
           required: true,
-          type: "number",
+          type: "number"
         },
         "bbb.ooo": {
           maxLength: 23,
           minLength: 1,
           nullableOrUndefined: false,
           required: true,
-          type: "string",
+          type: "string"
         },
         eee: {
           maximum: 20,
           minimum: 10,
           nullableOrUndefined: false,
           required: true,
-          type: "number",
+          type: "number"
         },
         fff: {
           members: ["left", "right", "both"],
 
           nullableOrUndefined: false,
           required: true,
-          type: "select",
+          type: "select"
         },
         zzz: {
           maximum: 20,
           minimum: 10,
           nullableOrUndefined: "null",
           required: false,
-          type: "number",
-        },
+          type: "number"
+        }
       }
 
       const result = generateMetaFromSchema(testSchema)
@@ -139,21 +135,20 @@ describe("OmegaForm", () => {
             nnn: S.Number.pipe(S.between(10, 20)),
             kkk: S.Struct({
               lll: S.String.pipe(S.minLength(10)).pipe(S.maxLength(21)),
-              mmm: S.Number.pipe(S.between(10, 20)),
+              mmm: S.Number.pipe(S.between(10, 20))
             }),
-            ooo: S.String.pipe(S.minLength(1)).pipe(S.maxLength(23)),
-          }),
+            ooo: S.String.pipe(S.minLength(1)).pipe(S.maxLength(23))
+          })
         ),
         eee: S.Number.pipe(S.between(10, 20)),
         fff: S.Union(S.Literal("left"), S.Literal("right"), S.Literal("both")),
-        zzz: S.NullOr(S.Number.pipe(S.between(10, 20))),
+        zzz: S.NullOr(S.Number.pipe(S.between(10, 20)))
       })
 
       const result = generateMetaFromSchema(testSchema)
 
       // Type check: ensure the meta record has the correct keys
-      type TestType =
-        typeof testSchema extends S.Schema<infer _, infer T, any> ? T : never
+      type TestType = typeof testSchema extends S.Schema<infer _, infer T, any> ? T : never
       const meta: MetaRecord<TestType> = result.meta
 
       // Value check
@@ -170,14 +165,13 @@ describe("OmegaForm", () => {
 // Create a wrapper component that includes the OmegaIntlProvider
 const OmegaFormWithProvider = {
   components: {
-    OmegaForm,
-    OmegaIntlProvider,
+    OmegaIntlProvider
   },
   template: `
     <OmegaIntlProvider>
       <OmegaForm />
     </OmegaIntlProvider>
-  `,
+  `
 }
 
 describe("OmegaForm UI", () => {
@@ -190,8 +184,8 @@ describe("OmegaForm UI", () => {
     const wrapper = mount(OmegaFormWithProvider)
 
     // Find the input elements
-    const firstInput = wrapper.find('input[id="first"]')
-    const secondInput = wrapper.find('input[id="second"]')
+    const firstInput = wrapper.find("input[id=\"first\"]")
+    const secondInput = wrapper.find("input[id=\"second\"]")
 
     // Set values
     await firstInput.setValue(10)
@@ -202,7 +196,7 @@ describe("OmegaForm UI", () => {
     await secondInput.trigger("change")
 
     // Get the element showing the sum
-    const sumElement = wrapper.find('[data-testid="valuez"]')
+    const sumElement = wrapper.find("[data-testid=\"valuez\"]")
 
     // Assert the sum is correct (10 + 20 = 30)
     expect(sumElement.text()).toBe("30")

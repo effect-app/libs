@@ -1,10 +1,9 @@
 <template>
-  <OmegaForm
-    :form="form"
+  <form.Form
     :subscribe="['values']"
     @submit="() => console.log('submitted1')"
   >
-    <template #externalForm="{ subscribedValues: { values } }">
+    <template #default="{ subscribedValues: { values } }">
       <div>values: {{ values }}</div>
       <form.Input
         name="a"
@@ -15,12 +14,12 @@
         submit
       </button>
     </template>
-  </OmegaForm>
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaForm, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const form = useOmegaForm(S.Struct({ a: S.NullOr(S.String) }), {})
 </script>

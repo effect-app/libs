@@ -5,10 +5,7 @@
       :sort="Order.mapInput(
         Order.string,
         (
-          x: OmegaAutoGenMeta<
-            typeof schema.Encoded,
-            typeof schema.Type
-          >
+          x: Meta
         ) => x.name
       )"
       :label-map="(a) =>
@@ -67,5 +64,9 @@ const schema = S.Struct({
   url: S.Url,
   date: S.Date
 })
+type Meta = OmegaAutoGenMeta<
+  typeof schema.Encoded,
+  typeof schema.Type
+>
 const form = useOmegaForm(schema)
 </script>

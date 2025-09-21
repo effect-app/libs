@@ -3,17 +3,16 @@
 
 import * as api from "@opentelemetry/api"
 import { type DeepKeys, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, useStore } from "@tanstack/vue-form"
-import { Effect, Fiber, S } from "effect-app"
+import { Effect, Fiber, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
-import { getOmegaStore } from "./getOmegaStore"
 import { type InputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, type OmegaFormApi, OmegaFormState, ShowErrorsOn } from "./OmegaFormStuff"
+import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, ShowErrorsOn } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -167,13 +166,19 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & Omit<ReturnType<typeof OmegaErrorsInternal["props"]>, "errors" | "generalErrors" | "showErrors">
+          // & {
+          //   errors: readonly OmegaError[]
+          //   generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+          //   showErrors: boolean
+          // }
           & Partial<{}>
         >
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
-      slots: {}
+      slots: {
+        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => void
+      }
       emit: {}
     }>
   ) => import("vue").VNode & {
@@ -186,28 +191,31 @@ export interface OmegaFormReturn<
     __VLS_setup?: Promise<{
       props:
         & __VLS_PrettifyLocal<
-          & Pick<
+          Pick<
             & Partial<{}>
             & Omit<
               {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
               never
             >,
             never
-          >
-          & Omit<ReturnType<typeof OmegaArray<From, To>>["props"], "form">
-          & Partial<{}>
+          > & {
+            // form: OmegaInputProps<From, To>["form"]
+            pick?: DeepKeys<From>[]
+            omit?: DeepKeys<From>[]
+            labelMap?: (key: DeepKeys<From>) => string | undefined
+            filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
+            order?: DeepKeys<From>[]
+            sort?: Order.Order<OmegaAutoGenMeta<From, To>>
+          } & {}
         >
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
-        // todo
-        default(props: { subField: any; subState: any; index: number; field: any }): void
-        ["pre-array"](props: { field: any; state: any }): void
-        ["post-array"](props: { field: any; state: any }): void
-        field(props: { field: any }): void
+        default(props: {
+          child: OmegaAutoGenMeta<From, To>
+        }): void
       }
-
       emit: {}
     }>
   ) => import("vue").VNode & {
@@ -221,22 +229,30 @@ export interface OmegaFormReturn<
     __VLS_setup?: Promise<{
       props:
         & __VLS_PrettifyLocal<
-          & Pick<
+          Pick<
             & Partial<{}>
             & Omit<
               {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
               never
             >,
             never
-          >
-          & Omit<ReturnType<typeof OmegaAutoGen<From, To>>["props"], "form">
-          & Partial<{}>
+          > & {
+            // form: OmegaInputProps<From, To>["form"]
+            pick?: DeepKeys<From>[]
+            omit?: DeepKeys<From>[]
+            labelMap?: (key: DeepKeys<From>) => string | undefined
+            filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
+            order?: DeepKeys<From>[]
+            sort?: Order.Order<OmegaAutoGenMeta<From, To>>
+          } & {}
         >
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
-        default(props: { child: OmegaAutoGenMeta<From, To> }): void
+        default(props: {
+          child: OmegaAutoGenMeta<From, To>
+        }): void
       }
       emit: {}
     }>
@@ -244,29 +260,33 @@ export interface OmegaFormReturn<
     __ctx?: Awaited<typeof __VLS_setup>
   }
 
-  Form: <K extends keyof OmegaFormState<To, From>, Props = DefaultInputProps<From>>(
+  Form: <K extends keyof OmegaFormState<To, From>>(
     __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
     __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
     __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
     __VLS_setup?: Promise<{
       props:
         & __VLS_PrettifyLocal<
-          & Pick<
+          Pick<
             & Partial<{}>
             & Omit<
               {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
               never
             >,
             never
-          >
-          & ReturnType<typeof OmegaForm<From, To, K, Props>>["props"]
-          & Partial<{}>
+          > & {
+            // form: OmegaFormReturn<From, To, Props>
+            disabled?: boolean
+            subscribe?: K[]
+          } & {}
         >
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
-        default(props: { subscribedValues: ReturnType<typeof getOmegaStore<To, From, K>>["value"] }): void
+        default(props: {
+          subscribedValues: K[] extends undefined[] ? Record<string, never> : Pick<OmegaFormState<From, To>, K>
+        }): void
       }
       emit: {}
     }>

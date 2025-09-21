@@ -805,6 +805,6 @@ export const nullableInput = <A, I, R>(
   )
 
 export type OmegaAutoGenMeta<
-  From extends Record<PropertyKey, string>,
-  To extends Record<PropertyKey, string>
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
 > = Omit<OmegaInputProps<From, To>, "form">

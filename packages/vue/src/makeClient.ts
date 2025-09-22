@@ -1333,9 +1333,9 @@ export const makeClient = <RT_>(
     const Command = useCommand()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        const mut = client[key].handler as any
+        const mut = client[key].handler
         const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap({ mutate: mut, id: client[key].id })
+        const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
           mut,
           { wrap, fn },

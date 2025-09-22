@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.3
+
+### Patch Changes
+
+- 69032f1: fix: wrapping mutation without arguments.
+
 ## 2.80.3-next.2
 
 ### Patch Changes

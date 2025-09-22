@@ -1362,7 +1362,7 @@ export const makeClient = <RT_>(
       (acc, key) => {
         const mut: any = mutation(client[key] as any)
         const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap(Effect.isEffect(mut) ? () => mut : mut)
+        const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
           mut,
           { wrap, fn },

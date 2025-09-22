@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.5
+
+### Patch Changes
+
+- 72292b2: fup
+
 ## 2.80.3-next.4
 
 ### Patch Changes

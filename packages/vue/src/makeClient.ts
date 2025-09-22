@@ -1360,9 +1360,9 @@ export const makeClient = <RT_>(
     const mutation = useMutation()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        const mut = mutation(client[key] as any)
+        const mut: any = mutation(client[key] as any)
         const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap(mut)
+        const wrap = Command.wrap(Effect.isEffect(mut) ? () => mut : mut)
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
           mut,
           { wrap, fn },
@@ -1399,7 +1399,11 @@ export const makeClient = <RT_>(
             client[key] as any,
             invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
           ),
-          (mutate) => Object.assign(mutate, { wrap: Command.wrap({ mutate, id: client[key].id }), fn })
+          (mutate) =>
+            Object.assign(mutate, {
+              wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id }),
+              fn
+            })
         )
         const awesome = {
           mutate,

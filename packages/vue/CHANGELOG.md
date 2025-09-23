@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.6
+
+### Patch Changes
+
+- 1e3e826: feat: add form.Input Vite plugin [Davide]
+
 ## 2.80.3-next.5
 
 ### Patch Changes

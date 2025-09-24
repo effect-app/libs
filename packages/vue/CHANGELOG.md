@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.7
+
+### Patch Changes
+
+- 02f5ecf: revert vite plugin
+
 ## 2.80.3-next.6
 
 ### Patch Changes

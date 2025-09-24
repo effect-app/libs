@@ -78,10 +78,6 @@
       "types": "./dist/form.d.ts",
       "default": "./dist/form.js"
     },
-    "./formInputVitePlugin": {
-      "types": "./dist/formInputVitePlugin.d.ts",
-      "default": "./dist/formInputVitePlugin.js"
-    },
     "./lib": {
       "types": "./dist/lib.d.ts",
       "default": "./dist/lib.js"

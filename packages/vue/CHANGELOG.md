@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.80.3-next.8
+
+### Patch Changes
+
+- 644bfe9: fix and align client extensions
+
 ## 2.80.3-next.7
 
 ### Patch Changes

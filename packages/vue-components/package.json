@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue-components",
-  "version": "1.0.0-next.20",
+  "version": "1.0.0-next.21",
   "scripts": {
     "build": "pnpm build:run",
     "build:run": "rimraf dist && vue-tsc && vite build",

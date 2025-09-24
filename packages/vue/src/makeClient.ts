@@ -1338,8 +1338,8 @@ export const makeClient = <RT_>(
         const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
           mut,
-          { wrap, fn },
-          wrap
+          fn, // to get the i18n key etc.
+          { wrap, fn }
         )
         return acc
       },
@@ -1365,8 +1365,8 @@ export const makeClient = <RT_>(
         const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
           mut,
-          { wrap, fn },
-          wrap
+          fn, // to get the i18n key etc.
+          { wrap, fn }
         )
         return acc
       },
@@ -1400,28 +1400,31 @@ export const makeClient = <RT_>(
             invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
           ),
           (mutate) =>
-            Object.assign(mutate, {
-              wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id }),
-              fn
-            })
+            Object.assign(
+              mutate,
+              fn, // to get the i18n key etc.
+              {
+                wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id }),
+                fn
+              }
+            )
         )
-        const awesome = {
-          mutate,
-          query: useQuery(client[key] as any),
-          suspense: useSuspenseQuery(client[key] as any)
-        }
+
         const h_ = client[key].handler
-        const h = Object.assign(
-          Effect.isEffect(h_)
-            ? () => h_
-            : (...args: [any]) => h_(...args),
-          client[key],
-          fn
-        )
+        const h = Effect.isEffect(h_)
+          ? () => h_
+          : (...args: [any]) => h_(...args)
         ;(acc as any)[key] = Object.assign(
           h,
-          awesome,
-          { wrap: Command.wrap(h), fn }
+          client[key],
+          fn, // to get the i18n key etc.
+          {
+            mutate,
+            query: useQuery(client[key] as any),
+            suspense: useSuspenseQuery(client[key] as any),
+            wrap: Command.wrap({ mutate: h, id: client[key].id }),
+            fn
+          }
         )
         return acc
       },

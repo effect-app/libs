@@ -6,7 +6,7 @@
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && tsc --build",
-    "build": "tspc",
+    "build": "tsc",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
     "pub": "pnpm prepublish && npm publish --access public",

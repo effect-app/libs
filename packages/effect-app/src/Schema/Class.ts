@@ -85,8 +85,8 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
         super(a, b)
       }
       // static readonly include = include(fields)
-      static readonly pick = (...selection: any[]) => pipe(fields, Struct2.pick(...selection))
-      static readonly omit = (...selection: any[]) => pipe(fields, Struct2.omit(...selection))
+      static readonly pick = (...selection: any[]) => pipe(this["fields"], Struct2.pick(...selection))
+      static readonly omit = (...selection: any[]) => pipe(this["fields"], Struct2.omit(...selection))
     } as any
   }
 
@@ -110,8 +110,8 @@ export const TaggedClass: <Self = never>(identifier?: string) => <Tag extends st
         super(a, b)
       }
       // static readonly include = include(fields)
-      static readonly pick = (...selection: any[]) => pipe(fields, Struct2.pick(...selection))
-      static readonly omit = (...selection: any[]) => pipe(fields, Struct2.omit(...selection))
+      static readonly pick = (...selection: any[]) => pipe(this["fields"], Struct2.pick(...selection))
+      static readonly omit = (...selection: any[]) => pipe(this["fields"], Struct2.omit(...selection))
     } as any
   }
 

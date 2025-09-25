@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.0.1
+
+### Patch Changes
+
+- 93a3ea7: update vue-form
+
 ## 1.0.0
 
 ### Major Changes

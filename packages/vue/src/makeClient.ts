@@ -1333,13 +1333,13 @@ export const makeClient = <RT_>(
     const Command = useCommand()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        const mut = client[key].handler as any
+        const mut = client[key].handler
         const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap({ mutate: mut, id: client[key].id })
+        const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
           mut,
-          { wrap, fn },
-          wrap
+          fn, // to get the i18n key etc.
+          { wrap, fn }
         )
         return acc
       },
@@ -1360,13 +1360,13 @@ export const makeClient = <RT_>(
     const mutation = useMutation()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        const mut = mutation(client[key] as any)
+        const mut: any = mutation(client[key] as any)
         const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap(mut)
+        const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
           mut,
-          { wrap, fn },
-          wrap
+          fn, // to get the i18n key etc.
+          { wrap, fn }
         )
         return acc
       },
@@ -1399,25 +1399,32 @@ export const makeClient = <RT_>(
             client[key] as any,
             invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
           ),
-          (mutate) => Object.assign(mutate, { wrap: Command.wrap({ mutate, id: client[key].id }), fn })
+          (mutate) =>
+            Object.assign(
+              mutate,
+              fn, // to get the i18n key etc.
+              {
+                wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id }),
+                fn
+              }
+            )
         )
-        const awesome = {
-          mutate,
-          query: useQuery(client[key] as any),
-          suspense: useSuspenseQuery(client[key] as any)
-        }
+
         const h_ = client[key].handler
-        const h = Object.assign(
-          Effect.isEffect(h_)
-            ? () => h_
-            : (...args: [any]) => h_(...args),
-          client[key],
-          fn
-        )
+        const h = Effect.isEffect(h_)
+          ? () => h_
+          : (...args: [any]) => h_(...args)
         ;(acc as any)[key] = Object.assign(
           h,
-          awesome,
-          { wrap: Command.wrap(h), fn }
+          client[key],
+          fn, // to get the i18n key etc.
+          {
+            mutate,
+            query: useQuery(client[key] as any),
+            suspense: useSuspenseQuery(client[key] as any),
+            wrap: Command.wrap({ mutate: h, id: client[key].id }),
+            fn
+          }
         )
         return acc
       },
@@ -1512,6 +1519,7 @@ export interface CommandBase<I extends ReadonlyArray<any>, A = void> {
   handle: (...input: I) => A
   waiting: boolean
   action: string
+  label: string
 }
 
 // export interface Command<I extends ReadonlyArray<any>> extends CommandBase<I, void> {}

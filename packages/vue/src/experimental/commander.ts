@@ -71,6 +71,7 @@ export class CommandContext extends Effect.Tag("CommandContext")<
     id: string
     i18nKey: string
     action: string
+    label: string
     namespace: string
     namespaced: (key: string) => string
     state?: IntlRecord | undefined
@@ -119,6 +120,7 @@ export declare namespace Commander {
     extends CommandContextLocal<Id, I18nKey>
   {
     action: string
+    label: string
     result: Result<A, E>
     waiting: boolean
   }
@@ -1194,10 +1196,17 @@ export class CommanderImpl<RT> {
     const action = this.intl.formatMessage({
       id: namespace,
       defaultMessage: id
-    }, options?.state)
+    }, { ...options?.state, _isLabel: false })
+
+    const label = this.intl.formatMessage({
+      id: namespace,
+      defaultMessage: id
+    }, { ...options?.state, _isLabel: true })
+
     const context = CommandContext.of({
       ...makeBaseInfo(id, options),
       action,
+      label,
       state: options?.state
     })
 
@@ -1234,7 +1243,9 @@ export class CommanderImpl<RT> {
 
         const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
         const initialContext = makeContext_()
-        const action = computed(() => makeContext_().action)
+        const context = computed(() => makeContext_())
+        const action = computed(() => context.value.action)
+        const label = computed(() => context.value.label)
 
         const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
           self.pipe(
@@ -1333,6 +1344,7 @@ export class CommanderImpl<RT> {
                   input: args,
                   state,
                   action: initialContext.action,
+                  label: initialContext.label,
                   id: initialContext.id,
                   i18nKey: initialContext.i18nKey
                 }
@@ -1341,7 +1353,7 @@ export class CommanderImpl<RT> {
           ))
 
           return this.runFork(command)
-        }, { action })
+        }, { action, label })
 
         const handleEffect = Object.assign((...args: Args) => {
           // we capture the call site stack here
@@ -1386,7 +1398,7 @@ export class CommanderImpl<RT> {
               this.runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command)
             )
           )
-        }, { action, state })
+        }, { action, label, state })
 
         const compose = Object.assign((...args: Args) => {
           // we capture the call site stack here
@@ -1426,7 +1438,7 @@ export class CommanderImpl<RT> {
           )
 
           return command
-        }, { action })
+        }, { action, label })
 
         const compose2 = Object.assign((...args: Args) => {
           // we capture the call site stack here
@@ -1466,7 +1478,7 @@ export class CommanderImpl<RT> {
           )
 
           return command
-        }, { action })
+        }, { action, label })
 
         return reactive({
           /** static */
@@ -1486,6 +1498,8 @@ export class CommanderImpl<RT> {
           waiting,
           /** reactive */
           action,
+          /** reactive */
+          label,
 
           handle,
 

@@ -23,7 +23,7 @@
       :required="inputProps.required"
       :min-length="inputProps.minLength"
       :max-length="inputProps.maxLength"
-      :type="inputProps.type"
+      :type="getInputType(inputProps.type)"
       :name="inputProps.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
@@ -38,7 +38,6 @@
       :required="inputProps.required"
       :min-length="inputProps.minLength"
       :max-length="inputProps.maxLength"
-      :type="inputProps.type"
       :name="inputProps.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
@@ -69,6 +68,25 @@
         }
       }"
     />
+    <template v-if="inputProps.type === 'radio'">
+      <v-radio-group
+        :id="inputProps.id"
+        :name="inputProps.name"
+        :label="inputProps.label"
+        :error-messages="inputProps.errorMessages"
+        :error="inputProps.error"
+        v-bind="$attrs"
+        :model-value="vuetifyValue"
+        @update:model-value="inputProps.field.handleChange"
+      >
+        <v-radio
+          v-for="option in inputProps.options"
+          :key="option.value"
+          :label="option.title"
+          :value="option.value"
+        />
+      </v-radio-group>
+    </template>
     <v-select
       v-if="inputProps.type === 'select' || inputProps.type === 'multiple'"
       :id="inputProps.id"
@@ -114,6 +132,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
+import { getInputType } from "../OmegaForm/OmegaFormStuff"
 import type { InputProps } from "./InputProps"
 
 defineProps<{

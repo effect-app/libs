@@ -1,18 +1,18 @@
-import { describe, it, expect } from "vitest"
 import { S } from "effect-app"
+import { describe, expect, it } from "vitest"
 import { generateMetaFromSchema } from "../src/components/OmegaForm/OmegaFormStuff"
 
 const schema = S.Struct({
   a: S.Array(S.Struct({
     b: S.String,
     c: S.Array(S.Struct({
-      d: S.String,
+      d: S.String
     })),
-    e: S.Array(S.Number),
+    e: S.Array(S.Number)
   })),
   aMultiple: S.Array(S.String),
   aNullable: S.NullOr(S.Struct({
-    a: S.String,
+    a: S.String
   })),
   foo: S
     .NullOr(
@@ -23,9 +23,9 @@ const schema = S.Struct({
             baz: S.String,
             value: S.Number
           }))
-        }))),
+        })))
       })
-    ),
+    )
 })
 
 describe("test-array-meta", () => {
@@ -33,7 +33,6 @@ describe("test-array-meta", () => {
     const result = generateMetaFromSchema(schema)
     console.log("Generated metadata:", JSON.stringify(result.meta, null, 2))
     console.log("Keys:", Object.keys(result.meta))
-    
 
     expect(result.meta).toHaveProperty("a.b")
     expect(result.meta["a.b"].type).toBe("string")

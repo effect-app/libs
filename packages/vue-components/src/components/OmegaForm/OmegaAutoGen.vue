@@ -3,8 +3,7 @@
     v-for="({ name, label, ...attrs }) in children"
     :child="{ name, label, ...attrs }"
   >
-    <OmegaInput
-      :form="props.form"
+    <form.Input
       :name="name"
       :label="label"
       v-bind="attrs"
@@ -15,19 +14,16 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, string>,
-  To extends Record<PropertyKey, string>"
+  generic="
+  From extends Record<PropertyKey, string>,
+  To extends Record<PropertyKey, string>
+"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { Array as A, Order, pipe } from "effect-app"
 import { computed } from "vue"
-import { type FieldMeta, type OmegaInputProps } from "./OmegaFormStuff"
-import OmegaInput from "./OmegaInput.vue"
+import { type FieldMeta, type OmegaAutoGenMeta, type OmegaInputProps } from "./OmegaFormStuff"
 
-export type OmegaAutoGenMeta<
-  From extends Record<PropertyKey, string>,
-  To extends Record<PropertyKey, string>
-> = Omit<OmegaInputProps<From, To>, "form">
 type NewMeta = OmegaAutoGenMeta<From, To>
 
 const mapObject = <K extends string, A, B>(fn: (value: A, key: K) => B) => (obj: Record<K, A>): Record<K, B> =>

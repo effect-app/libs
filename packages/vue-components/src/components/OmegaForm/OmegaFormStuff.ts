@@ -4,21 +4,42 @@ import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, typ
 import { type RuntimeFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
-import { type OmegaFormReturn } from "./useOmegaForm"
+import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
-export type OmegaInputProps<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>> = {
-  form: OmegaFormReturn<From, To> & {
+export type DefaultInputProps<From> = {
+  label?: string
+  validators?: FieldValidators<From>
+  options?: {
+    title: string
+    value: string
+  }[]
+  type?: TypeOverride
+}
+
+export type OmegaInputPropsBase<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+> = {
+  form: OF<From, To> & {
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
   name: NestedKeyOf<From>
-  validators?: FieldValidators<From>
-  label?: string
-  options?: { title: string; value: string }[]
-  type?: TypeOverride
-}
+} & DefaultInputProps<From>
+
+export type OmegaInputProps<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  InputProps = DefaultInputProps<From>
+> = {
+  form: OmegaFormReturn<From, To, InputProps> & {
+    meta: MetaRecord<From>
+    i18nNamespace?: string
+  }
+  name: NestedKeyOf<From>
+} & DefaultInputProps<From> // InputProps // TODO
 
 export type TypeOverride =
   | "string"
@@ -27,6 +48,7 @@ export type TypeOverride =
   | "select"
   | "multiple"
   | "boolean"
+  | "radio"
   | "autocomplete"
   | "autocompletemultiple"
   | "switch"
@@ -782,3 +804,29 @@ export const nullableInput = <A, I, R>(
       encode: (input) => input
     })
   )
+
+export type OmegaAutoGenMeta<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+> = Omit<OmegaInputProps<From, To>, "form">
+
+const supportedInputs = [
+  "button",
+  "checkbox",
+  "color",
+  "date",
+  "email",
+  "number",
+  "password",
+  "radio",
+  "range",
+  "search",
+  "submit",
+  "tel",
+  "text",
+  "time",
+  "url"
+] as const
+export type SupportedInputs = typeof supportedInputs[number]
+export const getInputType = (input: string): SupportedInputs =>
+  (supportedInputs as readonly string[]).includes(input) ? input as SupportedInputs : "text"

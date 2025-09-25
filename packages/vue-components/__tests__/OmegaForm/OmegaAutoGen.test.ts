@@ -1,12 +1,8 @@
-import { describe, it, expect } from "vitest"
 import { mount } from "@vue/test-utils"
-import {
-  OmegaAutoGen,
-  OmegaForm,
-  useOmegaForm,
-} from "../../src/components/OmegaForm"
-import * as S from "effect-app/Schema"
 import { Order } from "effect"
+import * as S from "effect-app/Schema"
+import { describe, expect, it } from "vitest"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 // We need to mock the components used by OmegaAutoGen.vue since they depend on Vuetify
@@ -18,8 +14,8 @@ const mockComponents = {
         <input :name="name" :id="name" />
       </div>
     `,
-    props: ["form", "name", "label"],
-  },
+    props: ["form", "name", "label"]
+  }
 }
 
 describe("OmegaAutoGen", () => {
@@ -27,34 +23,32 @@ describe("OmegaAutoGen", () => {
     const wrapper = mount(
       {
         components: {
-          OmegaForm,
-          OmegaAutoGen,
-          OmegaIntlProvider,
+          OmegaIntlProvider
         },
         template: `
         <OmegaIntlProvider>
-          <OmegaForm :form="form">
-            <OmegaAutoGen :form="form" />
-          </OmegaForm>
+          <form.Form>
+            <form.AutoGen />
+          </form.Form>
         </OmegaIntlProvider>
       `,
         setup() {
           const form = useOmegaForm(
             S.Struct({
               string: S.String,
-              number: S.Number,
-            }),
+              number: S.Number
+            })
           )
           return { form }
-        },
+        }
       },
       {
         global: {
           stubs: {
-            OmegaInput: mockComponents.OmegaInput,
-          },
-        },
-      },
+            OmegaInput: mockComponents.OmegaInput
+          }
+        }
+      }
     )
 
     const inputs = wrapper.findAll(".mock-omega-input")
@@ -74,18 +68,15 @@ describe("OmegaAutoGen", () => {
     const wrapper = mount(
       {
         components: {
-          OmegaForm,
-          OmegaAutoGen,
-          OmegaIntlProvider,
+          OmegaIntlProvider
         },
         template: `
         <OmegaIntlProvider>
-          <OmegaForm :form="form">
-            <OmegaAutoGen 
-              :form="form" 
+          <form.Form>
+            <form.AutoGen 
               :pick="['string']"
             />
-          </OmegaForm>
+          </form.Form>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -93,19 +84,19 @@ describe("OmegaAutoGen", () => {
             S.Struct({
               string: S.String,
               number: S.Number,
-              boolean: S.Boolean,
-            }),
+              boolean: S.Boolean
+            })
           )
           return { form }
-        },
+        }
       },
       {
         global: {
           stubs: {
-            OmegaInput: mockComponents.OmegaInput,
-          },
-        },
-      },
+            OmegaInput: mockComponents.OmegaInput
+          }
+        }
+      }
     )
 
     // Should only have inputs for fields in the pick array
@@ -119,18 +110,15 @@ describe("OmegaAutoGen", () => {
     const wrapper = mount(
       {
         components: {
-          OmegaForm,
-          OmegaAutoGen,
-          OmegaIntlProvider,
+          OmegaIntlProvider
         },
         template: `
         <OmegaIntlProvider>
-          <OmegaForm :form="form">
-            <OmegaAutoGen 
-              :form="form" 
+          <form.Form>
+            <form.AutoGen 
               :omit="['number', 'boolean']"
             />
-          </OmegaForm>
+          </form.Form>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -138,19 +126,19 @@ describe("OmegaAutoGen", () => {
             S.Struct({
               string: S.String,
               number: S.Number,
-              boolean: S.Boolean,
-            }),
+              boolean: S.Boolean
+            })
           )
           return { form }
-        },
+        }
       },
       {
         global: {
           stubs: {
-            OmegaInput: mockComponents.OmegaInput,
-          },
-        },
-      },
+            OmegaInput: mockComponents.OmegaInput
+          }
+        }
+      }
     )
 
     // Should only have inputs for fields not in the omit array
@@ -164,18 +152,15 @@ describe("OmegaAutoGen", () => {
     const wrapper = mount(
       {
         components: {
-          OmegaForm,
-          OmegaAutoGen,
-          OmegaIntlProvider,
+          OmegaIntlProvider
         },
         template: `
         <OmegaIntlProvider>
-          <OmegaForm :form="form">
-            <OmegaAutoGen 
-              :form="form" 
+          <form.Form>
+            <form.AutoGen 
               :order="['boolean', 'number', 'string']"
             />
-          </OmegaForm>
+          </form.Form>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -183,24 +168,24 @@ describe("OmegaAutoGen", () => {
             S.Struct({
               string: S.String,
               number: S.Number,
-              boolean: S.Boolean,
-            }),
+              boolean: S.Boolean
+            })
           )
           return { form }
-        },
+        }
       },
       {
         global: {
           stubs: {
-            OmegaInput: mockComponents.OmegaInput,
-          },
-        },
-      },
+            OmegaInput: mockComponents.OmegaInput
+          }
+        }
+      }
     )
 
     // Check that the fields are ordered according to the specified order
     const inputs = wrapper.findAll(".mock-omega-input input")
-    const inputNames = inputs.map(input => input.attributes("name"))
+    const inputNames = inputs.map((input) => input.attributes("name"))
 
     // The order should match the specified order
     expect(inputNames[0]).toBe("boolean")
@@ -213,18 +198,15 @@ describe("OmegaAutoGen", () => {
     const wrapper = mount(
       {
         components: {
-          OmegaForm,
-          OmegaAutoGen,
-          OmegaIntlProvider,
+          OmegaIntlProvider
         },
         template: `
         <OmegaIntlProvider>
-          <OmegaForm :form="form">
-            <OmegaAutoGen 
-              :form="form" 
+          <form.Form>
+            <form.AutoGen 
               :sort="sortByName"
             />
-          </OmegaForm>
+          </form.Form>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -232,31 +214,31 @@ describe("OmegaAutoGen", () => {
             S.Struct({
               charlie: S.String,
               alpha: S.String,
-              bravo: S.String,
-            }),
+              bravo: S.String
+            })
           )
 
           // Create a sorter that sorts by name alphabetically
           const sortByName = Order.mapInput(
             Order.string,
-            (item: { name: string }) => item.name,
+            (item: { name: string }) => item.name
           )
 
           return { form, sortByName }
-        },
+        }
       },
       {
         global: {
           stubs: {
-            OmegaInput: mockComponents.OmegaInput,
-          },
-        },
-      },
+            OmegaInput: mockComponents.OmegaInput
+          }
+        }
+      }
     )
 
     // Check that the fields are sorted alphabetically by name
     const inputs = wrapper.findAll(".mock-omega-input input")
-    const inputNames = inputs.map(input => input.attributes("name"))
+    const inputNames = inputs.map((input) => input.attributes("name"))
 
     // The fields should be sorted alphabetically
     expect(inputNames[0]).toBe("alpha")
@@ -269,37 +251,34 @@ describe("OmegaAutoGen", () => {
     const wrapper = mount(
       {
         components: {
-          OmegaForm,
-          OmegaAutoGen,
-          OmegaIntlProvider,
+          OmegaIntlProvider
         },
         template: `
         <OmegaIntlProvider>
-          <OmegaForm :form="form">
-            <OmegaAutoGen 
-              :form="form" 
+          <form.Form>
+            <form.AutoGen 
               :label-map="key => key === 'string' ? 'Custom String Label' : undefined" 
             />
-          </OmegaForm>
+          </form.Form>
         </OmegaIntlProvider>
       `,
         setup() {
           const form = useOmegaForm(
             S.Struct({
               string: S.String,
-              number: S.Number,
-            }),
+              number: S.Number
+            })
           )
           return { form }
-        },
+        }
       },
       {
         global: {
           stubs: {
-            OmegaInput: mockComponents.OmegaInput,
-          },
-        },
-      },
+            OmegaInput: mockComponents.OmegaInput
+          }
+        }
+      }
     )
 
     const labels = wrapper.findAll("label")
@@ -311,14 +290,12 @@ describe("OmegaAutoGen", () => {
   it("allows custom slot content", () => {
     const wrapper = mount({
       components: {
-        OmegaForm,
-        OmegaAutoGen,
-        OmegaIntlProvider,
+        OmegaIntlProvider
       },
       template: `
         <OmegaIntlProvider>
-          <OmegaForm :form="form">
-            <OmegaAutoGen :form="form">
+          <form.Form>
+            <form.AutoGen>
               <template #default="{ child }">
                 <div :data-testid="child.name + '-custom'" class="custom-slot">
                   <label>{{ 'Custom ' + child.label }}</label>
@@ -326,25 +303,25 @@ describe("OmegaAutoGen", () => {
                 </div>
               </template>
             </OmegaAutoGen>
-          </OmegaForm>
+          </form.Form>
         </OmegaIntlProvider>
       `,
       setup() {
         const form = useOmegaForm(
           S.Struct({
             string: S.String,
-            number: S.Number,
-          }),
+            number: S.Number
+          })
         )
         return { form }
-      },
+      }
     })
 
     const customElements = wrapper.findAll(".custom-slot")
     expect(customElements.length).toBe(2)
 
-    expect(wrapper.find('[data-testid="string-custom"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="number-custom"]').exists()).toBe(true)
+    expect(wrapper.find("[data-testid=\"string-custom\"]").exists()).toBe(true)
+    expect(wrapper.find("[data-testid=\"number-custom\"]").exists()).toBe(true)
 
     const labels = wrapper.findAll("label")
     expect(labels[0].text()).toBe("Custom string")

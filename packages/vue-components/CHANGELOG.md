@@ -1,5 +1,155 @@
 # @effect-app/vue-components
 
+## 1.0.0-next.22
+
+### Patch Changes
+
+- Updated dependencies
+  - effect-app@3.8.1-next.0
+  - @effect-app/vue@2.80.3-next.9
+
+## 1.0.0-next.21
+
+### Patch Changes
+
+- Updated dependencies [644bfe9]
+  - @effect-app/vue@2.80.3-next.8
+
+## 1.0.0-next.20
+
+### Patch Changes
+
+- Updated dependencies [02f5ecf]
+  - @effect-app/vue@2.80.3-next.7
+
+## 1.0.0-next.19
+
+### Patch Changes
+
+- Updated dependencies [1e3e826]
+  - @effect-app/vue@2.80.3-next.6
+
+## 1.0.0-next.18
+
+### Patch Changes
+
+- Updated dependencies [72292b2]
+  - @effect-app/vue@2.80.3-next.5
+
+## 1.0.0-next.17
+
+### Patch Changes
+
+- Updated dependencies [54b79d5]
+  - @effect-app/vue@2.80.3-next.4
+
+## 1.0.0-next.16
+
+### Patch Changes
+
+- Updated dependencies [69032f1]
+  - @effect-app/vue@2.80.3-next.3
+
+## 1.0.0-next.15
+
+### Patch Changes
+
+- f9ea6d9: fix types
+
+## 1.0.0-next.14
+
+### Patch Changes
+
+- Updated dependencies [1b2a645]
+  - @effect-app/vue@2.80.3-next.2
+
+## 1.0.0-next.13
+
+### Patch Changes
+
+- Updated dependencies [959647d]
+  - @effect-app/vue@2.80.3-next.1
+
+## 1.0.0-next.12
+
+### Patch Changes
+
+- Updated dependencies [c1d2798]
+  - @effect-app/vue@2.80.3-next.0
+
+## 1.0.0-next.11
+
+### Patch Changes
+
+- c5921b1: export OmegaVuetifyInput
+
+## 1.0.0-next.10
+
+### Minor Changes
+
+- 2f72e05: add radio support
+
+## 1.0.0-next.9
+
+### Patch Changes
+
+- b754ce0: improve input type
+
+## 1.0.0-next.8
+
+### Patch Changes
+
+- f470651: add getInputType util
+
+## 1.0.0-next.7
+
+### Patch Changes
+
+- d1565aa: type improvements
+
+## 1.0.0-next.6
+
+### Patch Changes
+
+- 838f11a: cleanup
+
+## 1.0.0-next.5
+
+### Patch Changes
+
+- e4a6c30: potential fix for custom input
+- 72139ad: fix autogen
+
+## 1.0.0-next.4
+
+### Patch Changes
+
+- dba00f1: cleanup
+
+## 1.0.0-next.3
+
+### Patch Changes
+
+- 88f0bee: fix array slot names
+
+## 1.0.0-next.2
+
+### Patch Changes
+
+- f7e9412: apply hoc to custom input
+
+## 1.0.0-next.1
+
+### Patch Changes
+
+- dbcd865: fix slots and bugs
+
+## 1.0.0-next.0
+
+### Major Changes
+
+- 36bac0e: Replace Form/Input/Errors/AutoGen/Array use with form.Form, form.Input, form.Errors, form.AutoGen, form.Array
+
 ## 0.27.16
 
 ### Patch Changes

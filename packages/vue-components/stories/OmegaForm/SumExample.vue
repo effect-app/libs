@@ -1,17 +1,15 @@
 <template>
-  <OmegaForm :form="addForm">
-    <OmegaInput
+  <addForm.Form>
+    <addForm.Input
       label="first"
-      :form="addForm"
       name="first"
     />
     <div>+</div>
-    <OmegaInput
+    <addForm.Input
       label="second"
-      :form="addForm"
       name="second"
     />
-  </OmegaForm>
+  </addForm.Form>
 
   <!-- Technically you can do this only with a subscribe but only inside OmegaForm Context -->
   <div>
@@ -22,7 +20,7 @@
 <script setup lang="ts">
 import { S } from "effect-app"
 import { ref, watch } from "vue"
-import { OmegaForm, OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({

@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest"
 import { S } from "effect-app"
+import { describe, expect, it } from "vitest"
 import { generateMetaFromSchema } from "../src/components/OmegaForm/OmegaFormStuff"
 
 // Test schema from Array.vue story
@@ -12,11 +12,10 @@ const schema = S.Struct({
         internal: S.String
       })
     ),
-  width: 
-    S.Struct({
-      left: S.String,
-      right: S.String
-    })
+  width: S.Struct({
+    left: S.String,
+    right: S.String
+  })
 })
 
 describe("test-nullor-duplicate", () => {
@@ -27,16 +26,16 @@ describe("test-nullor-duplicate", () => {
 
     // Should have nested fields for height
     expect(result.meta).toHaveProperty("height.left")
-    expect(result.meta).toHaveProperty("height.right") 
+    expect(result.meta).toHaveProperty("height.right")
     expect(result.meta).toHaveProperty("height.internal")
-    
+
     // Should have nested fields for width
     expect(result.meta).toHaveProperty("width.left")
     expect(result.meta).toHaveProperty("width.right")
-    
+
     // Should NOT have a parent "height" key (this was the duplicate issue)
     expect(result.meta).not.toHaveProperty("height")
-    
+
     // Regular structs also don't get parent keys, only their nested fields
     expect(result.meta).not.toHaveProperty("width")
   })

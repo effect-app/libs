@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.8.1
+
+### Patch Changes
+
+- 493fbb8: fix tagged class pick/omit omitting \_tag.
+
 ## 3.8.1-next.0
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @effect-app/vue
 
+## 2.80.3
+
+### Patch Changes
+
+- 493fbb8: $ apparently not allowed
+- 493fbb8: revert vite plugin
+- 493fbb8: add label: string and $isLabel boolean to Commands
+- 493fbb8: fix and align client extensions
+- 493fbb8: feat: add form.Input Vite plugin [Davide]
+- 493fbb8: fup
+- 493fbb8: fix: wrapping mutation without arguments.
+- 493fbb8: fix missing val
+- 493fbb8: fup
+- Updated dependencies [493fbb8]
+  - effect-app@3.8.1
+
 ## 2.80.3-next.9
 
 ### Patch Changes

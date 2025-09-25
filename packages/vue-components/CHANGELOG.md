@@ -1,5 +1,42 @@
 # @effect-app/vue-components
 
+## 1.0.0
+
+### Major Changes
+
+- 493fbb8: Replace Form/Input/Errors/AutoGen/Array use with form.Form, form.Input, form.Errors, form.AutoGen, form.Array
+
+### Minor Changes
+
+- 493fbb8: add radio support
+
+### Patch Changes
+
+- 493fbb8: add getInputType util
+- 493fbb8: fix slots and bugs
+- 493fbb8: apply hoc to custom input
+- 493fbb8: potential fix for custom input
+- 493fbb8: export OmegaVuetifyInput
+- 493fbb8: cleanup
+- 493fbb8: cleanup
+- 493fbb8: fix types
+- 493fbb8: fix autogen
+- 493fbb8: type improvements
+- 493fbb8: fix array slot names
+- 493fbb8: improve input type
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+- Updated dependencies [493fbb8]
+  - @effect-app/vue@2.80.3
+  - effect-app@3.8.1
+
 ## 1.0.0-next.22
 
 ### Patch Changes

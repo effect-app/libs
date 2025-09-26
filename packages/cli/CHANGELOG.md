@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.26.5
+
+### Patch Changes
+
+- 7da965e: better multi-tenant handling (multi env, different caches)
+
 ## 1.26.4
 
 ### Patch Changes

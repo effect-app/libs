@@ -4,7 +4,7 @@ import { type OmegaError, type ShowErrorsOn } from "./OmegaFormStuff"
 
 export const OmegaErrorsKey = Symbol() as InjectionKey<{
   errors: Ref<readonly OmegaError[]>
-  addError: (error: OmegaError) => void
+  mapError: (error: OmegaError) => void
   removeError: (inputId: string) => void
   clearErrors: () => void
   showErrors: Ref<boolean>
@@ -31,7 +31,7 @@ export function buildOmegaErrors(
     errors.value = errors.value.filter((error) => error.inputId !== inputId)
   }
 
-  const addError = (error: OmegaError) => {
+  const mapError = (error: OmegaError) => {
     removeError(error.inputId)
     errors.value.push(error)
   }
@@ -47,7 +47,7 @@ export function buildOmegaErrors(
 
   const context = {
     errors: readonly(errors),
-    addError,
+    mapError,
     removeError,
     clearErrors,
     showErrors,

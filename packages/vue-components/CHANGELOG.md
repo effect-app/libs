@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 1.1.1
+
+### Patch Changes
+
+- 22c4af5: fix: field errors weren't cleaned up on unmount.
+- 91adb28: fix: also respond to field errors.
+
 ## 1.1.0
 
 ### Minor Changes

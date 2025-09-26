@@ -20,7 +20,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, nextTick, onMounted, ref, useId, watch, watchEffect } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, useId, watch, watchEffect } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -138,6 +138,8 @@ watch(
     }
   }
 )
+
+onUnmounted(() => removeError(id))
 
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   id,

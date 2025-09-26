@@ -53,7 +53,7 @@ const defaultValues: typeof schema.Encoded = {
 }
 
 const onSubmit = (value: typeof schema.Type) => {
-  console.log(value)
+  console.log("submit", value)
 }
 const form = useOmegaForm(schema, {
   defaultValues,

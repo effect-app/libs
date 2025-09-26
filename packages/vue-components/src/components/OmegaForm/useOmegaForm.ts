@@ -842,7 +842,7 @@ export const useOmegaForm = <
     options?.checkErrors
       ? handleSubmitEffect_(options?.meta).pipe(Effect.flatMap(Effect.fnUntraced(function*() {
         const errors = form.getAllErrors()
-        if (errors.form.errors.length) {
+        if (Object.keys(errors.fields).length || errors.form.errors.length) {
           return yield* new FormErrors({ form: errors.form, fields: errors.fields })
         }
       })))

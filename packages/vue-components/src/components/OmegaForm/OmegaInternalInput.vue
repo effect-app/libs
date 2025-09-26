@@ -92,7 +92,7 @@ onMounted(() => {
     fieldApi.setValue(null as any)
   }
 })
-const { addError, removeError, showErrors, showErrorsOn } = (props.field.form as any).errorContext // todo; update types to include extended Omega Form props
+const { mapError, removeError, showErrors, showErrorsOn } = (props.field.form as any).errorContext // todo; update types to include extended Omega Form props
 
 const realDirty = ref(false)
 
@@ -122,7 +122,7 @@ watch(
   () => fieldState.value.meta.errors,
   () => {
     if (fieldState.value.meta.errors.length) {
-      addError({
+      mapError({
         inputId: id,
         errors: fieldState
           .value
@@ -139,7 +139,10 @@ watch(
   }
 )
 
-onUnmounted(() => removeError(id))
+onUnmounted(() => {
+  removeError(id)
+  props.field.form.deleteField(props.field.name)
+})
 
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   id,

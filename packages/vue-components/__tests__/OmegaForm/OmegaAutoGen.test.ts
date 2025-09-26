@@ -27,9 +27,9 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <form.Form>
-            <form.AutoGen />
-          </form.Form>
+          <component :is="form.Form">
+            <component :is="form.AutoGen" />
+          </component>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -72,11 +72,11 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <form.Form>
-            <form.AutoGen 
+          <component: is="form.Form">
+            <component :is="form.AutoGen"
               :pick="['string']"
-            />
-          </form.Form>
+            >
+          </component>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -114,11 +114,11 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <form.Form>
-            <form.AutoGen 
+          <component: is="form.Form">
+            <component :is="form.AutoGen"
               :omit="['number', 'boolean']"
-            />
-          </form.Form>
+            >
+          </component>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -156,11 +156,11 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <form.Form>
-            <form.AutoGen 
+          <component: is="form.Form">
+            <component :is="form.AutoGen"
               :order="['boolean', 'number', 'string']"
-            />
-          </form.Form>
+            >
+          </component>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -202,11 +202,11 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <form.Form>
-            <form.AutoGen 
+          <component :is="form.Form">
+            <component :is="form.AutoGen"
               :sort="sortByName"
             />
-          </form.Form>
+          </component>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -255,11 +255,11 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <form.Form>
-            <form.AutoGen 
+          <component :is="form.Form">
+            <component :is="form.AutoGen"
               :label-map="key => key === 'string' ? 'Custom String Label' : undefined" 
-            />
-          </form.Form>
+            >
+          </component>
         </OmegaIntlProvider>
       `,
         setup() {
@@ -294,16 +294,16 @@ describe("OmegaAutoGen", () => {
       },
       template: `
         <OmegaIntlProvider>
-          <form.Form>
-            <form.AutoGen>
+          <component :is="form.Form">
+            <component :is="form.AutoGen">
               <template #default="{ child }">
                 <div :data-testid="child.name + '-custom'" class="custom-slot">
                   <label>{{ 'Custom ' + child.label }}</label>
                   <input :name="child.name" :id="child.name" />
                 </div>
               </template>
-            </OmegaAutoGen>
-          </form.Form>
+            </component>
+          </component>
         </OmegaIntlProvider>
       `,
       setup() {

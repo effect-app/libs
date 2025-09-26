@@ -32,7 +32,6 @@
     <v-container>
       <v-row>
         <form.AutoGen
-          :form="form"
           :omit="['string', 'number', 'email']"
           :order="['date', 'url']"
         >

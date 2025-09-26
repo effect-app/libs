@@ -3,6 +3,7 @@ import * as S from "effect-app/Schema"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { describe, expect, it } from "vitest"
 import { generateMetaFromSchema, type MetaRecord } from "../src/components/OmegaForm"
+import OmegaForm from "./OmegaFormTest.vue"
 import OmegaIntlProvider from "./OmegaIntlProvider.vue"
 
 class kkk extends S.Class<kkk>("kkk")({
@@ -164,9 +165,7 @@ describe("OmegaForm", () => {
 
 // Create a wrapper component that includes the OmegaIntlProvider
 const OmegaFormWithProvider = {
-  components: {
-    OmegaIntlProvider
-  },
+  components: { OmegaForm, OmegaIntlProvider },
   template: `
     <OmegaIntlProvider>
       <OmegaForm />
@@ -186,6 +185,8 @@ describe("OmegaForm UI", () => {
     // Find the input elements
     const firstInput = wrapper.find("input[id=\"first\"]")
     const secondInput = wrapper.find("input[id=\"second\"]")
+
+    console.log(firstInput)
 
     // Set values
     await firstInput.setValue(10)

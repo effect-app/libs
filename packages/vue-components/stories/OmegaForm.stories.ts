@@ -14,6 +14,7 @@ import FormInputComponent from "./OmegaForm/form.Input.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
+import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
 import SimpleFormComponent from "./OmegaForm/SimpleForm.vue"
 import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefault.vue"
 import SumExampleComponent from "./OmegaForm/SumExample.vue"
@@ -157,5 +158,12 @@ export const Union: Story = {
   render: () => ({
     components: { UnionComponent },
     template: "<UnionComponent />"
+  })
+}
+
+export const ProgrammaticallyHandleSubmitCheckErrors: Story = {
+  render: () => ({
+    components: { ProgrammaticallyHandleSubmitCheckErrorsComponent },
+    template: "<ProgrammaticallyHandleSubmitCheckErrorsComponent />"
   })
 }

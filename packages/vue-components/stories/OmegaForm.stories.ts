@@ -8,6 +8,7 @@ import AutoGenerationComponent from "./OmegaForm/AutoGeneration.vue"
 import BooleansComponent from "./OmegaForm/Booleans.vue"
 import ClearableComponent from "./OmegaForm/Clearable.vue"
 import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
+import CreateUseFormWIthCustomInputComponent from "./OmegaForm/CreateUseFormWIthCustomInput.vue"
 import DateComponent from "./OmegaForm/Date.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
@@ -62,6 +63,13 @@ export const SimpleForm: Story = {
   render: () => ({
     components: { SimpleFormComponent },
     template: "<SimpleFormComponent />"
+  })
+}
+
+export const CreateUseFormWIthCustomInput: Story = {
+  render: () => ({
+    components: { CreateUseFormWIthCustomInputComponent },
+    template: "<CreateUseFormWIthCustomInputComponent />"
   })
 }
 

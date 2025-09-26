@@ -72,7 +72,7 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <component: is="form.Form">
+          <component :is="form.Form">
             <component :is="form.AutoGen"
               :pick="['string']"
             >

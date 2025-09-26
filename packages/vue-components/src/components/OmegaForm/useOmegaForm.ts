@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as api from "@opentelemetry/api"
-import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, useStore } from "@tanstack/vue-form"
-import { Effect, Fiber, Order, S } from "effect-app"
+import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, useStore, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
+import { Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
@@ -25,6 +25,29 @@ type keysRule<T> =
     keys?: "You should only use one of banKeys or keys, not both, moron"
     banKeys?: NestedKeyOf<T>[]
   }
+
+export class FormErrors<From> extends Data.TaggedError("FormErrors")<{
+  form: {
+    // TODO: error shapes seem off, with `undefined` etc..
+    errors: (Record<string, StandardSchemaV1Issue[]> | undefined)[]
+    errorMap: ValidationErrorMap<
+      undefined,
+      undefined,
+      Record<string, StandardSchemaV1Issue[]>,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    >
+  }
+  fields: Record<DeepKeys<From>, {
+    errors: ValidationError[]
+    errorMap: ValidationErrorMap
+  }>
+}> {}
 
 const fHoc = (form: OF<any, any>) => {
   return function FormHoc<P>(
@@ -87,8 +110,15 @@ export interface OF<From, To> extends OmegaFormApi<From, To> {
   filterItems?: FilterItems
   clear: () => void
   i18nNamespace?: string
-  // /** @experimental */
-  // handleSubmitEffect: (meta?: Record<string, any>) => Effect.Effect<void, never, never>
+  /** @experimental */
+  handleSubmitEffect: {
+    /**
+     * when `checkErrors` is true, the Effect will fail with `FormErrors<From>` when there are validation errors
+     * @experimental */
+    (options: { checkErrors: true; meta?: Record<string, any> }): Effect.Effect<void, FormErrors<From>>
+    /** @experimental */
+    (options?: { meta?: Record<string, any> }): Effect.Effect<void>
+  }
 }
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
@@ -794,6 +824,30 @@ export const useOmegaForm = <
     window.removeEventListener("blur", saveDataInUrl)
   })
 
+  const handleSubmitEffect_ = (meta?: Record<string, any>) =>
+    Effect.currentSpan.pipe(
+      Effect.option,
+      Effect
+        .flatMap((span) =>
+          Effect.promise(() => form.handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
+        )
+    )
+
+  const handleSubmitEffect: {
+    (options: { checkErrors: true; meta?: Record<string, any> }): Effect.Effect<void, FormErrors<From>>
+    (options?: { meta?: Record<string, any> }): Effect.Effect<void>
+  } = (
+    options?: { meta?: Record<string, any>; checkErrors?: true }
+  ): any =>
+    options?.checkErrors
+      ? handleSubmitEffect_(options?.meta).pipe(Effect.flatMap(Effect.fnUntraced(function*() {
+        const errors = form.getAllErrors()
+        if (errors.form.errors.length) {
+          return yield* new FormErrors({ form: errors.form, fields: errors.fields })
+        }
+      })))
+      : handleSubmitEffect_(options?.meta)
+
   const handleSubmit = form.handleSubmit
   const formWithExtras: OF<From, To> = Object.assign(form, {
     i18nNamespace: omegaConfig?.i18nNamespace,
@@ -803,16 +857,9 @@ export const useOmegaForm = <
     handleSubmit: (meta?: Record<string, any>) => {
       const span = api.trace.getSpan(api.context.active())
       return handleSubmit({ currentSpan: span, ...meta })
-    }
+    },
     // /** @experimental */
-    // handleSubmitEffect: (meta?: Record<string, any>) =>
-    //   Effect.currentSpan.pipe(
-    //     Effect.option,
-    //     Effect
-    //       .flatMap((span) =>
-    //         Effect.promise(() => form.handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
-    //       )
-    //   )
+    handleSubmitEffect
   })
 
   const formSubmissionAttempts = useStore(

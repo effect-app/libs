@@ -1,16 +1,24 @@
 gists:
-  "cli-config":
+  "cli-config-banana":
+    company: "banana" # acts like a namespace
     description: "Package configuration and main source for Effect-App CLI"
     public: false
     files:
       - "package.json"
       - "packages/cli/src/index.ts"
 
-  "test-files":
-    description: "Test YAML files for gist functionality"
+  "cli-config-mela":
+    company: "mela" # acts like a namespace
+    description: "Package configuration and main source for Effect-App CLI"
     public: false
     files:
-      - "gists.yaml"
+      - "package.json"
+
+  # "test-files":
+  #   description: "Test YAML files for gist functionality"
+  #   public: false
+  #   files:
+  #     - "gists.yaml"
 
 settings:
   # GitHub token environment variable name

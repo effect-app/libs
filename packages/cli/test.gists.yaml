@@ -1,11 +1,11 @@
 gists:
-  "cli-config-banana":
-    company: "banana" # acts like a namespace
-    description: "Package configuration and main source for Effect-App CLI"
-    public: false
-    files:
-      - "package.json"
-      - "packages/cli/src/index.ts"
+  # "cli-config-banana":
+  #   company: "banana" # acts like a namespace
+  #   description: "Package configuration and main source for Effect-App CLI"
+  #   public: false
+  #   files:
+  #     - "package.json"
+  #     # - "packages/cli/src/index.ts"
 
   "cli-config-mela":
     company: "mela" # acts like a namespace

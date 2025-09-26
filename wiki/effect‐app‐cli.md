@@ -1,6 +1,6 @@
 # Effect-App CLI (`pnpm effa`)
 
-A modern, type-safe CLI for managing Effect-App projects, built with **Effect-TS** for maximum reliability and composability .
+A modern, type-safe CLI for managing Effect-App projects, built with **Effect-TS** for maximum reliability and composability.
 
 ## Installation
 
@@ -61,7 +61,7 @@ pnpm effa up
 - `@effect-atom/*` - Effect Atom packages
 - `effect-app` - Core Effect-App package
 - `@effect-app/*` - All Effect-App packages
-- Plus any packages listed in `.ncurc.json` reject configuration
+- Any packages listed in `.ncurc.json` reject configuration
 
 **What it does:**
 1. Reads existing `.ncurc.json` to preserve configured reject patterns
@@ -110,12 +110,12 @@ pnpm effa index-multi
 
 **What it monitors:**
 - Directory: `./api/src`
-- Files with `.controllers.` pattern
-- Files `controllers.ts` and `routes.ts`
+- Files with `.controllers.` pattern in the name
+- Files named `controllers.ts` and `routes.ts`
 
 **What it does:**
-1. **Controller monitoring**: when a `.controllers.` file changes, searches for `controllers.ts` or `routes.ts` in parent directories and fixes them with eslint
-2. **Root monitoring**: when any file changes, fixes `index.ts` in the root directory
+1. **Controller monitoring**: When a `.controllers.` file changes, searches for `controllers.ts` or `routes.ts` in parent directories and fixes them with eslint
+2. **Root monitoring**: When any file changes, fixes `index.ts` in the root directory
 
 ### `effa packagejson` - Export Mappings Root
 
@@ -140,8 +140,8 @@ pnpm effa packagejson-packages
 
 **What it does:**
 1. Scans `packages/` directory
-2. Finds all packages with `package.json` and `src/`
-3. Excludes: `*eslint-codegen-model`, `*vue-components`
+2. Finds all packages with `package.json` and `src/` directories
+3. Excludes: packages ending with `eslint-codegen-model`, `eslint-shared-config`, and `vue-components`
 4. Generates exports for all found packages
 5. Monitors each package for changes
 
@@ -173,7 +173,7 @@ pnpm effa nuke
 pnpm effa nuke --store-prune
 ```
 
-**⚠️ Warning:** This command permanently deletes files and directories. Use `--dry-run` first to preview the cleanup.
+**⚠️ Warning:** This command permanently deletes files and directories. Use `--dry-run` first to preview what will be deleted.
 
 ### `effa gist` - GitHub Gist Management
 
@@ -236,7 +236,7 @@ gists:
 1. **Multi-Tenant Isolation**:
    - Only processes gists matching the current `COMPANY` environment variable
    - Different companies can share the same YAML config without interference
-   - Cache operations are isolated by company context
+   - Cache operations are isolated by company context using separate JSON files per company
 2. **Multi-Environment Support**:
    - Files are prefixed with `ENV` name (e.g., `production.package.json`)
    - Multiple environments can coexist in the same gist
@@ -253,8 +253,9 @@ gists:
    - Handles file name collisions (GitHub gists have flat structure)
 5. **GitHub Integration**:
    - Supports both public and private gists
-   - Persistent cache stored as a secret GitHub gist
+   - Persistent cache stored as a secret GitHub gist with company-specific files (e.g., `company1.json`, `company2.json`)
    - Automatic gist deletion when removed from configuration
+   - Robust error handling for cache creation and company-specific cache files
 
 **Example File Structure in Gists:**
 When `ENV=production`, files are automatically renamed with environment prefixes:
@@ -268,7 +269,7 @@ This allows multiple environments to coexist in the same gist without conflicts.
 - GitHub CLI (`gh`) installed and configured
 - GitHub Personal Access Token with gist scope
 - YAML configuration file with proper structure
-- `COMPANY` environment variable set for multi-tenant operations
+- `COMPANY` environment variable set for multi-tenant operations (each company gets its own cache file)
 
 ## Wrap Functionality
 
@@ -309,7 +310,7 @@ If you tried to use `--wrap "tsc --build ./tsconfig.all.json"` instead, the `--w
 1. The CLI command starts and performs its main functionality (monitoring, etc.)
 2. **After** the main command is running, it spawns the wrap command as a child process
 3. The child process lifecycle is tied to the CLI command - when you stop the CLI (Ctrl+C), the child process is also terminated
-4. **Argument-based wrapping takes priority** - if you provide both arguments and the `--wrap` option, the arguments are used
+4. **Argument-based wrapping takes priority** - if you provide both arguments and the `--wrap` option, the arguments take precedence
 
 **Key design principle:** The monitoring lifetime is scoped to the child command's lifetime:
 - If the wrapped command is one-shot (exits immediately), the monitoring runs once and stops

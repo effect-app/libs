@@ -132,8 +132,8 @@ export declare namespace Commander {
 
     /** click handlers */
     handle: ((...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
+      /** @deprecated don't exist */
       effect: (...args: Args) => Effect.Effect<A, E, R>
-      promise: (...args: Args) => Promise<A>
     }
 
     // // TODO: if we keep them, it would probably be nicer as an option api, deciding the return value like in Atom?
@@ -1355,131 +1355,6 @@ export class CommanderImpl<RT> {
           return this.runFork(command)
         }, { action, label })
 
-        const handleEffect = Object.assign((...args: Args) => {
-          // we capture the call site stack here
-          const limit = Error.stackTraceLimit
-          Error.stackTraceLimit = 2
-          const errorCall = new Error()
-          Error.stackTraceLimit = limit
-
-          let cache: false | string = false
-          const captureStackTrace = () => {
-            // in case of an error, we want to append the definition stack to the call site stack,
-            // so we can see where the handler was defined too
-
-            if (cache !== false) {
-              return cache
-            }
-            if (errorCall.stack) {
-              const stackDef = errorDef!.stack!.trim().split("\n")
-              const stackCall = errorCall.stack.trim().split("\n")
-              let endStackDef = stackDef.slice(2).join("\n").trim()
-              if (!endStackDef.includes(`(`)) {
-                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-              }
-              let endStackCall = stackCall.slice(2).join("\n").trim()
-              if (!endStackCall.includes(`(`)) {
-                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-              }
-              cache = `${endStackDef}\n${endStackCall}`
-              return cache
-            }
-          }
-
-          const command = Effect.withSpan(
-            exec(...args),
-            id,
-            { captureStackTrace }
-          )
-
-          return Effect.currentSpan.pipe(
-            Effect.option,
-            Effect.map((span) =>
-              this.runFork(Option.isSome(span) ? command.pipe(Effect.withParentSpan(span.value)) : command)
-            )
-          )
-        }, { action, label, state })
-
-        const compose = Object.assign((...args: Args) => {
-          // we capture the call site stack here
-          const limit = Error.stackTraceLimit
-          Error.stackTraceLimit = 2
-          const errorCall = new Error()
-          Error.stackTraceLimit = limit
-
-          let cache: false | string = false
-          const captureStackTrace = () => {
-            // in case of an error, we want to append the definition stack to the call site stack,
-            // so we can see where the handler was defined too
-
-            if (cache !== false) {
-              return cache
-            }
-            if (errorCall.stack) {
-              const stackDef = errorDef!.stack!.trim().split("\n")
-              const stackCall = errorCall.stack.trim().split("\n")
-              let endStackDef = stackDef.slice(2).join("\n").trim()
-              if (!endStackDef.includes(`(`)) {
-                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-              }
-              let endStackCall = stackCall.slice(2).join("\n").trim()
-              if (!endStackCall.includes(`(`)) {
-                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-              }
-              cache = `${endStackDef}\n${endStackCall}`
-              return cache
-            }
-          }
-
-          const command = Effect.withSpan(
-            exec(...args),
-            id,
-            { captureStackTrace }
-          )
-
-          return command
-        }, { action, label })
-
-        const compose2 = Object.assign((...args: Args) => {
-          // we capture the call site stack here
-          const limit = Error.stackTraceLimit
-          Error.stackTraceLimit = 2
-          const errorCall = new Error()
-          Error.stackTraceLimit = limit
-
-          let cache: false | string = false
-          const captureStackTrace = () => {
-            // in case of an error, we want to append the definition stack to the call site stack,
-            // so we can see where the handler was defined too
-
-            if (cache !== false) {
-              return cache
-            }
-            if (errorCall.stack) {
-              const stackDef = errorDef!.stack!.trim().split("\n")
-              const stackCall = errorCall.stack.trim().split("\n")
-              let endStackDef = stackDef.slice(2).join("\n").trim()
-              if (!endStackDef.includes(`(`)) {
-                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
-              }
-              let endStackCall = stackCall.slice(2).join("\n").trim()
-              if (!endStackCall.includes(`(`)) {
-                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
-              }
-              cache = `${endStackDef}\n${endStackCall}`
-              return cache
-            }
-          }
-
-          const command = Effect.withSpan(
-            exec(...args).pipe(Effect.flatten),
-            id,
-            { captureStackTrace }
-          )
-
-          return command
-        }, { action, label })
-
         return reactive({
           /** static */
           id,
@@ -1501,16 +1376,7 @@ export class CommanderImpl<RT> {
           /** reactive */
           label,
 
-          handle,
-
-          /** experimental */
-          handleEffect,
-          /** experimental */
-          compose,
-          /** experimental */
-          compose2,
-          /** experimental */
-          exec
+          handle
         })
       },
       { id }

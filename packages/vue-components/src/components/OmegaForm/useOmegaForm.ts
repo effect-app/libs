@@ -57,8 +57,7 @@ const fHoc = (form: OF<any, any>) => {
       render() {
         return h(WrappedComponent, {
           form,
-          on: this.$listeners,
-          attrs: this.$attrs
+          ...this.$attrs
         } as any, this.$slots)
       }
     }
@@ -80,8 +79,7 @@ const eHoc = (errorProps: ReturnType<typeof buildOmegaErrors>) => {
           errors,
           generalErrors,
           showErrors,
-          on: this.$listeners,
-          attrs: this.$attrs
+          ...this.$attrs
         } as any, this.$slots)
       }
     }

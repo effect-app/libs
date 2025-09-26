@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { provideIntl } from "../src/utils"
 
-provideIntl({} as any)
+const mockUseIntl = () => ({}) as any
+
+provideIntl(mockUseIntl)
 </script>
 
 <template>

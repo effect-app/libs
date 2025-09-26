@@ -73,9 +73,10 @@ describe("OmegaAutoGen", () => {
         template: `
         <OmegaIntlProvider>
           <component :is="form.Form">
-            <component :is="form.AutoGen"
+            <component 
+              :is="form.AutoGen"
               :pick="['string']"
-            >
+            />
           </component>
         </OmegaIntlProvider>
       `,
@@ -114,10 +115,10 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <component: is="form.Form">
+          <component :is="form.Form">
             <component :is="form.AutoGen"
               :omit="['number', 'boolean']"
-            >
+            />
           </component>
         </OmegaIntlProvider>
       `,
@@ -156,10 +157,10 @@ describe("OmegaAutoGen", () => {
         },
         template: `
         <OmegaIntlProvider>
-          <component: is="form.Form">
+          <component :is="form.Form">
             <component :is="form.AutoGen"
               :order="['boolean', 'number', 'string']"
-            >
+            />
           </component>
         </OmegaIntlProvider>
       `,
@@ -258,7 +259,7 @@ describe("OmegaAutoGen", () => {
           <component :is="form.Form">
             <component :is="form.AutoGen"
               :label-map="key => key === 'string' ? 'Custom String Label' : undefined" 
-            >
+            />
           </component>
         </OmegaIntlProvider>
       `,

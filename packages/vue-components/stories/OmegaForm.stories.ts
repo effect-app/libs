@@ -11,6 +11,7 @@ import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
 import DateComponent from "./OmegaForm/Date.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
+import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
@@ -61,6 +62,13 @@ export const SimpleForm: Story = {
   render: () => ({
     components: { SimpleFormComponent },
     template: "<SimpleFormComponent />"
+  })
+}
+
+export const IntersectionExample: Story = {
+  render: () => ({
+    components: { IntersectionExampleComponent },
+    template: "<IntersectionExampleComponent />"
   })
 }
 

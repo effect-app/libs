@@ -188,14 +188,16 @@ pnpm effa gist [options]
 
 **Environment Variables:**
 - `GIST_GITHUB_TOKEN`: GitHub Personal Access Token with gist permissions
+- `COMPANY`: Company identifier for multi-tenant gist management
+- `ENV`: Environment name (defaults to "local-dev")
 
 **Example Usage:**
 ```bash
 # Using default config file (gists.yaml)
-GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist
+COMPANY=acme GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist
 
-# Using custom config file
-GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist --config my-gists.yaml
+# Using custom config file with specific environment
+COMPANY=acme ENV=production GIST_GITHUB_TOKEN=ghp_xxx pnpm effa gist --config my-gists.yaml
 ```
 
 **YAML Configuration Format:**
@@ -208,6 +210,7 @@ gists:
   my-config:
     description: "My project configuration files"
     public: false
+    company: "acme"
     files:
       - "package.json"
       - "tsconfig.json"
@@ -216,28 +219,56 @@ gists:
   shared-utils:
     description: "Utility functions and helpers"
     public: true
+    company: "acme"
     files:
       - "src/utils/helpers.ts"
       - "src/types/common.ts"
+
+  another-company-config:
+    description: "Different company config"
+    public: false
+    company: "beta-corp"
+    files:
+      - "config/settings.json"
 ```
 
 **What it does:**
-1. **Smart Updates**:
+1. **Multi-Tenant Isolation**:
+   - Only processes gists matching the current `COMPANY` environment variable
+   - Different companies can share the same YAML config without interference
+   - Cache operations are isolated by company context
+2. **Multi-Environment Support**:
+   - Files are prefixed with `ENV` name (e.g., `production.package.json`)
+   - Multiple environments can coexist in the same gist
+   - Environment-specific file filtering and operations
+3. **Smart Updates**:
    - Creates new gists for new entries
    - Updates existing gists when files change
    - Removes files from gists when removed from config
-2. **File Processing**:
+   - Automatically cleans up obsolete gists for current company only
+4. **File Processing**:
    - Validates all files exist before processing
    - Logs warnings for missing files
    - Uses GitHub CLI (`gh`) for all gist operations
-3. **GitHub Integration**:
-   - Supports both public and private gists
    - Handles file name collisions (GitHub gists have flat structure)
+5. **GitHub Integration**:
+   - Supports both public and private gists
+   - Persistent cache stored as a secret GitHub gist
+   - Automatic gist deletion when removed from configuration
+
+**Example File Structure in Gists:**
+When `ENV=production`, files are automatically renamed with environment prefixes:
+- `package.json` → `production.package.json`
+- `tsconfig.json` → `production.tsconfig.json`
+- `config/settings.json` → `production.settings.json`
+
+This allows multiple environments to coexist in the same gist without conflicts.
 
 **Requirements:**
 - GitHub CLI (`gh`) installed and configured
 - GitHub Personal Access Token with gist scope
 - YAML configuration file with proper structure
+- `COMPANY` environment variable set for multi-tenant operations
 
 ## Wrap Functionality
 

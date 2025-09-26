@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.81.0
+
+### Minor Changes
+
+- eeb0ca8: cleanup obsolete command overloads
+
 ## 2.80.3
 
 ### Patch Changes

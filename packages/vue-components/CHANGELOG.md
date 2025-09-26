@@ -1,5 +1,16 @@
 # @effect-app/vue-components
 
+## 1.1.0
+
+### Minor Changes
+
+- 5a85b82: add "handleSubmitEffect" with `checkErrors` overload.
+
+### Patch Changes
+
+- Updated dependencies [eeb0ca8]
+  - @effect-app/vue@2.81.0
+
 ## 1.0.1
 
 ### Patch Changes

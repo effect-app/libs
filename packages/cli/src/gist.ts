@@ -114,15 +114,12 @@ export class GistYAML extends Schema.Class<GistYAML>("GistYAML")({
 }) {}
 
 /**
- * Cache entry representing a gist mapping with company association.
- * Each entry contains the gist's human-readable name, GitHub ID, and company context.
- * Company field enables multi-tenant cache management where different companies
- * can maintain separate gist namespaces within the same cache.
+ * Cache entry representing a gist mapping.
+ * Each entry contains the gist's human-readable name and GitHub ID.
  */
 export class GistCacheEntry extends Schema.Class<GistCacheEntry>("GistCacheEntry")({
   name: Schema.String,
-  id: Schema.String,
-  company: Schema.String
+  id: Schema.String
 }) {}
 
 export const GistCacheEntries = Schema.Array(GistCacheEntry)
@@ -146,9 +143,12 @@ export class GistCache {
   entries: GistCacheEntries
   gist_id: string
 
-  constructor({ entries, gist_id }: { entries: GistCacheEntries; gist_id: string }) {
+  company: string
+
+  constructor({ company, entries, gist_id }: { entries: GistCacheEntries; gist_id: string; company: string }) {
     this.entries = entries
     this.gist_id = gist_id
+    this.company = company
   }
 }
 
@@ -160,6 +160,11 @@ class GistCacheNotFound extends Data.TaggedError("GistCacheNotFound")<{
   readonly message: string
 }> {}
 
+class GistCacheOfCompanyNotFound extends Data.TaggedError("GistCacheOfCompanyNotFound")<{
+  readonly message: string
+  readonly cache_gist_id: string
+}> {}
+
 class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
   readonly message: string
 }> {}
@@ -169,6 +174,7 @@ class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
 // Services
 //
 
+// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
   dependencies: [RunCommandService.Default],
   effect: Effect.gen(function*() {
@@ -200,9 +206,15 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
       return gist_id && gist_id.length > 0 ? Option.some(gist_id) : Option.none()
     }
 
-    const loadGistCache = Effect
+    const loadGistCache: (
+      company: string,
+      rec?: { recCache?: boolean; recCacheCompany?: boolean }
+    ) => Effect.Effect<GistCache, GistCacheOfCompanyNotFound, never> = Effect
       .fn("effa-cli.gist.loadGistCache")(
-        function*() {
+        function*(
+          company: string,
+          { recCache = false, recCacheCompany = false } = { recCache: false, recCacheCompany: false }
+        ) {
           // search for existing cache gist
           const output = yield* runGetStringSuppressed(`gh gist list --filter "${CACHE_GIST_DESCRIPTION}"`)
             .pipe(Effect.orElse(() => Effect.succeed("")))
@@ -219,52 +231,74 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
           const gist_id = parts[0]?.trim()
 
           if (!gist_id) {
+            if (recCache) {
+              return yield* Effect.dieMessage("Failed to create or locate cache gist after creation attempt")
+            }
             return yield* new GistCacheNotFound({ message: "No gist ID found in output" })
           } else {
             yield* Effect.logInfo(`Found existing cache gist with ID ${gist_id}`)
           }
 
-          // read cache gist content
-          const cacheContent = yield* runGetStringSuppressed(`gh gist view ${gist_id}`)
-            .pipe(Effect.orElse(() => Effect.succeed("")))
-
-          const entries = yield* pipe(
-            cacheContent.split(CACHE_GIST_DESCRIPTION)[1]?.trim(),
-            pipe(Schema.parseJson(GistCacheEntries), Schema.decodeUnknown),
-            Effect.orElse(() => new GistCacheNotFound({ message: "Failed to parse cache JSON" }))
+          // read company-specific cache file
+          const filesInCache = yield* runGetStringSuppressed(`gh gist view ${gist_id} --files`).pipe(
+            Effect.map((files) =>
+              files
+                .trim()
+                .split("\n")
+                .map((f) => f.trim())
+            )
           )
 
-          return { entries, gist_id }
-        },
-        Effect.catchTag("GistCacheNotFound", () =>
-          Effect.gen(function*() {
-            // cache doesn't exist, create it
-            yield* Effect.logInfo("Cache gist not found, creating new cache...")
+          if (!filesInCache.includes(`${company}.json`)) {
+            if (recCacheCompany) {
+              return yield* Effect.dieMessage(
+                `Failed to create or locate cache entry for company ${company} after creation attempt`
+              )
+            }
+            return yield* new GistCacheOfCompanyNotFound({
+              message: `Cache gist not found of company ${company}`,
+              cache_gist_id: gist_id
+            })
+          } else {
+            const cacheContent = yield* runGetStringSuppressed(`gh gist view ${gist_id} -f "${company}.json"`)
 
-            const cacheJson = yield* pipe(
-              [],
-              pipe(Schema.parseJson(GistCacheEntries), Schema.encodeUnknown),
-              // cannot recover from parse errors in any case, better to die here instead of cluttering the signature
+            const entries = yield* pipe(
+              cacheContent,
+              pipe(Schema.parseJson(GistCacheEntries), Schema.decodeUnknown),
               Effect.orDie
             )
 
-            const gistUrl = yield* runGetStringSuppressed(
-              `echo '${cacheJson}' | gh gist create --desc="${CACHE_GIST_DESCRIPTION}" -`
-            )
+            return new GistCache({ entries, gist_id, company })
+          }
+        },
+        (_, company) =>
+          _.pipe(
+            Effect.catchTag("GistCacheNotFound", () =>
+              Effect.gen(function*() {
+                yield* Effect.logInfo("Cache gist not found, creating new cache...")
 
-            const gist_id = yield* pipe(
-              gistUrl,
-              extractGistIdFromUrl,
-              Option.match({
-                onNone: () => Effect.dieMessage(`Could not extract cache's gist ID from URL: ${gistUrl}`),
-                onSome: (id) =>
-                  Effect.succeed(id).pipe(Effect.tap(Effect.logInfo(`Created new cache gist with ID ${id}`)))
-              })
-            )
+                yield* runGetStringSuppressed(
+                  `echo "do_not_delete" | gh gist create --desc="${CACHE_GIST_DESCRIPTION}" -f effa-gist.cache -`
+                )
 
-            return { entries: [], gist_id }
-          })),
-        Effect.map(({ entries, gist_id }) => new GistCache({ entries, gist_id }))
+                // retry loading the cache after creating it
+                return yield* loadGistCache(company, { recCache: true })
+              }))
+          ),
+        (_, company) =>
+          _.pipe(
+            Effect.catchTag("GistCacheOfCompanyNotFound", (e) =>
+              Effect.gen(function*() {
+                yield* Effect.logInfo(`Cache for company ${company} not found, creating company-specific cache file...`)
+
+                yield* runGetStringSuppressed(
+                  `echo "[]" | gh gist edit ${e.cache_gist_id} -a ${company}.json -`
+                )
+
+                // retry loading the cache after creating it
+                return yield* loadGistCache(company, { recCacheCompany: true })
+              }))
+          )
       )
 
     const saveGistCache = Effect.fn("effa-cli.gist.saveGistCache")(
@@ -276,7 +310,9 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
           Effect.orDie
         )
 
-        yield* runGetExitCodeSuppressed(`echo '${cacheJson}' | gh gist edit ${cache.gist_id} -`)
+        yield* runGetExitCodeSuppressed(
+          `echo '${cacheJson}' | gh gist edit ${cache.gist_id} -f ${cache.company}.json -`
+        )
       }
     )
 
@@ -619,7 +655,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
 
         yield* GH.login(Redacted.value(redactedToken))
 
-        const cache = yield* SynchronizedRef.make<GistCache>(yield* GH.loadGistCache())
+        const cache = yield* SynchronizedRef.make<GistCache>(yield* GH.loadGistCache(CONFIG.company))
 
         // filter YAML gists by company to ensure isolation between different organizations
         // this prevents cross-company gist operations and maintains data separation
@@ -724,10 +760,10 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
 
                           files: filesOnDiskWithFullPath,
                           env: CONFIG.env
-                        })),
-                        company: CONFIG.company
+                        }))
                       }
-                    ]
+                    ],
+                    company: cache.company
                   })
                 })
               )
@@ -753,14 +789,14 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
             // this ensures gists from other companies remain untouched
             for (let i = newEntries.length - 1; i >= 0; i--) {
               const cacheEntry = newEntries[i]
-              if (cacheEntry && cacheEntry.company === CONFIG.company && !configGistNames.has(cacheEntry.name)) {
+              if (cacheEntry && !configGistNames.has(cacheEntry.name)) {
                 // delete the actual gist from GitHub
                 yield* GH.deleteGist({
                   gist_id: cacheEntry.id,
                   gist_name: cacheEntry.name
                 })
                 yield* Effect.logInfo(
-                  `Obsolete gist ${cacheEntry.name} of company ${cacheEntry.company} with ID ${cacheEntry.id}) will be removed from cache`
+                  `Obsolete gist ${cacheEntry.name} of company ${CONFIG.company} with ID ${cacheEntry.id}) will be removed from cache`
                 )
                 newEntries.splice(i, 1)
               }

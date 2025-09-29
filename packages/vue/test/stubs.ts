@@ -68,7 +68,10 @@ export const fakeIntlLayer = (messages: Record<string, string> | Record<string, 
       return {
         locale,
         intl,
-        trans: (id, values) => intl.formatMessage({ id }, values)
+        trans: (id, values) => intl.formatMessage({ id }, values),
+        get formatMessage() {
+          return intl.formatMessage
+        }
       } as ReturnType<MakeIntlReturn<string>["useIntl"]>
     })
   )

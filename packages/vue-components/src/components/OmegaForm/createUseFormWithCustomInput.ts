@@ -26,7 +26,7 @@ export const createUseFormWithCustomInput = (CustomInputComponent: Component) =>
             // Override the default slot that OmegaInternalInput provides
             default: <TName extends DeepKeys<From>>(inputProps: InputProps<From, TName>) => {
               // If we receive inputProps from OmegaInternalInput, use our custom component
-              if (inputProps && 'field' in inputProps) {
+              if (inputProps && "field" in inputProps) {
                 return h(CustomInputComponent, {
                   inputProps,
                   vuetifyValue: inputProps.field.state.value

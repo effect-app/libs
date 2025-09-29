@@ -20,5 +20,4 @@ export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
   }
 }) {}
 
-declare const stats: typeof Stats.success.Type
-console.log(stats.usersActiveLastWeek)
+declare const _stats: typeof Stats.success.Type

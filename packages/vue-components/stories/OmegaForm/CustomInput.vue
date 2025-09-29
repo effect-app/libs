@@ -5,7 +5,7 @@
       :name="inputProps.name"
       :value="inputProps.field.state.value"
       @change="(e: any) => inputProps.field.handleChange(e.target.value)"
-    ></input>
+    >
   </div>
 </template>
 

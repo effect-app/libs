@@ -1,5 +1,6 @@
 <template>
   <exampleForm.Form>
+    <div>isDirty: {{ isDirty }}</div>
     <exampleForm.Input
       label="aString"
       name="aString"
@@ -115,4 +116,5 @@ const exampleForm = useOmegaForm(
     }
   }
 )
+const isDirty = exampleForm.useStore((_) => _.isDirty)
 </script>

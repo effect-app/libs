@@ -9,14 +9,14 @@
     "effect-app-cli": "./bin.js"
   },
   "dependencies": {
-    "@effect/cli": "^0.69.2",
-    "@effect/platform-node": "^0.96.1",
+    "@effect/cli": "^0.71.0",
+    "@effect/platform-node": "^0.98.0",
     "js-yaml": "4.1.0",
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "~24.5.1",
+    "@types/node": "~24.6.0",
     "json5": "^2.2.3",
     "typescript": "~5.9.2",
     "vitest": "^3.2.4",

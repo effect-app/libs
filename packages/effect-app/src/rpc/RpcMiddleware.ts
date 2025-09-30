@@ -219,13 +219,13 @@ export type HandlersContext<Rpcs extends Rpc.Any, Handlers> = keyof Handlers ext
 export type HandlerContext<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends
   [true] ? Handler extends (...args: any) =>
     | Stream.Stream<infer _A, infer _E, infer _R>
-    | Rpc.Fork<Stream.Stream<infer _A, infer _E, infer _R>>
+    | Rpc.Wrapper<Stream.Stream<infer _A, infer _E, infer _R>>
     | Effect.Effect<
       ReadonlyMailbox<infer _A, infer _E>,
       infer _EX,
       infer _R
     >
-    | Rpc.Fork<
+    | Rpc.Wrapper<
       Effect.Effect<
         ReadonlyMailbox<infer _A, infer _E>,
         infer _EX,
@@ -235,7 +235,7 @@ export type HandlerContext<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler
   : never
   : Handler extends (
     ...args: any
-  ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Fork<Effect.Effect<infer _A, infer _E, infer _R>>
+  ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Wrapper<Effect.Effect<infer _A, infer _E, infer _R>>
     ? ExcludeProvides<_R, Rpcs, K>
   : never
 

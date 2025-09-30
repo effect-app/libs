@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.3.1
+
+### Patch Changes
+
+- 587bc7b: bump patch
+  - @effect-app/eslint-codegen-model@1.45.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -82,14 +82,17 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
   }
 }
 
+// TODO: it would be cleaner when default values are handled in the form initialization via Schema or by the one using the form component..
 onMounted(() => {
   if (
     !fieldValue.value
     && !props.meta?.required
     && props.meta?.nullableOrUndefined === "null"
   ) {
+    const isDirty = fieldState.value.meta.isDirty
     fieldApi.setValue(null as any)
-    fieldApi.setMeta((_) => ({ ..._, isDirty: false }))
+    // make sure we restore the previous dirty state..
+    fieldApi.setMeta((_) => ({ ..._, isDirty }))
   }
 })
 

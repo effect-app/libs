@@ -93,6 +93,10 @@ const exampleForm = useOmegaForm(
     // aMultiple: S.Array(S.String)
   }),
   {
+    defaultValues: {
+      aString: "",
+      aNumberMin2Max4Nullable: null
+    },
     onSubmit: async ({
       value
     }: {

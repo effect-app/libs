@@ -151,7 +151,7 @@ export type RouteMatcher<
     }
 }
 
-export const skipOnProd = Config.string("env").pipe(Effect.map((env) => env !== "prod"))
+export const skipOnProd = Config.string("env").pipe(Effect.map((env) => env !== "prod"), Effect.orDie)
 
 export const makeRouter = <
   Self,

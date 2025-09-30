@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
-import { Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
+import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import { type HttpHeaders } from "effect-app/http"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type TypeTestId } from "effect-app/TypeTest"
@@ -151,6 +151,8 @@ export type RouteMatcher<
     }
 }
 
+export const skipOnProd = Config.string("env").pipe(Effect.map((env) => env !== "prod"))
+
 export const makeRouter = <
   Self,
   RequestContextMap extends Record<string, RpcContextMap.Any>,
@@ -172,11 +174,16 @@ export const makeRouter = <
     RequestContextId
   >
 ) => {
+  /**
+   * Create a Router for specified resource
+   * if `check` is provided, the router will only be created if the effect succeeds with true
+   */
   function matchFor<
     const ModuleName extends string,
     const Resource extends Record<string, any>
   >(
-    rsc: Resource & { meta: { moduleName: ModuleName } }
+    rsc: Resource & { meta: { moduleName: ModuleName } },
+    options?: { check?: Effect.Effect<boolean> }
   ) {
     type HandlerWithInputGen<
       Action extends AnyRequestModule,
@@ -453,7 +460,18 @@ export const makeRouter = <
         ])
       )
 
-      return routes
+      const check = options?.check
+      return check
+        ? Effect
+          .gen(function*() {
+            if (!(yield* check)) {
+              yield* Effect.logWarning(`Skipping router for module ${meta.moduleName}`)
+              return Layer.empty
+            }
+            return routes
+          })
+          .pipe(Layer.unwrapEffect)
+        : routes
     }
 
     const effect: {

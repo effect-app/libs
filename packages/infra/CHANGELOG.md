@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.3.1
+
+### Patch Changes
+
+- ec28c99: die on check error instead.
+
 ## 3.3.0
 
 ### Minor Changes

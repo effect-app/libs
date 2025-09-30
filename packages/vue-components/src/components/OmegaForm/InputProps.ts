@@ -36,6 +36,7 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
   min?: number | false
   name: string
   modelValue: DeepValue<From, TName>
+  handleChange: (value: DeepValue<From, TName>) => void
   errorMessages: string[]
   error: boolean
   field: OmegaFieldInternalApi<From, TName>

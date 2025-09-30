@@ -1,7 +1,7 @@
 <template>
-  <form.Form :subscribe="['values']">
-    <template #default="{ subscribedValues: { values } }">
-      <div>values: {{ values }}</div>
+  <form.Form :subscribe="['values', 'isDirty']">
+    <template #default="{ subscribedValues: { values, isDirty } }">
+      <div>values: {{ values }} {{ isDirty }}</div>
       <form.Input
         label="asder2"
         name="asder2"

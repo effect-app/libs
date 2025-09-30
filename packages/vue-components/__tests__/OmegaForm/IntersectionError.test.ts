@@ -43,12 +43,12 @@ const mockComponents = {
 describe("OmegaForm Intersection/Union", () => {
   const AlphaSchema = S.Struct({
     first: S.Literal("alpha"),
-    alpha: S.String
+    alpha: S.NonEmptyString
   })
 
   const BetaSchema = S.Struct({
     first: S.Literal("beta"),
-    beta: S.String
+    beta: S.NonEmptyString
   })
 
   const MySchema = S.Struct({

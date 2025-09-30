@@ -15,7 +15,7 @@
       ripple
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @change="(e: any) => inputProps.field.handleChange(e.target.checked)"
+      @change="(e: any) => inputProps.handleChange(e.target.checked)"
     />
     <v-text-field
       v-if="inputProps.type === 'email' || inputProps.type === 'string' || inputProps.type === 'password'"
@@ -30,7 +30,7 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @update:model-value="inputProps.field.handleChange"
+      @update:model-value="inputProps.handleChange"
     />
     <v-textarea
       v-if="inputProps.type === 'text'"
@@ -44,7 +44,7 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @update:model-value="inputProps.field.handleChange"
+      @update:model-value="inputProps.handleChange"
     />
     <component
       :is="inputProps.type === 'range' ? 'v-slider' : 'v-text-field'"
@@ -62,9 +62,9 @@
       :model-value="vuetifyValue"
       @update:model-value="(e: any) => {
         if (e || e === 0) {
-          inputProps.field.handleChange(Number(e) as any)
+          inputProps.handleChange(Number(e) as any)
         } else {
-          inputProps.field.handleChange(undefined as any)
+          inputProps.handleChange(undefined as any)
         }
       }"
     />
@@ -77,7 +77,7 @@
         :error="inputProps.error"
         v-bind="$attrs"
         :model-value="vuetifyValue"
-        @update:model-value="inputProps.field.handleChange"
+        @update:model-value="inputProps.handleChange"
       >
         <v-radio
           v-for="option in inputProps.options"
@@ -101,8 +101,8 @@
       :error="inputProps.error"
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @clear="inputProps.field.handleChange(undefined as any)"
-      @update:model-value="inputProps.field.handleChange"
+      @clear="inputProps.handleChange(undefined as any)"
+      @update:model-value="inputProps.handleChange"
     />
 
     <v-autocomplete
@@ -120,8 +120,8 @@
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
       :model-value="vuetifyValue"
-      @clear="inputProps.field.handleChange(undefined as any)"
-      @update:model-value="inputProps.field.handleChange"
+      @clear="inputProps.handleChange(undefined as any)"
+      @update:model-value="inputProps.handleChange"
     />
   </div>
 </template>

@@ -82,6 +82,17 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
   }
 }
 
+onMounted(() => {
+  if (
+    !fieldValue.value
+    && !props.meta?.required
+    && props.meta?.nullableOrUndefined === "null"
+  ) {
+    fieldApi.setValue(null as any)
+    fieldApi.setMeta((_) => ({ ..._, isDirty: false }))
+  }
+})
+
 const { mapError, removeError, showErrors, showErrorsOn } = (props.field.form as any).errorContext // todo; update types to include extended Omega Form props
 
 const realDirty = ref(false)

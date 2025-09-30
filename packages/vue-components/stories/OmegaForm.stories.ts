@@ -14,6 +14,7 @@ import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
+import NullComponent from "./OmegaForm/Null.vue"
 import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
@@ -181,5 +182,12 @@ export const ProgrammaticallyHandleSubmitCheckErrors: Story = {
   render: () => ({
     components: { ProgrammaticallyHandleSubmitCheckErrorsComponent },
     template: "<ProgrammaticallyHandleSubmitCheckErrorsComponent />"
+  })
+}
+
+export const Null: Story = {
+  render: () => ({
+    components: { NullComponent },
+    template: "<NullComponent />"
   })
 }

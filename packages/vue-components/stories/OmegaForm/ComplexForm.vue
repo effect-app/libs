@@ -45,7 +45,7 @@
         { title: 'c', value: 'c' }
       ]"
     />
-    <exampleForm.Input
+    <!-- <exampleForm.Input
       label="aMultiple"
       name="aMultiple"
       type="autocomplete"
@@ -53,7 +53,7 @@
         { title: 'a', value: 'a' },
         { title: 'b', value: 'b' }
       ]"
-    />
+    /> -->
     <button>Submit</button>
     <button
       type="reset"
@@ -73,6 +73,7 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
+import { watch } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const exampleForm = useOmegaForm(
@@ -87,8 +88,9 @@ const exampleForm = useOmegaForm(
     aNumberMin2: S.Number.pipe(S.greaterThan(2)),
     aNumberMin2Max: S.Number.pipe(S.greaterThan(2)).pipe(S.lessThan(4)),
     aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.between(2, 4))),
-    aSelect: S.Union(S.Literal("a"), S.Literal("b"), S.Literal("c")),
-    aMultiple: S.Array(S.String)
+    aSelect: S.Union(S.Literal("a"), S.Literal("b"), S.Literal("c"))
+    // currently broken, also on main.
+    // aMultiple: S.Array(S.String)
   }),
   {
     onSubmit: async ({
@@ -117,4 +119,8 @@ const exampleForm = useOmegaForm(
   }
 )
 const isDirty = exampleForm.useStore((_) => _.isDirty)
+const values = exampleForm.useStore((_) => _.values)
+watch(values, (v) => {
+  console.log("values changed", v)
+})
 </script>

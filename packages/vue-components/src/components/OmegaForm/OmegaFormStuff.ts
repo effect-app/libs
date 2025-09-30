@@ -1,5 +1,6 @@
 import { type Effect, Option, pipe, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getMetadataFromSchema } from "@effect-app/vue/form"
 import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { type RuntimeFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
@@ -492,7 +493,12 @@ export const createMeta = <T = any>(
           const newMeta = createMeta<T>({
             parent: key,
             property: p.type,
-            meta: { required: isRequired, nullableOrUndefined }
+            meta: {
+              // an empty string is valid for a S.String field, so we should not mark it as required
+              // TODO: handle this better via the createMeta minLength parsing
+              required: isRequired && (p.type._tag !== "StringKeyword" || getMetadataFromSchema(p.type).minLength),
+              nullableOrUndefined
+            }
           })
 
           acc[key as NestedKeyOf<T>] = newMeta as FieldMeta

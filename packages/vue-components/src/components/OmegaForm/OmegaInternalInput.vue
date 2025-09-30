@@ -20,7 +20,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, useId, watch, watchEffect } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, onMounted, onUnmounted, ref, useId, watch, watchEffect } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -67,21 +67,20 @@ const isFalsyButNotZero = (value: unknown): boolean => {
 }
 
 // we remove value and errors when the field is empty and not required
-// watchEffect will trigger infinite times with both free fieldValue and errors, so bet to watch a stupid boolean
-watch(
-  () => !!fieldValue.value,
-  () => {
-    if (isFalsyButNotZero(fieldValue.value) && props.meta?.type !== "boolean") {
-      nextTick(() => {
-        fieldApi.setValue(
-          props.meta?.nullableOrUndefined === "undefined"
-            ? undefined
-            : null as any
-        )
-      })
-    }
+
+// convert nullish value to null or undefined based on schema
+const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) => {
+  if (isFalsyButNotZero(value) && props.meta?.type !== "boolean") {
+    props.field.handleChange(
+      props.meta?.nullableOrUndefined === "undefined"
+        ? undefined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        : null as any
+    )
+  } else {
+    props.field.handleChange(value)
   }
-)
+}
 
 onMounted(() => {
   if (
@@ -153,6 +152,7 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   min: props.meta?.type === "number" && props.meta?.minimum,
   name: props.field.name,
   modelValue: props.field.state.value,
+  handleChange,
   errorMessages: showedErrors.value,
   error: !!showedErrors.value.length,
   field: props.field,

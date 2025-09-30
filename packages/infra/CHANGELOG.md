@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.3.0
+
+### Minor Changes
+
+- 3ebbece: add ability to skip router based on some condition
+
 ## 3.2.3
 
 ### Patch Changes

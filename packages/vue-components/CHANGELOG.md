@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 1.2.0
+
+### Minor Changes
+
+- 803c105: Adds createUseFormWithCustomInput utility
+
+### Patch Changes
+
+- 09a49a5: Fixes not clearing inputs after unmount
+
 ## 1.1.1
 
 ### Patch Changes

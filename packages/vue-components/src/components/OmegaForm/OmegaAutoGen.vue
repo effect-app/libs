@@ -14,8 +14,10 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, string>,
-  To extends Record<PropertyKey, string>"
+  generic="
+  From extends Record<PropertyKey, string>,
+  To extends Record<PropertyKey, string>
+"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { Array as A, Order, pipe } from "effect-app"

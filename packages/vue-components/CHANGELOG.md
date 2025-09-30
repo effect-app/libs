@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 1.4.0
+
+### Minor Changes
+
+- 8745c0c: fix: form is set to dirty when null field included in form.
+  improve: String requirement handling
+
 ## 1.3.0
 
 ### Minor Changes

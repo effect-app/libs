@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.9.0
+
+### Minor Changes
+
+- b8f5e30: update packages
+
 ## 3.8.1
 
 ### Patch Changes

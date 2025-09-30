@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.82.0
+
+### Minor Changes
+
+- b8f5e30: update packages
+
+### Patch Changes
+
+- Updated dependencies [b8f5e30]
+  - effect-app@3.9.0
+
 ## 2.81.0
 
 ### Minor Changes

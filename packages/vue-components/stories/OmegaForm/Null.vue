@@ -44,6 +44,8 @@ const exampleForm = useOmegaForm(
     aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.between(2, 4)))
   }),
   {
+    // we should really be setting default values to do all correctly
+    // TODO: we just generate it from the schema..
     defaultValues: {
       aString: "",
       aNumberMin2Max4Nullable: null

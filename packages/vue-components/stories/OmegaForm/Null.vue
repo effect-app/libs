@@ -6,8 +6,8 @@
       name="aString"
     />
     <exampleForm.Input
-      label="aStringMin2Max3Undefined"
-      name="aStringMin2Max3Undefined"
+      label="aStringMin2Max3Optional"
+      name="aStringMin2Max3Optional"
     />
     <exampleForm.Input
       label="aNumberMin2Max4Nullable"
@@ -38,7 +38,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 const exampleForm = useOmegaForm(
   S.Struct({
     aString: S.String,
-    aStringMin2Max3Undefined: S.UndefinedOr(
+    aStringMin2Max3Optional: S.UndefinedOr(
       S.String.pipe(S.minLength(2)).pipe(S.maxLength(3))
     ),
     aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.between(2, 4)))
@@ -53,7 +53,7 @@ const exampleForm = useOmegaForm(
     }: {
       value: {
         aString: string
-        aStringMin2Max3Undefined?: string
+        aStringMin2Max3Optional?: string
         aNumberMin2Max4Nullable: number | null
       }
     }) => {

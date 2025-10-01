@@ -29,6 +29,8 @@ export interface StoreConfig<E> {
    * Unique indexes, mainly for CosmosDB
    */
   uniqueKeys?: UniqueKey[]
+
+  separate?: boolean
 }
 
 export type SupportedValues = string | boolean | number | null

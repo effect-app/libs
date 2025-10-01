@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.4.1
+
+### Patch Changes
+
+- d0b7b62: fix: a form component unload should not reset it's state.
+
 ## 1.4.0
 
 ### Minor Changes

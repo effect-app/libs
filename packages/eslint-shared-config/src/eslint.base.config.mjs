@@ -153,7 +153,7 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
             "@typescript-eslint/unbound-method": "error",
             "@typescript-eslint/only-throw-error": "off",
             "@typescript-eslint/no-base-to-string": "warn",
-            "@typescript-eslint/no-floating-promises": "warn",
+            "@typescript-eslint/no-floating-promises": "error",
           })
       }
     }

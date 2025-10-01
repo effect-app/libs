@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.3.2
+
+### Patch Changes
+
+- 6592c9e: improve: turn floating promises to error
+  - @effect-app/eslint-codegen-model@1.45.0
+
 ## 0.3.1
 
 ### Patch Changes

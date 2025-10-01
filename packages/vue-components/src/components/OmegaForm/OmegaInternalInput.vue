@@ -145,7 +145,6 @@ watch(
 
 onUnmounted(() => {
   removeError(id)
-  props.field.form.deleteField(props.field.name)
 })
 
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.4.3
+
+### Patch Changes
+
+- b2f5ee4: workaround strange errors undefined issue
+
 ## 1.4.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.5.0
+
+### Minor Changes
+
+- 8160133: feat: add block dialog feature
+
 ## 1.4.3
 
 ### Patch Changes

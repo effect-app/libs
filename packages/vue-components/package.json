@@ -34,6 +34,7 @@
     "@storybook/vue3-vite": "^9.1.9",
     "@types/node": "^24.6.0",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vueuse/core": "^13.9.0",
     "@vue/test-utils": "^2.4.6",
     "dprint": "^0.50.2",
     "jsdom": "^27.0.0",

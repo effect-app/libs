@@ -602,8 +602,8 @@ importers:
         specifier: ^1.9.0
         version: 1.9.0
       '@tanstack/vue-form':
-        specifier: ^1.23.4
-        version: 1.23.4(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
+        specifier: ^1.23.5
+        version: 1.23.5(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
       effect:
         specifier: ^3.18.0
         version: 3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)
@@ -2347,8 +2347,8 @@ packages:
     resolution: {integrity: sha512-gkvph/YMCFUfAca75EsJBJnhbKitDGix7vdEcT/3lAV+eyGSv+uECYG43apVQN4yLJKnV6mzcNvGzOhDhb72gg==}
     engines: {node: '>=18'}
 
-  '@tanstack/form-core@1.24.0':
-    resolution: {integrity: sha512-bMxl7cwBt6WYiajImYN/0fjYRuiTAW7+3C/zPHNyxLTc6U5voPGr1lF1RGzf3U5Q8qtvHyGF0dVuISMLqb31yQ==}
+  '@tanstack/form-core@1.24.1':
+    resolution: {integrity: sha512-nI9Ad5JFHQjADkUQQtl7ajb7Lsd4sQlR0b5BmKDpJfZSPH/BF7+uUC3m91dM1bucOqIDzTTXr0QROZODnY+www==}
 
   '@tanstack/match-sorter-utils@8.19.4':
     resolution: {integrity: sha512-Wo1iKt2b9OT7d+YGhvEPD3DXvPv2etTusIMhMUoG7fbhmxcXCtIjJDEygy91Y2JFlwGyjqiBPRozme7UD8hoqg==}
@@ -2360,8 +2360,8 @@ packages:
   '@tanstack/store@0.7.7':
     resolution: {integrity: sha512-xa6pTan1bcaqYDS9BDpSiS63qa6EoDkPN9RsRaxHuDdVDNntzq3xNwR5YKTU/V3SkSyC9T4YVOPh2zRQN0nhIQ==}
 
-  '@tanstack/vue-form@1.23.4':
-    resolution: {integrity: sha512-EH6qLMFydDwVuJNUVRfrCuHlmBF7S37xma6EQnO9XgPYXCz3G9WbfIYEIKyCV7Ql17Y3lWxJaVnvcgid67nDVw==}
+  '@tanstack/vue-form@1.23.5':
+    resolution: {integrity: sha512-k24u0mb6qeg5WdUgAvBJyEqrgjXvSlMGhrHFL7Gjh8G9pp5RdUicFyzQ4r7rJLrsWm2V5n6dTEj4AR1B5EFCQA==}
     peerDependencies:
       vue: ^3.5.22
 
@@ -8567,7 +8567,7 @@ snapshots:
 
   '@tanstack/devtools-event-client@0.3.2': {}
 
-  '@tanstack/form-core@1.24.0':
+  '@tanstack/form-core@1.24.1':
     dependencies:
       '@tanstack/devtools-event-client': 0.3.2
       '@tanstack/store': 0.7.7
@@ -8580,9 +8580,9 @@ snapshots:
 
   '@tanstack/store@0.7.7': {}
 
-  '@tanstack/vue-form@1.23.4(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))':
+  '@tanstack/vue-form@1.23.5(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))':
     dependencies:
-      '@tanstack/form-core': 1.24.0
+      '@tanstack/form-core': 1.24.1
       '@tanstack/vue-store': 0.7.7(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
       vue: 3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))
     transitivePeerDependencies:

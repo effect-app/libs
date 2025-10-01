@@ -57,9 +57,11 @@ const fieldType = computed(() => {
 })
 
 const fieldValue = computed(() => fieldState.value.value)
+// workaround strange tanstack form issue where the errors key becomes undefined ???
+const _errors = computed(() => fieldState.value.meta.errors ?? [])
 const errors = computed(() =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fieldState.value.meta.errors.map((e: any) => e?.message).filter(Boolean)
+  _errors.value.map((e: any) => e?.message).filter(Boolean)
 )
 
 const isFalsyButNotZero = (value: unknown): boolean => {
@@ -123,9 +125,9 @@ const showedErrors = computed(() => {
 })
 
 watch(
-  () => fieldState.value.meta.errors,
-  () => {
-    if (fieldState.value.meta.errors.length) {
+  _errors,
+  (errors) => {
+    if (errors.length) {
       mapError({
         inputId: id,
         errors: fieldState

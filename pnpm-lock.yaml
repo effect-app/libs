@@ -619,6 +619,9 @@ importers:
       mdi-js:
         specifier: ^1.0.1
         version: 1.0.1
+      mitt:
+        specifier: ^3.0.1
+        version: 3.0.1
       primeflex:
         specifier: ^4.0.0
         version: 4.0.0

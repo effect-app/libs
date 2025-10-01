@@ -7,6 +7,7 @@ import { Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
+import { usePreventClose } from "./blockDialog"
 import { type InputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
@@ -99,6 +100,8 @@ export type OmegaConfig<T> = {
     overrideDefaultValues?: boolean
     id?: string
   } & keysRule<T>
+
+  ignorePreventCloseEvents?: boolean
 
   input?: any
 }
@@ -908,6 +911,10 @@ export const useOmegaForm = <
 
   //  provide(OmegaFormKey, formWithExtras)
   const errorContext = buildOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
+
+  if (!omegaConfig?.ignorePreventCloseEvents) {
+    usePreventClose(() => formWithExtras.useStore((state) => state.isDirty))
+  }
 
   return Object.assign(formWithExtras, {
     errorContext,

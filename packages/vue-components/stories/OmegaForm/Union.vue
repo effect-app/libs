@@ -24,7 +24,9 @@
         label="union b value"
         name="union.b"
       />
-      <button>submit</button>
+      <v-btn type="submit">
+        submit
+      </v-btn>
       <form.Errors />
     </template>
   </form.Form>

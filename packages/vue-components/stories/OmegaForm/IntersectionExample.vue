@@ -21,9 +21,9 @@
         label="beta"
         name="myUnion.beta"
       />
-      <button type="submit">
+      <v-btn type="submit">
         submit
-      </button>
+      </v-btn>
       <form.Errors />
     </template>
   </form.Form>

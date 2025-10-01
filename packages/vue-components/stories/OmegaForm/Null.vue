@@ -13,19 +13,18 @@
       label="aNumberMin2Max4Nullable"
       name="aNumberMin2Max4Nullable"
     />
-    <button>Submit</button>
-    <button
+    <v-btn type="submit">
+      Submit
+    </v-btn>
+    <v-btn
       type="reset"
       @click.prevent="exampleForm.clear()"
     >
       Clear
-    </button>
-    <button
-      type="button"
-      @click="exampleForm.reset()"
-    >
+    </v-btn>
+    <v-btn @click="exampleForm.reset()">
       Reset
-    </button>
+    </v-btn>
     <exampleForm.Errors />
   </exampleForm.Form>
 </template>

@@ -10,9 +10,9 @@
         label="Nullable value"
         clearable
       />
-      <button type="submit">
+      <v-btn type="submit">
         submit
-      </button>
+      </v-btn>
     </template>
   </form.Form>
 </template>

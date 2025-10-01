@@ -10,7 +10,7 @@
       name="confirm"
       :form="form"
     />
-    <button>submit</button>
+    <v-btn>submit</v-btn>
     <form.Errors />
   </form.Form>
 </template>

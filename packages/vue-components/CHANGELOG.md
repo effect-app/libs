@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.4.2
+
+### Patch Changes
+
+- d73a6ab: update dep
+
 ## 1.4.1
 
 ### Patch Changes

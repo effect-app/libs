@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.6.5
+
+### Patch Changes
+
+- 4f8590f: silence warnings
+
 ## 1.6.4
 
 ### Patch Changes

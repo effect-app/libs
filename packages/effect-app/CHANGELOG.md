@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.10.0
+
+### Minor Changes
+
+- 51ded8d: add "withDefault" to Schema.Literal.
+
 ## 3.9.0
 
 ### Minor Changes

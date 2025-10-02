@@ -8,7 +8,7 @@ import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
 import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
 import { usePreventClose } from "./blockDialog"
-import { type InputProps } from "./InputProps"
+import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
@@ -161,7 +161,7 @@ export interface OmegaFormReturn<
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
-        default(props: InputProps<From, Name>): void
+        default(props: MergedInputProps<From, Name>): void
       }
       emit: {}
     }>

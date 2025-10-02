@@ -1,10 +1,10 @@
 <template>
   <div>
     <input
-      :id="inputProps.name"
-      :name="inputProps.name"
-      :value="inputProps.field.state.value"
-      @change="(e: any) => inputProps.field.handleChange(e.target.value)"
+      :id="field.name"
+      :name="field.name"
+      :value="field.state.value"
+      @change="(e: any) => field.handleChange(e.target.value)"
     >
   </div>
 </template>
@@ -17,10 +17,7 @@
 import { type DeepKeys } from "@tanstack/vue-form"
 import type { InputProps } from "../../src/components/OmegaForm/InputProps"
 
-defineProps<{
-  inputProps: InputProps<From, Name>
-  vuetifyValue: unknown
-}>()
+defineProps<InputProps<From, Name>>()
 
 defineEmits<{
   (e: "focus", event: Event): void

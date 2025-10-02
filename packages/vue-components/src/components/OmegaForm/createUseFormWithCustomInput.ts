@@ -28,8 +28,7 @@ export const createUseFormWithCustomInput = (CustomInputComponent: Component) =>
               // If we receive inputProps from OmegaInternalInput, use our custom component
               if (inputProps && "field" in inputProps) {
                 return h(CustomInputComponent, {
-                  inputProps,
-                  vuetifyValue: inputProps.field.state.value
+                  inputProps
                 })
               }
               // Otherwise, pass through the slot content

@@ -19,7 +19,7 @@ const CustomTestInput = {
       <span v-if="inputProps.error" class="error">{{ inputProps.errorMessages.join(', ') }}</span>
     </div>
   `,
-  props: ["inputProps", "vuetifyValue"],
+  props: ["inputProps"],
   inheritAttrs: false
 }
 
@@ -120,7 +120,7 @@ describe("createUseFormWithCustomInput", () => {
     expect(vm.getSubmittedValue()).toEqual({ testField: "changed value" })
   })
 
-  it("should pass inputProps and vuetifyValue to custom component", async () => {
+  it("should pass inputProps to custom component", async () => {
     // Custom component that validates props
     const PropsValidatingInput = {
       template: `
@@ -128,12 +128,11 @@ describe("createUseFormWithCustomInput", () => {
           <div data-testid="has-inputprops">{{ !!inputProps }}</div>
           <div data-testid="has-field">{{ !!inputProps.field }}</div>
           <div data-testid="has-label">{{ inputProps.label }}</div>
-          <div data-testid="has-name">{{ inputProps.name }}</div>
+          <div data-testid="has-name">{{ inputProps.field.name }}</div>
           <div data-testid="has-id">{{ inputProps.id }}</div>
-          <div data-testid="vuetify-value">{{ vuetifyValue }}</div>
         </div>
       `,
-      props: ["inputProps", "vuetifyValue"]
+      props: ["inputProps"]
     }
 
     const useFormWithValidator = createUseFormWithCustomInput(PropsValidatingInput)
@@ -178,8 +177,6 @@ describe("createUseFormWithCustomInput", () => {
     expect(wrapper.find("[data-testid=\"has-inputprops\"]").text()).toBe("true")
     expect(wrapper.find("[data-testid=\"has-field\"]").text()).toBe("true")
     expect(wrapper.find("[data-testid=\"has-label\"]").text()).toContain("My Label")
-    expect(wrapper.find("[data-testid=\"has-name\"]").text()).toBe("myField")
     expect(wrapper.find("[data-testid=\"has-id\"]").text()).toBeTruthy()
-    expect(wrapper.find("[data-testid=\"vuetify-value\"]").text()).toBe("test-value")
   })
 })

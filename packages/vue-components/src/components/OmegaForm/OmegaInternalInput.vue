@@ -1,14 +1,12 @@
 <template>
-  <slot v-bind="inputProps">
+  <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field }">
     <div
       :class="$attrs.class"
       @focusout="setRealDirty"
     >
       <OmegaInputVuetify
         v-if="vuetified"
-        :input-props="inputProps"
-        v-bind="$attrs"
-        :vuetify-value="inputProps.field.state.value"
+        v-bind="{ ...inputProps, ...$attrs }"
       />
     </div>
   </slot>
@@ -69,7 +67,6 @@ const isFalsyButNotZero = (value: unknown): boolean => {
 }
 
 // we remove value and errors when the field is empty and not required
-
 // convert nullish value to null or undefined based on schema
 const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) => {
   if (isFalsyButNotZero(value) && props.meta?.type !== "boolean") {
@@ -149,22 +146,36 @@ onUnmounted(() => {
   removeError(id)
 })
 
+const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
+  const handler3 = {
+    get(_target: any, prop: PropertyKey, _receiver: any) {
+      if (prop === "handleChange") {
+        return handleChange
+      }
+      return Reflect.get(...arguments as unknown as [any, any, any])
+    }
+  }
+
+  const proxy3 = new Proxy(field, handler3)
+  return proxy3 as typeof field
+}
+
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
-  id,
-  required: props.meta?.required,
-  minLength: props.meta?.type === "string" && props.meta?.minLength,
-  maxLength: props.meta?.type === "string" && props.meta?.maxLength,
-  max: props.meta?.type === "number" && props.meta?.maximum,
-  min: props.meta?.type === "number" && props.meta?.minimum,
-  name: props.field.name,
-  modelValue: props.field.state.value,
-  handleChange,
-  errorMessages: showedErrors.value,
-  error: !!showedErrors.value.length,
-  field: props.field,
-  setRealDirty,
-  type: fieldType.value,
-  label: `${props.label}${props.meta?.required ? " *" : ""}`,
-  options: props.options
+  inputProps: {
+    id,
+    required: props.meta?.required,
+    minLength: props.meta?.type === "string" && props.meta?.minLength,
+    maxLength: props.meta?.type === "string" && props.meta?.maxLength,
+    max: props.meta?.type === "number" && props.meta?.maximum,
+    min: props.meta?.type === "number" && props.meta?.minimum,
+    errorMessages: showedErrors.value,
+    error: !!showedErrors.value.length,
+    setRealDirty,
+    type: fieldType.value,
+    label: `${props.label}${props.meta?.required ? " *" : ""}`,
+    options: props.options
+  },
+
+  field: wrapField(props.field)
 }))
 </script>

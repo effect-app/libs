@@ -8,14 +8,14 @@
       :is="inputProps.type === 'boolean' ? 'v-checkbox' : 'v-switch'"
       v-if="inputProps.type === 'boolean' || inputProps.type === 'switch'"
       :id="inputProps.id"
-      :name="inputProps.name"
+      :name="field.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       ripple
       v-bind="$attrs"
-      :model-value="vuetifyValue"
-      @change="(e: any) => inputProps.handleChange(e.target.checked)"
+      :model-value="field.state.value"
+      @change="(e: any) => field.handleChange(e.target.checked)"
     />
     <v-text-field
       v-if="inputProps.type === 'email' || inputProps.type === 'string' || inputProps.type === 'password'"
@@ -24,13 +24,13 @@
       :min-length="inputProps.minLength"
       :max-length="inputProps.maxLength"
       :type="getInputType(inputProps.type)"
-      :name="inputProps.name"
+      :name="field.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="vuetifyValue"
-      @update:model-value="inputProps.handleChange"
+      :model-value="field.state.value"
+      @update:model-value="field.handleChange"
     />
     <v-textarea
       v-if="inputProps.type === 'text'"
@@ -38,13 +38,13 @@
       :required="inputProps.required"
       :min-length="inputProps.minLength"
       :max-length="inputProps.maxLength"
-      :name="inputProps.name"
+      :name="field.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="vuetifyValue"
-      @update:model-value="inputProps.handleChange"
+      :model-value="field.state.value"
+      @update:model-value="field.handleChange"
     />
     <component
       :is="inputProps.type === 'range' ? 'v-slider' : 'v-text-field'"
@@ -54,30 +54,30 @@
       :min="inputProps.min"
       :max="inputProps.max"
       :type="inputProps.type"
-      :name="inputProps.name"
+      :name="field.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="vuetifyValue"
+      :model-value="field.state.value"
       @update:model-value="(e: any) => {
         if (e || e === 0) {
-          inputProps.handleChange(Number(e) as any)
+          field.handleChange(Number(e) as any)
         } else {
-          inputProps.handleChange(undefined as any)
+          field.handleChange(undefined as any)
         }
       }"
     />
     <template v-if="inputProps.type === 'radio'">
       <v-radio-group
         :id="inputProps.id"
-        :name="inputProps.name"
+        :name="field.name"
         :label="inputProps.label"
         :error-messages="inputProps.errorMessages"
         :error="inputProps.error"
         v-bind="$attrs"
-        :model-value="vuetifyValue"
-        @update:model-value="inputProps.handleChange"
+        :model-value="field.state.value"
+        @update:model-value="field.handleChange"
       >
         <v-radio
           v-for="option in inputProps.options"
@@ -94,15 +94,15 @@
       :required="inputProps.required"
       :multiple="inputProps.type === 'multiple'"
       :chips="inputProps.type === 'multiple'"
-      :name="inputProps.name"
+      :name="field.name"
       :label="inputProps.label"
       :items="inputProps.options"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="vuetifyValue"
-      @clear="inputProps.handleChange(undefined as any)"
-      @update:model-value="inputProps.handleChange"
+      :model-value="field.state.value"
+      @clear="field.handleChange(undefined as any)"
+      @update:model-value="field.handleChange"
     />
 
     <v-autocomplete
@@ -112,16 +112,16 @@
       :clearable="inputProps.type === 'autocomplete'"
       :multiple="inputProps.type === 'autocompletemultiple'"
       :required="inputProps.required"
-      :name="inputProps.name"
+      :name="field.name"
       :label="inputProps.label"
       :items="inputProps.options"
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
-      :model-value="vuetifyValue"
-      @clear="inputProps.handleChange(undefined as any)"
-      @update:model-value="inputProps.handleChange"
+      :model-value="field.state.value"
+      @clear="field.handleChange(undefined as any)"
+      @update:model-value="field.handleChange"
     />
   </div>
 </template>
@@ -135,10 +135,7 @@ import { type DeepKeys } from "@tanstack/vue-form"
 import { getInputType } from "../OmegaForm/OmegaFormStuff"
 import type { InputProps } from "./InputProps"
 
-defineProps<{
-  inputProps: InputProps<From, Name>
-  vuetifyValue: unknown
-}>()
+defineProps<InputProps<From, Name>>()
 
 defineEmits<{
   (e: "focus", event: Event): void

@@ -28,20 +28,23 @@ export type OmegaFieldInternalApi<From extends Record<PropertyKey, any>, TName e
 >
 
 export type InputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
-  id: string
-  required?: boolean
-  minLength?: number | false
-  maxLength?: number | false
-  max?: number | false
-  min?: number | false
-  name: string
-  modelValue: DeepValue<From, TName>
-  handleChange: (value: DeepValue<From, TName>) => void
-  errorMessages: string[]
-  error: boolean
+  inputProps: {
+    id: string
+    required?: boolean
+    minLength?: number | false
+    maxLength?: number | false
+    max?: number | false
+    min?: number | false
+    errorMessages: string[]
+    error: boolean
+    setRealDirty: () => void
+    type: string
+    label: string
+    options?: { title: string; value: string }[]
+  }
   field: OmegaFieldInternalApi<From, TName>
-  setRealDirty: () => void
-  type: string
-  label: string
-  options?: { title: string; value: string }[]
 }
+
+export type MergedInputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> =
+  & InputProps<From, TName>["inputProps"]
+  & Pick<InputProps<From, TName>, "field">

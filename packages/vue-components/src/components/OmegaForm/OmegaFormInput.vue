@@ -25,7 +25,7 @@
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { inject } from "vue"
-import type { InputProps } from "./InputProps"
+import type { MergedInputProps } from "./InputProps"
 import type { DefaultInputProps, OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import { OmegaFormKey } from "./useOmegaForm"
@@ -46,6 +46,6 @@ defineProps<
 >()
 
 defineSlots<{
-  default(props: InputProps<From, Name>): void
+  default(props: MergedInputProps<From, Name>): void
 }>()
 </script>

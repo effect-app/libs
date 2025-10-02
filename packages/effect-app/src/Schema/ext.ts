@@ -41,8 +41,14 @@ export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>
     S.Literal(...literals),
     (s) =>
       Object.assign(s, {
-        withDefault: s.pipe(withDefaultConstructor(() => literals[0])),
-        Default: literals[0] as typeof literals[0]
+        changeDefault: <A extends Literals[number]>(a: A) => {
+          return Object.assign(S.Literal(...literals), {
+            Default: a,
+            withDefault: s.pipe(withDefaultConstructor(() => a))
+          }) // todo: copy annotations from original?
+        },
+        Default: literals[0] as typeof literals[0],
+        withDefault: s.pipe(withDefaultConstructor(() => literals[0]))
       })
   )
 

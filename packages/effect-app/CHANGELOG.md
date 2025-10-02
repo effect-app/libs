@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.10.1
+
+### Patch Changes
+
+- fe49192: improve literal default, overridable
+
 ## 3.10.0
 
 ### Minor Changes

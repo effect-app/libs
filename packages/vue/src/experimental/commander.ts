@@ -10,7 +10,7 @@ import { type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { isGeneratorFunction, type YieldWrap } from "effect/Utils"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
-import { computed, type ComputedRef, reactive } from "vue"
+import { computed, type ComputedRef, reactive, ref } from "vue"
 import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
@@ -25,6 +25,7 @@ type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefine
    * provided as Command.state tag, so you can access it in the function.
    */
   state?: ComputedRef<State> | (() => State)
+  disableSharedWaiting?: boolean
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -1209,6 +1210,21 @@ const makeBaseInfo = <const Id extends string, const I18nKey extends string = Id
   return context
 }
 
+const waitState = ref<Record<string, number>>({})
+const registerWait = (id: string) => {
+  // console.debug("register wait", id)
+  waitState.value[id] = waitState.value[id] ? waitState.value[id] + 1 : 1
+}
+const unregisterWait = (id: string) => {
+  // console.debug("unregister wait", id)
+  if (waitState.value[id]) {
+    waitState.value[id] = waitState.value[id] - 1
+    if (waitState.value[id] <= 0) {
+      delete waitState.value[id]
+    }
+  }
+}
+
 const getStateValues = <const I18nKey extends string, State extends IntlRecord | undefined>(
   options?: FnOptions<I18nKey, State>
 ): ComputedRef<State> => {
@@ -1346,9 +1362,20 @@ export class CommanderImpl<RT> {
           )
         )
 
-        const [result, exec] = asResult(theHandler)
+        const [result, exec_] = asResult(theHandler)
+        // probably could be nice to use a namespaced, computable wait key instead not unlike query invalidation?
+        // ["Something.Update", { id }] for instance
+        const exec = options?.disableSharedWaiting
+          ? exec_
+          : Effect
+            .fnUntraced(function*(...args: Args) {
+              registerWait(id)
+              return yield* exec_(...args)
+            }, Effect.onExit(() => Effect.sync(() => unregisterWait(id))))
 
-        const waiting = computed(() => result.value.waiting)
+        const waiting = options?.disableSharedWaiting
+          ? computed(() => result.value.waiting)
+          : computed(() => result.value.waiting || (waitState.value[id] ?? 0) > 0)
 
         const handle = Object.assign((...args: Args) => {
           // we capture the call site stack here

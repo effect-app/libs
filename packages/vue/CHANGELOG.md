@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.83.0
+
+### Minor Changes
+
+- 1ba73e9: expose state computedref
+
 ## 2.82.0
 
 ### Minor Changes

@@ -202,12 +202,12 @@ export type NumberFieldMeta = BaseFieldMeta & {
 
 export type SelectFieldMeta = BaseFieldMeta & {
   type: "select"
-  members: any[]
+  members: any[] // TODO: should be non empty array?
 }
 
 export type MultipleFieldMeta = BaseFieldMeta & {
   type: "multiple"
-  members: any[]
+  members: any[] // TODO: should be non empty array?
   rest: S.AST.Type[]
 }
 
@@ -756,7 +756,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
       }
       break
     case "select":
-      schema = S.Literal(...meta.members).annotations({
+      schema = S.Literal(...meta.members as [any]).annotations({
         message: () => ({
           message: trans("validation.not_a_valid", {
             type: "select",

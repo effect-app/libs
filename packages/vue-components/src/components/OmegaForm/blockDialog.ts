@@ -5,9 +5,9 @@ import { onMountedWithCleanup } from "./onMountedWithCleanup"
 export type DialogClosing = { prevent?: boolean | Promise<boolean> }
 const makeBus = () => mitt<{ "dialog-closing": DialogClosing }>()
 
-const Bus = Symbol("dialog") as InjectionKey<ReturnType<typeof makeBus>>
+const Bus = Symbol("DialogBus") as InjectionKey<ReturnType<typeof makeBus>>
 
-export const injectBus = () => inject(Bus)
+export const injectBus = () => inject(Bus, null)
 export const provideBus = () => {
   const bus = makeBus()
   provide(Bus, bus)

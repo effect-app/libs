@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.6.0
+
+### Minor Changes
+
+- 062e9be: improve: flatten inputprops, remove confusing duplicate handleChange, name, modelValue and vuetifyValue
+
 ## 1.5.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.84.0
+
+### Minor Changes
+
+- c41a876: feat: shared wait state based on id.
+
 ## 2.83.0
 
 ### Minor Changes

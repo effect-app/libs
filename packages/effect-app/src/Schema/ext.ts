@@ -4,24 +4,50 @@ import { Effect, ParseResult, pipe, type SchemaAST } from "effect"
 import type { Tag } from "effect/Context"
 import type { Schema } from "effect/Schema"
 import * as S from "effect/Schema"
+import { type NonEmptyReadonlyArray } from "../Array.js"
 import * as Context from "../Context.js"
 import { extendM, typedKeysOf } from "../utils.js"
+import { type AST } from "./schema.js"
 
 export const withDefaultConstructor: <A, I, R>(
   makeDefault: () => NoInfer<A>
 ) => (self: Schema<A, I, R>) => S.PropertySignature<":", A, never, ":", I, true, R> = (makeDefault) => (self) =>
   S.propertySignature(self).pipe(S.withConstructorDefault(makeDefault))
 
+/**
+ * Like the default Schema `Date` but with `withDefault` => now
+ */
 export const Date = Object.assign(S.Date, {
   withDefault: S.Date.pipe(withDefaultConstructor(() => new global.Date()))
 })
+
+/**
+ * Like the default Schema `Boolean` but with `withDefault` => false
+ */
 export const Boolean = Object.assign(S.Boolean, {
   withDefault: S.Boolean.pipe(withDefaultConstructor(() => false))
 })
+
+/**
+ * Like the default Schema `Number` but with `withDefault` => 0
+ */
 export const Number = Object.assign(S.Number, { withDefault: S.Number.pipe(withDefaultConstructor(() => 0)) })
 
 /**
- * Like the default Schema `Array` but with `withDefault`
+ * Like the default Schema `Literal` but with `withDefault` => literals[0]
+ */
+export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(...literals: Literals) =>
+  pipe(
+    S.Literal(...literals),
+    (s) =>
+      Object.assign(s, {
+        withDefault: s.pipe(withDefaultConstructor(() => literals[0])),
+        Default: literals[0] as typeof literals[0]
+      })
+  )
+
+/**
+ * Like the default Schema `Array` but with `withDefault` => []
  */
 export function Array<Value extends Schema.Any>(value: Value) {
   return pipe(
@@ -31,7 +57,7 @@ export function Array<Value extends Schema.Any>(value: Value) {
 }
 
 /**
- * Like the default Schema `ReadonlySet` but with `withDefault`
+ * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()
  */
 export const ReadonlySet = <Value extends Schema.Any>(value: Value) =>
   pipe(
@@ -40,7 +66,7 @@ export const ReadonlySet = <Value extends Schema.Any>(value: Value) =>
   )
 
 /**
- * Like the default Schema `ReadonlyMap` but with `withDefault`
+ * Like the default Schema `ReadonlyMap` but with `withDefault` => new Map()
  */
 export const ReadonlyMap = <K extends Schema.Any, V extends Schema.Any>(pair: {
   readonly key: K
@@ -52,7 +78,7 @@ export const ReadonlyMap = <K extends Schema.Any, V extends Schema.Any>(pair: {
   )
 
 /**
- * Like the default Schema `NullOr` but with `withDefault`
+ * Like the default Schema `NullOr` but with `withDefault` => null
  */
 export const NullOr = <S extends Schema.Any>(self: S) =>
   pipe(

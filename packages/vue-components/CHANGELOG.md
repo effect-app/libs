@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.5
+
+### Patch Changes
+
+- 9810025: alt error state fix
+
 ## 1.8.4
 
 ### Patch Changes

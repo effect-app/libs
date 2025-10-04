@@ -9,9 +9,13 @@ import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
-export type DefaultInputProps<From> = {
+export type BaseProps<From, TName extends DeepKeys<From>> = {
   label?: string
   validators?: FieldValidators<From>
+  name: TName
+}
+
+export type DefaultTypeProps = {
   options?: {
     title: string
     value: string
@@ -27,20 +31,18 @@ export type OmegaInputPropsBase<
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
-  name: NestedKeyOf<From>
-} & DefaultInputProps<From>
+} & BaseProps<From, NestedKeyOf<From>>
 
 export type OmegaInputProps<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  InputProps = DefaultInputProps<From>
+  TypeProps = DefaultTypeProps
 > = {
-  form: OmegaFormReturn<From, To, InputProps> & {
+  form: OmegaFormReturn<From, To, TypeProps> & {
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
-  name: NestedKeyOf<From>
-} & DefaultInputProps<From> // InputProps // TODO
+} & BaseProps<From, NestedKeyOf<From>>
 
 export type TypeOverride =
   | "string"

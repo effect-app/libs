@@ -13,7 +13,7 @@ import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { DefaultInputProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -133,7 +133,7 @@ type __VLS_PrettifyLocal<T> =
 export interface OmegaFormReturn<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  Props = DefaultInputProps<From>
+  TypeProps = DefaultTypeProps
 > extends OF<From, To> {
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
   Input: <Name extends DeepKeys<From>>(
@@ -151,10 +151,8 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & {
-            name: Name
-          }
-          & Props
+          & BaseProps<From, Name>
+          & TypeProps
           & Partial<{}>
         >
         & import("vue").PublicProps
@@ -589,12 +587,12 @@ export const useOmegaForm = <
   From extends Record<PropertyKey, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   To extends Record<PropertyKey, any>,
-  Props = DefaultInputProps<From>
+  TypeProps = DefaultTypeProps
 >(
   schema: S.Schema<To, From, never>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
   omegaConfig?: OmegaConfig<To>
-): OmegaFormReturn<From, To, Props> => {
+): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
   const standardSchema = S.standardSchemaV1(schema)
   const decode = S.decode(schema)

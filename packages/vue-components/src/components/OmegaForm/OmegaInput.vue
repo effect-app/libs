@@ -12,10 +12,8 @@
         v-if="meta"
         :field="field"
         :label="label ?? i18n()"
-        :options="options"
         :meta="meta"
-        :type="type"
-        v-bind="$attrs"
+        v-bind="{ ...$attrs, ...$props }"
       >
         <template #default="inputProps">
           <slot v-bind="inputProps" />

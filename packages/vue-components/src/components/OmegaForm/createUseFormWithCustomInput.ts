@@ -1,15 +1,16 @@
 import type { DeepKeys } from "@tanstack/vue-form"
 import { type Component, h } from "vue"
 import type { MergedInputProps } from "./InputProps"
-import { type DefaultInputProps } from "./OmegaFormStuff"
+import { type DefaultTypeProps } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import { useOmegaForm } from "./useOmegaForm"
 
-export const createUseFormWithCustomInput = (CustomInputComponent: Component) => {
+export const createUseFormWithCustomInput = <
+  TypeProps = DefaultTypeProps
+>(CustomInputComponent: Component) => {
   return <
     From extends Record<PropertyKey, any>,
-    To extends Record<PropertyKey, any>,
-    Props = DefaultInputProps<From>
+    To extends Record<PropertyKey, any>
   >(
     ...args: Parameters<typeof useOmegaForm<From, To>>
   ) => {
@@ -33,7 +34,7 @@ export const createUseFormWithCustomInput = (CustomInputComponent: Component) =>
       }
     }
 
-    const form = useOmegaForm<From, To, Props>(
+    const form = useOmegaForm<From, To, TypeProps>(
       schema,
       tanstackFormOptions,
       {

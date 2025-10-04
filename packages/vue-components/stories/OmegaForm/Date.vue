@@ -14,7 +14,9 @@
         >
       </template>
     </form.Input>
-    <v-btn>submit</v-btn>
+    <v-btn type="submit">
+      submit
+    </v-btn>
     <form.Errors />
   </form.Form>
 </template>

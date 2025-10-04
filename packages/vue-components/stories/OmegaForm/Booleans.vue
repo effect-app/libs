@@ -16,7 +16,9 @@
         type="boolean"
       />
       <pre>{{ values }}</pre>
-      <v-btn>submit</v-btn>
+      <v-btn type="submit">
+        submit
+      </v-btn>
     </template>
   </form.Form>
 </template>

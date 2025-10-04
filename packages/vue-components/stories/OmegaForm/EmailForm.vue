@@ -10,7 +10,9 @@
       name="confirm"
       :form="form"
     />
-    <v-btn>submit</v-btn>
+    <v-btn type="submit">
+      submit
+    </v-btn>
     <form.Errors />
   </form.Form>
 </template>
@@ -41,7 +43,7 @@ const form = useOmegaForm(schema, {
     confirm: "amerelli@asd.it"
   },
   onSubmit: async (value) => {
-    console.log(value)
+    console.log("submit", value)
   }
 })
 </script>

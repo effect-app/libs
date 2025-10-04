@@ -72,8 +72,6 @@ export interface OmegaError {
   errors: readonly string[]
 }
 
-const isArrayOfString = S.NonEmptyArray(S.String)
-
 export type FormProps<From, To> =
   & Omit<
     FormOptions<

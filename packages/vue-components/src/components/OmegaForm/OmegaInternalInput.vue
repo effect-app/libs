@@ -1,12 +1,12 @@
 <template>
-  <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field }">
+  <slot v-bind="{ ...$attrs, ...inputProps.inputProps, field: inputProps.field }">
     <div
       :class="$attrs.class"
       @focusout="setRealDirty"
     >
       <OmegaInputVuetify
         v-if="vuetified"
-        v-bind="inputProps"
+        v-bind="{ ...$attrs, ...inputProps }"
       />
     </div>
   </slot>
@@ -18,7 +18,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, onMounted, onUnmounted, ref, useAttrs, useId, watch, watchEffect } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, onMounted, onUnmounted, ref, useId, watch, watchEffect } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -33,6 +33,9 @@ const props = defineProps<{
   label: string
   type?: TypeOverride
   validators?: FieldValidators<From>
+
+  // TODO: these should really be optional, depending on the input type (and the custom input type for custom inputs :s)
+  options?: { title: string; value: string }[]
 }>()
 
 const instance = getCurrentInstance()
@@ -159,11 +162,8 @@ const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
   return proxy3 as typeof field
 }
 
-const attrs = useAttrs()
-
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   inputProps: {
-    ...attrs,
     id,
     required: props.meta?.required,
     minLength: props.meta?.type === "string" && props.meta?.minLength,
@@ -174,7 +174,8 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     error: !!showedErrors.value.length,
     setRealDirty,
     type: fieldType.value,
-    label: `${props.label}${props.meta?.required ? " *" : ""}`
+    label: `${props.label}${props.meta?.required ? " *" : ""}`,
+    options: props.options
   },
 
   field: wrapField(props.field)

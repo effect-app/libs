@@ -10,10 +10,10 @@
     <template #default="{ field }">
       <OmegaInternalInput
         v-if="meta"
+        v-bind="{ ...$attrs, ...$props }"
         :field="field"
         :label="label ?? i18n()"
         :meta="meta"
-        v-bind="{ ...$attrs, ...$props }"
       >
         <template #default="inputProps">
           <slot v-bind="inputProps" />

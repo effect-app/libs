@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.0
+
+### Minor Changes
+
+- a21a722: add Dialog component
+
 ## 1.7.1
 
 ### Patch Changes

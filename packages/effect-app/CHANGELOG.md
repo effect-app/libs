@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.10.2
+
+### Patch Changes
+
+- fdf1781: enhance runtimeFiberAsPromise with abort.
+
 ## 3.10.1
 
 ### Patch Changes

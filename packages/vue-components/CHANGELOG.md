@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.6.6
+
+### Patch Changes
+
+- 459f673: feat: ability to set props type. fix props runtime shape
+
 ## 1.6.5
 
 ### Patch Changes

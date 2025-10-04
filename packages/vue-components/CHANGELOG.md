@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.1
+
+### Patch Changes
+
+- 3e8e34f: fix default
+
 ## 1.8.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.7
+
+### Patch Changes
+
+- a080086: improve: move error computation to error component.
+
 ## 1.8.6
 
 ### Patch Changes

@@ -3,7 +3,7 @@ import * as fu from "../fileUtil.js"
 
 import fs from "fs"
 
-import { Console, Effect, flow } from "effect-app"
+import { Chunk, Console, Effect, flow } from "effect-app"
 import type { FieldValues } from "../Model/filter/types.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
 import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -15,7 +15,8 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
   dir: string,
   name: string,
   seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-  defaultValues?: Partial<Encoded>
+  defaultValues?: Partial<Encoded>,
+  separate?: boolean
 ) {
   type PM = PersistenceModelType<Encoded>
   return Effect.gen(function*() {
@@ -25,49 +26,89 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
         fs.mkdirSync(dir)
       }
     }
-    const file = dir + "/" + prefix + name + ".json"
-    const fsStore = {
-      get: fu
-        .readTextFile(file)
-        .pipe(
-          Effect.withSpan("Disk.read.readFile [effect-app/infra/Store]", { captureStackTrace: false }),
-          Effect.flatMap((x) =>
-            Effect.sync(() => JSON.parse(x) as PM[]).pipe(
-              Effect.withSpan("Disk.read.parse [effect-app/infra/Store]", { captureStackTrace: false })
+    const myDir = dir + "/" + prefix + name
+    if (separate) {
+      if (!fs.existsSync(myDir)) {
+        fs.mkdirSync(myDir)
+      }
+    }
+    const file = separate ? myDir + ".json" : myDir
+    const fsStore = separate
+      ? {
+        get: fs.existsSync(myDir)
+          ? Effect
+            .gen(function*() {
+              const files = yield* Effect.promise(() => fs.promises.readdir(myDir)).pipe(
+                Effect.map((_) => _.filter((_) => _.endsWith(".json")))
+              )
+              return yield* Effect.forEach(
+                files,
+                Effect.fnUntraced(function*(f) {
+                  const js = yield* fu.readTextFile(myDir + "/" + f)
+                  return JSON.parse(js) as PM
+                }),
+                { concurrency: 10 }
+              )
+            })
+            .pipe(
+              Effect.orDie,
+              Effect.withSpan("Disk.read [effect-app/infra/Store]", {
+                captureStackTrace: false,
+                attributes: { "disk.dir": myDir }
+              })
             )
-          ),
-          Effect.orDie,
-          Effect.withSpan("Disk.read [effect-app/infra/Store]", {
-            captureStackTrace: false,
-            attributes: { "disk.file": file }
-          })
-        ),
-      setRaw: (v: Iterable<PM>) =>
-        Effect
-          .sync(() => JSON.stringify([...v], undefined, 2))
+          : Effect.succeed([] as PM[]),
+        setRaw: Effect.fn("Disk.write [effect-app/infra/Store]")(function*(v: Iterable<PM>) {
+          // TODO: should we first read and compare?
+          yield* Effect.forEach(
+            Chunk.fromIterable(v),
+            (item) => fu.writeTextFile(myDir + "/" + item[idKey] + ".json", JSON.stringify(item, undefined, 2)),
+            { concurrency: 10 }
+          )
+        })
+      }
+      : {
+        get: fu
+          .readTextFile(file)
           .pipe(
-            Effect.withSpan("Disk.stringify [effect-app/infra/Store]", {
+            Effect.withSpan("Disk.read.readFile [effect-app/infra/Store]", { captureStackTrace: false }),
+            Effect.flatMap((x) =>
+              Effect.sync(() => JSON.parse(x) as PM[]).pipe(
+                Effect.withSpan("Disk.read.parse [effect-app/infra/Store]", { captureStackTrace: false })
+              )
+            ),
+            Effect.orDie,
+            Effect.withSpan("Disk.read [effect-app/infra/Store]", {
               captureStackTrace: false,
               attributes: { "disk.file": file }
-            }),
-            Effect
-              .flatMap(
-                (json) =>
-                  fu
-                    .writeTextFile(file, json)
-                    .pipe(Effect
-                      .withSpan("Disk.write.writeFile [effect-app/infra/Store]", {
-                        captureStackTrace: false,
-                        attributes: { "disk.file_size": json.length }
-                      }))
-              ),
-            Effect
-              .withSpan("Disk.write [effect-app/infra/Store]", {
+            })
+          ),
+        setRaw: (v: Iterable<PM>) =>
+          Effect
+            .sync(() => JSON.stringify([...v], undefined, 2))
+            .pipe(
+              Effect.withSpan("Disk.stringify [effect-app/infra/Store]", {
                 captureStackTrace: false,
                 attributes: { "disk.file": file }
-              })
-          )
-    }
+              }),
+              Effect
+                .flatMap(
+                  (json) =>
+                    fu
+                      .writeTextFile(file, json)
+                      .pipe(Effect
+                        .withSpan("Disk.write.writeFile [effect-app/infra/Store]", {
+                          captureStackTrace: false,
+                          attributes: { "disk.file_size": json.length }
+                        }))
+                ),
+              Effect
+                .withSpan("Disk.write [effect-app/infra/Store]", {
+                  captureStackTrace: false,
+                  attributes: { "disk.file": file }
+                })
+            )
+      }
 
     const store = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
       name,
@@ -155,7 +196,8 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
                     dir,
                     name,
                     seed,
-                    config?.defaultValues
+                    config?.defaultValues,
+                    config?.separate
                   )
                     .pipe(
                       Effect.orDie,

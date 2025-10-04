@@ -33,7 +33,7 @@ const props = defineProps<{
   persistent?: boolean
 }>()
 
-const open = defineModel<boolean>()
+const open = defineModel<boolean>({ default: false })
 
 const onCancel = useOnClose(() => open.value = false)
 

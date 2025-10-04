@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.8
+
+### Patch Changes
+
+- 2c29462: remove (apparently) obsolete filter items
+
 ## 1.8.7
 
 ### Patch Changes

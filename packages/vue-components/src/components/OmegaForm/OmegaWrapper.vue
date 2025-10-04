@@ -16,7 +16,7 @@
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
   K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>,
-  Props = DefaultInputProps<From>
+  Props = DefaultTypeProps
 "
 >
 /**
@@ -31,7 +31,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useStore } from "@tanstack/vue-form"
 import { getOmegaStore } from "./getOmegaStore"
-import { type DefaultInputProps, type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"
+import { type DefaultTypeProps, type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"
 import { type OmegaFormReturn } from "./useOmegaForm"
 
 type OmegaWrapperProps = {

@@ -11,15 +11,15 @@ const CustomTestInput = {
       <label :for="inputProps.id">{{ inputProps.label }}</label>
       <input
         :id="inputProps.id"
-        :name="inputProps.name"
-        :value="inputProps.field.state.value || ''"
-        @input="inputProps.field.handleChange($event.target.value)"
+        :name="field.name"
+        :value="field.state.value || ''"
+        @input="field.handleChange($event.target.value)"
         data-testid="custom-input-field"
       />
       <span v-if="inputProps.error" class="error">{{ inputProps.errorMessages.join(', ') }}</span>
     </div>
   `,
-  props: ["inputProps"],
+  props: ["inputProps", "field"],
   inheritAttrs: false
 }
 
@@ -126,13 +126,13 @@ describe("createUseFormWithCustomInput", () => {
       template: `
         <div data-testid="props-validator">
           <div data-testid="has-inputprops">{{ !!inputProps }}</div>
-          <div data-testid="has-field">{{ !!inputProps.field }}</div>
+          <div data-testid="has-field">{{ !!field }}</div>
           <div data-testid="has-label">{{ inputProps.label }}</div>
-          <div data-testid="has-name">{{ inputProps.field.name }}</div>
+          <div data-testid="has-name">{{ field.name }}</div>
           <div data-testid="has-id">{{ inputProps.id }}</div>
         </div>
       `,
-      props: ["inputProps"]
+      props: ["inputProps", "field"]
     }
 
     const useFormWithValidator = createUseFormWithCustomInput(PropsValidatingInput)

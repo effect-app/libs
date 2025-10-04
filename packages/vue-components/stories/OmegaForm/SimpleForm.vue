@@ -6,14 +6,14 @@
         label="asder2"
         name="asder2"
       >
-        <template #default="inputProps">
-          <label :for="inputProps.name">{{ inputProps.label }}</label>
+        <template #default="{ field, label }">
+          <label :for="field.name">{{ label }}</label>
           <input
-            :id="inputProps.name"
-            v-model="inputProps.field.state.value"
-            :name="inputProps.name"
+            :id="field.name"
+            v-model="field.state.value"
+            :name="field.name"
             style="border: 1px solid red"
-            @change="(e: any) => inputProps.field.handleChange(e.target.value)"
+            @change="(e: any) => field.handleChange(e.target.value)"
           >
         </template>
       </form.Input>

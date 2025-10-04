@@ -38,9 +38,8 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
     errorMessages: string[]
     error: boolean
     setRealDirty: () => void
-    type: string
     label: string
-    options?: { title: string; value: string }[]
+    type: string
   }
   field: OmegaFieldInternalApi<From, TName>
 }
@@ -48,3 +47,11 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
 export type MergedInputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> =
   & InputProps<From, TName>["inputProps"]
   & Pick<InputProps<From, TName>, "field">
+
+export type VuetifyInputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
+  inputProps: InputProps<From, TName>["inputProps"] & {
+    type: string
+    options?: { title: string; value: string }[]
+  }
+  field: InputProps<From, TName>["field"]
+}

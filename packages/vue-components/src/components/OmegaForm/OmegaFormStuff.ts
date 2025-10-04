@@ -10,17 +10,24 @@ import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
 
 export type BaseProps<From, TName extends DeepKeys<From>> = {
+  /** Will fallback to i18n when not specified */
   label?: string
   validators?: FieldValidators<From>
   name: TName
 }
 
+export type TypesWithOptions = "radio" | "select" | "multiple" | "autocomplete" | "autocompletemultiple"
 export type DefaultTypeProps = {
+  type?: TypeOverride
+  options?: undefined
+} | {
+  type?: TypesWithOptions
+  // TODO: options should depend on `type`, but since there is auto-type, we can't currently enforce it.
+  // hence we allow it also for type? (undefined) atm
   options?: {
     title: string
     value: string
   }[]
-  type?: TypeOverride
 }
 
 export type OmegaInputPropsBase<

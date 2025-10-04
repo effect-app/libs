@@ -133,9 +133,9 @@
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { getInputType } from "../OmegaForm/OmegaFormStuff"
-import type { InputProps } from "./InputProps"
+import type { VuetifyInputProps } from "./InputProps"
 
-defineProps<InputProps<From, Name>>()
+defineProps<VuetifyInputProps<From, Name>>()
 
 defineEmits<{
   (e: "focus", event: Event): void

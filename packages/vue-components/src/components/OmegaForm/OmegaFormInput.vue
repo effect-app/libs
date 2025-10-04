@@ -2,11 +2,6 @@
   <OmegaInput
     v-bind="$props"
     :form="form"
-    :name="name"
-    :label="label"
-    :validators="validators"
-    :options="options"
-    :type="type"
   >
     <template #default="slotProps">
       <slot v-bind="slotProps" />
@@ -26,7 +21,7 @@
 import { type DeepKeys } from "@tanstack/vue-form"
 import { inject } from "vue"
 import type { MergedInputProps } from "./InputProps"
-import type { DefaultInputProps, OmegaInputProps } from "./OmegaFormStuff"
+import type { BaseProps, DefaultTypeProps, OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import { OmegaFormKey } from "./useOmegaForm"
 
@@ -40,9 +35,7 @@ if (!form) {
 }
 
 defineProps<
-  {
-    name: Name
-  } & DefaultInputProps<From>
+  BaseProps<From, Name> & DefaultTypeProps
 >()
 
 defineSlots<{

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.6
+
+### Patch Changes
+
+- e78d81e: fix: submit error reset on value change.
+
 ## 1.8.5
 
 ### Patch Changes

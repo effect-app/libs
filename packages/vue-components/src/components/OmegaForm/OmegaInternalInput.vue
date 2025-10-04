@@ -104,12 +104,6 @@ onMounted(() => {
   }
 })
 
-const showedErrors = computed(() => {
-  // single select field can be validated on change
-  if (!fieldState.value.meta.isDirty && fieldType.value !== "select") return []
-  return errors.value
-})
-
 const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
   const handler3 = {
     get(_target: any, prop: PropertyKey, _receiver: any) {
@@ -132,8 +126,8 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     maxLength: props.meta?.type === "string" && props.meta?.maxLength,
     max: props.meta?.type === "number" && props.meta?.maximum,
     min: props.meta?.type === "number" && props.meta?.minimum,
-    errorMessages: showedErrors.value,
-    error: !!showedErrors.value.length,
+    errorMessages: errors.value,
+    error: !!errors.value.length,
     type: fieldType.value,
     label: `${props.label}${props.meta?.required ? " *" : ""}`,
     options: props.options

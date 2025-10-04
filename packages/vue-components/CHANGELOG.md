@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.6.7
+
+### Patch Changes
+
+- cca23ba: export types
+
 ## 1.6.6
 
 ### Patch Changes

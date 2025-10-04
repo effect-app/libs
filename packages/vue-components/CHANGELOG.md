@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.7.0
+
+### Minor Changes
+
+- 7e10617: cleanup input interfaces
+
 ## 1.6.7
 
 ### Patch Changes

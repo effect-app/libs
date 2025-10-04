@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-import { Effect, Exit, Option, Record, Runtime } from "effect"
+import { Effect, Exit, Fiber, Option, Record, Runtime } from "effect"
 import * as Either from "effect/Either"
 import { type RuntimeFiber } from "effect/Fiber"
 import { dual, isFunction } from "effect/Function"
@@ -860,8 +860,19 @@ export type ExcludeFromTuple<T extends readonly any[], E> = T extends [infer F, 
   : [F, ...ExcludeFromTuple<R, E>]
   : []
 
-export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>) =>
-  new Promise((resolve, reject) =>
+export const addAbortToRuntimeFiber = <A, E>(fiber: RuntimeFiber<A, E>, signal: AbortSignal) => {
+  const abort = () => Effect.runSync(Fiber.interrupt(fiber))
+  if (signal.aborted) {
+    abort()
+    return fiber
+  }
+  signal.addEventListener("abort", abort)
+  return fiber
+}
+
+export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>, signal?: AbortSignal) => {
+  if (signal) addAbortToRuntimeFiber(fiber, signal)
+  return new Promise((resolve, reject) =>
     fiber.addObserver((exit) => {
       if (Exit.isSuccess(exit)) {
         resolve(exit.value)
@@ -871,6 +882,7 @@ export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>) =>
       }
     })
   )
+}
 
 // unifies any input to be an effect.
 export const wrapEffect = <I, A, E, R, Args extends Array<any>>(

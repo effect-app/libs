@@ -74,27 +74,45 @@
 <script setup lang="ts">
 import { mdiLink } from "@mdi/js"
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
+import { Array as Array$, Option } from "effect-app"
 import { computed, getCurrentInstance } from "vue"
 import { useIntl } from "../../utils"
-import { type OmegaError } from "./OmegaFormStuff"
+import { type OmegaError, type OmegaFormApi } from "./OmegaFormStuff"
 
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VAlert"]
 
 const props = defineProps<
   {
-    errors: readonly OmegaError[]
-    generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
+    form: OmegaFormApi<any, any>
+    fieldMap: Map<string, { id: string; label: string }>
   }
 >()
+
+const generalErrors = props.form.useStore((state) => state.errors)
+const fieldMeta = props.form.useStore((state) => state.fieldMeta)
+const errors = computed(() =>
+  Array$.filterMap(
+    Object
+      .entries(fieldMeta.value),
+    ([key, m]): Option.Option<OmegaError> =>
+      ((m as any).errors ?? []).length && props.fieldMap.get(key)?.id
+        ? Option.some({
+          label: props.fieldMap.get(key)!.label,
+          inputId: props.fieldMap.get(key)!.id,
+          errors: ((m as any).errors ?? []).map((e: any) => e.message).filter(Boolean)
+        })
+        : Option.none()
+  )
+)
 
 const { trans } = useIntl()
 
 const showedGeneralErrors = computed(() => {
-  if (!props.generalErrors) return []
+  if (!generalErrors.value) return []
 
-  return props
-    .generalErrors
+  return generalErrors
+    .value
     .filter((record): record is Record<string, StandardSchemaV1Issue[]> => Boolean(record))
     .flatMap((errorRecord) =>
       Object

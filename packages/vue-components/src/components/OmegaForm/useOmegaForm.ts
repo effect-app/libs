@@ -6,7 +6,7 @@ import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidate
 import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
-import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, watch } from "vue"
+import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
 import { usePreventClose } from "./blockDialog"
 import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
@@ -65,13 +65,8 @@ const fHoc = (form: OF<any, any>) => {
 }
 
 const eHoc = (errorProps: {
-  generalErrors: Readonly<
-    Ref<
-      (Record<string, StandardSchemaV1Issue[]> | undefined)[],
-      (Record<string, StandardSchemaV1Issue[]> | undefined)[]
-    >
-  >
-  errors: Readonly<Ref<(OmegaError | undefined)[], (OmegaError | undefined)[]>>
+  form: OF<any, any>
+  fieldMap: Ref<Map<string, { id: string; label: string }>>
 }) => {
   return function FormHoc<P>(
     WrappedComponent: Component<P>
@@ -82,11 +77,10 @@ const eHoc = (errorProps: {
           ...errorProps
         }
       },
-      render({ errors, generalErrors, showErrors }: any) {
+      render({ fieldMap, form }: any) {
         return h(WrappedComponent, {
-          errors,
-          generalErrors,
-          showErrors,
+          form,
+          fieldMap,
           ...this.$attrs
         } as any, this.$slots)
       }
@@ -863,7 +857,7 @@ export const useOmegaForm = <
 
   const handleSubmit = form.handleSubmit
 
-  const fieldMap = new Map<string, { label: string; id: string }>()
+  const fieldMap = ref(new Map<string, { label: string; id: string }>())
 
   const formWithExtras: OF<From, To> = Object.assign(form, {
     i18nNamespace: omegaConfig?.i18nNamespace,
@@ -877,26 +871,12 @@ export const useOmegaForm = <
     // /** @experimental */
     handleSubmitEffect,
     registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {
-      watch(field, (f) => fieldMap.set(f.name, { label: f.label, id: f.id }), { immediate: true })
-      onUnmounted(() => fieldMap.delete(field.value.name)) // todo; perhap only when owned (id match)
+      watch(field, (f) => fieldMap.value.set(f.name, { label: f.label, id: f.id }), { immediate: true })
+      onUnmounted(() => fieldMap.value.delete(field.value.name)) // todo; perhap only when owned (id match)
     }
   })
 
   const errors = formWithExtras.useStore((state) => state.errors)
-  const fieldErrors = formWithExtras.useStore((state) =>
-    Array.filterMap(
-      Object
-        .entries(state.fieldMeta),
-      ([key, m]): Option.Option<OmegaError> =>
-        ((m as any).errors ?? []).length && fieldMap.get(key)?.id
-          ? Option.some({
-            label: fieldMap.get(key)!.label,
-            inputId: fieldMap.get(key)!.id,
-            errors: ((m as any).errors ?? []).map((e: any) => e.message).filter(Boolean)
-          })
-          : Option.none()
-    )
-  )
 
   watch(
     () => [formWithExtras.filterItems, errors.value],
@@ -937,7 +917,7 @@ export const useOmegaForm = <
     }
   )
 
-  const errorContext = { generalErrors: errors, errors: fieldErrors }
+  const errorContext = { form: formWithExtras, fieldMap }
 
   if (!omegaConfig?.ignorePreventCloseEvents) {
     usePreventClose(() => formWithExtras.useStore((state) => state.isDirty))

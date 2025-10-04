@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.4
+
+### Patch Changes
+
+- ba11663: replace OmegaErrors context managed per Field, to centrally managed.
+
 ## 1.8.3
 
 ### Patch Changes

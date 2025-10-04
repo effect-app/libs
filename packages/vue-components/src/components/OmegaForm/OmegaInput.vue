@@ -12,6 +12,7 @@
         v-if="meta"
         v-bind="{ ...$attrs, ...$props }"
         :field="field"
+        :register="form.registerField"
         :label="label ?? i18n()"
         :meta="meta"
       >

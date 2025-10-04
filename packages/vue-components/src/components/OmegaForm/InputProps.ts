@@ -37,7 +37,6 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
     min?: number | false
     errorMessages: string[]
     error: boolean
-    setRealDirty: () => void
     label: string
     type: string
   }

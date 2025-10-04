@@ -1,9 +1,6 @@
 <template>
   <slot v-bind="{ ...$attrs, ...inputProps.inputProps, field: inputProps.field }">
-    <div
-      :class="$attrs.class"
-      @focusout="setRealDirty"
-    >
+    <div :class="$attrs.class">
       <OmegaInputVuetify
         v-if="vuetified"
         v-bind="{ ...$attrs, ...inputProps }"
@@ -18,7 +15,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, onMounted, onUnmounted, ref, useId, watch, watchEffect } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, onMounted, useId } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -33,6 +30,14 @@ const props = defineProps<{
   label: string
   type?: TypeOverride
   validators?: FieldValidators<From>
+
+  register: (
+    field: ComputedRef<{
+      name: string
+      label: string
+      id: string
+    }>
+  ) => void
 
   // TODO: these should really be optional, depending on the input type (and the custom input type for custom inputs :s)
   options?: { title: string; value: string }[]
@@ -55,6 +60,8 @@ const fieldType = computed(() => {
   }
   return props.meta?.type || "unknown"
 })
+
+props.register(computed(() => ({ name: props.field.name, label: props.label, id })))
 
 const fieldValue = computed(() => fieldState.value.value)
 // workaround strange tanstack form issue where the errors key becomes undefined ???
@@ -97,55 +104,10 @@ onMounted(() => {
   }
 })
 
-const { mapError, removeError, showErrors, showErrorsOn } = (props.field.form as any).errorContext // todo; update types to include extended Omega Form props
-
-const realDirty = ref(false)
-
-watchEffect(() => {
-  if (showErrors.value || showErrorsOn === "onChange") {
-    realDirty.value = true
-  }
-})
-
-const setRealDirty = () => {
-  realDirty.value = true
-}
-
-onMounted(() => {
-  if (fieldValue.value) {
-    setRealDirty()
-  }
-})
-
 const showedErrors = computed(() => {
   // single select field can be validated on change
-  if (!realDirty.value && fieldType.value !== "select") return []
+  if (!fieldState.value.meta.isDirty && fieldType.value !== "select") return []
   return errors.value
-})
-
-watch(
-  _errors,
-  (errors) => {
-    if (errors.length) {
-      mapError({
-        inputId: id,
-        errors: fieldState
-          .value
-          .meta
-          .errors
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((e: any) => e.message)
-          .filter(Boolean),
-        label: props.label
-      })
-    } else {
-      removeError(id)
-    }
-  }
-)
-
-onUnmounted(() => {
-  removeError(id)
 })
 
 const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
@@ -172,7 +134,6 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     min: props.meta?.type === "number" && props.meta?.minimum,
     errorMessages: showedErrors.value,
     error: !!showedErrors.value.length,
-    setRealDirty,
     type: fieldType.value,
     label: `${props.label}${props.meta?.required ? " *" : ""}`,
     options: props.options

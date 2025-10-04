@@ -1,4 +1,3 @@
-export * as OmegaErrorsContext from "./OmegaErrorsContext"
 export * from "./OmegaFormStuff"
 export { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 

@@ -1,7 +1,7 @@
 <template>
   <Transition>
     <div
-      v-if="showErrors && (errors.length || showedGeneralErrors.length)"
+      v-if="errors.length || showedGeneralErrors.length"
       class="error-alert"
     >
       <slot v-bind="{ errors, showedGeneralErrors }">
@@ -85,7 +85,6 @@ const props = defineProps<
   {
     errors: readonly OmegaError[]
     generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
-    showErrors: boolean
   }
 >()
 

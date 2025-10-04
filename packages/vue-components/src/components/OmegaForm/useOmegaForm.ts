@@ -2,16 +2,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as api from "@opentelemetry/api"
-import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, useStore, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Data, Effect, Fiber, Option, Order, S } from "effect-app"
+import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
+import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
-import { Component, computed, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, watch } from "vue"
+import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, watch } from "vue"
 import { usePreventClose } from "./blockDialog"
 import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
-import { buildOmegaErrors } from "./OmegaErrorsContext"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
 import { BaseProps, DefaultTypeProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
@@ -65,7 +64,15 @@ const fHoc = (form: OF<any, any>) => {
   }
 }
 
-const eHoc = (errorProps: ReturnType<typeof buildOmegaErrors>) => {
+const eHoc = (errorProps: {
+  generalErrors: Readonly<
+    Ref<
+      (Record<string, StandardSchemaV1Issue[]> | undefined)[],
+      (Record<string, StandardSchemaV1Issue[]> | undefined)[]
+    >
+  >
+  errors: Readonly<Ref<(OmegaError | undefined)[], (OmegaError | undefined)[]>>
+}) => {
   return function FormHoc<P>(
     WrappedComponent: Component<P>
   ): ConcreteComponent<P> {
@@ -111,6 +118,13 @@ export interface OF<From, To> extends OmegaFormApi<From, To> {
   filterItems?: FilterItems
   clear: () => void
   i18nNamespace?: string
+  registerField: (
+    field: ComputedRef<{
+      name: string
+      label: string
+      id: string
+    }>
+  ) => void
   /** @experimental */
   handleSubmitEffect: {
     /**
@@ -848,6 +862,9 @@ export const useOmegaForm = <
       : handleSubmitEffect_(options?.meta)
 
   const handleSubmit = form.handleSubmit
+
+  const fieldMap = new Map<string, { label: string; id: string }>()
+
   const formWithExtras: OF<From, To> = Object.assign(form, {
     i18nNamespace: omegaConfig?.i18nNamespace,
     meta,
@@ -858,15 +875,28 @@ export const useOmegaForm = <
       return handleSubmit({ currentSpan: span, ...meta })
     },
     // /** @experimental */
-    handleSubmitEffect
+    handleSubmitEffect,
+    registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {
+      watch(field, (f) => fieldMap.set(f.name, { label: f.label, id: f.id }), { immediate: true })
+      onUnmounted(() => fieldMap.delete(field.value.name)) // todo; perhap only when owned (id match)
+    }
   })
 
-  const formSubmissionAttempts = useStore(
-    formWithExtras.store,
-    (state) => state.submissionAttempts
-  )
-
   const errors = formWithExtras.useStore((state) => state.errors)
+  const fieldErrors = formWithExtras.useStore((state) =>
+    Array.filterMap(
+      Object
+        .entries(state.fieldMeta),
+      ([key, m]): Option.Option<OmegaError> =>
+        ((m as any).errors ?? []).length && fieldMap.get(key)?.id
+          ? Option.some({
+            label: fieldMap.get(key)!.label,
+            inputId: fieldMap.get(key)!.id,
+            errors: ((m as any).errors ?? []).map((e: any) => e.message).filter(Boolean)
+          })
+          : Option.none()
+    )
+  )
 
   watch(
     () => [formWithExtras.filterItems, errors.value],
@@ -907,8 +937,7 @@ export const useOmegaForm = <
     }
   )
 
-  //  provide(OmegaFormKey, formWithExtras)
-  const errorContext = buildOmegaErrors(formSubmissionAttempts, errors, omegaConfig?.showErrorsOn)
+  const errorContext = { generalErrors: errors, errors: fieldErrors }
 
   if (!omegaConfig?.ignorePreventCloseEvents) {
     usePreventClose(() => formWithExtras.useStore((state) => state.isDirty))

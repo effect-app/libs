@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.7.1
+
+### Patch Changes
+
+- 3bc0fb8: cleanup
+
 ## 1.7.0
 
 ### Minor Changes

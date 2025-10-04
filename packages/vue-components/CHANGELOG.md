@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.3
+
+### Patch Changes
+
+- 16aeef8: fix attrs
+
 ## 1.8.2
 
 ### Patch Changes

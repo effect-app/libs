@@ -34,7 +34,6 @@ const props = defineProps<{
   type?: TypeOverride
   validators?: FieldValidators<From>
 }>()
-console.log("OmegaInternalInput props:", props)
 
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VTextField"]

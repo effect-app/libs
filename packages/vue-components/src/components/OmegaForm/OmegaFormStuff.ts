@@ -1,4 +1,4 @@
-import { type Effect, Option, pipe, type Record, S } from "effect-app"
+import { type Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getMetadataFromSchema } from "@effect-app/vue/form"
 import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
@@ -650,27 +650,10 @@ export const generateMetaFromSchema = <From, To>(
 ): {
   schema: S.Schema<To, From, never>
   meta: MetaRecord<To>
-  filterItems?: FilterItems
 } => {
   const meta = flattenMeta(schema)
 
-  const filterItems = pipe(
-    schema.ast,
-    Option.liftPredicate((s) => s._tag === "Refinement" && "filter" in s),
-    Option.flatMap((s) => S.AST.getJSONSchemaAnnotation(s)),
-    Option.filter((s) => "items" in s),
-    Option.filterMap(({ items }) => S.decodeUnknownOption(isArrayOfString)(items)),
-    Option.zipWith(
-      S.AST.getMessageAnnotation(schema.ast),
-      (items, message) => ({
-        items,
-        message: message("" as unknown as S.ParseResult.ParseIssue)
-      })
-    ),
-    Option.getOrUndefined
-  )
-
-  return { schema, meta, filterItems }
+  return { schema, meta }
 }
 
 export const generateInputStandardSchemaFromFieldMeta = (

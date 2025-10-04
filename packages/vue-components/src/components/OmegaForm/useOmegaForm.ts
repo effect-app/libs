@@ -12,7 +12,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, type FilterItems, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -109,7 +109,6 @@ export type OmegaConfig<T> = {
 
 export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
-  filterItems?: FilterItems
   clear: () => void
   i18nNamespace?: string
   registerField: (
@@ -605,7 +604,7 @@ export const useOmegaForm = <
   const standardSchema = S.standardSchemaV1(schema)
   const decode = S.decode(schema)
 
-  const { filterItems, meta } = generateMetaFromSchema(schema)
+  const { meta } = generateMetaFromSchema(schema)
 
   const persistencyKey = computed(() => {
     if (omegaConfig?.persistency?.id) {
@@ -862,7 +861,6 @@ export const useOmegaForm = <
   const formWithExtras: OF<From, To> = Object.assign(form, {
     i18nNamespace: omegaConfig?.i18nNamespace,
     meta,
-    filterItems,
     clear,
     handleSubmit: (meta?: Record<string, any>) => {
       const span = api.trace.getSpan(api.context.active())
@@ -875,47 +873,6 @@ export const useOmegaForm = <
       onUnmounted(() => fieldMap.value.delete(field.value.name)) // todo; perhap only when owned (id match)
     }
   })
-
-  const errors = formWithExtras.useStore((state) => state.errors)
-
-  watch(
-    () => [formWithExtras.filterItems, errors.value],
-    () => {
-      const filterItems: FilterItems | undefined = formWithExtras.filterItems
-      const currentErrors = errors.value
-      if (!filterItems) return {}
-      if (!currentErrors) return {}
-      const errorList = Object
-        .values(currentErrors)
-        .filter(
-          (fieldErrors): fieldErrors is Record<string, StandardSchemaV1Issue[]> => Boolean(fieldErrors)
-        )
-        .flatMap((fieldErrors) =>
-          Object
-            .values(fieldErrors)
-            .flat()
-            .map((issue: StandardSchemaV1Issue) => issue.message)
-        )
-
-      if (errorList.some((e) => e === filterItems.message)) {
-        // TODO: Investigate if filterItems.items should be typed based on DeepKeys<To>.
-        filterItems.items.forEach((item: keyof From) => {
-          const m = formWithExtras.getFieldMeta(item as any)
-          if (m) {
-            formWithExtras.setFieldMeta(item as any, {
-              ...m,
-              errorMap: {
-                onSubmit: [
-                  { path: [item as string], message: filterItems.message }
-                ]
-              }
-            })
-          }
-        })
-      }
-      return {}
-    }
-  )
 
   const errorContext = { form: formWithExtras, fieldMap }
 

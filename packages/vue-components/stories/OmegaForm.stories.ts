@@ -18,6 +18,7 @@ import NullComponent from "./OmegaForm/Null.vue"
 import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
+import SetErrorOnSubmitComponent from "./OmegaForm/SetErrorOnSubmit.vue"
 import SimpleFormComponent from "./OmegaForm/SimpleForm.vue"
 import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefault.vue"
 import SumExampleComponent from "./OmegaForm/SumExample.vue"
@@ -189,5 +190,12 @@ export const Null: Story = {
   render: () => ({
     components: { NullComponent },
     template: "<NullComponent />"
+  })
+}
+
+export const SetErrorOnSubmit: Story = {
+  render: () => ({
+    components: { SetErrorOnSubmitComponent },
+    template: "<SetErrorOnSubmitComponent />"
   })
 }

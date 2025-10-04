@@ -88,6 +88,10 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
   } else {
     props.field.handleChange(value)
   }
+
+  // whenever we change the field, regardless if we set it to null, we should reset onSubmit.
+  // not sure why this is not the case in tanstack form.
+  props.field.setMeta((m) => ({ ...m, errorMap: { ...m.errorMap, onSubmit: undefined } }))
 }
 
 // TODO: it would be cleaner when default values are handled in the form initialization via Schema or by the one using the form component..

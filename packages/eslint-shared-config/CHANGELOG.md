@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.3.3
+
+### Patch Changes
+
+- 46faf2c: update dprint plugin, removing custom hack
+  - @effect-app/eslint-codegen-model@1.45.0
+
 ## 0.3.2
 
 ### Patch Changes

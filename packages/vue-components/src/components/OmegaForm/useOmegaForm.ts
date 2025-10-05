@@ -73,14 +73,33 @@ const eHoc = (errorProps: {
   ): ConcreteComponent<P> {
     return {
       setup() {
+        const { fieldMap, form } = errorProps
+        const generalErrors = form.useStore((state) => state.errors)
+        const fieldMeta = form.useStore((state) => state.fieldMeta)
+        const errors = computed(() =>
+          Array.filterMap(
+            Object
+              .entries(fieldMeta.value),
+            ([key, m]): Option.Option<OmegaError> =>
+              ((m as any).errors ?? []).length && fieldMap.value.get(key)?.id
+                ? Option.some({
+                  label: fieldMap.value.get(key)!.label,
+                  inputId: fieldMap.value.get(key)!.id,
+                  errors: ((m as any).errors ?? []).map((e: any) => e.message).filter(Boolean)
+                })
+                : Option.none()
+          )
+        )
+
         return {
-          ...errorProps
+          generalErrors,
+          errors
         }
       },
-      render({ fieldMap, form }: any) {
+      render({ errors, generalErrors }: any) {
         return h(WrappedComponent, {
-          form,
-          fieldMap,
+          errors,
+          generalErrors,
           ...this.$attrs
         } as any, this.$slots)
       }

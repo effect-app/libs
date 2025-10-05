@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.3.4
+
+### Patch Changes
+
+- eb86b8e: oops
+  - @effect-app/eslint-codegen-model@1.45.0
+
 ## 0.3.3
 
 ### Patch Changes

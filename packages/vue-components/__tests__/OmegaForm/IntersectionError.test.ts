@@ -33,11 +33,11 @@ const mockComponents = {
     `,
     props: ["form", "name", "field", "label", "type", "options"],
     inheritAttrs: false
-  },
-  OmegaErrors: {
-    template: `<div class="mock-omega-errors">{{ JSON.stringify(errors) }}</div>`,
-    props: ["errors", "generalErrors", "showErrors"]
   }
+  // OmegaErrors: {
+  //   template: `<div class="error-alert">{{ JSON.stringify(errors) }}</div>`,
+  //   props: ["errors", "generalErrors", "showErrors"]
+  // }
 }
 
 describe("OmegaForm Intersection/Union", () => {
@@ -116,8 +116,8 @@ describe("OmegaForm Intersection/Union", () => {
   }, {
     global: {
       stubs: {
-        CustomInput: mockComponents.CustomInput,
-        OmegaErrorsInternal: mockComponents.OmegaErrors
+        CustomInput: mockComponents.CustomInput
+        // OmegaErrorsInternal: mockComponents.OmegaErrors
       }
     }
   })
@@ -157,7 +157,7 @@ describe("OmegaForm Intersection/Union", () => {
     await wrapper.vm.$nextTick()
 
     // Verify error exists for alpha field
-    const errorDiv = wrapper.find(".mock-omega-errors")
+    const errorDiv = wrapper.find(".error-alert")
     expect(errorDiv.exists()).toBe(true)
     expect(errorDiv.text()).toContain("alpha")
 
@@ -165,8 +165,8 @@ describe("OmegaForm Intersection/Union", () => {
     await selectInput.setValue("beta")
     await wrapper.vm.$nextTick()
 
-    const errorDivAfter = wrapper.find(".mock-omega-errors")
-    expect(errorDivAfter.text()).not.toContain("alpha")
+    const errorDivAfter = wrapper.find(".error-alert")
+    expect(errorDivAfter.exists()).toBe(false)
   })
 
   it("clears form values when switching union types and handles submission", async () => {

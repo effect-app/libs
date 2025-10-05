@@ -12,7 +12,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -73,14 +73,33 @@ const eHoc = (errorProps: {
   ): ConcreteComponent<P> {
     return {
       setup() {
+        const { fieldMap, form } = errorProps
+        const generalErrors = form.useStore((state) => state.errors)
+        const fieldMeta = form.useStore((state) => state.fieldMeta)
+        const errors = computed(() =>
+          Array.filterMap(
+            Object
+              .entries(fieldMeta.value),
+            ([key, m]): Option.Option<OmegaError> =>
+              ((m as any).errors ?? []).length && fieldMap.value.get(key)?.id
+                ? Option.some({
+                  label: fieldMap.value.get(key)!.label,
+                  inputId: fieldMap.value.get(key)!.id,
+                  errors: ((m as any).errors ?? []).map((e: any) => e.message).filter(Boolean)
+                })
+                : Option.none()
+          )
+        )
+
         return {
-          ...errorProps
+          generalErrors,
+          errors
         }
       },
-      render({ fieldMap, form }: any) {
+      render({ errors, generalErrors }: any) {
         return h(WrappedComponent, {
-          form,
-          fieldMap,
+          errors,
+          generalErrors,
           ...this.$attrs
         } as any, this.$slots)
       }
@@ -90,7 +109,6 @@ const eHoc = (errorProps: {
 
 export type OmegaConfig<T> = {
   i18nNamespace?: string
-  showErrorsOn?: ShowErrorsOn
 
   persistency?: {
     /** Order of importance:
@@ -188,11 +206,6 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          // & {
-          //   errors: readonly OmegaError[]
-          //   generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
-          //   showErrors: boolean
-          // }
           & Partial<{}>
         >
         & import("vue").PublicProps

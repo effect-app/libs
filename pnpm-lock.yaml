@@ -311,8 +311,8 @@ importers:
   packages/eslint-shared-config:
     dependencies:
       '@ben_12/eslint-plugin-dprint':
-        specifier: 1.8.0
-        version: 1.8.0(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.24.0)(dprint-plugin-yaml@0.5.1)(eslint@9.36.0)
+        specifier: 1.9.0
+        version: 1.9.0(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.24.0)(dprint-plugin-yaml@0.5.1)(eslint@9.36.0)
       '@dprint/formatter':
         specifier: 0.4.1
         version: 0.4.1
@@ -939,8 +939,8 @@ packages:
     resolution: {integrity: sha512-bkFqkLhh3pMBUQQkpVgWDWq/lqzc2678eUyDlTBhRqhCHFguYYGM0Efga7tYk4TogG/3x0EEl66/OQ+WGbWB/Q==}
     engines: {node: '>=6.9.0'}
 
-  '@ben_12/eslint-plugin-dprint@1.8.0':
-    resolution: {integrity: sha512-fCq7pMKaUzPZvxeBo7vnLWRkGxy++WOM2cX0+kWVYfIZFAe5+uaBaAAaC7sYx1Fa5QOf93zPfSyu4S/ELvxI2Q==}
+  '@ben_12/eslint-plugin-dprint@1.9.0':
+    resolution: {integrity: sha512-J9EEtbyv3nAVHjLJ328YSiVHaAPhelz/Wh1O/khlcFdrdpaDSIBBTbGtyNNC4ARz8sfg3PaLiCTjGxxNvwECIA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@dprint/dockerfile': ^0.3.3
@@ -7152,7 +7152,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@ben_12/eslint-plugin-dprint@1.8.0(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.24.0)(dprint-plugin-yaml@0.5.1)(eslint@9.36.0)':
+  '@ben_12/eslint-plugin-dprint@1.9.0(@dprint/typescript@0.95.11)(dprint-plugin-malva@0.14.3)(dprint-plugin-markup@0.24.0)(dprint-plugin-yaml@0.5.1)(eslint@9.36.0)':
     dependencies:
       '@dprint/formatter': 0.4.1
       debug: 4.4.1(supports-color@5.5.0)

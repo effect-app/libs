@@ -1,0 +1,13 @@
+diff --git a/node_modules/@ben_12/eslint-plugin-dprint/dist/lib/dprint/dprint.js b/node_modules/@ben_12/eslint-plugin-dprint/dist/lib/dprint/dprint.js
+index eb3339fc5d824d061c4dc2ca2ecd4a1c28e8631b..9bf942db4e76d76f3bd7c74c122eec9d307b7e84 100644
+--- a/node_modules/@ben_12/eslint-plugin-dprint/dist/lib/dprint/dprint.js
++++ b/node_modules/@ben_12/eslint-plugin-dprint/dist/lib/dprint/dprint.js
+@@ -117,7 +118,7 @@ function getFormatter(filePath, configName, configFile) {
+             return formatter;
+         }
+         else if (isPluginName(configName)) {
+-            console.warn("File %s not supported by %s", filePath, pluginsName[configName]);
++            //console.warn("File %s not supported by %s", filePath, pluginsName[configName]);
+         }
+     }
+     else if (isPluginName(configName)) {

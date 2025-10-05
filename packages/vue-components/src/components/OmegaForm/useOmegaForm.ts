@@ -12,7 +12,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps, ShowErrorsOn } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -109,7 +109,6 @@ const eHoc = (errorProps: {
 
 export type OmegaConfig<T> = {
   i18nNamespace?: string
-  showErrorsOn?: ShowErrorsOn
 
   persistency?: {
     /** Order of importance:
@@ -207,11 +206,6 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          // & {
-          //   errors: readonly OmegaError[]
-          //   generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[] | undefined
-          //   showErrors: boolean
-          // }
           & Partial<{}>
         >
         & import("vue").PublicProps

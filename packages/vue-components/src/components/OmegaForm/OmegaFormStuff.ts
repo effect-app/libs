@@ -7,8 +7,6 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-export type ShowErrorsOn = "onChange" | "onBlur" | "onSubmit"
-
 export type BaseProps<From, TName extends DeepKeys<From>> = {
   /** Will fallback to i18n when not specified */
   label?: string

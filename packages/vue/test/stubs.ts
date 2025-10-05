@@ -55,25 +55,27 @@ const fakeToastLayer = (toasts: any[] = []) =>
     })
   }))
 
+export const makeFakeIntl = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) => {
+  const locale = ref("en" as const)
+  const intlCache = Intl.createIntlCache()
+  const intl = Intl.createIntl<typeof locale.value>({
+    locale: locale.value,
+    messages
+  }, intlCache)
+
+  return {
+    locale,
+    intl,
+    trans: (id, values) => intl.formatMessage({ id }, values),
+    get formatMessage() {
+      return intl.formatMessage
+    }
+  } as ReturnType<MakeIntlReturn<string>["useIntl"]>
+}
+
 export const fakeIntlLayer = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) =>
   I18n.toLayer(
-    Effect.sync(() => {
-      const locale = ref("en" as const)
-      const intlCache = Intl.createIntlCache()
-      const intl = Intl.createIntl<typeof locale.value>({
-        locale: locale.value,
-        messages
-      }, intlCache)
-
-      return {
-        locale,
-        intl,
-        trans: (id, values) => intl.formatMessage({ id }, values),
-        get formatMessage() {
-          return intl.formatMessage
-        }
-      } as ReturnType<MakeIntlReturn<string>["useIntl"]>
-    })
+    Effect.sync(() => makeFakeIntl(messages))
   )
 
 export const useExperimental = (

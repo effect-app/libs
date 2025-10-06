@@ -6,10 +6,10 @@
         label="asder2"
         name="asder2"
       >
-        <template #default="{ field, label }">
+        <template #default="{ field, label, id }">
           <label :for="field.name">{{ label }}</label>
           <input
-            :id="field.name"
+            :id="id"
             v-model="field.state.value"
             :name="field.name"
             style="border: 1px solid red"
@@ -21,10 +21,10 @@
         label="asd"
         name="asd"
       >
-        <template #default="{ field, label }">
+        <template #default="{ field, label, id }">
           <label :for="field.name">{{ label }}</label>
           <input
-            :id="field.name"
+            :id="id"
             v-model="field.state.value.a"
             :name="field.name"
             style="border: 1px solid red"

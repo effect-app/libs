@@ -8,7 +8,7 @@ import type { FieldPath } from "../Model/filter/types/path/index.js"
 import { type RawQuery } from "../Model/query.js"
 
 export interface StoreConfig<E> {
-  partitionValue: (e: E) => string | undefined
+  partitionValue: (e?: E) => string
   /**
    * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database
    * currently only supported in disk/memory. CosmosDB is TODO.
@@ -89,6 +89,9 @@ export interface Store<
    * Requires the Encoded type, not Id, because various stores may need to calculate e.g partition keys.
    */
   remove: (e: Encoded) => Effect.Effect<void>
+  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>) => Effect.Effect<void>
+  // TODO: only accept where filter, nothing else
+  // filterRemove: FilterFunc<Encoded>
 
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
 }

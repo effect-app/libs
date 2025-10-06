@@ -298,7 +298,7 @@ export function buildWhereCosmosQuery3(
     ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
     parameters: [
-      { name: "@id", value: importedMarkerId },
+      { name: "@id", value: importedMarkerId }, // TODO: handle via partition, or maybe just a separate seed/migrations table?
       ...values
         .flatMap((x, i) =>
           [{

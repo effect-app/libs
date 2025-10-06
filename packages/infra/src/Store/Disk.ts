@@ -97,6 +97,10 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
         store.batchSet,
         Effect.tap(flushToDiskInBackground)
       ),
+      batchRemove: flow(
+        store.batchRemove,
+        Effect.tap(flushToDiskInBackground)
+      ),
       bulkSet: flow(
         store.bulkSet,
         Effect.tap(flushToDiskInBackground)
@@ -173,6 +177,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
             set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
             batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
             bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
+            batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args)),
             remove: (...args) => Effect.flatMap(getStore, (_) => _.remove(...args)),
             queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args))
           }

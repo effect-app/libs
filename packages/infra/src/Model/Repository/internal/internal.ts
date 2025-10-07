@@ -141,7 +141,7 @@ export function makeRepoInternal<
                     (S.make(_._tag === "Transformation" ? _.from : _) as unknown as Schema<T, Encoded> & {
                       fields: any
                     })
-                      .pipe((_) => _.fields[idKey] as any)
+                      .pipe((_) => _.fields[idKey])
                   )
                 )
                 : s.fields[idKey]

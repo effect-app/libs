@@ -137,6 +137,23 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             .map((_) => _),
           withPermit
         )
+
+    const batchRemove = (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
+      Ref
+        .get(store)
+        .pipe(
+          Effect
+            .map((m) => {
+              const mut = m as Map<string, PM>
+              items.forEach((e) => mut.delete(e[idKey]))
+              return mut
+            }),
+          Effect
+            .flatMap((_) => Ref.set(store, _))
+        )
+        .pipe(
+          withPermit
+        )
     const s: Store<IdKey, Encoded> = {
       queryRaw: (query) =>
         all
@@ -199,6 +216,21 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
                 attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
               })
           ),
+      batchRemove: (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
+        pipe(
+          Effect
+            .sync(() => items)
+            // align with CosmosDB
+            .pipe(
+              Effect.filterOrDieMessage((_) => _.length <= 100, "BatchRemove: a batch may not exceed 100 items"),
+              Effect.andThen(batchRemove),
+              Effect
+                .withSpan("Memory.batchRemove [effect-app/infra/Store]", {
+                  captureStackTrace: false,
+                  attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+                })
+            )
+        ),
       batchSet: (items: readonly [PM, ...PM[]]) =>
         pipe(
           Effect
@@ -286,6 +318,7 @@ export const makeMemoryStore = () => ({
         set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
         batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
         bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
+        batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args)),
         remove: (...args) => Effect.flatMap(getStore, (_) => _.remove(...args))
       }
       return s

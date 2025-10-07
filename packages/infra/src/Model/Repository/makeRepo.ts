@@ -38,7 +38,7 @@ export interface RepositoryOptions<
    */
   jitM?: (pm: Encoded) => Encoded
   config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-    partitionValue?: (a: Encoded) => string
+    partitionValue?: (e?: Encoded) => string
   }
   /**
    * Optional handler to be able to publish events after successfull save.

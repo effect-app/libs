@@ -57,7 +57,7 @@ export function makeRepoInternal<
           schemaContext?: Context.Context<RCtx>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-            partitionValue?: (a: Encoded) => string
+            partitionValue?: (e?: Encoded) => string
           }
         }
         : {
@@ -65,7 +65,7 @@ export function makeRepoInternal<
           publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, RPublish>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-            partitionValue?: (a: Encoded) => string
+            partitionValue?: (e?: Encoded) => string
           }
         }
     ) {
@@ -125,6 +125,28 @@ export function makeRepoInternal<
                 : s.pipe(S.pick(idKey as any))
             })
           const encodeId = flow(S.encode(i), provideRctx)
+          const idOnly: S.Schema<T[IdKey], Encoded[IdKey], never> = ("fields" in fieldsSchema
+            ? S.Struct(fieldsSchema["fields"]) as unknown as typeof schema
+            : schema)
+            .pipe((_) => {
+              let ast = _.ast
+              if (ast._tag === "Declaration") ast = ast.typeParameters[0]!
+
+              const s = S.make(ast) as unknown as Schema<T, Encoded, R> & { fields: any }
+
+              return ast._tag === "Union"
+                // we need to get the TypeLiteral, incase of class it's behind a transform...
+                ? S.Union(
+                  ...ast.types.map((_) =>
+                    (S.make(_._tag === "Transformation" ? _.from : _) as unknown as Schema<T, Encoded> & {
+                      fields: any
+                    })
+                      .pipe((_) => _.fields[idKey])
+                  )
+                )
+                : s.fields[idKey]
+            })
+          const encodeIdOnly = flow(S.encode(idOnly), provideRctx)
           const findEId = Effect.fnUntraced(function*(id: Encoded[IdKey]) {
             yield* Effect.annotateCurrentSpan({ itemId: id })
 
@@ -208,6 +230,16 @@ export function makeRepoInternal<
               .pipe((_) => Effect.flatMapOption(_, pub))
 
             yield* changeFeed.publish([it, "remove"])
+          })
+
+          const removeById = Effect.fn("removeById")(function*(...ids: NonEmptyReadonlyArray<T[IdKey]>) {
+            const { set } = yield* cms
+            const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_)).pipe(Effect.orDie)
+            yield* store.batchRemove(eids)
+            for (const id of eids) {
+              set(id, undefined)
+            }
+            yield* changeFeed.publish([[], "remove"])
           })
 
           const parseMany = (items: readonly PM[]) =>
@@ -311,6 +343,7 @@ export function makeRepoInternal<
             all,
             saveAndPublish,
             removeAndPublish,
+            removeById,
             queryRaw(schema, q) {
               const dec = S.decode(S.Array(schema))
               return store.queryRaw(q).pipe(Effect.flatMap(dec))
@@ -392,7 +425,7 @@ export function makeStore<Encoded extends FieldValues>() {
     function makeStore<RInitial = never, EInitial = never>(
       makeInitial?: Effect.Effect<readonly T[], EInitial, RInitial>,
       config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-        partitionValue?: (a: Encoded) => string
+        partitionValue?: (e?: Encoded) => string
       }
     ) {
       function encodeToEncoded() {
@@ -454,14 +487,14 @@ export interface Repos<
     args: [Evt] extends [never] ? {
         makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-          partitionValue?: (a: Encoded) => string
+          partitionValue?: (e?: Encoded) => string
         }
       }
       : {
         publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, R2>
         makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-          partitionValue?: (a: Encoded) => string
+          partitionValue?: (e?: Encoded) => string
         }
       }
   ): Effect.Effect<Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>, E, StoreMaker | RInitial | R2>
@@ -469,14 +502,14 @@ export interface Repos<
     args: [Evt] extends [never] ? {
         makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-          partitionValue?: (a: Encoded) => string
+          partitionValue?: (e?: Encoded) => string
         }
       }
       : {
         publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, R2>
         makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
         config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
-          partitionValue?: (a: Encoded) => string
+          partitionValue?: (e?: Encoded) => string
         }
       },
     f: (r: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>) => Out

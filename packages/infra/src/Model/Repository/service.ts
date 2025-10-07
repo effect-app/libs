@@ -29,6 +29,8 @@ export interface Repository<
     events?: Iterable<Evt>
   ) => Effect.Effect<void, never, RSchema | RPublish>
 
+  readonly removeById: (...id: readonly T[IdKey][]) => Effect.Effect<void>
+
   readonly queryRaw: <T, Out, R>(
     schema: S.Schema<T, Out, R>,
     raw: RawQuery<Encoded, Out>

@@ -2,7 +2,7 @@
 
 import { Array, Chunk, Duration, Effect, Layer, type NonEmptyReadonlyArray, Option, pipe, Redacted, Struct } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
-import { dropUndefinedT } from "effect-app/utils"
+import { dropUndefinedT, mutable } from "effect-app/utils"
 import { CosmosClient, CosmosClientLayer } from "../adapters/cosmos-client.js"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
@@ -49,6 +49,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 : undefined
             }))
           )
+
+          const mainPartitionKey = config?.partitionValue() ?? "primary"
 
           const defaultValues = config?.defaultValues ?? {}
           const container = db.container(containerId)
@@ -228,14 +230,14 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           const s: Store<IdKey, Encoded> = {
             queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
               Effect
-                .sync(() => query.cosmos({ importedMarkerId, name }))
+                .sync(() => query.cosmos({ name }))
                 .pipe(
                   Effect.tap((q) => logQuery(q)),
                   Effect.flatMap((q) =>
                     Effect.promise(() =>
                       container
                         .items
-                        .query<Out>(q, { partitionKey: "primary" })
+                        .query<Out>(q, { partitionKey: mainPartitionKey })
                         .fetchAll()
                         .then(({ resources }) =>
                           resources.map(
@@ -250,10 +252,20 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       attributes: { "repository.container_id": containerId, "repository.model_name": name }
                     })
                 ),
+            batchRemove: (ids) =>
+              Effect.promise(() =>
+                execBatch(mutable(ids.map((id) =>
+                  dropUndefinedT({
+                    operationType: "Delete" as const,
+                    id,
+                    partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
+                  })
+                )))
+              ),
             all: Effect
               .sync(() => ({
-                query: `SELECT * FROM ${name} f WHERE f.id != @id`,
-                parameters: [{ name: "@id", value: importedMarkerId }]
+                query: `SELECT * FROM ${name}`,
+                parameters: []
               }))
               .pipe(
                 Effect.tap((q) => logQuery(q)),
@@ -261,7 +273,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   Effect.promise(() =>
                     container
                       .items
-                      .query<PMCosmos>(q)
+                      .query<PMCosmos>(q, { partitionKey: mainPartitionKey })
                       .fetchAll()
                       .then(({ resources }) =>
                         resources.map(
@@ -308,7 +320,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                         f.select
                           ? container
                             .items
-                            .query<M>(q)
+                            .query<M>(q, { partitionKey: mainPartitionKey })
                             .fetchAll()
                             .then(({ resources }) =>
                               resources.map((_) =>
@@ -323,7 +335,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             )
                           : container
                             .items
-                            .query<{ f: M }>(q)
+                            .query<{ f: M }>(q, { partitionKey: mainPartitionKey })
                             .fetchAll()
                             .then(({ resources }) =>
                               resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)

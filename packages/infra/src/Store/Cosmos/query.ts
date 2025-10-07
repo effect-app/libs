@@ -294,11 +294,10 @@ export function buildWhereCosmosQuery3(
     }
     FROM ${name} f
 
-    WHERE f.id != @id ${filter.length ? `AND (${print(filter, values.map((_) => _.value), null, false)})` : ""}
+    ${filter.length ? `WHERE (${print(filter, values.map((_) => _.value), null, false)})` : ""}
     ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
     parameters: [
-      { name: "@id", value: importedMarkerId },
       ...values
         .flatMap((x, i) =>
           [{

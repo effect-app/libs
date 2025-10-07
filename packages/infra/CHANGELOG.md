@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.5.1
+
+### Patch Changes
+
+- dc61f25: fix: obsolete `removeById` shadow
+
 ## 3.5.0
 
 ### Minor Changes

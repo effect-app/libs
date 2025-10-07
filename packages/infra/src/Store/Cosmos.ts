@@ -78,8 +78,9 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                                 ...Struct.omit(x, "_etag", idKey),
                                 id: x[idKey],
                                 _partitionKey: config?.partitionValue(x)
-                              },
-                              partitionKey: config?.partitionValue(x)
+                              }
+                              // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                              // partitionKey: config?.partitionValue(x)
                             }),
                           onSome: (eTag) =>
                             dropUndefinedT({
@@ -90,8 +91,9 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                                 id: x[idKey],
                                 _partitionKey: config?.partitionValue(x)
                               },
-                              ifMatch: eTag,
-                              partitionKey: config?.partitionValue(x)
+                              ifMatch: eTag
+                              // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                              // partitionKey: config?.partitionValue(x)
                             })
                         })
                       ] as const
@@ -179,6 +181,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             id: x[idKey],
                             _partitionKey: config?.partitionValue(x)
                           }
+                          // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                          // partitionKey: config?.partitionValue(x)
                         }),
                         onSome: (eTag) => ({
                           operationType: "Replace" as const,
@@ -188,6 +192,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             id: x[idKey],
                             _partitionKey: config?.partitionValue(x)
                           },
+                          // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                          // partitionKey: config?.partitionValue(x)
                           ifMatch: eTag
                         })
                       })
@@ -254,13 +260,17 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 ),
             batchRemove: (ids) =>
               Effect.promise(() =>
-                execBatch(mutable(ids.map((id) =>
-                  dropUndefinedT({
-                    operationType: "Delete" as const,
-                    id,
-                    partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
-                  })
-                )))
+                execBatch(
+                  mutable(ids.map((id) =>
+                    dropUndefinedT({
+                      operationType: "Delete" as const,
+                      id
+                      // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                      // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
+                    })
+                  )),
+                  mainPartitionKey
+                )
               ),
             all: Effect
               .sync(() => ({

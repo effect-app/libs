@@ -50,14 +50,23 @@ const items = [
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
   effect: Effect.gen(function*() {
-    return yield* makeRepo("Something", Something, {})
+    const partitionKey = "test-" + new Date().getTime()
+    return yield* makeRepo("Something", Something, { config: { partitionValue: () => partitionKey } })
   })
 }) {
   static readonly layer = Layer
     .effect(
       SomethingRepo,
       Effect.gen(function*() {
-        return SomethingRepo.make(yield* makeRepo("Something", Something, { makeInitial: Effect.sync(() => items) }))
+        const partitionKey = "test-" + new Date().getTime()
+        const repo = SomethingRepo.make(
+          yield* makeRepo("Something", Something, {
+            config: { partitionValue: () => partitionKey }
+          })
+        )
+        // not using makeInitial, because it will prevent inserting the various partitionkeyed items
+        yield* repo.saveAndPublish(items).pipe(setupRequestContextFromCurrent("init"))
+        return repo
       })
     )
   static readonly Test = this
@@ -355,3 +364,57 @@ describe("multi-level", () => {
       and("description", "contains", "d item")
     ))
     */
+
+describe("removeByIds", () => {
+  const test = Effect
+    .gen(function*() {
+      const items = [
+        new Something({
+          id: "2-1",
+          name: "Item 1",
+          description: "This is the first item",
+          items: [
+            { id: "1-1", value: 10, description: "First item" },
+            { id: "1-2", value: 20, description: "Second item" }
+          ]
+        }),
+        new Something({
+          id: "2-2",
+          name: "Item 2",
+          description: "This is the second item",
+          items: [
+            { id: "2-1", value: 30, description: "Third item" },
+            { id: "2-2", value: 40, description: "Fourth item" }
+          ]
+        }),
+        new Something({
+          id: "2-3",
+          name: "Item 3",
+          description: "This is the third item",
+          items: [
+            { id: "2-1", value: 30, description: "Third item" },
+            { id: "2-2", value: 40, description: "Fourth item" }
+          ]
+        })
+      ]
+      const repo = yield* SomethingRepo
+
+      yield* repo.saveAndPublish(items)
+      const itemsAfterSave = yield* repo.all
+      yield* repo.removeById(...items.slice(0, 2).map((_) => _.id))
+
+      const items2 = yield* repo.all
+
+      expect(itemsAfterSave.length).toStrictEqual(5)
+      expect(items2.length).toStrictEqual(3)
+    })
+    .pipe(setupRequestContextFromCurrent())
+
+  it.skipIf(!process.env["STORAGE_URL"])("works well in CosmosDB", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
+
+  it("works well in Memory", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
+})

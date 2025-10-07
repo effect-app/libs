@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.5.3
+
+### Patch Changes
+
+- 64ea854: test like a pro
+
 ## 3.5.2
 
 ### Patch Changes

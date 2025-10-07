@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.5.2
+
+### Patch Changes
+
+- 11d21b0: fix: use the proper id
+
 ## 3.5.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.5.0
+
+### Minor Changes
+
+- a71bbd9: feat: add repo removeById (multi)
+
 ## 3.4.3
 
 ### Patch Changes

@@ -304,7 +304,6 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     idKey,
                     filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
                     name,
-                    importedMarkerId,
                     defaultValues,
                     f.select as NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }> | undefined,
                     f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,

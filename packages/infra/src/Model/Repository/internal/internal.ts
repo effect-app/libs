@@ -125,28 +125,7 @@ export function makeRepoInternal<
                 : s.pipe(S.pick(idKey as any))
             })
           const encodeId = flow(S.encode(i), provideRctx)
-          const idOnly: S.Schema<T[IdKey], Encoded[IdKey], never> = ("fields" in fieldsSchema
-            ? S.Struct(fieldsSchema["fields"]) as unknown as typeof schema
-            : schema)
-            .pipe((_) => {
-              let ast = _.ast
-              if (ast._tag === "Declaration") ast = ast.typeParameters[0]!
-
-              const s = S.make(ast) as unknown as Schema<T, Encoded, R> & { fields: any }
-
-              return ast._tag === "Union"
-                // we need to get the TypeLiteral, incase of class it's behind a transform...
-                ? S.Union(
-                  ...ast.types.map((_) =>
-                    (S.make(_._tag === "Transformation" ? _.from : _) as unknown as Schema<T, Encoded> & {
-                      fields: any
-                    })
-                      .pipe((_) => _.fields[idKey])
-                  )
-                )
-                : s.fields[idKey]
-            })
-          const encodeIdOnly = flow(S.encode(idOnly), provideRctx)
+          const encodeIdOnly = (id: string) => encodeId({ [idKey]: id } as any).pipe(Effect.map((_) => _[idKey]))
           const findEId = Effect.fnUntraced(function*(id: Encoded[IdKey]) {
             yield* Effect.annotateCurrentSpan({ itemId: id })
 
@@ -234,7 +213,7 @@ export function makeRepoInternal<
 
           const removeById = Effect.fn("removeById")(function*(...ids: NonEmptyReadonlyArray<T[IdKey]>) {
             const { set } = yield* cms
-            const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_)).pipe(Effect.orDie)
+            const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_ as any)).pipe(Effect.orDie)
             yield* store.batchRemove(eids)
             for (const id of eids) {
               set(id, undefined)

@@ -39,7 +39,6 @@ export function buildWhereCosmosQuery3(
   idKey: PropertyKey,
   filter: readonly FilterResult[],
   name: string,
-  importedMarkerId: string,
   defaultValues: Record<string, unknown>,
   select?: NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,

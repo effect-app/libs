@@ -107,7 +107,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
     const defaultValues = _defaultValues ?? {}
 
     const items = new Map([...items_].map((_) => [_[idKey], { _etag: undefined, ...defaultValues, ..._ }] as const))
-    const store = Ref.unsafeMake<ReadonlyMap<string, PM>>(items)
+    const store = Ref.unsafeMake<ReadonlyMap<Encoded[IdKey], PM>>(items)
     const sem = Effect.unsafeMakeSemaphore(1)
     const withPermit = sem.withPermits(1)
     const values = Effect.map(Ref.get(store), (s) => s.values())
@@ -125,7 +125,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
                 .pipe(
                   Effect
                     .map((m) => {
-                      const mut = m as Map<string, PM>
+                      const mut = m as Map<Encoded[IdKey], PM>
                       items.forEach((e) => mut.set(e[idKey], e))
                       return mut
                     }),
@@ -144,9 +144,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
         .pipe(
           Effect
             .map((m) => {
-              const mut = m as Map<string, PM>
-              items.forEach((e) => mut.delete(e[idKey]))
-              return mut
+              return new Map([...m].filter(([_k]) => !items.includes(_k)))
             }),
           Effect
             .flatMap((_) => Ref.set(store, _))

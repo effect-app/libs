@@ -28,7 +28,7 @@ export const createUseFormWithCustomInput = <
           }, {
             // Override the default slot that OmegaInternalInput provides
             default: <TName extends DeepKeys<From>>({ field, ...inputProps }: MergedInputProps<From, TName>) => {
-              return h(CustomInputComponent, { field, inputProps })
+              return h(CustomInputComponent, { ...attrs, field, inputProps })
             }
           })
       }

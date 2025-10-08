@@ -179,4 +179,103 @@ describe("createUseFormWithCustomInput", () => {
     expect(wrapper.find("[data-testid=\"has-label\"]").text()).toContain("My Label")
     expect(wrapper.find("[data-testid=\"has-id\"]").text()).toBeTruthy()
   })
+
+  it("should pass event listeners to custom input component", async () => {
+    // Custom component that emits focus and blur events
+    const EventEmittingInput = {
+      template: `
+        <div
+          class="event-emitting-input"
+          data-testid="event-input"
+          @focusin="$emit('focus', $event)"
+          @focusout="$emit('blur', $event)"
+        >
+          <input
+            :id="inputProps.id"
+            :value="field.state.value || ''"
+            @input="field.handleChange($event.target.value)"
+            data-testid="event-input-field"
+          />
+        </div>
+      `,
+      props: ["inputProps", "field"],
+      emits: ["focus", "blur"],
+      inheritAttrs: false
+    }
+
+    const useFormWithEvents = createUseFormWithCustomInput(EventEmittingInput)
+    const eventSchema = S.Struct({ eventField: S.String })
+
+    let focusCount = 0
+    let blurCount = 0
+
+    const wrapper = mount({
+      components: {
+        OmegaIntlProvider
+      },
+      template: `
+        <OmegaIntlProvider>
+          <component :is="form.Form">
+            <template #default>
+              <component :is="form.Input"
+                label="Event Field"
+                name="eventField"
+                @focus="handleFocus"
+                @blur="handleBlur"
+              />
+            </template>
+          </component>
+        </OmegaIntlProvider>
+      `,
+      setup() {
+        const form = useFormWithEvents(eventSchema, {
+          defaultValues: { eventField: "" }
+        })
+
+        const handleFocus = () => {
+          focusCount++
+        }
+
+        const handleBlur = () => {
+          blurCount++
+        }
+
+        return { form, handleFocus, handleBlur }
+      }
+    }, {
+      global: {
+        stubs: {
+          EventEmittingInput
+        }
+      }
+    })
+
+    await wrapper.vm.$nextTick()
+
+    // Verify the custom input was rendered
+    const eventInput = wrapper.find("[data-testid=\"event-input\"]")
+    expect(eventInput.exists()).toBe(true)
+
+    // Trigger focus event
+    await eventInput.trigger("focusin")
+    await wrapper.vm.$nextTick()
+
+    // Verify focus handler was called
+    expect(focusCount).toBe(1)
+
+    // Trigger blur event
+    await eventInput.trigger("focusout")
+    await wrapper.vm.$nextTick()
+
+    // Verify blur handler was called
+    expect(blurCount).toBe(1)
+
+    // Trigger multiple times to ensure it keeps working
+    await eventInput.trigger("focusin")
+    await eventInput.trigger("focusout")
+    await wrapper.vm.$nextTick()
+
+    expect(focusCount).toBe(2)
+    expect(blurCount).toBe(2)
+  })
 })

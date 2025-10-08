@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.10
+
+### Patch Changes
+
+- 80af018: Pass additional attributes to CustomInputComponent in WrappedInput
+
 ## 1.8.9
 
 ### Patch Changes

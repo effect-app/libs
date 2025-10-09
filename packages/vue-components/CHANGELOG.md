@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.12
+
+### Patch Changes
+
+- 79aa0e9: Reintroduces little filtering to avoid duplicated attrs
+
 ## 1.8.11
 
 ### Patch Changes

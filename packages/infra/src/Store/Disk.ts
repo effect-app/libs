@@ -69,17 +69,23 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
           )
     }
 
-    const store = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
-      name,
-      idKey,
-      namespace,
-      !fs.existsSync(file)
-        ? seed
-        : fsStore.get,
-      defaultValues
-    )
+    // lock file for cross-process coordination during initialization
+    const lockFile = file + ".lock"
 
-    yield* store.all.pipe(Effect.flatMap(fsStore.setRaw))
+    // wrap initialization in file lock to prevent race conditions in multi-worker setups
+    const store = yield* fu.withFileLock(
+      lockFile,
+      makeMemoryStoreInt<IdKey, Encoded, R, E>(
+        name,
+        idKey,
+        namespace,
+        !fs.existsSync(file)
+          ? seed
+          : fsStore.get,
+        defaultValues
+      )
+        .pipe(Effect.tap((store) => store.all.pipe(Effect.flatMap(fsStore.setRaw))))
+    )
 
     const sem = Effect.unsafeMakeSemaphore(1)
     const withPermit = sem.withPermits(1)

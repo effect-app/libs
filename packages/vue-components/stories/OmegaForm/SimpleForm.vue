@@ -6,14 +6,29 @@
         label="asder2"
         name="asder2"
       >
-        <template #default="{ field, label }">
+        <template #default="{ field, label, id }">
           <label :for="field.name">{{ label }}</label>
           <input
-            :id="field.name"
+            :id="id"
             v-model="field.state.value"
             :name="field.name"
             style="border: 1px solid red"
             @change="(e: any) => field.handleChange(e.target.value)"
+          >
+        </template>
+      </form.Input>
+      <form.Input
+        label="asd"
+        name="asd"
+      >
+        <template #default="{ field, label, id }">
+          <label :for="field.name">{{ label }}</label>
+          <input
+            :id="id"
+            v-model="field.state.value.a"
+            :name="field.name"
+            style="border: 1px solid red"
+            @change="(e: any) => field.handleChange({ a: e.target.value })"
           >
         </template>
       </form.Input>
@@ -28,7 +43,7 @@
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
-const schema = S.Struct({ asder2: S.String })
+const schema = S.Struct({ asder2: S.String, asd: S.Struct({ a: S.String }) })
 const form = useOmegaForm(schema, {
   onSubmit: async ({ value }) => {
     console.log(value)

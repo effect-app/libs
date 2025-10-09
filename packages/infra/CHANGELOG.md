@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.5.4
+
+### Patch Changes
+
+- aa431c1: support multi-worker in memory repo initialization with file lock
+
 ## 3.5.3
 
 ### Patch Changes

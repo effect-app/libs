@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.8.13
+
+### Patch Changes
+
+- e0b8ebf: fix form state
+
 ## 1.8.12
 
 ### Patch Changes

@@ -14,7 +14,7 @@
       :error="inputProps.error"
       ripple
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @change="(e: any) => field.handleChange(e.target.checked)"
     />
     <v-text-field
@@ -29,7 +29,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @update:model-value="field.handleChange"
     />
     <v-textarea
@@ -43,7 +43,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @update:model-value="field.handleChange"
     />
     <component
@@ -59,7 +59,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @update:model-value="(e: any) => {
         if (e || e === 0) {
           field.handleChange(Number(e) as any)
@@ -76,7 +76,7 @@
         :error-messages="inputProps.errorMessages"
         :error="inputProps.error"
         v-bind="$attrs"
-        :model-value="field.state.value"
+        :model-value="state.value"
         @update:model-value="field.handleChange"
       >
         <v-radio
@@ -100,7 +100,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
     />
@@ -119,7 +119,7 @@
       :error="inputProps.error"
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
     />
@@ -131,11 +131,11 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
-import { type DeepKeys } from "@tanstack/vue-form"
+import { type DeepKeys, useStore } from "@tanstack/vue-form"
 import { getInputType } from "../OmegaForm/OmegaFormStuff"
 import type { VuetifyInputProps } from "./InputProps"
 
-defineProps<VuetifyInputProps<From, Name>>()
+const props = defineProps<VuetifyInputProps<From, Name>>()
 
 defineEmits<{
   (e: "focus", event: Event): void
@@ -145,6 +145,8 @@ defineEmits<{
 defineOptions({
   inheritAttrs: false
 })
+
+const state = useStore(props.field.store, (s) => s)
 </script>
 
 <style>

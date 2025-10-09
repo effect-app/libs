@@ -108,20 +108,6 @@ onMounted(() => {
   }
 })
 
-const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
-  const handler3 = {
-    get(_target: any, prop: PropertyKey, _receiver: any) {
-      if (prop === "handleChange") {
-        return handleChange
-      }
-      return Reflect.get(...arguments as unknown as [any, any, any])
-    }
-  }
-
-  const proxy3 = new Proxy(field, handler3)
-  return proxy3 as typeof field
-}
-
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   inputProps: {
     id,
@@ -137,6 +123,6 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     options: props.options
   },
 
-  field: wrapField(props.field)
+  field: props.field
 }))
 </script>

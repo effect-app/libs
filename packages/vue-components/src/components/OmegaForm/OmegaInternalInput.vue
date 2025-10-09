@@ -1,5 +1,5 @@
 <template>
-  <slot v-bind="{ ...$attrs, ...inputProps.inputProps, field: inputProps.field }">
+  <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field }">
     <div :class="$attrs.class">
       <OmegaInputVuetify
         v-if="vuetified"

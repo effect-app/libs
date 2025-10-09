@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 1.8.11
+
+### Patch Changes
+
+- 04b937a: Clean up unecessary code, simplifying attrs spread solution
+- 70b60eb: filter attributes in WrappedInput to avoid conflicts with inputProps
+
 ## 1.8.10
 
 ### Patch Changes

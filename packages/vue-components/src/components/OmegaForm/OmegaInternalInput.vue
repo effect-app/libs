@@ -1,5 +1,5 @@
 <template>
-  <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field }">
+  <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field, state: inputProps.state }">
     <div :class="$attrs.class">
       <OmegaInputVuetify
         v-if="vuetified"
@@ -26,6 +26,7 @@ defineOptions({
 
 const props = defineProps<{
   field: OmegaFieldInternalApi<From, Name>
+  state: OmegaFieldInternalApi<From, Name>["state"]
   meta: MetaRecord<From>[NestedKeyOf<From>]
   label: string
   type?: TypeOverride
@@ -137,6 +138,7 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     options: props.options
   },
 
+  state: props.state,
   field: wrapField(props.field)
 }))
 </script>

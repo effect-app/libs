@@ -14,7 +14,7 @@
       :error="inputProps.error"
       ripple
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @change="(e: any) => field.handleChange(e.target.checked)"
     />
     <v-text-field
@@ -29,7 +29,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @update:model-value="field.handleChange"
     />
     <v-textarea
@@ -43,7 +43,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @update:model-value="field.handleChange"
     />
     <component
@@ -59,7 +59,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @update:model-value="(e: any) => {
         if (e || e === 0) {
           field.handleChange(Number(e) as any)
@@ -76,7 +76,7 @@
         :error-messages="inputProps.errorMessages"
         :error="inputProps.error"
         v-bind="$attrs"
-        :model-value="field.state.value"
+        :model-value="state.value"
         @update:model-value="field.handleChange"
       >
         <v-radio
@@ -100,7 +100,7 @@
       :error-messages="inputProps.errorMessages"
       :error="inputProps.error"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
     />
@@ -119,7 +119,7 @@
       :error="inputProps.error"
       :chips="inputProps.type === 'autocompletemultiple'"
       v-bind="$attrs"
-      :model-value="field.state.value"
+      :model-value="state.value"
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
     />

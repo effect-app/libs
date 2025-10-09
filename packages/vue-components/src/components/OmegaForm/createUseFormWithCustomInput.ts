@@ -27,7 +27,7 @@ export const createUseFormWithCustomInput = <
             ...attrs
           }, {
             // Override the default slot that OmegaInternalInput provides
-            default: <TName extends DeepKeys<From>>({ field, ...inputProps }: MergedInputProps<From, TName>) => {
+            default: <TName extends DeepKeys<From>>({ field, state, ...inputProps }: MergedInputProps<From, TName>) => {
               // Filter out attrs that are already in inputProps or are special  like 'form'
               const filteredAttrs = Object.fromEntries(
                 Object.entries(attrs).filter(([key]) =>
@@ -35,7 +35,7 @@ export const createUseFormWithCustomInput = <
                   && key !== "form"
                 )
               )
-              return h(CustomInputComponent, { ...filteredAttrs, field, inputProps })
+              return h(CustomInputComponent, { ...filteredAttrs, field, state, inputProps })
             }
           })
       }

@@ -7,11 +7,12 @@
       ...validators
     }"
   >
-    <template #default="{ field }">
+    <template #default="{ field, state }">
       <OmegaInternalInput
         v-if="meta"
         v-bind="{ ...$attrs, ...$props }"
         :field="field"
+        :state="state"
         :register="form.registerField"
         :label="label ?? i18n()"
         :meta="meta"

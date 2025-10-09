@@ -31,9 +31,7 @@ export const createUseFormWithCustomInput = <
               // Filter attrs to only pass through attributes that aren't already in inputProps
               // This automatically includes event listeners (on*), data-*, aria-*, etc.
               const filteredAttrs = Object.fromEntries(
-                Object.entries(attrs).filter(([key]) =>
-                  !Object.prototype.hasOwnProperty.call(inputProps.inputProps, key)
-                )
+                Object.entries(attrs).filter(([key]) => !Object.prototype.hasOwnProperty.call(inputProps, key))
               )
               return h(CustomInputComponent, { ...filteredAttrs, field, inputProps })
             }

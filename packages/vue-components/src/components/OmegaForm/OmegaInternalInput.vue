@@ -114,6 +114,10 @@ const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
       if (prop === "handleChange") {
         return handleChange
       }
+      // Return reactive state instead of non-reactive field.state
+      if (prop === "state") {
+        return fieldState.value
+      }
       return Reflect.get(...arguments as unknown as [any, any, any])
     }
   }
@@ -121,6 +125,9 @@ const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
   const proxy3 = new Proxy(field, handler3)
   return proxy3 as typeof field
 }
+
+// Create wrapped field once to maintain stable object identity
+const wrappedField = wrapField(props.field)
 
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   inputProps: {
@@ -137,6 +144,6 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     options: props.options
   },
 
-  field: wrapField(props.field)
+  field: wrappedField
 }))
 </script>

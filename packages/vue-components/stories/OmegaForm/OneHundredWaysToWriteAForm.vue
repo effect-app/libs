@@ -128,11 +128,11 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
     <pre v-highlightjs>
 <code class="vue">{{ `<form.Form>
   <form.Input label="name" name="name">
-    <template #default="{ field, label }">
+    <template #default="{ field, state, label }">
       <label :for="name">\{\{ label \}\}</label>
       <input
         :id="name"
-        v-model="field.state.value"
+        v-model="state.value"
         :name="name"
         style="border: 1px solid red"
         @change="(e) => field.handleChange(e.target.value)"
@@ -145,12 +145,12 @@ import { OmegaForm, OmegaInput, useOmegaForm } from "@effect-app/vue-components"
         label="name"
         name="name"
       >
-        <template #default="{ field, label, name }">
-          <label :for="name">{{ label }}</label>
+        <template #default="{ field, label, state }">
+          <label :for="field.name">{{ label }}</label>
           <input
-            :id="name"
-            v-model="field.state.value"
-            :name="name"
+            :id="field.name"
+            v-model="state.value"
+            :name="field.name"
             style="border: 1px solid red"
             @change="(e: any) => field.handleChange(e.target.value)"
           >

@@ -4,11 +4,11 @@
       name="first"
       label="First"
     >
-      <template #default="{ field }">
+      <template #default="{ field, state }">
         <label for="first">First</label>
         <input
           id="first"
-          v-model="field.state.value"
+          v-model="state.value"
           type="number"
           @change="(e: any) => {
             field.handleChange(Number(e.target.value))
@@ -21,11 +21,11 @@
       name="second"
       label="Second"
     >
-      <template #default="{ field }">
+      <template #default="{ field, state }">
         <label for="second">Second</label>
         <input
           id="second"
-          v-model="field.state.value"
+          v-model="state.value"
           type="number"
           @change="(e: any) => {
             field.handleChange(Number(e.target.value || '0'))

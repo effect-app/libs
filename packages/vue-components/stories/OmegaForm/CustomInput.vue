@@ -3,7 +3,7 @@
     <input
       :id="field.name"
       :name="field.name"
-      :value="field.state.value"
+      :value="state.value"
       @change="(e: any) => field.handleChange(e.target.value)"
     >
   </div>

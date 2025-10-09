@@ -4,9 +4,9 @@
       label="myString"
       name="myString"
     >
-      <template #default="{ field }">
+      <template #default="{ state }">
         <div>
-          <input v-model="field.state.value">
+          <input v-model="state.value">
         </div>
       </template>
     </form.Input>
@@ -16,9 +16,9 @@
       label="aString"
       name="aString"
     >
-      <template #default="{ field }">
+      <template #default="{ state }">
         <div>
-          <input v-model="field.state.value">
+          <input v-model="state.value">
         </div>
       </template>
     </exampleForm.Input>

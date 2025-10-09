@@ -6,11 +6,11 @@
         label="asder2"
         name="asder2"
       >
-        <template #default="{ field, label }">
+        <template #default="{ field, label, state }">
           <label :for="field.name">{{ label }}</label>
           <input
             :id="field.name"
-            v-model="field.state.value"
+            v-model="state.value"
             :name="field.name"
             style="border: 1px solid red"
             @change="(e: any) => field.handleChange(e.target.value)"

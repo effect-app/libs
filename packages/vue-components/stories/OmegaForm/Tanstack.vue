@@ -7,10 +7,10 @@
         name="age"
         type="number"
       >
-        <template #default="{ field }">
+        <template #default="{ field, state }">
           <div class="field">
             <input
-              :value="field.state.value"
+              :value="state.value"
               type="number"
               @input="(e) =>
               field.handleChange(
@@ -22,8 +22,7 @@
               role="alert"
             >
               {{
-                field
-                .state
+                state
                 .meta
                 .errors
                 .map((e) => e?.message)
@@ -39,10 +38,10 @@
         name="email"
         type="text"
       >
-        <template #default="{ field }">
+        <template #default="{ field, state }">
           <div class="field">
             <input
-              :value="field.state.value"
+              :value="state.value"
               @input="(e) =>
               field.handleChange(
                 (e.target as HTMLInputElement)
@@ -82,10 +81,10 @@
           onChange: S.standardSchemaV1(schema.fields['age'])
         }"
       >
-        <template #default="{ field }">
+        <template #default="{ field, state }">
           <div class="field">
             <input
-              :value="field.state.value"
+              :value="state.value"
               type="number"
               @input="(e) =>
               field.handleChange(
@@ -93,12 +92,11 @@
               )"
             >
             <em
-              v-if="field.state.meta.errors.length > 0"
+              v-if="state.meta.errors.length > 0"
               role="alert"
             >
               {{
-                field
-                .state
+                state
                 .meta
                 .errors
                 .map((e) => e?.message)
@@ -117,10 +115,10 @@
           onBlur: S.standardSchemaV1(schema.fields['email'])
         }"
       >
-        <template #default="{ field }">
+        <template #default="{ field, state }">
           <div class="field">
             <input
-              :value="field.state.value"
+              :value="state.value"
               @blur="field.handleBlur"
               @input="(e) =>
               field.handleChange(

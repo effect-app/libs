@@ -4,9 +4,9 @@
       label="date"
       name="date"
     >
-      <template #default="{ field }">
+      <template #default="{ field, state }">
         <input
-          :model-value="field.state.value"
+          :model-value="state.value"
           type="date"
           @change="(e: any) => {
             field.handleChange('2024-06-01T00:00:00.000Z')

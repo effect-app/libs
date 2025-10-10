@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 3.5.5
+
+### Patch Changes
+
+- 051eacf: improve: don't write on DiskDB startup unless seeded.
+- Updated dependencies [9697a93]
+  - effect-app@3.11.0
+
 ## 3.5.4
 
 ### Patch Changes

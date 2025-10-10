@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.11.0
+
+### Minor Changes
+
+- 9697a93: feat: Map withDefault
+
 ## 3.10.2
 
 ### Patch Changes

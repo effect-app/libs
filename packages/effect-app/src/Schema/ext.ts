@@ -65,12 +65,14 @@ export function Array<Value extends Schema.Any>(value: Value) {
 /**
  * Like the default Schema `Map` but with `withDefault` => []
  */
-export function Map<Key extends Schema.Any, Value extends Schema.Any>(input: { key: Key; value: Value }) {
+function Map_<Key extends Schema.Any, Value extends Schema.Any>(input: { key: Key; value: Value }) {
   return pipe(
     S.Map(input),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new global.Map())) })
   )
 }
+
+export { Map_ as Map }
 
 /**
  * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()

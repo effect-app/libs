@@ -72,21 +72,27 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
     // lock file for cross-process coordination during initialization
     const lockFile = file + ".lock"
 
-    const shouldSeed = !(fs.existsSync(file))
-
     // wrap initialization in file lock to prevent race conditions in multi-worker setups
     const store = yield* fu.withFileLock(
       lockFile,
-      makeMemoryStoreInt<IdKey, Encoded, R, E>(
-        name,
-        idKey,
-        namespace,
-        shouldSeed
-          ? seed
-          : fsStore.get,
-        defaultValues
-      )
-        .pipe(Effect.tap((store) => shouldSeed ? store.all.pipe(Effect.flatMap(fsStore.setRaw)) : Effect.void))
+      Effect.gen(function*() {
+        const shouldSeed = !(fs.existsSync(file))
+
+        const store = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
+          name,
+          idKey,
+          namespace,
+          shouldSeed
+            ? seed
+            : fsStore.get,
+          defaultValues
+        )
+        if (shouldSeed) {
+          yield* store.all.pipe(Effect.flatMap(fsStore.setRaw))
+        }
+
+        return store
+      })
     )
 
     const sem = Effect.unsafeMakeSemaphore(1)

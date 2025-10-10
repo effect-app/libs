@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.84.5
+
+### Patch Changes
+
+- 6b0a097: fix: query fallback should only occur on undefined value, not null.
+
 ## 2.84.4
 
 ### Patch Changes

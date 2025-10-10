@@ -171,7 +171,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     const result = computed((): Result.Result<TData, E> =>
       swrToQuery({
         error: r.error.value ?? undefined,
-        data: r.data.value ?? latestSuccess.value, // we fall back to existing data, as tanstack query might loose it when the key changes
+        data: r.data.value === undefined ? latestSuccess.value : r.data.value, // we fall back to existing data, as tanstack query might loose it when the key changes
         isValidating: r.isFetching.value
       })
     )

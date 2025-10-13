@@ -6,7 +6,7 @@ import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } fr
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
-import { type RuntimeFiber } from "effect/Fiber"
+import { id, type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { isGeneratorFunction, type YieldWrap } from "effect/Utils"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
@@ -1142,8 +1142,12 @@ export const CommanderStatic = {
    */
   withDefaultToast: <A, E, R, Args extends Array<unknown>>(
     options?: {
+      /**
+       * if true, previous toasts with this key will be replaced
+       */
+      stableToastId?: undefined | true | string | ((id: string, ...args: Args) => true | string | undefined)
       errorRenderer?: ErrorRenderer<E, Args>
-      onWaiting?: null | undefined | string | ((action: string, ...args: Args) => string | null | undefined)
+      onWaiting?: null | undefined | string | ((id: string, ...args: Args) => string | null | undefined)
       onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
     }
   ) =>
@@ -1161,6 +1165,20 @@ export const CommanderStatic = {
       const hasCustomSuccess = !!intl.messages[customSuccess]
       const customFailure = cc.namespaced("failure")
       const hasCustomFailure = !!intl.messages[customFailure]
+      const stableToastId = options?.stableToastId
+        ? typeof options.stableToastId === "string"
+          ? options.stableToastId
+          : typeof options.stableToastId === "boolean"
+          ? cc.id
+          : typeof options.stableToastId === "function"
+          ? (...args: Args) => {
+            const r = (options.stableToastId as any)(id, ...args)
+            if (typeof r === "string") return r
+            if (r === true) return cc.id
+            return undefined
+          }
+          : undefined
+        : undefined
       return yield* self.pipe(
         (_) =>
           withToast<A, E, Args, R, never, never, I18n>({
@@ -1185,7 +1203,8 @@ export const CommanderStatic = {
             onFailure: defaultFailureMessageHandler(
               hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
               options?.errorRenderer
-            )
+            ),
+            stableToastId
           })(_, ...args)
       )
     })

@@ -3,6 +3,7 @@ import { wrapEffect } from "effect-app/utils"
 import { CurrentToastId, Toast } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, SucR, ErrR> {
+  stableToastId?: undefined | string | ((...args: Args) => string | undefined)
   timeout?: number
   onWaiting:
     | string
@@ -41,9 +42,14 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
       Effect.fnUntraced(function*(self: Effect.Effect<A, E, R>, ...args: Args) {
         const baseTimeout = options.timeout ?? 3_000
 
+        const stableToastId = typeof options.stableToastId === "function"
+          ? options.stableToastId(...args)
+          : options.stableToastId
+
         const t = yield* wrapEffect(options.onWaiting)(...args)
-        const toastId = t === null ? undefined : yield* toast.info(
-          t // TODO: timeout forever?
+        const toastId = t === null ? stableToastId : yield* toast.info(
+          t,
+          { id: stableToastId ?? null } // TODO: timeout forever?
         )
         return yield* self.pipe(
           Effect.tap(Effect.fnUntraced(function*(a) {

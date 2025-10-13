@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.85.0
+
+### Minor Changes
+
+- 519ca08: feat: add stable toast id support
+
 ## 2.84.5
 
 ### Patch Changes

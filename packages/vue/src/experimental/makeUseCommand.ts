@@ -1,5 +1,5 @@
 import { Effect } from "effect-app"
-import { Commander2, type CommanderImpl, CommanderStatic } from "./commander2.js"
+import { Commander, type CommanderImpl, CommanderStatic } from "./commander.js"
 
 type X<X> = X
 
@@ -10,7 +10,7 @@ export interface CommanderResolved<RT>
 }
 
 export const makeUseCommand = Effect.fnUntraced(function*<R = never>() {
-  const cmndr = yield* Commander2
+  const cmndr = yield* Commander
   const runtime = yield* Effect.runtime<R>()
 
   const comm = cmndr(runtime)

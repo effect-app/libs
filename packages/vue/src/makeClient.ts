@@ -27,7 +27,7 @@ const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
 
-export interface RequestExtensions<RT, Id extends string, I extends any[], A, E, R> {
+export interface RequestExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
    * The Request function will be taken as the first member of the Command, the Command required input will be the Request input.
    * see Command.wrap for details */
@@ -75,7 +75,7 @@ export type RequestWithExtensions<RT, Req> = Req extends
   : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, A, E, R>
   : never
 
-export interface MutationExtensions<RT, Id extends string, I extends any[], A, E, R> {
+export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
    * see Command.wrap for details */

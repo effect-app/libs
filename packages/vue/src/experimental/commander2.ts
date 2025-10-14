@@ -51,7 +51,7 @@ export declare namespace Commander2 {
     Id extends string,
     I18nCustomKey extends string,
     State extends IntlRecord | undefined,
-    I extends any[],
+    I,
     A,
     E,
     R
@@ -1284,8 +1284,8 @@ export class CommanderImpl<RT> {
     const state = getStateValues(options)
 
     return Object.assign(
-      <Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-        handler: (...args: Args) => Effect.Effect<A, E, R>
+      <Arg, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+        handler: (arg: Arg, ctx: Commander2.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
       ) => {
         // we capture the definition stack here, so we can append it to later stack traces
         const limit = Error.stackTraceLimit
@@ -1363,7 +1363,7 @@ export class CommanderImpl<RT> {
         const exec = options?.disableSharedWaiting
           ? exec_
           : Effect
-            .fnUntraced(function*(...args: Args) {
+            .fnUntraced(function*(...args: [any, any]) {
               registerWait(id)
               return yield* exec_(...args)
             }, Effect.onExit(() => Effect.sync(() => unregisterWait(id))))
@@ -1372,7 +1372,7 @@ export class CommanderImpl<RT> {
           ? computed(() => result.value.waiting)
           : computed(() => result.value.waiting || (waitState.value[id] ?? 0) > 0)
 
-        const handle = Object.assign((...args: Args) => {
+        const handle = Object.assign((arg: Arg) => {
           // we capture the call site stack here
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
@@ -1405,12 +1405,12 @@ export class CommanderImpl<RT> {
 
           const command = currentState.pipe(Effect.flatMap((state) =>
             Effect.withSpan(
-              exec(...args),
+              exec(arg, { ...context.value, state } as any),
               id,
               {
                 captureStackTrace,
                 attributes: {
-                  input: args,
+                  input: arg,
                   state,
                   action: initialContext.action,
                   label: initialContext.label,
@@ -1574,7 +1574,7 @@ export class CommanderImpl<RT> {
   /** @experimental */
   alt2: <
     const Id extends string,
-    MutArgs extends Array<unknown>,
+    MutArg,
     MutA,
     MutE,
     MutR,
@@ -1583,19 +1583,19 @@ export class CommanderImpl<RT> {
   >(
     id:
       | Id
-      | { id: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
-      | ((...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
+      | { id: Id; mutate: (arg: MutArg) => Effect.Effect<MutA, MutE, MutR> }
+      | ((arg: MutArg) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
     options?: FnOptions<I18nKey, State>
   ) =>
     & Commander2.CommandContextLocal<Id, I18nKey>
-    & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+    & (<Arg, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
       handler: (
         ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander2.CommandContextLocal<Id, I18nKey> & {
           // todo: only if we passed in one
-          mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
+          mutate: (arg: Arg) => Effect.Effect<MutA, MutE, MutR>
         }
-      ) => (...args: Args) => Effect.Effect<A, E, R>
-    ) => Commander2.CommandOut<Args, A, E, R, Id, I18nKey, State>) = (
+      ) => (arg: Arg, ctx: Commander2.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
+    ) => Commander2.CommandOut<Arg, A, E, R, Id, I18nKey, State>) = (
       _id,
       options?
     ) => {
@@ -1633,9 +1633,9 @@ export class CommanderImpl<RT> {
     customI18nKey?: I18nKey
   ) =>
     & Commander2.CommandContextLocal<Id, I18nKey>
-    & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-      handler: (...args: Args) => Effect.Effect<A, E, R>
-    ) => Commander2.CommandOut<Args, A, E, R, Id, I18nKey, State>)
+    & (<Arg, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+      handler: (arg: Arg, ctx: Commander2.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
+    ) => Commander2.CommandOut<Arg, A, E, R, Id, I18nKey, State>)
 
   /**
    * Define a Command for handling user actions with built-in error reporting and state management.
@@ -1666,7 +1666,7 @@ export class CommanderImpl<RT> {
    */
   wrap = <
     const Id extends string,
-    Args extends Array<unknown>,
+    Arg,
     A,
     E,
     R,
@@ -1674,10 +1674,10 @@ export class CommanderImpl<RT> {
     I18nKey extends string = Id
   >(
     mutation:
-      | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
-      | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
+      | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
+      | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
     options?: FnOptions<I18nKey, State>
-  ): Commander2.CommanderWrap<RT, Id, I18nKey, State, Args, A, E, R> =>
+  ): Commander2.CommanderWrap<RT, Id, I18nKey, State, Arg, A, E, R> =>
     Object.assign(
       (
         ...combinators: any[]
@@ -1693,8 +1693,8 @@ export class CommanderImpl<RT> {
         return this.makeCommand(mutation.id, options, errorDef)(
           Effect.fnUntraced(
             // fnUntraced only supports generators as first arg, so we convert to generator if needed
-            isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
-              return yield* mutate(...args)
+            isGeneratorFunction(mutate) ? mutate : function*(arg: Arg) {
+              return yield* mutate(arg)
             },
             ...combinators as [any]
           ) as any

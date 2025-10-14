@@ -64,6 +64,7 @@
     "@effect/language-service": "0.41.1",
     "@effect/platform": "^0.92.0",
     "@effect/platform-node": "^0.98.0",
+    "@effect/vitest": "^0.26.0",
     "@tsconfig/strictest": "^2.0.6",
     "@types/lodash": "^4.17.20",
     "@types/node": "~24.6.0",

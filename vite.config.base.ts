@@ -12,6 +12,7 @@ import fs from "fs"
 //   ]
 // })
 
+
 export default function makeConfig(dirName?: string) {
   const prefix = path.resolve(__dirname, "packages")
   const packages = fs.readdirSync(prefix).map(f => prefix + "/" + f).filter(f => fs.lstatSync(f).isDirectory() )
@@ -21,7 +22,8 @@ export default function makeConfig(dirName?: string) {
     test: {
       include:  ["./test/**/*.test.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
       reporters: "verbose",
-      globals: true
+      globals: true,
+      setupFiles: [path.join(__dirname, "vitest.setup.ts")],
     },
     resolve: {
       alias: packages.map(pkg => ({ pkg, json: pkg + "/package.json"})).filter(_ => fs.existsSync(_.json)).reduce((acc, { pkg, json}) => { 

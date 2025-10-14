@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.87.3
+
+### Patch Changes
+
+- bbb7e0f: fup
+
 ## 2.87.2
 
 ### Patch Changes

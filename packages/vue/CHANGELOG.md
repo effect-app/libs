@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.86.0
+
+### Minor Changes
+
+- 371b1ba: Change Commander to be unary and pass Context as second arg.
+
 ## 2.85.0
 
 ### Minor Changes

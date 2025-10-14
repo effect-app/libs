@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.87.0
+
+### Minor Changes
+
+- 6236431: fup: update Command interfaces accordingly
+
 ## 2.86.0
 
 ### Minor Changes

@@ -93,7 +93,7 @@ export interface MutationExtWithInput<
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, [I], A, E, R> {
+> extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, I, A, E, R> {
   /**
    * Call the endpoint with input
    * Invalidate queries based on namespace of this mutation.
@@ -115,8 +115,8 @@ export interface MutationExt<
   R
 > extends
   Commander.CommandContextLocal<Id, Id>,
-  Commander.CommanderWrap<RT, Id, Id, undefined, [], A, E, R>,
-  MutationExtensions<RT, Id, [], A, E, R>,
+  Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
+  MutationExtensions<RT, Id, void, A, E, R>,
   Effect.Effect<A, E, R>
 {
 }

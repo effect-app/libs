@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.87.1
+
+### Patch Changes
+
+- ce4040d: fup
+
 ## 2.87.0
 
 ### Minor Changes

@@ -54,6 +54,10 @@
       "types": "./dist/experimental/commander.d.ts",
       "default": "./dist/experimental/commander.js"
     },
+    "./experimental/commander2": {
+      "types": "./dist/experimental/commander2.d.ts",
+      "default": "./dist/experimental/commander2.js"
+    },
     "./experimental/confirm": {
       "types": "./dist/experimental/confirm.d.ts",
       "default": "./dist/experimental/confirm.js"

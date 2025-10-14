@@ -148,7 +148,7 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>,
       AEff,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg) => Generator<Eff, AEff, never>
     ): CommandOut<
@@ -167,8 +167,8 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
-      A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -188,9 +188,9 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
-      B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -211,10 +211,10 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
       B,
-      C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -236,11 +236,11 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
       B,
       C,
-      D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -263,12 +263,12 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
       B,
       C,
       D,
-      E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -292,13 +292,13 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
       B,
       C,
       D,
       E,
-      F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -323,14 +323,14 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
       B,
       C,
       D,
       E,
       F,
-      G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -356,7 +356,6 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
       B,
       C,
@@ -364,7 +363,8 @@ export declare namespace Commander2 {
       E,
       F,
       G,
-      H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -391,7 +391,6 @@ export declare namespace Commander2 {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Arg,
       A,
       B,
       C,
@@ -400,7 +399,8 @@ export declare namespace Commander2 {
       F,
       G,
       H,
-      I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
@@ -430,14 +430,14 @@ export declare namespace Commander2 {
   export type NonGen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
@@ -446,7 +446,7 @@ export declare namespace Commander2 {
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
       B,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -457,7 +457,7 @@ export declare namespace Commander2 {
       A,
       B,
       C,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -470,7 +470,7 @@ export declare namespace Commander2 {
       B,
       C,
       D,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -485,7 +485,7 @@ export declare namespace Commander2 {
       C,
       D,
       E,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -502,7 +502,7 @@ export declare namespace Commander2 {
       D,
       E,
       F,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -521,7 +521,7 @@ export declare namespace Commander2 {
       E,
       F,
       G,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -542,7 +542,7 @@ export declare namespace Commander2 {
       F,
       G,
       H,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -565,7 +565,7 @@ export declare namespace Commander2 {
       G,
       H,
       I,
-      Arg
+      Arg = void
     >(
       body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
       a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
@@ -1571,7 +1571,7 @@ export class CommanderImpl<RT> {
       }
     )
 
-  /** @experimental */
+  /** @experimental @deprecated */
   alt2: <
     const Id extends string,
     MutArg,
@@ -1588,7 +1588,7 @@ export class CommanderImpl<RT> {
     options?: FnOptions<I18nKey, State>
   ) =>
     & Commander2.CommandContextLocal<Id, I18nKey>
-    & (<Arg, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+    & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       handler: (
         ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander2.CommandContextLocal<Id, I18nKey> & {
           // todo: only if we passed in one
@@ -1633,7 +1633,7 @@ export class CommanderImpl<RT> {
     customI18nKey?: I18nKey
   ) =>
     & Commander2.CommandContextLocal<Id, I18nKey>
-    & (<Arg, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+    & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       handler: (arg: Arg, ctx: Commander2.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
     ) => Commander2.CommandOut<Arg, A, E, R, Id, I18nKey, State>)
 
@@ -1710,7 +1710,7 @@ export class CommanderImpl<RT> {
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class Commander extends Effect.Service<Commander>()("Commander", {
+export class Commander2 extends Effect.Service<Commander2>()("Commander2", {
   dependencies: [WithToast.Default, Confirm.Default],
   effect: Effect.gen(function*() {
     const i18n = yield* I18n

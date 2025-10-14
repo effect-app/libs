@@ -14,6 +14,7 @@ import { type RuntimeFiber } from "effect/Fiber"
 import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { type Commander, CommanderStatic } from "./experimental/commander.js"
+import { type Commander2 } from "./experimental/commander2.js"
 import { I18n } from "./experimental/intl.js"
 import { type CommanderResolved, makeUseCommand } from "./experimental/makeUseCommand.js"
 import { Toast } from "./experimental/toast.js"
@@ -1247,7 +1248,7 @@ export class QueryImpl<R> {
 const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.runtime<A>())
 
 type Base = I18n | Toast
-type Mix = ApiClientFactory | Commander | LegacyMutation | Base
+type Mix = ApiClientFactory | Commander2 | LegacyMutation | Base
 export const makeClient = <RT_>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,

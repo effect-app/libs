@@ -6,7 +6,7 @@ import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
 import { ref } from "vue"
-import { Commander } from "../src/experimental/commander.js"
+import { Commander2 } from "../src/experimental/commander2.js"
 import { I18n } from "../src/experimental/intl.js"
 import { makeUseCommand } from "../src/experimental/makeUseCommand.js"
 import * as Toast from "../src/experimental/toast.js"
@@ -83,7 +83,7 @@ export const useExperimental = (
 ) => {
   const FakeIntlLayer = fakeIntlLayer(options?.messages)
   const FakeToastLayer = fakeToastLayer(options?.toasts)
-  const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
+  const CommanderLayer = Commander2.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
   const WithToastLayer = WithToast.Default.pipe(Layer.provide(FakeToastLayer))
   const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer)
 
@@ -110,7 +110,7 @@ export const useClient = (
 ) => {
   const FakeIntlLayer = fakeIntlLayer(options?.messages)
   const FakeToastLayer = fakeToastLayer(options?.toasts)
-  const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
+  const CommanderLayer = Commander2.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
   const WithToastLayer = WithToast.Default.pipe(Layer.provide(FakeToastLayer))
   const api = ApiClientFactory.layer({ url: "bogus", headers: Option.none() }).pipe(
     Layer.provide(FetchHttpClient.layer)

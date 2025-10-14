@@ -1123,6 +1123,11 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
   })
 
 export const CommanderStatic = {
+  accessArgs: <In, Out, Arg2, Arg = void>(
+    cb: (a: NoInfer<Arg>, b: NoInfer<Arg2>) => (self: NoInfer<In>) => Out
+  ) =>
+  (self: In, arg: Arg, arg2: Arg2) => cb(arg, arg2)(self),
+
   /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
   confirmOrInterrupt: Effect.fnUntraced(function*(
     message: string | undefined = undefined

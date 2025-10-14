@@ -93,9 +93,9 @@ export const wrapEmit = <A, Event extends string>(
 
 export declare namespace Commander {
   export type CommanderBase<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> =
-    & Commander.Gen<RT, Id, I18nKey, State>
-    & Commander.NonGen<RT, Id, I18nKey, State>
-    & Commander.CommandContextLocal<Id, I18nKey>
+    & Gen<RT, Id, I18nKey, State>
+    & NonGen<RT, Id, I18nKey, State>
+    & CommandContextLocal<Id, I18nKey>
     & {
       state: Context.Tag<`Commander.Command.${Id}.state`, State>
     }
@@ -108,7 +108,7 @@ export declare namespace Commander {
     Id extends string,
     I18nCustomKey extends string,
     State extends IntlRecord | undefined,
-    I extends any[],
+    I,
     A,
     E,
     R
@@ -147,7 +147,7 @@ export declare namespace Commander {
   }
 
   export interface CommandOut<
-    Args extends Array<unknown>,
+    Arg,
     A,
     E,
     R,
@@ -158,35 +158,41 @@ export declare namespace Commander {
     new(): {}
 
     /** click handlers */
-    handle: ((...args: Args) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
+    handle: ((arg: Arg) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
       /** @deprecated don't exist */
-      effect: (...args: Args) => Effect.Effect<A, E, R>
+      effect: (arg: Arg) => Effect.Effect<A, E, R>
     }
 
     // // TODO: if we keep them, it would probably be nicer as an option api, deciding the return value like in Atom?
     // /** @experimental */
-    // compose: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, R>
+    // compose: (arg: Arg) => Effect.Effect<Exit.Exit<A, E>, R>
     // /** @experimental */
-    // compose2: (...args: Args) => Effect.Effect<A, E, R>
+    // compose2: (arg: Arg) => Effect.Effect<A, E, R>
     // /**
     //  * @experimental
     //  * captures the current span and returns an Effect that when run will execute the command
     //  */
-    // handleEffect: (...args: Args) => Effect.Effect<RuntimeFiber<Exit.Exit<A, E>, never>>
+    // handleEffect: (arg: Arg) => Effect.Effect<RuntimeFiber<Exit.Exit<A, E>, never>>
     // /**
     //  * @experimental
     //  */
-    // exec: (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, Exclude<R, CommandContext>>
+    // exec: (arg: Arg) => Effect.Effect<Exit.Exit<A, E>, never, Exclude<R, CommandContext>>
+  }
+
+  export interface CommandContextLocal2<Id extends string, I18nKey extends string, State extends IntlRecord | undefined>
+    extends CommandContextLocal<Id, I18nKey>
+  {
+    state: State
   }
 
   type CommandOutHelper<
-    Args extends Array<unknown>,
+    Arg,
     Eff extends Effect.Effect<any, any, any>,
     Id extends string,
     I18nKey extends string,
     State extends IntlRecord | undefined
   > = CommandOut<
-    Args,
+    Arg,
     Effect.Effect.Success<Eff>,
     Effect.Effect.Error<Eff>,
     Effect.Effect.Context<Eff>,
@@ -199,11 +205,11 @@ export declare namespace Commander {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>,
       AEff,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>
+      body: (arg: Arg) => Generator<Eff, AEff, never>
     ): CommandOut<
-      Args,
+      Arg,
       AEff,
       [Eff] extends [never] ? never
         : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
@@ -218,10 +224,10 @@ export declare namespace Commander {
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
-      A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -232,17 +238,18 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A
-    ): CommandOutHelper<Args, A, Id, I18nKey, State>
+    ): CommandOutHelper<Arg, A, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
-      B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -253,19 +260,20 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B
-    ): CommandOutHelper<Args, B, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B
+    ): CommandOutHelper<Arg, B, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
       B,
-      C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      C extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -276,21 +284,22 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C
-    ): CommandOutHelper<Args, C, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C
+    ): CommandOutHelper<Arg, C, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
       B,
       C,
-      D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      D extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -301,23 +310,24 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D
-    ): CommandOutHelper<Args, D, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D
+    ): CommandOutHelper<Arg, D, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
       B,
       C,
       D,
-      E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      E extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -328,25 +338,26 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E
-    ): CommandOutHelper<Args, E, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E
+    ): CommandOutHelper<Arg, E, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
       B,
       C,
       D,
       E,
-      F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      F extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -357,27 +368,28 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F
-    ): CommandOutHelper<Args, F, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F
+    ): CommandOutHelper<Arg, F, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
       B,
       C,
       D,
       E,
       F,
-      G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      G extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -388,19 +400,19 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F,
-      g: (_: F, ...args: NoInfer<Args>) => G
-    ): CommandOutHelper<Args, G, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      g: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G
+    ): CommandOutHelper<Arg, G, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
       B,
       C,
@@ -408,9 +420,10 @@ export declare namespace Commander {
       E,
       F,
       G,
-      H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -421,20 +434,20 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F,
-      g: (_: F, ...args: NoInfer<Args>) => G,
-      h: (_: G, ...args: NoInfer<Args>) => H
-    ): CommandOutHelper<Args, H, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      g: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      h: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H
+    ): CommandOutHelper<Arg, H, Id, I18nKey, State>
     <
       Eff extends YieldWrap<Effect.Effect<any, any, any>>,
       AEff,
-      Args extends Array<unknown>,
       A,
       B,
       C,
@@ -443,9 +456,10 @@ export declare namespace Commander {
       F,
       G,
       H,
-      I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
     >(
-      body: (...args: Args) => Generator<Eff, AEff, never>,
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>,
       a: (
         _: Effect.Effect<
           AEff,
@@ -456,70 +470,71 @@ export declare namespace Commander {
             : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
             : never
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F,
-      g: (_: F, ...args: NoInfer<Args>) => G,
-      h: (_: G, ...args: NoInfer<Args>) => H,
-      i: (_: H, ...args: NoInfer<Args>) => I
-    ): CommandOutHelper<Args, I, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      g: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      h: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H,
+      i: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => I
+    ): CommandOutHelper<Arg, I, Id, I18nKey, State>
   }
 
   export type NonGen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
       B,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
       B,
       C,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
       B,
       C,
       D,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
@@ -527,15 +542,15 @@ export declare namespace Commander {
       C,
       D,
       E,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
@@ -544,16 +559,16 @@ export declare namespace Commander {
       D,
       E,
       F,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
@@ -563,17 +578,17 @@ export declare namespace Commander {
       E,
       F,
       G,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => G,
-      g: (_: G, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      g: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
@@ -584,18 +599,18 @@ export declare namespace Commander {
       F,
       G,
       H,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => G,
-      g: (_: G, ...args: NoInfer<Args>) => H,
-      h: (_: H, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      g: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H,
+      h: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       A,
@@ -607,33 +622,33 @@ export declare namespace Commander {
       G,
       H,
       I,
-      Args extends Array<unknown>
+      Arg = void
     >(
-      body: (...args: Args) => A,
-      a: (_: A, ...args: NoInfer<Args>) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => G,
-      g: (_: G, ...args: NoInfer<Args>) => H,
-      h: (_: H, ...args: NoInfer<Args>) => I,
-      i: (_: H, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => A,
+      a: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      g: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H,
+      h: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => I,
+      i: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
   }
 
   export type GenWrap<
     RT,
     Id extends string,
     I18nKey extends string,
-    Args extends Array<unknown>,
+    Arg,
     AEff,
     EEff,
     REff,
     State extends IntlRecord | undefined
   > = {
     (): Exclude<REff, RT> extends never ? CommandOut<
-        Args,
+        Arg,
         AEff,
         EEff,
         REff,
@@ -651,9 +666,10 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A
-    ): CommandOutHelper<Args, A, Id, I18nKey, State>
+    ): CommandOutHelper<Arg, A, Id, I18nKey, State>
     <
       A,
       B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
@@ -664,10 +680,11 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B
-    ): CommandOutHelper<Args, B, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B
+    ): CommandOutHelper<Arg, B, Id, I18nKey, State>
     <
       A,
       B,
@@ -679,11 +696,12 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C
-    ): CommandOutHelper<Args, C, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C
+    ): CommandOutHelper<Arg, C, Id, I18nKey, State>
     <
       A,
       B,
@@ -696,12 +714,13 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D
-    ): CommandOutHelper<Args, D, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D
+    ): CommandOutHelper<Arg, D, Id, I18nKey, State>
     <
       A,
       B,
@@ -715,13 +734,14 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E
-    ): CommandOutHelper<Args, E, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E
+    ): CommandOutHelper<Arg, E, Id, I18nKey, State>
     <
       A,
       B,
@@ -736,14 +756,15 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F
-    ): CommandOutHelper<Args, F, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F
+    ): CommandOutHelper<Arg, F, Id, I18nKey, State>
     <
       A,
       B,
@@ -759,15 +780,16 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F,
-      g: (_: F, ...args: NoInfer<Args>) => G
-    ): CommandOutHelper<Args, G, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      g: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G
+    ): CommandOutHelper<Arg, G, Id, I18nKey, State>
     <A, B, C, D, E, F, G, H extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
         _: Effect.Effect<
@@ -775,16 +797,17 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F,
-      g: (_: F, ...args: NoInfer<Args>) => G,
-      h: (_: G, ...args: NoInfer<Args>) => H
-    ): CommandOutHelper<Args, H, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      g: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      h: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H
+    ): CommandOutHelper<Arg, H, Id, I18nKey, State>
     <A, B, C, D, E, F, G, H, I extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
       a: (
         _: Effect.Effect<
@@ -792,34 +815,35 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => A,
-      b: (_: A, ...args: NoInfer<Args>) => B,
-      c: (_: B, ...args: NoInfer<Args>) => C,
-      d: (_: C, ...args: NoInfer<Args>) => D,
-      e: (_: D, ...args: NoInfer<Args>) => E,
-      f: (_: E, ...args: NoInfer<Args>) => F,
-      g: (_: F, ...args: NoInfer<Args>) => G,
-      h: (_: G, ...args: NoInfer<Args>) => H,
-      i: (_: H, ...args: NoInfer<Args>) => I
-    ): CommandOutHelper<Args, I, Id, I18nKey, State>
+      b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B,
+      c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      g: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      h: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H,
+      i: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => I
+    ): CommandOutHelper<Arg, I, Id, I18nKey, State>
   }
 
   export type NonGenWrap<
     RT,
     Id extends string,
     I18nKey extends string,
-    Args extends Array<unknown>,
+    Arg,
     AEff,
     EEff,
     REff,
     State extends IntlRecord | undefined
   > = {
-    (): Exclude<REff, RT> extends never ? CommandOutHelper<Args, Effect.Effect<AEff, EEff, REff>, Id, I18nKey, State>
+    (): Exclude<REff, RT> extends never ? CommandOutHelper<Arg, Effect.Effect<AEff, EEff, REff>, Id, I18nKey, State>
       : MissingDependencies<RT, REff> & {}
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -827,13 +851,14 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -841,15 +866,16 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
       C,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -857,17 +883,18 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
       C,
       D,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -875,19 +902,20 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
       C,
       D,
       E,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -895,13 +923,14 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
@@ -909,7 +938,7 @@ export declare namespace Commander {
       D,
       E,
       F,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -917,14 +946,15 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
@@ -933,7 +963,7 @@ export declare namespace Commander {
       E,
       F,
       G,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -941,15 +971,16 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => G,
-      g: (_: G, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      g: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
@@ -959,7 +990,7 @@ export declare namespace Commander {
       F,
       G,
       H,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -967,16 +998,17 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => G,
-      g: (_: G, ...args: NoInfer<Args>) => H,
-      h: (_: H, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      g: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H,
+      h: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
     <
       Eff extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       B,
@@ -987,7 +1019,7 @@ export declare namespace Commander {
       G,
       H,
       I,
-      Args extends Array<unknown>
+      Arg
     >(
       a: (
         _: Effect.Effect<
@@ -995,17 +1027,18 @@ export declare namespace Commander {
           EEff,
           REff
         >,
-        ...args: NoInfer<Args>
+        arg: NoInfer<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
       ) => B,
-      b: (_: B, ...args: NoInfer<Args>) => C,
-      c: (_: C, ...args: NoInfer<Args>) => D,
-      d: (_: D, ...args: NoInfer<Args>) => E,
-      e: (_: E, ...args: NoInfer<Args>) => F,
-      f: (_: F, ...args: NoInfer<Args>) => G,
-      g: (_: G, ...args: NoInfer<Args>) => H,
-      h: (_: H, ...args: NoInfer<Args>) => I,
-      i: (_: H, ...args: NoInfer<Args>) => Eff
-    ): CommandOutHelper<Args, Eff, Id, I18nKey, State>
+      b: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C,
+      c: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D,
+      d: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E,
+      e: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F,
+      f: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G,
+      g: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H,
+      h: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => I,
+      i: (_: H, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => Eff
+    ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
   }
 }
 
@@ -1308,8 +1341,8 @@ export class CommanderImpl<RT> {
     const state = getStateValues(options)
 
     return Object.assign(
-      <Args extends ReadonlyArray<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-        handler: (...args: Args) => Effect.Effect<A, E, R>
+      <Arg, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+        handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
       ) => {
         // we capture the definition stack here, so we can append it to later stack traces
         const limit = Error.stackTraceLimit
@@ -1387,7 +1420,7 @@ export class CommanderImpl<RT> {
         const exec = options?.disableSharedWaiting
           ? exec_
           : Effect
-            .fnUntraced(function*(...args: Args) {
+            .fnUntraced(function*(...args: [any, any]) {
               registerWait(id)
               return yield* exec_(...args)
             }, Effect.onExit(() => Effect.sync(() => unregisterWait(id))))
@@ -1396,7 +1429,7 @@ export class CommanderImpl<RT> {
           ? computed(() => result.value.waiting)
           : computed(() => result.value.waiting || (waitState.value[id] ?? 0) > 0)
 
-        const handle = Object.assign((...args: Args) => {
+        const handle = Object.assign((arg: Arg) => {
           // we capture the call site stack here
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
@@ -1429,12 +1462,12 @@ export class CommanderImpl<RT> {
 
           const command = currentState.pipe(Effect.flatMap((state) =>
             Effect.withSpan(
-              exec(...args),
+              exec(arg, { ...context.value, state } as any),
               id,
               {
                 captureStackTrace,
                 attributes: {
-                  input: args,
+                  input: arg,
                   state,
                   action: initialContext.action,
                   label: initialContext.label,
@@ -1595,10 +1628,10 @@ export class CommanderImpl<RT> {
       }
     )
 
-  /** @experimental */
+  /** @experimental @deprecated */
   alt2: <
     const Id extends string,
-    MutArgs extends Array<unknown>,
+    MutArg,
     MutA,
     MutE,
     MutR,
@@ -1607,19 +1640,19 @@ export class CommanderImpl<RT> {
   >(
     id:
       | Id
-      | { id: Id; mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR> }
-      | ((...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
+      | { id: Id; mutate: (arg: MutArg) => Effect.Effect<MutA, MutE, MutR> }
+      | ((arg: MutArg) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
     options?: FnOptions<I18nKey, State>
   ) =>
     & Commander.CommandContextLocal<Id, I18nKey>
-    & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+    & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       handler: (
         ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
           // todo: only if we passed in one
-          mutate: (...args: MutArgs) => Effect.Effect<MutA, MutE, MutR>
+          mutate: (arg: Arg) => Effect.Effect<MutA, MutE, MutR>
         }
-      ) => (...args: Args) => Effect.Effect<A, E, R>
-    ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey, State>) = (
+      ) => (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
+    ) => Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State>) = (
       _id,
       options?
     ) => {
@@ -1657,9 +1690,9 @@ export class CommanderImpl<RT> {
     customI18nKey?: I18nKey
   ) =>
     & Commander.CommandContextLocal<Id, I18nKey>
-    & (<Args extends Array<unknown>, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
-      handler: (...args: Args) => Effect.Effect<A, E, R>
-    ) => Commander.CommandOut<Args, A, E, R, Id, I18nKey, State>)
+    & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
+      handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
+    ) => Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State>)
 
   /**
    * Define a Command for handling user actions with built-in error reporting and state management.
@@ -1690,7 +1723,7 @@ export class CommanderImpl<RT> {
    */
   wrap = <
     const Id extends string,
-    Args extends Array<unknown>,
+    Arg,
     A,
     E,
     R,
@@ -1698,10 +1731,10 @@ export class CommanderImpl<RT> {
     I18nKey extends string = Id
   >(
     mutation:
-      | { mutate: (...args: Args) => Effect.Effect<A, E, R>; id: Id }
-      | ((...args: Args) => Effect.Effect<A, E, R>) & { id: Id },
+      | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
+      | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
     options?: FnOptions<I18nKey, State>
-  ): Commander.CommanderWrap<RT, Id, I18nKey, State, Args, A, E, R> =>
+  ): Commander.CommanderWrap<RT, Id, I18nKey, State, Arg, A, E, R> =>
     Object.assign(
       (
         ...combinators: any[]
@@ -1717,8 +1750,8 @@ export class CommanderImpl<RT> {
         return this.makeCommand(mutation.id, options, errorDef)(
           Effect.fnUntraced(
             // fnUntraced only supports generators as first arg, so we convert to generator if needed
-            isGeneratorFunction(mutate) ? mutate : function*(...args: Args) {
-              return yield* mutate(...args)
+            isGeneratorFunction(mutate) ? mutate : function*(arg: Arg) {
+              return yield* mutate(arg)
             },
             ...combinators as [any]
           ) as any

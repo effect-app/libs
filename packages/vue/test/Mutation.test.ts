@@ -24,10 +24,10 @@ describe("alt2", () => {
 
         const someMutation = {
           id: "Test Action",
-          mutate: (() => {}) as unknown as (a: number, b: string) => Effect.Effect<string, number, CommandContext>
+          mutate: (() => {}) as unknown as (a: number) => Effect.Effect<string, number, CommandContext>
         } as const
         const someMutation2 = Object.assign(
-          (() => {}) as unknown as (a: number, b: string) => Effect.Effect<string, number, CommandContext>,
+          (() => {}) as unknown as (a: number) => Effect.Effect<string, number, CommandContext>,
           {
             id: "Test Action"
           } as const
@@ -252,16 +252,19 @@ it.live("can receive and use input", () =>
       let executed = false
 
       const command = Command.fn("Test Action")(
-        function*(input1: number, input2: string) {
+        function*(input1: number, input2) {
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
           return { input1, input2 }
         },
         Effect.tap(() => executed = true)
       )
-      const r = yield* unwrap(command.handle(1, "2"))
+      const r = yield* unwrap(command.handle(1))
 
-      expect(r).toEqual({ input1: 1, input2: "2" }) // to confirm that the initial function has ran and received input.
+      expect(r.input1).toBe(1) // to confirm that the initial function has ran and received input.
+      const { handle, result, waiting, ...rest } = command
+      const ctx = { ...rest, state: undefined }
+      expect(JSON.stringify(r.input2)).equal(JSON.stringify(ctx))
       expect(executed).toBe(true) // to confirm that the combinators have ran.
     }))
 
@@ -547,19 +550,25 @@ it.live("can receive and use input with alt", () =>
 
       let executed = false
 
-      const command = Command.alt("Test Action")(
-        Effect.fnUntraced(
-          function*(input1: number, input2: string) {
-            expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
+      const command = Command.alt("Test Action")((input1: number, input2) =>
+        Effect
+          .gen(
+            function*() {
+              expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
-            return { input1, input2 }
-          },
-          Effect.tap(() => executed = true)
-        )
+              return { input1, input2 }
+            }
+          )
+          .pipe(
+            Effect.tap(() => executed = true)
+          )
       )
-      const r = yield* unwrap(command.handle(1, "2"))
+      const r = yield* unwrap(command.handle(1))
 
-      expect(r).toEqual({ input1: 1, input2: "2" }) // to confirm that the initial function has ran and received input.
+      const { handle, result, waiting, ...rest } = command
+      const ctx = { ...rest, state: undefined }
+      expect(r.input1).toBe(1)
+      expect(JSON.stringify(r.input2)).equal(JSON.stringify(ctx)) // to confirm that the initial function has ran and received input.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
     }))
 

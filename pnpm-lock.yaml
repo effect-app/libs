@@ -67,6 +67,9 @@ importers:
       '@effect/platform-node':
         specifier: ^0.98.0
         version: 0.98.0(@effect/cluster@0.46.4(75de7a998cf2258bdcd42684c0598ed2))(@effect/platform@0.92.0(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)))(@effect/rpc@0.71.0(@effect/platform@0.92.0(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)))(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)))(@effect/sql@0.46.0(@effect/experimental@0.56.0(@effect/platform@0.92.0(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)))(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)))(@effect/platform@0.92.0(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)))(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a)))(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a))
+      '@effect/vitest':
+        specifier: ^0.26.0
+        version: 0.26.0(effect@3.18.0(patch_hash=43c3b64130695b34e77e33c4bce41699657064974a32b770f14bbeefe69bf30a))(vitest@3.2.4(@types/node@24.6.0)(jsdom@27.0.0(postcss@8.5.6))(sass@1.93.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       '@tsconfig/strictest':
         specifier: ^2.0.6
         version: 2.0.6

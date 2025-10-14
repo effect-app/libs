@@ -45,7 +45,7 @@ export interface RequestExtWithInput<
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, RequestExtensions<RT, Id, [I], A, E, R> {
+> extends Commander.CommandContextLocal<Id, Id>, RequestExtensions<RT, Id, I, A, E, R> {
   /**
    * Request the endpoint with input
    */
@@ -63,8 +63,8 @@ export interface RequestExt<
   R
 > extends
   Commander.CommandContextLocal<Id, Id>,
-  Commander.CommanderWrap<RT, Id, Id, undefined, [], A, E, R>,
-  RequestExtensions<RT, Id, [], A, E, R>,
+  Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
+  RequestExtensions<RT, Id, void, A, E, R>,
   Effect.Effect<A, E, R>
 {
 }

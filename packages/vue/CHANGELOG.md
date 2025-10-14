@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.88.0
+
+### Minor Changes
+
+- 19e712e: feat: add accessArgs
+
 ## 2.87.4
 
 ### Patch Changes

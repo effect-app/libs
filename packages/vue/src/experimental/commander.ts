@@ -207,7 +207,7 @@ export declare namespace Commander {
       AEff,
       Arg = void
     >(
-      body: (arg: Arg) => Generator<Eff, AEff, never>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Generator<Eff, AEff, never>
     ): CommandOut<
       Arg,
       AEff,

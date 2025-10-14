@@ -1515,21 +1515,15 @@ export type ToCamel<S extends string | number | symbol> = S extends string
   : Uncapitalize<S>
   : never
 
-export interface CommandBase<I extends ReadonlyArray<any>, A = void> {
-  handle: (...input: I) => A
+export interface CommandBase<I = void, A = void> {
+  handle: (input: I) => A
   waiting: boolean
   action: string
   label: string
 }
 
-// export interface Command<I extends ReadonlyArray<any>> extends CommandBase<I, void> {}
-
-export interface EffectCommand<I extends ReadonlyArray<any>, A = unknown, E = unknown>
-  extends CommandBase<I, RuntimeFiber<A, E>>
-{}
-
-export interface UnaryCommand<I, A = unknown, E = unknown> extends CommandBase<[I], RuntimeFiber<A, E>> {}
+export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, RuntimeFiber<A, E>> {}
 
 export interface CommandFromRequest<I extends abstract new(...args: any) => any, A = unknown, E = unknown>
-  extends UnaryCommand<ConstructorParameters<I>[0], A, E>
+  extends EffectCommand<ConstructorParameters<I>[0], A, E>
 {}

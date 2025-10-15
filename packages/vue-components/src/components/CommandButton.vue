@@ -39,7 +39,7 @@ export default {
 </script>
 <template>
   <v-btn
-    v-if="!empty"
+    v-if="command.allowed && !empty"
     v-bind="$attrs"
     :loading="command.waiting"
     :disabled="command.blocked || disabled"
@@ -60,7 +60,7 @@ export default {
     </slot>
   </v-btn>
   <v-btn
-    v-else
+    v-else-if="command.allowed"
     v-bind="$attrs"
     :loading="command.waiting"
     :disabled="command.blocked || disabled"

@@ -1431,7 +1431,18 @@ export class CommanderImpl<RT> {
         // probably could be nice to use a namespaced, computable wait key instead not unlike query invalidation?
         // ["Something.Update", { id }] for instance
         const exec = options?.disableSharedWaiting
-          ? exec_
+          ? Effect
+            .fnUntraced(
+              function*(...args: [any, any]) {
+                registerWait(blockId)
+                return yield* exec_(...args)
+              },
+              Effect.onExit(() =>
+                Effect.sync(() => {
+                  unregisterWait(blockId)
+                })
+              )
+            )
           : Effect
             .fnUntraced(
               function*(...args: [any, any]) {

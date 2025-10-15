@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.88.2
+
+### Patch Changes
+
+- dc13916: fup
+
 ## 2.88.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.88.1
+
+### Patch Changes
+
+- 05525fe: fix: placeholderData support
+
 ## 2.88.0
 
 ### Minor Changes

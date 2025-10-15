@@ -263,8 +263,16 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
+      ]
+      <TData = A>(
+        options?: CustomDefinedPlaceholderQueryOptions<A, E, TData>
+      ): readonly [
+        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<TData>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
+        UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
       ]
       // optional options, optional A
       /**
@@ -273,7 +281,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>): readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A | undefined>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
       ]
     }
@@ -294,7 +302,20 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+        UseQueryReturnType<any, any>
+      ]
+      // required options, with placeholderData
+      /**
+       * Effect results are passed to the caller, including errors.
+       */
+      <TData = A>(
+        arg: Arg | WatchSource<Arg>,
+        options: CustomDefinedPlaceholderQueryOptions<A, KnownFiberFailure<E>, TData>
+      ): readonly [
+        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<TData>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
       ]
       // optional options, optional A
@@ -307,7 +328,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       ): readonly [
         ComputedRef<Result.Result<A, E>>,
         ComputedRef<A | undefined>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
       ]
     }

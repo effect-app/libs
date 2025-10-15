@@ -1,28 +1,70 @@
 <template>
-  <CommandButton :command="cmd" />
-  <CommandButton :command="cmd2" />
+  <v-table>
+    <tr
+      v-for="item of items"
+      :key="item"
+    >
+      <td>{{ item }}</td>
+      <td>
+        <CommandButton :command="updateName(item)" />
+        <CommandButton :command="updateState(item)" />
+        <CommandButton :command="remove(item)" />
+      </td>
+    </tr>
+  </v-table>
 </template>
 <script setup lang="ts">
 import { Effect } from "effect"
 import { CommandButton } from "./components"
-import { Command } from "./helpers"
+import { makeFamily, useCommand } from "./helpers"
 
-const mutation = Object.assign(
+const Command = useCommand({
+  "action.update_thing": "Update Thing{_isLabel, select, true {} other { {item}}}",
+  "action.remove_thing": "Remove Thing{_isLabel, select, true {} other { {item}}}"
+})
+
+const items = [
+  "one",
+  "two"
+]
+
+const updateMutation = Object.assign(
   Effect.fn(function*() {
     yield* Effect.sleep(1000)
   }),
-  { id: "my-mutation" }
+  { id: "update_thing" }
+)
+const removeMutation = Object.assign(
+  Effect.fn(function*() {
+    yield* Effect.sleep(1000)
+  }),
+  { id: "remove_thing" }
 )
 
-const cmd = Command.fn(mutation, { disableSharedWaiting: true })(
-  function*() {
-    yield* mutation()
-  }
+const updateName = makeFamily((item: string) =>
+  Command.fn(updateMutation, { state: () => ({ item }), waitKey: item, blockKey: item })(
+    function*() {
+      yield* updateMutation()
+    },
+    Command.withDefaultToast()
+  )
 )
 
-const cmd2 = Command.fn(mutation, { disableSharedWaiting: true })(
-  function*() {
-    yield* mutation()
-  }
+const updateState = makeFamily((item: string) =>
+  Command.fn(updateMutation, { state: () => ({ item }), waitKey: item, blockKey: item })(
+    function*() {
+      yield* updateMutation()
+    },
+    Command.withDefaultToast()
+  )
+)
+
+const remove = makeFamily((item: string) =>
+  Command.fn(removeMutation, { state: () => ({ item }), waitKey: item, blockKey: item })(
+    function*() {
+      yield* removeMutation()
+    },
+    Command.withDefaultToast()
+  )
 )
 </script>

@@ -10,7 +10,7 @@ import { id, type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { isGeneratorFunction, type YieldWrap } from "effect/Utils"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
-import { computed, type ComputedRef, reactive, ref } from "vue"
+import { computed, type ComputedRef, reactive, ref, watch } from "vue"
 import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
@@ -1467,6 +1467,13 @@ export class CommanderImpl<RT> {
           : computed(() => result.value.waiting || (waitState.value[id] ?? 0) > 0)
 
         const blocked = computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
+        watch(waitState, (waitState) => {
+          console.log(waitState)
+        }, { deep: true })
+
+        watch(blocked, (blocked) => {
+          console.log(blocked)
+        }, { deep: true })
 
         // TODO: allow to influence e.g via role check
         const allowed = true

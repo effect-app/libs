@@ -85,14 +85,7 @@ export interface Store<
   bulkSet: (
     items: NonEmptyReadonlyArray<PM>
   ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
-  /**
-   * Requires the Encoded type, not Id, because various stores may need to calculate e.g partition keys.
-   */
-  remove: (e: Encoded) => Effect.Effect<void>
-  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>) => Effect.Effect<void>
-  // TODO: only accept where filter, nothing else
-  // filterRemove: FilterFunc<Encoded>
-
+  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string | undefined) => Effect.Effect<void>
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
 }
 

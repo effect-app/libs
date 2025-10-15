@@ -251,19 +251,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             captureStackTrace: false,
             attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
           }))
-      ),
-      remove: (e: Encoded) =>
-        Ref
-          .get(store)
-          .pipe(
-            Effect.map((_) => new Map([..._].filter(([_]) => _ !== e[idKey]))),
-            Effect.flatMap((_) => Ref.set(store, _)),
-            withPermit,
-            Effect.withSpan("Memory.remove [effect-app/infra/Store]", {
-              captureStackTrace: false,
-              attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-            })
-          )
+      )
     }
     return s
   })
@@ -316,8 +304,7 @@ export const makeMemoryStore = () => ({
         set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
         batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
         bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
-        batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args)),
-        remove: (...args) => Effect.flatMap(getStore, (_) => _.remove(...args))
+        batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args))
       }
       return s
     })

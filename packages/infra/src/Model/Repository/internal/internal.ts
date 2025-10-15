@@ -193,27 +193,32 @@ export function makeRepoInternal<
           })
 
           const removeAndPublish = Effect.fn("removeAndPublish")(function*(a: Iterable<T>, events: Iterable<Evt> = []) {
-            const { get, set } = yield* cms
+            const { set } = yield* cms
             const it = [...a]
             const evts = [...events]
             yield* Effect.annotateCurrentSpan({ itemIds: it.map((_) => _[idKey]), eventCount: evts.length })
             const items = yield* encodeMany(it).pipe(Effect.orDie)
-            // TODO: we should have a batchRemove on store so the adapter can actually batch...
-            for (const e of items) {
-              yield* store.remove(mapToPersistenceModel(e, get))
-              set(e[idKey], undefined)
-            }
-            yield* Effect
-              .sync(() => toNonEmptyArray(evts))
-              // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
-              .pipe((_) => Effect.flatMapOption(_, pub))
+            if (Array.isNonEmptyReadonlyArray(items)) {
+              yield* store.batchRemove(
+                items.map((_) => (_[idKey])),
+                args.config?.partitionValue?.(items[0])
+              )
+              for (const e of items) {
+                set(e[idKey], undefined)
+              }
+              yield* Effect
+                .sync(() => toNonEmptyArray(evts))
+                // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
+                .pipe((_) => Effect.flatMapOption(_, pub))
 
-            yield* changeFeed.publish([it, "remove"])
+              yield* changeFeed.publish([it, "remove"])
+            }
           })
 
           const removeById = Effect.fn("removeById")(function*(...ids: NonEmptyReadonlyArray<T[IdKey]>) {
             const { set } = yield* cms
             const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_ as any)).pipe(Effect.orDie)
+            yield* Effect.annotateCurrentSpan({ itemIds: eids })
             yield* store.batchRemove(eids)
             for (const id of eids) {
               set(id, undefined)

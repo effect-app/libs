@@ -258,7 +258,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       attributes: { "repository.container_id": containerId, "repository.model_name": name }
                     })
                 ),
-            batchRemove: (ids) =>
+            batchRemove: (ids, partitionKey?: string | undefined) =>
               Effect.promise(() =>
                 execBatch(
                   mutable(ids.map((id) =>
@@ -269,7 +269,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
                     })
                   )),
-                  mainPartitionKey
+                  partitionKey ?? mainPartitionKey
                 )
               ),
             all: Effect
@@ -435,15 +435,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     })
                 ),
             batchSet,
-            bulkSet,
-            remove: (e: Encoded) =>
-              Effect
-                .promise(() => container.item(e[idKey], config?.partitionValue(e)).delete())
-                .pipe(Effect
-                  .withSpan("Cosmos.remove [effect-app/infra/Store]", {
-                    captureStackTrace: false,
-                    attributes: { "repository.container_id": containerId, "repository.model_name": name, id: e[idKey] }
-                  }))
+            bulkSet
           }
 
           // handle mock data

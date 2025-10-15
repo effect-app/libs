@@ -10,7 +10,7 @@ import { id, type RuntimeFiber } from "effect/Fiber"
 import { type NoInfer } from "effect/Types"
 import { isGeneratorFunction, type YieldWrap } from "effect/Utils"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
-import { computed, type ComputedRef, reactive, ref, watch } from "vue"
+import { computed, type ComputedRef, reactive, ref } from "vue"
 import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
@@ -25,9 +25,8 @@ type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefine
    * provided as Command.state tag, so you can access it in the function.
    */
   state?: ComputedRef<State> | (() => State)
-  disableSharedWaiting?: boolean
-  blockKey?: string
-  waitKey?: string
+  blockKey?: (id: string) => string | undefined
+  waitKey?: (id: string) => string | undefined
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -1424,56 +1423,38 @@ export class CommanderImpl<RT> {
             Effect.sync(() => makeContext_())
           )
         )
-        const waitId = options?.waitKey ? `${id}.${options.waitKey}` : id
-        const blockId = options?.blockKey ? `${id}.${options.blockKey}` : id
+        const waitId = options?.waitKey ? options.waitKey(id) : undefined
+        const blockId = options?.blockKey ? options.blockKey(id) : undefined
 
         const [result, exec_] = asResult(theHandler)
         // probably could be nice to use a namespaced, computable wait key instead not unlike query invalidation?
         // ["Something.Update", { id }] for instance
-        const exec = options?.disableSharedWaiting
-          ? Effect
-            .fnUntraced(
-              function*(...args: [any, any]) {
+        const exec = Effect
+          .fnUntraced(
+            function*(...args: [any, any]) {
+              if (waitId) registerWait(waitId)
+              if (blockId && blockId !== waitId) {
                 registerWait(blockId)
-                return yield* exec_(...args)
-              },
-              Effect.onExit(() =>
-                Effect.sync(() => {
+              }
+              return yield* exec_(...args)
+            },
+            Effect.onExit(() =>
+              Effect.sync(() => {
+                if (waitId) unregisterWait(waitId)
+                if (blockId && blockId !== waitId) {
                   unregisterWait(blockId)
-                })
-              )
-            )
-          : Effect
-            .fnUntraced(
-              function*(...args: [any, any]) {
-                registerWait(waitId)
-                if (blockId !== waitId) {
-                  registerWait(blockId)
                 }
-                return yield* exec_(...args)
-              },
-              Effect.onExit(() =>
-                Effect.sync(() => {
-                  unregisterWait(waitId)
-                  if (blockId !== waitId) {
-                    unregisterWait(blockId)
-                  }
-                })
-              )
+              })
             )
+          )
 
-        const waiting = options?.disableSharedWaiting
-          ? computed(() => result.value.waiting)
-          : computed(() => result.value.waiting || (waitState.value[id] ?? 0) > 0)
+        const waiting = waitId
+          ? computed(() => result.value.waiting || (waitState.value[waitId] ?? 0) > 0)
+          : computed(() => result.value.waiting)
 
-        const blocked = computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
-        watch(waitState, (waitState) => {
-          console.log(waitState)
-        }, { deep: true })
-
-        watch(blocked, (blocked) => {
-          console.log(blocked)
-        }, { deep: true })
+        const blocked = blockId
+          ? computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
+          : computed(() => waiting.value)
 
         // TODO: allow to influence e.g via role check
         const allowed = true

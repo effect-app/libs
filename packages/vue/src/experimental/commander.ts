@@ -16,7 +16,7 @@ import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
 
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
-type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefined> = {
+type FnOptions<Id extends string, I18nCustomKey extends string, State extends IntlRecord | undefined> = {
   i18nCustomKey?: I18nCustomKey
   /**
    * passed to the i18n formatMessage calls so you can use it in translation messagee
@@ -25,8 +25,8 @@ type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefine
    * provided as Command.state tag, so you can access it in the function.
    */
   state?: ComputedRef<State> | (() => State)
-  blockKey?: (id: string) => string | undefined
-  waitKey?: (id: string) => string | undefined
+  blockKey?: (id: Id) => string | undefined
+  waitKey?: (id: Id) => string | undefined
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -1287,8 +1287,8 @@ const unregisterWait = (id: string) => {
   }
 }
 
-const getStateValues = <const I18nKey extends string, State extends IntlRecord | undefined>(
-  options?: FnOptions<I18nKey, State>
+const getStateValues = <const Id extends string, const I18nKey extends string, State extends IntlRecord | undefined>(
+  options?: FnOptions<Id, I18nKey, State>
 ): ComputedRef<State> => {
   const state_ = options?.state
   const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function"
@@ -1344,7 +1344,7 @@ export class CommanderImpl<RT> {
     const I18nKey extends string = Id
   >(
     id_: Id | { id: Id },
-    options?: FnOptions<I18nKey, State>,
+    options?: FnOptions<Id, I18nKey, State>,
     errorDef?: Error
   ) => {
     const id = typeof id_ === "string" ? id_ : id_.id
@@ -1629,7 +1629,7 @@ export class CommanderImpl<RT> {
     const I18nKey extends string = Id
   >(
     id: Id | { id: Id },
-    options?: FnOptions<I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State>
   ): Commander.Gen<RT, Id, I18nKey, State> & Commander.NonGen<RT, Id, I18nKey, State> & {
     state: Context.Tag<`Commander.Command.${Id}.state`, State>
   } =>
@@ -1676,7 +1676,7 @@ export class CommanderImpl<RT> {
       | Id
       | { id: Id; mutate: (arg: MutArg) => Effect.Effect<MutA, MutE, MutR> }
       | ((arg: MutArg) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
-    options?: FnOptions<I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State>
   ) =>
     & Commander.CommandContextLocal<Id, I18nKey>
     & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
@@ -1767,7 +1767,7 @@ export class CommanderImpl<RT> {
     mutation:
       | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
       | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
-    options?: FnOptions<I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT, Id, I18nKey, State, Arg, A, E, R> =>
     Object.assign(
       (

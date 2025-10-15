@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
 import { isHttpClientError } from "@effect/platform/HttpClientError"
-import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
 import { type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
@@ -25,26 +25,48 @@ export interface CustomUseQueryOptions<
 > extends
   Omit<
     QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
-    "queryKey" | "queryFn" | "initialData" | "enabled"
+    "queryKey" | "queryFn" | "initialData" | "enabled" | "placeholderData"
   >
 {
   enabled?: MaybeRefOrGetter<boolean | undefined> | (() => Enabled<TQueryFnData, TError, TQueryData, TQueryKey>)
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+type NonFunctionGuard<T> = T extends Function ? never : T
+
 export interface CustomUndefinedInitialQueryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
+  TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey> {
+> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
   initialData?: undefined | InitialDataFunction<NonUndefinedGuard<TQueryFnData>> | NonUndefinedGuard<TQueryFnData>
+  placeholderData?:
+    | undefined
+    | NonFunctionGuard<TQueryData>
+    | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
 }
 export interface CustomDefinedInitialQueryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
+  TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
-> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey> {
+> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
   initialData: NonUndefinedGuard<TQueryFnData> | (() => NonUndefinedGuard<TQueryFnData>)
+}
+
+export interface CustomDefinedPlaceholderQueryOptions<
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData,
+  TQueryData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey
+> extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
+  placeholderData:
+    | NonFunctionGuard<TQueryData>
+    | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
 }
 
 export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
@@ -71,6 +93,16 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       <TData = A>(
         arg?: I | WatchSource<I>,
         options?: CustomDefinedInitialQueryOptions<A, E, TData>
+      ): readonly [
+        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<TData>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
+        UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+      ]
+
+      <TData = A>(
+        arg?: I | WatchSource<I>,
+        options?: CustomDefinedPlaceholderQueryOptions<A, E, TData>
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,

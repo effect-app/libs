@@ -56,7 +56,7 @@ const removeMutation = Object.assign(
 const updateName = makeFamily((item: string) =>
   Command.fn(updateMutation, {
     state: () => ({ item, field: "name" }),
-    waitKey: () => `update_thing.${item}.name`,
+    waitKey: (id) => `${id}.${item}.name`,
     blockKey: () => `modify_thing.${item}`
   })(
     function*() {
@@ -69,7 +69,7 @@ const updateName = makeFamily((item: string) =>
 const updateName2 = makeFamily((item: string) =>
   Command.fn(updateMutation, {
     state: () => ({ item, field: "name" }),
-    waitKey: () => `update_thing.${item}.name`,
+    waitKey: (id) => `${id}.${item}.name`,
     blockKey: () => `modify_thing.${item}`
   })(
     function*() {
@@ -82,7 +82,7 @@ const updateName2 = makeFamily((item: string) =>
 const updateState = makeFamily((item: string) =>
   Command.fn(updateMutation, {
     state: () => ({ item, field: "state" }),
-    waitKey: () => `update_thing.${item}.state`,
+    waitKey: (id) => `${id}.${item}.state`,
     blockKey: () => `modify_thing.${item}`
   })(
     function*() {

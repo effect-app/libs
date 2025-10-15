@@ -1481,6 +1481,8 @@ export type ToCamel<S extends string | number | symbol> = S extends string
 export interface CommandBase<I = void, A = void> {
   handle: (input: I) => A
   waiting: boolean
+  blocked: boolean
+  allowed: boolean
   action: string
   label: string
 }

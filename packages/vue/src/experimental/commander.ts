@@ -26,6 +26,8 @@ type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefine
    */
   state?: ComputedRef<State> | (() => State)
   disableSharedWaiting?: boolean
+  blockKey?: string
+  waitKey?: string
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -143,7 +145,11 @@ export declare namespace Commander {
     /** reactive */
     waiting: boolean
     /** reactive */
-    state: ComputedRef<State>
+    blocked: boolean
+    /** reactive */
+    allowed: boolean
+    /** reactive */
+    state: State
   }
 
   export interface CommandOut<
@@ -1418,6 +1424,8 @@ export class CommanderImpl<RT> {
             Effect.sync(() => makeContext_())
           )
         )
+        const waitId = options?.waitKey ? `${id}.${options.waitKey}` : id
+        const blockId = options?.blockKey ? `${id}.${options.blockKey}` : id
 
         const [result, exec_] = asResult(theHandler)
         // probably could be nice to use a namespaced, computable wait key instead not unlike query invalidation?
@@ -1425,14 +1433,32 @@ export class CommanderImpl<RT> {
         const exec = options?.disableSharedWaiting
           ? exec_
           : Effect
-            .fnUntraced(function*(...args: [any, any]) {
-              registerWait(id)
-              return yield* exec_(...args)
-            }, Effect.onExit(() => Effect.sync(() => unregisterWait(id))))
+            .fnUntraced(
+              function*(...args: [any, any]) {
+                registerWait(waitId)
+                if (blockId !== waitId) {
+                  registerWait(blockId)
+                }
+                return yield* exec_(...args)
+              },
+              Effect.onExit(() =>
+                Effect.sync(() => {
+                  unregisterWait(waitId)
+                  if (blockId !== waitId) {
+                    unregisterWait(blockId)
+                  }
+                })
+              )
+            )
 
         const waiting = options?.disableSharedWaiting
           ? computed(() => result.value.waiting)
           : computed(() => result.value.waiting || (waitState.value[id] ?? 0) > 0)
+
+        const blocked = computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
+
+        // TODO: allow to influence e.g via role check
+        const allowed = true
 
         const handle = Object.assign((arg: Arg) => {
           // we capture the call site stack here
@@ -1502,6 +1528,10 @@ export class CommanderImpl<RT> {
           result,
           /** reactive */
           waiting,
+          /** reactive */
+          blocked,
+          /** reactive */
+          allowed,
           /** reactive */
           action,
           /** reactive */

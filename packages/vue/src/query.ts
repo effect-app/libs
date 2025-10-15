@@ -55,6 +55,11 @@ export interface CustomDefinedInitialQueryOptions<
   TQueryKey extends QueryKey = QueryKey
 > extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
   initialData: NonUndefinedGuard<TQueryFnData> | (() => NonUndefinedGuard<TQueryFnData>)
+  placeholderData?:
+    | undefined
+    | NonFunctionGuard<TQueryData>
+    | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
+    | undefined
 }
 
 export interface CustomDefinedPlaceholderQueryOptions<
@@ -64,6 +69,7 @@ export interface CustomDefinedPlaceholderQueryOptions<
   TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
 > extends CustomUseQueryOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
+  initialData?: NonUndefinedGuard<TQueryFnData> | (() => NonUndefinedGuard<TQueryFnData>) | undefined
   placeholderData:
     | NonFunctionGuard<TQueryData>
     | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
@@ -81,7 +87,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         | RequestHandler<A, E, R, Request, Name>
     ): {
       <TData = A>(
-        arg?: I | WatchSource<I>,
+        arg: I | WatchSource<I> | undefined,
         options?: CustomUndefinedInitialQueryOptions<A, E, TData>
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
@@ -91,8 +97,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       ]
 
       <TData = A>(
-        arg?: I | WatchSource<I>,
-        options?: CustomDefinedInitialQueryOptions<A, E, TData>
+        arg: I | WatchSource<I> | undefined,
+        options: CustomDefinedInitialQueryOptions<A, E, TData>
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,
@@ -101,18 +107,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       ]
 
       <TData = A>(
-        arg?: I | WatchSource<I>,
-        options?: CustomDefinedPlaceholderQueryOptions<A, E, TData>
-      ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
-        ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
-        UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
-      ]
-
-      <TData = A>(
-        arg?: I | WatchSource<I>,
-        options?: CustomUseQueryOptions<A, E, TData>
+        arg: I | WatchSource<I> | undefined,
+        options: CustomDefinedPlaceholderQueryOptions<A, E, TData>
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,
@@ -126,7 +122,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       | RequestHandler<A, E, R, Request, Name>
   ) =>
   <TData = A>(
-    arg?: I | WatchSource<I>,
+    arg: I | WatchSource<I> | undefined,
     // todo QueryKey type would be [string, ...string[]], but with I it would be [string, ...string[], I]
     options?: any
     // TODO
@@ -267,7 +263,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         UseQueryReturnType<any, any>
       ]
       <TData = A>(
-        options?: CustomDefinedPlaceholderQueryOptions<A, E, TData>
+        options: CustomDefinedPlaceholderQueryOptions<A, E, TData>
       ): readonly [
         ComputedRef<Result.Result<TData, E>>,
         ComputedRef<TData>,
@@ -326,8 +322,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
         arg: Arg | WatchSource<Arg>,
         options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
       ): readonly [
-        ComputedRef<Result.Result<A, E>>,
-        ComputedRef<A | undefined>,
+        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<TData | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
       ]

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as Result from "@effect-atom/atom/Result"
-import { type InitialDataFunction, type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
 import { Cause, Effect, Exit, type ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
@@ -20,7 +20,7 @@ import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
 import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res, useMakeMutation } from "./mutate.js"
-import { type CustomDefinedInitialQueryOptions, type CustomUndefinedInitialQueryOptions, type KnownFiberFailure, makeQuery } from "./query.js"
+import { type CustomUndefinedInitialQueryOptions, type KnownFiberFailure, makeQuery } from "./query.js"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -1120,25 +1120,6 @@ export class QueryImpl<R> {
           UseQueryReturnType<any, any>
         ]
       >
-      /**
-       * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-       * which ensures that either there always is a latest value, or an error occurs on load.
-       * So that Suspense and error boundaries can be used.
-       */
-      <TData = A>(
-        options?: CustomDefinedInitialQueryOptions<A, E, TData> & {
-          initialData: TData | InitialDataFunction<TData>
-        }
-      ): Promise<
-        readonly [
-          ComputedRef<Result.Result<TData, E>>,
-          ComputedRef<TData>,
-          (
-            options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
-          UseQueryReturnType<any, any>
-        ]
-      >
     }
     /**
      * The difference with useQuery is that this function will return a Promise you can await in the Setup,
@@ -1154,24 +1135,6 @@ export class QueryImpl<R> {
     >(
       self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
     ): {
-      /**
-       * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-       * which ensures that either there always is a latest value, or an error occurs on load.
-       * So that Suspense and error boundaries can be used.
-       */
-      <TData = A>(
-        arg: Arg | WatchSource<Arg>,
-        options?: CustomDefinedInitialQueryOptions<A, E, TData>
-      ): Promise<
-        readonly [
-          ComputedRef<Result.Result<TData, E>>,
-          ComputedRef<TData>,
-          (
-            options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
-          UseQueryReturnType<any, any>
-        ]
-      >
       /**
        * The difference with useQuery is that this function will return a Promise you can await in the Setup,
        * which ensures that either there always is a latest value, or an error occurs on load.

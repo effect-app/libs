@@ -2,6 +2,39 @@
 import { type Effect } from "effect-app"
 import { Something, useClient, useExperimental } from "./stubs.js"
 
+it.skip("works2", () => {
+  const { legacy } = useClient()
+  const n = legacy.useQuery({
+    Request: null as any,
+    handler: null as any as (a: string) => Effect.Effect<number>,
+    id: "id"
+  })
+
+  const [, z] = n("a")
+  const valz = z.value
+  expectTypeOf(valz).toEqualTypeOf<number | undefined>()
+
+  const [, a] = n("a", { placeholderData: () => 123 })
+  const val1 = a.value
+  expectTypeOf(val1).toEqualTypeOf<number>()
+
+  const [, bbbb] = n("a", { select: (data) => data.toString() })
+  const val = bbbb.value
+  expectTypeOf(val).toEqualTypeOf<string | undefined>()
+
+  const [, ccc] = n("a", { placeholderData: () => 123, select: (data) => data.toString() })
+  const val2 = ccc.value
+  expectTypeOf(val2).toEqualTypeOf<string>()
+
+  const [, ddd] = n("a", { initialData: 123, select: (data) => data.toString() })
+  const val3 = ddd.value
+  expectTypeOf(val3).toEqualTypeOf<string>()
+
+  const [, eee] = n("a", { initialData: 123, placeholderData: () => 123, select: (data) => data.toString() })
+  const val4 = eee.value
+  expectTypeOf(val4).toEqualTypeOf<string>()
+})
+
 it.skip("works", () => {
   const { clientFor, legacy } = useClient()
   const client = clientFor(Something)

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.6.0
+
+### Minor Changes
+
+- 0a739f8: improve: use batch remove also for removeAndPublish. include itemIds in span for batch remove.
+
 ## 3.5.5
 
 ### Patch Changes

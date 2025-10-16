@@ -1,5 +1,5 @@
 {
-  description = "Node 22 + pnpm 10 dev shell";
+  description = "Node 24 + pnpm 10 dev shell";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

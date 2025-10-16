@@ -2,7 +2,7 @@
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Context, Data, Effect, Equal, type Exit, flow, Match, MutableHashMap, Option, Runtime, S } from "effect-app"
+import { Cause, Context, Effect, type Exit, flow, Match, MutableHashMap, Option, Runtime, S, Utils } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
@@ -1261,24 +1261,19 @@ export const CommanderStatic = {
       MutableHashMap.remove(commands, arg)
     })
 
-    return (k: Arg) => {
-      if (Array.isArray(k) && !(Equal.symbol in k)) {
-        k = Data.array(k)
-      }
-      if (typeof k === "object" && k !== null && !(Equal.symbol in k)) {
-        k = Data.struct(k)
-      }
+    return (k: Arg) =>
+      // we want to compare structurally, unless custom equal/hash has been implemented
+      Utils.structuralRegion(() => {
+        const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullable(r.deref())))
+        if (item.value) {
+          return item.value
+        }
+        const v = maker(k)
+        MutableHashMap.set(commands, k, new WeakRef(v))
 
-      const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullable(r.deref())))
-      if (item.value) {
-        return item.value
-      }
-      const v = maker(k)
-      MutableHashMap.set(commands, k, new WeakRef(v))
-
-      registry.register(v, k)
-      return v
-    }
+        registry.register(v, k)
+        return v
+      })
   }
 }
 

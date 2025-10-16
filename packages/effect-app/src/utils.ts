@@ -17,6 +17,8 @@ export * from "./utils/logger.js"
 export * from "./utils/logLevel.js"
 // codegen:end
 
+export * from "effect/Utils"
+
 export const cloneTrait = Symbol.for("clone-trait")
 export interface Clone {
   [cloneTrait](this: this, that: any): this

@@ -1255,15 +1255,19 @@ export const CommanderStatic = {
     }),
 
   /** borrowing the idea from Families in Effect Atom */
-  family: <Arg, T extends object>(maker: (arg: Arg) => T): (arg: Arg) => T => {
+  family: <ArgIn, T extends object, Arg = ArgIn>(
+    maker: (arg: Arg) => T,
+    keyMaker?: (arg: ArgIn) => Arg
+  ): (arg: ArgIn) => T => {
     const commands = MutableHashMap.empty<Arg, WeakRef<T>>()
     const registry = new FinalizationRegistry<Arg>((arg) => {
       MutableHashMap.remove(commands, arg)
     })
 
-    return (k: Arg) =>
+    return (_k: ArgIn) => {
+      const k = keyMaker ? keyMaker(_k) : _k as unknown as Arg
       // we want to compare structurally, unless custom equal/hash has been implemented
-      Utils.structuralRegion(() => {
+      return Utils.structuralRegion(() => {
         const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullable(r.deref())))
         if (item.value) {
           return item.value
@@ -1274,6 +1278,7 @@ export const CommanderStatic = {
         registry.register(v, k)
         return v
       })
+    }
   }
 }
 

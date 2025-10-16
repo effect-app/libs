@@ -16,7 +16,7 @@ import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
 
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
-type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefined> = {
+type FnOptions<Id extends string, I18nCustomKey extends string, State extends IntlRecord | undefined> = {
   i18nCustomKey?: I18nCustomKey
   /**
    * passed to the i18n formatMessage calls so you can use it in translation messagee
@@ -25,7 +25,10 @@ type FnOptions<I18nCustomKey extends string, State extends IntlRecord | undefine
    * provided as Command.state tag, so you can access it in the function.
    */
   state?: ComputedRef<State> | (() => State)
-  disableSharedWaiting?: boolean
+  // TODO: namespaced keys like reactivity keys: ["modify_thing", item], so that one can block also on "modify_thing" *
+  blockKey?: (id: Id) => string | undefined
+  waitKey?: (id: Id) => string | undefined
+  allowed?: (id: Id, state: ComputedRef<State>) => boolean
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -143,7 +146,11 @@ export declare namespace Commander {
     /** reactive */
     waiting: boolean
     /** reactive */
-    state: ComputedRef<State>
+    blocked: boolean
+    /** reactive */
+    allowed: boolean
+    /** reactive */
+    state: State
   }
 
   export interface CommandOut<
@@ -1282,8 +1289,8 @@ const unregisterWait = (id: string) => {
   }
 }
 
-const getStateValues = <const I18nKey extends string, State extends IntlRecord | undefined>(
-  options?: FnOptions<I18nKey, State>
+const getStateValues = <const Id extends string, const I18nKey extends string, State extends IntlRecord | undefined>(
+  options?: FnOptions<Id, I18nKey, State>
 ): ComputedRef<State> => {
   const state_ = options?.state
   const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function"
@@ -1339,7 +1346,7 @@ export class CommanderImpl<RT> {
     const I18nKey extends string = Id
   >(
     id_: Id | { id: Id },
-    options?: FnOptions<I18nKey, State>,
+    options?: FnOptions<Id, I18nKey, State>,
     errorDef?: Error
   ) => {
     const id = typeof id_ === "string" ? id_ : id_.id
@@ -1418,21 +1425,40 @@ export class CommanderImpl<RT> {
             Effect.sync(() => makeContext_())
           )
         )
+        const waitId = options?.waitKey ? options.waitKey(id) : undefined
+        const blockId = options?.blockKey ? options.blockKey(id) : undefined
 
         const [result, exec_] = asResult(theHandler)
-        // probably could be nice to use a namespaced, computable wait key instead not unlike query invalidation?
-        // ["Something.Update", { id }] for instance
-        const exec = options?.disableSharedWaiting
-          ? exec_
-          : Effect
-            .fnUntraced(function*(...args: [any, any]) {
-              registerWait(id)
-              return yield* exec_(...args)
-            }, Effect.onExit(() => Effect.sync(() => unregisterWait(id))))
 
-        const waiting = options?.disableSharedWaiting
-          ? computed(() => result.value.waiting)
-          : computed(() => result.value.waiting || (waitState.value[id] ?? 0) > 0)
+        const exec = Effect
+          .fnUntraced(
+            function*(...args: [any, any]) {
+              if (waitId !== undefined) registerWait(waitId)
+              if (blockId !== undefined && blockId !== waitId) {
+                registerWait(blockId)
+              }
+              return yield* exec_(...args)
+            },
+            Effect.onExit(() =>
+              Effect.sync(() => {
+                if (waitId !== undefined) unregisterWait(waitId)
+                if (blockId !== undefined && blockId !== waitId) {
+                  unregisterWait(blockId)
+                }
+              })
+            )
+          )
+
+        const waiting = waitId !== undefined
+          ? computed(() => result.value.waiting || (waitState.value[waitId] ?? 0) > 0)
+          : computed(() => result.value.waiting)
+
+        const blocked = blockId !== undefined
+          ? computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
+          : computed(() => waiting.value)
+
+        const computeAllowed = options?.allowed
+        const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
 
         const handle = Object.assign((arg: Arg) => {
           // we capture the call site stack here
@@ -1502,6 +1528,10 @@ export class CommanderImpl<RT> {
           result,
           /** reactive */
           waiting,
+          /** reactive */
+          blocked,
+          /** reactive */
+          allowed,
           /** reactive */
           action,
           /** reactive */
@@ -1600,7 +1630,7 @@ export class CommanderImpl<RT> {
     const I18nKey extends string = Id
   >(
     id: Id | { id: Id },
-    options?: FnOptions<I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State>
   ): Commander.Gen<RT, Id, I18nKey, State> & Commander.NonGen<RT, Id, I18nKey, State> & {
     state: Context.Tag<`Commander.Command.${Id}.state`, State>
   } =>
@@ -1647,7 +1677,7 @@ export class CommanderImpl<RT> {
       | Id
       | { id: Id; mutate: (arg: MutArg) => Effect.Effect<MutA, MutE, MutR> }
       | ((arg: MutArg) => Effect.Effect<MutA, MutE, MutR>) & { id: Id },
-    options?: FnOptions<I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State>
   ) =>
     & Commander.CommandContextLocal<Id, I18nKey>
     & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
@@ -1738,7 +1768,7 @@ export class CommanderImpl<RT> {
     mutation:
       | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
       | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
-    options?: FnOptions<I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT, Id, I18nKey, State, Arg, A, E, R> =>
     Object.assign(
       (

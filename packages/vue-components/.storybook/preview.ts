@@ -10,6 +10,11 @@ import { aliases, mdi } from "vuetify/iconsets/mdi-svg"
 import VueHighlightJS from "vue3-highlightjs"
 import "highlight.js/styles/default.css" // Or your preferred theme
 
+import Toast from "vue-toastification"
+
+// Import the CSS or use your own!
+import "vue-toastification/dist/index.css"
+
 const vuetify = createVuetify({
   components,
   directives,
@@ -27,6 +32,7 @@ setup((app) => {
   app.use(vuetify)
   // Register highlight.js
   app.use(VueHighlightJS)
+  app.use("default" in Toast ? (Toast as any).default : Toast, {})
 })
 
 const preview: Preview = {

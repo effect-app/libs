@@ -643,9 +643,6 @@ importers:
       vue3-highlightjs:
         specifier: ^1.0.5
         version: 1.0.5(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
-      vuetify:
-        specifier: ^3.10.3
-        version: 3.10.3(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
     devDependencies:
       '@effect-app/eslint-shared-config':
         specifier: workspace:*
@@ -707,6 +704,9 @@ importers:
       vue-tsc:
         specifier: ^3.1.0
         version: 3.1.0(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))
+      vuetify:
+        specifier: ^3.10.3
+        version: 3.10.3(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))(vue@3.5.22(typescript@5.9.2(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0)))
 
 packages:
 

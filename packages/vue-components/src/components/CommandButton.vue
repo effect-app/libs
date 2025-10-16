@@ -6,10 +6,8 @@
 import type { CommandBase } from "@effect-app/vue"
 import type { VBtn } from "vuetify/components"
 
-type VBtnProps = VBtn["$props"]
-
-/* @vue-ignore */
-interface ButtonProps extends VBtnProps {}
+export type VBtnProps = VBtn["$props"]
+export interface ButtonProps extends /* @vue-ignore */ VBtnProps {}
 
 const props = defineProps<
   & (

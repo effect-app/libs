@@ -2,7 +2,7 @@
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Context, Effect, type Exit, flow, Match, Option, Runtime, S } from "effect-app"
+import { Cause, Context, Data, Effect, Equal, type Exit, flow, Match, MutableHashMap, Option, Runtime, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
@@ -1252,7 +1252,34 @@ export const CommanderStatic = {
             stableToastId
           })(_, ...args)
       )
+    }),
+
+  /** borrowing the idea from Families in Effect Atom */
+  family: <Arg, T extends object>(maker: (arg: Arg) => T): (arg: Arg) => T => {
+    const commands = MutableHashMap.empty<Arg, WeakRef<T>>()
+    const registry = new FinalizationRegistry<Arg>((arg) => {
+      MutableHashMap.remove(commands, arg)
     })
+
+    return (k: Arg) => {
+      if (Array.isArray(k) && !(Equal.symbol in k)) {
+        k = Data.array(k)
+      }
+      if (typeof k === "object" && k !== null && !(Equal.symbol in k)) {
+        k = Data.struct(k)
+      }
+
+      const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullable(r.deref())))
+      if (item.value) {
+        return item.value
+      }
+      const v = maker(k)
+      MutableHashMap.set(commands, k, new WeakRef(v))
+
+      registry.register(v, k)
+      return v
+    }
+  }
 }
 
 const makeBaseInfo = <const Id extends string, const I18nKey extends string = Id>(

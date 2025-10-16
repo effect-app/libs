@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.91.1
+
+### Patch Changes
+
+- e01cd05: support arg maker
+
 ## 2.91.0
 
 ### Minor Changes

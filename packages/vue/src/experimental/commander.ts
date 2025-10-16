@@ -25,6 +25,7 @@ type FnOptions<Id extends string, I18nCustomKey extends string, State extends In
    * provided as Command.state tag, so you can access it in the function.
    */
   state?: ComputedRef<State> | (() => State)
+  // TODO: namespaced keys like reactivity keys: ["modify_thing", item], so that one can block also on "modify_thing" *
   blockKey?: (id: Id) => string | undefined
   waitKey?: (id: Id) => string | undefined
   allowed?: (id: Id, state: ComputedRef<State>) => boolean

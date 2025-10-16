@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.90.0
+
+### Minor Changes
+
+- 7735ca3: feat: add `family` to Command
+
 ## 2.89.0
 
 ### Minor Changes

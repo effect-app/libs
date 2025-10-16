@@ -27,6 +27,7 @@ type FnOptions<Id extends string, I18nCustomKey extends string, State extends In
   state?: ComputedRef<State> | (() => State)
   blockKey?: (id: Id) => string | undefined
   waitKey?: (id: Id) => string | undefined
+  allowed?: (id: Id, state: ComputedRef<State>) => boolean
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -1427,37 +1428,36 @@ export class CommanderImpl<RT> {
         const blockId = options?.blockKey ? options.blockKey(id) : undefined
 
         const [result, exec_] = asResult(theHandler)
-        // probably could be nice to use a namespaced, computable wait key instead not unlike query invalidation?
-        // ["Something.Update", { id }] for instance
+
         const exec = Effect
           .fnUntraced(
             function*(...args: [any, any]) {
-              if (waitId) registerWait(waitId)
-              if (blockId && blockId !== waitId) {
+              if (waitId !== undefined) registerWait(waitId)
+              if (blockId !== undefined && blockId !== waitId) {
                 registerWait(blockId)
               }
               return yield* exec_(...args)
             },
             Effect.onExit(() =>
               Effect.sync(() => {
-                if (waitId) unregisterWait(waitId)
-                if (blockId && blockId !== waitId) {
+                if (waitId !== undefined) unregisterWait(waitId)
+                if (blockId !== undefined && blockId !== waitId) {
                   unregisterWait(blockId)
                 }
               })
             )
           )
 
-        const waiting = waitId
+        const waiting = waitId !== undefined
           ? computed(() => result.value.waiting || (waitState.value[waitId] ?? 0) > 0)
           : computed(() => result.value.waiting)
 
-        const blocked = blockId
+        const blocked = blockId !== undefined
           ? computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
           : computed(() => waiting.value)
 
-        // TODO: allow to influence e.g via role check
-        const allowed = true
+        const computeAllowed = options?.allowed
+        const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
 
         const handle = Object.assign((arg: Arg) => {
           // we capture the call site stack here

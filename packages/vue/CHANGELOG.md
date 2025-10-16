@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.91.0
+
+### Minor Changes
+
+- 23ba90f: improve: compare deep structurally
+
+### Patch Changes
+
+- Updated dependencies [23ba90f]
+  - effect-app@3.12.0
+
 ## 2.90.0
 
 ### Minor Changes

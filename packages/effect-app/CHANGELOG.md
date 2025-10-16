@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.12.0
+
+### Minor Changes
+
+- 23ba90f: improve: compare deep structurally
+
 ## 3.11.0
 
 ### Minor Changes

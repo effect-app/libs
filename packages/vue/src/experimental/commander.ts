@@ -1255,7 +1255,7 @@ export const CommanderStatic = {
     }),
 
   /** borrowing the idea from Families in Effect Atom */
-  family: <ArgIn, T extends object, Arg = ArgIn>(
+  family: <T extends object, Arg, ArgIn = Arg>(
     maker: (arg: Arg) => T,
     keyMaker?: (arg: ArgIn) => Arg
   ): (arg: ArgIn) => T => {

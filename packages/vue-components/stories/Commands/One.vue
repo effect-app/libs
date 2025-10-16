@@ -1,4 +1,7 @@
 <template>
+  <v-btn @click="role = role === 'user' ? 'admin' : 'user'">
+    Switch to {{ role === "user" ? "admin" : "user" }}
+  </v-btn>
   <v-table>
     <tr
       v-for="item of items"
@@ -27,18 +30,21 @@
 </template>
 <script setup lang="ts">
 import { Effect } from "effect"
+import { ref } from "vue"
 import { CommandButton } from "./components"
 import { makeFamily, useCommand } from "./helpers"
 
 const Command = useCommand({
-  "action.update_thing": "Update Thing {field}{_isLabel, select, true {} other { {item}}}",
-  "action.remove_thing": "Remove Thing{_isLabel, select, true {} other { {item}}}"
+  "action.update_thing": "Update {field}{_isLabel, select, true {} other { {item}}}",
+  "action.remove_thing": "Remove {_isLabel, select, true {} other { {item}}}"
 })
 
 const items = [
   "one",
   "two"
 ]
+
+const role = ref<"user" | "admin">("user")
 
 const updateMutation = Object.assign(
   Effect.fn(function*(item: string, props: { name?: string; state?: number }) {
@@ -95,8 +101,9 @@ const updateState = makeFamily((item: string) =>
 const remove = makeFamily((item: string) =>
   Command.fn(removeMutation, {
     state: () => ({ item }),
-    waitKey: () => `remove_thing.${item}`,
-    blockKey: () => `modify_thing.${item}`
+    waitKey: (id) => `${id}.${item}`,
+    blockKey: () => `modify_thing.${item}`,
+    allowed: () => role.value === "admin"
   })(
     function*() {
       yield* removeMutation(item)

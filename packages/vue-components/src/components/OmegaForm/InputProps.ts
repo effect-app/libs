@@ -52,6 +52,6 @@ export type MergedInputProps<From extends Record<PropertyKey, any>, TName extend
 export type VuetifyInputProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
   inputProps: InputProps<From, TName>["inputProps"] & {
     type: string
-    options?: { title: string; value: string }[]
+    options?: { title: string; value: unknown }[]
   }
 } & Pick<InputProps<From, TName>, "field" | "state">

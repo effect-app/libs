@@ -24,7 +24,7 @@ export type DefaultTypeProps = {
   // hence we allow it also for type? (undefined) atm
   options?: {
     title: string
-    value: string
+    value: unknown
   }[]
 }
 

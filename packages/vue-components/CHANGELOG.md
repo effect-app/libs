@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 1.9.5
+
+### Patch Changes
+
+- 8b27e73: relax `value` type constraint
+
 ## 1.9.4
 
 ### Patch Changes

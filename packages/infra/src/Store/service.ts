@@ -85,7 +85,7 @@ export interface Store<
   bulkSet: (
     items: NonEmptyReadonlyArray<PM>
   ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
-  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string | undefined) => Effect.Effect<void>
+  batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void>
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
 }
 

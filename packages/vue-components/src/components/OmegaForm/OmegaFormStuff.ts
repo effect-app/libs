@@ -1,7 +1,7 @@
 import { type Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getMetadataFromSchema } from "@effect-app/vue/form"
-import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
+import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { type RuntimeFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
@@ -60,6 +60,21 @@ export type OmegaInputProps<
     i18nNamespace?: string
   }
 } & BaseProps<From, NestedKeyOf<From>>
+
+export type OmegaArrayProps<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+> =
+  & Omit<
+    OmegaInputProps<From, To>,
+    "validators" | "options" | "label" | "type" | "items" | "name"
+  >
+  & {
+    name: DeepKeys<From>
+    defaultItems?: DeepValue<From, DeepKeys<From>>
+    // deprecated items, caused bugs in state update, use defaultItems instead. It's not a simple Never, because Volar explodes
+    items?: "please use `defaultItems` instead"
+  }
 
 export type TypeOverride =
   | "string"

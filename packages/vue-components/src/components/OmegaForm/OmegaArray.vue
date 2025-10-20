@@ -48,20 +48,11 @@
   To extends Record<PropertyKey, any>
 "
 >
-import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
+import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, onMounted, provide } from "vue"
-import { type OmegaInputProps } from "./OmegaFormStuff"
+import { type OmegaArrayProps } from "./OmegaFormStuff"
 
-const props = defineProps<
-  Omit<
-    OmegaInputProps<From, To>,
-    "validators" | "options" | "label" | "type" | "items"
-  > & {
-    defaultItems?: DeepValue<From, DeepKeys<From>>
-    // deprecated items, caused bugs in state update, use defaultItems instead. It's not a simple Never, because Volar explodes
-    items?: "please use `defaultItems` instead"
-  }
->()
+const props = defineProps<OmegaArrayProps<From, To>>()
 
 defineOptions({
   inheritAttrs: false

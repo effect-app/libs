@@ -4,6 +4,7 @@
   generic="I = never"
 >
 import type { CommandBase } from "@effect-app/vue"
+import { computed } from "vue"
 import type { VBtn } from "vuetify/components"
 
 export type VBtnProps = VBtn["$props"]
@@ -28,6 +29,20 @@ const props = defineProps<
   }
   & ButtonProps
 >()
+
+const isDisabled = computed(() => props.command.blocked || props.disabled)
+
+const handleClick = () => {
+  // Block execution if button is disabled
+  if (isDisabled.value) {
+    return
+  }
+
+  const input = ("input" in props && props.input
+    ? props.input
+    : undefined) as unknown as I
+  ;(props.command.handle as any)(input)
+}
 </script>
 <script lang="ts">
 /** Command Button is an easy way to connect commands and have it execute on click, while keeping track of disabled/loading states automatically */
@@ -40,17 +55,14 @@ export default {
     v-if="command.allowed && !empty"
     v-bind="$attrs"
     :loading="command.waiting"
-    :disabled="command.blocked || disabled"
+    :aria-disabled="isDisabled"
     :title="title ?? command.action"
-    @click="(command.handle as any)(
-      (`input` in props && props.input
-        ? props.input
-        : undefined) as unknown as I
-    )"
+    :class="{ 'v-btn--disabled': isDisabled }"
+    @click="handleClick"
   >
     <slot
       :loading="command.waiting"
-      :disabled="command.blocked || disabled"
+      :disabled="isDisabled"
       :label="command.label"
       :title="title ?? command.action"
     >
@@ -61,12 +73,9 @@ export default {
     v-else-if="command.allowed"
     v-bind="$attrs"
     :loading="command.waiting"
-    :disabled="command.blocked || disabled"
+    :aria-disabled="isDisabled"
     :title="title ?? command.action"
-    @click="(command.handle as any)(
-      (`input` in props && props.input
-        ? props.input
-        : undefined) as unknown as I
-    )"
+    :class="{ 'v-btn--disabled': isDisabled }"
+    @click="handleClick"
   />
 </template>

@@ -258,7 +258,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       attributes: { "repository.container_id": containerId, "repository.model_name": name }
                     })
                 ),
-            batchRemove: (ids, partitionKey?: string | undefined) =>
+            batchRemove: (ids, partitionKey?: string) =>
               Effect.promise(() =>
                 execBatch(
                   mutable(ids.map((id) =>

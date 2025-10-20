@@ -59,7 +59,6 @@ export interface CustomDefinedInitialQueryOptions<
     | undefined
     | NonFunctionGuard<TQueryData>
     | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
-    | undefined
 }
 
 export interface CustomDefinedPlaceholderQueryOptions<

@@ -234,10 +234,14 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & (Omit<OmegaInputProps<From, To>, "validators" | "options" | "label" | "type" | "items" | "form"> & {
-            defaultItems?: DeepValue<From, DeepKeys<From>>
-            items?: "please use `defaultItems` instead"
-          })
+          & (
+            & Omit<OmegaInputProps<From, To>, "validators" | "options" | "label" | "type" | "items" | "form" | "name">
+            & {
+              name: DeepKeys<From>
+              defaultItems?: DeepValue<From, DeepKeys<From>>
+              items?: "please use `defaultItems` instead"
+            }
+          )
           & {}
         >
         & import("vue").PublicProps

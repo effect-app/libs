@@ -15,7 +15,6 @@ import FormInputComponent from "./OmegaForm/form.Input.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
-import OneHundredWaysToWriteAFormComponent from "./OmegaForm/OneHundredWaysToWriteAForm.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
 import SetErrorOnSubmitComponent from "./OmegaForm/SetErrorOnSubmit.vue"
@@ -24,6 +23,7 @@ import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefa
 import SumExampleComponent from "./OmegaForm/SumExample.vue"
 import TanstackComponent from "./OmegaForm/Tanstack.vue"
 import UnionComponent from "./OmegaForm/Union.vue"
+import UsingOmegaFormComponent from "./OmegaForm/UsingOmegaForm.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -54,10 +54,10 @@ const meta: StoryMeta<typeof OmegaForm> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const AnHundredWayToWriteAForm: Story = {
+export const UsingOmegaForm: Story = {
   render: () => ({
-    components: { OneHundredWaysToWriteAFormComponent },
-    template: "<OneHundredWaysToWriteAFormComponent />"
+    components: { UsingOmegaFormComponent },
+    template: "<UsingOmegaFormComponent />"
   })
 }
 

@@ -262,7 +262,7 @@ it.live("can receive and use input", () =>
       const r = yield* unwrap(command.handle(1))
 
       expect(r.input1).toBe(1) // to confirm that the initial function has ran and received input.
-      const { handle, result, waiting, ...rest } = command
+      const { allowed, blocked, handle, result, waiting, ...rest } = command
       const ctx = { ...rest, state: undefined }
       expect(JSON.stringify(r.input2)).equal(JSON.stringify(ctx))
       expect(executed).toBe(true) // to confirm that the combinators have ran.
@@ -565,7 +565,7 @@ it.live("can receive and use input with alt", () =>
       )
       const r = yield* unwrap(command.handle(1))
 
-      const { handle, result, waiting, ...rest } = command
+      const { allowed, blocked, handle, result, waiting, ...rest } = command
       const ctx = { ...rest, state: undefined }
       expect(r.input1).toBe(1)
       expect(JSON.stringify(r.input2)).equal(JSON.stringify(ctx)) // to confirm that the initial function has ran and received input.

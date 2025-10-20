@@ -12,7 +12,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, OmegaInputProps } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
@@ -234,10 +234,7 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & (Omit<OmegaInputProps<From, To>, "validators" | "options" | "label" | "type" | "items" | "form"> & {
-            defaultItems?: DeepValue<From, DeepKeys<From>>
-            items?: "please use `defaultItems` instead"
-          })
+          & (OmegaArrayProps<From, To>)
           & {}
         >
         & import("vue").PublicProps

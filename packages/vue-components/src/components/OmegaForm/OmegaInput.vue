@@ -34,12 +34,16 @@
   To extends Record<PropertyKey, any>
 "
 >
+import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, inject, type Ref } from "vue"
 import { useIntl } from "../../utils"
 import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 
 const props = defineProps<OmegaInputPropsBase<From, To>>()
+
+// downgrade to DeepKeys<From> to avoid useless and possible infinite recursion in TS
+const propsName: Ref<DeepKeys<From>> = computed(() => props.name)
 
 defineOptions({
   inheritAttrs: false
@@ -52,9 +56,9 @@ const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
 
 const meta = computed(() => {
   if (getMetaFromArray?.value && getMetaFromArray.value(props.name)) {
-    return getMetaFromArray.value(props.name)
+    return getMetaFromArray.value(propsName.value)
   }
-  return props.form.meta[props.name]
+  return props.form.meta[propsName.value]
 })
 
 const schema = computed(() => {
@@ -72,9 +76,9 @@ const humanize = (str: string) => {
     .replace(/^./, (char) => char.toUpperCase()) // Capitalize the first letter
     .trim() // Remove leading/trailing spaces
 }
-const fallback = () => formatMessage({ id: `general.fields.${props.name}`, defaultMessage: humanize(props.name) })
+const fallback = () => formatMessage({ id: `general.fields.${propsName.value}`, defaultMessage: humanize(props.name) })
 const i18n = () =>
   props.form.i18nNamespace
-    ? formatMessage({ id: `${props.form.i18nNamespace}.fields.${props.name}`, defaultMessage: fallback() })
+    ? formatMessage({ id: `${props.form.i18nNamespace}.fields.${propsName.value}`, defaultMessage: fallback() })
     : fallback()
 </script>

@@ -1,17 +1,29 @@
 import { type Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getMetadataFromSchema } from "@effect-app/vue/form"
-import { type DeepKeys, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
+import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { type RuntimeFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-export type BaseProps<From, TName extends DeepKeys<From>> = {
+type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U> ? Leaves<U, `${Path}[number]`> & {}
+  : {
+    [K in keyof T]: T[K] extends string | boolean | number | null | undefined | symbol | bigint
+      ? `${Path extends "" ? "" : `${Path}.`}${K & string}`
+      : Leaves<T[K], `${Path extends "" ? "" : `${Path}.`}${K & string}`> & {}
+  }[keyof T]
+
+// Helper type to make array indices flexible - accepts both [number] and numeric literals [0], [1], etc.
+type FlexibleArrayPath<T extends string> = T extends `${infer Before}[number]${infer After}`
+  ? T | `${Before}[${number}]${FlexibleArrayPath<After>}`
+  : T
+
+export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
   /** Will fallback to i18n when not specified */
   label?: string
   validators?: FieldValidators<From>
-  name: TName
+  name: TName & FlexibleArrayPath<Leaves<From>>
 }
 
 export type TypesWithOptions = "radio" | "select" | "multiple" | "autocomplete" | "autocompletemultiple"
@@ -48,6 +60,21 @@ export type OmegaInputProps<
     i18nNamespace?: string
   }
 } & BaseProps<From, NestedKeyOf<From>>
+
+export type OmegaArrayProps<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>
+> =
+  & Omit<
+    OmegaInputProps<From, To>,
+    "validators" | "options" | "label" | "type" | "items" | "name"
+  >
+  & {
+    name: DeepKeys<From>
+    defaultItems?: DeepValue<From, DeepKeys<From>>
+    // deprecated items, caused bugs in state update, use defaultItems instead. It's not a simple Never, because Volar explodes
+    items?: "please use `defaultItems` instead"
+  }
 
 export type TypeOverride =
   | "string"

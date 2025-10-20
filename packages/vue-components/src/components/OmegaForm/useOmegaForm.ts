@@ -234,7 +234,7 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & (OmegaArrayProps<From, To>)
+          & (Omit<OmegaArrayProps<From, To>, "form">)
           & {}
         >
         & import("vue").PublicProps

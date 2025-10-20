@@ -7,11 +7,19 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-export type BaseProps<From, TName extends DeepKeys<From>> = {
+type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U>
+  ? Leaves<U, `${Path extends "" ? "" : `${Path}`}[number]`> & {}
+  : {
+    [K in keyof T]: T[K] extends string | boolean | number | null | undefined | symbol | bigint
+      ? `${Path extends "" ? "" : `${Path}.`}${K & string}`
+      : Leaves<T[K], `${Path extends "" ? "" : `${Path}.`}${K & string}`> & {}
+  }[keyof T]
+
+export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
   /** Will fallback to i18n when not specified */
   label?: string
   validators?: FieldValidators<From>
-  name: TName
+  name: TName & Leaves<From>
 }
 
 export type TypesWithOptions = "radio" | "select" | "multiple" | "autocomplete" | "autocompletemultiple"

@@ -60,10 +60,7 @@
 import { S } from "effect-app"
 import { ref } from "vue"
 import Dialog from "../../src/components/Dialog.vue"
-import { provideBus } from "../../src/components/OmegaForm/blockDialog"
 import { useOmegaForm } from "../../src/components/OmegaForm/useOmegaForm"
-
-provideBus()
 
 const open = ref(false)
 const form = useOmegaForm(

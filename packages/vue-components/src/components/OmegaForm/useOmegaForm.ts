@@ -129,6 +129,7 @@ export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   clear: () => void
   i18nNamespace?: string
+  ignorePreventCloseEvents?: boolean
   registerField: (
     field: ComputedRef<{
       name: string
@@ -870,6 +871,7 @@ export const useOmegaForm = <
 
   const formWithExtras: OF<From, To> = Object.assign(form, {
     i18nNamespace: omegaConfig?.i18nNamespace,
+    ignorePreventCloseEvents: omegaConfig?.ignorePreventCloseEvents,
     meta,
     clear,
     handleSubmit: (meta?: Record<string, any>) => {
@@ -885,10 +887,6 @@ export const useOmegaForm = <
   })
 
   const errorContext = { form: formWithExtras, fieldMap }
-
-  if (!omegaConfig?.ignorePreventCloseEvents) {
-    usePreventClose(() => formWithExtras.useStore((state) => state.isDirty))
-  }
 
   return Object.assign(formWithExtras, {
     errorContext,

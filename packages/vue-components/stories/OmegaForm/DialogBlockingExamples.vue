@@ -21,22 +21,16 @@
             <v-card max-width="600">
               <v-card-title class="d-flex justify-space-between align-center">
                 Edit User
-                <v-btn
-                  icon="mdi-close"
-                  variant="text"
-                  size="small"
-                  @click="cancel"
-                />
               </v-card-title>
               <v-card-text>
-                <form.Form>
+                <form.Form id="my-form">
                   <form.Input
                     label="Name"
                     name="name"
                   />
                   <form.Input
-                    label="Email"
-                    name="email"
+                    label="Mimmo"
+                    name="mimmo"
                   />
                 </form.Form>
               </v-card-text>
@@ -46,6 +40,13 @@
                   @click="cancel"
                 >
                   Cancel
+                </v-btn>
+                <v-btn
+                  active
+                  type="submit"
+                  form="my-form"
+                >
+                  submit
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -64,7 +65,12 @@ import { useOmegaForm } from "../../src/components/OmegaForm/useOmegaForm"
 
 const open = ref(false)
 const form = useOmegaForm(
-  S.Struct({ name: S.String, email: S.String }),
-  { defaultValues: { name: "", email: "" } }
+  S.Struct({ name: S.NonEmptyString, mimmo: S.NonEmptyString }),
+  {
+    onSubmit: async ({ value }) => {
+      console.log(value)
+      open.value = false
+    }
+  }
 )
 </script>

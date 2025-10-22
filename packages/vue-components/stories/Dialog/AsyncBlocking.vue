@@ -4,7 +4,8 @@
       Async Blocking with Custom Modal
     </h2>
     <p class="mb-4">
-      Demonstrates <code>injectBus()</code> and <code>evt.prevent = Promise&lt;boolean&gt;</code> to use a custom modal instead of native confirm.
+      Demonstrates <code>injectBus()</code> and <code>evt.prevent = Promise&lt;boolean&gt;</code> to use a custom modal
+      instead of native confirm.
     </p>
 
     <v-btn @click="open = true">

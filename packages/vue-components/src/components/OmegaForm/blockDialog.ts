@@ -35,7 +35,12 @@ export const usePreventClose = (mkIsDirty: () => Ref<boolean>) => {
 }
 
 export const useOnClose = (close: () => void) => {
-  const bus = provideBus()
+  // Use existing bus if available, otherwise provide a new one
+  let bus = injectBus()
+  if (!bus) {
+    bus = provideBus()
+  }
+
   const onClose = () => {
     const evt: DialogClosing = {}
     bus.emit("dialog-closing", evt)

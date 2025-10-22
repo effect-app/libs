@@ -14,7 +14,7 @@
     <!-- pass down slots -->
     <!-- @vue-skip -->
     <template
-      v-for="(_, name) in $slots"
+      v-for="(_, name) in otherSlots"
       #[name]="slotData"
     >
       <slot
@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, useSlots } from "vue"
 import { useOnClose } from "./OmegaForm/blockDialog"
 import { onMountedWithCleanup } from "./OmegaForm/onMountedWithCleanup"
 
@@ -35,7 +36,15 @@ const props = defineProps<{
 
 const open = defineModel<boolean>({ default: false })
 
-const onCancel = useOnClose(() => open.value = false)
+const slots = useSlots()
+const otherSlots = computed(() => {
+  const { default: _, ...rest } = slots
+  return rest
+})
+
+const onCancel = useOnClose(() => {
+  return open.value = false
+})
 
 onMountedWithCleanup(() => {
   const onEscape = (e: KeyboardEvent) => {

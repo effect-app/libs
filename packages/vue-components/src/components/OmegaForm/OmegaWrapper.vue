@@ -30,6 +30,8 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useStore } from "@tanstack/vue-form"
+import { defineSlots } from "vue"
+import { usePreventClose } from "./blockDialog"
 import { getOmegaStore } from "./getOmegaStore"
 import { type DefaultTypeProps, type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"
 import { type OmegaFormReturn } from "./useOmegaForm"
@@ -51,6 +53,13 @@ const subscribedValues = getOmegaStore(
   props.form as unknown as OmegaFormApi<From, To>,
   props.subscribe
 )
+
+if (!props.form.ignorePreventCloseEvents) {
+  console.log(props.form.ignorePreventCloseEvents)
+  usePreventClose(() => {
+    return props.form.useStore((state) => state.isDirty)
+  })
+}
 
 defineSlots<{
   default(props: { subscribedValues: typeof subscribedValues.value }): void

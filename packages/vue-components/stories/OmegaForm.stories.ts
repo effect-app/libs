@@ -10,6 +10,7 @@ import ClearableComponent from "./OmegaForm/Clearable.vue"
 import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
 import CreateUseFormWithCustomInputComponent from "./OmegaForm/CreateUseFormWithCustomInput.vue"
 import DateComponent from "./OmegaForm/Date.vue"
+import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
@@ -197,5 +198,12 @@ export const SetErrorOnSubmit: Story = {
   render: () => ({
     components: { SetErrorOnSubmitComponent },
     template: "<SetErrorOnSubmitComponent />"
+  })
+}
+
+export const DialogBlockingExamples: Story = {
+  render: () => ({
+    components: { DialogBlockingExamplesComponent },
+    template: "<DialogBlockingExamplesComponent />"
   })
 }

@@ -4,7 +4,8 @@
       Upload Progress Blocking
     </h2>
     <p class="mb-4">
-      Demonstrates <code>injectBus()</code> and <code>evt.prevent = true</code> to conditionally block based on operation state.
+      Demonstrates <code>injectBus()</code> and <code>evt.prevent = true</code> to conditionally block based on
+      operation state.
     </p>
 
     <v-btn @click="open = true">

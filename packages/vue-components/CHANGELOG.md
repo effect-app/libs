@@ -1,5 +1,22 @@
 # @effect-app/vue-components
 
+## 2.0.0
+
+### Major Changes
+
+- e2fcd88: Adds A11y support to CommandButton
+
+### Minor Changes
+
+- 4ba3412: Improves type handling for Input Props Name, that now only accept leaves schema values and not every valid key of the schema
+
+### Patch Changes
+
+- 1cdad3e: Fixes extraneous prop in Omega.Array
+- 757324c: Fixes nullable nested unions meta creation
+- 4275f90: Adds required prop to omegaInput to force UI and add possibility to manually manage it
+- 065355d: Moves modal state to Form component
+
 ## 1.9.5
 
 ### Patch Changes

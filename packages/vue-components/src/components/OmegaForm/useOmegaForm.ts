@@ -121,6 +121,16 @@ export type OmegaConfig<T> = {
 
   ignorePreventCloseEvents?: boolean
 
+  /**
+   * Prevents browser window/tab exit when form has unsaved changes.
+   * Shows native browser "Leave site?" dialog.
+   *
+   * @remarks
+   * - Opt-in only: Must explicitly enable
+   * - Independent from data persistence feature
+   */
+  preventWindowExit?: "prevent" | "prevent-and-reset" | "nope"
+
   input?: any
 }
 
@@ -829,15 +839,27 @@ export const useOmegaForm = <
     }
   }
 
+  const preventWindowExit = (e: BeforeUnloadEvent) => {
+    if (form.store.state.isDirty) {
+      e.preventDefault()
+    }
+  }
+
   onUnmounted(persistData)
 
   onMounted(() => {
     window.addEventListener("beforeunload", persistData)
     window.addEventListener("blur", saveDataInUrl)
+    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
+      window.addEventListener("beforeunload", preventWindowExit)
+    }
   })
   onBeforeUnmount(() => {
     window.removeEventListener("beforeunload", persistData)
     window.removeEventListener("blur", saveDataInUrl)
+    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
+      window.removeEventListener("beforeunload", preventWindowExit)
+    }
   })
 
   const handleSubmitEffect_ = (meta?: Record<string, any>) =>

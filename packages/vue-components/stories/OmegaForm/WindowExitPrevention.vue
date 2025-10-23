@@ -153,25 +153,26 @@
       </v-card-text>
     </v-card>
 
-    <!-- Example 3: Disabled Prevention -->
+    <!-- Example 3: Prevent and Reset -->
     <v-card>
-      <v-card-title>Example 3: Without Prevention (Default Behavior)</v-card-title>
+      <v-card-title>Example 3: Prevent and Auto-Reset After Submit</v-card-title>
       <v-card-text>
         <p class="mb-4">
-          This form has window exit prevention <strong>disabled</strong> (the default). You can refresh or close the tab
-          freely, even with unsaved changes.
+          This form uses <strong>prevent-and-reset</strong> mode. It prevents accidental navigation when dirty, but
+          automatically resets after successful submission.
         </p>
 
         <v-alert
-          type="info"
+          type="success"
           class="mb-4"
         >
-          Window exit prevention is opt-in only. Forms without the config can be exited freely.
+          After submitting, the form becomes "clean" (isDirty = false) but keeps the submitted values. You can refresh
+          without warnings!
         </v-alert>
 
         <preventAndReset.Form>
           <div class="mb-2">
-            isDirty: <strong>{{ isDirtyNoPrevention }}</strong>
+            isDirty: <strong>{{ isDirtyPreventAndReset }}</strong>
           </div>
           <preventAndReset.Input
             label="Comment"
@@ -200,7 +201,8 @@
         </preventAndReset.Form>
 
         <p class="mt-4 text-caption">
-          Try refreshing the page - no warning will appear even if the form is dirty.
+          <strong>Try this:</strong> Edit the form → see isDirty = true → try to refresh (warning appears) → submit →
+          isDirty becomes false → refresh again (no warning!)
         </p>
       </v-card-text>
     </v-card>
@@ -258,7 +260,7 @@ const persistentForm = useOmegaForm(
 )
 const isDirtyPersistent = persistentForm.useStore((_) => _.isDirty)
 
-// Example 3: No prevention (default behavior)
+// Example 3: Prevent and reset after successful submission
 const preventAndReset = useOmegaForm(
   S.Struct({
     comment: S.String,
@@ -267,14 +269,14 @@ const preventAndReset = useOmegaForm(
   {
     defaultValues: { comment: "", rating: 5 },
     onSubmit: async ({ value }) => {
-      console.log("No prevention form submitted:", value)
+      console.log("Prevent and reset form submitted:", value)
       await new Promise((resolve) => setTimeout(resolve, 500))
-      alert("Submitted!")
+      alert("Submitted! The form is now clean but keeps the submitted values.")
     }
   },
   {
     preventWindowExit: "prevent-and-reset"
   }
 )
-const isDirtyNoPrevention = preventAndReset.useStore((_) => _.isDirty)
+const isDirtyPreventAndReset = preventAndReset.useStore((_) => _.isDirty)
 </script>

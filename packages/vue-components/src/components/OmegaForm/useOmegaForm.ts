@@ -862,6 +862,24 @@ export const useOmegaForm = <
     }
   })
 
+  // Watch for successful form submissions and auto-reset if prevent-and-reset is enabled
+  // We put it as a side effect, so we don't overwhelm submit handler and we can support
+  // effects submission more freely
+  if (omegaConfig?.preventWindowExit === "prevent-and-reset") {
+    const isSubmitting = form.useStore((state) => state.isSubmitting)
+    const submissionAttempts = form.useStore((state) => state.submissionAttempts)
+    const canSubmit = form.useStore((state) => state.canSubmit)
+    const values = form.useStore((state) => state.values)
+
+    watch([isSubmitting, submissionAttempts], ([currentlySubmitting, attempts], [wasSubmitting]) => {
+      // Detect successful submission: was submitting, now not submitting, and submission count increased
+      if (wasSubmitting && !currentlySubmitting && attempts > 0 && canSubmit.value) {
+        // Reset with current values to mark them as the new baseline
+        form.reset(values.value)
+      }
+    })
+  }
+
   const handleSubmitEffect_ = (meta?: Record<string, any>) =>
     Effect.currentSpan.pipe(
       Effect.option,

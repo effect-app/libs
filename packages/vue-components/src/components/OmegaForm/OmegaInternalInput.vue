@@ -24,25 +24,36 @@ defineOptions({
   inheritAttrs: false
 })
 
-const props = defineProps<{
-  field: OmegaFieldInternalApi<From, Name>
-  state: OmegaFieldInternalApi<From, Name>["state"]
-  meta: MetaRecord<From>[NestedKeyOf<From>]
-  label: string
-  type?: TypeOverride
-  validators?: FieldValidators<From>
+const props = withDefaults(
+  defineProps<{
+    field: OmegaFieldInternalApi<From, Name>
+    state: OmegaFieldInternalApi<From, Name>["state"]
+    meta: MetaRecord<From>[NestedKeyOf<From>]
+    label: string
+    type?: TypeOverride
+    validators?: FieldValidators<From>
+    required?: boolean
 
-  register: (
-    field: ComputedRef<{
-      name: string
-      label: string
-      id: string
-    }>
-  ) => void
+    register: (
+      field: ComputedRef<{
+        name: string
+        label: string
+        id: string
+      }>
+    ) => void
 
-  // TODO: these should really be optional, depending on the input type (and the custom input type for custom inputs :s)
-  options?: { title: string; value: string }[]
-}>()
+    // TODO: these should really be optional, depending on the input type (and the custom input type for custom inputs :s)
+    options?: { title: string; value: string }[]
+  }>(),
+  {
+    required: undefined,
+    type: undefined,
+    options: undefined,
+    validators: undefined
+  }
+)
+
+const isRequired = computed(() => props.required ?? props?.meta?.required)
 
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VTextField"]
@@ -99,7 +110,7 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
 onMounted(() => {
   if (
     !fieldValue.value
-    && !props.meta?.required
+    && !isRequired.value
     && props.meta?.nullableOrUndefined === "null"
   ) {
     const isDirty = fieldState.value.meta.isDirty
@@ -126,7 +137,7 @@ const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
 const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
   inputProps: {
     id,
-    required: props.meta?.required,
+    required: isRequired.value,
     minLength: props.meta?.type === "string" && props.meta?.minLength,
     maxLength: props.meta?.type === "string" && props.meta?.maxLength,
     max: props.meta?.type === "number" && props.meta?.maximum,
@@ -134,7 +145,7 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     errorMessages: errors.value,
     error: !!errors.value.length,
     type: fieldType.value,
-    label: `${props.label}${props.meta?.required ? " *" : ""}`,
+    label: `${props.label}${isRequired.value ? " *" : ""}`,
     options: props.options
   },
 

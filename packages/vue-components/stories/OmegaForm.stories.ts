@@ -25,6 +25,7 @@ import SumExampleComponent from "./OmegaForm/SumExample.vue"
 import TanstackComponent from "./OmegaForm/Tanstack.vue"
 import UnionComponent from "./OmegaForm/Union.vue"
 import UsingOmegaFormComponent from "./OmegaForm/UsingOmegaForm.vue"
+import WindowExitPreventionComponent from "./OmegaForm/WindowExitPrevention.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -205,5 +206,12 @@ export const DialogBlockingExamples: Story = {
   render: () => ({
     components: { DialogBlockingExamplesComponent },
     template: "<DialogBlockingExamplesComponent />"
+  })
+}
+
+export const WindowExitPrevention: Story = {
+  render: () => ({
+    components: { WindowExitPreventionComponent },
+    template: "<WindowExitPreventionComponent />"
   })
 }

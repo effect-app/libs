@@ -121,6 +121,16 @@ export type OmegaConfig<T> = {
 
   ignorePreventCloseEvents?: boolean
 
+  /**
+   * Prevents browser window/tab exit when form has unsaved changes.
+   * Shows native browser "Leave site?" dialog.
+   *
+   * @remarks
+   * - Opt-in only: Must explicitly enable
+   * - Independent from data persistence feature
+   */
+  preventWindowExit?: "prevent" | "prevent-and-reset" | "nope"
+
   input?: any
 }
 
@@ -829,16 +839,46 @@ export const useOmegaForm = <
     }
   }
 
+  const preventWindowExit = (e: BeforeUnloadEvent) => {
+    if (form.store.state.isDirty) {
+      e.preventDefault()
+    }
+  }
+
   onUnmounted(persistData)
 
   onMounted(() => {
     window.addEventListener("beforeunload", persistData)
     window.addEventListener("blur", saveDataInUrl)
+    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
+      window.addEventListener("beforeunload", preventWindowExit)
+    }
   })
   onBeforeUnmount(() => {
     window.removeEventListener("beforeunload", persistData)
     window.removeEventListener("blur", saveDataInUrl)
+    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
+      window.removeEventListener("beforeunload", preventWindowExit)
+    }
   })
+
+  // Watch for successful form submissions and auto-reset if prevent-and-reset is enabled
+  // We put it as a side effect, so we don't overwhelm submit handler and we can support
+  // effects submission more freely
+  if (omegaConfig?.preventWindowExit === "prevent-and-reset") {
+    const isSubmitting = form.useStore((state) => state.isSubmitting)
+    const submissionAttempts = form.useStore((state) => state.submissionAttempts)
+    const canSubmit = form.useStore((state) => state.canSubmit)
+    const values = form.useStore((state) => state.values)
+
+    watch([isSubmitting, submissionAttempts], ([currentlySubmitting, attempts], [wasSubmitting]) => {
+      // Detect successful submission: was submitting, now not submitting, and submission count increased
+      if (wasSubmitting && !currentlySubmitting && attempts > 0 && canSubmit.value) {
+        // Reset with current values to mark them as the new baseline
+        form.reset(values.value)
+      }
+    })
+  }
 
   const handleSubmitEffect_ = (meta?: Record<string, any>) =>
     Effect.currentSpan.pipe(

@@ -304,6 +304,21 @@ const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
   return false
 }
 
+// Helper function to recursively unwrap nested unions (e.g., S.NullOr(S.NullOr(X)) -> X)
+const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] => {
+  const result: S.AST.AST[] = []
+  for (const type of types) {
+    if (S.AST.isUnion(type)) {
+      // Recursively unwrap nested unions
+      const unwrapped = unwrapNestedUnions(type.types)
+      result.push(...unwrapped)
+    } else {
+      result.push(type)
+    }
+  }
+  return result
+}
+
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
   acc: Partial<MetaRecord<T>> = {}
@@ -333,9 +348,9 @@ export const createMeta = <T = any>(
 
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
-        const nonNullTypes = p
-          .type
-          .types
+        // First unwrap any nested unions, then filter out null/undefined
+        const unwrappedTypes = unwrapNestedUnions(p.type.types)
+        const nonNullTypes = unwrappedTypes
           .filter(
             (t) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
           )
@@ -548,7 +563,9 @@ export const createMeta = <T = any>(
     }
 
     if (S.AST.isUnion(property)) {
-      const nonNullType = property.types.find(
+      // First unwrap any nested unions, then filter out null/undefined
+      const unwrappedTypes = unwrapNestedUnions(property.types)
+      const nonNullType = unwrappedTypes.find(
         (t) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast
       )!
 
@@ -560,11 +577,11 @@ export const createMeta = <T = any>(
         })
       }
 
-      if (property.types.every(S.AST.isLiteral)) {
+      if (unwrappedTypes.every(S.AST.isLiteral)) {
         return {
           ...meta,
           type: "select",
-          members: property.types.map((t) => t.literal)
+          members: unwrappedTypes.map((t) => t.literal)
         } as FieldMeta
       }
 

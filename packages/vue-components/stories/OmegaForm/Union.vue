@@ -5,22 +5,32 @@
         label="title"
         name="title"
       />
-      <form.Input
+      <form.Field
         label="union"
-        name="union._tag"
-        type="select"
-        :options="[
-          { title: 'A', value: 'A' },
-          { title: 'B', value: 'B' }
-        ]"
-      />
+        name="union"
+      >
+        <template #default="{ state, field }">
+          <v-select
+            :model-value="state.value?._tag ?? null"
+            :items="[
+              { title: 'None', value: null },
+              { title: 'A', value: 'A' },
+              { title: 'B', value: 'B' }
+            ]"
+            @update:model-value="(v) =>
+            field.handleChange(
+              v === null ? null : v === 'A' ? { _tag: 'A', a: '' } : { _tag: 'B', b: 0 }
+            )"
+          />
+        </template>
+      </form.Field>
       <form.Input
-        v-if="values.union._tag === 'A'"
+        v-if="values.union?._tag === 'A'"
         label="union a value"
         name="union.a"
       />
       <form.Input
-        v-else
+        v-else-if="values.union?._tag === 'B'"
         label="union b value"
         name="union.b"
       />
@@ -45,8 +55,8 @@ class B extends S.TaggedClass<B>()("B", {
 }) {}
 const schema = S
   .Struct({
-    title: S.String,
-    union: S.Union(A, B)
+    title: S.NonEmptyString,
+    union: S.NullOr(S.Union(A, B))
   })
 
 const defaultValues: typeof schema.Encoded = {
@@ -69,7 +79,7 @@ const form = useOmegaForm(schema, {
 // sadly doesn't help :S
 const values = form.useStore((_) => _.values)
 watch(values, (cur, prev) => {
-  if (cur.union._tag !== prev.union._tag) {
+  if (cur.union?._tag !== prev.union?._tag) {
     console.log("resetting form")
     form.reset(cur)
   }

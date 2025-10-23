@@ -55,7 +55,6 @@ const subscribedValues = getOmegaStore(
 )
 
 if (!props.form.ignorePreventCloseEvents) {
-  console.log(props.form.ignorePreventCloseEvents)
   usePreventClose(() => {
     return props.form.useStore((state) => state.isDirty)
   })

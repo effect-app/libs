@@ -5,6 +5,7 @@
       <form.Input
         label="asder2"
         name="asder2.value"
+        :required="false"
       >
         <template #default="{ field, label, state }">
           <label :for="field.name">{{ label }}</label>
@@ -30,7 +31,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   asder2: S.Struct({
-    value: S.String
+    value: S.NonEmptyString
   })
 })
 const form = useOmegaForm(schema, {

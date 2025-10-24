@@ -31,7 +31,6 @@
 
     <form.Form :subscribe="['values', 'canSubmit']">
       <template #default="{ subscribedValues: { values, canSubmit } }">
-        {{ canSubmit }}
         <form.Input
           label="aString"
           name="aString"
@@ -81,7 +80,7 @@ import { useOmegaForm } from "../../src"
 
 const form = useOmegaForm(
   S.Struct({
-    aString: S.NonEmptyString,
+    aString: S.String,
     union: S.NullOr(
       S.Union(
         S.Struct({

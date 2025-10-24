@@ -7,7 +7,7 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U> ? Leaves<U, `${Path}[number]`> & {}
+export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U> ? Leaves<U, `${Path}[number]`> & {}
   : {
     [K in keyof T]: T[K] extends string | boolean | number | null | undefined | symbol | bigint
       ? `${Path extends "" ? "" : `${Path}.`}${K & string}`

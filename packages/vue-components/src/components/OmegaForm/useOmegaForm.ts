@@ -11,6 +11,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
+import OmegaFieldset from "./OmegaFieldset.vue"
 import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaForm from "./OmegaWrapper.vue"
@@ -229,6 +230,7 @@ export interface OmegaFormReturn<
   ) => import("vue").VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
+  Fieldset: typeof OmegaFieldset // todo type
   Array: (
     __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
     __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
@@ -931,6 +933,7 @@ export const useOmegaForm = <
     errorContext,
     Form: fHoc(formWithExtras)(OmegaForm as any) as any,
     Input: fHoc(formWithExtras)(omegaConfig?.input ?? OmegaInput) as any,
+    Fieldset: fHoc(formWithExtras)(OmegaFieldset) as any,
     Field: form.Field,
     Errors: eHoc(errorContext)(OmegaErrorsInternal) as any,
     Array: fHoc(formWithExtras)(OmegaArray) as any,

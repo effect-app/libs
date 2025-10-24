@@ -91,12 +91,18 @@ const isFalsyButNotZero = (value: unknown): boolean => {
 // convert nullish value to null or undefined based on schema
 const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) => {
   if (isFalsyButNotZero(value) && props.meta?.type !== "boolean") {
-    props.field.handleChange(
-      props.meta?.nullableOrUndefined === "undefined"
-        ? undefined
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        : null as any
-    )
+    // Only convert to null/undefined if the field is actually nullable or optional
+    if (props.meta?.nullableOrUndefined) {
+      props.field.handleChange(
+        props.meta.nullableOrUndefined === "undefined"
+          ? undefined
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          : null as any
+      )
+    } else {
+      // Keep the actual value (e.g., empty string for S.String fields)
+      props.field.handleChange(value)
+    }
   } else {
     props.field.handleChange(value)
   }

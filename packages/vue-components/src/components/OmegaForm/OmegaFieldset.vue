@@ -22,14 +22,24 @@ const props = defineProps<{
   label?: string
 }>()
 
-// Initialize the union field to null if it's undefined and nullable
+// Initialize the union field on mount
 onMounted(() => {
   const currentValue = props.form.getFieldValue(props.name)
   const meta = props.form.meta[props.name as keyof typeof props.form.meta]
 
-  if (currentValue === undefined && meta?.nullableOrUndefined === "null") {
-    // Initialize to null for nullable unions
-    props.form.setFieldValue(props.name, null as DeepValue<From, Name>)
+  if (currentValue === undefined) {
+    if (meta?.nullableOrUndefined === "null" || !meta?.required) {
+      // Initialize to null for nullable/optional unions
+      props.form.setFieldValue(props.name, null as DeepValue<From, Name>)
+    } else {
+      // For required unions, initialize with first non-null option
+      const firstOption = props.options.find((opt) => opt.value !== null)
+      if (firstOption && firstOption.value) {
+        props.form.setFieldValue(props.name, {
+          _tag: firstOption.value
+        } as DeepValue<From, Name>)
+      }
+    }
   }
 })
 </script>
@@ -41,9 +51,9 @@ onMounted(() => {
     :type="type ?? 'select'"
     :options="options as FieldsetOption<From, Name>[]"
   />
-  <slot />
   <form.Field :name="name">
     <template #default="{ field, state }">
+      <slot v-if="state.value" />
       <OmegaFieldsetInternal
         :field="field as any"
         :state="state.value"

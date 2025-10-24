@@ -46,7 +46,8 @@ class B extends S.TaggedClass<B>()("B", {
 const schema = S
   .Struct({
     title: S.String,
-    union: S.Union(A, B)
+    // testing it works! union is nullable no asterisk showed
+    union: S.NullOr(S.Union(A, B))
   })
 
 const defaultValues: typeof schema.Encoded = {

@@ -346,6 +346,11 @@ export const createMeta = <T = any>(
       const nullableOrUndefined = isNullableOrUndefined(p.type)
       const isRequired = !nullableOrUndefined
 
+      // check if parent is nullOr and set meta as not required
+      const parentNullableOrFalse = meta.nullableOrUndefined ?? false
+      // return a true or false
+      const finalIsRequired = parentNullableOrFalse ? false : isRequired
+
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
         // First unwrap any nested unions, then filter out null/undefined
@@ -367,7 +372,7 @@ export const createMeta = <T = any>(
             const parentMeta = createMeta<T>({
               parent: key,
               property: p.type,
-              meta: { required: isRequired, nullableOrUndefined }
+              meta: { required: finalIsRequired, nullableOrUndefined }
             })
             acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
           }
@@ -380,7 +385,7 @@ export const createMeta = <T = any>(
                 createMeta<T>({
                   parent: key,
                   propertySignatures: nonNullType.propertySignatures,
-                  meta: { required: isRequired, nullableOrUndefined }
+                  meta: { required: finalIsRequired, nullableOrUndefined }
                 })
               )
             }
@@ -395,7 +400,7 @@ export const createMeta = <T = any>(
               type: "multiple",
               members: arrayType.elements,
               rest: arrayType.rest,
-              required: isRequired,
+              required: finalIsRequired,
               nullableOrUndefined
             } as FieldMeta
 
@@ -456,7 +461,7 @@ export const createMeta = <T = any>(
             const newMeta = createMeta<T>({
               parent: key,
               property: p.type,
-              meta: { required: isRequired, nullableOrUndefined }
+              meta: { required: finalIsRequired, nullableOrUndefined }
             })
             acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
           }
@@ -467,7 +472,7 @@ export const createMeta = <T = any>(
           createMeta<T>({
             parent: key,
             propertySignatures: typeToProcess.propertySignatures,
-            meta: { required: isRequired, nullableOrUndefined }
+            meta: { required: finalIsRequired, nullableOrUndefined }
           })
         )
       } else {
@@ -532,7 +537,7 @@ export const createMeta = <T = any>(
               type: "multiple",
               members: p.type.elements,
               rest: p.type.rest,
-              required: isRequired,
+              required: finalIsRequired,
               nullableOrUndefined
             } as FieldMeta
           }
@@ -543,7 +548,7 @@ export const createMeta = <T = any>(
             meta: {
               // an empty string is valid for a S.String field, so we should not mark it as required
               // TODO: handle this better via the createMeta minLength parsing
-              required: isRequired && (p.type._tag !== "StringKeyword" || getMetadataFromSchema(p.type).minLength),
+              required: finalIsRequired && (p.type._tag !== "StringKeyword" || getMetadataFromSchema(p.type).minLength),
               nullableOrUndefined
             }
           })

@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.1.0
+
+### Minor Changes
+
+- eac9f74: Adds TaggedUnion support to OmegaForm
+- eb12e13: Adds preventWIndowExit option
+
 ## 2.0.0
 
 ### Major Changes

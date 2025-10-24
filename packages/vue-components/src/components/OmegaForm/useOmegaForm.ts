@@ -248,7 +248,9 @@ export interface OmegaFormReturn<
           & {
             name: Name
             type?: "select" | "radio"
-            options: import("effect-app").NonEmptyArray<import("./InputProps").FieldsetOption<From, Name>>
+            options: ReadonlyArray<
+              { readonly title: string; readonly value: import("./InputProps").ExtractTagValue<From, Name> | null }
+            >
             label?: string
           }
           & {}
@@ -256,10 +258,59 @@ export interface OmegaFormReturn<
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
-      slots: Record<string, (props: {
-        field: import("@tanstack/vue-form").FieldApi<From, Name, DeepValue<From, Name>, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>
-        state: import("@tanstack/vue-form").FieldState<From, Name, DeepValue<From, Name>, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>
-      }) => any>
+      slots: Record<
+        string,
+        (props: {
+          field: import("@tanstack/vue-form").FieldApi<
+            From,
+            Name,
+            DeepValue<From, Name>,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any
+          >
+          state: import("@tanstack/vue-form").FieldState<
+            From,
+            Name,
+            DeepValue<From, Name>,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any
+          >
+        }) => any
+      >
       emit: {}
     }>
   ) => import("vue").VNode & {

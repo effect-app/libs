@@ -36,7 +36,6 @@
 "
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { type NonEmptyArray } from "effect-app"
 import { type FieldsetOption } from "./InputProps"
 import OmegaFieldsetInternal from "./OmegaFieldsetInternal.vue"
 import { type Leaves } from "./OmegaFormStuff"
@@ -46,7 +45,7 @@ defineProps<{
   name: Name
   form: ReturnType<typeof useOmegaForm<From, To>>
   type?: "select" | "radio"
-  options: NonEmptyArray<FieldsetOption<From, DeepKeys<From>>>
+  options: ReadonlyArray<FieldsetOption<From, Name>>
   label?: string
 }>()
 </script>

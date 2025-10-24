@@ -7,7 +7,7 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U> ? Leaves<U, `${Path}[number]`> & {}
+export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U> ? Leaves<U, `${Path}[number]`> & {}
   : {
     [K in keyof T]: T[K] extends string | boolean | number | null | undefined | symbol | bigint
       ? `${Path extends "" ? "" : `${Path}.`}${K & string}`
@@ -344,7 +344,9 @@ export const createMeta = <T = any>(
     for (const p of propertySignatures) {
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
-      const isRequired = !nullableOrUndefined
+      // If meta.required was explicitly passed (e.g., from a nullable parent union), use it
+      // Otherwise calculate from the property itself
+      const isRequired = meta.required !== undefined ? meta.required : !nullableOrUndefined
 
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
@@ -380,7 +382,8 @@ export const createMeta = <T = any>(
                 createMeta<T>({
                   parent: key,
                   propertySignatures: nonNullType.propertySignatures,
-                  meta: { required: isRequired, nullableOrUndefined }
+                  // If parent union is nullable, children should not be required
+                  meta: { required: nullableOrUndefined ? false : isRequired, nullableOrUndefined }
                 })
               )
             }

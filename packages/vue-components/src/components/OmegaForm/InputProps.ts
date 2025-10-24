@@ -55,3 +55,35 @@ export type VuetifyInputProps<From extends Record<PropertyKey, any>, TName exten
     options?: { title: string; value: unknown }[]
   }
 } & Pick<InputProps<From, TName>, "field" | "state">
+
+// Utility type to extract _tag literal values from a discriminated union
+// For a union like { _tag: "A", ... } | { _tag: "B", ... }, this returns "A" | "B"
+// For nullable unions like { _tag: "A" } | { _tag: "B" } | null, this still returns "A" | "B" (excluding null)
+export type ExtractTagValue<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> =
+  DeepValue<From, TName> extends infer U ? U extends { _tag: infer Tag } ? Tag
+    : never
+    : never
+
+// Utility type to extract a specific branch from a discriminated union based on _tag value
+// For union { _tag: "A", foo: string } | { _tag: "B", bar: number } and Tag="A", returns { _tag: "A", foo: string }
+export type ExtractUnionBranch<T, Tag> = T extends { _tag: Tag } ? T
+  : never
+
+// Option type for TaggedUnion component with strongly-typed value
+// The value can be either one of the _tag values OR null (for the placeholder)
+export type TaggedUnionOption<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
+  readonly title: string
+  readonly value: ExtractTagValue<From, TName> | null
+}
+
+// Options array must ALWAYS start with a null option (placeholder), followed by the actual options
+export type TaggedUnionOptionsArray<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = readonly [
+  { readonly title: string; readonly value: null },
+  ...ReadonlyArray<{ readonly title: string; readonly value: ExtractTagValue<From, TName> }>
+]
+
+// Props for TaggedUnion component
+export type TaggedUnionProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
+  name: TName
+  options: TaggedUnionOptionsArray<From, TName>
+}

@@ -13,6 +13,7 @@ import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
 import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
+import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
 type keysRule<T> =
@@ -83,7 +84,7 @@ const eHoc = (errorProps: {
             Object
               .entries(fieldMeta.value),
             ([key, m]): Option.Option<OmegaError> => {
-              const fieldErrors = ((m as any).errors ?? [])
+              const fieldErrors = (m as any).errors ?? []
               if (!fieldErrors.length) return Option.none()
 
               const fieldInfo = fieldMap.value.get(key)
@@ -103,7 +104,7 @@ const eHoc = (errorProps: {
                 for (const issue of issues) {
                   if (issue?.path && Array.isArray(issue.path) && issue.path.length) {
                     // Use the path from the issue to identify the field
-                    const fieldPath = issue.path.join('.')
+                    const fieldPath = issue.path.join(".")
                     const fieldInfo = fieldMap.value.get(fieldPath)
                     submitErrors.push({
                       label: fieldInfo?.label ?? fieldPath,
@@ -119,7 +120,7 @@ const eHoc = (errorProps: {
           // Merge field errors and submit errors, avoiding duplicates
           const allErrors = [...fieldErrors]
           for (const submitError of submitErrors) {
-            const exists = allErrors.some(e => e.inputId === submitError.inputId)
+            const exists = allErrors.some((e) => e.inputId === submitError.inputId)
             if (!exists) {
               allErrors.push(submitError)
             }
@@ -262,6 +263,90 @@ export interface OmegaFormReturn<
       slots: {
         default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => void
       }
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
+  TaggedUnion: <Name extends DeepKeys<From>>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & {
+            name: Name
+            type?: "select" | "radio"
+            options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
+            label?: string
+          }
+          & {}
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: Record<
+        string,
+        (props: {
+          field: import("@tanstack/vue-form").FieldApi<
+            From,
+            Name,
+            DeepValue<From, Name>,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any
+          >
+          state: import("@tanstack/vue-form").FieldState<
+            From,
+            Name,
+            DeepValue<From, Name>,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any,
+            any
+          >
+        }) => any
+      >
       emit: {}
     }>
   ) => import("vue").VNode & {
@@ -969,6 +1054,7 @@ export const useOmegaForm = <
     errorContext,
     Form: fHoc(formWithExtras)(OmegaForm as any) as any,
     Input: fHoc(formWithExtras)(omegaConfig?.input ?? OmegaInput) as any,
+    TaggedUnion: fHoc(formWithExtras)(OmegaTaggedUnion) as any,
     Field: form.Field,
     Errors: eHoc(errorContext)(OmegaErrorsInternal) as any,
     Array: fHoc(formWithExtras)(OmegaArray) as any,

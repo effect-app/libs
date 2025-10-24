@@ -344,9 +344,21 @@ export const createMeta = <T = any>(
     for (const p of propertySignatures) {
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
-      // If meta.required was explicitly passed (e.g., from a nullable parent union), use it
-      // Otherwise calculate from the property itself
-      const isRequired = meta.required !== undefined ? meta.required : !nullableOrUndefined
+
+      // Determine if this field should be required:
+      // - For nullable discriminated unions, only _tag should be non-required
+      // - All other fields should calculate their required status normally
+      let isRequired: boolean
+      if (meta._isNullableDiscriminatedUnion && p.name.toString() === "_tag") {
+        // _tag in a nullable discriminated union is not required
+        isRequired = false
+      } else if (meta.required === false) {
+        // Explicitly set to non-required (legacy behavior for backwards compatibility)
+        isRequired = false
+      } else {
+        // Calculate from the property itself
+        isRequired = !nullableOrUndefined
+      }
 
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
@@ -377,13 +389,17 @@ export const createMeta = <T = any>(
           // Process each non-null type and merge their metadata
           for (const nonNullType of nonNullTypes) {
             if ("propertySignatures" in nonNullType) {
+              // For discriminated unions (multiple branches):
+              // - If the parent union is nullable, only _tag should be non-required
+              // - All other fields maintain their normal required status based on their own types
+              const isNullableDiscriminatedUnion = nullableOrUndefined && nonNullTypes.length > 1
+
               Object.assign(
                 acc,
                 createMeta<T>({
                   parent: key,
                   propertySignatures: nonNullType.propertySignatures,
-                  // If parent union is nullable, children should not be required
-                  meta: { required: nullableOrUndefined ? false : isRequired, nullableOrUndefined }
+                  meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
                 })
               )
             }

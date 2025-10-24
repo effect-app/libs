@@ -79,7 +79,7 @@ const eHoc = (errorProps: {
         const errorMap = form.useStore((state) => state.errorMap)
 
         const errors = computed(() => {
-          // Collect errors from fieldMeta (field-level errors)
+          // Collect errors from fieldMeta (field-level errors for registered fields)
           const fieldErrors = Array.filterMap(
             Object
               .entries(fieldMeta.value),
@@ -88,15 +88,20 @@ const eHoc = (errorProps: {
               if (!fieldErrors.length) return Option.none()
 
               const fieldInfo = fieldMap.value.get(key)
+              // Only show errors for fields that are currently mounted (registered in fieldMap)
+              if (!fieldInfo) return Option.none()
+
               return Option.some({
-                label: fieldInfo?.label ?? key,
-                inputId: fieldInfo?.id ?? key,
-                errors: fieldErrors.map((e: any) => e.message).filter(Boolean)
+                label: fieldInfo.label,
+                inputId: fieldInfo.id,
+                // Only show the first error
+                errors: [fieldErrors[0]?.message].filter(Boolean)
               })
             }
           )
 
-          // Collect errors from errorMap.onSubmit (form-level validation errors with paths)
+          // Collect errors from errorMap.onSubmit ONLY for fields that are NOT registered
+          // (registered fields already have their errors in fieldMeta)
           const submitErrors: OmegaError[] = []
           if (errorMap.value.onSubmit) {
             for (const [fieldKey, issues] of Object.entries(errorMap.value.onSubmit)) {
@@ -105,28 +110,25 @@ const eHoc = (errorProps: {
                   if (issue?.path && Array.isArray(issue.path) && issue.path.length) {
                     // Use the path from the issue to identify the field
                     const fieldPath = issue.path.join(".")
-                    const fieldInfo = fieldMap.value.get(fieldPath)
-                    submitErrors.push({
-                      label: fieldInfo?.label ?? fieldPath,
-                      inputId: fieldInfo?.id ?? fieldPath,
-                      errors: [issue.message].filter(Boolean)
-                    })
+                    // Only add errors for fields that are NOT registered (not in fieldMap)
+                    // Registered fields will already have their errors from fieldMeta
+                    if (!fieldMap.value.has(fieldPath)) {
+                      submitErrors.push({
+                        label: fieldPath,
+                        inputId: fieldPath,
+                        errors: [issue.message].filter(Boolean)
+                      })
+                      // Only show first error per field, so break after adding
+                      break
+                    }
                   }
                 }
               }
             }
           }
 
-          // Merge field errors and submit errors, avoiding duplicates
-          const allErrors = [...fieldErrors]
-          for (const submitError of submitErrors) {
-            const exists = allErrors.some((e) => e.inputId === submitError.inputId)
-            if (!exists) {
-              allErrors.push(submitError)
-            }
-          }
-
-          return allErrors
+          // Combine both error sources (no need to check for duplicates since they're mutually exclusive)
+          return [...fieldErrors, ...submitErrors]
         })
 
         return {

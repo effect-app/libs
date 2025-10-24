@@ -55,3 +55,26 @@ export type VuetifyInputProps<From extends Record<PropertyKey, any>, TName exten
     options?: { title: string; value: unknown }[]
   }
 } & Pick<InputProps<From, TName>, "field" | "state">
+
+// Utility type to extract _tag literal values from a discriminated union
+// For a union like { _tag: "A", ... } | { _tag: "B", ... }, this returns "A" | "B"
+export type ExtractTagValue<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> =
+  DeepValue<From, TName> extends { _tag: infer Tag } ? Tag
+    : never
+
+// Utility type to extract a specific branch from a discriminated union based on _tag value
+// For union { _tag: "A", foo: string } | { _tag: "B", bar: number } and Tag="A", returns { _tag: "A", foo: string }
+export type ExtractUnionBranch<T, Tag> = T extends { _tag: Tag } ? T
+  : never
+
+// Option type for Fieldset component with strongly-typed value
+export type FieldsetOption<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
+  title: string
+  value: ExtractTagValue<From, TName> | null
+}
+
+// Props for Fieldset component
+export type FieldsetProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
+  name: TName
+  options: Array<FieldsetOption<From, TName>>
+}

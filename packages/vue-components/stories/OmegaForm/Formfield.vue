@@ -24,6 +24,12 @@
             label="A Field"
           />
         </template>
+        <template #B>
+          <form.Input
+            name="union.b"
+            label="B Field"
+          />
+        </template>
       </form.Fieldset>
       <pre>{{ values }}</pre>
     </template>

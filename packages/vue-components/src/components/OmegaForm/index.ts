@@ -1,7 +1,9 @@
 export * from "./OmegaFormStuff"
 export { type OmegaConfig, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
 
-export { type InputProps, type MergedInputProps } from "./InputProps"
+export { type ExtractTagValue, type ExtractUnionBranch, type FieldsetOption, type FieldsetProps, type InputProps, type MergedInputProps } from "./InputProps"
+export { default as OmegaFieldset } from "./OmegaFieldset.vue"
+export { default as OmegaFieldsetInternal } from "./OmegaFieldsetInternal.vue"
 export { default as OmegaInput } from "./OmegaInput.vue"
 export { default as OmegaVuetifyInput } from "./OmegaInternalInput.vue"
 

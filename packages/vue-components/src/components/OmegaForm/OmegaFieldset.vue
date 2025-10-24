@@ -11,7 +11,17 @@
       <OmegaFieldsetInternal
         :field="field"
         :state="state.value"
-      />
+      >
+        <template
+          v-for="(_, slotname) in $slots"
+          #[slotname]="slotProps"
+        >
+          <slot
+            :name="slotname"
+            v-bind="slotProps"
+          />
+        </template>
+      </OmegaFieldsetInternal>
     </template>
   </form.Field>
 </template>

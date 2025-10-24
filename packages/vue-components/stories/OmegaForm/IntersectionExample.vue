@@ -1,6 +1,6 @@
 <template>
-  <form.Form :subscribe="['values']">
-    <template #default="{ subscribedValues: { values } }">
+  <form.Form :subscribe="['values', 'errorMap']">
+    <template #default="{ subscribedValues: { values, errorMap } }">
       <div>values: {{ values }}</div>
       <form.Input
         label="first"

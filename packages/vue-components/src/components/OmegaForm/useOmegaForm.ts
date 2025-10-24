@@ -75,20 +75,58 @@ const eHoc = (errorProps: {
         const { fieldMap, form } = errorProps
         const generalErrors = form.useStore((state) => state.errors)
         const fieldMeta = form.useStore((state) => state.fieldMeta)
-        const errors = computed(() =>
-          Array.filterMap(
+        const errorMap = form.useStore((state) => state.errorMap)
+
+        const errors = computed(() => {
+          // Collect errors from fieldMeta (field-level errors)
+          const fieldErrors = Array.filterMap(
             Object
               .entries(fieldMeta.value),
-            ([key, m]): Option.Option<OmegaError> =>
-              ((m as any).errors ?? []).length && fieldMap.value.get(key)?.id
-                ? Option.some({
-                  label: fieldMap.value.get(key)!.label,
-                  inputId: fieldMap.value.get(key)!.id,
-                  errors: ((m as any).errors ?? []).map((e: any) => e.message).filter(Boolean)
-                })
-                : Option.none()
+            ([key, m]): Option.Option<OmegaError> => {
+              const fieldErrors = ((m as any).errors ?? [])
+              if (!fieldErrors.length) return Option.none()
+
+              const fieldInfo = fieldMap.value.get(key)
+              return Option.some({
+                label: fieldInfo?.label ?? key,
+                inputId: fieldInfo?.id ?? key,
+                errors: fieldErrors.map((e: any) => e.message).filter(Boolean)
+              })
+            }
           )
-        )
+
+          // Collect errors from errorMap.onSubmit (form-level validation errors with paths)
+          const submitErrors: OmegaError[] = []
+          if (errorMap.value.onSubmit) {
+            for (const [fieldKey, issues] of Object.entries(errorMap.value.onSubmit)) {
+              if (Array.isArray(issues) && issues.length) {
+                for (const issue of issues) {
+                  if (issue?.path && Array.isArray(issue.path) && issue.path.length) {
+                    // Use the path from the issue to identify the field
+                    const fieldPath = issue.path.join('.')
+                    const fieldInfo = fieldMap.value.get(fieldPath)
+                    submitErrors.push({
+                      label: fieldInfo?.label ?? fieldPath,
+                      inputId: fieldInfo?.id ?? fieldPath,
+                      errors: [issue.message].filter(Boolean)
+                    })
+                  }
+                }
+              }
+            }
+          }
+
+          // Merge field errors and submit errors, avoiding duplicates
+          const allErrors = [...fieldErrors]
+          for (const submitError of submitErrors) {
+            const exists = allErrors.some(e => e.inputId === submitError.inputId)
+            if (!exists) {
+              allErrors.push(submitError)
+            }
+          }
+
+          return allErrors
+        })
 
         return {
           generalErrors,

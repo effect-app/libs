@@ -1,11 +1,10 @@
 <template>
-  <form.Form :subscribe="['values', 'isDirty']">
-    <template #default="{ subscribedValues: { values, isDirty } }">
-      <div>values: {{ values }} {{ isDirty }}</div>
+  <form.Form :subscribe="['values', 'isDirty', 'canSubmit']">
+    <template #default="{ subscribedValues: { values, isDirty, canSubmit } }">
+      <div>values: {{ values }} {{ isDirty }} {{ canSubmit }}</div>
       <form.Input
         label="asder2"
         name="asder2.value"
-        :required="false"
       >
         <template #default="{ field, label, state }">
           <label :for="field.name">{{ label }}</label>
@@ -14,7 +13,7 @@
             v-model="state.value"
             :name="field.name"
             style="border: 1px solid red"
-            @change="(e: any) => field.handleChange(e.target.value)"
+            @change="(e: any) => field.handleChange(e.target.value ?? '')"
           >
         </template>
       </form.Input>
@@ -32,7 +31,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   asder2: S.Struct({
-    value: S.NonEmptyString
+    value: S.String
   })
 })
 const form = useOmegaForm(schema, {

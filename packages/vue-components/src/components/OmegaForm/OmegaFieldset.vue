@@ -9,7 +9,7 @@
 >
 import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { onMounted } from "vue"
-import { type FieldsetOption } from "./InputProps"
+import { type FieldsetOptionsArray } from "./InputProps"
 import OmegaFieldsetInternal from "./OmegaFieldsetInternal.vue"
 import { type Leaves } from "./OmegaFormStuff"
 import { type useOmegaForm } from "./useOmegaForm"
@@ -18,7 +18,7 @@ const props = defineProps<{
   name: Name
   form: ReturnType<typeof useOmegaForm<From, To>>
   type?: "select" | "radio"
-  options: ReadonlyArray<FieldsetOption<From, Name>>
+  options: FieldsetOptionsArray<From, Name>
   label?: string
 }>()
 

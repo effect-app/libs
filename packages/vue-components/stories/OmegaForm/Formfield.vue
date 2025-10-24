@@ -10,9 +10,9 @@
         name="union"
         label="Union!"
         :options="[
+          { value: null, title: 'Select one' },
           { value: 'A', title: 'Option 1' },
-          { value: 'B', title: 'Option 2' },
-          { value: null, title: 'Select one' }
+          { value: 'B', title: 'Option 2' }
         ]"
       >
         <form.Input

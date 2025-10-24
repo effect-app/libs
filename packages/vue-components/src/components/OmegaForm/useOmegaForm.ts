@@ -286,9 +286,7 @@ export interface OmegaFormReturn<
           & {
             name: Name
             type?: "select" | "radio"
-            options: ReadonlyArray<
-              { readonly title: string; readonly value: import("./InputProps").ExtractTagValue<From, Name> | null }
-            >
+            options: import("./InputProps").FieldsetOptionsArray<From, Name>
             label?: string
           }
           & {}

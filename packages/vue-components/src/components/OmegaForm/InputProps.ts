@@ -69,21 +69,21 @@ export type ExtractTagValue<From extends Record<PropertyKey, any>, TName extends
 export type ExtractUnionBranch<T, Tag> = T extends { _tag: Tag } ? T
   : never
 
-// Option type for Fieldset component with strongly-typed value
+// Option type for TaggedUnion component with strongly-typed value
 // The value can be either one of the _tag values OR null (for the placeholder)
-export type FieldsetOption<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
+export type TaggedUnionOption<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
   readonly title: string
   readonly value: ExtractTagValue<From, TName> | null
 }
 
 // Options array must ALWAYS start with a null option (placeholder), followed by the actual options
-export type FieldsetOptionsArray<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = readonly [
+export type TaggedUnionOptionsArray<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = readonly [
   { readonly title: string; readonly value: null },
   ...ReadonlyArray<{ readonly title: string; readonly value: ExtractTagValue<From, TName> }>
 ]
 
-// Props for Fieldset component
-export type FieldsetProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
+// Props for TaggedUnion component
+export type TaggedUnionProps<From extends Record<PropertyKey, any>, TName extends DeepKeys<From>> = {
   name: TName
-  options: FieldsetOptionsArray<From, TName>
+  options: TaggedUnionOptionsArray<From, TName>
 }

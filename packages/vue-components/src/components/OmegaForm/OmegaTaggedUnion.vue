@@ -9,16 +9,16 @@
 >
 import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { onMounted } from "vue"
-import { type FieldsetOptionsArray } from "./InputProps"
-import OmegaFieldsetInternal from "./OmegaFieldsetInternal.vue"
+import { type TaggedUnionOption, type TaggedUnionOptionsArray } from "./InputProps"
 import { type Leaves } from "./OmegaFormStuff"
+import OmegaTaggedUnionInternal from "./OmegaTaggedUnionInternal.vue"
 import { type useOmegaForm } from "./useOmegaForm"
 
 const props = defineProps<{
   name: Name
   form: ReturnType<typeof useOmegaForm<From, To>>
   type?: "select" | "radio"
-  options: FieldsetOptionsArray<From, Name>
+  options: TaggedUnionOptionsArray<From, Name>
   label?: string
 }>()
 
@@ -49,12 +49,12 @@ onMounted(() => {
     :name="`${name}._tag` as Leaves<From, ''>"
     :label="label"
     :type="type ?? 'select'"
-    :options="options as FieldsetOption<From, Name>[]"
+    :options="options as TaggedUnionOption<From, Name>[]"
   />
   <form.Field :name="name">
     <template #default="{ field, state }">
       <slot v-if="state.value" />
-      <OmegaFieldsetInternal
+      <OmegaTaggedUnionInternal
         :field="field as any"
         :state="state.value"
       >
@@ -67,7 +67,7 @@ onMounted(() => {
             v-bind="slotProps"
           />
         </template>
-      </OmegaFieldsetInternal>
+      </OmegaTaggedUnionInternal>
     </template>
   </form.Field>
 </template>

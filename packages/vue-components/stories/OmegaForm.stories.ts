@@ -13,7 +13,7 @@ import DateComponent from "./OmegaForm/Date.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
-import FormfieldsetComponent from "./OmegaForm/Formfieldset.vue"
+import FormTaggedUnionComponent from "./OmegaForm/FormTaggedUnion.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
@@ -77,10 +77,10 @@ export const CreateUseFormWIthCustomInput: Story = {
     template: "<CreateUseFormWithCustomInputComponent />"
   })
 }
-export const Formfieldset: Story = {
+export const FormTaggedUnion: Story = {
   render: () => ({
-    components: { FormfieldsetComponent },
-    template: "<FormfieldsetComponent />"
+    components: { FormTaggedUnionComponent },
+    template: "<FormTaggedUnionComponent />"
   })
 }
 

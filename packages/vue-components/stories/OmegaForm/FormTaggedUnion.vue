@@ -6,7 +6,7 @@
         label="aString"
         name="aString"
       />
-      <form.Fieldset
+      <form.TaggedUnion
         name="union"
         label="Union!"
         :options="[
@@ -31,7 +31,7 @@
             label="B Field"
           />
         </template>
-      </form.Fieldset>
+      </form.TaggedUnion>
       <pre>{{ values }}</pre>
       <form.Errors />
       <v-btn type="submit">

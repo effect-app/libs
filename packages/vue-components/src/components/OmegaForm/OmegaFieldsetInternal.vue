@@ -23,11 +23,15 @@ const props = defineProps<{
   field: any
 }>()
 
-console.log({ props })
-
-watch(() => props.state, (value) => {
-  if (value?._tag === null) {
+// Watch for _tag changes
+watch(() => props.state?._tag, (newTag, oldTag) => {
+  if (newTag === null) {
     props.field.setValue(null)
+  }
+  if (newTag !== oldTag) {
+    setTimeout(() => {
+      props.field.validate("change")
+    }, 0)
   }
 })
 </script>

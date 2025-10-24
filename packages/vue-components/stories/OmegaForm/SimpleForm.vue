@@ -18,6 +18,7 @@
           >
         </template>
       </form.Input>
+      <form.Errors />
       <v-btn type="submit">
         submit
       </v-btn>

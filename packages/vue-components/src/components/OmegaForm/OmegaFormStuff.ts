@@ -344,9 +344,9 @@ export const createMeta = <T = any>(
     for (const p of propertySignatures) {
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
-      // If meta.required was explicitly passed (e.g., from a nullable parent union), use it
+      // If meta.required is explicitly set to false (discriminated union), use it
       // Otherwise calculate from the property itself
-      const isRequired = meta.required !== undefined ? meta.required : !nullableOrUndefined
+      const isRequired = meta.required === false ? false : !nullableOrUndefined
 
       const typeToProcess = p.type
       if (S.AST.isUnion(p.type)) {
@@ -377,13 +377,18 @@ export const createMeta = <T = any>(
           // Process each non-null type and merge their metadata
           for (const nonNullType of nonNullTypes) {
             if ("propertySignatures" in nonNullType) {
+              // For discriminated unions (multiple branches), don't pass meta down
+              // For simple nullable structs (single branch), let children calculate their own required status
+              const childMeta = (nullableOrUndefined && nonNullTypes.length > 1)
+                ? { required: false, nullableOrUndefined }
+                : {}
+
               Object.assign(
                 acc,
                 createMeta<T>({
                   parent: key,
                   propertySignatures: nonNullType.propertySignatures,
-                  // If parent union is nullable, children should not be required
-                  meta: { required: nullableOrUndefined ? false : isRequired, nullableOrUndefined }
+                  meta: childMeta
                 })
               )
             }

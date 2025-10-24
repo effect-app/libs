@@ -15,12 +15,13 @@
   Name extends DeepKeys<From>
 "
 >
-import { type DeepKeys } from "@tanstack/vue-form"
+import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { watch } from "vue"
+import { type OmegaFieldInternalApi } from "./InputProps"
 
 const props = defineProps<{
-  state: any
-  field: any
+  state: DeepValue<From, Name>
+  field: OmegaFieldInternalApi<From, Name>
 }>()
 
 // Watch for _tag changes

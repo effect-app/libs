@@ -30,7 +30,7 @@
     </div>
 
     <form.Form :subscribe="['values', 'canSubmit']">
-      <template #default="{ subscribedValues: { values, canSubmit } }">
+      <template #default="{ subscribedValues: { values } }">
         <form.Input
           label="aString"
           name="aString"

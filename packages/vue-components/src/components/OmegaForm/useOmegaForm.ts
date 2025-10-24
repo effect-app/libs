@@ -104,19 +104,20 @@ const eHoc = (errorProps: {
           // (registered fields already have their errors in fieldMeta)
           const submitErrors: OmegaError[] = []
           if (errorMap.value.onSubmit) {
-            for (const [fieldKey, issues] of Object.entries(errorMap.value.onSubmit)) {
+            for (const [_, issues] of Object.entries(errorMap.value.onSubmit)) {
               if (Array.isArray(issues) && issues.length) {
                 for (const issue of issues) {
-                  if (issue?.path && Array.isArray(issue.path) && issue.path.length) {
+                  const issAny: any = issue
+                  if (issAny?.path && Array.isArray(issAny.path) && issAny.path.length) {
                     // Use the path from the issue to identify the field
-                    const fieldPath = issue.path.join(".")
+                    const fieldPath = issAny.path.join(".")
                     // Only add errors for fields that are NOT registered (not in fieldMap)
                     // Registered fields will already have their errors from fieldMeta
                     if (!fieldMap.value.has(fieldPath)) {
                       submitErrors.push({
                         label: fieldPath,
                         inputId: fieldPath,
-                        errors: [issue.message].filter(Boolean)
+                        errors: [issAny.message].filter(Boolean)
                       })
                       // Only show first error per field, so break after adding
                       break

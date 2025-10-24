@@ -49,7 +49,7 @@ onMounted(() => {
     :name="`${name}._tag` as Leaves<From, ''>"
     :label="label"
     :type="type ?? 'select'"
-    :options="options as TaggedUnionOption<From, Name>[]"
+    :options="options as unknown as TaggedUnionOption<From, Name>[]"
   />
   <form.Field :name="name">
     <template #default="{ field, state }">

@@ -14,7 +14,7 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
-import { type DeepKeys, useStore } from "@tanstack/vue-form"
+import { type DeepKeys, type DeepValue, useStore } from "@tanstack/vue-form"
 import { computed, type ComputedRef, getCurrentInstance, onMounted, useId } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
@@ -114,13 +114,28 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
 
 // TODO: it would be cleaner when default values are handled in the form initialization via Schema or by the one using the form component..
 onMounted(() => {
-  if (
-    !fieldValue.value
-    && !isRequired.value
-    && props.meta?.nullableOrUndefined === "null"
-  ) {
+  // Initialize field value on mount if it doesn't exist
+  if (fieldValue.value === undefined) {
     const isDirty = fieldState.value.meta.isDirty
-    fieldApi.setValue(null as any)
+
+    // Set appropriate default value based on field type and nullability
+    if (!isRequired.value && props.meta?.nullableOrUndefined === "null") {
+      fieldApi.setValue(null as DeepValue<From, From>)
+    } else if (!isRequired.value && props.meta?.nullableOrUndefined === "undefined") {
+      fieldApi.setValue(undefined as DeepValue<From, From>)
+    } else {
+      // For required fields, initialize with appropriate empty value
+      if (props.meta?.type === "string") {
+        fieldApi.setValue("" as DeepValue<From, From>)
+      } else if (props.meta?.type === "number") {
+        // Don't initialize number fields to avoid setting them to 0
+        // Leave as undefined so validation will catch it
+      } else if (props.meta?.type === "boolean") {
+        fieldApi.setValue(false as DeepValue<From, From>)
+      }
+      // For other types, leave undefined so validation will catch missing required fields
+    }
+
     // make sure we restore the previous dirty state..
     fieldApi.setMeta((_) => ({ ..._, isDirty }))
   }

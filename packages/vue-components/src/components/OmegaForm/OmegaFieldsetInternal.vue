@@ -27,7 +27,7 @@ const props = defineProps<{
 // Watch for _tag changes
 watch(() => props.state?._tag, (newTag, oldTag) => {
   if (newTag === null) {
-    props.field.setValue(null)
+    props.field.setValue(null as DeepValue<From, Name>)
   }
   if (newTag !== oldTag) {
     setTimeout(() => {

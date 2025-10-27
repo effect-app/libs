@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.1.5
+
+### Patch Changes
+
+- 71a187f: disabled FlexibleArrayPath as it causes excessive complexity in type resolution inside user projects
+
 ## 2.1.4
 
 ### Patch Changes

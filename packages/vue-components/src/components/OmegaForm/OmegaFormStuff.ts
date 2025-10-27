@@ -15,7 +15,7 @@ export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer 
   }[keyof T]
 
 // Helper type to make array indices flexible - accepts both [number] and numeric literals [0], [1], etc.
-type FlexibleArrayPath<T extends string> = T extends `${infer Before}[number]${infer After}`
+export type FlexibleArrayPath<T extends string> = T extends `${infer Before}[number]${infer After}`
   ? T | `${Before}[${number}]${FlexibleArrayPath<After>}`
   : T
 

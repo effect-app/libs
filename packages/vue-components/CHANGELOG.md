@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.1.6
+
+### Patch Changes
+
+- 3e38db3: Revert default Values strategy and moves everything to hook instead then on Vue OnMounted
+
 ## 2.1.5
 
 ### Patch Changes

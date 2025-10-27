@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.1.1
+
+### Patch Changes
+
+- 80680ec: fix: effect router back/forward etc.
+
 ## 2.1.0
 
 ### Minor Changes

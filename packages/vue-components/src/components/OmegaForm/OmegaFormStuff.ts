@@ -23,7 +23,8 @@ export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
   /** Will fallback to i18n when not specified */
   label?: string
   validators?: FieldValidators<From>
-  name: TName & FlexibleArrayPath<Leaves<From>>
+  // disabled FlexibleArrayPath as it causes excessive complexity in type resolution inside user projects
+  name: TName // & FlexibleArrayPath<Leaves<From>>
 }
 
 export type TypesWithOptions = "radio" | "select" | "multiple" | "autocomplete" | "autocompletemultiple"

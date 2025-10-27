@@ -1309,7 +1309,7 @@ export const makeClient = <RT_, RTHooks>(
       },
       {} as {
         [Key in keyof typeof client as `${ToCamel<string & Key>}Request`]: RequestWithExtensions<
-          RT,
+          RT | RTHooks,
           typeof client[Key]
         >
       }
@@ -1336,7 +1336,7 @@ export const makeClient = <RT_, RTHooks>(
       },
       {} as {
         [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
-          RT,
+          RT | RTHooks,
           typeof client[Key]
         >
       }
@@ -1395,8 +1395,8 @@ export const makeClient = <RT_, RTHooks>(
       {} as {
         [Key in keyof typeof client]:
           & typeof client[Key]
-          & RequestWithExtensions<RT, typeof client[Key]>
-          & { mutate: MutationWithExtensions<RT, typeof client[Key]> }
+          & RequestWithExtensions<RT | RTHooks, typeof client[Key]>
+          & { mutate: MutationWithExtensions<RT | RTHooks, typeof client[Key]> }
           & Queries<RT, typeof client[Key]>
       }
     )

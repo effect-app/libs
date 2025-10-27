@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.92.1
+
+### Patch Changes
+
+- 7784354: fix mutation ext types
+
 ## 2.92.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.1.4
+
+### Patch Changes
+
+- bbb79cd: export missing helper?
+
 ## 2.1.3
 
 ### Patch Changes

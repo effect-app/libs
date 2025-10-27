@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.92.0
+
+### Minor Changes
+
+- e9ff52f: fix: hook context should be created on each Command creation.
+
 ## 2.91.2
 
 ### Patch Changes

@@ -5,7 +5,14 @@
         label="aString"
         name="aString"
       />
+      <form.Input
+        label="bString"
+        name="bString"
+      />
       <pre>{{ values }}</pre>
+      <button>submit</button>
+
+      <form.Errors />
     </template>
   </form.Form>
 </template>
@@ -14,5 +21,17 @@
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src"
 
-const form = useOmegaForm(S.Struct({ aString: S.UndefinedOr(S.String) }))
+const schema = S.Struct({
+  aString: S.NullOr(S.NonEmptyString255).withDefault,
+  bString: S.NullOr(S.NonEmptyString255).withDefault
+})
+const defaultValues = {
+  aString: ""
+}
+const form = useOmegaForm(schema, {
+  onSubmit: async (values) => {
+    console.log(values)
+  },
+  defaultValues
+})
 </script>

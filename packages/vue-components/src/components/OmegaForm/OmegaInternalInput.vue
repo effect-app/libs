@@ -14,8 +14,8 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
-import { type DeepKeys, type DeepValue, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, onMounted, useId } from "vue"
+import { type DeepKeys, useStore } from "@tanstack/vue-form"
+import { computed, type ComputedRef, getCurrentInstance, useId } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -112,35 +112,8 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
   props.field.setMeta((m) => ({ ...m, errorMap: { ...m.errorMap, onSubmit: undefined } }))
 }
 
-// TODO: it would be cleaner when default values are handled in the form initialization via Schema or by the one using the form component..
-onMounted(() => {
-  // Initialize field value on mount if it doesn't exist
-  if (fieldValue.value === undefined) {
-    const isDirty = fieldState.value.meta.isDirty
-    // make sure we restore the previous dirty state..
-    fieldApi.setMeta((_) => ({ ..._, isDirty }))
-
-    if (isRequired.value) return
-
-    // Set appropriate default value based on field type and nullability
-    if (props.meta?.nullableOrUndefined === "null") {
-      fieldApi.setValue(null as DeepValue<From, Name>)
-    } else if (props.meta?.nullableOrUndefined === "undefined") {
-      fieldApi.setValue(undefined as DeepValue<From, Name>)
-    } else {
-      // For required fields, initialize with appropriate empty value
-      if (props.meta?.type === "string") {
-        fieldApi.setValue("" as DeepValue<From, Name>)
-      } else if (props.meta?.type === "number") {
-        // Don't initialize number fields to avoid setting them to 0
-        // Leave as undefined so validation will catch it
-      } else if (props.meta?.type === "boolean") {
-        fieldApi.setValue(false as DeepValue<From, Name>)
-      }
-      // For other types, leave undefined so validation will catch missing required fields
-    }
-  }
-})
+// Note: Default value normalization (converting empty strings to null/undefined for nullable fields)
+// is now handled at the form level in useOmegaForm, not here in the component
 
 const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
   const handler3 = {

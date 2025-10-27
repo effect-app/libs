@@ -783,14 +783,50 @@ export const useOmegaForm = <
     return target
   }
 
+  // Normalize default values based on schema metadata
+  // Convert empty strings to null/undefined for nullable fields
+  // Also initialize missing nullable fields with null/undefined
+  const normalizeDefaultValues = (values: Partial<From>): Partial<From> => {
+    const normalized: any = { ...values }
+
+    // Process all fields in the schema metadata
+    for (const key in meta) {
+      const fieldMeta = meta[key as keyof typeof meta]
+      const value = normalized[key]
+
+      // Check if the value is falsy (but not boolean false or zero)
+      const isFalsyButNotZero = value == null || value === false || value === "" || Number.isNaN(value)
+      const isFalsy = isFalsyButNotZero && value !== false && value !== 0
+
+      if (
+        fieldMeta
+        && !fieldMeta.required
+        && fieldMeta.nullableOrUndefined
+        && fieldMeta.type !== "boolean"
+      ) {
+        // If value is missing or falsy, set to null or undefined based on schema
+        if (value === undefined || isFalsy) {
+          normalized[key] = fieldMeta.nullableOrUndefined === "undefined" ? undefined : null
+        }
+      }
+    }
+
+    return normalized
+  }
+
   const defaultValues = computed(() => {
+    // Normalize tanstack default values at the beginning
+    const normalizedTanstackDefaults = tanstackFormOptions?.defaultValues
+      ? normalizeDefaultValues(tanstackFormOptions.defaultValues)
+      : undefined
+
     if (
-      tanstackFormOptions?.defaultValues
+      normalizedTanstackDefaults
       && !omegaConfig?.persistency?.overrideDefaultValues
     ) {
       // defaultValues from tanstack are not partial,
-      // so if ovverrideDefaultValues is false we simply return them
-      return tanstackFormOptions?.defaultValues
+      // so if ovverrideDefaultValues is false we return the normalized values
+      return normalizedTanstackDefaults
     }
 
     // we are here because there are no default values from tankstack
@@ -839,12 +875,11 @@ export const useOmegaForm = <
     // to be sure we have a valid object at the end of the gathering process
     defValuesPatch ??= {}
 
-    if (tanstackFormOptions?.defaultValues == undefined) {
+    if (!normalizedTanstackDefaults) {
       // we just return what we gathered from the query/storage
       return defValuesPatch
     } else {
-      const startingDefValues = tanstackFormOptions?.defaultValues
-      return deepMerge(startingDefValues, defValuesPatch)
+      return deepMerge(normalizedTanstackDefaults, defValuesPatch)
     }
   })
 

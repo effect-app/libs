@@ -14,8 +14,8 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
-import { type DeepKeys, type DeepValue, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, onMounted, useId } from "vue"
+import { type DeepKeys, useStore } from "@tanstack/vue-form"
+import { computed, type ComputedRef, getCurrentInstance, useId } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -112,29 +112,8 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
   props.field.setMeta((m) => ({ ...m, errorMap: { ...m.errorMap, onSubmit: undefined } }))
 }
 
-// TODO: it would be cleaner when default values are handled in the form initialization via Schema or by the one using the form component..
-onMounted(() => {
-  // Initialize field value on mount for nullable/optional fields
-  // Convert falsy values (including empty strings) to null/undefined for nullable fields
-  // Exclude booleans since false is a valid value
-  if (
-    !fieldValue.value
-    && !isRequired.value
-    && props.meta?.nullableOrUndefined
-    && props.meta?.type !== "boolean"
-  ) {
-    const isDirty = fieldState.value.meta.isDirty
-
-    // Set appropriate default value based on field nullability
-    if (props.meta.nullableOrUndefined === "null") {
-      fieldApi.setValue(null as DeepValue<From, Name>)
-    } else if (props.meta.nullableOrUndefined === "undefined") {
-      fieldApi.setValue(undefined as DeepValue<From, Name>)
-    }
-
-    fieldApi.setMeta((_) => ({ ..._, isDirty }))
-  }
-})
+// Note: Default value normalization (converting empty strings to null/undefined for nullable fields)
+// is now handled at the form level in useOmegaForm, not here in the component
 
 const wrapField = (field: OmegaFieldInternalApi<From, Name>) => {
   const handler3 = {

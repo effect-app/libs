@@ -114,31 +114,25 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
 
 // TODO: it would be cleaner when default values are handled in the form initialization via Schema or by the one using the form component..
 onMounted(() => {
-  // Initialize field value on mount if it doesn't exist
-  if (fieldValue.value === undefined) {
+  // Initialize field value on mount for nullable/optional fields
+  // Convert falsy values (including empty strings) to null/undefined for nullable fields
+  // Exclude booleans since false is a valid value
+  if (
+    !fieldValue.value
+    && !isRequired.value
+    && props.meta?.nullableOrUndefined
+    && props.meta?.type !== "boolean"
+  ) {
     const isDirty = fieldState.value.meta.isDirty
-    // make sure we restore the previous dirty state..
-    fieldApi.setMeta((_) => ({ ..._, isDirty }))
 
-    if (isRequired.value) return
-
-    // Set appropriate default value based on field type and nullability
-    if (props.meta?.nullableOrUndefined === "null") {
+    // Set appropriate default value based on field nullability
+    if (props.meta.nullableOrUndefined === "null") {
       fieldApi.setValue(null as DeepValue<From, Name>)
-    } else if (props.meta?.nullableOrUndefined === "undefined") {
+    } else if (props.meta.nullableOrUndefined === "undefined") {
       fieldApi.setValue(undefined as DeepValue<From, Name>)
-    } else {
-      // For required fields, initialize with appropriate empty value
-      if (props.meta?.type === "string") {
-        fieldApi.setValue("" as DeepValue<From, Name>)
-      } else if (props.meta?.type === "number") {
-        // Don't initialize number fields to avoid setting them to 0
-        // Leave as undefined so validation will catch it
-      } else if (props.meta?.type === "boolean") {
-        fieldApi.setValue(false as DeepValue<From, Name>)
-      }
-      // For other types, leave undefined so validation will catch missing required fields
     }
+
+    fieldApi.setMeta((_) => ({ ..._, isDirty }))
   }
 })
 

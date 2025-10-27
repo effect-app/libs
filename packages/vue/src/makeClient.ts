@@ -2,7 +2,7 @@
 import * as Result from "@effect-atom/atom/Result"
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
-import { Cause, Effect, Exit, type ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
+import { Cause, Effect, Exit, type Layer, type ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
@@ -1211,15 +1211,16 @@ const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt
 
 type Base = I18n | Toast
 type Mix = ApiClientFactory | Commander | LegacyMutation | Base
-export const makeClient = <RT_>(
+export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
-  clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>
+  clientFor_: ReturnType<typeof ApiClientFactory["makeFor"]>,
+  rtHooks: Layer.Layer<RTHooks, never, Mix>
 ) => {
   type RT = RT_ | Mix
   const getRt = Effect.runtime<RT>()
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
-  const makeCommand = makeUseCommand<RT>()
+  const makeCommand = makeUseCommand<RT, RTHooks>(rtHooks)
   const makeMutation = Effect.gen(function*() {
     const mut = yield* LegacyMutation
 
@@ -1441,7 +1442,7 @@ export const makeClient = <RT_>(
     ...query
   }
 
-  const Command: CommanderResolved<RT> = {
+  const Command: CommanderResolved<RT, RTHooks> = {
     ...{
       // delay initialisation until first use...
       fn: (...args: [any]) => useCommand().fn(...args),

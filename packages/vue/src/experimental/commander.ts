@@ -2,7 +2,7 @@
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Context, Effect, type Exit, flow, Match, MutableHashMap, Option, Runtime, S, Utils } from "effect-app"
+import { Cause, Context, Effect, type Exit, flow, type Layer, Match, MutableHashMap, Option, Runtime, S, Utils } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
@@ -1327,14 +1327,12 @@ const getStateValues = <const Id extends string, const I18nKey extends string, S
 }
 
 // class preserves JSDoc throughout..
-export class CommanderImpl<RT> {
-  private runFork: <A, E>(
-    effect: Effect.Effect<A, E, RT>,
-    options?: Runtime.RunForkOptions
-  ) => RuntimeFiber<A, E>
-
-  constructor(private readonly rt: Runtime.Runtime<RT>, private readonly intl: I18n) {
-    this.runFork = Runtime.runFork(this.rt)
+export class CommanderImpl<RT, RTHooks> {
+  constructor(
+    private readonly rt: Runtime.Runtime<RT>,
+    private readonly intl: I18n,
+    private readonly hooks: Layer.Layer<RTHooks, never, RT>
+  ) {
   }
 
   readonly makeContext = <const Id extends string, const I18nKey extends string = Id>(
@@ -1380,7 +1378,7 @@ export class CommanderImpl<RT> {
     const state = getStateValues(options)
 
     return Object.assign(
-      <Arg, A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`>(
+      <Arg, A, E, R extends RT | RTHooks | CommandContext | `Commander.Command.${Id}.state`>(
         handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Effect.Effect<A, E, R>
       ) => {
         // we capture the definition stack here, so we can append it to later stack traces
@@ -1487,6 +1485,9 @@ export class CommanderImpl<RT> {
         const computeAllowed = options?.allowed
         const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
 
+        const rt = Effect.runtime<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Runtime.runSync(this.rt))
+        const runFork = Runtime.runFork(rt)
+
         const handle = Object.assign((arg: Arg) => {
           // we capture the call site stack here
           const limit = Error.stackTraceLimit
@@ -1536,7 +1537,7 @@ export class CommanderImpl<RT> {
             )
           ))
 
-          return this.runFork(command)
+          return runFork(command)
         }, { action, label })
 
         return reactive({
@@ -1833,6 +1834,7 @@ export class Commander extends Effect.Service<Commander>()("Commander", {
   dependencies: [WithToast.Default, Confirm.Default],
   effect: Effect.gen(function*() {
     const i18n = yield* I18n
-    return <RT>(rt: Runtime.Runtime<RT>) => new CommanderImpl(rt, i18n)
+    return <RT, RTHooks>(rt: Runtime.Runtime<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) =>
+      new CommanderImpl(rt, i18n, rtHooks)
   })
 }) {}

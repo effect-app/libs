@@ -87,7 +87,7 @@ export const useExperimental = (
   const WithToastLayer = WithToast.Default.pipe(Layer.provide(FakeToastLayer))
   const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer)
 
-  return Effect.runSync(makeUseCommand<WithToast | Toast.Toast | I18n>().pipe(Effect.provide(layers)))
+  return Effect.runSync(makeUseCommand<WithToast | Toast.Toast | I18n>(Layer.empty).pipe(Effect.provide(layers)))
 }
 
 export class RequestContextMap extends RpcContextMap.makeMap({}) {}
@@ -119,5 +119,5 @@ export const useClient = (
   const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api, lm)
 
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
-  return makeClient(() => ManagedRuntime.make(layers), clientFor_)
+  return makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
 }

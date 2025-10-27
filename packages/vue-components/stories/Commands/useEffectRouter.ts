@@ -7,15 +7,23 @@ import { type RouteLocationAsPath, type RouteLocationAsRelative, type RouteLocat
  */
 export const useEffectRouter = () => {
   const r = useRouter()
-  const current = useRoute()
   const effectified = {
-    ...r,
-    current,
+    current: useRoute(),
     replace: (to: RouteLocationRaw) => Effect.promise(() => r.replace(to)),
     push: (to: RouteLocationRaw) => Effect.promise(() => r.push(to)),
     isReady: Effect.promise(() => r.isReady())
   }
-  return effectified
+  const keys = Object.keys(effectified)
+  const proxy = new Proxy(r, {
+    get(_target, prop, _receiver) {
+      if (keys.includes(prop as any)) {
+        return (effectified as any)[prop as any]
+      }
+      // eslint-disable-next-line prefer-rest-params
+      return Reflect.get(...arguments as unknown as [any, any, any])
+    }
+  })
+  return proxy
 }
 
 export class Router extends Effect.Service<Router>()("Router", {

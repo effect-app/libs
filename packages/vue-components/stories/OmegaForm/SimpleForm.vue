@@ -4,7 +4,7 @@
       <div>values: {{ values }} {{ isDirty }} {{ canSubmit }}</div>
       <form.Input
         label="asder2"
-        name="asder2.value"
+        name="asder2"
       >
         <template #default="{ field, label, state }">
           <label :for="field.name">{{ label }}</label>

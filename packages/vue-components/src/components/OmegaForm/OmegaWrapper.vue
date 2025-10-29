@@ -30,7 +30,6 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useStore } from "@tanstack/vue-form"
-import { defineSlots } from "vue"
 import { usePreventClose } from "./blockDialog"
 import { getOmegaStore } from "./getOmegaStore"
 import { type DefaultTypeProps, type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"

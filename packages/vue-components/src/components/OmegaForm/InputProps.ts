@@ -39,7 +39,7 @@ export type InputProps<From extends Record<PropertyKey, any>, TName extends Deep
     error: boolean
     label: string
     type: string
-    inputClass: string | undefined
+    inputClass: string | undefined | null
   }
   field: OmegaFieldInternalApi<From, TName>
   /** be sure to use this state and not `field.state` as it is not reactive */

@@ -9,6 +9,7 @@ import BooleansComponent from "./OmegaForm/Booleans.vue"
 import ClearableComponent from "./OmegaForm/Clearable.vue"
 import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
 import CreateUseFormWithCustomInputComponent from "./OmegaForm/CreateUseFormWithCustomInput.vue"
+import CustomInputClassNameComponent from "./OmegaForm/CustomInputClassName.vue"
 import DateComponent from "./OmegaForm/Date.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
@@ -220,5 +221,12 @@ export const WindowExitPrevention: Story = {
   render: () => ({
     components: { WindowExitPreventionComponent },
     template: "<WindowExitPreventionComponent />"
+  })
+}
+
+export const CustomInputClassName: Story = {
+  render: () => ({
+    components: { CustomInputClassNameComponent },
+    template: "<CustomInputClassNameComponent />"
   })
 }

@@ -25,6 +25,13 @@ export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
   validators?: FieldValidators<From>
   // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>
   name: FlexibleArrayPath<TName> extends never ? Leaves<From> : TName
+  /**
+   * Optional class to apply to the input element.
+   * - If a string is provided, it will be used instead of the general class
+   * - If null is provided, no class will be applied (neither inputClass nor general class)
+   * - If undefined (not provided), the general class will be used
+   */
+  inputClass?: string | null
 }
 
 export type TypesWithOptions = "radio" | "select" | "multiple" | "autocomplete" | "autocompletemultiple"

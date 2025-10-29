@@ -5,6 +5,8 @@
       <form.Input
         label="asder2"
         name="asder2"
+        class="test"
+        input-class="testina"
       />
       <v-btn type="submit">
         submit
@@ -27,3 +29,6 @@ const form = useForm(schema, {
   }
 })
 </script>
+
+<style>
+</style>

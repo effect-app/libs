@@ -29,6 +29,3 @@ const form = useForm(schema, {
   }
 })
 </script>
-
-<style>
-</style>

@@ -10,7 +10,7 @@
     <template #default="{ field, state }">
       <OmegaInternalInput
         v-if="meta"
-        v-bind="{ ...$attrs, ...$props }"
+        v-bind="{ ...$attrs, ...$props, inputClass: computedClass }"
         :field="field"
         :state="state"
         :register="form.registerField"
@@ -35,7 +35,7 @@
 "
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { computed, inject, type Ref } from "vue"
+import { computed, inject, type Ref, useAttrs } from "vue"
 import { useIntl } from "../../utils"
 import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
@@ -47,6 +47,15 @@ const propsName: Ref<DeepKeys<From>> = computed(() => props.name)
 
 defineOptions({
   inheritAttrs: false
+})
+
+const attrs = useAttrs()
+
+// Compute the class to use based on inputClass prop
+const computedClass = computed(() => {
+  if (props.inputClass === null) return undefined
+  if (props.inputClass !== undefined) return props.inputClass
+  return attrs.class as string | undefined
 })
 
 const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(

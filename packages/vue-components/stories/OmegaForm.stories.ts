@@ -8,7 +8,7 @@ import AutoGenerationComponent from "./OmegaForm/AutoGeneration.vue"
 import BooleansComponent from "./OmegaForm/Booleans.vue"
 import ClearableComponent from "./OmegaForm/Clearable.vue"
 import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
-import CreateUseFormWithCustomInputComponent from "./OmegaForm/CreateUseFormWithCustomInput.vue"
+import CreateUseFormWithCustomInputComponent from "./OmegaForm/createUseFormWIthCustomInput.vue"
 import CustomInputClassNameComponent from "./OmegaForm/CustomInputClassName.vue"
 import DateComponent from "./OmegaForm/Date.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
@@ -37,7 +37,7 @@ const mockIntl = {
 
 const meta: StoryMeta<typeof OmegaForm> = {
   title: "Components/OmegaForm",
-  component: OmegaForm,
+  component: OmegaForm as any,
   argTypes: {
     schema: { control: "object" },
     onSubmit: { action: "submitted" },

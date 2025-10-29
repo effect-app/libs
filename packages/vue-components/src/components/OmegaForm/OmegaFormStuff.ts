@@ -15,16 +15,16 @@ export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer 
   }[keyof T]
 
 // Helper type to make array indices flexible - accepts both [number] and numeric literals [0], [1], etc.
-export type FlexibleArrayPath<T extends string> = T extends `${infer Before}[number]${infer After}`
-  ? T | `${Before}[${number}]${FlexibleArrayPath<After>}`
-  : T
+// Simplified: if there's a [] in the path, just use TName to avoid excessive type complexity
+export type FlexibleArrayPath<T extends string> = T extends `${string}[${string}]${string}` ? T
+  : never
 
 export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
   /** Will fallback to i18n when not specified */
   label?: string
   validators?: FieldValidators<From>
-  // disabled FlexibleArrayPath as it causes excessive complexity in type resolution inside user projects
-  name: TName // & FlexibleArrayPath<Leaves<From>>
+  // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>
+  name: FlexibleArrayPath<TName> extends never ? Leaves<From> : TName
 }
 
 export type TypesWithOptions = "radio" | "select" | "multiple" | "autocomplete" | "autocompletemultiple"

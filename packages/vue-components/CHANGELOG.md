@@ -1,5 +1,17 @@
 # @effect-app/vue-components
 
+## 2.2.0
+
+### Minor Changes
+
+- af4af34: Moves custom input class logic on higher step to be used also in custom Inputs
+- a51fb5a: Adds custom class names to inputs
+
+### Patch Changes
+
+- 1b28bb8: fix typo
+- 63dbaed: restore Leaves typing for omegaform input
+
 ## 2.1.6
 
 ### Patch Changes

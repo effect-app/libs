@@ -3,7 +3,7 @@
     <div :class="$attrs.class">
       <OmegaInputVuetify
         v-if="vuetified"
-        v-bind="{ ...attrsWithoutClass, ...inputProps, class: computedClass }"
+        v-bind="{ ...attrsWithoutClass, ...inputProps, class: props.inputClass }"
       />
     </div>
   </slot>
@@ -60,13 +60,6 @@ const isRequired = computed(() => props.required ?? props?.meta?.required)
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VTextField"]
 const attrs = useAttrs()
-
-// Compute the class to use based on inputClass prop
-const computedClass = computed(() => {
-  if (props.inputClass === null) return undefined
-  if (props.inputClass !== undefined) return props.inputClass
-  return attrs.class
-})
 
 // Create attrs without the class property to avoid duplication
 const attrsWithoutClass = computed(() => {
@@ -156,7 +149,8 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     error: !!errors.value.length,
     type: fieldType.value,
     label: `${props.label}${isRequired.value ? " *" : ""}`,
-    options: props.options
+    options: props.options,
+    inputClass: props.inputClass
   },
 
   state: props.state,

@@ -3,7 +3,7 @@
     <div :class="$attrs.class">
       <OmegaInputVuetify
         v-if="vuetified"
-        v-bind="{ ...$attrs, ...inputProps }"
+        v-bind="{ ...attrsWithoutClass, ...inputProps, class: computedClass }"
       />
     </div>
   </slot>
@@ -15,7 +15,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, useId } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, useAttrs, useId } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -33,6 +33,7 @@ const props = withDefaults(
     type?: TypeOverride
     validators?: FieldValidators<From>
     required?: boolean
+    inputClass?: string | null
 
     register: (
       field: ComputedRef<{
@@ -49,7 +50,8 @@ const props = withDefaults(
     required: undefined,
     type: undefined,
     options: undefined,
-    validators: undefined
+    validators: undefined,
+    inputClass: undefined
   }
 )
 
@@ -57,6 +59,20 @@ const isRequired = computed(() => props.required ?? props?.meta?.required)
 
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VTextField"]
+const attrs = useAttrs()
+
+// Compute the class to use based on inputClass prop
+const computedClass = computed(() => {
+  if (props.inputClass === null) return undefined
+  if (props.inputClass !== undefined) return props.inputClass
+  return attrs.class
+})
+
+// Create attrs without the class property to avoid duplication
+const attrsWithoutClass = computed(() => {
+  const { class: _, ...rest } = attrs
+  return rest
+})
 
 const id = useId()
 
@@ -75,7 +91,6 @@ const fieldType = computed(() => {
 
 props.register(computed(() => ({ name: props.field.name, label: props.label, id })))
 
-const fieldValue = computed(() => fieldState.value.value)
 // workaround strange tanstack form issue where the errors key becomes undefined ???
 const _errors = computed(() => fieldState.value.meta.errors ?? [])
 const errors = computed(() =>

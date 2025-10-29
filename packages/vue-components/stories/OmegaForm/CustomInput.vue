@@ -1,9 +1,11 @@
 <template>
-  <div>
+  <div :class="$attrs.class">
+    {{ $attrs["input-class"] }}
     <input
       :id="field.name"
       :name="field.name"
       :value="state.value"
+      :class="$attrs['input-class']"
       @change="(e: any) => field.handleChange(e.target.value)"
     >
   </div>

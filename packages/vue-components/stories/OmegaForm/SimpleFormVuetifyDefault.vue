@@ -2,12 +2,16 @@
   <form.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values } }">
       <form.Input
-        label="aString"
+        label="aString (uses inputClass)"
         name="aString"
+        class="generalClassName"
+        input-class="custom-input-class"
       />
       <form.Input
-        label="bString"
+        label="bString (inputClass=null, no class applied)"
         name="bString"
+        class="generalClassName"
+        :input-class="null"
       />
       <pre>{{ values }}</pre>
       <button>submit</button>
@@ -35,3 +39,15 @@ const form = useOmegaForm(schema, {
   defaultValues
 })
 </script>
+
+<style scoped>
+:deep(.generalClassName) {
+  outline: 2px solid red;
+  opacity: 0.5;
+}
+
+:deep(.custom-input-class) {
+  outline: 2px solid blue;
+  opacity: 0.8;
+}
+</style>

@@ -10,6 +10,7 @@ import ClearableComponent from "./OmegaForm/Clearable.vue"
 import ComplexFormComponent from "./OmegaForm/ComplexForm.vue"
 import CreateUseFormWithCustomInputComponent from "./OmegaForm/createUseFormWIthCustomInput.vue"
 import CustomInputClassNameComponent from "./OmegaForm/CustomInputClassName.vue"
+import CustomLabelSlotComponent from "./OmegaForm/CustomLabelSlot.vue"
 import DateComponent from "./OmegaForm/Date.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
@@ -228,5 +229,12 @@ export const CustomInputClassName: Story = {
   render: () => ({
     components: { CustomInputClassNameComponent },
     template: "<CustomInputClassNameComponent />"
+  })
+}
+
+export const CustomLabelSlot: Story = {
+  render: () => ({
+    components: { CustomLabelSlotComponent },
+    template: "<CustomLabelSlotComponent />"
   })
 }

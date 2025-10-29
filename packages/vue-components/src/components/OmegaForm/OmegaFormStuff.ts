@@ -20,7 +20,11 @@ export type FlexibleArrayPath<T extends string> = T extends `${string}[${string}
   : never
 
 export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
-  /** Will fallback to i18n when not specified */
+  /**
+   * Will fallback to i18n when not specified.
+   * Can also be provided via #label slot for custom HTML labels.
+   * When using the slot, it receives bindings: { required, id, label }
+   */
   label?: string
   validators?: FieldValidators<From>
   // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>

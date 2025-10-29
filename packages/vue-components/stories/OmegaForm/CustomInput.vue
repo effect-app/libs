@@ -1,7 +1,17 @@
 <template>
   <div :class="$attrs.class">
+    <label :for="inputProps.id">
+      <slot
+        v-if="$slots.label"
+        name="label"
+        v-bind="{ required: inputProps.required ?? false, id: inputProps.id, label: inputProps.label }"
+      />
+      <template v-else>
+        {{ inputProps.label }}
+      </template>
+    </label>
     <input
-      :id="field.name"
+      :id="inputProps.id"
       :name="field.name"
       :value="state.value"
       :class="inputProps.inputClass"
@@ -25,12 +35,16 @@ defineEmits<{
   (e: "blur", event: Event): void
 }>()
 
+defineSlots<{
+  label?: (props: { required: boolean; id: string; label: string }) => any
+}>()
+
 defineOptions({
   inheritAttrs: false
 })
 </script>
 
-<style>
+<style scoped>
 label {
   display: block;
 }

@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.92.2
+
+### Patch Changes
+
+- d840b90: fix: RTHooks missing
+
 ## 2.92.1
 
 ### Patch Changes

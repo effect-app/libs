@@ -215,7 +215,10 @@ export function makeRepoInternal<
             }
           })
 
-          const removeById = Effect.fn("removeById")(function*(...ids: NonEmptyReadonlyArray<T[IdKey]>) {
+          const removeById = Effect.fn("removeById")(function*(...ids: readonly T[IdKey][]) {
+            if (!Array.isNonEmptyReadonlyArray(ids)) {
+              return
+            }
             const { set } = yield* cms
             const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_ as any)).pipe(Effect.orDie)
             yield* Effect.annotateCurrentSpan({ itemIds: eids })

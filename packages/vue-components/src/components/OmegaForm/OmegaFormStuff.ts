@@ -15,7 +15,7 @@ export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer 
       : Leaves<T[K], `${Path extends "" ? "" : `${Path}.`}${K & string}`> & {}
   }[keyof T]
 
-export type BaseProps<From> = {
+export type BaseProps<From, TName extends NestedKeyOf<From> = NestedKeyOf<From>> = {
   /**
    * Will fallback to i18n when not specified.
    * Can also be provided via #label slot for custom HTML labels.
@@ -24,7 +24,7 @@ export type BaseProps<From> = {
   label?: string
   validators?: FieldValidators<From>
   // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>
-  name: Leaves<From>
+  name: TName & Leaves<From>
   /**
    * Optional class to apply to the input element.
    * - If a string is provided, it will be used instead of the general class

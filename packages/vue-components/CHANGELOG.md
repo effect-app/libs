@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 2.3.0
+
+### Minor Changes
+
+- fbe3ef6: Adds custom label feature to OmegaForm
+
+### Patch Changes
+
+- a413539: fixes leaves recursion
+
 ## 2.2.0
 
 ### Minor Changes

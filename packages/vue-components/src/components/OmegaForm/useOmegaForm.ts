@@ -228,7 +228,7 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & BaseProps<From, Name>
+          & BaseProps<From>
           & TypeProps
           & Partial<{}>
         >

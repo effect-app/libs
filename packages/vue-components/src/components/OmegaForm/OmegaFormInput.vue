@@ -35,7 +35,7 @@ if (!form) {
 }
 
 defineProps<
-  BaseProps<From, Name> & DefaultTypeProps
+  BaseProps<From> & DefaultTypeProps
 >()
 
 defineSlots<{

@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.6.2
+
+### Patch Changes
+
+- 7a6c269: fix: removeById should support 0..n
+
 ## 3.6.1
 
 ### Patch Changes

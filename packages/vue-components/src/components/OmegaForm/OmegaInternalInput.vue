@@ -4,7 +4,17 @@
       <OmegaInputVuetify
         v-if="vuetified"
         v-bind="{ ...attrsWithoutClass, ...inputProps, class: props.inputClass }"
-      />
+      >
+        <template
+          v-if="$slots.label"
+          #label="labelProps"
+        >
+          <slot
+            name="label"
+            v-bind="labelProps"
+          />
+        </template>
+      </OmegaInputVuetify>
     </div>
   </slot>
 </template>
@@ -15,7 +25,7 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
-import { computed, type ComputedRef, getCurrentInstance, useAttrs, useId } from "vue"
+import { computed, type ComputedRef, getCurrentInstance, useAttrs, useId, useSlots } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
@@ -60,6 +70,7 @@ const isRequired = computed(() => props.required ?? props?.meta?.required)
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VTextField"]
 const attrs = useAttrs()
+const slots = useSlots()
 
 // Create attrs without the class property to avoid duplication
 const attrsWithoutClass = computed(() => {
@@ -148,7 +159,8 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     errorMessages: errors.value,
     error: !!errors.value.length,
     type: fieldType.value,
-    label: `${props.label}${isRequired.value ? " *" : ""}`,
+    // Only add asterisk if label slot is not provided (slot has full control)
+    label: slots.label ? props.label : `${props.label}${isRequired.value ? " *" : ""}`,
     options: props.options,
     inputClass: props.inputClass
   },

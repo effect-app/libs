@@ -16,7 +16,17 @@
       v-bind="$attrs"
       :model-value="state.value"
       @change="(e: any) => field.handleChange(e.target.checked)"
-    />
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </component>
     <v-text-field
       v-if="inputProps.type === 'email' || inputProps.type === 'string' || inputProps.type === 'password'"
       :id="inputProps.id"
@@ -31,7 +41,17 @@
       v-bind="$attrs"
       :model-value="state.value"
       @update:model-value="field.handleChange"
-    />
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </v-text-field>
     <v-textarea
       v-if="inputProps.type === 'text'"
       :id="inputProps.id"
@@ -45,7 +65,17 @@
       v-bind="$attrs"
       :model-value="state.value"
       @update:model-value="field.handleChange"
-    />
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </v-textarea>
     <component
       :is="inputProps.type === 'range' ? 'v-slider' : 'v-text-field'"
       v-if="inputProps.type === 'number' || inputProps.type === 'range'"
@@ -67,7 +97,17 @@
           field.handleChange(undefined as any)
         }
       }"
-    />
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </component>
     <template v-if="inputProps.type === 'radio'">
       <v-radio-group
         :id="inputProps.id"
@@ -79,6 +119,15 @@
         :model-value="state.value"
         @update:model-value="field.handleChange"
       >
+        <template
+          v-if="$slots.label"
+          #label
+        >
+          <slot
+            name="label"
+            v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+          />
+        </template>
         <v-radio
           v-for="option in inputProps.options"
           :key="option.value"
@@ -103,7 +152,17 @@
       :model-value="state.value"
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
-    />
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </v-select>
 
     <v-autocomplete
       v-if="inputProps.type === 'autocomplete'
@@ -122,7 +181,17 @@
       :model-value="state.value"
       @clear="field.handleChange(undefined as any)"
       @update:model-value="field.handleChange"
-    />
+    >
+      <template
+        v-if="$slots.label"
+        #label
+      >
+        <slot
+          name="label"
+          v-bind="{ required: inputProps.required, id: inputProps.id, label: inputProps.label }"
+        />
+      </template>
+    </v-autocomplete>
   </div>
 </template>
 

@@ -8,6 +8,17 @@
         class="test"
         input-class="testina"
       />
+      <form.Input name="customLabel">
+        <template #label="{ required }">
+          <span style="color: blue; font-weight: bold">
+            Custom HTML Label
+            <span
+              v-if="required"
+              style="color: red"
+            >*</span>
+          </span>
+        </template>
+      </form.Input>
       <v-btn type="submit">
         submit
       </v-btn>
@@ -22,7 +33,10 @@ import CustomInput from "./CustomInput.vue"
 
 const useForm = createUseFormWithCustomInput(CustomInput)
 
-const schema = S.Struct({ asder2: S.String })
+const schema = S.Struct({
+  asder2: S.String,
+  customLabel: S.String
+})
 const form = useForm(schema, {
   onSubmit: async ({ value }) => {
     console.log(value)

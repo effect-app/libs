@@ -17,6 +17,15 @@
         :label="label ?? i18n()"
         :meta="meta"
       >
+        <template
+          v-if="$slots.label"
+          #label="labelProps"
+        >
+          <slot
+            name="label"
+            v-bind="labelProps"
+          />
+        </template>
         <template #default="inputProps">
           <slot v-bind="inputProps" />
         </template>
@@ -42,8 +51,13 @@ import OmegaInternalInput from "./OmegaInternalInput.vue"
 
 const props = defineProps<OmegaInputPropsBase<From, To>>()
 
-// downgrade to DeepKeys<From> to avoid useless and possible infinite recursion in TS
-const propsName: Ref<DeepKeys<From>> = computed(() => props.name)
+// downgrade to *as* DeepKeys<From> to avoid useless and possible infinite recursion in TS
+const propsName = computed(() => props.name as DeepKeys<From>)
+
+defineSlots<{
+  label?: (props: { required?: boolean; id: string; label: string }) => any
+  default?: (props: any) => any
+}>()
 
 defineOptions({
   inheritAttrs: false
@@ -64,7 +78,7 @@ const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
 )
 
 const meta = computed(() => {
-  if (getMetaFromArray?.value && getMetaFromArray.value(props.name)) {
+  if (getMetaFromArray?.value && getMetaFromArray.value(props.name as DeepKeys<From>)) {
     return getMetaFromArray.value(propsName.value)
   }
   return props.form.meta[propsName.value]

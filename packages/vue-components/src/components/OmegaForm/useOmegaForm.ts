@@ -236,7 +236,8 @@ export interface OmegaFormReturn<
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
-        default(props: MergedInputProps<From, Name>): void
+        default?(props: MergedInputProps<From, Name>): void
+        label?: (props: { required: boolean; id: string; label: string }) => void
       }
       emit: {}
     }>

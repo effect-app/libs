@@ -20,7 +20,7 @@ export const createUseFormWithCustomInput = <
     const WrappedInput = {
       name: "WrappedInput",
       inheritAttrs: false,
-      setup(props: any, { attrs }: any) {
+      setup(props: any, { attrs, slots }: any) {
         return () =>
           h(OmegaInput, {
             ...props,
@@ -35,8 +35,17 @@ export const createUseFormWithCustomInput = <
                   && key !== "form"
                 )
               )
-              return h(CustomInputComponent, { ...filteredAttrs, field, state, inputProps })
-            }
+              return h(CustomInputComponent, { ...filteredAttrs, field, state, inputProps }, {
+                // Pass through label slot if it exists
+                ...(slots.label && {
+                  label: (labelProps: any) => slots.label(labelProps)
+                })
+              })
+            },
+            // Pass through label slot to OmegaInput
+            ...(slots.label && {
+              label: (labelProps: any) => slots.label(labelProps)
+            })
           })
       }
     }

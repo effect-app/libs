@@ -7,19 +7,15 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U> ? Leaves<U, `${Path}[number]`> & {}
+export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U>
+  ? Leaves<U, `${Path}[${number}]`> & {}
   : {
     [K in keyof T]: T[K] extends string | boolean | number | null | undefined | symbol | bigint
       ? `${Path extends "" ? "" : `${Path}.`}${K & string}`
       : Leaves<T[K], `${Path extends "" ? "" : `${Path}.`}${K & string}`> & {}
   }[keyof T]
 
-// Helper type to make array indices flexible - accepts both [number] and numeric literals [0], [1], etc.
-// Simplified: if there's a [] in the path, just use TName to avoid excessive type complexity
-export type FlexibleArrayPath<T extends string> = T extends `${string}[${string}]${string}` ? T
-  : never
-
-export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
+export type BaseProps<From> = {
   /**
    * Will fallback to i18n when not specified.
    * Can also be provided via #label slot for custom HTML labels.
@@ -28,7 +24,7 @@ export type BaseProps<From, TName extends DeepKeys<From> = DeepKeys<From>> = {
   label?: string
   validators?: FieldValidators<From>
   // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>
-  name: FlexibleArrayPath<TName> extends never ? Leaves<From> : TName
+  name: Leaves<From>
   /**
    * Optional class to apply to the input element.
    * - If a string is provided, it will be used instead of the general class
@@ -60,7 +56,7 @@ export type OmegaInputPropsBase<
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
-} & BaseProps<From, NestedKeyOf<From>>
+} & BaseProps<From>
 
 export type OmegaInputProps<
   From extends Record<PropertyKey, any>,
@@ -71,7 +67,7 @@ export type OmegaInputProps<
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
-} & BaseProps<From, NestedKeyOf<From>>
+} & BaseProps<From>
 
 export type OmegaArrayProps<
   From extends Record<PropertyKey, any>,

@@ -1659,7 +1659,7 @@ export class CommanderImpl<RT, RTHooks> {
   >(
     id: Id | { id: Id },
     options?: FnOptions<Id, I18nKey, State>
-  ): Commander.Gen<RT, Id, I18nKey, State> & Commander.NonGen<RT, Id, I18nKey, State> & {
+  ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> & Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
     state: Context.Tag<`Commander.Command.${Id}.state`, State>
   } =>
     Object.assign(
@@ -1708,7 +1708,7 @@ export class CommanderImpl<RT, RTHooks> {
     options?: FnOptions<Id, I18nKey, State>
   ) =>
     & Commander.CommandContextLocal<Id, I18nKey>
-    & (<A, E, R extends RT | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
+    & (<A, E, R extends RT | RTHooks | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       handler: (
         ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
           // todo: only if we passed in one
@@ -1797,7 +1797,7 @@ export class CommanderImpl<RT, RTHooks> {
       | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
       | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
     options?: FnOptions<Id, I18nKey, State>
-  ): Commander.CommanderWrap<RT, Id, I18nKey, State, Arg, A, E, R> =>
+  ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> =>
     Object.assign(
       (
         ...combinators: any[]
@@ -1807,7 +1807,6 @@ export class CommanderImpl<RT, RTHooks> {
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
-
         const mutate = "mutate" in mutation ? mutation.mutate : mutation
 
         return this.makeCommand(mutation.id, options, errorDef)(
@@ -1831,7 +1830,7 @@ export class CommanderImpl<RT, RTHooks> {
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class Commander extends Effect.Service<Commander>()("Commander", {
-  dependencies: [WithToast.Default, Confirm.Default],
+  dependencies: [WithToast.Default],
   effect: Effect.gen(function*() {
     const i18n = yield* I18n
     return <RT, RTHooks>(rt: Runtime.Runtime<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) =>

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.3
+
+### Patch Changes
+
+- 6f5d50a: fuck computation
+
 ## 2.4.2
 
 ### Patch Changes

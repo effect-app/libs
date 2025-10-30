@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.0
+
+### Minor Changes
+
+- 7fc5f79: Fixes omega name recursion
+
 ## 2.3.1
 
 ### Patch Changes

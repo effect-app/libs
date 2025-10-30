@@ -10,7 +10,7 @@
 import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { onMounted } from "vue"
 import { type TaggedUnionOption, type TaggedUnionOptionsArray } from "./InputProps"
-import { type Leaves } from "./OmegaFormStuff"
+import { type FieldPath } from "./OmegaFormStuff"
 import OmegaTaggedUnionInternal from "./OmegaTaggedUnionInternal.vue"
 import { type useOmegaForm } from "./useOmegaForm"
 
@@ -46,7 +46,7 @@ onMounted(() => {
 
 <template>
   <form.Input
-    :name="`${name}._tag` as Leaves<From, ''>"
+    :name="`${name}._tag` as FieldPath<From, ''>"
     :label="label"
     :type="type ?? 'select'"
     :options="options as unknown as TaggedUnionOption<From, Name>[]"

@@ -7,13 +7,26 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-export type FieldPath<T, Path extends string = ""> = unknown extends T ? string
-  : T extends string | boolean | number | null | undefined | symbol | bigint ? `${Path extends "" ? "" : `${Path}`}`
-  : T extends ReadonlyArray<infer U> ? (FieldPath<U, `${Path}[${number}]`> & {}) | Path
+type ForceComputation<T> =
+  & {
+    [K in keyof T]: T[K]
+  }
+  & {}
+
+export type FieldPath<T> = unknown extends T ? string
+  // technically we cannot have primitive at the root
+  : T extends string | boolean | number | null | undefined | symbol | bigint ? ""
+  // technically we cannot have array at the root
+  : T extends ReadonlyArray<infer U> ? ForceComputation<FieldPath_<U, `[${number}]`>>
   : {
-    [K in keyof T]: T[K] extends string | boolean | number | null | undefined | symbol | bigint
-      ? `${Path extends "" ? "" : `${Path}.`}${K & string}`
-      : FieldPath<T[K], `${Path extends "" ? "" : `${Path}.`}${K & string}`> & {}
+    [K in keyof T]: ForceComputation<FieldPath_<T[K], `${K & string}`>>
+  }[keyof T]
+
+export type FieldPath_<T, Path extends string> = unknown extends T ? string
+  : T extends string | boolean | number | null | undefined | symbol | bigint ? Path
+  : T extends ReadonlyArray<infer U> ? ForceComputation<FieldPath_<U, `${Path}[${number}]`>> | Path
+  : {
+    [K in keyof T]: ForceComputation<FieldPath_<T[K], `${Path}.${K & string}`>>
   }[keyof T]
 
 export type BaseProps<From, TName extends FieldPath<From> = FieldPath<From>> = {

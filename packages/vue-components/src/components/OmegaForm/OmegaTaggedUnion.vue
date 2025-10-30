@@ -46,7 +46,7 @@ onMounted(() => {
 
 <template>
   <form.Input
-    :name="`${name}._tag` as FieldPath<From, ''>"
+    :name="`${name}._tag` as FieldPath<From>"
     :label="label"
     :type="type ?? 'select'"
     :options="options as unknown as TaggedUnionOption<From, Name>[]"

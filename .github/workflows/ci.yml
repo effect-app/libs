@@ -56,7 +56,6 @@ jobs:
 
   build:
     name: Build
-    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -96,7 +95,6 @@ jobs:
 
   test:
     name: Test
-    needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

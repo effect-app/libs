@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.3.1
+
+### Patch Changes
+
+- b3f1fdb: Fixes name for state update
+
 ## 2.3.0
 
 ### Minor Changes

@@ -7,15 +7,16 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-export type Leaves<T, Path extends string = ""> = T extends ReadonlyArray<infer U>
-  ? Leaves<U, `${Path}[${number}]`> & {}
+export type FieldPath<T, Path extends string = ""> = unknown extends T ? string
+  : T extends string | boolean | number | null | undefined | symbol | bigint ? `${Path extends "" ? "" : `${Path}`}`
+  : T extends ReadonlyArray<infer U> ? (FieldPath<U, `${Path}[${number}]`> & {}) | Path
   : {
     [K in keyof T]: T[K] extends string | boolean | number | null | undefined | symbol | bigint
       ? `${Path extends "" ? "" : `${Path}.`}${K & string}`
-      : Leaves<T[K], `${Path extends "" ? "" : `${Path}.`}${K & string}`> & {}
+      : FieldPath<T[K], `${Path extends "" ? "" : `${Path}.`}${K & string}`> & {}
   }[keyof T]
 
-export type BaseProps<From, TName extends NestedKeyOf<From> = NestedKeyOf<From>> = {
+export type BaseProps<From, TName extends FieldPath<From> = FieldPath<From>> = {
   /**
    * Will fallback to i18n when not specified.
    * Can also be provided via #label slot for custom HTML labels.
@@ -24,7 +25,7 @@ export type BaseProps<From, TName extends NestedKeyOf<From> = NestedKeyOf<From>>
   label?: string
   validators?: FieldValidators<From>
   // Use FlexibleArrayPath: if name contains [], just use TName; otherwise intersect with Leaves<From>
-  name: TName & Leaves<From>
+  name: TName
   /**
    * Optional class to apply to the input element.
    * - If a string is provided, it will be used instead of the general class

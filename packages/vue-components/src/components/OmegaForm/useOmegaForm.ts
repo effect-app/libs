@@ -11,7 +11,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
@@ -213,7 +213,7 @@ export interface OmegaFormReturn<
   TypeProps = DefaultTypeProps
 > extends OF<From, To> {
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
-  Input: <Name extends DeepKeys<From>>(
+  Input: <Name extends FieldPath<From>>(
     __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
     __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
     __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
@@ -228,7 +228,7 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & BaseProps<From>
+          & BaseProps<From, Name>
           & TypeProps
           & Partial<{}>
         >

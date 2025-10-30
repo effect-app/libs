@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.2
+
+### Patch Changes
+
+- 1197213: Fix omega name
+
 ## 2.4.1
 
 ### Patch Changes

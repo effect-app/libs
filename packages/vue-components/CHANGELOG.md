@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.9
+
+### Patch Changes
+
+- b75309d: bump
+
 ## 2.4.8
 
 ### Patch Changes

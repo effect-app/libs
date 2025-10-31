@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.7
+
+### Patch Changes
+
+- 6e04f19: Adds cached types and reduce code repetition trying to improve performances
+
 ## 2.4.6
 
 ### Patch Changes

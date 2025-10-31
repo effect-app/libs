@@ -212,528 +212,105 @@ export interface OmegaFormReturn<
   To extends Record<PropertyKey, any>,
   TypeProps = DefaultTypeProps
 > extends OF<From, To> {
-  // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
+  // Pre-bound Input component with type-checked Name parameter
   Input: <Name extends FieldPath<From>>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & TypeProps
-          & Partial<{}>
-        >
-        & BaseProps<From, Name>
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default?(props: MergedInputProps<From, Name>): void
-        label?: (props: { required: boolean; id: string; label: string }) => void
+    props: BaseProps<From, Name> & TypeProps & {
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        default?(props: MergedInputProps<From, Name>): any
+        label?: (props: { required: boolean; id: string; label: string }) => any
       }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
+      attrs?: Record<string, any>
+    }
+  ) => import("vue").VNode
   Errors: (
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & Partial<{}>
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => void
+    props?: {
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => any
       }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
+      attrs?: Record<string, any>
+    }
+  ) => import("vue").VNode
   TaggedUnion: <Name extends DeepKeys<From>>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & {
-            name: Name
-            type?: "select" | "radio"
-            options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
-            label?: string
-          }
-          & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: Record<
+    props: {
+      name: Name
+      type?: "select" | "radio"
+      options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
+      label?: string
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: Record<
         string,
         (props: {
-          field: import("@tanstack/vue-form").FieldApi<
-            From,
-            Name,
-            DeepValue<From, Name>,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any
-          >
-          state: import("@tanstack/vue-form").FieldState<
-            From,
-            Name,
-            DeepValue<From, Name>,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any
-          >
+          field: import("@tanstack/vue-form").FieldApi<From, Name, DeepValue<From, Name>, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>
+          state: import("@tanstack/vue-form").FieldState<From, Name, DeepValue<From, Name>, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>
         }) => any
       >
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
-  Array: (
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & (Omit<OmegaArrayProps<From, To>, "form">)
-          & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        "pre-array"?: (props: {
-          field: import("@tanstack/vue-form").FieldApi<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            Record<string, any> | undefined
-          >
-          state: import("@tanstack/vue-form").FieldState<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
-          >
-        }) => any
-      } & {
-        default?: (props: {
-          subField: import("@tanstack/vue-form").FieldApi<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            Record<string, any> | undefined
-          >
-          subState: import("@tanstack/vue-form").FieldState<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
-          >
-          index: number
-          field: import("@tanstack/vue-form").FieldApi<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            Record<string, any> | undefined
-          >
-        }) => any
-      } & {
-        "post-array"?: (props: {
-          field: import("@tanstack/vue-form").FieldApi<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            Record<string, any> | undefined
-          >
-          state: import("@tanstack/vue-form").FieldState<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
-          >
-        }) => any
-      } & {
-        field?: (props: {
-          field: import("@tanstack/vue-form").FieldApi<
-            From,
-            DeepKeys<From>,
-            DeepValue<From, DeepKeys<From>>,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            | import("@tanstack/vue-form").FieldAsyncValidateOrFn<From, DeepKeys<From>, DeepValue<From, DeepKeys<From>>>
-            | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-            Record<string, any> | undefined
-          >
-        }) => any
+      attrs?: Record<string, any>
+    }
+  ) => import("vue").VNode
+  Array: <Name extends DeepKeys<From>>(
+    props: {
+      name: Name
+      defaultItems?: DeepValue<From, Name>
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        "pre-array"?: (props: { field: any; state: any }) => any
+        default?: (props: { subField: any; subState: any; index: number; field: any }) => any
+        "post-array"?: (props: { field: any; state: any }) => any
+        field?: (props: { field: any }) => any
       }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
+      attrs?: Record<string, any>
+    }
+  ) => import("vue").VNode
 
   AutoGen: (
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          > & {
-            // form: OmegaInputProps<From, To>["form"]
-            pick?: DeepKeys<From>[]
-            omit?: DeepKeys<From>[]
-            labelMap?: (key: DeepKeys<From>) => string | undefined
-            filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
-            order?: DeepKeys<From>[]
-            sort?: Order.Order<OmegaAutoGenMeta<From, To>>
-          } & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default(props: {
-          child: OmegaAutoGenMeta<From, To>
-        }): void
+    props: {
+      pick?: DeepKeys<From>[]
+      omit?: DeepKeys<From>[]
+      labelMap?: (key: DeepKeys<From>) => string | undefined
+      filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
+      order?: DeepKeys<From>[]
+      sort?: Order.Order<OmegaAutoGenMeta<From, To>>
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        default(props: { child: OmegaAutoGenMeta<From, To> }): any
       }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
+      attrs?: Record<string, any>
+    }
+  ) => import("vue").VNode
 
-  Form: <K extends keyof OmegaFormState<To, From>>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          > & {
-            // form: OmegaFormReturn<From, To, Props>
-            disabled?: boolean
-            subscribe?: K[]
-          } & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
+  Form: <K extends keyof OmegaFormState<From, To>>(
+    props: {
+      disabled?: boolean
+      subscribe?: K[]
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
         default(props: {
           subscribedValues: K[] extends undefined[] ? Record<string, never> : Pick<OmegaFormState<From, To>, K>
-        }): void
+        }): any
       }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
+      attrs?: Record<string, any>
+    }
+  ) => import("vue").VNode
 }
 
 export const useOmegaForm = <
@@ -1089,14 +666,147 @@ export const useOmegaForm = <
 
   const errorContext = { form: formWithExtras, fieldMap }
 
+  // Pre-bound component functions with From and To already bound
+  const Input = <Name extends FieldPath<From>>(
+    props: BaseProps<From, Name> & DefaultTypeProps & {
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        default?(props: MergedInputProps<From, Name>): any
+        label?: (props: { required: boolean; id: string; label: string }) => any
+      }
+      attrs?: Record<string, any>
+    }
+  ) => {
+    const InputComponent = omegaConfig?.input ?? OmegaInput
+    return h(InputComponent, {
+      ...props,
+      form: formWithExtras,
+      ...context?.attrs
+    }, context?.slots)
+  }
+
+  const Errors = (
+    props?: {
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => any
+      }
+      attrs?: Record<string, any>
+    }
+  ) => {
+    return h(eHoc(errorContext)(OmegaErrorsInternal) as any, {
+      ...props,
+      ...context?.attrs
+    }, context?.slots)
+  }
+
+  const TaggedUnion = <Name extends DeepKeys<From>>(
+    props: {
+      name: Name
+      type?: "select" | "radio"
+      options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
+      label?: string
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: Record<string, any>
+      attrs?: Record<string, any>
+    }
+  ) => {
+    return h(OmegaTaggedUnion, {
+      ...props,
+      form: formWithExtras as any,
+      ...context?.attrs
+    }, context?.slots)
+  }
+
+  const ArrayComponent = <Name extends DeepKeys<From>>(
+    props: {
+      name: Name
+      defaultItems?: DeepValue<From, Name>
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        "pre-array"?: (props: { field: any; state: any }) => any
+        default?: (props: { subField: any; subState: any; index: number; field: any }) => any
+        "post-array"?: (props: { field: any; state: any }) => any
+        field?: (props: { field: any }) => any
+      }
+      attrs?: Record<string, any>
+    }
+  ) => {
+    return h(OmegaArray, {
+      ...props,
+      form: formWithExtras as any,
+      ...context?.attrs
+    }, context?.slots)
+  }
+
+  const AutoGen = (
+    props: {
+      pick?: DeepKeys<From>[]
+      omit?: DeepKeys<From>[]
+      labelMap?: (key: DeepKeys<From>) => string | undefined
+      filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
+      order?: DeepKeys<From>[]
+      sort?: Order.Order<OmegaAutoGenMeta<From, To>>
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        default(props: { child: OmegaAutoGenMeta<From, To> }): any
+      }
+      attrs?: Record<string, any>
+    }
+  ) => {
+    return h(OmegaAutoGen as any, {
+      ...props,
+      form: formWithExtras,
+      ...context?.attrs
+    }, context?.slots)
+  }
+
+  const Form = <K extends keyof OmegaFormState<From, To>>(
+    props: {
+      disabled?: boolean
+      subscribe?: K[]
+      key?: string | number
+      ref?: any
+    },
+    context?: {
+      slots?: {
+        default(props: {
+          subscribedValues: K[] extends undefined[] ? Record<string, never> : Pick<OmegaFormState<From, To>, K>
+        }): any
+      }
+      attrs?: Record<string, any>
+    }
+  ) => {
+    return h(OmegaForm as any, {
+      ...props,
+      form: formWithExtras,
+      ...context?.attrs
+    }, context?.slots)
+  }
+
   return Object.assign(formWithExtras, {
     errorContext,
-    Form: fHoc(formWithExtras)(OmegaForm as any) as any,
-    Input: fHoc(formWithExtras)(omegaConfig?.input ?? OmegaInput) as any,
-    TaggedUnion: fHoc(formWithExtras)(OmegaTaggedUnion) as any,
+    Form,
+    Input,
+    TaggedUnion,
     Field: form.Field,
-    Errors: eHoc(errorContext)(OmegaErrorsInternal) as any,
-    Array: fHoc(formWithExtras)(OmegaArray) as any,
-    AutoGen: fHoc(formWithExtras)(OmegaAutoGen as any) as any
+    Errors,
+    Array: ArrayComponent,
+    AutoGen
   })
 }

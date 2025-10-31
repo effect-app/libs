@@ -31,7 +31,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   asder2: S.Struct({
-    value: S.String
+    value: S.NonEmptyString100
   })
 })
 const form = useOmegaForm(schema, {

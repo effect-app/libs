@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.4
+
+### Patch Changes
+
+- 7fb3fdf: another try to fix this
+
 ## 2.4.3
 
 ### Patch Changes

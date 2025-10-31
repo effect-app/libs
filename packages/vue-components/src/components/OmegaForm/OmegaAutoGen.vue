@@ -4,7 +4,7 @@
     :child="{ name, label, ...attrs }"
   >
     <form.Input
-      :name="name"
+      :name="name as FieldPath<From>"
       :label="label"
       v-bind="attrs"
     />
@@ -16,15 +16,16 @@
   lang="ts"
   generic="
   From extends Record<PropertyKey, string>,
-  To extends Record<PropertyKey, string>
+  To extends Record<PropertyKey, string>,
+  Name extends DeepKeys<From>
 "
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { Array as A, Order, pipe } from "effect-app"
 import { computed } from "vue"
-import { type FieldMeta, type OmegaAutoGenMeta, type OmegaInputProps } from "./OmegaFormStuff"
+import { type FieldMeta, type FieldPath, type OmegaAutoGenMeta, type OmegaInputProps } from "./OmegaFormStuff"
 
-type NewMeta = OmegaAutoGenMeta<From, To>
+type NewMeta = OmegaAutoGenMeta<From, To, Name>
 
 const mapObject = <K extends string, A, B>(fn: (value: A, key: K) => B) => (obj: Record<K, A>): Record<K, B> =>
   Object.fromEntries(
@@ -51,7 +52,7 @@ const filterMapRecord =
     )
 
 const props = defineProps<{
-  form: OmegaInputProps<From, To>["form"]
+  form: OmegaInputProps<From, To, Name>["form"]
   pick?: DeepKeys<From>[]
   omit?: DeepKeys<From>[]
   labelMap?: (key: DeepKeys<From>) => string | undefined

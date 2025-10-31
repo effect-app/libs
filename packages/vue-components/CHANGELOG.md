@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.11
+
+### Patch Changes
+
+- 321efdd: Fixes empty string validation
+
 ## 2.4.10
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.4.8
+
+### Patch Changes
+
+- 49d3666: Tries to improve performances
+- 49d3666: Tries factory
+
 ## 2.4.7
 
 ### Patch Changes

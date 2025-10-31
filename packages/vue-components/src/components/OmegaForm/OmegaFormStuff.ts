@@ -115,6 +115,7 @@ export type TypeOverride =
   | "range"
   | "password"
   | "email"
+  | "date"
 
 export interface OmegaError {
   label: string

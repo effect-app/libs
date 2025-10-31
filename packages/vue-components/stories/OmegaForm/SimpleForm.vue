@@ -4,7 +4,7 @@
       <div>values: {{ values }} {{ isDirty }} {{ canSubmit }}</div>
       <form.Input
         label="asder2"
-        name="asder2.value"
+        name="asder2"
       >
         <template #default="{ field, label, state }">
           {{ state.value }}
@@ -31,10 +31,10 @@ import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
-  asder2: S.Array(S.Struct({
+  asder2: S.Struct({
     value: S.String
   })
-}))
+})
 const form = useOmegaForm(schema, {
   onSubmit: async ({ value }) => {
     console.log(value)

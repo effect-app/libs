@@ -356,7 +356,7 @@ export interface OmegaFormReturn<
   ) => import("vue").VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
-  Array: <Name extends DeepKeys<From>>(
+  Array: (
     __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
     __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
     __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
@@ -371,7 +371,7 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & (Omit<OmegaArrayProps<From, To, Name>, "form">)
+          & (Omit<OmegaArrayProps<From, To>, "form">)
           & {}
         >
         & import("vue").PublicProps
@@ -663,7 +663,7 @@ export interface OmegaFormReturn<
     __ctx?: Awaited<typeof __VLS_setup>
   }
 
-  AutoGen: <Name extends DeepKeys<From>>(
+  AutoGen: (
     __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
     __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
     __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
@@ -682,9 +682,9 @@ export interface OmegaFormReturn<
             pick?: DeepKeys<From>[]
             omit?: DeepKeys<From>[]
             labelMap?: (key: DeepKeys<From>) => string | undefined
-            filterMap?: <M extends OmegaAutoGenMeta<From, To, Name>>(key: DeepKeys<From>, meta: M) => boolean | M
+            filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
             order?: DeepKeys<From>[]
-            sort?: Order.Order<OmegaAutoGenMeta<From, To, Name>>
+            sort?: Order.Order<OmegaAutoGenMeta<From, To>>
           } & {}
         >
         & import("vue").PublicProps
@@ -692,7 +692,7 @@ export interface OmegaFormReturn<
       attrs: any
       slots: {
         default(props: {
-          child: OmegaAutoGenMeta<From, To, Name>
+          child: OmegaAutoGenMeta<From, To>
         }): void
       }
       emit: {}

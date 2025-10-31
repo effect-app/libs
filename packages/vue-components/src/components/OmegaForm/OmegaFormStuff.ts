@@ -17,19 +17,19 @@ export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
   : T extends string | boolean | number | null | undefined | symbol | bigint ? ""
   // technically we cannot have array at the root
-  : T extends ReadonlyArray<infer U> ? FieldPath_<U, `[${number}]`>
+  : T extends ReadonlyArray<infer U> ? Compute<FieldPath_<U, `[${number}]`>>
   : {
-    [K in keyof T]: FieldPath_<T[K], `${K & string}`>
+    [K in keyof T]: Compute<FieldPath_<T[K], `${K & string}`>>
   }[keyof T]
 
 export type FieldPath_<T, Path extends string> = unknown extends T ? string
   : T extends string | boolean | number | null | undefined | symbol | bigint ? Path
-  : T extends ReadonlyArray<infer U> ? FieldPath_<U, `${Path}[${number}]`> | Path
+  : T extends ReadonlyArray<infer U> ? Compute<FieldPath_<U, `${Path}[${number}]`>> | Path
   : {
-    [K in keyof T]: FieldPath_<T[K], `${Path}.${K & string}`>
+    [K in keyof T]: Compute<FieldPath_<T[K], `${Path}.${K & string}`>>
   }[keyof T]
 
-export type BaseProps<From, TName extends FieldPath<From>> = {
+export type BaseProps<From, TName extends FieldPath<From> = FieldPath<From>> = {
   /**
    * Will fallback to i18n when not specified.
    * Can also be provided via #label slot for custom HTML labels.
@@ -64,34 +64,31 @@ export type DefaultTypeProps = {
 
 export type OmegaInputPropsBase<
   From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>
+  To extends Record<PropertyKey, any>
 > = {
   form: OF<From, To> & {
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
-} & BaseProps<From, Name>
+} & BaseProps<From>
 
 export type OmegaInputProps<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>,
   TypeProps = DefaultTypeProps
 > = {
   form: OmegaFormReturn<From, To, TypeProps> & {
     meta: MetaRecord<From>
     i18nNamespace?: string
   }
-} & BaseProps<From, Name>
+} & BaseProps<From>
 
 export type OmegaArrayProps<
   From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>
+  To extends Record<PropertyKey, any>
 > =
   & Omit<
-    OmegaInputProps<From, To, Name>,
+    OmegaInputProps<From, To>,
     "validators" | "options" | "label" | "type" | "items" | "name"
   >
   & {
@@ -889,9 +886,8 @@ export const nullableInput = <A, I, R>(
 
 export type OmegaAutoGenMeta<
   From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>
-> = Omit<OmegaInputProps<From, To, Name>, "form">
+  To extends Record<PropertyKey, any>
+> = Omit<OmegaInputProps<From, To>, "form">
 
 const supportedInputs = [
   "button",

@@ -7,20 +7,26 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
+type Compute<T> =
+  & {
+    [K in keyof T]: T[K]
+  }
+  & {}
+
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
   : T extends string | boolean | number | null | undefined | symbol | bigint ? ""
   // technically we cannot have array at the root
-  : T extends ReadonlyArray<infer U> ? FieldPath_<U, `[${number}]`>
+  : T extends ReadonlyArray<infer U> ? Compute<FieldPath_<U, `[${number}]`>>
   : {
-    [K in keyof T]: FieldPath_<T[K], `${K & string}`>
+    [K in keyof T]: Compute<FieldPath_<T[K], `${K & string}`>>
   }[keyof T]
 
 export type FieldPath_<T, Path extends string> = unknown extends T ? string
   : T extends string | boolean | number | null | undefined | symbol | bigint ? Path
-  : T extends ReadonlyArray<infer U> ? FieldPath_<U, `${Path}[${number}]`> | Path
+  : T extends ReadonlyArray<infer U> ? Compute<FieldPath_<U, `${Path}[${number}]`>> | Path
   : {
-    [K in keyof T]: FieldPath_<T[K], `${Path}.${K & string}`>
+    [K in keyof T]: Compute<FieldPath_<T[K], `${Path}.${K & string}`>>
   }[keyof T]
 
 export type BaseProps<From, TName extends FieldPath<From> = FieldPath<From>> = {

@@ -761,9 +761,14 @@ export const generateInputStandardSchemaFromFieldMeta = (
       }
 
       if (meta.required) {
-        schema.annotations({
-          message: () => trans("validation.empty")
-        })
+        schema = schema
+          .annotations({
+            message: () => trans("validation.empty")
+          })
+          .pipe(S.minLength(1))
+          .annotations({
+            message: () => trans("validation.empty")
+          })
       }
 
       if (meta.maxLength) {

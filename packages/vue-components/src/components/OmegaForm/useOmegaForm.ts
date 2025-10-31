@@ -228,10 +228,10 @@ export interface OmegaFormReturn<
             >,
             never
           >
-          & BaseProps<From, Name>
           & TypeProps
           & Partial<{}>
         >
+        & BaseProps<From, Name>
         & import("vue").PublicProps
       expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
       attrs: any

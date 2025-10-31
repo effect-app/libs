@@ -11,7 +11,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
@@ -207,48 +207,243 @@ type __VLS_PrettifyLocal<T> =
   }
   & {}
 
+// Type aliases for Array component slots - using cached types for performance
+type CachedFieldApi<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldApi<
+  From,
+  OmegaFormReturn<From, To, TypeProps>["_keys"],
+  DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  Record<string, any> | undefined
+>
+
+type CachedFieldState<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldState<
+  From,
+  OmegaFormReturn<From, To, TypeProps>["_keys"],
+  DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
+>
+
 export interface OmegaFormReturn<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
   TypeProps = DefaultTypeProps
 > extends OF<From, To> {
-  // Pre-bound Input component with type-checked Name parameter
-  Input: <Name extends FieldPath<From>>(
-    props: BaseProps<From, Name> & TypeProps & {
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        default?(props: MergedInputProps<From, Name>): any
-        label?: (props: { required: boolean; id: string; label: string }) => any
+  // Pre-computed type aliases - computed ONCE for performance
+  _paths: FieldPath<From>
+  _keys: DeepKeys<From>
+
+  // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
+  Input: <Name extends OmegaFormReturn<From, To, TypeProps>["_paths"]>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & TypeProps
+          & Partial<{}>
+        >
+        & BaseProps<From, Name>
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {
+        default?(props: MergedInputProps<From, Name>): void
+        label?: (props: { required: boolean; id: string; label: string }) => void
       }
-      attrs?: Record<string, any>
-    }
-  ) => import("vue").VNode
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
   Errors: (
-    props?: {
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => any
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & Partial<{}>
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {
+        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => void
       }
-      attrs?: Record<string, any>
-    }
-  ) => import("vue").VNode
-  TaggedUnion: <Name extends DeepKeys<From>>(
-    props: {
-      name: Name
-      type?: "select" | "radio"
-      options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
-      label?: string
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: Record<
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
+  TaggedUnion: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & {
+            name: Name
+            type?: "select" | "radio"
+            options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
+            label?: string
+          }
+          & {}
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: Record<
         string,
         (props: {
           field: import("@tanstack/vue-form").FieldApi<
@@ -301,62 +496,134 @@ export interface OmegaFormReturn<
           >
         }) => any
       >
-      attrs?: Record<string, any>
-    }
-  ) => import("vue").VNode
-  Array: <Name extends DeepKeys<From>>(
-    props: {
-      name: Name
-      defaultItems?: DeepValue<From, Name>
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        "pre-array"?: (props: { field: any; state: any }) => any
-        default?: (props: { subField: any; subState: any; index: number; field: any }) => any
-        "post-array"?: (props: { field: any; state: any }) => any
-        field?: (props: { field: any }) => any
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
+  Array: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          & Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          >
+          & (Omit<OmegaArrayProps<From, To, Name>, "form">)
+          & {}
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {
+        "pre-array"?: (props: {
+          field: CachedFieldApi<From, To, TypeProps>
+          state: CachedFieldState<From, To, TypeProps>
+        }) => any
+      } & {
+        default?: (props: {
+          subField: CachedFieldApi<From, To, TypeProps>
+          subState: CachedFieldState<From, To, TypeProps>
+          index: number
+          field: CachedFieldApi<From, To, TypeProps>
+        }) => any
+      } & {
+        "post-array"?: (props: {
+          field: CachedFieldApi<From, To, TypeProps>
+          state: CachedFieldState<From, To, TypeProps>
+        }) => any
+      } & {
+        field?: (props: {
+          field: CachedFieldApi<From, To, TypeProps>
+        }) => any
       }
-      attrs?: Record<string, any>
-    }
-  ) => import("vue").VNode
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
 
-  AutoGen: (
-    props: {
-      pick?: DeepKeys<From>[]
-      omit?: DeepKeys<From>[]
-      labelMap?: (key: DeepKeys<From>) => string | undefined
-      filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
-      order?: DeepKeys<From>[]
-      sort?: Order.Order<OmegaAutoGenMeta<From, To>>
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        default(props: { child: OmegaAutoGenMeta<From, To> }): any
+  AutoGen: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          > & {
+            // form: OmegaInputProps<From, To>["form"]
+            pick?: OmegaFormReturn<From, To, TypeProps>["_keys"][]
+            omit?: OmegaFormReturn<From, To, TypeProps>["_keys"][]
+            labelMap?: (key: OmegaFormReturn<From, To, TypeProps>["_keys"]) => string | undefined
+            filterMap?: <M extends OmegaAutoGenMeta<From, To, Name>>(
+              key: OmegaFormReturn<From, To, TypeProps>["_keys"],
+              meta: M
+            ) => boolean | M
+            order?: OmegaFormReturn<From, To, TypeProps>["_keys"][]
+            sort?: Order.Order<OmegaAutoGenMeta<From, To, Name>>
+          } & {}
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {
+        default(props: {
+          child: OmegaAutoGenMeta<From, To, Name>
+        }): void
       }
-      attrs?: Record<string, any>
-    }
-  ) => import("vue").VNode
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
 
-  Form: <K extends keyof OmegaFormState<From, To>>(
-    props: {
-      disabled?: boolean
-      subscribe?: K[]
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
+  Form: <K extends keyof OmegaFormState<To, From>>(
+    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
+    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
+    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
+    __VLS_setup?: Promise<{
+      props:
+        & __VLS_PrettifyLocal<
+          Pick<
+            & Partial<{}>
+            & Omit<
+              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              never
+            >,
+            never
+          > & {
+            // form: OmegaFormReturn<From, To, Props>
+            disabled?: boolean
+            subscribe?: K[]
+          } & {}
+        >
+        & import("vue").PublicProps
+      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+      attrs: any
+      slots: {
         default(props: {
           subscribedValues: K[] extends undefined[] ? Record<string, never> : Pick<OmegaFormState<From, To>, K>
-        }): any
+        }): void
       }
-      attrs?: Record<string, any>
-    }
-  ) => import("vue").VNode
+      emit: {}
+    }>
+  ) => import("vue").VNode & {
+    __ctx?: Awaited<typeof __VLS_setup>
+  }
 }
 
 export const useOmegaForm = <
@@ -712,147 +979,17 @@ export const useOmegaForm = <
 
   const errorContext = { form: formWithExtras, fieldMap }
 
-  // Pre-bound component functions with From and To already bound
-  const Input = <Name extends FieldPath<From>>(
-    props: BaseProps<From, Name> & DefaultTypeProps & {
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        default?(props: MergedInputProps<From, Name>): any
-        label?: (props: { required: boolean; id: string; label: string }) => any
-      }
-      attrs?: Record<string, any>
-    }
-  ) => {
-    const InputComponent = omegaConfig?.input ?? OmegaInput
-    return h(InputComponent, {
-      ...props,
-      form: formWithExtras,
-      ...context?.attrs
-    }, context?.slots)
-  }
-
-  const Errors = (
-    props?: {
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => any
-      }
-      attrs?: Record<string, any>
-    }
-  ) => {
-    return h(eHoc(errorContext)(OmegaErrorsInternal) as any, {
-      ...props,
-      ...context?.attrs
-    }, context?.slots)
-  }
-
-  const TaggedUnion = <Name extends DeepKeys<From>>(
-    props: {
-      name: Name
-      type?: "select" | "radio"
-      options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
-      label?: string
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: Record<string, any>
-      attrs?: Record<string, any>
-    }
-  ) => {
-    return h(OmegaTaggedUnion, {
-      ...props,
-      form: formWithExtras as any,
-      ...context?.attrs
-    }, context?.slots)
-  }
-
-  const ArrayComponent = <Name extends DeepKeys<From>>(
-    props: {
-      name: Name
-      defaultItems?: DeepValue<From, Name>
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        "pre-array"?: (props: { field: any; state: any }) => any
-        default?: (props: { subField: any; subState: any; index: number; field: any }) => any
-        "post-array"?: (props: { field: any; state: any }) => any
-        field?: (props: { field: any }) => any
-      }
-      attrs?: Record<string, any>
-    }
-  ) => {
-    return h(OmegaArray, {
-      ...props,
-      form: formWithExtras as any,
-      ...context?.attrs
-    }, context?.slots)
-  }
-
-  const AutoGen = (
-    props: {
-      pick?: DeepKeys<From>[]
-      omit?: DeepKeys<From>[]
-      labelMap?: (key: DeepKeys<From>) => string | undefined
-      filterMap?: <M extends OmegaAutoGenMeta<From, To>>(key: DeepKeys<From>, meta: M) => boolean | M
-      order?: DeepKeys<From>[]
-      sort?: Order.Order<OmegaAutoGenMeta<From, To>>
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        default(props: { child: OmegaAutoGenMeta<From, To> }): any
-      }
-      attrs?: Record<string, any>
-    }
-  ) => {
-    return h(OmegaAutoGen as any, {
-      ...props,
-      form: formWithExtras,
-      ...context?.attrs
-    }, context?.slots)
-  }
-
-  const Form = <K extends keyof OmegaFormState<From, To>>(
-    props: {
-      disabled?: boolean
-      subscribe?: K[]
-      key?: string | number
-      ref?: any
-    },
-    context?: {
-      slots?: {
-        default(props: {
-          subscribedValues: K[] extends undefined[] ? Record<string, never> : Pick<OmegaFormState<From, To>, K>
-        }): any
-      }
-      attrs?: Record<string, any>
-    }
-  ) => {
-    return h(OmegaForm as any, {
-      ...props,
-      form: formWithExtras,
-      ...context?.attrs
-    }, context?.slots)
-  }
-
   return Object.assign(formWithExtras, {
+    // Type-level properties for performance optimization (not used at runtime)
+    _paths: undefined as any,
+    _keys: undefined as any,
     errorContext,
-    Form,
-    Input,
-    TaggedUnion,
+    Form: fHoc(formWithExtras)(OmegaForm as any) as any,
+    Input: fHoc(formWithExtras)(omegaConfig?.input ?? OmegaInput) as any,
+    TaggedUnion: fHoc(formWithExtras)(OmegaTaggedUnion) as any,
     Field: form.Field,
-    Errors,
-    Array: ArrayComponent,
-    AutoGen
+    Errors: eHoc(errorContext)(OmegaErrorsInternal) as any,
+    Array: fHoc(formWithExtras)(OmegaArray) as any,
+    AutoGen: fHoc(formWithExtras)(OmegaAutoGen as any) as any
   })
 }

@@ -45,15 +45,14 @@
   generic="
   // dprint ignore - somehow with 120 chars, this becomes a mess. should report it.
   From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>
+  To extends Record<PropertyKey, any>
 "
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, onMounted, provide } from "vue"
 import { type OmegaArrayProps } from "./OmegaFormStuff"
 
-const props = defineProps<OmegaArrayProps<From, To, Name>>()
+const props = defineProps<OmegaArrayProps<From, To>>()
 
 defineOptions({
   inheritAttrs: false

@@ -7,6 +7,7 @@
         name="asder2.value"
       >
         <template #default="{ field, label, state }">
+          {{ state.value }}
           <label :for="field.name">{{ label }}</label>
           <input
             :id="field.name"
@@ -30,10 +31,10 @@ import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
-  asder2: S.Struct({
+  asder2: S.Array(S.Struct({
     value: S.String
   })
-})
+}))
 const form = useOmegaForm(schema, {
   onSubmit: async ({ value }) => {
     console.log(value)

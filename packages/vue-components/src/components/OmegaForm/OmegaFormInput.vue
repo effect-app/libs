@@ -27,7 +27,8 @@ import { OmegaFormKey } from "./useOmegaForm"
 
 const form = inject(OmegaFormKey) as unknown as OmegaInputProps<
   From,
-  To
+  To,
+  Name
 >["form"]
 
 if (!form) {
@@ -35,7 +36,7 @@ if (!form) {
 }
 
 defineProps<
-  BaseProps<From> & DefaultTypeProps
+  BaseProps<From, Name> & DefaultTypeProps
 >()
 
 defineSlots<{

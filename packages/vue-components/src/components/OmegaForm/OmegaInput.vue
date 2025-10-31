@@ -40,7 +40,8 @@
   generic="
   // dprint ignore - somehow with 120 chars, this becomes a mess. should report it.
   From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>
+  To extends Record<PropertyKey, any>,
+  Name extends DeepKeys<From>
 "
 >
 import { type DeepKeys } from "@tanstack/vue-form"
@@ -49,7 +50,7 @@ import { useIntl } from "../../utils"
 import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 
-const props = defineProps<OmegaInputPropsBase<From, To>>()
+const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 
 // downgrade to *as* DeepKeys<From> to avoid useless and possible infinite recursion in TS
 const propsName = computed(() => props.name as DeepKeys<From>)

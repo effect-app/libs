@@ -28,7 +28,10 @@
       </template>
     </component>
     <v-text-field
-      v-if="inputProps.type === 'email' || inputProps.type === 'string' || inputProps.type === 'password'"
+      v-if="inputProps.type === 'email'
+      || inputProps.type === 'string'
+      || inputProps.type === 'password'
+      || inputProps.type === 'date'"
       :id="inputProps.id"
       :required="inputProps.required"
       :min-length="inputProps.minLength"

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.10
+
+### Patch Changes
+
+- 436463d: revert to cleaner solution
+
 ## 2.4.9
 
 ### Patch Changes

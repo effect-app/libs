@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.12
+
+### Patch Changes
+
+- d9331ac: adds date type
+
 ## 2.4.11
 
 ### Patch Changes

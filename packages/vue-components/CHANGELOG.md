@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.5.0
+
+### Minor Changes
+
+- 1589ada: forgot type
+
 ## 2.4.12
 
 ### Patch Changes

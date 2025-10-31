@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.4.6
+
+### Patch Changes
+
+- 92cf3c4: Tries to improve performances
+
 ## 2.4.5
 
 ### Patch Changes

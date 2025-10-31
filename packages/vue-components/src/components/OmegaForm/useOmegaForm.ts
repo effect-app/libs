@@ -207,6 +207,147 @@ type __VLS_PrettifyLocal<T> =
   }
   & {}
 
+// Type aliases for Array component slots - using cached types for performance
+type CachedFieldApi<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldApi<
+  From,
+  OmegaFormReturn<From, To, TypeProps>["_keys"],
+  DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  Record<string, any> | undefined
+>
+
+type CachedFieldState<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldState<
+  From,
+  OmegaFormReturn<From, To, TypeProps>["_keys"],
+  DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+    From,
+    OmegaFormReturn<From, To, TypeProps>["_keys"],
+    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
+  >
+  | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
+  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
+>
+
 export interface OmegaFormReturn<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
@@ -800,6 +941,9 @@ export const useOmegaForm = <
   }
 
   return Object.assign(formWithExtras, {
+    // Type-level properties for performance optimization (not used at runtime)
+    _paths: undefined as any,
+    _keys: undefined as any,
     errorContext,
     Form,
     Input,

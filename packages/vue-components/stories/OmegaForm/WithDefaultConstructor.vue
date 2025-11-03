@@ -1,0 +1,52 @@
+<template>
+  <addForm.Form
+    :subscribe="['errors', 'values']"
+    show-errors-on="onChange"
+  >
+    <template #default="{ subscribedValues: { errors, values: vvv } }">
+      <div>Errors: {{ errors }}</div>
+      <div>Values: {{ vvv }}</div>
+    </template>
+  </addForm.Form>
+</template>
+
+<script setup lang="ts">
+import { S } from "effect-app"
+import { ref, watch } from "vue"
+import { useOmegaForm } from "../../src/components/OmegaForm"
+
+const sum = ref(0)
+const AddSchema = S.Struct({
+  first: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+  second: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+  third: S.NullOr(S.String).withDefault,
+  fourth: S
+    .Struct({
+      addForm: S.NullOr(S.String),
+      b: S.PositiveNumber
+    })
+    .pipe(S.withDefaultConstructor(() => ({
+      addForm: null,
+      b: S.PositiveNumber(100)
+    }))),
+  fifth: S.Email
+})
+
+const addForm = useOmegaForm(
+  AddSchema,
+  {},
+  {
+    persistency: {
+      policies: ["querystring"],
+      keys: ["first"],
+      overrideDefaultValues: true
+    }
+  }
+)
+
+const values = addForm.useStore(({ values }) => values)
+
+watch(values, ({ first, second }) => {
+  sum.value = first + second
+})
+</script>

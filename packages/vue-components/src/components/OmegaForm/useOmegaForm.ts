@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as api from "@opentelemetry/api"
-import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
+import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, FormValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
 import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
@@ -677,7 +677,8 @@ export const useOmegaForm = <
   // Normalize default values based on schema metadata
   // Convert empty strings to null/undefined for nullable fields
   // Also initialize missing nullable fields with null/undefined
-  const normalizeDefaultValues = (values: Partial<From>): Partial<From> => {
+  const normalizeDefaultValues = (values?: Partial<From>): Partial<From> | undefined => {
+    if (!values) return undefined
     const normalized: any = { ...values }
 
     // Process all fields in the schema metadata
@@ -704,12 +705,61 @@ export const useOmegaForm = <
 
     return normalized
   }
+  // Extract defaults from metadata
+  const extractDefaultsFromMeta = (metaRecord: MetaRecord<To>): Partial<From> => {
+    const result: any = {}
+
+    for (const [path, fieldMeta] of Object.entries(metaRecord)) {
+      if (fieldMeta?.defaultValue) {
+        try {
+          // Execute the default getter function
+          const value = fieldMeta.defaultValue()
+
+          // Build nested object structure from path
+          const pathParts = path.split(".")
+          let current = result
+
+          for (let i = 0; i < pathParts.length - 1; i++) {
+            if (!current[pathParts[i]]) {
+              current[pathParts[i]] = {}
+            }
+            current = current[pathParts[i]]
+          }
+
+          current[pathParts[pathParts.length - 1]] = value
+        } catch (error) {
+          // Skip fields where default function throws
+          console.debug(`Could not extract default for field ${path}:`, error)
+        }
+      }
+    }
+
+    return result
+  }
+
+  // Extract default values from schema constructors (e.g., withDefaultConstructor)
+  const extractSchemaDefaults = (defaultValues: Partial<From> = {}) => {
+    try {
+      // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
+      // We can only extract defaults if ALL required fields have withDefaultConstructor
+      if ("make" in schema && typeof (schema as any).make === "function") {
+        try {
+          // Try with empty object - works only if all required fields have defaults
+          return (schema as any).make(defaultValues)
+        } catch {
+          // If make fails, try to extract defaults from metadata
+        }
+      }
+      return {}
+    } catch (error) {
+      console.warn("Could not extract schema constructor defaults:", error)
+      return {}
+    }
+  }
 
   const defaultValues = computed(() => {
     // Normalize tanstack default values at the beginning
-    const normalizedTanstackDefaults = tanstackFormOptions?.defaultValues
-      ? normalizeDefaultValues(tanstackFormOptions.defaultValues)
-      : undefined
+    const normalizedTanstackDefaults = extractSchemaDefaults(normalizeDefaultValues(tanstackFormOptions?.defaultValues))
 
     if (
       normalizedTanstackDefaults
@@ -764,7 +814,7 @@ export const useOmegaForm = <
     }
 
     // to be sure we have a valid object at the end of the gathering process
-    defValuesPatch ??= {}
+    defValuesPatch ??= extractSchemaDefaults({})
 
     if (!normalizedTanstackDefaults) {
       // we just return what we gathered from the query/storage

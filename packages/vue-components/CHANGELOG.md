@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.6.0
+
+### Minor Changes
+
+- 61101dc: Adds withDefaultConstructor default and improves numbers validations on OmegaForm
+
 ## 2.5.0
 
 ### Minor Changes

@@ -29,6 +29,7 @@ import TanstackComponent from "./OmegaForm/Tanstack.vue"
 import UnionComponent from "./OmegaForm/Union.vue"
 import UsingOmegaFormComponent from "./OmegaForm/UsingOmegaForm.vue"
 import WindowExitPreventionComponent from "./OmegaForm/WindowExitPrevention.vue"
+import WithDefaultConstructorComponent from "./OmegaForm/WithDefaultConstructor.vue"
 
 const mockIntl = {
   locale: ref("en"),
@@ -236,5 +237,11 @@ export const CustomLabelSlot: Story = {
   render: () => ({
     components: { CustomLabelSlotComponent },
     template: "<CustomLabelSlotComponent />"
+  })
+}
+export const WithDefaultConstructor: Story = {
+  render: () => ({
+    components: { WithDefaultConstructorComponent },
+    template: "<WithDefaultConstructorComponent />"
   })
 }

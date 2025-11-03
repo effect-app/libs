@@ -677,7 +677,8 @@ export const useOmegaForm = <
   // Normalize default values based on schema metadata
   // Convert empty strings to null/undefined for nullable fields
   // Also initialize missing nullable fields with null/undefined
-  const normalizeDefaultValues = (values: Partial<From>): Partial<From> => {
+  const normalizeDefaultValues = (values?: Partial<From>): Partial<From> | undefined => {
+    if (!values) return undefined
     const normalized: any = { ...values }
 
     // Process all fields in the schema metadata
@@ -705,11 +706,22 @@ export const useOmegaForm = <
     return normalized
   }
 
+  // Extract default values from schema constructors (e.g., withDefaultConstructor)
+  const extractSchemaDefaults = (defaultValues: Partial<From> = {}) => {
+    try {
+      // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
+      if ("make" in schema && typeof (schema as any).make === "function") {
+        return (schema as any).make(defaultValues, { disableValidation: true })
+      }
+    } catch (error) {
+      console.warn("Could not extract schema constructor defaults:", error)
+      return {}
+    }
+  }
+
   const defaultValues = computed(() => {
     // Normalize tanstack default values at the beginning
-    const normalizedTanstackDefaults = tanstackFormOptions?.defaultValues
-      ? normalizeDefaultValues(tanstackFormOptions.defaultValues)
-      : undefined
+    const normalizedTanstackDefaults = extractSchemaDefaults(normalizeDefaultValues(tanstackFormOptions?.defaultValues))
 
     if (
       normalizedTanstackDefaults
@@ -764,7 +776,7 @@ export const useOmegaForm = <
     }
 
     // to be sure we have a valid object at the end of the gathering process
-    defValuesPatch ??= {}
+    defValuesPatch ??= extractSchemaDefaults({})
 
     if (!normalizedTanstackDefaults) {
       // we just return what we gathered from the query/storage

@@ -772,7 +772,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
           })
       }
 
-      if (meta.maxLength) {
+      if (typeof meta.maxLength === "number") {
         schema = schema.pipe(S.maxLength(meta.maxLength)).annotations({
           message: () =>
             trans("validation.string.maxLength", {
@@ -780,7 +780,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
             })
         })
       }
-      if (meta.minLength) {
+      if (typeof meta.minLength === "number") {
         schema = schema.pipe(S.minLength(meta.minLength)).annotations({
           message: () =>
             trans("validation.string.minLength", {
@@ -800,16 +800,16 @@ export const generateInputStandardSchemaFromFieldMeta = (
           message: () => trans("validation.empty")
         })
       }
-      if (meta.minimum) {
+      if (typeof meta.minimum === "number") {
         schema = schema.pipe(S.greaterThanOrEqualTo(meta.minimum)).annotations({
           message: () =>
-            trans("validation.number.min", {
+            trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
               minimum: meta.minimum,
               isExclusive: true
             })
         })
       }
-      if (meta.maximum) {
+      if (typeof meta.maximum === "number") {
         schema = schema.pipe(S.lessThanOrEqualTo(meta.maximum)).annotations({
           message: () =>
             trans("validation.number.max", {
@@ -818,16 +818,16 @@ export const generateInputStandardSchemaFromFieldMeta = (
             })
         })
       }
-      if (meta.exclusiveMinimum) {
+      if (typeof meta.exclusiveMinimum === "number") {
         schema = schema.pipe(S.greaterThan(meta.exclusiveMinimum)).annotations({
           message: () =>
-            trans("validation.number.min", {
+            trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
               minimum: meta.exclusiveMinimum,
               isExclusive: false
             })
         })
       }
-      if (meta.exclusiveMaximum) {
+      if (typeof meta.exclusiveMaximum === "number") {
         schema = schema.pipe(S.lessThan(meta.exclusiveMaximum)).annotations({
           message: () =>
             trans("validation.number.max", {

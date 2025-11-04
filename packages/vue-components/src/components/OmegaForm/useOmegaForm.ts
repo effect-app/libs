@@ -513,9 +513,10 @@ export interface OmegaFormReturn<
             never
           >
           & {
-            name: Name
+            name?: Name
             type?: "select" | "radio"
             options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
+            _debugName?: [NoInfer<Name>]
             label?: string
           }
           & {}
@@ -852,13 +853,13 @@ export const useOmegaForm = <
 
   // Extract default values from schema constructors (e.g., withDefaultConstructor)
   const extractSchemaDefaults = (defaultValues: Partial<From> = {}) => {
+    let result: Partial<From> = {}
+
     try {
       // First try to use schema.make() if available
       // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
-      if ("make" in schema && typeof (schema as any).make === "function") {
-        const decoded = (schema as any).make(defaultValues)
-        return S.encodeSync(partialRecursive(schema))(decoded)
-      }
+      const decoded = (schema as any).make(defaultValues)
+      result = S.encodeSync(partialRecursive(schema))(decoded)
     } catch (error) {
       // If make() fails, try to extract defaults from AST
       if (window.location.hostname === "localhost") {
@@ -866,20 +867,23 @@ export const useOmegaForm = <
       }
       try {
         const astDefaults = extractDefaultsFromAST(schema)
-
-        return S.encodeSync(partialRecursive(schema))(astDefaults)
+        result = S.encodeSync(partialRecursive(schema))(astDefaults)
       } catch (astError) {
         if (window.location.hostname === "localhost") {
           console.warn("Could not extract defaults from AST:", astError)
         }
-        return {}
       }
     }
+    return deepMerge(result, defaultValues)
   }
 
   const defaultValues = computed(() => {
     // Normalize tanstack default values at the beginning
-    const normalizedTanstackDefaults = extractSchemaDefaults(normalizeDefaultValues(tanstackFormOptions?.defaultValues))
+    const normalizedTanstackDefaults = extractSchemaDefaults(
+      normalizeDefaultValues(
+        tanstackFormOptions?.defaultValues
+      )
+    )
 
     if (
       normalizedTanstackDefaults

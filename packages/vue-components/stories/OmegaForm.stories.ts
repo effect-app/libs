@@ -21,6 +21,7 @@ import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
+import RootLevelTaggedUnionComponent from "./OmegaForm/RootLevelTaggedUnion.vue"
 import SetErrorOnSubmitComponent from "./OmegaForm/SetErrorOnSubmit.vue"
 import SimpleFormComponent from "./OmegaForm/SimpleForm.vue"
 import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefault.vue"
@@ -84,6 +85,13 @@ export const FormTaggedUnion: Story = {
   render: () => ({
     components: { FormTaggedUnionComponent },
     template: "<FormTaggedUnionComponent />"
+  })
+}
+
+export const RootLevelTaggedUnion: Story = {
+  render: () => ({
+    components: { RootLevelTaggedUnionComponent },
+    template: "<RootLevelTaggedUnionComponent />"
   })
 }
 

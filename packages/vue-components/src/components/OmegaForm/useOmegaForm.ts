@@ -711,7 +711,8 @@ export const useOmegaForm = <
     try {
       // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
       if ("make" in schema && typeof (schema as any).make === "function") {
-        return (schema as any).make(defaultValues, { disableValidation: true })
+        const decoded = (schema as any).make(defaultValues, { disableValidation: true })
+        return S.encodeSync(schema.pipe(S.partial))(decoded)
       }
     } catch (error) {
       console.warn("Could not extract schema constructor defaults:", error)

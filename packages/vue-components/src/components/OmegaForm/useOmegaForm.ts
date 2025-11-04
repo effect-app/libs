@@ -811,7 +811,7 @@ export const useOmegaForm = <
     if (unionMembers && Array.isArray(unionMembers)) {
       // For unions, we try to find the first member that has a complete set of defaults
       // Priority is given to members with default values for discriminator fields
-      for (const member of unionMembers) {
+      for (const member of unionMembers as any[]) {
         const memberDefaults = extractDefaultsFromAST(member)
         if (Object.keys(memberDefaults).length > 0) {
           // Check if this member has a default value for a discriminator field (like _tag)

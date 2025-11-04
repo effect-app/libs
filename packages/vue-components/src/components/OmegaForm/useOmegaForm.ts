@@ -706,17 +706,66 @@ export const useOmegaForm = <
     return normalized
   }
 
+  // Helper function to recursively extract default values from schema AST
+  const extractDefaultsFromAST = (schemaObj: any): any => {
+    const result: Record<string, any> = {}
+
+    // Check if this schema has fields (struct)
+    if (schemaObj?.fields && typeof schemaObj.fields === "object") {
+      for (const [key, fieldSchema] of Object.entries(schemaObj.fields)) {
+        // Check if this field has a default value in its AST
+        if ((fieldSchema as any)?.ast?.defaultValue) {
+          try {
+            const defaultValue = (fieldSchema as any).ast.defaultValue()
+            if (defaultValue !== undefined) {
+              result[key] = defaultValue
+            }
+          } catch {
+            // Silently ignore if defaultValue() throws
+          }
+        }
+
+        // Recursively check nested fields for structs
+        const nestedDefaults = extractDefaultsFromAST(fieldSchema as any)
+        if (Object.keys(nestedDefaults).length > 0) {
+          // If we already have a default value for this key, merge with nested
+          if (result[key] && typeof result[key] === "object") {
+            Object.assign(result[key], nestedDefaults)
+          } else if (!result[key]) {
+            // Only set nested defaults if we don't have a default value
+            result[key] = nestedDefaults
+          }
+        }
+      }
+    }
+
+    return result
+  }
+
   // Extract default values from schema constructors (e.g., withDefaultConstructor)
   const extractSchemaDefaults = (defaultValues: Partial<From> = {}) => {
     try {
+      // First try to use schema.make() if available
       // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
       if ("make" in schema && typeof (schema as any).make === "function") {
-        const decoded = (schema as any).make(defaultValues, { disableValidation: true })
+        const decoded = (schema as any).make(defaultValues)
         return S.encodeSync(schema.pipe(S.partial))(decoded)
       }
     } catch (error) {
-      console.warn("Could not extract schema constructor defaults:", error)
-      return {}
+      // If make() fails, try to extract defaults from AST
+      if (window.location.hostname === "localhost") {
+        console.warn("schema.make() failed, extracting defaults from AST:", error)
+      }
+      try {
+        const astDefaults = extractDefaultsFromAST(schema)
+
+        return S.encodeSync(schema.pipe(S.partial))(astDefaults)
+      } catch (astError) {
+        if (window.location.hostname === "localhost") {
+          console.warn("Could not extract defaults from AST:", astError)
+        }
+        return {}
+      }
     }
   }
 

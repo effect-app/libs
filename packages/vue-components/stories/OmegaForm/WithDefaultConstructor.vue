@@ -23,13 +23,12 @@ const AddSchema = S.Struct({
   third: S.NullOr(S.String).withDefault,
   fourth: S
     .Struct({
-      addForm: S.NullOr(S.String),
-      b: S.PositiveNumber
-    })
-    .pipe(S.withDefaultConstructor(() => ({
-      addForm: null,
-      b: S.PositiveNumber(100)
-    }))),
+      addForm: S.NullOr(S.String).withDefault,
+      b: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+      c: S.Struct({
+        d: S.Number.pipe(S.withDefaultConstructor(() => 10))
+      })
+    }),
   fifth: S.Email,
   sixth: S.NumberFromString.pipe(S.withDefaultConstructor(() => 1000))
 })

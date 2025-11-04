@@ -31,7 +31,7 @@ defineProps<{
       :options="options"
     />
   </slot>
-  <form.Field :name="(name ?? '') as any">
+  <form.Field :name="(name ? `${name}._tag` : '_tag') as any">
     <template #default="{ field, state }">
       <slot v-if="state.value" />
       <OmegaTaggedUnionInternal

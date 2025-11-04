@@ -1,7 +1,7 @@
 <template>
   <slot
-    v-if="state?._tag"
-    :name="`${name ? `${name}.` : ''}${state?._tag}`"
+    v-if="state"
+    :name="`${name ? `${name}.` : ''}${state}`"
     v-bind="{ field, state }"
   />
 </template>
@@ -26,7 +26,7 @@ const props = defineProps<{
 }>()
 
 // Watch for _tag changes
-watch(() => props.state?._tag, (newTag, oldTag) => {
+watch(() => props.state, (newTag, oldTag) => {
   if (newTag === null) {
     props.field.setValue(null as DeepValue<From, Name>)
   }

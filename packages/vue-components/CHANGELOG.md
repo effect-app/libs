@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.6.2
+
+### Patch Changes
+
+- d2e2013: Fixes default props decoding in OmegaForm
+- bf32aa2: Adds support to nested constructors in OmegaForm defaultsValue with schema
+
 ## 2.6.1
 
 ### Patch Changes

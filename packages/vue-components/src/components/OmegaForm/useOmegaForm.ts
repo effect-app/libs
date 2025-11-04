@@ -16,6 +16,86 @@ import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 
+/**
+ * Recursively makes all properties in a schema optional, including nested objects.
+ * Unlike S.partial which only makes top-level properties optional, this utility
+ * traverses the schema tree and applies partial transformation at every level.
+ *
+ * Handles:
+ * - TypeLiteral (structs): Makes all properties optional and recursively processes nested types
+ * - Union types: Recursively applies partial to each union member
+ * - Transformation types: Applies partial to both 'from' and 'to' sides
+ */
+const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<A>, Partial<I>, R> => {
+  const ast = schema.ast
+
+  // Handle Union types - recursively apply partial to each member
+  if (ast._tag === "Union") {
+    const partialMembers = (ast as any).types.map((memberAst: any) => {
+      const memberSchema = S.make(memberAst)
+      const partialMember = partialRecursive(memberSchema as any)
+      return partialMember.ast
+    })
+
+    const newAst = {
+      ...ast,
+      types: partialMembers
+    }
+
+    return S.make(newAst as any)
+  }
+
+  // Handle Transformation types (e.g., withDefaultConstructor)
+  if (ast._tag === "Transformation") {
+    // For transformations, apply partial to both the 'from' and 'to' sides
+    const fromSchema = S.make((ast as any).from)
+    const toSchema = S.make((ast as any).to)
+    const partialFrom = partialRecursive(fromSchema as any)
+    const partialTo = partialRecursive(toSchema as any)
+
+    const newAst = {
+      ...ast,
+      from: partialFrom.ast,
+      to: partialTo.ast
+    }
+
+    return S.make(newAst as any)
+  }
+
+  // If this is a TypeLiteral (struct), recursively apply partial to nested fields
+  if (ast._tag === "TypeLiteral") {
+    const fields = ast.propertySignatures.map((prop: any) => {
+      const propType = prop.type
+      let newType = propType
+
+      // Recursively handle nested complex types (structs, unions, transformations)
+      if (propType._tag === "TypeLiteral" || propType._tag === "Union" || propType._tag === "Transformation") {
+        const nestedSchema = S.make(propType)
+        const recursivePartial = partialRecursive(nestedSchema as any)
+        newType = recursivePartial.ast
+      }
+
+      // Create a new property signature with isOptional: true
+      return {
+        ...prop,
+        type: newType,
+        isOptional: true
+      }
+    })
+
+    const newAst = {
+      ...ast,
+      propertySignatures: fields
+    }
+
+    return S.make(newAst as any)
+  }
+
+  // For other schema types (primitives, refinements, etc.), return as-is
+  // These types don't need to be made partial, and S.partial doesn't support them anyway
+  return schema as any
+}
+
 type keysRule<T> =
   | {
     keys?: NestedKeyOf<T>[]
@@ -710,6 +790,34 @@ export const useOmegaForm = <
   const extractDefaultsFromAST = (schemaObj: any): any => {
     const result: Record<string, any> = {}
 
+    // Check if this schema is a union
+    if (schemaObj?.members && Array.isArray(schemaObj.members)) {
+      // For unions, we try to find the first member that has a complete set of defaults
+      // Priority is given to members with default values for discriminator fields
+      for (const member of schemaObj.members) {
+        const memberDefaults = extractDefaultsFromAST(member)
+        if (Object.keys(memberDefaults).length > 0) {
+          // Check if this member has a default value for a discriminator field (like _tag)
+          // If it does, use this member's defaults
+          const hasDiscriminatorDefault = member?.fields && Object.entries(member.fields).some(
+            ([key, fieldSchema]: [string, any]) => {
+              // Common discriminator field names
+              if (key === "_tag" || key === "type" || key === "kind") {
+                return fieldSchema?.ast?.defaultValue !== undefined
+              }
+              return false
+            }
+          )
+
+          if (hasDiscriminatorDefault) {
+            return memberDefaults
+          }
+        }
+      }
+      // If no member has a discriminator default, return empty
+      return {}
+    }
+
     // Check if this schema has fields (struct)
     if (schemaObj?.fields && typeof schemaObj.fields === "object") {
       for (const [key, fieldSchema] of Object.entries(schemaObj.fields)) {
@@ -725,7 +833,7 @@ export const useOmegaForm = <
           }
         }
 
-        // Recursively check nested fields for structs
+        // Recursively check nested fields for structs and unions
         const nestedDefaults = extractDefaultsFromAST(fieldSchema as any)
         if (Object.keys(nestedDefaults).length > 0) {
           // If we already have a default value for this key, merge with nested
@@ -749,7 +857,7 @@ export const useOmegaForm = <
       // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
       if ("make" in schema && typeof (schema as any).make === "function") {
         const decoded = (schema as any).make(defaultValues)
-        return S.encodeSync(schema.pipe(S.partial))(decoded)
+        return S.encodeSync(partialRecursive(schema))(decoded)
       }
     } catch (error) {
       // If make() fails, try to extract defaults from AST
@@ -759,7 +867,7 @@ export const useOmegaForm = <
       try {
         const astDefaults = extractDefaultsFromAST(schema)
 
-        return S.encodeSync(schema.pipe(S.partial))(astDefaults)
+        return S.encodeSync(partialRecursive(schema))(astDefaults)
       } catch (astError) {
         if (window.location.hostname === "localhost") {
           console.warn("Could not extract defaults from AST:", astError)

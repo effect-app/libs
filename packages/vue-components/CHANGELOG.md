@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 2.7.0
+
+### Minor Changes
+
+- ff2223d: Accept root level unions as OmegaForm citizen
+
+### Patch Changes
+
+- ff2223d: Adds support to nested constructors in OmegaForm defaultsValue with schema
+
 ## 2.6.2
 
 ### Patch Changes

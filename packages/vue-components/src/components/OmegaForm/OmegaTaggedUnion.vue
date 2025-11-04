@@ -23,20 +23,27 @@ defineProps<{
 </script>
 
 <template>
-  <slot name="OmegaCustomInput">
-    <form.Input
-      :name="(name ? `${name}._tag` : '_tag') as FieldPath<From>"
-      :label="label"
-      :type="type ?? 'select'"
-      :options="options"
-    />
-  </slot>
   <form.Field :name="(name ? `${name}._tag` : '_tag') as any">
-    <template #default="{ field, state }">
-      <slot v-if="state.value" />
+    <template #default="inputProps">
+      <slot
+        name="OmegaCustomInput"
+        v-bind="inputProps"
+      >
+        <form.Input
+          :name="(name ? `${name}._tag` : '_tag') as FieldPath<From>"
+          :label="label"
+          :type="type ?? 'select'"
+          :options="options"
+        />
+      </slot>
+      <slot />
+      <slot
+        v-if="inputProps.state.value"
+        name="OmegaCommon"
+      />
       <OmegaTaggedUnionInternal
-        :field="field as any"
-        :state="state.value"
+        :field="inputProps.field as any"
+        :state="inputProps.state.value"
         :name="name"
       >
         <template

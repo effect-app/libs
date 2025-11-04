@@ -37,10 +37,6 @@ defineProps<{
         />
       </slot>
       <slot />
-      <slot
-        v-if="inputProps.state.value"
-        name="OmegaCommon"
-      />
       <OmegaTaggedUnionInternal
         :field="inputProps.field as any"
         :state="inputProps.state.value"
@@ -56,6 +52,10 @@ defineProps<{
           />
         </template>
       </OmegaTaggedUnionInternal>
+      <slot
+        v-if="inputProps.state.value"
+        name="OmegaCommon"
+      />
     </template>
   </form.Field>
 </template>

@@ -6,6 +6,7 @@
     <template #default="{ subscribedValues: { errors, values: vvv } }">
       <div>Errors: {{ errors }}</div>
       <div>Values: {{ vvv }}</div>
+      <addForm.Input name="first" />
     </template>
   </addForm.Form>
 </template>
@@ -29,7 +30,8 @@ const AddSchema = S.Struct({
       addForm: null,
       b: S.PositiveNumber(100)
     }))),
-  fifth: S.Email
+  fifth: S.Email,
+  sixth: S.NumberFromString.pipe(S.withDefaultConstructor(() => 1000))
 })
 
 const addForm = useOmegaForm(

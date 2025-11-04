@@ -2,6 +2,10 @@
   <form.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values } }">
       <form.Input
+        label="aString"
+        name="aString"
+      />
+      <form.Input
         label="bString"
         name="bString"
       />
@@ -18,11 +22,11 @@ import { S } from "effect-app"
 import { useOmegaForm } from "../../src"
 
 const schema = S.Struct({
-  bString: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(2.0)))
-  // aString: S.NullOr(S.NonEmptyString).withDefault
+  aString: S.NullOr(S.NonEmptyString255).withDefault,
+  bString: S.NullOr(S.NonEmptyString255).withDefault
 })
 const defaultValues = {
-  bString: -2
+  aString: ""
 }
 const form = useOmegaForm(schema, {
   onSubmit: async (values) => {

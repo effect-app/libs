@@ -857,6 +857,7 @@ export const useOmegaForm = <
 
     try {
       // First try to use schema.make() if available
+      // First try to use schema.make() if available
       // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
       const decoded = (schema as any).make(defaultValues)
       result = S.encodeSync(partialRecursive(schema))(decoded)

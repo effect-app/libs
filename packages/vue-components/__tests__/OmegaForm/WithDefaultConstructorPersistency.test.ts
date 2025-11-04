@@ -17,13 +17,12 @@ describe("OmegaForm withDefaultConstructor with persistency", () => {
       third: S.NullOr(S.String).withDefault,
       fourth: S
         .Struct({
-          addForm: S.NullOr(S.String),
-          b: S.PositiveNumber
-        })
-        .pipe(S.withDefaultConstructor(() => ({
-          addForm: null,
-          b: S.PositiveNumber(100)
-        }))),
+          addForm: S.NullOr(S.String).withDefault,
+          b: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+          c: S.Struct({
+            d: S.Number.pipe(S.withDefaultConstructor(() => 10))
+          })
+        }),
       fifth: S.Email,
       sixth: S.NumberFromString.pipe(S.withDefaultConstructor(() => 1000))
     })
@@ -33,7 +32,7 @@ describe("OmegaForm withDefaultConstructor with persistency", () => {
     // Format: pathname-key1-key2-key3...
     // Keys from meta will be flattened with dot notation for nested fields
     const pathname = "/test"
-    const keys = ["first", "second", "third", "fourth.addForm", "fourth.b", "fifth", "sixth"]
+    const keys = ["first", "second", "third", "fourth.addForm", "fourth.b", "fourth.c.d", "fifth", "sixth"]
     const persistencyKey = `${pathname}-${keys.join("-")}`
     const queryValue = JSON.stringify({ first: 1234 })
 
@@ -95,7 +94,10 @@ describe("OmegaForm withDefaultConstructor with persistency", () => {
       third: null, // Default from NullOr withDefault
       fourth: {
         addForm: null,
-        b: 100 // Default from withDefaultConstructor
+        b: 100, // Default from withDefaultConstructor
+        c: {
+          d: 10 // Default from withDefaultConstructor
+        }
       },
       sixth: "1000"
     })

@@ -695,6 +695,58 @@ const flattenMeta = <From, To>(
     return flattenMeta(S.make(ast.from))
   }
 
+  // Handle root-level Union types (discriminated unions)
+  if (ast._tag === "Union") {
+    const unionAst = ast as any
+    const types = unionAst.types || []
+
+    // Filter out null/undefined types and unwrap transformations
+    const nonNullTypes = types
+      .filter((t: any) => t._tag !== "UndefinedKeyword" && t !== S.Null.ast)
+      .map(getTransformationFrom)
+
+    // Check if this is a discriminated union (all members are structs)
+    const allStructs = nonNullTypes.every((t: any) => t._tag === "TypeLiteral" && "propertySignatures" in t)
+
+    if (allStructs && nonNullTypes.length > 0) {
+      // Extract discriminator values from each union member
+      const discriminatorValues: any[] = []
+
+      // Merge metadata from all union members
+      for (const memberType of nonNullTypes) {
+        if ("propertySignatures" in memberType) {
+          // Find the discriminator field (usually _tag)
+          const tagProp = memberType.propertySignatures.find(
+            (p: any) => p.name.toString() === "_tag"
+          )
+
+          if (tagProp && S.AST.isLiteral(tagProp.type)) {
+            discriminatorValues.push(tagProp.type.literal)
+          }
+
+          // Create metadata for this member's properties
+          const memberMeta = createMeta<To>({
+            propertySignatures: memberType.propertySignatures
+          })
+
+          // Merge into result
+          Object.assign(result, memberMeta)
+        }
+      }
+
+      // Create metadata for the discriminator field
+      if (discriminatorValues.length > 0) {
+        result["_tag" as DeepKeys<To>] = {
+          type: "select",
+          members: discriminatorValues,
+          required: true
+        } as FieldMeta
+      }
+
+      return result
+    }
+  }
+
   if ("propertySignatures" in ast) {
     const meta = createMeta<To>({
       propertySignatures: ast.propertySignatures

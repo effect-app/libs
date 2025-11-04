@@ -1,7 +1,7 @@
 <template>
   <slot
     v-if="state?._tag"
-    :name="state?._tag"
+    :name="`${name ? `${name}.` : ''}${state?._tag}`"
     v-bind="{ field, state }"
   />
 </template>
@@ -22,6 +22,7 @@ import { type OmegaFieldInternalApi } from "./InputProps"
 const props = defineProps<{
   state: DeepValue<From, Name>
   field: OmegaFieldInternalApi<From, Name>
+  name?: DeepKeys<From>
 }>()
 
 // Watch for _tag changes

@@ -39,7 +39,6 @@
           name="union"
           label="Union!"
           :options="[
-            { value: null, title: 'Select one' },
             { value: 'A', title: 'Option 1' },
             { value: 'B', title: 'Option 2' }
           ]"
@@ -50,14 +49,14 @@
             label="Common Field"
           />
           <!-- Named slot #A: rendered only when _tag === "A" -->
-          <template #A>
+          <template #union.A>
             <form.Input
               name="union.a"
               label="A Field"
             />
           </template>
           <!-- Named slot #B: rendered only when _tag === "B" -->
-          <template #B>
+          <template #union.B>
             <form.Input
               name="union.b"
               label="B Field"

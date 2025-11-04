@@ -791,11 +791,27 @@ export const useOmegaForm = <
   const extractDefaultsFromAST = (schemaObj: any): any => {
     const result: Record<string, any> = {}
 
-    // Check if this schema is a union
-    if (schemaObj?.members && Array.isArray(schemaObj.members)) {
+    // If this schema has a .make() method (like ExtendedClass), use it to get complete defaults
+    // This is more reliable than manually extracting fields, especially for classes
+    if (typeof schemaObj?.make === "function") {
+      try {
+        const instance = schemaObj.make({})
+        // For ExtendedClass, the instance is already in the correct encoded format
+        return instance
+      } catch {
+        // If make() fails, fall through to manual extraction
+      }
+    }
+
+    // Check if this schema is a union - check both direct property and AST
+    const unionMembers = schemaObj?.members
+      || (schemaObj?.ast?._tag === "Union" && schemaObj.ast.types
+        ? schemaObj.ast.types.map((t: any) => S.make(t))
+        : null)
+    if (unionMembers && Array.isArray(unionMembers)) {
       // For unions, we try to find the first member that has a complete set of defaults
       // Priority is given to members with default values for discriminator fields
-      for (const member of schemaObj.members) {
+      for (const member of unionMembers) {
         const memberDefaults = extractDefaultsFromAST(member)
         if (Object.keys(memberDefaults).length > 0) {
           // Check if this member has a default value for a discriminator field (like _tag)

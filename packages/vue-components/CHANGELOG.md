@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 2.7.1
+
+### Patch Changes
+
+- a10e3bd: Enhances default extraction with extended classes and tagged union components in OmegaForm
+- edd2370: Desculpame madre por mi any loco
+- 09fb555: improves slots order in Omega Form Tagged Union
+
 ## 2.7.0
 
 ### Minor Changes

@@ -79,17 +79,17 @@ import { useOmegaForm } from "../../src"
 
 const form = useOmegaForm(
   S.Struct({
-    aString: S.String,
+    aString: S.NonEmptyString255,
     union: S.NullOr(
       S.Union(
         S.Struct({
           a: S.NonEmptyString255,
-          common: S.String,
+          common: S.NonEmptyString255,
           _tag: S.Literal("A")
         }),
         S.Struct({
-          b: S.Number,
-          common: S.String,
+          b: S.NonEmptyString255,
+          common: S.NonEmptyString255,
           _tag: S.Literal("B")
         })
       )

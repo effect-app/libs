@@ -23,7 +23,7 @@ defineProps<{
 </script>
 
 <template>
-  <form.Field :name="(name ? `${name}._tag` : '_tag') as any">
+  <form.Field :name="name ? `${name}._tag` : '_tag'">
     <template #default="inputProps">
       <slot
         name="OmegaCustomInput"

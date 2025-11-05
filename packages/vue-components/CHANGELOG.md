@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.2
+
+### Patch Changes
+
+- bef950e: Fixes persistency order
+
 ## 2.7.1
 
 ### Patch Changes

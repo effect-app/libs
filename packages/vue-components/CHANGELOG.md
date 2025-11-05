@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.7.3
+
+### Patch Changes
+
+- a22fa6a: Fixes Omega Form union slot props types
+- a7526ad: Forces form reset on tag change in OmegaForm Union
+
 ## 2.7.2
 
 ### Patch Changes

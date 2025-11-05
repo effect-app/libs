@@ -18,12 +18,16 @@
 import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { watch } from "vue"
 import { type OmegaFieldInternalApi } from "./InputProps"
+import { type useOmegaForm } from "./useOmegaForm"
 
 const props = defineProps<{
   state: DeepValue<From, Name>
   field: OmegaFieldInternalApi<From, Name>
   name?: DeepKeys<From>
+  form: ReturnType<typeof useOmegaForm<From, To>>
 }>()
+
+const values = props.form.useStore(({ values }) => values)
 
 // Watch for _tag changes
 watch(() => props.state, (newTag, oldTag) => {
@@ -31,6 +35,7 @@ watch(() => props.state, (newTag, oldTag) => {
     props.field.setValue(null as DeepValue<From, Name>)
   }
   if (newTag !== oldTag) {
+    props.form.reset(values.value)
     setTimeout(() => {
       props.field.validate("change")
     }, 0)

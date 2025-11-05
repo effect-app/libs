@@ -41,6 +41,7 @@ defineProps<{
         :field="inputProps.field as any"
         :state="inputProps.state.value"
         :name="name"
+        :form="form"
       >
         <template
           v-for="(_, slotname) in $slots"

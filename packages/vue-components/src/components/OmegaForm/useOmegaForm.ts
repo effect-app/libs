@@ -762,10 +762,26 @@ export const useOmegaForm = <
     if (!values) return undefined
     const normalized: any = { ...values }
 
+    // Helper to get nested value from object using dot notation
+    const getNestedValue = (obj: any, path: string) => {
+      return path.split(".").reduce((current, key) => current?.[key], obj)
+    }
+
+    // Helper to set nested value in object using dot notation
+    const setNestedValue = (obj: any, path: string, value: any) => {
+      const parts = path.split(".")
+      const last = parts.pop()!
+      const target = parts.reduce((current, key) => {
+        if (!current[key]) current[key] = {}
+        return current[key]
+      }, obj)
+      target[last] = value
+    }
+
     // Process all fields in the schema metadata
     for (const key in meta) {
       const fieldMeta = meta[key as keyof typeof meta]
-      const value = normalized[key]
+      const value = getNestedValue(normalized, key)
 
       // Check if the value is falsy (but not boolean false or zero)
       const isFalsyButNotZero = value == null || value === false || value === "" || Number.isNaN(value)
@@ -779,7 +795,7 @@ export const useOmegaForm = <
       ) {
         // If value is missing or falsy, set to null or undefined based on schema
         if (value === undefined || isFalsy) {
-          normalized[key] = fieldMeta.nullableOrUndefined === "undefined" ? undefined : null
+          setNestedValue(normalized, key, fieldMeta.nullableOrUndefined === "undefined" ? undefined : null)
         }
       }
     }
@@ -895,46 +911,15 @@ export const useOmegaForm = <
   }
 
   const defaultValues = computed(() => {
-    // Normalize tanstack default values at the beginning
-    const normalizedTanstackDefaults = extractSchemaDefaults(
-      normalizeDefaultValues(
-        tanstackFormOptions?.defaultValues
-      )
-    )
-
-    if (
-      normalizedTanstackDefaults
-      && !omegaConfig?.persistency?.overrideDefaultValues
-    ) {
-      // defaultValues from tanstack are not partial,
-      // so if ovverrideDefaultValues is false we return the normalized values
-      return normalizedTanstackDefaults
-    }
-
-    // we are here because there are no default values from tankstack
-    // or because omegaConfig?.persistency?.overrideDefaultValues is true
-
     // will contain what we get from querystring or local/session storage
     let defValuesPatch
 
     const persistency = omegaConfig?.persistency
-    if (!persistency?.policies || persistency.policies.length === 0) return {}
-    if (persistency.policies.includes("querystring")) {
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const value = params.get(persistencyKey.value)
-        clearUrlParams()
-        if (value) {
-          defValuesPatch = JSON.parse(value)
-        }
-      } catch (error) {
-        console.error(error)
-      }
-    }
 
     if (
       // query string has higher priority than local/session storage
-      !defValuesPatch
+      persistency?.policies
+      && !defValuesPatch
       && (persistency.policies.includes("local")
         || persistency.policies.includes("session"))
     ) {
@@ -953,16 +938,30 @@ export const useOmegaForm = <
         }
       }
     }
+    if (persistency?.policies && persistency.policies.includes("querystring")) {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const value = params.get(persistencyKey.value)
+        clearUrlParams()
+        if (value) {
+          defValuesPatch = deepMerge(defValuesPatch || {}, JSON.parse(value))
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
 
     // to be sure we have a valid object at the end of the gathering process
-    defValuesPatch ??= extractSchemaDefaults({})
+    defValuesPatch ??= {}
 
-    if (!normalizedTanstackDefaults) {
-      // we just return what we gathered from the query/storage
-      return defValuesPatch
-    } else {
-      return deepMerge(normalizedTanstackDefaults, defValuesPatch)
-    }
+    // we just return what we gathered from the query/storage
+    return extractSchemaDefaults(
+      normalizeDefaultValues(
+        omegaConfig?.persistency?.overrideDefaultValues
+          ? deepMerge(tanstackFormOptions?.defaultValues || {}, defValuesPatch)
+          : deepMerge(defValuesPatch, tanstackFormOptions?.defaultValues || {})
+      )
+    )
   })
 
   const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.5
+
+### Patch Changes
+
+- bba8e95: Fixes nullable struct useless recursion
+
 ## 2.7.4
 
 ### Patch Changes

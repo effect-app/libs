@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.4
+
+### Patch Changes
+
+- e95554e: Fixes Array Default Prop parsing in OmegaForm
+
 ## 2.7.3
 
 ### Patch Changes

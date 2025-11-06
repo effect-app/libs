@@ -32,11 +32,15 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 const schema = S.Struct({
   asder2: S.Struct({
     value: S.NonEmptyString100
-  })
+  }),
+  asder3: S.Array(S.String)
 })
 const form = useOmegaForm(schema, {
   onSubmit: async ({ value }) => {
     console.log(value)
+  },
+  defaultValues: {
+    asder3: ["a"]
   }
 })
 </script>

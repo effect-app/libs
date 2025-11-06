@@ -743,7 +743,10 @@ export const useOmegaForm = <
 
   function deepMerge(target: any, source: any) {
     for (const key in source) {
-      if (source[key] && isObject(source[key])) {
+      if (Array.isArray(source[key])) {
+        // Arrays should be copied directly, not deep merged
+        target[key] = source[key]
+      } else if (source[key] && isObject(source[key])) {
         if (!target[key]) {
           target[key] = {}
         }

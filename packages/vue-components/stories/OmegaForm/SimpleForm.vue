@@ -4,7 +4,7 @@
       <div>values: {{ values }} {{ isDirty }} {{ canSubmit }}</div>
       <form.Input
         label="asder2"
-        name="asder2.value"
+        name="categoryId"
       >
         <template #default="{ field, label, state }">
           <label :for="field.name">{{ label }}</label>
@@ -29,11 +29,15 @@
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
-const schema = S.Struct({
-  asder2: S.NullOr(S.Struct({
-    value: S.NullOr(S.NonEmptyString100)
-  }))
-})
+class schema extends S.ExtendedClass<schema, any>("ListOptionItem")({
+  categoryId: S.NullOr(S.String), // TODO
+  priceTableId: S.NullOr(S.StringId)
+}) {}
+
+// const schema = S.Struct({
+//   categoryId: S.NullOr(S.String), // TODO
+//   priceTableId: S.NullOr(S.StringId)
+// })
 const form = useOmegaForm(schema, {
   onSubmit: async ({ value }) => {
     console.log(value)

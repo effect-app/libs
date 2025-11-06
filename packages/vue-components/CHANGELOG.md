@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.6
+
+### Patch Changes
+
+- 696d4be: Restores opinionated nullability
+
 ## 2.7.5
 
 ### Patch Changes

@@ -768,6 +768,22 @@ export const useOmegaForm = <
       try {
         const instance = schemaObj.make({})
         // For ExtendedClass, the instance is already in the correct encoded format
+        // But we need to check for nullable fields that may have been set to undefined
+        // instead of null, and fix them
+        if (schemaObj?.fields && typeof schemaObj.fields === "object") {
+          for (const [key, fieldSchema] of Object.entries(schemaObj.fields)) {
+            // Only fix fields that are undefined in the instance
+            if (instance[key] === undefined) {
+              const ast = (fieldSchema as any).ast
+              const nullableOrUndefined = isNullableOrUndefined(ast)
+              if (nullableOrUndefined === "null") {
+                instance[key] = null
+              } else if (nullableOrUndefined === "undefined") {
+                instance[key] = undefined
+              }
+            }
+          }
+        }
         return instance
       } catch {
         // If make() fails, fall through to manual extraction
@@ -857,7 +873,7 @@ export const useOmegaForm = <
       // First try to use schema.make() if available
       // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
       const decoded = (schema as any).make(defaultValues)
-      result = S.encodeSync(partialRecursive(schema))(decoded)
+      result = S.encodeSync(partialRecursive(extractDefaultsFromAST(schema)))(decoded)
     } catch (error) {
       // If make() fails, try to extract defaults from AST
       if (window.location.hostname === "localhost") {

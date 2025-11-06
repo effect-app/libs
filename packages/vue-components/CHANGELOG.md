@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.7
+
+### Patch Changes
+
+- 53f9ef6: Fix extendedClass nullability
+
 ## 2.7.6
 
 ### Patch Changes

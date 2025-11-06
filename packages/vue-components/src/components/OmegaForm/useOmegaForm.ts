@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as api from "@opentelemetry/api"
-import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
+import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, FormValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
 import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { isObject } from "effect/Predicate"
@@ -758,54 +758,6 @@ export const useOmegaForm = <
     return target
   }
 
-  // Normalize default values based on schema metadata
-  // Convert empty strings to null/undefined for nullable fields
-  // Also initialize missing nullable fields with null/undefined
-  const normalizeDefaultValues = (values?: Partial<From>): Partial<From> | undefined => {
-    if (!values) return undefined
-    const normalized: any = { ...values }
-
-    // Helper to get nested value from object using dot notation
-    const getNestedValue = (obj: any, path: string) => {
-      return path.split(".").reduce((current, key) => current?.[key], obj)
-    }
-
-    // Helper to set nested value in object using dot notation
-    const setNestedValue = (obj: any, path: string, value: any) => {
-      const parts = path.split(".")
-      const last = parts.pop()!
-      const target = parts.reduce((current, key) => {
-        if (!current[key]) current[key] = {}
-        return current[key]
-      }, obj)
-      target[last] = value
-    }
-
-    // Process all fields in the schema metadata
-    for (const key in meta) {
-      const fieldMeta = meta[key as keyof typeof meta]
-      const value = getNestedValue(normalized, key)
-
-      // Check if the value is falsy (but not boolean false or zero)
-      const isFalsyButNotZero = value == null || value === false || value === "" || Number.isNaN(value)
-      const isFalsy = isFalsyButNotZero && value !== false && value !== 0
-
-      if (
-        fieldMeta
-        && !fieldMeta.required
-        && fieldMeta.nullableOrUndefined
-        && fieldMeta.type !== "boolean"
-      ) {
-        // If value is missing or falsy, set to null or undefined based on schema
-        if (value === undefined || isFalsy) {
-          setNestedValue(normalized, key, fieldMeta.nullableOrUndefined === "undefined" ? undefined : null)
-        }
-      }
-    }
-
-    return normalized
-  }
-
   // Helper function to recursively extract default values from schema AST
   const extractDefaultsFromAST = (schemaObj: any): any => {
     const result: Record<string, any> = {}
@@ -959,11 +911,9 @@ export const useOmegaForm = <
 
     // we just return what we gathered from the query/storage
     return extractSchemaDefaults(
-      normalizeDefaultValues(
-        omegaConfig?.persistency?.overrideDefaultValues
-          ? deepMerge(tanstackFormOptions?.defaultValues || {}, defValuesPatch)
-          : deepMerge(defValuesPatch, tanstackFormOptions?.defaultValues || {})
-      )
+      omegaConfig?.persistency?.overrideDefaultValues
+        ? deepMerge(tanstackFormOptions?.defaultValues || {}, defValuesPatch)
+        : deepMerge(defValuesPatch, tanstackFormOptions?.defaultValues || {})
     )
   })
 

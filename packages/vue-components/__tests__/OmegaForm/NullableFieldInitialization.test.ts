@@ -8,7 +8,12 @@ describe("Nullable field initialization", () => {
   it("should initialize nullable fields with null when missing from defaultValues", async () => {
     const schema = S.Struct({
       aString: S.NullOr(S.NonEmptyString255).withDefault,
-      bString: S.NullOr(S.NonEmptyString255).withDefault
+      bString: S.NullOr(S.NonEmptyString255).withDefault,
+      cStruct: S
+        .NullOr(S.Struct({
+          dString: S.NullOr(S.NonEmptyString255).withDefault
+        }))
+        .withDefault
     })
 
     let submittedValue: Record<string, unknown> | null = null
@@ -60,7 +65,7 @@ describe("Nullable field initialization", () => {
       setup() {
         const form = useOmegaForm(schema, {
           defaultValues: {
-            aString: ""
+            aString: null
           },
           onSubmit: async ({ value }) => {
             try {
@@ -74,12 +79,13 @@ describe("Nullable field initialization", () => {
       }
     })
 
-    await wrapper.vm.$nextTick()
-
     // Check that both fields are initialized with null (not empty string)
-    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
-    expect(valuesText).toContain("\"aString\":null")
-    expect(valuesText).toContain("\"bString\":null")
+    await vi.waitFor(() => {
+      const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+      expect(valuesText).toContain("\"aString\":null")
+      expect(valuesText).toContain("\"bString\":null")
+      expect(valuesText).toContain("\"cStruct\":null")
+    })
 
     // Submit the form
     await wrapper.find("[data-testid=\"submit\"]").trigger("click")
@@ -93,7 +99,8 @@ describe("Nullable field initialization", () => {
     expect(submitError).toBeNull()
     expect(submittedValue).toEqual({
       aString: null,
-      bString: null
+      bString: null,
+      cStruct: null
     })
   })
 
@@ -148,9 +155,6 @@ describe("Nullable field initialization", () => {
       `,
       setup() {
         const form = useOmegaForm(schema, {
-          defaultValues: {
-            aString: ""
-          },
           onSubmit: async () => {
             // Should not be called since bString is required and missing
           }

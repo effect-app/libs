@@ -321,7 +321,7 @@ const getNullableOrUndefined = (property: S.AST.AST) => {
   )
 }
 
-const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
+export const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
   if (!property || !S.AST.isUnion(property)) return false
   if (property.types.find((_) => _._tag === "UndefinedKeyword")) {
     return "undefined"

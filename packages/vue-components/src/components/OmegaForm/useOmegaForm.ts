@@ -11,7 +11,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
+import { BaseProps, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, isNullableOrUndefined, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
@@ -813,11 +813,21 @@ export const useOmegaForm = <
         if ((fieldSchema as any)?.ast?.defaultValue) {
           try {
             const defaultValue = (fieldSchema as any).ast.defaultValue()
-            if (defaultValue !== undefined) {
-              result[key] = defaultValue
-            }
+            result[key] = defaultValue
           } catch {
             // Silently ignore if defaultValue() throws
+          }
+        } else {
+          // TODO Should we put to null/undefined only leaves?
+          const ast = (fieldSchema as any).ast
+          const nullableOrUndefined = isNullableOrUndefined(ast)
+          switch (nullableOrUndefined) {
+            case "null":
+              result[key] = null
+              break
+            case "undefined":
+              result[key] = undefined
+              break
           }
         }
 

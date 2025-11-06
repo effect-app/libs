@@ -30,17 +30,14 @@ import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
-  asder2: S.Struct({
-    value: S.NonEmptyString100
-  }),
-  asder3: S.Array(S.String)
+  asder2: S.NullOr(S.Struct({
+    value: S.NullOr(S.NonEmptyString100)
+  }))
 })
 const form = useOmegaForm(schema, {
   onSubmit: async ({ value }) => {
     console.log(value)
   },
-  defaultValues: {
-    asder3: ["a"]
-  }
+  defaultValues: {}
 })
 </script>

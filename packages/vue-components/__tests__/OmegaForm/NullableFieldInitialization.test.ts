@@ -13,7 +13,8 @@ describe("Nullable field initialization", () => {
         .NullOr(S.Struct({
           dString: S.NullOr(S.NonEmptyString255).withDefault
         }))
-        .withDefault
+        .withDefault,
+      cLiteral: S.NullOr(S.Literal("test", "test2")).withDefault
     })
 
     let submittedValue: Record<string, unknown> | null = null
@@ -100,7 +101,8 @@ describe("Nullable field initialization", () => {
     expect(submittedValue).toEqual({
       aString: null,
       bString: null,
-      cStruct: null
+      cStruct: null,
+      cLiteral: null
     })
   })
 

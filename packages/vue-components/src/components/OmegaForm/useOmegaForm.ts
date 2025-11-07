@@ -29,6 +29,14 @@ import OmegaForm from "./OmegaWrapper.vue"
 const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<A>, Partial<I>, R> => {
   const ast = schema.ast
 
+  // Handle Refinement types (e.g., NonEmptyArray, filters on ExtendedClass)
+  if (ast._tag === "Refinement") {
+    const refinementAst = ast as any
+    // For refinements, bypass the filter and recursively apply partial to the underlying type
+    const fromSchema = S.make(refinementAst.from)
+    return partialRecursive(fromSchema as any)
+  }
+
   // Handle Union types - recursively apply partial to each member
   if (ast._tag === "Union") {
     const partialMembers = (ast as any).types.map((memberAst: any) => {
@@ -45,11 +53,21 @@ const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<
     return S.make(newAst as any)
   }
 
-  // Handle Transformation types (e.g., withDefaultConstructor)
+  // Handle Transformation types (e.g., withDefaultConstructor, ExtendedClass)
   if (ast._tag === "Transformation") {
-    // For transformations, apply partial to both the 'from' and 'to' sides
-    const fromSchema = S.make((ast as any).from)
-    const toSchema = S.make((ast as any).to)
+    const transformAst = ast as any
+
+    // Special handling for ExtendedClass (Declaration in 'to' side)
+    if (transformAst.to._tag === "Declaration") {
+      // For ExtendedClass, extract the TypeLiteral from the 'from' side
+      // and make that partial, bypassing the Declaration entirely
+      const fromSchema = S.make(transformAst.from)
+      return partialRecursive(fromSchema as any)
+    }
+
+    // For other transformations, apply partial to both sides
+    const fromSchema = S.make(transformAst.from)
+    const toSchema = S.make(transformAst.to)
     const partialFrom = partialRecursive(fromSchema as any)
     const partialTo = partialRecursive(toSchema as any)
 
@@ -68,8 +86,12 @@ const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<
       const propType = prop.type
       let newType = propType
 
-      // Recursively handle nested complex types (structs, unions, transformations)
-      if (propType._tag === "TypeLiteral" || propType._tag === "Union" || propType._tag === "Transformation") {
+      // Recursively handle nested complex types (structs, unions, transformations, refinements)
+      if (
+        propType._tag === "TypeLiteral" || propType._tag === "Union" || propType
+            ._tag === "Transformation" || propType
+            ._tag === "Refinement"
+      ) {
         const nestedSchema = S.make(propType)
         const recursivePartial = partialRecursive(nestedSchema as any)
         newType = recursivePartial.ast
@@ -762,66 +784,6 @@ export const useOmegaForm = <
   const extractDefaultsFromAST = (schemaObj: any): any => {
     const result: Record<string, any> = {}
 
-    // If this schema has a .make() method (like ExtendedClass), use it to get complete defaults
-    // This is more reliable than manually extracting fields, especially for classes
-    if (typeof schemaObj?.make === "function") {
-      try {
-        const instance = schemaObj.make({})
-        // For ExtendedClass, the instance is already in the correct encoded format
-        // But we need to check for nullable fields that may have been set to undefined
-        // instead of null, and fix them
-        if (schemaObj?.fields && typeof schemaObj.fields === "object") {
-          for (const [key, fieldSchema] of Object.entries(schemaObj.fields)) {
-            // Only fix fields that are undefined in the instance
-            if (instance[key] === undefined) {
-              const ast = (fieldSchema as any)?.ast
-              const nullableOrUndefined = isNullableOrUndefined(ast)
-              if (nullableOrUndefined === "null") {
-                instance[key] = null
-              } else if (nullableOrUndefined === "undefined") {
-                instance[key] = undefined
-              }
-            }
-          }
-        }
-        return instance
-      } catch {
-        // If make() fails, fall through to manual extraction
-      }
-    }
-
-    // Check if this schema is a union - check both direct property and AST
-    const unionMembers = schemaObj?.members
-      || (schemaObj?.ast?._tag === "Union" && schemaObj.ast.types
-        ? schemaObj.ast.types.map((t: any) => S.make(t))
-        : null)
-    if (unionMembers && Array.isArray(unionMembers)) {
-      // For unions, we try to find the first member that has a complete set of defaults
-      // Priority is given to members with default values for discriminator fields
-      for (const member of unionMembers as any[]) {
-        const memberDefaults = extractDefaultsFromAST(member)
-        if (Object.keys(memberDefaults).length > 0) {
-          // Check if this member has a default value for a discriminator field (like _tag)
-          // If it does, use this member's defaults
-          const hasDiscriminatorDefault = member?.fields && Object.entries(member.fields).some(
-            ([key, fieldSchema]: [string, any]) => {
-              // Common discriminator field names
-              if (key === "_tag" || key === "type" || key === "kind") {
-                return fieldSchema?.ast?.defaultValue !== undefined
-              }
-              return false
-            }
-          )
-
-          if (hasDiscriminatorDefault) {
-            return memberDefaults
-          }
-        }
-      }
-      // If no member has a discriminator default, return empty
-      return {}
-    }
-
     // Check if this schema has fields (struct)
     if (schemaObj?.fields && typeof schemaObj.fields === "object") {
       for (const [key, fieldSchema] of Object.entries(schemaObj.fields)) {
@@ -859,6 +821,10 @@ export const useOmegaForm = <
           }
         }
       }
+    } else {
+      if (schemaObj?.from?.fields && typeof schemaObj?.from?.fields === "object") {
+        return extractDefaultsFromAST(schemaObj.from)
+      }
     }
 
     return result
@@ -869,30 +835,14 @@ export const useOmegaForm = <
     let result: Partial<From> = {}
 
     try {
-      // For filtered schemas (created with S.filter), use the original unfiltered schema's make method
-      let schemaToUse = schema as any
-      if (schemaToUse?.ast?._tag === "Refinement" && schemaToUse?.from) {
-        schemaToUse = schemaToUse.from
-      }
-
-      // First try to use schema.make() if available
-      // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
-      const decoded = schemaToUse.make(defaultValues)
-      result = S.encodeSync(partialRecursive(schemaToUse))(decoded)
-    } catch (error) {
-      // If make() fails, try to extract defaults from AST
+      const astDefaults = extractDefaultsFromAST(schema)
+      result = S.encodeSync(partialRecursive(schema))(astDefaults)
+    } catch (astError) {
       if (window.location.hostname === "localhost") {
-        console.warn("schema.make() failed, extracting defaults from AST:", error)
-      }
-      try {
-        const astDefaults = extractDefaultsFromAST(schema)
-        result = S.encodeSync(partialRecursive(schema))(astDefaults)
-      } catch (astError) {
-        if (window.location.hostname === "localhost") {
-          console.warn("Could not extract defaults from AST:", astError)
-        }
+        console.warn("Could not extract defaults from AST:", astError)
       }
     }
+
     return deepMerge(result, defaultValues)
   }
 

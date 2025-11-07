@@ -774,7 +774,7 @@ export const useOmegaForm = <
           for (const [key, fieldSchema] of Object.entries(schemaObj.fields)) {
             // Only fix fields that are undefined in the instance
             if (instance[key] === undefined) {
-              const ast = (fieldSchema as any).ast
+              const ast = (fieldSchema as any)?.ast
               const nullableOrUndefined = isNullableOrUndefined(ast)
               if (nullableOrUndefined === "null") {
                 instance[key] = null
@@ -835,7 +835,7 @@ export const useOmegaForm = <
           }
         } else {
           // TODO Should we put to null/undefined only leaves?
-          const ast = (fieldSchema as any).ast
+          const ast = (fieldSchema as any)?.ast
           const nullableOrUndefined = isNullableOrUndefined(ast)
           switch (nullableOrUndefined) {
             case "null":
@@ -869,11 +869,16 @@ export const useOmegaForm = <
     let result: Partial<From> = {}
 
     try {
-      // First try to use schema.make() if available
+      // For filtered schemas (created with S.filter), use the original unfiltered schema's make method
+      let schemaToUse = schema as any
+      if (schemaToUse?.ast?._tag === "Refinement" && schemaToUse?.from) {
+        schemaToUse = schemaToUse.from
+      }
+
       // First try to use schema.make() if available
       // Note: Partial schemas don't have .make() method yet (https://github.com/Effect-TS/effect/issues/4222)
-      const decoded = (schema as any).make(defaultValues)
-      result = S.encodeSync(partialRecursive(extractDefaultsFromAST(schema)))(decoded)
+      const decoded = schemaToUse.make(defaultValues)
+      result = S.encodeSync(partialRecursive(schemaToUse))(decoded)
     } catch (error) {
       // If make() fails, try to extract defaults from AST
       if (window.location.hostname === "localhost") {

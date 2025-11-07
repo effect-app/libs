@@ -15,34 +15,36 @@
           class="mb-4"
         >
           <div class="container">
-            <svg
-              v-if="!vuetified"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M16 2H8L2 8V16L8 22H16L22 16V8L16 2Z"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M12 8V12"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M12 16.0195V16"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
+            <slot name="icon">
+              <svg
+                v-if="!vuetified"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 2H8L2 8V16L8 22H16L22 16V8L16 2Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 8V12"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 16.0195V16"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </slot>
             <div>
               <div class="text-h6">
                 {{ trans("form.includes_error") }}:
@@ -57,10 +59,10 @@
                   class="error-item"
                 >
                   <div>
-                    <a
-                      :href="`#${error.inputId}`"
+                    <label
+                      :for="error.inputId"
                       class="error-link"
-                    >{{ error.label }}</a>
+                    >{{ error.label }}</label>
                     {{ " " }}
                     <div
                       v-if="!hideErrorDetails"
@@ -185,11 +187,23 @@ const showedGeneralErrors = computed(() => {
 
 .error-link {
   font-weight: bold;
+  position: relative;
   color: var(--error-color, #c92a2a);
+  cursor: pointer;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: rgba(from var(--error-color, #c92a2a) r g b / 0.5);
+  }
 }
 
 .text-h6 {
   font-weight: bold;
+  font-size: 1.25em;
 }
 
 .error-message {
@@ -210,11 +224,9 @@ const showedGeneralErrors = computed(() => {
 .container {
   display: flex;
   gap: 1.5em;
-  align-items: flex-start;
 
   svg {
     width: 3em;
-    margin-top: 0.5em;
   }
   .single-error {
     display: inline-block;

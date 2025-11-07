@@ -57,10 +57,10 @@
                   class="error-item"
                 >
                   <div>
-                    <a
-                      :href="`#${error.inputId}`"
+                    <label
+                      :for="error.inputId"
                       class="error-link"
-                    >{{ error.label }}</a>
+                    >{{ error.label }}</label>
                     {{ " " }}
                     <div
                       v-if="!hideErrorDetails"
@@ -103,7 +103,7 @@ import { useIntl } from "../../utils"
 import { type OmegaError } from "./OmegaFormStuff"
 
 const instance = getCurrentInstance()
-const vuetified = instance?.appContext.components["VAlert"]
+const vuetified = false ?? instance?.appContext.components["VAlert"]
 
 const props = defineProps<
   {
@@ -185,11 +185,23 @@ const showedGeneralErrors = computed(() => {
 
 .error-link {
   font-weight: bold;
+  position: relative;
   color: var(--error-color, #c92a2a);
+  cursor: pointer;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: rgba(from var(--error-color, #c92a2a) r g b / 0.5);
+  }
 }
 
 .text-h6 {
   font-weight: bold;
+  font-size: 1.25em;
 }
 
 .error-message {
@@ -210,11 +222,9 @@ const showedGeneralErrors = computed(() => {
 .container {
   display: flex;
   gap: 1.5em;
-  align-items: flex-start;
 
   svg {
     width: 3em;
-    margin-top: 0.5em;
   }
   .single-error {
     display: inline-block;

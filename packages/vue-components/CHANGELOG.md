@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.8
+
+### Patch Changes
+
+- d6b4fc9: Fix: Refinement Schemas Support
+
 ## 2.7.7
 
 ### Patch Changes

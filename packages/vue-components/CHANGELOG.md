@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.11
+
+### Patch Changes
+
+- bbc0510: Improves errors ui in omegaform
+
 ## 2.7.10
 
 ### Patch Changes

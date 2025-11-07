@@ -45,11 +45,21 @@ const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<
     return S.make(newAst as any)
   }
 
-  // Handle Transformation types (e.g., withDefaultConstructor)
+  // Handle Transformation types (e.g., withDefaultConstructor, ExtendedClass)
   if (ast._tag === "Transformation") {
-    // For transformations, apply partial to both the 'from' and 'to' sides
-    const fromSchema = S.make((ast as any).from)
-    const toSchema = S.make((ast as any).to)
+    const transformAst = ast as any
+
+    // Special handling for ExtendedClass (Declaration in 'to' side)
+    if (transformAst.to._tag === "Declaration") {
+      // For ExtendedClass, extract the TypeLiteral from the 'from' side
+      // and make that partial, bypassing the Declaration entirely
+      const fromSchema = S.make(transformAst.from)
+      return partialRecursive(fromSchema as any)
+    }
+
+    // For other transformations, apply partial to both sides
+    const fromSchema = S.make(transformAst.from)
+    const toSchema = S.make(transformAst.to)
     const partialFrom = partialRecursive(fromSchema as any)
     const partialTo = partialRecursive(toSchema as any)
 

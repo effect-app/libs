@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.9
+
+### Patch Changes
+
+- bb47158: Fixes recursion
+
 ## 2.7.8
 
 ### Patch Changes

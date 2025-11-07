@@ -14,57 +14,82 @@
           aria-live="polite"
           class="mb-4"
         >
-          <div class="text-h6 mb-3">
-            {{ trans("form.includes_error") }}:
-          </div>
-          <component
-            :is="errors.length > 1 ? 'ul' : 'div'"
-            v-if="errors.length"
-            class="error-list"
-          >
-            <component
-              :is="errors.length > 1 ? 'li' : 'div'"
-              v-for="error in errors"
-              :key="error.inputId"
-              class="error-item"
+          <div class="container">
+            <svg
+              v-if="!vuetified"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              <div class="font-weight-medium">
-                {{ error.label }}
+              <path
+                d="M16 2H8L2 8V16L8 22H16L22 16V8L16 2Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 8V12"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 16.0195V16"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <div>
+              <div class="text-h6">
+                {{ trans("form.includes_error") }}:
               </div>
-              <div class="error-message">
-                <component
-                  :is="error.errors.length > 1 ? 'ul' : 'div'"
-                  class="error-list"
-                >
-                  <component
-                    :is="error.errors.length > 1
-                    ? 'li'
-                    : 'span'"
-                    v-for="e in error.errors"
-                    :key="e"
-                  >
-                    {{ e }}
-                  </component>
-                </component>
-              </div>
-              <a
-                :href="`#${error.inputId}`"
-                class="error-link"
+              <ul
+                v-if="errors.length"
+                class="error-list"
               >
-                <component
-                  :is="vuetified ? 'v-icon' : 'i'"
-                  :icon="mdiLink"
-                  aria-hidden="true"
+                <li
+                  v-for="error in errors"
+                  :key="error.inputId"
+                  class="error-item"
                 >
-                  <i>&#128279;</i>
-                </component>
-                {{ trans("form.fix_input") }}
-              </a>
-            </component>
-          </component>
-          <span v-else>
-            {{ showedGeneralErrors[0] }}
-          </span>
+                  <div>
+                    <a
+                      :href="`#${error.inputId}`"
+                      class="error-link"
+                    >{{ error.label }}</a>
+                    {{ " " }}
+                    <div
+                      v-if="!hideErrorDetails"
+                      class="error-message"
+                      :class="error.errors.length < 2 && 'single-error'"
+                    >
+                      <component
+                        :is="error.errors.length > 1 ? 'ul' : 'div'"
+                        class="error-list"
+                      >
+                        <component
+                          :is="error.errors.length > 1
+                          ? 'li'
+                          : 'span'"
+                          v-for="e in error.errors"
+                          :key="e"
+                        >
+                          {{ e }}
+                        </component>
+                      </component>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+              <span v-else>
+                {{ showedGeneralErrors[0] }}
+              </span>
+            </div>
+          </div>
         </component>
       </slot>
     </div>
@@ -72,7 +97,6 @@
 </template>
 
 <script setup lang="ts">
-import { mdiLink } from "@mdi/js"
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
 import { computed, getCurrentInstance } from "vue"
 import { useIntl } from "../../utils"
@@ -85,6 +109,7 @@ const props = defineProps<
   {
     generalErrors: (Record<string, StandardSchemaV1Issue[]> | undefined)[]
     errors: OmegaError[]
+    hideErrorDetails?: boolean
   }
 >()
 
@@ -145,52 +170,54 @@ const showedGeneralErrors = computed(() => {
 
 .error-list {
   list-style-position: inside;
-}
 
-div.error-list {
-  container-type: inline-size;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 1.5em;
-  align-items: start;
-}
-
-@container (max-width: 27.125rem) {
-  div.error-list {
-    grid-template-columns: auto 1fr;
-  }
-
-  .error-link {
-    grid-column: 1 / -1;
-    justify-self: end;
+  ::marker {
+    margin: 0;
+    padding: 0;
   }
 }
 
-@container (max-width: 17.75rem) {
-  div.error-list {
-    grid-template-columns: 1fr;
-  }
-
-  .error-message {
-    grid-column: 1 / -1;
-  }
-}
-
-.error-item {
-  display: contents;
-}
-
-a {
-  min-width: min-content;
+.error-alert-content {
+  background-color: var(--error-background, #fff5f5);
+  color: var(--error-color, #c92a2a);
+  padding: 1em;
 }
 
 .error-link {
-  align-items: center;
-  color: inherit;
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.25em;
-  padding-bottom: 1em;
-  text-decoration: none;
+  font-weight: bold;
+  color: var(--error-color, #c92a2a);
+}
+
+.text-h6 {
+  font-weight: bold;
+}
+
+.error-message {
+  font-style: italic;
+}
+
+.error-item {
+  margin-bottom: 0.5em;
+  overflow: hidden;
+
+  > div {
+    float: right;
+    width: 100%;
+    max-width: calc(100% - 1.5em);
+  }
+}
+
+.container {
+  display: flex;
+  gap: 1.5em;
+  align-items: flex-start;
+
+  svg {
+    width: 3em;
+    margin-top: 0.5em;
+  }
+  .single-error {
+    display: inline-block;
+  }
 }
 </style>

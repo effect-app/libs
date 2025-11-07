@@ -6,10 +6,10 @@
         label="asder2"
         name="categoryId"
       >
-        <template #default="{ field, label, state }">
-          <label :for="field.name">{{ label }}</label>
+        <template #default="{ field, label, state, id }">
+          <label :for="id">{{ label }}</label>
           <input
-            :id="field.name"
+            :id="id"
             v-model="state.value"
             :name="field.name"
             style="border: 1px solid red"
@@ -30,8 +30,8 @@ import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 class schema extends S.ExtendedClass<schema, any>("ListOptionItem")({
-  categoryId: S.NullOr(S.String), // TODO
-  priceTableId: S.NullOr(S.StringId)
+  categoryId: S.String, // TODO
+  priceTableId: S.StringId
 }) {}
 
 // const schema = S.Struct({

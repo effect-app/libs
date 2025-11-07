@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.7.10
+
+### Patch Changes
+
+- ebb9a58: Beautify errors
+
 ## 2.7.9
 
 ### Patch Changes

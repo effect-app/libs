@@ -29,6 +29,14 @@ import OmegaForm from "./OmegaWrapper.vue"
 const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<A>, Partial<I>, R> => {
   const ast = schema.ast
 
+  // Handle Refinement types (e.g., NonEmptyArray, filters on ExtendedClass)
+  if (ast._tag === "Refinement") {
+    const refinementAst = ast as any
+    // For refinements, bypass the filter and recursively apply partial to the underlying type
+    const fromSchema = S.make(refinementAst.from)
+    return partialRecursive(fromSchema as any)
+  }
+
   // Handle Union types - recursively apply partial to each member
   if (ast._tag === "Union") {
     const partialMembers = (ast as any).types.map((memberAst: any) => {
@@ -78,8 +86,12 @@ const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<
       const propType = prop.type
       let newType = propType
 
-      // Recursively handle nested complex types (structs, unions, transformations)
-      if (propType._tag === "TypeLiteral" || propType._tag === "Union" || propType._tag === "Transformation") {
+      // Recursively handle nested complex types (structs, unions, transformations, refinements)
+      if (
+        propType._tag === "TypeLiteral" || propType._tag === "Union" || propType
+            ._tag === "Transformation" || propType
+            ._tag === "Refinement"
+      ) {
         const nestedSchema = S.make(propType)
         const recursivePartial = partialRecursive(nestedSchema as any)
         newType = recursivePartial.ast
@@ -808,6 +820,10 @@ export const useOmegaForm = <
             result[key] = nestedDefaults
           }
         }
+      }
+    } else {
+      if (schemaObj?.from?.fields && typeof schemaObj?.from?.fields === "object") {
+        return extractDefaultsFromAST(schemaObj.from)
       }
     }
 

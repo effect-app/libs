@@ -15,34 +15,36 @@
           class="mb-4"
         >
           <div class="container">
-            <svg
-              v-if="!vuetified"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M16 2H8L2 8V16L8 22H16L22 16V8L16 2Z"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M12 8V12"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M12 16.0195V16"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
+            <slot name="icon">
+              <svg
+                v-if="!vuetified"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 2H8L2 8V16L8 22H16L22 16V8L16 2Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 8V12"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 16.0195V16"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </slot>
             <div>
               <div class="text-h6">
                 {{ trans("form.includes_error") }}:
@@ -103,7 +105,7 @@ import { useIntl } from "../../utils"
 import { type OmegaError } from "./OmegaFormStuff"
 
 const instance = getCurrentInstance()
-const vuetified = false ?? instance?.appContext.components["VAlert"]
+const vuetified = instance?.appContext.components["VAlert"]
 
 const props = defineProps<
   {

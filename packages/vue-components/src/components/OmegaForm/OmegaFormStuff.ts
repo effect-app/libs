@@ -915,9 +915,14 @@ export const generateInputStandardSchemaFromFieldMeta = (
     case "boolean":
       schema = S.Boolean
       break
-    // todo: switch must be exhaustive or have default case, otherwise falls through with schema undefined.
 
     case "unknown":
+      schema = S.Unknown
+      break
+
+    default:
+      // For any unhandled types, use Unknown schema to prevent undefined errors
+      console.warn(`Unhandled field type: ${meta}`)
       schema = S.Unknown
       break
   }

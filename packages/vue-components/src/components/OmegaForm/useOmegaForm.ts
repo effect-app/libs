@@ -709,8 +709,8 @@ export const useOmegaForm = <
     // we just return what we gathered from the query/storage
     return extractSchemaDefaults(
       omegaConfig?.persistency?.overrideDefaultValues
-        ? tanstackFormOptions?.defaultValues || {}
-        : defValuesPatch
+        ? deepMerge(tanstackFormOptions?.defaultValues || {}, defValuesPatch)
+        : deepMerge(defValuesPatch, tanstackFormOptions?.defaultValues || {})
     )
   })
 

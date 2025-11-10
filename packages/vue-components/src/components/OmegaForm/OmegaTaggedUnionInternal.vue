@@ -39,8 +39,6 @@ watch(() => props.state, (newTag, oldTag) => {
     props.field.setValue(null as DeepValue<From, Name>)
   }
 
-  props.form.reset(values.value)
-
   if (newTag !== oldTag) {
     // get default values from AST for the new tag (only for root level tagged unions)
     if (props.name === void 0 && S.AST.isUnion(props.form._schema.ast)) {

@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 2.8.0
+
+### Minor Changes
+
+- aa8ec75: support default values in root tagged unions
+
+### Patch Changes
+
+- 011b3ff: fix initialization of default values in tagged unions
+
 ## 2.7.11
 
 ### Patch Changes

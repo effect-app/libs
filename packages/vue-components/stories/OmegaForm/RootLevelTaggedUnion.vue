@@ -74,7 +74,7 @@ import { useOmegaForm } from "../../src"
 // Root-level union schema - the entire form is a union
 const schema = S.Union(
   S.Struct({
-    a: S.NonEmptyString255,
+    a: S.NonEmptyString255.pipe(S.withDefaultConstructor(() => S.NonEmptyString255("aaaa"))),
     common: S.String,
     _tag: S.Literal("A")
   }),

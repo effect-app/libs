@@ -18,7 +18,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({
-  first: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(200))),
+  first: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
   second: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
   third: S.NullOr(S.String).withDefault,
   fourth: S

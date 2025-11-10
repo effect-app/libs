@@ -30,7 +30,6 @@ const props = defineProps<{
   form: ReturnType<typeof useOmegaForm<From, To>>
 }>()
 
-console.log({ name: props.name })
 const values = props.form.useStore(({ values }) => values)
 
 // Watch for _tag changes

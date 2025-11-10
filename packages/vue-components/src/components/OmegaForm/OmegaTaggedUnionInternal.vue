@@ -89,5 +89,5 @@ watch(() => props.state, (newTag, oldTag) => {
       props.field.validate("change")
     }, 0)
   }
-})
+}, { immediate: true })
 </script>

@@ -75,6 +75,7 @@ import { useOmegaForm } from "../../src"
 const schema = S.Union(
   S.Struct({
     a: S.NonEmptyString255,
+    first: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(200))),
     common: S.String,
     _tag: S.Literal("A")
   }),

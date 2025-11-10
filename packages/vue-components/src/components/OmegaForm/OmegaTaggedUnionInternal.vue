@@ -19,6 +19,7 @@ import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { S } from "effect-app"
 import { watch } from "vue"
 import { getTransformationFrom } from "../../utils"
+import { extractSchemaDefaults } from "./defaultAST"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type useOmegaForm } from "./useOmegaForm"
 
@@ -37,20 +38,51 @@ watch(() => props.state, (newTag, oldTag) => {
   if (newTag === null) {
     props.field.setValue(null as DeepValue<From, Name>)
   }
+
+  props.form.reset(values.value)
+
   if (newTag !== oldTag) {
+    // get default values from AST for the new tag (only for root level tagged unions)
     if (props.name === void 0 && S.AST.isUnion(props.form._schema.ast)) {
-      const members = props
+      const indexOfSelectedMember = props
         .form
         ._schema
         .ast
         .types
-        .map((t) => getTransformationFrom(t))
-        .filter((t) => S.AST.isTypeLiteral(t) || S.AST.isTransformation(t))
-        .map((t) => t.propertySignatures)
-      console.log("members", members)
+        .map((t, i) => ({ original: i, unwrapped: getTransformationFrom(t) }))
+        .flatMap((x) =>
+          S.AST.isTypeLiteral(x.unwrapped) || S.AST.isTransformation(x.unwrapped)
+            ? x
+                .unwrapped
+                .propertySignatures
+                .filter((ps) => S.AST.isLiteral(ps.type) && ps.type.literal === newTag)
+                .length > 0
+              ? [x.original]
+              : []
+            : []
+        )[0]
+
+      // even if the type doesn't say so, indexOfSelectedMember may be undefined
+      if (
+        indexOfSelectedMember != void 0
+        && "members" in props.form._schema
+        && Array.isArray(props.form._schema.members)
+      ) {
+        const defaultsOfSelectedMember = Object.assign(
+          extractSchemaDefaults(
+            props
+              .form
+              ._schema
+              .members[indexOfSelectedMember],
+            values.value
+          ),
+          { _tag: newTag }
+        )
+
+        props.form.reset(defaultsOfSelectedMember)
+      }
     }
-    console.log("resetting form", values.value)
-    props.form.reset(values.value)
+
     setTimeout(() => {
       props.field.validate("change")
     }, 0)

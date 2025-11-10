@@ -122,7 +122,7 @@ const partialRecursive = <A, I, R>(schema: S.Schema<A, I, R>): S.Schema<Partial<
 }
 
 // Helper function to recursively extract default values from schema AST swag ast
-const extractDefaultsFromAST = (schemaObj: any): any => {
+export const extractDefaultsFromAST = (schemaObj: any): any => {
   const result: Record<string, any> = {}
 
   // Check if this schema has fields (struct)

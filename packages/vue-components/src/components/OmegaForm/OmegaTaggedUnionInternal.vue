@@ -78,8 +78,11 @@ watch(() => props.state, (newTag, oldTag) => {
         )
 
         props.form.reset(defaultsOfSelectedMember)
+        return
       }
     }
+
+    props.form.reset(values.value)
 
     setTimeout(() => {
       props.field.validate("change")

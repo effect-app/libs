@@ -30,7 +30,7 @@
     "forceConsistentCasingInFileNames": true,
     //"preserveSymlinks": true
     "types": [
-      "vitest/globals"
+      "node"
     ],
   },
   "watchOptions": {

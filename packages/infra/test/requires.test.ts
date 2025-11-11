@@ -54,7 +54,7 @@ expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
 expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
 expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
 
-class TestRequest extends S.TaggedRequest<Test>("Test")("Test", {
+class TestRequest extends S.TaggedRequest<TestRequest>("Test")("Test", {
   payload: {},
   success: S.Void,
   failure: S.Never

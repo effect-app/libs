@@ -13,7 +13,6 @@ import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/api
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider extends RpcX.RpcMiddleware.Tag<MyContextProvider, {
   provides: Some
   requires: SomeElse
@@ -45,7 +44,6 @@ class MyContextProvider extends RpcX.RpcMiddleware.Tag<MyContextProvider, {
   static but_why = "???" // remove me and life rocks
 }
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider3 extends RpcX.RpcMiddleware.Tag<MyContextProvider3, {
   provides: Some
   requires: SomeElse
@@ -83,7 +81,6 @@ expectTypeOf(MyContextProvider3.Default).toEqualTypeOf<
   }
 >()
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2
   extends RpcX.RpcMiddleware.Tag<MyContextProvider2, { provides: SomeElse }>()("MyContextProvider2")
 {

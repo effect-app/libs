@@ -30,7 +30,6 @@ class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextPr
   })
 }) {}
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContextProvider2", {
   effect: Effect.gen(function*() {
     if (Math.random() > 0.5) return yield* new CustomError1()
@@ -43,7 +42,6 @@ class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContext
   })
 }) {}
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class MyContextProvider2Gen extends Effect.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
   effect: Effect.gen(function*() {
     if (Math.random() > 0.5) return yield* new CustomError1()
@@ -80,7 +78,6 @@ class MyContextProviderGen extends Effect.Service<MyContextProviderGen>()("MyCon
   })
 }) {}
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 export const someContextProvider = ContextProvider({
   effect: Effect.gen(function*() {
     yield* SomeService

@@ -81,7 +81,6 @@ export const AllowAnonymousLive = Layer.effect(
   })
 )
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 export class RequireRoles extends RpcX.RpcMiddleware.Tag<RequireRoles>()("RequireRoles", {
   dynamic: RequestContextMap.get("requireRoles"),
   // had to move this in here, because once you put it manually as a readonly static property on the class,
@@ -127,5 +126,5 @@ export const TestLive = Layer.effect(
   })
 )
 
-export class CustomError1 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
-export class CustomError2 extends TaggedError<NotLoggedInError>()("CustomError1", {}) {}
+export class CustomError1 extends TaggedError<CustomError1>()("CustomError1", {}) {}
+export class CustomError2 extends TaggedError<CustomError2>()("CustomError2", {}) {}

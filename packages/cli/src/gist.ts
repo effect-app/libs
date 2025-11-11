@@ -174,7 +174,6 @@ class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
 // Services
 //
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
 class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
   dependencies: [RunCommandService.Default],
   effect: Effect.gen(function*() {

@@ -1,5 +1,16 @@
 # @effect-app/eslint-shared-config
 
+## 0.4.0
+
+### Minor Changes
+
+- 07f1de5: update packages and tsconfigs
+
+### Patch Changes
+
+- Updated dependencies [07f1de5]
+  - @effect-app/eslint-codegen-model@1.46.0
+
 ## 0.3.4
 
 ### Patch Changes

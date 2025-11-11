@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.28.0
+
+### Minor Changes
+
+- 07f1de5: update packages and tsconfigs
+
 ## 1.27.0
 
 ### Minor Changes

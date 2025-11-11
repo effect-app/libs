@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.13.0
+
+### Minor Changes
+
+- 07f1de5: update packages and tsconfigs
+
 ## 3.12.0
 
 ### Minor Changes

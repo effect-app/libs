@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 2.93.0
+
+### Minor Changes
+
+- 07f1de5: update packages and tsconfigs
+
+### Patch Changes
+
+- Updated dependencies [07f1de5]
+  - effect-app@3.13.0
+
 ## 2.92.2
 
 ### Patch Changes

@@ -1014,16 +1014,16 @@ function hasMembers(schema: any): schema is SchemaWithMembers {
   return schema && "members" in schema && Array.isArray(schema.members)
 }
 
-export const defaultsValueFromSchema = (
-  schema: S.Schema<any>,
-  record: Record<string, any> = {}
-): any => {
+export const defaultsValueFromSchema = <T = any>(
+  schema: S.Schema<T>,
+  record: Record<string, unknown> = {}
+): T | Partial<T> | null | undefined => {
   const ast: any = schema.ast
   if (ast?.defaultValue) {
     return ast.defaultValue()
   }
   if (isNullableOrUndefined(schema.ast) === "null") {
-    return null
+    return null as any
   }
   if (isNullableOrUndefined(schema.ast) === "undefined") {
     return undefined
@@ -1034,9 +1034,13 @@ export const defaultsValueFromSchema = (
   if (hasFields(schema)) {
     // Use reduce instead of forEach to properly accumulate values
     return Object.entries(schema.fields).reduce((acc, [key, value]) => {
-      acc[key] = defaultsValueFromSchema(value, record[key] || {})
+      const recordValue = record[key]
+      acc[key] = defaultsValueFromSchema(
+        value,
+        (recordValue && typeof recordValue === "object" ? recordValue : {}) as Record<string, unknown>
+      )
       return acc
-    }, record)
+    }, record as any)
   }
 
   if (hasMembers(schema)) {
@@ -1045,7 +1049,7 @@ export const defaultsValueFromSchema = (
       if (hasFields(member)) {
         // Check each field and give precedence to ones with default values
         Object.entries(member.fields).forEach(([key, fieldSchema]) => {
-          const fieldAst: any = fieldSchema.ast
+          const fieldAst: any = (fieldSchema as S.Schema<any>).ast
           const existingFieldAst: any = acc[key]?.ast
 
           // If field doesn't exist yet, or new field has default and existing doesn't, use new field
@@ -1061,17 +1065,21 @@ export const defaultsValueFromSchema = (
 
     // Use reduce to properly accumulate the merged fields
     return Object.entries(mergedMembers).reduce((acc, [key, value]) => {
-      acc[key] = defaultsValueFromSchema(value, record[key] || {})
+      const recordValue = record[key]
+      acc[key] = defaultsValueFromSchema(
+        value,
+        (recordValue && typeof recordValue === "object" ? recordValue : {}) as Record<string, unknown>
+      )
       return acc
-    }, record)
+    }, record as any)
   }
 
   if (Object.keys(record).length === 0) {
     switch (schema.ast._tag) {
       case "StringKeyword":
-        return ""
+        return "" as any
       case "BooleanKeyword":
-        return false
+        return false as any
     }
   }
 }

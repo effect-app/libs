@@ -34,6 +34,11 @@
       <div>Values six: <br> {{ vvv }}</div>
     </template>
   </six.Form>
+  <seven.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values: vvv } }">
+      <div>Values seven: <br> {{ vvv }}</div>
+    </template>
+  </seven.Form>
 </template>
 
 <script setup lang="ts">
@@ -55,12 +60,12 @@ const struct = {
     ),
   f: S.Union(
     S.Struct({
-      _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
+      _tag: S.Literal("taggo1").pipe(S.withDefaultConstructor(() => "taggo1")),
       g: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
       i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
     }),
     S.Struct({
-      _tag: S.Literal("tag2"),
+      _tag: S.Literal("taggo2").pipe(S.withDefaultConstructor(() => "taggo2")),
       h: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
       i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
     })
@@ -93,30 +98,32 @@ const struct = {
       r: S.UndefinedOr(S.Struct({ z: S.String }))
     }))
     .withDefault,
-  s: S.NullOr(S.Struct({ z: S.String })).withDefault
+  s: S.NullOr(S.Struct({ z: S.String })).withDefault,
+  t: S.NumberFromString.pipe(S.withDefaultConstructor(() => 1000)),
+  u: S.NullOr(S.NonEmptyString),
+  v: S.UndefinedOr(S.NonEmptyString)
 }
 
 class ClassSchema extends S.ExtendedClass<ClassSchema, any>("ClassSchema")(struct) {}
-
 const schema = S.Struct(struct)
 
 const zero = useOmegaForm(ClassSchema)
 const one = useOmegaForm(schema)
 
-const two = useOmegaForm(
-  S.Union(
-    S.Struct({
-      _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
-      a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
-      b: schema
-    }),
-    S.Struct({
-      _tag: S.Literal("tag2"),
-      a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
-      b: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
-    })
-  )
+const Union = S.Union(
+  S.Struct({
+    _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
+    a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
+    b: schema
+  }),
+  S.Struct({
+    _tag: S.Literal("tag2"),
+    a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
+    b: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
+    c: schema
+  })
 )
+const two = useOmegaForm(Union)
 
 const three = useOmegaForm(schema, {
   defaultValues: {
@@ -147,6 +154,19 @@ const six = useOmegaForm(schema, {
 }, {
   defaultFromSchema: "merge"
 })
+
+const seven = useOmegaForm(S.Union(
+  S.Struct({
+    _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
+    a: S.NonEmptyString,
+    s: S.NullOr(S.Number).withDefault
+  }),
+  S.Struct({
+    _tag: S.Literal("tag2"),
+    b: S.NonEmptyString,
+    t: S.Number
+  })
+))
 </script>
 
 <style scoped>

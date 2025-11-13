@@ -99,7 +99,8 @@ describe("OmegaForm withDefaultConstructor with persistency", () => {
           d: 10 // Default from withDefaultConstructor
         }
       },
-      sixth: "1000"
+      fifth: "",
+      sixth: 1000
     })
   })
 })

@@ -2,6 +2,7 @@ import { type Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getMetadataFromSchema } from "@effect-app/vue/form"
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
+import { isObject } from "@vueuse/core"
 import { type RuntimeFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
@@ -685,14 +686,15 @@ export const createMeta = <T = any>(
   return acc
 }
 
-const flattenMeta = <From, To>(
+const metadataFromAst = <From, To>(
   schema: S.Schema<To, From, never>
-): MetaRecord<To> => {
+): { meta: MetaRecord<To>; defaultValues: Record<string, any> } => {
   const ast = schema.ast
-  const result: MetaRecord<To> = {}
+  const newMeta: MetaRecord<To> = {}
+  const defaultValues: Record<string, any> = {}
 
   if (ast._tag === "Transformation" || ast._tag === "Refinement") {
-    return flattenMeta(S.make(ast.from))
+    return metadataFromAst(S.make(ast.from))
   }
 
   // Handle root-level Union types (discriminated unions)
@@ -730,20 +732,20 @@ const flattenMeta = <From, To>(
           })
 
           // Merge into result
-          Object.assign(result, memberMeta)
+          Object.assign(newMeta, memberMeta)
         }
       }
 
       // Create metadata for the discriminator field
       if (discriminatorValues.length > 0) {
-        result["_tag" as DeepKeys<To>] = {
+        newMeta["_tag" as DeepKeys<To>] = {
           type: "select",
           members: discriminatorValues,
           required: true
         } as FieldMeta
       }
 
-      return result
+      return { meta: newMeta, defaultValues }
     }
   }
 
@@ -753,7 +755,7 @@ const flattenMeta = <From, To>(
     })
 
     if (Object.values(meta).every((value) => value && "type" in value)) {
-      return meta as MetaRecord<To>
+      return { meta: meta as MetaRecord<To>, defaultValues }
     }
 
     const flattenObject = (
@@ -763,7 +765,7 @@ const flattenMeta = <From, To>(
       for (const key in obj) {
         const newKey = parentKey ? `${parentKey}.${key}` : key
         if (obj[key] && typeof obj[key] === "object" && "type" in obj[key]) {
-          result[newKey as DeepKeys<To>] = obj[key] as FieldMeta
+          newMeta[newKey as DeepKeys<To>] = obj[key] as FieldMeta
         } else if (obj[key] && typeof obj[key] === "object") {
           flattenObject(obj[key], newKey)
         }
@@ -773,7 +775,7 @@ const flattenMeta = <From, To>(
     flattenObject(meta)
   }
 
-  return result
+  return { meta: newMeta, defaultValues }
 }
 
 export const duplicateSchema = <From, To>(
@@ -788,7 +790,7 @@ export const generateMetaFromSchema = <From, To>(
   schema: S.Schema<To, From, never>
   meta: MetaRecord<To>
 } => {
-  const meta = flattenMeta(schema)
+  const { meta } = metadataFromAst(schema)
 
   return { schema, meta }
 }
@@ -976,3 +978,100 @@ const supportedInputs = [
 export type SupportedInputs = typeof supportedInputs[number]
 export const getInputType = (input: string): SupportedInputs =>
   (supportedInputs as readonly string[]).includes(input) ? input as SupportedInputs : "text"
+
+export function deepMerge(target: any, source: any) {
+  for (const key in source) {
+    if (Array.isArray(source[key])) {
+      // Arrays should be copied directly, not deep merged
+      target[key] = source[key]
+    } else if (source[key] && isObject(source[key])) {
+      if (!target[key]) {
+        target[key] = {}
+      }
+      deepMerge(target[key], source[key])
+    } else {
+      target[key] = source[key]
+    }
+  }
+  return target
+}
+
+// Type definitions for schemas with fields and members
+type SchemaWithFields = {
+  fields: Record<string, S.Schema<any>>
+}
+
+type SchemaWithMembers = {
+  members: readonly S.Schema<any>[]
+}
+
+// Type guards to check schema types
+function hasFields(schema: any): schema is SchemaWithFields {
+  return schema && "fields" in schema && typeof schema.fields === "object"
+}
+
+function hasMembers(schema: any): schema is SchemaWithMembers {
+  return schema && "members" in schema && Array.isArray(schema.members)
+}
+
+export const defaultsValueFromSchema = (
+  schema: S.Schema<any>,
+  record: Record<string, any> = {}
+): any => {
+  const ast: any = schema.ast
+  if (ast?.defaultValue) {
+    return ast.defaultValue()
+  }
+  if (isNullableOrUndefined(schema.ast) === "null") {
+    return null
+  }
+  if (isNullableOrUndefined(schema.ast) === "undefined") {
+    return undefined
+  }
+  if (schema.ast._tag === "Refinement") {
+    return defaultsValueFromSchema(S.make(schema.ast.from), record)
+  }
+  if (hasFields(schema)) {
+    // Use reduce instead of forEach to properly accumulate values
+    return Object.entries(schema.fields).reduce((acc, [key, value]) => {
+      acc[key] = defaultsValueFromSchema(value, record[key] || {})
+      return acc
+    }, record)
+  }
+
+  if (hasMembers(schema)) {
+    // Merge all member fields, giving precedence to fields with default values
+    const mergedMembers = schema.members.reduce((acc, member) => {
+      if (hasFields(member)) {
+        // Check each field and give precedence to ones with default values
+        Object.entries(member.fields).forEach(([key, fieldSchema]) => {
+          const fieldAst: any = fieldSchema.ast
+          const existingFieldAst: any = acc[key]?.ast
+
+          // If field doesn't exist yet, or new field has default and existing doesn't, use new field
+          if (!acc[key] || (fieldAst?.defaultValue && !existingFieldAst?.defaultValue)) {
+            acc[key] = fieldSchema
+          }
+          // If both have defaults or neither have defaults, keep the first one (existing)
+        })
+        return acc
+      }
+      return acc
+    }, {} as Record<string, any>)
+
+    // Use reduce to properly accumulate the merged fields
+    return Object.entries(mergedMembers).reduce((acc, [key, value]) => {
+      acc[key] = defaultsValueFromSchema(value, record[key] || {})
+      return acc
+    }, record)
+  }
+
+  if (Object.keys(record).length === 0) {
+    switch (schema.ast._tag) {
+      case "StringKeyword":
+        return ""
+      case "BooleanKeyword":
+        return false
+    }
+  }
+}

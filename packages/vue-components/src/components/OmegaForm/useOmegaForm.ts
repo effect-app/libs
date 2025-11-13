@@ -6,12 +6,11 @@ import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidate
 import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise } from "effect-app/utils"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
-import { deepMerge, extractSchemaDefaults } from "./defaultAST"
 import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
+import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
@@ -174,6 +173,8 @@ export type OmegaConfig<T> = {
   preventWindowExit?: "prevent" | "prevent-and-reset" | "nope"
 
   input?: any
+
+  defaultFromSchema?: "only" | "nope" | "merge"
 }
 
 export interface OF<From, To> extends OmegaFormApi<From, To> {
@@ -706,13 +707,20 @@ export const useOmegaForm = <
     // to be sure we have a valid object at the end of the gathering process
     defValuesPatch ??= {}
 
+    const defaultValuesFromSchema = (() => {
+      if (omegaConfig?.defaultFromSchema === "only") {
+        return defaultsValueFromSchema(schema)
+      }
+      if (omegaConfig?.defaultFromSchema === "nope") {
+        return tanstackFormOptions?.defaultValues || {}
+      }
+      return deepMerge(defaultsValueFromSchema(schema), tanstackFormOptions?.defaultValues || {})
+    })()
+
     // we just return what we gathered from the query/storage
-    return extractSchemaDefaults(
-      schema,
-      omegaConfig?.persistency?.overrideDefaultValues
-        ? deepMerge(tanstackFormOptions?.defaultValues || {}, defValuesPatch)
-        : deepMerge(defValuesPatch, tanstackFormOptions?.defaultValues || {})
-    )
+    return omegaConfig?.persistency?.overrideDefaultValues
+      ? deepMerge(defaultValuesFromSchema, defValuesPatch)
+      : deepMerge(defValuesPatch, defaultValuesFromSchema)
   })
 
   const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {

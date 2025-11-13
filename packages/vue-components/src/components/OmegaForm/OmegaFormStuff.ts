@@ -980,20 +980,18 @@ export const getInputType = (input: string): SupportedInputs =>
   (supportedInputs as readonly string[]).includes(input) ? input as SupportedInputs : "text"
 
 export function deepMerge(target: any, source: any) {
+  const result = { ...target }
   for (const key in source) {
     if (Array.isArray(source[key])) {
       // Arrays should be copied directly, not deep merged
-      target[key] = source[key]
+      result[key] = source[key]
     } else if (source[key] && isObject(source[key])) {
-      if (!target[key]) {
-        target[key] = {}
-      }
-      deepMerge(target[key], source[key])
+      result[key] = deepMerge(result[key], source[key])
     } else {
-      target[key] = source[key]
+      result[key] = source[key]
     }
   }
-  return target
+  return result
 }
 
 // Type definitions for schemas with fields and members

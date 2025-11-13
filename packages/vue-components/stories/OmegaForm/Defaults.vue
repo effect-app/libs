@@ -42,7 +42,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const struct = {
   a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
-  b: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
+  b: S.NonEmptyString,
   c: S.NonEmptyArray(S.String).pipe(
     S.withDefaultConstructor(() => [S.NonEmptyString("C"), S.NonEmptyString("Non Empty Array")])
   ),

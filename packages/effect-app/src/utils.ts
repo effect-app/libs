@@ -207,6 +207,17 @@ export function dropUndefinedT2<Desired extends Record<any, any>>() {
   }
 }
 
+/**
+ * A recursive version of @see dropUndefinedT that preserves IDE support for
+ * go-to-definition, auto-completion, and field documentation.
+ *
+ * Note: This utility does not physically remove `undefined` fields at runtime.
+ * It provides type-level compatibility with libraries that use `prop?: type`
+ * syntax. Before the introduction of `exactOptionalPropertyTypes`, this syntax
+ * implicitly allowed `undefined` values. Libraries that adopted `prop?: type`
+ * before this flag was introduced still accept `undefined` at runtime.
+ */
+
 export function dropUndefinedRec<Desired extends Record<any, any>>() {
   return (
     input: WithUndefinedRecursive<Desired>
@@ -215,33 +226,6 @@ export function dropUndefinedRec<Desired extends Record<any, any>>() {
     return input as any
   }
 }
-
-interface Nested {
-  a: string
-  b?: number
-}
-
-interface Address {
-  street?: string
-  city?: string
-  country: string
-
-  nestedArray: [Nested]
-
-  nested2: Nested
-
-  array?: number[]
-}
-
-//  keeps support for go to definition
-const test = dropUndefinedRec<Address>()({
-  street: undefined,
-  city: undefined,
-  country: "USA",
-  nestedArray: [{ a: "hello", b: undefined }],
-  nested2: { a: "world" },
-  array: undefined
-})
 
 export type Dictionary<T> = {
   readonly [P in string]: T

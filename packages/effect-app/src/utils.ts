@@ -182,6 +182,25 @@ export function dropUndefinedT<A extends Record<string, any>>(
   return newR as any
 }
 
+type IsOptional<T extends Record<any, any>, K extends keyof T> = {} extends Pick<T, K> ? true : false
+
+type WithUndefined<T extends Record<any, any>> = {
+  [K in keyof T]: IsOptional<T, K> extends true ? T[K] | undefined : T[K]
+}
+
+/** a version of @see dropUndefinedT that keeps support for go to definition, auto completion, and documentation of fields! */
+export function dropUndefinedT2<Desired extends Record<any, any>>() {
+  return (
+    input: WithUndefined<Desired>
+  ): Desired => {
+    const newR = pipe(
+      input as any,
+      Record.filter((x): x is Desired => x !== undefined)
+    )
+    return newR as any
+  }
+}
+
 export type Dictionary<T> = {
   readonly [P in string]: T
 }

@@ -12,6 +12,7 @@ import CreateUseFormWithCustomInputComponent from "./OmegaForm/createUseFormWIth
 import CustomInputClassNameComponent from "./OmegaForm/CustomInputClassName.vue"
 import CustomLabelSlotComponent from "./OmegaForm/CustomLabelSlot.vue"
 import DateComponent from "./OmegaForm/Date.vue"
+import DefaultsComponent from "./OmegaForm/Defaults.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
@@ -251,5 +252,11 @@ export const WithDefaultConstructor: Story = {
   render: () => ({
     components: { WithDefaultConstructorComponent },
     template: "<WithDefaultConstructorComponent />"
+  })
+}
+export const Defaults: Story = {
+  render: () => ({
+    components: { DefaultsComponent },
+    template: "<DefaultsComponent />"
   })
 }

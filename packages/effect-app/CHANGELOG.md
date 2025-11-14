@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.14.1
+
+### Patch Changes
+
+- c5a2bd5: add dropUndefinedRecursive
+
 ## 3.14.0
 
 ### Minor Changes

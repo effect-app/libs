@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 2.9.2
+
+### Patch Changes
+
+- Updated dependencies [c5a2bd5]
+  - effect-app@3.14.1
+  - @effect-app/vue@2.93.2
+
 ## 2.9.1
 
 ### Patch Changes
@@ -2807,10 +2815,12 @@
   **BREAKING CHANGE (v0.4.0):** Users upgrading from v0.3.x need to adjust their `OmegaForm` templates.
 
   The `#default` slot has been replaced:
+
   - If you **do not** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#internalForm`.
   - If you **do** pass an external `form` prop to `OmegaForm`, rename the `#default` slot to `#externalForm`.
 
   Additionally, when using the `#externalForm` slot (passing an external `form` prop):
+
   - **Do not** use the `form` instance provided by the slot template variables.
   - Use your **externally created/passed** `form` instance directly within the template.
 

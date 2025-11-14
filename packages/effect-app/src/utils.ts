@@ -188,6 +188,12 @@ type WithUndefined<T extends Record<any, any>> = {
   [K in keyof T]: IsOptional<T, K> extends true ? T[K] | undefined : T[K]
 }
 
+type WithUndefinedRecursive<T extends Record<any, any>> = {
+  [K in keyof T]: WithUndefinedRecursive<T[K]> extends infer $RTK
+    ? IsOptional<T, K> extends true ? $RTK | undefined : $RTK
+    : never
+}
+
 /** a version of @see dropUndefinedT that keeps support for go to definition, auto completion, and documentation of fields! */
 export function dropUndefinedT2<Desired extends Record<any, any>>() {
   return (
@@ -200,6 +206,42 @@ export function dropUndefinedT2<Desired extends Record<any, any>>() {
     return newR as any
   }
 }
+
+export function dropUndefinedT3<Desired extends Record<any, any>>() {
+  return (
+    input: WithUndefinedRecursive<Desired>
+  ): Desired => {
+    // doesn't drop for real
+    return input as any
+  }
+}
+
+interface Nested {
+  a: string
+  b?: number
+}
+
+interface Address {
+  street?: string
+  city?: string
+  country: string
+
+  nestedArray: [Nested]
+
+  nested2: Nested
+
+  array?: number[]
+}
+
+//  keeps support for go to definition
+const test = dropUndefinedT3<Address>()({
+  street: undefined,
+  city: undefined,
+  country: "USA",
+  nestedArray: [{ a: "hello", b: undefined }],
+  nested2: { a: "world" },
+  array: undefined
+})
 
 export type Dictionary<T> = {
   readonly [P in string]: T

@@ -1,5 +1,15 @@
 # @effect-app/prelude
 
+## 3.14.0
+
+### Minor Changes
+
+- 9316017: feat: add `dropUndefinedT2`
+
+### Patch Changes
+
+- 358782e: update packages
+
 ## 3.13.0
 
 ### Minor Changes

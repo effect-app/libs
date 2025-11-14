@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.28.1
+
+### Patch Changes
+
+- 358782e: update packages
+
 ## 1.28.0
 
 ### Minor Changes

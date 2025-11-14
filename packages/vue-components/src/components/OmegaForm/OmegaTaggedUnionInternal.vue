@@ -9,11 +9,7 @@
 <script
   setup
   lang="ts"
-  generic="
-  From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>
-"
+  generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { S } from "effect-app"

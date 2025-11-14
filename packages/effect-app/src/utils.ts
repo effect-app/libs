@@ -207,7 +207,7 @@ export function dropUndefinedT2<Desired extends Record<any, any>>() {
   }
 }
 
-export function dropUndefinedT3<Desired extends Record<any, any>>() {
+export function dropUndefinedRec<Desired extends Record<any, any>>() {
   return (
     input: WithUndefinedRecursive<Desired>
   ): Desired => {
@@ -234,7 +234,7 @@ interface Address {
 }
 
 //  keeps support for go to definition
-const test = dropUndefinedT3<Address>()({
+const test = dropUndefinedRec<Address>()({
   street: undefined,
   city: undefined,
   country: "USA",

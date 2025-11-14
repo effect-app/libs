@@ -1,11 +1,11 @@
 {
   "name": "effect-app",
-  "version": "3.13.0",
+  "version": "3.14.1",
   "license": "MIT",
   "type": "module",
   "dependencies": {
     "@effect/rpc": "^0.72.1",
-    "@tsconfig/strictest": "^2.0.7",
+    "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.1.0",
     "nanoid": "^5.1.6",
     "path-parser": "^6.1.0",
@@ -17,16 +17,16 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "24.6.0",
+    "@types/node": "24.10.1",
     "@types/uuid": "^11.0.0",
-    "@types/validator": "^13.15.4",
+    "@types/validator": "^13.15.8",
     "@effect-app/eslint-shared-config": "workspace:*",
     "fast-check": "~4.3.0",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.8"
+    "vitest": "^4.0.9"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.93.0",
+    "@effect/platform": "^0.93.2",
     "effect": "^3.19.3"
   },
   "typesVersions": {

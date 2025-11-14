@@ -182,6 +182,51 @@ export function dropUndefinedT<A extends Record<string, any>>(
   return newR as any
 }
 
+type IsOptional<T extends Record<any, any>, K extends keyof T> = {} extends Pick<T, K> ? true : false
+
+type WithUndefined<T extends Record<any, any>> = {
+  [K in keyof T]: IsOptional<T, K> extends true ? T[K] | undefined : T[K]
+}
+
+type WithUndefinedRecursive<T extends Record<any, any>> = {
+  [K in keyof T]: WithUndefinedRecursive<T[K]> extends infer $RTK
+    ? IsOptional<T, K> extends true ? $RTK | undefined : $RTK
+    : never
+}
+
+/** a version of @see dropUndefinedT that keeps support for go to definition, auto completion, and documentation of fields! */
+export function dropUndefinedT2<Desired extends Record<any, any>>() {
+  return (
+    input: WithUndefined<Desired>
+  ): Desired => {
+    const newR = pipe(
+      input as any,
+      Record.filter((x): x is Desired => x !== undefined)
+    )
+    return newR as any
+  }
+}
+
+/**
+ * A recursive version of @see dropUndefinedT that preserves IDE support for
+ * go-to-definition, auto-completion, and field documentation.
+ *
+ * Note: This utility does not physically remove `undefined` fields at runtime.
+ * It provides type-level compatibility with libraries that use `prop?: type`
+ * syntax. Before the introduction of `exactOptionalPropertyTypes`, this syntax
+ * implicitly allowed `undefined` values. Libraries that adopted `prop?: type`
+ * before this flag was introduced still accept `undefined` at runtime.
+ */
+
+export function dropUndefinedRec<Desired extends Record<any, any>>() {
+  return (
+    input: WithUndefinedRecursive<Desired>
+  ): Desired => {
+    // doesn't drop for real
+    return input as any
+  }
+}
+
 export type Dictionary<T> = {
   readonly [P in string]: T
 }

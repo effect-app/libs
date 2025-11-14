@@ -2,7 +2,7 @@
   "name": "@effect-app/eslint-codegen-model",
   "description": "Contains eslint helpers",
   "sideEffects": false,
-  "version": "1.46.0",
+  "version": "1.46.1",
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && tsc --build",
@@ -21,7 +21,7 @@
     "glob": "8.1.0",
     "io-ts": "2.2.22",
     "io-ts-extra": "0.11.6",
-    "js-yaml": "4.1.0",
+    "js-yaml": "4.1.1",
     "lodash": "4.17.21"
   },
   "peerDependencies": {

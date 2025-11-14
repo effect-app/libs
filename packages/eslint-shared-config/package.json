@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/eslint-shared-config",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Shared flat ESLint base & vue configs for effect-app monorepo",
   "license": "MIT",
   "private": false,
@@ -37,7 +37,7 @@
     "typescript-eslint": "8.46.4",
     "eslint-plugin-vue": "10.5.1",
     "dprint-plugin-malva": "0.15.0",
-    "dprint-plugin-markup": "0.24.0",
+    "dprint-plugin-markup": "0.24.1",
     "dprint-plugin-yaml": "0.5.1",
     "@dprint/typescript": "0.95.12",
     "@eslint/compat": "1.4.1",

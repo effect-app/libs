@@ -55,6 +55,11 @@
               label="Field B (number)"
               type="number"
             />
+            <form.Input
+              name="nullableB"
+              label="Field B (number)"
+              type="number"
+            />
           </template>
         </form.TaggedUnion>
         <pre>{{ values }}</pre>
@@ -80,6 +85,8 @@ const schema = S.Union(
   }),
   S.Struct({
     b: S.Number,
+    // this field is nullable but not with default, still it gets initialized to null
+    nullableB: S.NullOr(S.Number),
     common: S.String,
     _tag: S.Literal("B")
   })

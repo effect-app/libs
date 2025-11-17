@@ -1012,14 +1012,17 @@ function hasMembers(schema: any): schema is SchemaWithMembers {
   return schema && "members" in schema && Array.isArray(schema.members)
 }
 
+// Internal implementation with WeakSet tracking
 export const defaultsValueFromSchema = (
   schema: S.Schema<any>,
   record: Record<string, any> = {}
 ): any => {
   const ast: any = schema.ast
+
   if (ast?.defaultValue) {
     return ast.defaultValue()
   }
+
   if (isNullableOrUndefined(schema.ast) === "null") {
     return null
   }
@@ -1027,12 +1030,36 @@ export const defaultsValueFromSchema = (
     return undefined
   }
 
+  // Check if schema has fields directly
   if (hasFields(schema)) {
-    // Use reduce instead of forEach to properly accumulate values
-    return Object.entries(schema.fields).reduce((acc, [key, value]) => {
-      acc[key] = defaultsValueFromSchema(value, record[key] || {})
-      return acc
-    }, record)
+    // Process fields and extract default values
+    const result: Record<string, any> = {}
+
+    for (const [key, fieldSchema] of Object.entries(schema.fields)) {
+      // Check if this field has a defaultValue in its AST
+      const fieldAst = (fieldSchema as any)?.ast
+      if (fieldAst?.defaultValue) {
+        try {
+          result[key] = fieldAst.defaultValue()
+          continue
+        } catch {
+          // If defaultValue() throws, fall through to recursive processing
+        }
+      }
+
+      // Recursively process the field
+      const fieldValue = defaultsValueFromSchema(fieldSchema as any, record[key] || {})
+      if (fieldValue !== undefined) {
+        result[key] = fieldValue
+      }
+    }
+
+    return { ...result, ...record }
+  }
+
+  // Check if schema has fields in from (for ExtendedClass and similar transformations)
+  if ((schema as any)?.from && hasFields((schema as any).from)) {
+    return defaultsValueFromSchema((schema as any).from, record)
   }
 
   if (hasMembers(schema)) {
@@ -1066,6 +1093,45 @@ export const defaultsValueFromSchema = (
     switch (schema.ast._tag) {
       case "Refinement":
         return defaultsValueFromSchema(S.make(schema.ast.from), record)
+      case "Transformation": {
+        // For all transformations, just process the 'from' side to get the base defaults
+        const fromSchema = S.make(schema.ast.from)
+        return defaultsValueFromSchema(fromSchema, record)
+      }
+      case "TypeLiteral": {
+        // Process TypeLiteral fields directly to build the result object
+        const result: Record<string, any> = { ...record }
+
+        for (const prop of ast.propertySignatures) {
+          const key = prop.name.toString()
+          const propType = prop.type
+
+          // Check if the property type itself is a Transformation with defaultValue
+          if (propType._tag === "Transformation" && propType.defaultValue) {
+            result[key] = propType.defaultValue()
+            continue
+          }
+
+          // Check if property type has defaultValue directly on the AST
+          if (propType.defaultValue) {
+            result[key] = propType.defaultValue()
+            continue
+          }
+
+          // Create a schema from the property type and get its defaults
+          const propSchema = S.make(propType)
+
+          // Recursively process the property - don't pas for prop processing
+          // to allow proper unwrapping of nested structures
+          const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
+
+          if (propValue !== undefined) {
+            result[key] = propValue
+          }
+        }
+
+        return result
+      }
       case "StringKeyword":
         return ""
       case "BooleanKeyword":

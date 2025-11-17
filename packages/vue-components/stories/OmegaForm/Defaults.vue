@@ -49,6 +49,16 @@
       <div>Values nine: <br> {{ vvv }}</div>
     </template>
   </nine.Form>
+  <ten.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values: vvv } }">
+      <div>Values ten: <br> {{ vvv }}</div>
+    </template>
+  </ten.Form>
+  <eleven.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values: vvv } }">
+      <div>Values eleven: <br> {{ vvv }}</div>
+    </template>
+  </eleven.Form>
 </template>
 
 <script setup lang="ts">
@@ -197,6 +207,26 @@ const nine = useOmegaForm(ClassSchema.pipe(S.filter((form) => {
     }
   }
 })))
+
+const ten = useOmegaForm(ClassSchema
+  .pipe(
+    S.filter((form) => {
+      if (form.a !== form.b) {
+        return {
+          path: ["a"],
+          message: "Email and confirmation must match!"
+        }
+      }
+    })
+  ))
+
+const eleven = useOmegaForm(ClassSchema.pipe(
+  S.transformOrFail(
+    (x) => Effec,
+    (x) => x,
+    { strict: true }
+  )
+))
 </script>
 
 <style scoped>

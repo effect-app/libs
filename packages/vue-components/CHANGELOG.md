@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.10.0
+
+### Minor Changes
+
+- 237731a: Streamline default values
+
 ## 2.9.2
 
 ### Patch Changes

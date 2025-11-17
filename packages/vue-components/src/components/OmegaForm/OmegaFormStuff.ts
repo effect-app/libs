@@ -1026,9 +1026,7 @@ export const defaultsValueFromSchema = (
   if (isNullableOrUndefined(schema.ast) === "undefined") {
     return undefined
   }
-  if (schema.ast._tag === "Refinement") {
-    return defaultsValueFromSchema(S.make(schema.ast.from), record)
-  }
+
   if (hasFields(schema)) {
     // Use reduce instead of forEach to properly accumulate values
     return Object.entries(schema.fields).reduce((acc, [key, value]) => {
@@ -1066,6 +1064,8 @@ export const defaultsValueFromSchema = (
 
   if (Object.keys(record).length === 0) {
     switch (schema.ast._tag) {
+      case "Refinement":
+        return defaultsValueFromSchema(S.make(schema.ast.from), record)
       case "StringKeyword":
         return ""
       case "BooleanKeyword":

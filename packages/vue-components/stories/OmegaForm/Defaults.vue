@@ -39,6 +39,16 @@
       <div>Values seven: <br> {{ vvv }}</div>
     </template>
   </seven.Form>
+  <eight.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values: vvv } }">
+      <div>Values eight: <br> {{ vvv }}</div>
+    </template>
+  </eight.Form>
+  <nine.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values: vvv } }">
+      <div>Values nine: <br> {{ vvv }}</div>
+    </template>
+  </nine.Form>
 </template>
 
 <script setup lang="ts">
@@ -107,9 +117,6 @@ const struct = {
 class ClassSchema extends S.ExtendedClass<ClassSchema, any>("ClassSchema")(struct) {}
 const schema = S.Struct(struct)
 
-const zero = useOmegaForm(ClassSchema)
-const one = useOmegaForm(schema)
-
 const Union = S.Union(
   S.Struct({
     _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
@@ -123,6 +130,8 @@ const Union = S.Union(
     c: schema
   })
 )
+const zero = useOmegaForm(ClassSchema)
+const one = useOmegaForm(schema)
 const two = useOmegaForm(Union)
 
 const three = useOmegaForm(schema, {
@@ -136,7 +145,7 @@ const four = useOmegaForm(schema, {
     a: "aaaaah"
   }
 }, {
-  defaultFromSchema: "only" // | 'nope' | 'merge'
+  defaultFromSchema: "only" // | "nope" | "merge"
 })
 
 const five = useOmegaForm(schema, {
@@ -167,6 +176,27 @@ const seven = useOmegaForm(S.Union(
     t: S.Number
   })
 ))
+
+const eight = useOmegaForm(ClassSchema
+  .pipe(
+    S.filter((form) => {
+      if (form.a !== form.b) {
+        return {
+          path: ["a"],
+          message: "Email and confirmation must match!"
+        }
+      }
+    })
+  ))
+
+const nine = useOmegaForm(ClassSchema.pipe(S.filter((form) => {
+  if (form.a !== form.b) {
+    return {
+      path: ["a"],
+      message: "Email and confirmation must match!"
+    }
+  }
+})))
 </script>
 
 <style scoped>

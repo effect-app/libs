@@ -150,7 +150,7 @@ const eHoc = (errorProps: {
 export type Policies = "local" | "session" | "querystring"
 export type DefaultValuesSourceOrderUnion = "tanstack" | "persistency" | "schema"
 
-const includePolicies = (arr: Policies[], policy: Policies) => {
+const includesPolicy = (arr: Policies[], policy: Policies) => {
   return arr.includes(policy)
 }
 
@@ -187,7 +187,7 @@ export type OmegaConfig<T> = {
    * You can customize the order and  with omegaConfig.defaultValuesSourceOrder
    * default value = ['tanstack', 'persistency', 'schema']
    */
-  defaultValuesSourceOrder?: UnionToTuples<DefaultValuesSourceOrderUnion>
+  defaultValuesPriority?: UnionToTuples<DefaultValuesSourceOrderUnion>
 
   defaultFromSchema?: "deprecated: use defaultValuesSourceOrder"
 }
@@ -688,10 +688,10 @@ export const useOmegaForm = <
       // query string has higher priority than local/session storage
       persistency?.policies
       && !persistencyDefaultValues
-      && (includePolicies(persistency.policies, "local")
-        || includePolicies(persistency.policies, "session"))
+      && (includesPolicy(persistency.policies, "local")
+        || includesPolicy(persistency.policies, "session"))
     ) {
-      const storage = includePolicies(persistency.policies, "local")
+      const storage = includesPolicy(persistency.policies, "local")
         ? localStorage
         : sessionStorage
       if (storage) {
@@ -706,7 +706,7 @@ export const useOmegaForm = <
         }
       }
     }
-    if (persistency?.policies && includePolicies(persistency.policies, "querystring")) {
+    if (persistency?.policies && includesPolicy(persistency.policies, "querystring")) {
       try {
         const params = new URLSearchParams(window.location.search)
         const value = params.get(persistencyKey.value)
@@ -728,7 +728,7 @@ export const useOmegaForm = <
       schema: defaultsValueFromSchema(schema)
     }
 
-    return (omegaConfig?.defaultValuesSourceOrder || ["tanstack", "persistency", "schema"] as const).reverse().reduce(
+    return (omegaConfig?.defaultValuesPriority || ["tanstack", "persistency", "schema"] as const).reverse().reduce(
       (acc, m) => {
         if (!Object.keys(acc).length) {
           return defaults[m]
@@ -829,10 +829,10 @@ export const useOmegaForm = <
       return
     }
     if (
-      includePolicies(persistency.policies, "local")
-      || includePolicies(persistency.policies, "session")
+      includesPolicy(persistency.policies, "local")
+      || includesPolicy(persistency.policies, "session")
     ) {
-      const storage = includePolicies(persistency.policies, "local")
+      const storage = includesPolicy(persistency.policies, "local")
         ? localStorage
         : sessionStorage
       if (!storage) return
@@ -846,7 +846,7 @@ export const useOmegaForm = <
     if (!persistency?.policies || persistency.policies.length === 0) {
       return
     }
-    if (includePolicies(persistency.policies, "querystring")) {
+    if (includesPolicy(persistency.policies, "querystring")) {
       const values = persistFilter(persistency)
       const searchParams = new URLSearchParams(window.location.search)
       searchParams.set(persistencyKey.value, JSON.stringify(values))

@@ -148,7 +148,7 @@ const eHoc = (errorProps: {
 }
 
 export type Policies = "local" | "session" | "querystring"
-export type DefaultValuesSourceOrderUnion = "tanstack" | "persistency" | "schema"
+export type defaultValuesPriorityUnion = "tanstack" | "persistency" | "schema"
 
 const includesPolicy = (arr: Policies[], policy: Policies) => {
   return arr.includes(policy)
@@ -163,7 +163,7 @@ export type OmegaConfig<T> = {
      * - "local" and then "session": Lower priority storage options
      */
     policies?: UnionToTuples<Policies>
-    overrideDefaultValues?: "deprecated: use defaultValuesSourceOrder"
+    overrideDefaultValues?: "deprecated: use defaultValuesPriority"
     id?: string
   } & keysRule<T>
 
@@ -184,12 +184,12 @@ export type OmegaConfig<T> = {
   /**
    * Default values order is: Tanstack default values passed as second parameter to useOmegaForm, then persistency
    * default values from querystring or local/session storage, then defaults from schema
-   * You can customize the order and  with omegaConfig.defaultValuesSourceOrder
+   * You can customize the order and  with omegaConfig.defaultValuesPriority
    * default value = ['tanstack', 'persistency', 'schema']
    */
-  defaultValuesPriority?: UnionToTuples<DefaultValuesSourceOrderUnion>
+  defaultValuesPriority?: UnionToTuples<defaultValuesPriorityUnion>
 
-  defaultFromSchema?: "deprecated: use defaultValuesSourceOrder"
+  defaultFromSchema?: "deprecated: use defaultValuesPriority"
 }
 
 export interface OF<From, To> extends OmegaFormApi<From, To> {
@@ -722,7 +722,7 @@ export const useOmegaForm = <
     // to be sure we have a valid object at the end of the gathering process
     persistencyDefaultValues ??= {}
 
-    const defaults: Record<DefaultValuesSourceOrderUnion, any> = {
+    const defaults: Record<defaultValuesPriorityUnion, any> = {
       tanstack: tanstackFormOptions?.defaultValues || {},
       persistency: persistencyDefaultValues,
       schema: defaultsValueFromSchema(schema)

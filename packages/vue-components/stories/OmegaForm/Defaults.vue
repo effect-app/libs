@@ -145,7 +145,7 @@ const four = useOmegaForm(schema, {
     a: "aaaaah"
   }
 }, {
-  defaultValuesSourceOrder: ["schema"]
+  defaultValuesPriority: ["schema"]
 })
 
 const five = useOmegaForm(schema, {
@@ -153,7 +153,7 @@ const five = useOmegaForm(schema, {
     a: "aaaaah"
   }
 }, {
-  defaultValuesSourceOrder: ["tanstack"]
+  defaultValuesPriority: ["tanstack"]
 })
 
 const six = useOmegaForm(schema, {
@@ -161,7 +161,7 @@ const six = useOmegaForm(schema, {
     a: "aaaaah"
   }
 }, {
-  defaultValuesSourceOrder: ["tanstack", "schema"]
+  defaultValuesPriority: ["tanstack", "schema"]
 })
 
 const seven = useOmegaForm(S.Union(

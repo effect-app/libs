@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- 402e572: Replace defaultFromSchema with defaultValuesSourceOrder in useOmegaForm
+- 402e572: Replace defaultFromSchema with defaultValuesPriority in useOmegaForm
 - faf7e9d: add utils, fix bugs
 - Updated dependencies [faf7e9d]
   - effect-app@3.14.2

@@ -50,8 +50,8 @@ importers:
         specifier: ^2.29.7
         version: 2.29.7(@types/node@24.10.1)
       '@effect-app/cli':
-        specifier: ^1.28.0
-        version: 1.28.0(7d312ce798f7545b4b65cda29bbcfc63)
+        specifier: ^1.28.1
+        version: 1.28.1(7d312ce798f7545b4b65cda29bbcfc63)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -1152,8 +1152,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.28.0':
-    resolution: {integrity: sha512-Iew62FnNq/HiwqcbvqHWs0AqnVRipnxkUmu4rIZkZyx4PIBesRMNo/AzzMhs8aeFPon259Bt/7w8Z0p5KReAaw==}
+  '@effect-app/cli@1.28.1':
+    resolution: {integrity: sha512-HcsmbLmc3GX5eQhrFgWFsMhHlDuJhkvE271SgWIoH5xmjwyXXQiRWPA4zX7EgmsS2lGoe9AyH6fZszaewWW9pQ==}
     hasBin: true
 
   '@effect-atom/atom-vue@0.4.0':
@@ -4692,10 +4692,6 @@ packages:
     resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==}
     hasBin: true
 
-  js-yaml@4.1.0:
-    resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
-    hasBin: true
-
   js-yaml@4.1.1:
     resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
     hasBin: true
@@ -6528,8 +6524,8 @@ packages:
   vue-component-type-helpers@2.2.12:
     resolution: {integrity: sha512-YbGqHZ5/eW4SnkPNR44mKVc6ZKQoRs/Rux1sxC6rdwXb4qpbOSYfDr9DsTHolOTGmIKgM9j141mZbBeg05R1pw==}
 
-  vue-component-type-helpers@3.1.3:
-    resolution: {integrity: sha512-V1dOD8XYfstOKCnXbWyEJIrhTBMwSyNjv271L1Jlx9ExpNlCSuqOs3OdWrGJ0V544zXufKbcYabi/o+gK8lyfQ==}
+  vue-component-type-helpers@3.1.4:
+    resolution: {integrity: sha512-Uws7Ew1OzTTqHW8ZVl/qLl/HB+jf08M0NdFONbVWAx0N4gMLK8yfZDgeB77hDnBmaigWWEn5qP8T9BG59jIeyQ==}
 
   vue-demi@0.14.10:
     resolution: {integrity: sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==}
@@ -7444,11 +7440,11 @@ snapshots:
   '@dprint/win32-x64@0.50.2':
     optional: true
 
-  '@effect-app/cli@1.28.0(7d312ce798f7545b4b65cda29bbcfc63)':
+  '@effect-app/cli@1.28.1(7d312ce798f7545b4b65cda29bbcfc63)':
     dependencies:
       '@effect/cli': 0.72.1(@effect/platform@0.93.2(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(@effect/printer-ansi@0.47.0(@effect/typeclass@0.38.0(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(@effect/printer@0.47.0(@effect/typeclass@0.38.0(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386))
       '@effect/platform-node': 0.100.0(@effect/cluster@0.52.9(4fa56170f01f866bb2ff4aaf9d742f5b))(@effect/platform@0.93.2(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(@effect/rpc@0.72.1(@effect/platform@0.93.2(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(@effect/sql@0.48.0(@effect/experimental@0.57.1(@effect/platform@0.93.2(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(@effect/platform@0.93.2(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386)))(effect@3.19.3(patch_hash=38e578fa203418fef74cdc15c278c2b4d9cc9cef2f019913c0caaadf14e7d386))
-      js-yaml: 4.1.0
+      js-yaml: 4.1.1
       node-watch: 0.7.4
     transitivePeerDependencies:
       - '@effect/cluster'
@@ -8607,7 +8603,7 @@ snapshots:
       storybook: 10.0.7(@testing-library/dom@10.4.1)(prettier@2.8.8)(react-dom@19.0.0-rc-fb9a90fa48-20240614(react@19.0.0-rc-fb9a90fa48-20240614))(react@19.0.0-rc-fb9a90fa48-20240614)(vite@7.2.2(@types/node@24.10.1)(sass@1.94.0)(terser@5.44.1)(tsx@4.20.6)(yaml@2.8.1))
       type-fest: 2.19.0
       vue: 3.5.24(typescript@5.9.3(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))
-      vue-component-type-helpers: 3.1.3
+      vue-component-type-helpers: 3.1.4
 
   '@tanstack/devtools-event-client@0.3.5': {}
 
@@ -11289,10 +11285,6 @@ snapshots:
       argparse: 1.0.10
       esprima: 4.0.1
 
-  js-yaml@4.1.0:
-    dependencies:
-      argparse: 2.0.1
-
   js-yaml@4.1.1:
     dependencies:
       argparse: 2.0.1
@@ -13289,7 +13281,7 @@ snapshots:
 
   vue-component-type-helpers@2.2.12: {}
 
-  vue-component-type-helpers@3.1.3: {}
+  vue-component-type-helpers@3.1.4: {}
 
   vue-demi@0.14.10(vue@3.5.24(typescript@5.9.3(patch_hash=9f9678d78a879a2cbd842897c639ebfa754353e8098bac340a8ce599ae2161c0))):
     dependencies:

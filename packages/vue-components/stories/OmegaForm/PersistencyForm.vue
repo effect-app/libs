@@ -42,7 +42,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({
-  first: S.Number,
+  first: S.Number.pipe(S.withDefaultConstructor(() => 23)),
   second: S.Number.pipe(S.greaterThan(3)),
   third: S.Struct({
     fourth: S.Number,
@@ -52,11 +52,15 @@ const AddSchema = S.Struct({
 
 const addForm = useOmegaForm(
   AddSchema,
-  {},
+  {
+    defaultValues: {
+      second: 22
+    }
+  },
   {
     persistency: {
-      policies: ["session", "querystring"],
-      keys: ["first", "third.fourth"]
+      policies: ["session"],
+      keys: ["first", "second"]
     }
   }
 )

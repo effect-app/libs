@@ -269,7 +269,7 @@ describe("OmegaForm Defaults", () => {
             a: "aaaaah"
           }
         }, {
-          defaultFromSchema: "only"
+          defaultValuesSourceOrder: ["schema"]
         })
         return { form }
       }
@@ -315,7 +315,7 @@ describe("OmegaForm Defaults", () => {
             a: "aaaaah"
           }
         }, {
-          defaultFromSchema: "nope"
+          defaultValuesSourceOrder: ["tanstack"]
         })
         return { form }
       }
@@ -348,7 +348,7 @@ describe("OmegaForm Defaults", () => {
             a: "aaaaah"
           }
         }, {
-          defaultFromSchema: "merge"
+          defaultValuesSourceOrder: ["tanstack", "schema"]
         })
         return { form }
       }

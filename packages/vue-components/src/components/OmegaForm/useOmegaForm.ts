@@ -147,6 +147,13 @@ const eHoc = (errorProps: {
   }
 }
 
+type DefaultValuesSourceOrderUnion = "tanstack" | "persistency" | "schema"
+type UnionToTuples<T, U = T> = [T] extends [never] ? []
+  : T extends any ?
+      | [T, ...UnionToTuples<Exclude<U, T>>]
+      | UnionToTuples<Exclude<U, T>>
+  : []
+
 export type OmegaConfig<T> = {
   i18nNamespace?: string
 
@@ -155,8 +162,8 @@ export type OmegaConfig<T> = {
      * - "querystring": Highest priority when persisting
      * - "local" and then "session": Lower priority storage options
      */
-    policies?: ("local" | "session" | "querystring")[]
-    overrideDefaultValues?: boolean
+    policies?: UnionToTuples<"local" | "session" | "querystring">
+    overrideDefaultValues?: "deprecated: use defaultValuesSourceOrder"
     id?: string
   } & keysRule<T>
 
@@ -174,7 +181,15 @@ export type OmegaConfig<T> = {
 
   input?: any
 
-  defaultFromSchema?: "only" | "nope" | "merge"
+  /**
+   * Default values order is: Tanstack default values passed as second parameter to useOmegaForm, then persistency
+   * default values from querystring or local/session storage, then defaults from schema
+   * You can customize the order and  with omegaConfig.defaultValuesSourceOrder
+   * default value = ['tanstack', 'persistency', 'schema']
+   */
+  defaultValuesSourceOrder?: UnionToTuples<DefaultValuesSourceOrderUnion>
+
+  defaultFromSchema?: "deprecated: use defaultValuesSourceOrder"
 }
 
 export interface OF<From, To> extends OmegaFormApi<From, To> {
@@ -665,14 +680,14 @@ export const useOmegaForm = <
 
   const defaultValues = computed(() => {
     // will contain what we get from querystring or local/session storage
-    let defValuesPatch
+    let persistencyDefaultValues
 
     const persistency = omegaConfig?.persistency
 
     if (
       // query string has higher priority than local/session storage
       persistency?.policies
-      && !defValuesPatch
+      && !persistencyDefaultValues
       && (persistency.policies.includes("local")
         || persistency.policies.includes("session"))
     ) {
@@ -685,7 +700,7 @@ export const useOmegaForm = <
             storage.getItem(persistencyKey.value) || "{}"
           )
           storage.removeItem(persistencyKey.value)
-          defValuesPatch = value
+          persistencyDefaultValues = value
         } catch (error) {
           console.error(error)
         }
@@ -697,7 +712,7 @@ export const useOmegaForm = <
         const value = params.get(persistencyKey.value)
         clearUrlParams()
         if (value) {
-          defValuesPatch = deepMerge(defValuesPatch || {}, JSON.parse(value))
+          persistencyDefaultValues = deepMerge(persistencyDefaultValues || {}, JSON.parse(value))
         }
       } catch (error) {
         console.error(error)
@@ -705,22 +720,23 @@ export const useOmegaForm = <
     }
 
     // to be sure we have a valid object at the end of the gathering process
-    defValuesPatch ??= {}
+    persistencyDefaultValues ??= {}
 
-    const defaultValuesFromSchema = (() => {
-      if (omegaConfig?.defaultFromSchema === "only") {
-        return defaultsValueFromSchema(schema)
-      }
-      if (omegaConfig?.defaultFromSchema === "nope") {
-        return tanstackFormOptions?.defaultValues || {}
-      }
-      return deepMerge(defaultsValueFromSchema(schema), tanstackFormOptions?.defaultValues || {})
-    })()
+    const defaults: Record<DefaultValuesSourceOrderUnion, any> = {
+      tanstack: tanstackFormOptions?.defaultValues || {},
+      persistency: persistencyDefaultValues,
+      schema: defaultsValueFromSchema(schema)
+    }
 
-    // we just return what we gathered from the query/storage
-    return omegaConfig?.persistency?.overrideDefaultValues
-      ? deepMerge(defaultValuesFromSchema, defValuesPatch)
-      : deepMerge(defValuesPatch, defaultValuesFromSchema)
+    return (omegaConfig?.defaultValuesSourceOrder || ["tanstack", "persistency", "schema"] as const).reverse().reduce(
+      (acc, m) => {
+        if (!Object.keys(acc).length) {
+          return defaults[m]
+        }
+        return deepMerge(acc, defaults[m])
+      },
+      {}
+    )
   })
 
   const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {

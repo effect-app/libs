@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.14.2
+
+### Patch Changes
+
+- faf7e9d: add utils, fix bugs
+
 ## 3.14.1
 
 ### Patch Changes

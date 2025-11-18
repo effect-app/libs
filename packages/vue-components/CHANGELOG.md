@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 2.10.1
+
+### Patch Changes
+
+- 402e572: Replace defaultFromSchema with defaultValuesSourceOrder in useOmegaForm
+- faf7e9d: add utils, fix bugs
+- Updated dependencies [faf7e9d]
+  - effect-app@3.14.2
+  - @effect-app/vue@2.93.3
+
 ## 2.10.0
 
 ### Minor Changes

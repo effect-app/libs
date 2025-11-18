@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.10.2
+
+### Patch Changes
+
+- 6a2634d: renaming
+- 8320fe7: fix changed name
+
 ## 2.10.1
 
 ### Patch Changes

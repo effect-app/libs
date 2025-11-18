@@ -4,7 +4,7 @@
 import * as api from "@opentelemetry/api"
 import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
 import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
-import { runtimeFiberAsPromise } from "effect-app/utils"
+import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
 import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
@@ -147,12 +147,12 @@ const eHoc = (errorProps: {
   }
 }
 
-type DefaultValuesSourceOrderUnion = "tanstack" | "persistency" | "schema"
-type UnionToTuples<T, U = T> = [T] extends [never] ? []
-  : T extends any ?
-      | [T, ...UnionToTuples<Exclude<U, T>>]
-      | UnionToTuples<Exclude<U, T>>
-  : []
+export type Policies = "local" | "session" | "querystring"
+export type DefaultValuesSourceOrderUnion = "tanstack" | "persistency" | "schema"
+
+const includePolicies = (arr: Policies[], policy: Policies) => {
+  return arr.includes(policy)
+}
 
 export type OmegaConfig<T> = {
   i18nNamespace?: string
@@ -162,7 +162,7 @@ export type OmegaConfig<T> = {
      * - "querystring": Highest priority when persisting
      * - "local" and then "session": Lower priority storage options
      */
-    policies?: UnionToTuples<"local" | "session" | "querystring">
+    policies?: UnionToTuples<Policies>
     overrideDefaultValues?: "deprecated: use defaultValuesSourceOrder"
     id?: string
   } & keysRule<T>
@@ -688,10 +688,10 @@ export const useOmegaForm = <
       // query string has higher priority than local/session storage
       persistency?.policies
       && !persistencyDefaultValues
-      && (persistency.policies.includes("local")
-        || persistency.policies.includes("session"))
+      && (includePolicies(persistency.policies, "local")
+        || includePolicies(persistency.policies, "session"))
     ) {
-      const storage = persistency.policies.includes("local")
+      const storage = includePolicies(persistency.policies, "local")
         ? localStorage
         : sessionStorage
       if (storage) {
@@ -706,7 +706,7 @@ export const useOmegaForm = <
         }
       }
     }
-    if (persistency?.policies && persistency.policies.includes("querystring")) {
+    if (persistency?.policies && includePolicies(persistency.policies, "querystring")) {
       try {
         const params = new URLSearchParams(window.location.search)
         const value = params.get(persistencyKey.value)
@@ -829,10 +829,10 @@ export const useOmegaForm = <
       return
     }
     if (
-      persistency.policies.includes("local")
-      || persistency.policies.includes("session")
+      includePolicies(persistency.policies, "local")
+      || includePolicies(persistency.policies, "session")
     ) {
-      const storage = persistency.policies.includes("local")
+      const storage = includePolicies(persistency.policies, "local")
         ? localStorage
         : sessionStorage
       if (!storage) return
@@ -846,7 +846,7 @@ export const useOmegaForm = <
     if (!persistency?.policies || persistency.policies.length === 0) {
       return
     }
-    if (persistency.policies.includes("querystring")) {
+    if (includePolicies(persistency.policies, "querystring")) {
       const values = persistFilter(persistency)
       const searchParams = new URLSearchParams(window.location.search)
       searchParams.set(persistencyKey.value, JSON.stringify(values))

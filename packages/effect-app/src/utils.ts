@@ -944,3 +944,9 @@ export const wrapEffect = <I, A, E, R, Args extends Array<any>>(
   }
   return (): Effect.Effect<A | I, E, R> => Effect.succeed(m)
 }
+
+export type UnionToTuples<T, U = T> = [T] extends [never] ? []
+  : T extends any ?
+      | [T, ...UnionToTuples<Exclude<U, T>>]
+      | UnionToTuples<Exclude<U, T>>
+  : []

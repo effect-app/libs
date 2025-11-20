@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.15.0
+
+### Minor Changes
+
+- ecbd35f: drop default proxy
+
 ## 3.14.2
 
 ### Patch Changes

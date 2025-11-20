@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 3.8.0
+
+### Minor Changes
+
+- ecbd35f: drop default proxy
+
+### Patch Changes
+
+- Updated dependencies [ecbd35f]
+  - effect-app@3.15.0
+
 ## 3.7.3
 
 ### Patch Changes

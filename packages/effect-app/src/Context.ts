@@ -60,6 +60,13 @@ export function assignTag<Id, Service = Id>(key?: string, creationError?: Error)
   }
 }
 
+export type ServiceUse<Self, Type> = {
+  use: <X>(
+    body: (_: Type) => X
+  ) => X extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, R | Self>
+    : Effect.Effect<X, never, Self>
+}
+
 export type ServiceAcessorShape<Self, Type> =
   & (Type extends Record<PropertyKey, any> ? {
       [
@@ -74,12 +81,11 @@ export type ServiceAcessorShape<Self, Type> =
         : Effect.Effect<Type[k], never, Self>
     }
     : {})
-  & {
-    use: <X>(
-      body: (_: Type) => X
-    ) => X extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, R | Self>
-      : Effect.Effect<X, never, Self>
-  }
+  & ServiceUse<Self, Type>
+
+export const useify = <T extends Context.Tag<any, any>>(Tag: T) => <Self, Shape>(): T & ServiceUse<Self, Shape> => {
+  return Object.assign(Tag, { use: (body: any) => Effect.andThen(Tag, body) } as ServiceUse<Self, Shape>)
+}
 
 export const proxify = <T extends object>(Tag: T) =>
 <Self, Shape>():
@@ -238,7 +244,7 @@ export function TagId<const Key extends string>(key: Key) {
         }
       } as any
 
-    return proxify(assignTag<Id, Id>(key, creationError)(c))<Id, ServiceImpl>()
+    return useify(assignTag<Id, Id>(key, creationError)(c))<Id, ServiceImpl>()
   }
 }
 
@@ -287,7 +293,7 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
 
-  return proxify(assignTag<Id, Id>(key, creationError)(c))<Id, ServiceImpl>()
+  return useify(assignTag<Id, Id>(key, creationError)(c))<Id, ServiceImpl>()
 }
 
 export const ServiceDef = <Tag extends Context.Tag<any, any>>(self: Tag) =>

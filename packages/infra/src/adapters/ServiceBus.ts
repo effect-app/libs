@@ -19,6 +19,7 @@ function makeClient(url: string) {
 }
 
 export class ServiceBusClientTag extends Context.Tag("@services/Client")<ServiceBusClientTag, ServiceBusClient>() {
+  static readonly make = makeClient
   static readonly layer = (url: string) => Layer.scoped(this, makeClient(url))
 }
 
@@ -55,6 +56,7 @@ export class Sender extends Context.TagId("Sender")<Sender, {
     options?: Omit<OperationOptionsBase, "abortSignal">
   ) => Effect.Effect<void, never, never>
 }>() {
+  static readonly make = makeSender
   static readonly layer = (name: string) => this.toLayerScoped(makeSender(name))
 }
 
@@ -176,6 +178,7 @@ export class Receiver extends Context.TagId("Receiver")<Receiver, {
     sessionId?: string
   ): Effect.Effect<void, never, Scope.Scope | RMsg | RErr>
 }>() {
+  static readonly make = makeReceiver
   static readonly layer = (name: string) => this.toLayer(makeReceiver(name))
 }
 

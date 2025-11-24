@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.93.5
+
+### Patch Changes
+
+- c9989e4: fix: missing toast proxy
+
 ## 2.93.4
 
 ### Patch Changes

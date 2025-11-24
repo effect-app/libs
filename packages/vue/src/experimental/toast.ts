@@ -1,4 +1,5 @@
 import { Context, Effect, Option } from "effect-app"
+import { proxify } from "effect-app/Context"
 
 export type ToastId = string | number
 export type ToastOpts = { id?: ToastId; timeout?: number }
@@ -40,5 +41,7 @@ export const wrap = (toast: ReturnType<UseToast>) => {
   }
 }
 
-export class Toast extends Context.TagId("Toast")<Toast, ReturnType<typeof wrap>>() {
+export class Toast
+  extends proxify(Context.TagId("Toast")<Toast, ReturnType<typeof wrap>>())<Toast, ReturnType<typeof wrap>>()
+{
 }

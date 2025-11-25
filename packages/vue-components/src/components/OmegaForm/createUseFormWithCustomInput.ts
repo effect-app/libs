@@ -39,6 +39,10 @@ export const createUseFormWithCustomInput = <
                 // Pass through label slot if it exists
                 ...(slots.label && {
                   label: (labelProps: any) => slots.label(labelProps)
+                }),
+                // Pass through default slot if it exists
+                ...(slots.default && {
+                  default: (slotProps: any) => slots.default(slotProps)
                 })
               })
             },

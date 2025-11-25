@@ -1,23 +1,25 @@
 <template>
-  <div :class="$attrs.class">
-    <label :for="inputProps.id">
-      <slot
-        v-if="$slots.label"
-        name="label"
-        v-bind="{ required: inputProps.required ?? false, id: inputProps.id, label: inputProps.label }"
-      />
-      <template v-else>
-        {{ inputProps.label }}
-      </template>
-    </label>
-    <input
-      :id="inputProps.id"
-      :name="field.name"
-      :value="state.value"
-      :class="inputProps.inputClass"
-      @change="(e: any) => field.handleChange(e.target.value)"
-    >
-  </div>
+  <slot v-bind="$attrs">
+    <div :class="$attrs.class">
+      <label :for="inputProps.id">
+        <slot
+          v-if="$slots.label"
+          name="label"
+          v-bind="{ required: inputProps.required ?? false, id: inputProps.id, label: inputProps.label }"
+        />
+        <template v-else>
+          {{ inputProps.label }}
+        </template>
+      </label>
+      <input
+        :id="inputProps.id"
+        :name="field.name"
+        :value="state.value"
+        :class="inputProps.inputClass"
+        @change="(e: any) => field.handleChange(e.target.value)"
+      >
+    </div>
+  </slot>
 </template>
 
 <script

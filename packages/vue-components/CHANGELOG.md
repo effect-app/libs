@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.10.5
+
+### Patch Changes
+
+- 1b05070: Enhance CustomInput to support default slot for better flexibility
+
 ## 2.10.4
 
 ### Patch Changes

@@ -6,6 +6,7 @@ import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidate
 import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
+import { useIntl } from "../../utils"
 import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
@@ -63,6 +64,26 @@ const fHoc = (form: OF<any, any>) => {
   }
 }
 
+export const useErrorLabel = (form: OF<any, any>) => {
+  const { formatMessage } = useIntl()
+  const humanize = (str: string) => {
+    return str
+      .replace(/([A-Z])/g, " $1") // Add space before capital letters
+      .replace(/^./, (char) => char.toUpperCase()) // Capitalize the first letter
+      .trim() // Remove leading/trailing spaces
+  }
+  const fallback = (propsName: string) =>
+    formatMessage
+      ? formatMessage({ id: `general.fields.${propsName}`, defaultMessage: humanize(propsName) })
+      : humanize(propsName)
+  const i18n = (propsName: string) =>
+    form.i18nNamespace
+      ? formatMessage({ id: `${form.i18nNamespace}.fields.${propsName}`, defaultMessage: fallback(propsName) })
+      : fallback(propsName)
+
+  return i18n
+}
+
 const eHoc = (errorProps: {
   form: OF<any, any>
   fieldMap: Ref<Map<string, { id: string; label: string }>>
@@ -76,6 +97,8 @@ const eHoc = (errorProps: {
         const generalErrors = form.useStore((state) => state.errors)
         const fieldMeta = form.useStore((state) => state.fieldMeta)
         const errorMap = form.useStore((state) => state.errorMap)
+
+        const errorLabel = useErrorLabel(form)
 
         const errors = computed(() => {
           // Collect errors from fieldMeta (field-level errors for registered fields)
@@ -114,7 +137,7 @@ const eHoc = (errorProps: {
                     // Registered fields will already have their errors from fieldMeta
                     if (!fieldMap.value.has(fieldPath)) {
                       submitErrors.push({
-                        label: fieldPath,
+                        label: errorLabel(fieldPath),
                         inputId: fieldPath,
                         errors: [issAny.message].filter(Boolean)
                       })

@@ -8,12 +8,6 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
-type Compute<T> =
-  & {
-    [K in keyof T]: T[K]
-  }
-  & {}
-
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
   : T extends string | boolean | number | null | undefined | symbol | bigint ? ""

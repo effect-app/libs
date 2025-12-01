@@ -14,7 +14,7 @@
         :field="field"
         :state="state"
         :register="form.registerField"
-        :label="label ?? i18n()"
+        :label="label ?? errori18n(propsName)"
         :meta="meta"
       >
         <template
@@ -41,9 +41,9 @@
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, inject, type Ref, useAttrs } from "vue"
-import { useIntl } from "../../utils"
 import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
+import { useErrorLabel } from "./useOmegaForm"
 
 const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 
@@ -88,19 +88,5 @@ const schema = computed(() => {
   return generateInputStandardSchemaFromFieldMeta(meta.value)
 })
 
-const { formatMessage } = useIntl()
-const humanize = (str: string) => {
-  return str
-    .replace(/([A-Z])/g, " $1") // Add space before capital letters
-    .replace(/^./, (char) => char.toUpperCase()) // Capitalize the first letter
-    .trim() // Remove leading/trailing spaces
-}
-const fallback = () =>
-  formatMessage
-    ? formatMessage({ id: `general.fields.${propsName.value}`, defaultMessage: humanize(props.name) })
-    : humanize(props.name)
-const i18n = () =>
-  props.form.i18nNamespace
-    ? formatMessage({ id: `${props.form.i18nNamespace}.fields.${propsName.value}`, defaultMessage: fallback() })
-    : fallback()
+const errori18n = useErrorLabel(props.form)
 </script>

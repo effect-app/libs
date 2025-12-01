@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.10.6
+
+### Patch Changes
+
+- dd2aad4: fix: intl for errors of non registered fields.
+
 ## 2.10.5
 
 ### Patch Changes

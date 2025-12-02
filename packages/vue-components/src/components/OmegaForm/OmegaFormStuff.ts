@@ -501,18 +501,19 @@ export const createMeta = <T = any>(
             acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
           }
         }
-      } else if ("propertySignatures" in typeToProcess) {
-        Object.assign(
-          acc,
-          createMeta<T>({
-            parent: key,
-            propertySignatures: typeToProcess.propertySignatures,
-            meta: { required: isRequired, nullableOrUndefined }
-          })
-        )
       } else {
-        // Check if this is an array type
-        if (S.AST.isTupleType(p.type)) {
+        // Unwrap transformations (like ExtendedClass) to check for propertySignatures
+        const unwrappedTypeToProcess = getTransformationFrom(typeToProcess)
+        if ("propertySignatures" in unwrappedTypeToProcess) {
+          Object.assign(
+            acc,
+            createMeta<T>({
+              parent: key,
+              propertySignatures: unwrappedTypeToProcess.propertySignatures,
+              meta: { required: isRequired, nullableOrUndefined }
+            })
+          )
+        } else if (S.AST.isTupleType(p.type)) {
           // Check if it has struct elements
           const hasStructElements = p.type.rest.length > 0
             && p.type.rest[0].type._tag === "TypeLiteral"

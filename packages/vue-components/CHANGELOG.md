@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.10.7
+
+### Patch Changes
+
+- 16bac53: feat: Enhance OmegaForm components with new input fields and schema updates
+
 ## 2.10.6
 
 ### Patch Changes

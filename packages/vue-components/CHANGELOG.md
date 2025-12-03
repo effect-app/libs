@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.11.4
+
+### Patch Changes
+
+- 49d8f78: refactor: remove unused fieldKey computed property from OmegaInput component
+- 49d8f78: fix: ensure nextTick is used for state change handling in OmegaTaggedUnionInternal
+
 ## 2.11.3
 
 ### Patch Changes

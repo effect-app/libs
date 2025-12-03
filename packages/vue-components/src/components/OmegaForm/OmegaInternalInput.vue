@@ -102,6 +102,7 @@ props.register(computed(() => ({ name: props.field.name, label: props.label, id 
 // This ensures errors persist when Field components re-mount due to :key changes
 const _errors = computed(() => {
   const fieldMeta = formFieldMeta.value[props.field.name] as any
+  // Treat errors as an array (like useOmegaForm does)
   return fieldMeta?.errors ?? []
 })
 const errors = computed(() =>

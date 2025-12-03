@@ -45,6 +45,36 @@ export const groupByT = dual<
   return [...r.entries()]
 })
 
+export const groupByTNonEmpty = dual<
+  <A, Key>(
+    f: (a: NoInfer<A>) => Key
+  ) => (as: NonEmptyReadonlyArray<A>) => NonEmptyArray<readonly [Key, NonEmptyArray<A>]>,
+  <A, Key>(
+    as: NonEmptyReadonlyArray<A>,
+    f: (a: A) => Key
+  ) => NonEmptyArray<readonly [Key, NonEmptyArray<A>]>
+>(2, <A, Key>(
+  as: NonEmptyReadonlyArray<A>,
+  f: (a: A) => Key
+): NonEmptyArray<readonly [Key, NonEmptyArray<A>]> => {
+  const r = new Map<Key, NonEmptyArray<A>>()
+  for (const a of as) {
+    const k = f(a)
+    if (r.has(k)) {
+      r.get(k)!.push(a)
+    } else {
+      r.set(k, [a])
+    }
+  }
+  return [...r.entries()] as unknown as NonEmptyArray<readonly [Key, NonEmptyArray<A>]>
+})
+
+// const a = [1, 2, 3] as const
+// const b = [1, 2, 3]
+
+// const a1 = groupByTNonEmpty(a, (x) => x % 2) // $ExpectType NonEmptyReadonlyArray<readonly [number, NonEmptyArray<number>]>
+// const b1 = groupByT(b, (x) => x % 2) // $ExpectType Array<readonly [number, NonEmptyArray<number>]>
+
 export function randomElement<A>(a: NonEmptyReadonlyArray<A>): A
 export function randomElement<A>(a: ReadonlyArray<A>): A | undefined
 export function randomElement<A>(a: ReadonlyArray<A>): A | undefined {

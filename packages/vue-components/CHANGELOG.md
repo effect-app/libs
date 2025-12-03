@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 3.0.3
+
+### Patch Changes
+
+- ec6157f: fix: add key to field component for re-mounting on meta type changes
+
 ## 3.0.2
 
 ### Patch Changes

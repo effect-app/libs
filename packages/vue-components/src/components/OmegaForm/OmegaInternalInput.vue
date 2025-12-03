@@ -84,6 +84,9 @@ const fieldApi = props.field
 
 const fieldState = useStore(fieldApi.store, (state) => state)
 
+// Get errors from form-level fieldMeta (persists across Field re-mounts)
+const formFieldMeta = useStore(fieldApi.form.store, (state) => state.fieldMeta)
+
 const fieldType = computed(() => {
   if (props.type) return props.type
   if (props.meta?.type === "string") {
@@ -95,8 +98,12 @@ const fieldType = computed(() => {
 
 props.register(computed(() => ({ name: props.field.name, label: props.label, id })))
 
-// workaround strange tanstack form issue where the errors key becomes undefined ???
-const _errors = computed(() => fieldState.value.meta.errors ?? [])
+// Get errors from form-level fieldMeta instead of field-level state
+// This ensures errors persist when Field components re-mount due to :key changes
+const _errors = computed(() => {
+  const fieldMeta = formFieldMeta.value[props.field.name] as any
+  return fieldMeta?.errors ?? []
+})
 const errors = computed(() =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _errors.value.map((e: any) => e?.message).filter(Boolean)

@@ -964,7 +964,9 @@ export const useOmegaForm = <
     // /** @experimental */
     handleSubmitEffect,
     registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {
-      watch(field, (f) => { fieldMap.value.set(f.name, { label: f.label, id: f.id }) }, { immediate: true })
+      watch(field, (f) => {
+        fieldMap.value.set(f.name, { label: f.label, id: f.id })
+      }, { immediate: true })
       onUnmounted(() => {
         // Only delete if this component instance still owns the registration (id matches)
         // This prevents the old component from removing the new component's registration

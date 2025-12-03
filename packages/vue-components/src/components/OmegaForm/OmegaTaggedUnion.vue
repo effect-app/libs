@@ -12,7 +12,7 @@ import { type FieldPath } from "./OmegaFormStuff"
 import OmegaTaggedUnionInternal from "./OmegaTaggedUnionInternal.vue"
 import { type useOmegaForm } from "./useOmegaForm"
 
-defineProps<{
+const props = defineProps<{
   name?: Name
   form: ReturnType<typeof useOmegaForm<From, To>>
   type?: "select" | "radio"
@@ -46,7 +46,7 @@ const getMetaFromArray = computed(() => {
     if (!tag) return null
 
     // Get the tag-specific metadata
-    const tagMeta = props.form.unionMeta[tag]
+    const tagMeta = (props.form as any).unionMeta[tag]
     if (!tagMeta) {
       return null
     }

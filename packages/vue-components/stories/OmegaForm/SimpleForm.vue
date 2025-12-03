@@ -1,47 +1,56 @@
 <template>
-  <form.Form :subscribe="['values', 'isDirty', 'canSubmit']">
-    <template #default="{ subscribedValues: { values, isDirty, canSubmit } }">
-      <div>values: {{ values }} {{ isDirty }} {{ canSubmit }}</div>
-      <form.Input
-        label="asder2"
-        name="categoryId"
+  <stocazzo.Form :subscribe="['values']">
+    <template #default="{ subscribedValues: { values } }">
+      {{ values }}
+      <stocazzo.TaggedUnion
+        label="select"
+        :options="[{
+          title: 'cazzoPippo',
+          value: 'cazzoPippo'
+        }, {
+          title: 'Pippocazzo',
+          value: 'Pippocazzo'
+        }]"
       >
-        <template #default="{ field, label, state, id }">
-          <label :for="id">{{ label }}</label>
-          <input
-            :id="id"
-            v-model="state.value"
-            :name="field.name"
-            style="border: 1px solid red"
-            @change="(e: any) => field.handleChange(e.target.value ?? '')"
-          >
+        <stocazzo.Input name="a.height" />
+        <stocazzo.Input name="a.width" />
+        <template #Pippocazzo>
+          <stocazzo.Input name="a.y" />
         </template>
-      </form.Input>
-      <form.Errors />
-      <v-btn type="submit">
-        submit
-      </v-btn>
+        <template #cazzoPippo>
+          <stocazzo.Input name="a.z" />
+        </template>
+        <v-btn type="submit">
+          ciao
+        </v-btn>
+      </stocazzo.TaggedUnion>
+      <stocazzo.Errors />
     </template>
-  </form.Form>
+  </stocazzo.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
-class schema extends S.ExtendedClass<schema, any>("ListOptionItem")({
-  categoryId: S.String, // TODO
-  priceTableId: S.StringId
-}) {}
-
-// const schema = S.Struct({
-//   categoryId: S.NullOr(S.String), // TODO
-//   priceTableId: S.NullOr(S.StringId)
-// })
-const form = useOmegaForm(schema, {
-  onSubmit: async ({ value }) => {
-    console.log(value)
-  },
-  defaultValues: {}
-})
+const stocazzo = useOmegaForm(
+  S.Union(
+    S.Struct({
+      a: S.Struct({
+        height: S.NonEmptyString100.pipe(S.minLength(10)),
+        width: S.NonEmptyString100.pipe(S.minLength(10)),
+        z: S.NonEmptyString100.pipe(S.minLength(10))
+      }),
+      _tag: S.Literal("cazzoPippo")
+    }),
+    S.Struct({
+      a: S.Struct({
+        height: S.NonNegativeInt.pipe(S.greaterThan(11)),
+        width: S.NonNegativeInt.pipe(S.greaterThan(11)),
+        y: S.NonNegativeInt.pipe(S.greaterThan(11))
+      }),
+      _tag: S.Literal("Pippocazzo")
+    })
+  )
+)
 </script>

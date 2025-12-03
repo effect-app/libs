@@ -74,10 +74,12 @@ const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
 )
 
 const meta = computed(() => {
-  if (getMetaFromArray?.value && getMetaFromArray.value(props.name as DeepKeys<From>)) {
-    return getMetaFromArray.value(propsName.value)
+  const fromArray = getMetaFromArray?.value?.(props.name as DeepKeys<From>)
+  if (fromArray) {
+    return fromArray
   }
-  return props.form.meta[propsName.value]
+  const formMeta = props.form.meta[propsName.value]
+  return formMeta
 })
 
 const schema = computed(() => {

@@ -356,6 +356,7 @@ export const createMeta = <T = any>(
 
   if (property?._tag === "TypeLiteral" && "propertySignatures" in property) {
     return createMeta<T>({
+      parent, // Pass parent to maintain the key prefix for nested structures
       meta,
       propertySignatures: property.propertySignatures
     })
@@ -404,7 +405,13 @@ export const createMeta = <T = any>(
               property: p.type,
               meta: { required: isRequired, nullableOrUndefined }
             })
-            acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+            // If parentMeta is a MetaRecord (nested structure from ExtendedClass), merge it
+            // Otherwise assign as single FieldMeta
+            if (parentMeta && typeof parentMeta === "object" && !("type" in parentMeta)) {
+              Object.assign(acc, parentMeta)
+            } else {
+              acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+            }
           }
 
           // Process each non-null type and merge their metadata

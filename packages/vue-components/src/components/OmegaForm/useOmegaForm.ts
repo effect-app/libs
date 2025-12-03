@@ -962,8 +962,18 @@ export const useOmegaForm = <
     // /** @experimental */
     handleSubmitEffect,
     registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {
-      watch(field, (f) => fieldMap.value.set(f.name, { label: f.label, id: f.id }), { immediate: true })
-      onUnmounted(() => fieldMap.value.delete(field.value.name)) // todo; perhap only when owned (id match)
+      watch(field, (f) => {
+        fieldMap.value.set(f.name, { label: f.label, id: f.id })
+      }, { immediate: true })
+      onUnmounted(() => {
+        // Only delete if we still own this entry (id matches)
+        // This prevents old components from deleting entries registered by new components
+        // during re-mount transitions (e.g., when :key changes)
+        const currentEntry = fieldMap.value.get(field.value.name)
+        if (currentEntry?.id === field.value.id) {
+          fieldMap.value.delete(field.value.name)
+        }
+      })
     }
   })
 

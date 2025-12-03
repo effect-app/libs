@@ -217,6 +217,7 @@ export type OmegaConfig<T> = {
 
 export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
+  unionMeta: Record<string, MetaRecord<From>>
   clear: () => void
   i18nNamespace?: string
   ignorePreventCloseEvents?: boolean
@@ -682,7 +683,7 @@ export const useOmegaForm = <
   const standardSchema = S.standardSchemaV1(schema)
   const decode = S.decode(schema)
 
-  const { meta } = generateMetaFromSchema(schema)
+  const { meta, unionMeta } = generateMetaFromSchema(schema)
 
   const persistencyKey = computed(() => {
     if (omegaConfig?.persistency?.id) {
@@ -952,6 +953,7 @@ export const useOmegaForm = <
     i18nNamespace: omegaConfig?.i18nNamespace,
     ignorePreventCloseEvents: omegaConfig?.ignorePreventCloseEvents,
     meta,
+    unionMeta,
     clear,
     handleSubmit: (meta?: Record<string, any>) => {
       const span = api.trace.getSpan(api.context.active())

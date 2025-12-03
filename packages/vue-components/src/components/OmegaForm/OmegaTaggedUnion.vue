@@ -46,14 +46,11 @@ const getMetaFromArray = computed(() => {
     if (!tag) return null
 
     // Get the tag-specific metadata
-    const tagMeta = (props.form as any).unionMeta[tag]
-    if (!tagMeta) {
-      return null
-    }
+    const tagMeta = props.form.unionMeta[tag]
+    if (!tagMeta) return null
 
     // Look up the meta for this path
-    const result = tagMeta[path as keyof typeof tagMeta] ?? null
-    return result
+    return tagMeta[path as keyof typeof tagMeta] ?? null
   }
 
   return getMeta

@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.11.1
+
+### Patch Changes
+
+- 4e51f49: fix: watch callback in useOmegaForm
+- c6be4f4: lint
+
 ## 2.11.0
 
 ### Minor Changes

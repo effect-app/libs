@@ -1,6 +1,7 @@
 <template>
   <component
     :is="form.Field"
+    :key="fieldKey"
     :name="name"
     :validators="{
       onChange: schema,
@@ -79,6 +80,18 @@ const meta = computed(() => {
     return getMetaFromArray.value(propsName.value)
   }
   return props.form.meta[propsName.value]
+})
+
+// Key to force Field re-mount when meta type changes (for TaggedUnion support)
+const fieldKey = computed(() => {
+  const m = meta.value
+  if (!m) return propsName.value
+  // Include type and key constraints in the key so Field re-mounts when validation rules change
+  // Cast to any since not all FieldMeta variants have these properties
+  const fm = m as any
+  return `${propsName.value}-${fm.type}-${fm.minLength ?? ""}-${fm.maxLength ?? ""}-${fm.minimum ?? ""}-${
+    fm.maximum ?? ""
+  }`
 })
 
 // Call useIntl during setup to avoid issues when computed re-evaluates

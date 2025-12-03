@@ -34,8 +34,11 @@ watch(() => props.state, (newTag, oldTag) => {
     nextTick(() => {
       // Get default values for the new tag to ensure correct types
       const tagDefaults = (props.form as any).unionDefaultValues?.[newTag as string] ?? {}
-      // Merge: keep _tag from current values, but use tag defaults for other fields
+      // Get current form values to preserve user's selections (e.g., carrier)
+      const currentValues = props.form.state.values
+      // Merge: keep current values, override with tag defaults for type correctness, set new _tag
       const resetValues = {
+        ...currentValues,
         ...tagDefaults,
         _tag: newTag
       }

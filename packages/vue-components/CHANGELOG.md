@@ -1,5 +1,16 @@
 # @effect-app/vue-components
 
+## 2.11.0
+
+### Minor Changes
+
+- 2a74553: chore: enhance metadata handling by adding unionDefaultValues to support default values for tagged schemas
+
+### Patch Changes
+
+- 2a74553: feat: Enhance OmegaForm with union metadata handling and nested meta flattening
+- 2a74553: fix: Add key to component for reactivity and include translation in schema generation
+
 ## 2.10.11
 
 ### Patch Changes

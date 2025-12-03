@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.10.11
+
+### Patch Changes
+
+- 36f4639: revert x2
+
 ## 2.10.10
 
 ### Patch Changes

@@ -829,7 +829,7 @@ export const generateMetaFromSchema = <From, To>(
   unionMeta: Record<string, MetaRecord<To>>
   unionDefaultValues: Record<string, Record<string, any>>
 } => {
-  const { meta, unionMeta, unionDefaultValues } = metadataFromAst(schema)
+  const { meta, unionDefaultValues, unionMeta } = metadataFromAst(schema)
 
   return { schema, meta, unionMeta, unionDefaultValues }
 }

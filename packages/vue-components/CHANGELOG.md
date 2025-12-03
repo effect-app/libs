@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.11.2
+
+### Patch Changes
+
+- cba2840: fix: ensure watch callbacks return undefined for consistency
+
 ## 2.11.1
 
 ### Patch Changes

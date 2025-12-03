@@ -653,7 +653,7 @@ export const createMeta = <T = any>(
       )
       .pipe(Option.getOrElse(() => ({}))) as Record<string, unknown>
 
-    meta = { ...meta, ...JSONAnnotation }
+    meta = { ...JSONAnnotation, ...meta }
 
     if ("from" in property) {
       return createMeta<T>({
@@ -850,6 +850,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
         })
       }
       if (typeof meta.minimum === "number") {
+        console.log("pippocazzo", meta)
         schema = schema.pipe(S.greaterThanOrEqualTo(meta.minimum)).annotations({
           message: () =>
             trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {

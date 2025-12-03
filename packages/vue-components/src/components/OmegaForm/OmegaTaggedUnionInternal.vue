@@ -31,8 +31,15 @@ watch(() => props.state, (newTag, oldTag) => {
     props.field.setValue(null as DeepValue<From, Name>)
   }
 
-  if (newTag !== oldTag) {
-    props.form.reset(values.value)
+  if (newTag !== oldTag && newTag) {
+    // Get default values for the new tag to ensure correct types
+    const tagDefaults = (props.form as any).unionDefaultValues?.[newTag as string] ?? {}
+    // Merge: keep _tag from current values, but use tag defaults for other fields
+    const resetValues = {
+      ...tagDefaults,
+      _tag: newTag
+    }
+    props.form.reset(resetValues as any)
     setTimeout(() => {
       props.field.validate("change")
     }, 0)

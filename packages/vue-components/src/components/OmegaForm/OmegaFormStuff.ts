@@ -708,11 +708,17 @@ const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = "")
 
 const metadataFromAst = <From, To>(
   schema: S.Schema<To, From, never>
-): { meta: MetaRecord<To>; defaultValues: Record<string, any>; unionMeta: Record<string, MetaRecord<To>> } => {
+): {
+  meta: MetaRecord<To>
+  defaultValues: Record<string, any>
+  unionMeta: Record<string, MetaRecord<To>>
+  unionDefaultValues: Record<string, Record<string, any>>
+} => {
   const ast = schema.ast
   const newMeta: MetaRecord<To> = {}
   const defaultValues: Record<string, any> = {}
   const unionMeta: Record<string, MetaRecord<To>> = {}
+  const unionDefaultValues: Record<string, Record<string, any>> = {}
 
   if (ast._tag === "Transformation" || ast._tag === "Refinement") {
     return metadataFromAst(S.make(ast.from))
@@ -757,6 +763,9 @@ const metadataFromAst = <From, To>(
           // Store per-tag metadata for reactive lookup
           if (tagValue) {
             unionMeta[tagValue] = flattenMeta<To>(memberMeta)
+            // Create default values for this tag's schema
+            const memberSchema = S.make(memberType)
+            unionDefaultValues[tagValue] = defaultsValueFromSchema(memberSchema as any)
           }
 
           // Merge into result (for backward compatibility)
@@ -773,7 +782,7 @@ const metadataFromAst = <From, To>(
         } as FieldMeta
       }
 
-      return { meta: newMeta, defaultValues, unionMeta }
+      return { meta: newMeta, defaultValues, unionMeta, unionDefaultValues }
     }
   }
 
@@ -783,7 +792,7 @@ const metadataFromAst = <From, To>(
     })
 
     if (Object.values(meta).every((value) => value && "type" in value)) {
-      return { meta: meta as MetaRecord<To>, defaultValues, unionMeta }
+      return { meta: meta as MetaRecord<To>, defaultValues, unionMeta, unionDefaultValues }
     }
 
     const flattenObject = (
@@ -803,7 +812,7 @@ const metadataFromAst = <From, To>(
     flattenObject(meta)
   }
 
-  return { meta: newMeta, defaultValues, unionMeta }
+  return { meta: newMeta, defaultValues, unionMeta, unionDefaultValues }
 }
 
 export const duplicateSchema = <From, To>(
@@ -818,10 +827,11 @@ export const generateMetaFromSchema = <From, To>(
   schema: S.Schema<To, From, never>
   meta: MetaRecord<To>
   unionMeta: Record<string, MetaRecord<To>>
+  unionDefaultValues: Record<string, Record<string, any>>
 } => {
-  const { meta, unionMeta } = metadataFromAst(schema)
+  const { meta, unionMeta, unionDefaultValues } = metadataFromAst(schema)
 
-  return { schema, meta, unionMeta }
+  return { schema, meta, unionMeta, unionDefaultValues }
 }
 
 export const generateInputStandardSchemaFromFieldMeta = (

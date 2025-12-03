@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.10.9
+
+### Patch Changes
+
+- 1523a90: fix: Adjust meta merging order and add debug log for minimum validation
+
 ## 2.10.8
 
 ### Patch Changes

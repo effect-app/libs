@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 3.0.0
+
+### Major Changes
+
+- e9d17b2: restore omegaform unions without reset
+
+### Patch Changes
+
+- 22f3e2e: fix type
+
 ## 2.11.5
 
 ### Patch Changes

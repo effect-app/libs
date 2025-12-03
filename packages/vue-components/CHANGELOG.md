@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.11.3
+
+### Patch Changes
+
+- 5cc33ac: fix: ensure nextTick is used for state change handling in OmegaTaggedUnionInternal
+
 ## 2.11.2
 
 ### Patch Changes

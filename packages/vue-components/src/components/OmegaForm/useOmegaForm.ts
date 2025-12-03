@@ -218,7 +218,6 @@ export type OmegaConfig<T> = {
 export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
   unionMeta: Record<string, MetaRecord<From>>
-  unionDefaultValues: Record<string, Record<string, any>>
   clear: () => void
   i18nNamespace?: string
   ignorePreventCloseEvents?: boolean
@@ -684,7 +683,7 @@ export const useOmegaForm = <
   const standardSchema = S.standardSchemaV1(schema)
   const decode = S.decode(schema)
 
-  const { meta, unionDefaultValues, unionMeta } = generateMetaFromSchema(schema)
+  const { meta, unionMeta } = generateMetaFromSchema(schema)
 
   const persistencyKey = computed(() => {
     if (omegaConfig?.persistency?.id) {
@@ -919,7 +918,6 @@ export const useOmegaForm = <
         // Reset with current values to mark them as the new baseline
         form.reset(values.value)
       }
-      return undefined
     })
   }
 
@@ -956,7 +954,6 @@ export const useOmegaForm = <
     ignorePreventCloseEvents: omegaConfig?.ignorePreventCloseEvents,
     meta,
     unionMeta,
-    unionDefaultValues,
     clear,
     handleSubmit: (meta?: Record<string, any>) => {
       const span = api.trace.getSpan(api.context.active())
@@ -965,18 +962,8 @@ export const useOmegaForm = <
     // /** @experimental */
     handleSubmitEffect,
     registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {
-      watch(field, (f) => {
-        fieldMap.value.set(f.name, { label: f.label, id: f.id })
-      }, { immediate: true })
-      onUnmounted(() => {
-        // Only delete if this component instance still owns the registration (id matches)
-        // This prevents the old component from removing the new component's registration
-        // when Vue re-keys and mounts new before unmounting old
-        const current = fieldMap.value.get(field.value.name)
-        if (current?.id === field.value.id) {
-          fieldMap.value.delete(field.value.name)
-        }
-      })
+      watch(field, (f) => fieldMap.value.set(f.name, { label: f.label, id: f.id }), { immediate: true })
+      onUnmounted(() => fieldMap.value.delete(field.value.name)) // todo; perhap only when owned (id match)
     }
   })
 

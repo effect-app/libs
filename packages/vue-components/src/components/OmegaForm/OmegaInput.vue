@@ -1,6 +1,7 @@
 <template>
   <component
     :is="form.Field"
+    :key="fieldKey"
     :name="name"
     :validators="{
       onChange: schema,
@@ -75,12 +76,18 @@ const getMetaFromArray = inject<Ref<(name: string) => FieldMeta | null> | null>(
 )
 
 const meta = computed(() => {
-  const fromArray = getMetaFromArray?.value?.(props.name as DeepKeys<From>)
-  if (fromArray) {
-    return fromArray
+  if (getMetaFromArray?.value && getMetaFromArray.value(props.name as DeepKeys<From>)) {
+    return getMetaFromArray.value(propsName.value)
   }
-  const formMeta = props.form.meta[propsName.value]
-  return formMeta
+  return props.form.meta[propsName.value]
+})
+
+// Key to force Field re-mount when meta type changes (for TaggedUnion support)
+const fieldKey = computed(() => {
+  const m = meta.value
+  if (!m) return propsName.value
+  // Include type and key constraints in the key so Field re-mounts when validation rules change
+  return `${propsName.value}-${m.type}-${m.minLength ?? ""}-${m.maxLength ?? ""}-${m.minimum ?? ""}-${m.maximum ?? ""}`
 })
 
 // Call useIntl during setup to avoid issues when computed re-evaluates

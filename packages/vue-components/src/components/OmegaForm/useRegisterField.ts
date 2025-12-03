@@ -5,9 +5,7 @@ const Key = Symbol("injected") as InjectionKey<Map<string, { label: string; id: 
 
 export const useRegisterField = (field: ComputedRef<{ name: string; label: string; id: string }>) => {
   const map = injectCertain(Key)
-  watch(field, (f) => {
-    map.set(f.name, { label: f.label, id: f.id })
-  }, { immediate: true })
+  watch(field, (f) => map.set(f.name, { label: f.label, id: f.id }), { immediate: true })
   onUnmounted(() => map.delete(field.value.name)) // todo; perhap only when owned
 }
 

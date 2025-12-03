@@ -919,6 +919,7 @@ export const useOmegaForm = <
         // Reset with current values to mark them as the new baseline
         form.reset(values.value)
       }
+      return undefined
     })
   }
 

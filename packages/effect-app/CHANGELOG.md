@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 3.15.1
+
+### Patch Changes
+
+- 049b54a: improve: add NEA support to Array.groupByT.
+
 ## 3.15.0
 
 ### Minor Changes

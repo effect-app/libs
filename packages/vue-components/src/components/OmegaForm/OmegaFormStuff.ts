@@ -681,12 +681,31 @@ export const createMeta = <T = any>(
   return acc
 }
 
+// Helper to flatten nested meta structure into dot-notation keys
+const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = ""): MetaRecord<T> => {
+  const result: MetaRecord<T> = {}
+
+  for (const key in meta) {
+    const value = (meta as any)[key]
+    const newKey = parentKey ? `${parentKey}.${key}` : key
+
+    if (value && typeof value === "object" && "type" in value) {
+      result[newKey as DeepKeys<T>] = value as FieldMeta
+    } else if (value && typeof value === "object") {
+      Object.assign(result, flattenMeta<T>(value, newKey))
+    }
+  }
+
+  return result
+}
+
 const metadataFromAst = <From, To>(
   schema: S.Schema<To, From, never>
-): { meta: MetaRecord<To>; defaultValues: Record<string, any> } => {
+): { meta: MetaRecord<To>; defaultValues: Record<string, any>; unionMeta: Record<string, MetaRecord<To>> } => {
   const ast = schema.ast
   const newMeta: MetaRecord<To> = {}
   const defaultValues: Record<string, any> = {}
+  const unionMeta: Record<string, MetaRecord<To>> = {}
 
   if (ast._tag === "Transformation" || ast._tag === "Refinement") {
     return metadataFromAst(S.make(ast.from))
@@ -709,7 +728,7 @@ const metadataFromAst = <From, To>(
       // Extract discriminator values from each union member
       const discriminatorValues: any[] = []
 
-      // Merge metadata from all union members
+      // Store metadata for each union member by its tag value
       for (const memberType of nonNullTypes) {
         if ("propertySignatures" in memberType) {
           // Find the discriminator field (usually _tag)
@@ -717,8 +736,10 @@ const metadataFromAst = <From, To>(
             (p: any) => p.name.toString() === "_tag"
           )
 
+          let tagValue: string | null = null
           if (tagProp && S.AST.isLiteral(tagProp.type)) {
-            discriminatorValues.push(tagProp.type.literal)
+            tagValue = tagProp.type.literal as string
+            discriminatorValues.push(tagValue)
           }
 
           // Create metadata for this member's properties
@@ -726,7 +747,12 @@ const metadataFromAst = <From, To>(
             propertySignatures: memberType.propertySignatures
           })
 
-          // Merge into result
+          // Store per-tag metadata for reactive lookup
+          if (tagValue) {
+            unionMeta[tagValue] = flattenMeta<To>(memberMeta)
+          }
+
+          // Merge into result (for backward compatibility)
           Object.assign(newMeta, memberMeta)
         }
       }
@@ -740,7 +766,7 @@ const metadataFromAst = <From, To>(
         } as FieldMeta
       }
 
-      return { meta: newMeta, defaultValues }
+      return { meta: newMeta, defaultValues, unionMeta }
     }
   }
 
@@ -750,7 +776,7 @@ const metadataFromAst = <From, To>(
     })
 
     if (Object.values(meta).every((value) => value && "type" in value)) {
-      return { meta: meta as MetaRecord<To>, defaultValues }
+      return { meta: meta as MetaRecord<To>, defaultValues, unionMeta }
     }
 
     const flattenObject = (
@@ -770,7 +796,7 @@ const metadataFromAst = <From, To>(
     flattenObject(meta)
   }
 
-  return { meta: newMeta, defaultValues }
+  return { meta: newMeta, defaultValues, unionMeta }
 }
 
 export const duplicateSchema = <From, To>(
@@ -784,16 +810,20 @@ export const generateMetaFromSchema = <From, To>(
 ): {
   schema: S.Schema<To, From, never>
   meta: MetaRecord<To>
+  unionMeta: Record<string, MetaRecord<To>>
 } => {
-  const { meta } = metadataFromAst(schema)
+  const { meta, unionMeta } = metadataFromAst(schema)
 
-  return { schema, meta }
+  return { schema, meta, unionMeta }
 }
 
 export const generateInputStandardSchemaFromFieldMeta = (
-  meta: FieldMeta
+  meta: FieldMeta,
+  trans?: ReturnType<typeof useIntl>["trans"]
 ): StandardSchemaV1<any, any> => {
-  const { trans } = useIntl()
+  if (!trans) {
+    trans = useIntl().trans
+  }
   let schema: S.Schema<any, any, never>
   switch (meta.type) {
     case "string":
@@ -850,7 +880,6 @@ export const generateInputStandardSchemaFromFieldMeta = (
         })
       }
       if (typeof meta.minimum === "number") {
-        console.log("pippocazzo", meta)
         schema = schema.pipe(S.greaterThanOrEqualTo(meta.minimum)).annotations({
           message: () =>
             trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {

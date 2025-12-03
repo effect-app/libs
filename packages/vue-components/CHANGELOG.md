@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 3.0.2
+
+### Patch Changes
+
+- 6ffeaf3: fix: enhance field registration and error handling for better component re-mounting
+
 ## 3.0.1
 
 ### Patch Changes

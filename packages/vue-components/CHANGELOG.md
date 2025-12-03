@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 2.11.5
+
+### Patch Changes
+
+- 5d38928: fix: preserve user selections when updating tag defaults in OmegaTaggedUnionInternal
+
 ## 2.11.4
 
 ### Patch Changes

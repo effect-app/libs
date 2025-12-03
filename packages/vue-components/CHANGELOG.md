@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 2.10.10
+
+### Patch Changes
+
+- 92fe8fd: feat: Enhance OmegaForm with union metadata handling and nested meta flattening
+- 27e57c4: fix: Add key to component for reactivity and include translation in schema generation
+
 ## 2.10.9
 
 ### Patch Changes

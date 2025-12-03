@@ -217,6 +217,8 @@ export type OmegaConfig<T> = {
 
 export interface OF<From, To> extends OmegaFormApi<From, To> {
   meta: MetaRecord<From>
+  unionMeta: Record<string, MetaRecord<From>>
+  unionDefaultValues: Record<string, Record<string, any>>
   clear: () => void
   i18nNamespace?: string
   ignorePreventCloseEvents?: boolean
@@ -682,7 +684,7 @@ export const useOmegaForm = <
   const standardSchema = S.standardSchemaV1(schema)
   const decode = S.decode(schema)
 
-  const { meta } = generateMetaFromSchema(schema)
+  const { meta, unionMeta, unionDefaultValues } = generateMetaFromSchema(schema)
 
   const persistencyKey = computed(() => {
     if (omegaConfig?.persistency?.id) {
@@ -952,6 +954,8 @@ export const useOmegaForm = <
     i18nNamespace: omegaConfig?.i18nNamespace,
     ignorePreventCloseEvents: omegaConfig?.ignorePreventCloseEvents,
     meta,
+    unionMeta,
+    unionDefaultValues,
     clear,
     handleSubmit: (meta?: Record<string, any>) => {
       const span = api.trace.getSpan(api.context.active())
@@ -961,7 +965,15 @@ export const useOmegaForm = <
     handleSubmitEffect,
     registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {
       watch(field, (f) => fieldMap.value.set(f.name, { label: f.label, id: f.id }), { immediate: true })
-      onUnmounted(() => fieldMap.value.delete(field.value.name)) // todo; perhap only when owned (id match)
+      onUnmounted(() => {
+        // Only delete if this component instance still owns the registration (id matches)
+        // This prevents the old component from removing the new component's registration
+        // when Vue re-keys and mounts new before unmounting old
+        const current = fieldMap.value.get(field.value.name)
+        if (current?.id === field.value.id) {
+          fieldMap.value.delete(field.value.name)
+        }
+      })
     }
   })
 

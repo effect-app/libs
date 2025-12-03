@@ -12,7 +12,7 @@
   generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
-import { nextTick, watch } from "vue"
+import { watch } from "vue"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type useOmegaForm } from "./useOmegaForm"
 
@@ -23,30 +23,19 @@ const props = defineProps<{
   form: ReturnType<typeof useOmegaForm<From, To>>
 }>()
 
+const values = props.form.useStore(({ values }) => values)
+
 // Watch for _tag changes
 watch(() => props.state, (newTag, oldTag) => {
   if (newTag === null) {
     props.field.setValue(null as DeepValue<From, Name>)
   }
 
-  if (newTag !== oldTag && newTag) {
-    // Use nextTick to avoid cleanup conflicts during reactive updates
-    nextTick(() => {
-      // Get default values for the new tag to ensure correct types
-      const tagDefaults = (props.form as any).unionDefaultValues?.[newTag as string] ?? {}
-      // Get current form values to preserve user's selections (e.g., carrier)
-      const currentValues = props.form.state.values
-      // Merge: keep current values, override with tag defaults for type correctness, set new _tag
-      const resetValues = {
-        ...currentValues,
-        ...tagDefaults,
-        _tag: newTag
-      }
-      props.form.reset(resetValues as any)
-      setTimeout(() => {
-        props.field.validate("change")
-      }, 0)
-    })
+  if (newTag !== oldTag) {
+    props.form.reset(values.value)
+    setTimeout(() => {
+      props.field.validate("change")
+    }, 0)
   }
 }, { immediate: true })
 </script>

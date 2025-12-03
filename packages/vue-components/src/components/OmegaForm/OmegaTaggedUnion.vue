@@ -34,7 +34,6 @@ watch(
   },
   (newTag) => {
     currentTag.value = newTag ?? null
-    return undefined
   },
   { immediate: true }
 )

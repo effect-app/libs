@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 3.0.1
+
+### Patch Changes
+
+- 64aa49a: fix: improve error handling by using form-level fieldMeta for persistence across re-mounts
+
 ## 3.0.0
 
 ### Major Changes

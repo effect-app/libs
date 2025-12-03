@@ -1,6 +1,7 @@
 <template>
   <component
     :is="form.Field"
+    :key="fieldKey"
     :name="name"
     :validators="{
       onChange: schema,
@@ -41,6 +42,7 @@
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, inject, type Ref, useAttrs } from "vue"
+import { useIntl } from "../../utils"
 import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 import { useErrorLabel } from "./useOmegaForm"
@@ -80,12 +82,23 @@ const meta = computed(() => {
   return props.form.meta[propsName.value]
 })
 
+// Key to force Field re-mount when meta type changes (for TaggedUnion support)
+const fieldKey = computed(() => {
+  const m = meta.value
+  if (!m) return propsName.value
+  // Include type and key constraints in the key so Field re-mounts when validation rules change
+  return `${propsName.value}-${m.type}-${m.minLength ?? ""}-${m.maxLength ?? ""}-${m.minimum ?? ""}-${m.maximum ?? ""}`
+})
+
+// Call useIntl during setup to avoid issues when computed re-evaluates
+const { trans } = useIntl()
+
 const schema = computed(() => {
   if (!meta.value) {
     console.log(props.name, Object.keys(props.form.meta), props.form.meta)
     throw new Error("Meta is undefined")
   }
-  return generateInputStandardSchemaFromFieldMeta(meta.value)
+  return generateInputStandardSchemaFromFieldMeta(meta.value, trans)
 })
 
 const errori18n = useErrorLabel(props.form)

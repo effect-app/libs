@@ -87,7 +87,11 @@ const fieldKey = computed(() => {
   const m = meta.value
   if (!m) return propsName.value
   // Include type and key constraints in the key so Field re-mounts when validation rules change
-  return `${propsName.value}-${m.type}-${m.minLength ?? ""}-${m.maxLength ?? ""}-${m.minimum ?? ""}-${m.maximum ?? ""}`
+  // Cast to any since not all FieldMeta variants have these properties
+  const fm = m as any
+  return `${propsName.value}-${fm.type}-${fm.minLength ?? ""}-${fm.maxLength ?? ""}-${fm.minimum ?? ""}-${
+    fm.maximum ?? ""
+  }`
 })
 
 // Call useIntl during setup to avoid issues when computed re-evaluates

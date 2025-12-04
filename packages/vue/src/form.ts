@@ -47,7 +47,12 @@ export function convertOutInt(v: string, type?: "text" | "float" | "int") {
     : type === "float"
     ? parseFloat(v)
     : type === "int"
-    ? parseInt(v)
+    ? (() => {
+      const asFloat = parseFloat(v)
+      const asInt = parseInt(v)
+      // if float and int differ, there's a decimal part - keep as float to fail integer validation
+      return asFloat !== asInt ? asFloat : asInt
+    })()
     : v
   return c
 }

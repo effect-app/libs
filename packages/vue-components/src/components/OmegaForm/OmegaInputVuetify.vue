@@ -81,12 +81,12 @@
     </v-textarea>
     <component
       :is="inputProps.type === 'range' ? 'v-slider' : 'v-text-field'"
-      v-if="inputProps.type === 'number' || inputProps.type === 'range'"
+      v-if="inputProps.type === 'number' || inputProps.type === 'int' || inputProps.type === 'range'"
       :id="inputProps.id"
       :required="inputProps.required"
       :min="inputProps.min"
       :max="inputProps.max"
-      :type="inputProps.type"
+      :type="inputProps.type === 'int' ? 'number' : inputProps.type"
       :name="field.name"
       :label="inputProps.label"
       :error-messages="inputProps.errorMessages"

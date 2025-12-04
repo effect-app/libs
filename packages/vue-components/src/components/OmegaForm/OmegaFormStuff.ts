@@ -246,7 +246,7 @@ export type StringFieldMeta = BaseFieldMeta & {
 }
 
 export type NumberFieldMeta = BaseFieldMeta & {
-  type: "number"
+  type: "number" | "int"
   minimum?: number
   maximum?: number
   exclusiveMinimum?: number
@@ -346,12 +346,23 @@ export const createMeta = <T = any>(
 ): MetaRecord<T> | FieldMeta => {
   // unwraps class (Class are transformations)
   // this calls createMeta recursively, so wrapped transformations are also unwrapped
+  // BUT: check for Int title annotation first - S.Int and branded Int have title "Int" or "int"
+  // and we don't want to lose that information by unwrapping
   if (property && property._tag === "Transformation") {
-    return createMeta<T>({
-      parent,
-      meta,
-      property: property.from
-    })
+    const titleOnTransform = S
+      .AST
+      .getAnnotation(property, S.AST.TitleAnnotationId)
+      .pipe(Option.getOrElse(() => ""))
+
+    // only unwrap if this is NOT an Int type
+    if (titleOnTransform !== "Int" && titleOnTransform !== "int") {
+      return createMeta<T>({
+        parent,
+        meta,
+        property: property.from
+      })
+    }
+    // if it's Int, fall through to process it with the Int type
   }
 
   if (property?._tag === "TypeLiteral" && "propertySignatures" in property) {
@@ -655,24 +666,32 @@ export const createMeta = <T = any>(
 
     meta = { ...JSONAnnotation, ...meta }
 
-    if ("from" in property) {
+    // check the title annotation BEFORE following "from" to detect refinements like S.Int
+    const titleType = S
+      .AST
+      .getAnnotation(
+        property,
+        S.AST.TitleAnnotationId
+      )
+      .pipe(
+        Option.getOrElse(() => {
+          return "unknown"
+        })
+      )
+
+    // if this is S.Int (a refinement), set the type and skip following "from"
+    // otherwise we'd lose the "Int" information and get "number" instead
+    if (titleType === "Int" || titleType === "int") {
+      meta["type"] = "int"
+      // don't follow "from" for Int refinements
+    } else if ("from" in property) {
       return createMeta<T>({
         parent,
         meta,
         property: property.from
       })
     } else {
-      meta["type"] = S
-        .AST
-        .getAnnotation(
-          property,
-          S.AST.TitleAnnotationId
-        )
-        .pipe(
-          Option.getOrElse(() => {
-            return "unknown"
-          })
-        )
+      meta["type"] = titleType
     }
 
     return meta as FieldMeta
@@ -869,9 +888,59 @@ export const generateInputStandardSchemaFromFieldMeta = (
       }
       break
 
+    case "int": {
+      // create a custom integer schema with translations
+      // S.Number with empty message, then S.int with integer message
+      schema = S
+        .Number
+        .annotations({
+          message: () => trans("validation.empty")
+        })
+        .pipe(
+          S.int({ message: (issue) => trans("validation.integer.expected", { actualValue: String(issue.actual) }) })
+        )
+      if (typeof meta.minimum === "number") {
+        schema = schema.pipe(S.greaterThanOrEqualTo(meta.minimum)).annotations({
+          message: () =>
+            trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+              minimum: meta.minimum,
+              isExclusive: true
+            })
+        })
+      }
+      if (typeof meta.maximum === "number") {
+        schema = schema.pipe(S.lessThanOrEqualTo(meta.maximum)).annotations({
+          message: () =>
+            trans("validation.number.max", {
+              maximum: meta.maximum,
+              isExclusive: true
+            })
+        })
+      }
+      if (typeof meta.exclusiveMinimum === "number") {
+        schema = schema.pipe(S.greaterThan(meta.exclusiveMinimum)).annotations({
+          message: () =>
+            trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
+              minimum: meta.exclusiveMinimum,
+              isExclusive: false
+            })
+        })
+      }
+      if (typeof meta.exclusiveMaximum === "number") {
+        schema = schema.pipe(S.lessThan(meta.exclusiveMaximum)).annotations({
+          message: () =>
+            trans("validation.number.max", {
+              maximum: meta.exclusiveMaximum,
+              isExclusive: false
+            })
+        })
+      }
+      break
+    }
+
     case "number":
       schema = S.Number.annotations({
-        message: () => trans("validation.empty")
+        message: () => trans("validation.number.expected", { actualValue: "NaN" })
       })
 
       if (meta.required) {

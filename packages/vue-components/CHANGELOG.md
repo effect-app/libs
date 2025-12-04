@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 3.0.6
+
+### Patch Changes
+
+- c3cd0a2: the fix for integers
+
 ## 3.0.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 3.0.7
+
+### Patch Changes
+
+- 18ef23c: track min max of integers too in input props
+
 ## 3.0.6
 
 ### Patch Changes

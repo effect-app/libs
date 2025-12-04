@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.93.8
+
+### Patch Changes
+
+- ed020e1: fix convertOutInt to account for floats, add test
+
 ## 2.93.7
 
 ### Patch Changes

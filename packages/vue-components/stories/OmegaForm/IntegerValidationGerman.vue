@@ -81,9 +81,9 @@ const PackageSchema = S.Struct({
 })
 
 const form = useOmegaForm(PackageSchema, {
-  onSubmit: (values) => {
-    console.log("Form submitted with values:", values)
-    alert(`Packen erfolgreich!\n${JSON.stringify(values, null, 2)}`)
+  onSubmit: ({ value }) => {
+    console.log("Form submitted with values:", value)
+    alert(`Packen erfolgreich!\n${JSON.stringify(value, null, 2)}`)
     return undefined as any
   }
 })

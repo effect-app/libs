@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.93.7
+
+### Patch Changes
+
+- 4d79921: support translation for expected numbers and integers
+
 ## 2.93.6
 
 ### Patch Changes

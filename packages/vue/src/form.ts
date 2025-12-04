@@ -273,14 +273,37 @@ function buildFieldInfo(
       ?? (Option.isSome(id) ? customSchemaErrors.value.get(id.value) : undefined)
       ?? (Option.isSome(id2) ? customSchemaErrors.value.get(id2.value) : undefined)
 
-    return custom ? custom(err, e, v) : translate.value(
+    if (custom) {
+      return custom(err, e, v)
+    }
+
+    // parse specific error types for better translation support
+    const integerMatch = err.match(/Expected.*integer.*actual\s+(.+)/i)
+    if (integerMatch) {
+      return translate.value(
+        { defaultMessage: "Expected an integer, actual {actualValue}", id: "validation.integer.expected" },
+        { actualValue: integerMatch[1] }
+      )
+    }
+
+    const numberMatch = err.match(/Expected.*number.*actual\s+(.+)/i)
+    if (numberMatch) {
+      return translate.value(
+        { defaultMessage: "Expected a number, actual {actualValue}", id: "validation.number.expected" },
+        { actualValue: numberMatch[1] }
+      )
+    }
+
+    // fallback to generic error message
+    return translate.value(
       { defaultMessage: "The entered value is not a valid {type}: {message}", id: "validation.not_a_valid" },
       {
         type: translate.value({
           defaultMessage: capitalize(propertyKey.toString()),
           id: `fieldNames.${String(propertyKey)}`
         }),
-        message: metadata.description ? "expected " + metadata.description : err.slice(err.indexOf("Expected")) // TODO: this is not translated.
+        // TODO: not translated yet
+        message: metadata.description ? "expected " + metadata.description : err.slice(err.indexOf("Expected"))
       }
     )
   }

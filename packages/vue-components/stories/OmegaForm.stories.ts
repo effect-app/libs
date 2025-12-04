@@ -17,6 +17,7 @@ import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
 import FormInputComponent from "./OmegaForm/form.Input.vue"
 import FormTaggedUnionComponent from "./OmegaForm/FormTaggedUnion.vue"
+import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerman.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
@@ -33,10 +34,55 @@ import UsingOmegaFormComponent from "./OmegaForm/UsingOmegaForm.vue"
 import WindowExitPreventionComponent from "./OmegaForm/WindowExitPrevention.vue"
 import WithDefaultConstructorComponent from "./OmegaForm/WithDefaultConstructor.vue"
 
+// german translations for validation
+const germanTranslations: Record<string, string> = {
+  "validation.integer.expected": "Es wird eine ganze Zahl erwartet, tatsächlich: {actualValue}",
+  "validation.number.expected": "Es wird eine Zahl erwartet, tatsächlich: {actualValue}",
+  "validation.empty": "Das Feld darf nicht leer sein",
+  "validation.string.minLength": "Das Feld muss mindestens {minLength} Zeichen haben",
+  "validation.string.maxLength": "Das Feld darf maximal {maxLength} Zeichen haben",
+  "validation.number.min": "Der Wert sollte {isExclusive, select, true {größer als} other {mindestens}} {minimum} sein",
+  "validation.number.max": "Der Wert sollte {isExclusive, select, true {kleiner als} other {höchstens}} {maximum} sein",
+  "validation.not_a_valid": "Der eingegebene Wert ist kein gültiger {type}: {message}",
+  "fieldNames.lange": "Länge",
+  "fieldNames.breite": "Breite",
+  "fieldNames.hohe": "Höhe",
+  "fieldNames.gewicht": "Gewicht"
+}
+
 const mockIntl = {
   locale: ref("en"),
   trans: (id: string) => id,
   intl: ref({ formatMessage: (msg: { id: string }) => msg.id })
+} as unknown as ReturnType<ReturnType<typeof makeIntl<string>>["useIntl"]>
+
+const mockIntlGerman = {
+  locale: ref("de"),
+  trans: (id: string, values?: Record<string, string | number | boolean | null | undefined>) => {
+    let text = germanTranslations[id] || id
+    // simple parameter replacement
+    if (values) {
+      Object.entries(values).forEach(([key, value]) => {
+        text = text.replace(`{${key}}`, String(value))
+      })
+    }
+    return text
+  },
+  intl: ref({
+    formatMessage: (
+      msg: { id: string; defaultMessage?: string },
+      values?: Record<string, string | number | boolean | null | undefined>
+    ) => {
+      let text = germanTranslations[msg.id] || msg.defaultMessage || msg.id
+      // simple parameter replacement
+      if (values) {
+        Object.entries(values).forEach(([key, value]) => {
+          text = text.replace(`{${key}}`, String(value))
+        })
+      }
+      return text
+    }
+  })
 } as unknown as ReturnType<ReturnType<typeof makeIntl<string>>["useIntl"]>
 
 const meta: StoryMeta<typeof OmegaForm> = {
@@ -259,4 +305,23 @@ export const Defaults: Story = {
     components: { DefaultsComponent },
     template: "<DefaultsComponent />"
   })
+}
+
+export const IntegerValidationGerman: Story = {
+  render: () => ({
+    components: { IntegerValidationGermanComponent },
+    setup() {
+      provideIntl(() => mockIntlGerman)
+      return {}
+    },
+    template: "<IntegerValidationGermanComponent />"
+  }),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Test story for integer validation with German translations. Try entering decimal values like 59.5 to see the German error message."
+      }
+    }
+  }
 }

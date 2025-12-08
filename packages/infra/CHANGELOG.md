@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 3.9.0
+
+### Minor Changes
+
+- 5777431: add validateSample method to Repository for schema validation testing
+
 ## 3.8.1
 
 ### Patch Changes

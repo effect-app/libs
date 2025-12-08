@@ -5,6 +5,7 @@ import type { NonNegativeInt } from "effect-app/Schema/numbers"
 import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
 import type { QAll, Query, QueryProjection, RawQuery } from "../query.js"
 import type { Mapped } from "./legacy.js"
+import type { ValidationResult } from "./validation.js"
 
 export interface Repository<
   T,
@@ -535,6 +536,17 @@ export interface Repository<
 
   /** @deprecated use query */
   readonly mapped: Mapped<Encoded>
+
+  /**
+   * Validates a random sample of repository items by applying jitM and schema decode.
+   * Useful for testing that migrations and schema changes work correctly on existing data.
+   */
+  readonly validateSample: (options?: {
+    /** percentage of items to sample (0.0-1.0), default 0.1 (10%) */
+    percentage?: number
+    /** optional maximum number of items to sample */
+    maxItems?: number
+  }) => Effect.Effect<ValidationResult, never, RSchema>
 }
 
 type DistributeQueryIfExclusiveOnArray<Exclusive extends boolean, T, EncodedRefined> = [Exclusive] extends [true]

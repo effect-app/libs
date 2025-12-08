@@ -114,6 +114,10 @@
       "types": "./dist/Model/Repository/service.d.ts",
       "default": "./dist/Model/Repository/service.js"
     },
+    "./Model/Repository/validation": {
+      "types": "./dist/Model/Repository/validation.d.ts",
+      "default": "./dist/Model/Repository/validation.js"
+    },
     "./Model/dsl": {
       "types": "./dist/Model/dsl.d.ts",
       "default": "./dist/Model/dsl.js"

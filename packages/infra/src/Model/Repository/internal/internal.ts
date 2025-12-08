@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {} from "effect/Equal"
 import type {} from "effect/Hash"
-import { Array, Chunk, Context, Effect, Equivalence, flow, type NonEmptyReadonlyArray, Option, pipe, Pipeable, PubSub, S, Unify } from "effect-app"
+import { Array, Chunk, Context, Effect, Either, Equivalence, flow, type NonEmptyReadonlyArray, Option, pipe, Pipeable, PubSub, S, Unify } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { NotFoundError } from "effect-app/client/errors"
 import { flatMapOption } from "effect-app/Effect"
@@ -12,6 +12,7 @@ import { getContextMap } from "../../../Store/ContextMapContainer.js"
 import type { FieldValues } from "../../filter/types.js"
 import * as Q from "../../query.js"
 import type { Repository } from "../service.js"
+import { ValidationError, ValidationResult } from "../validation.js"
 
 const dedupe = Array.dedupeWith(Equivalence.string)
 
@@ -322,6 +323,64 @@ export function makeRepoInternal<
             )
           }) as any
 
+          const validateSample = Effect.fn("validateSample")(function*(options?: {
+            percentage?: number
+            maxItems?: number
+          }) {
+            const percentage = options?.percentage ?? 0.1 // default 10%
+            const maxItems = options?.maxItems
+
+            // 1. get all IDs with projection (bypasses main schema decode)
+            const allIds = yield* store.filter({
+              t: null as unknown as Encoded,
+              select: [idKey as keyof Encoded]
+            })
+
+            // 2. random subset
+            const shuffled = [...allIds].sort(() => Math.random() - 0.5)
+            const sampleSize = Math.min(
+              maxItems ?? Infinity,
+              Math.ceil(allIds.length * percentage)
+            )
+            const sample = shuffled.slice(0, sampleSize)
+
+            // 3. validate each item
+            const errors: ValidationError[] = []
+
+            for (const item of sample) {
+              const id = item[idKey]
+              const rawResult = yield* store.find(id)
+
+              if (Option.isNone(rawResult)) continue
+
+              const rawData = rawResult.value as Encoded
+              const jitMResult = mapFrom(rawData) // apply jitM
+
+              const decodeResult = yield* S.decode(schema)(jitMResult).pipe(
+                Effect.either,
+                provideRctx
+              )
+
+              if (Either.isLeft(decodeResult)) {
+                errors.push(
+                  new ValidationError({
+                    id,
+                    rawData,
+                    jitMResult,
+                    error: decodeResult.left
+                  })
+                )
+              }
+            }
+
+            return new ValidationResult({
+              total: NonNegativeInt(allIds.length),
+              sampled: NonNegativeInt(sample.length),
+              valid: NonNegativeInt(sample.length - errors.length),
+              errors
+            })
+          })
+
           const r: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<R, RCtx>, RPublish> = {
             changeFeed,
             itemType: name,
@@ -331,6 +390,7 @@ export function makeRepoInternal<
             saveAndPublish,
             removeAndPublish,
             removeById,
+            validateSample,
             queryRaw(schema, q) {
               const dec = S.decode(S.Array(schema))
               return store.queryRaw(q).pipe(Effect.flatMap(dec))

@@ -1,5 +1,11 @@
 # @effect-app/vue-components
 
+## 3.1.0
+
+### Minor Changes
+
+- 1b67af2: bunp
+
 ## 3.0.8
 
 ### Patch Changes

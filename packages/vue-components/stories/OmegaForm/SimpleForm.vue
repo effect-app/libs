@@ -1,55 +1,58 @@
 <template>
-  <stocazzo.Form :subscribe="['values']">
+  <form.Form :subscribe="['values']">
     <template #default="{ subscribedValues: { values } }">
       {{ values }}
-      <stocazzo.TaggedUnion
+      <form.TaggedUnion
         label="select"
         :options="[{
-          title: 'cazzoPippo',
-          value: 'cazzoPippo'
+          title: 'one',
+          value: 'one'
         }, {
-          title: 'Pippocazzo',
-          value: 'Pippocazzo'
+          title: 'two',
+          value: 'two'
         }]"
       >
-        <stocazzo.Input name="a.height" />
-        <stocazzo.Input name="a.width" />
-        <template #Pippocazzo>
-          <stocazzo.Input name="a.y" />
+        <form.Input name="a.number" />
+        <form.Input name="a.height" />
+        <form.Input name="a.width" />
+        <template #two>
+          <form.Input name="a.y" />
         </template>
-        <template #cazzoPippo>
-          <stocazzo.Input name="a.z" />
+        <template #one>
+          <form.Input name="a.z" />
         </template>
         <v-btn type="submit">
           ciao
         </v-btn>
-      </stocazzo.TaggedUnion>
-      <stocazzo.Errors />
+      </form.TaggedUnion>
+      <form.Errors />
     </template>
-  </stocazzo.Form>
+  </form.Form>
 </template>
 
 <script setup lang="ts">
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
-const stocazzo = useOmegaForm(
+const form = useOmegaForm(
   S.Union(
     S.Struct({
       a: S.Struct({
+        number: S.Number.pipe(S.int()).pipe(S.between(1, 20)),
         height: S.NonEmptyString100.pipe(S.minLength(10)),
         width: S.NonEmptyString100.pipe(S.minLength(10)),
         z: S.NonEmptyString100.pipe(S.minLength(10))
       }),
-      _tag: S.Literal("cazzoPippo")
+      _tag: S.Literal("one")
     }),
     S.Struct({
       a: S.Struct({
+        number: S.Number.pipe(S.int()).pipe(S.between(1, 20)),
         height: S.NonNegativeInt.pipe(S.greaterThan(11)),
         width: S.NonNegativeInt.pipe(S.greaterThan(11)),
         y: S.NonNegativeInt.pipe(S.greaterThan(11))
       }),
-      _tag: S.Literal("Pippocazzo")
+      _tag: S.Literal("two")
     })
   )
 )

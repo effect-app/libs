@@ -1,5 +1,12 @@
 # @effect-app/vue-components
 
+## 3.0.8
+
+### Patch Changes
+
+- 62f5306: bump
+- 2fd98cc: fix: unify number type handling and remove 'int' references across components
+
 ## 3.0.7
 
 ### Patch Changes

@@ -246,11 +246,12 @@ export type StringFieldMeta = BaseFieldMeta & {
 }
 
 export type NumberFieldMeta = BaseFieldMeta & {
-  type: "number" | "int"
+  type: "number"
   minimum?: number
   maximum?: number
   exclusiveMinimum?: number
   exclusiveMaximum?: number
+  refinement?: "int"
 }
 
 export type SelectFieldMeta = BaseFieldMeta & {
@@ -682,7 +683,8 @@ export const createMeta = <T = any>(
     // if this is S.Int (a refinement), set the type and skip following "from"
     // otherwise we'd lose the "Int" information and get "number" instead
     if (titleType === "Int" || titleType === "int") {
-      meta["type"] = "int"
+      meta["type"] = "number"
+      meta["refinement"] = "int"
       // don't follow "from" for Int refinements
     } else if ("from" in property) {
       return createMeta<T>({
@@ -888,66 +890,28 @@ export const generateInputStandardSchemaFromFieldMeta = (
       }
       break
 
-    case "int": {
-      // create a custom integer schema with translations
-      // S.Number with empty message, then S.int with integer message
-      schema = S
-        .Number
-        .annotations({
-          message: () => trans("validation.empty")
-        })
-        .pipe(
-          S.int({ message: (issue) => trans("validation.integer.expected", { actualValue: String(issue.actual) }) })
-        )
-      if (typeof meta.minimum === "number") {
-        schema = schema.pipe(S.greaterThanOrEqualTo(meta.minimum)).annotations({
-          message: () =>
-            trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
-              minimum: meta.minimum,
-              isExclusive: true
-            })
-        })
-      }
-      if (typeof meta.maximum === "number") {
-        schema = schema.pipe(S.lessThanOrEqualTo(meta.maximum)).annotations({
-          message: () =>
-            trans("validation.number.max", {
-              maximum: meta.maximum,
-              isExclusive: true
-            })
-        })
-      }
-      if (typeof meta.exclusiveMinimum === "number") {
-        schema = schema.pipe(S.greaterThan(meta.exclusiveMinimum)).annotations({
-          message: () =>
-            trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
-              minimum: meta.exclusiveMinimum,
-              isExclusive: false
-            })
-        })
-      }
-      if (typeof meta.exclusiveMaximum === "number") {
-        schema = schema.pipe(S.lessThan(meta.exclusiveMaximum)).annotations({
-          message: () =>
-            trans("validation.number.max", {
-              maximum: meta.exclusiveMaximum,
-              isExclusive: false
-            })
-        })
-      }
-      break
-    }
-
     case "number":
-      schema = S.Number.annotations({
-        message: () => trans("validation.number.expected", { actualValue: "NaN" })
-      })
-
-      if (meta.required) {
-        schema.annotations({
-          message: () => trans("validation.empty")
+      if (meta.refinement === "int") {
+        schema = S
+          .Number
+          .annotations({
+            message: () => trans("validation.empty")
+          })
+          .pipe(
+            S.int({ message: (issue) => trans("validation.integer.expected", { actualValue: String(issue.actual) }) })
+          )
+      } else {
+        schema = S.Number.annotations({
+          message: () => trans("validation.number.expected", { actualValue: "NaN" })
         })
+
+        if (meta.required) {
+          schema.annotations({
+            message: () => trans("validation.empty")
+          })
+        }
       }
+
       if (typeof meta.minimum === "number") {
         schema = schema.pipe(S.greaterThanOrEqualTo(meta.minimum)).annotations({
           message: () =>

@@ -1,6 +1,6 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateInputStandardSchemaFromFieldMeta, generateMetaFromSchema } from "../src/components/OmegaForm/OmegaFormStuff"
+import { generateInputStandardSchemaFromFieldMeta, generateMetaFromSchema, type NumberFieldMeta } from "../src/components/OmegaForm/OmegaFormStuff"
 
 // mock German translations
 const germanTranslations: Record<string, string> = {
@@ -20,7 +20,7 @@ const mockTrans = (id: string, values?: Record<string, any>) => {
 }
 
 describe("Integer validation with German translations", () => {
-  it("should generate int metadata for S.Int fields", () => {
+  it("should generate number metadata with int refinement for S.Int fields", () => {
     const TestSchema = S.Struct({
       value: S.Int
     })
@@ -28,7 +28,8 @@ describe("Integer validation with German translations", () => {
     const { meta } = generateMetaFromSchema(TestSchema)
     console.log("Meta:", JSON.stringify(meta, null, 2))
 
-    expect(meta.value?.type).toBe("int")
+    expect(meta.value?.type).toBe("number")
+    expect((meta.value as NumberFieldMeta).refinement).toBe("int")
   })
 
   it("should show German error for decimal values", async () => {

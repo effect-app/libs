@@ -23,6 +23,7 @@
         "diagnosticSeverity": {
           "missingEffectServiceDependency": "error",
           "effectFnOpportunity": "warning",
+          "globalErrorInEffectFailure": "warning"
         }
       }
     ]

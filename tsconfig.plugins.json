@@ -21,7 +21,8 @@
       {
         "name": "@effect/language-service",
         "diagnosticSeverity": {
-          "missingEffectServiceDependency": "error"
+          "missingEffectServiceDependency": "error",
+          "effectFnOpportunity": "warning",
         }
       }
     ]

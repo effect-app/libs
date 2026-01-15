@@ -193,9 +193,7 @@ Effect
                   i++
                 }
               })
-            )
-          )
-          .pipe(
+            ),
             Effect.andThen(
               Effect.addFinalizer(() => Effect.logInfo(`Stopped monitoring child indexes in: ${watchPath}`))
             ),
@@ -229,9 +227,7 @@ Effect
 
                 yield* runGetExitCode(`pnpm eslint --fix "${indexFile}"`)
               })
-            )
-          )
-          .pipe(
+            ),
             Effect.andThen(
               Effect.addFinalizer(() =>
                 Effect.logInfo(`Stopped monitoring root indexes in: ${watchPath} -> ${indexFile}`)

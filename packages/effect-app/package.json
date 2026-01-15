@@ -4,7 +4,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@effect/rpc": "^0.72.1",
+    "@effect/rpc": "^0.73.0",
     "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.1.0",
     "nanoid": "^5.1.6",
@@ -13,21 +13,21 @@
     "ts-pattern": "^5.9.0",
     "ts-toolbelt": "^9.6.0",
     "uuid": "^13.0.0",
-    "validator": "^13.15.23"
+    "validator": "^13.15.26"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "24.10.1",
+    "@types/node": "25.0.8",
     "@types/uuid": "^11.0.0",
-    "@types/validator": "^13.15.8",
+    "@types/validator": "^13.15.10",
     "@effect-app/eslint-shared-config": "workspace:*",
-    "fast-check": "~4.3.0",
+    "fast-check": "~4.5.3",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.9"
+    "vitest": "^4.0.17"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.93.2",
-    "effect": "^3.19.3"
+    "@effect/platform": "^0.94.1",
+    "effect": "^3.19.14"
   },
   "typesVersions": {
     "*": {

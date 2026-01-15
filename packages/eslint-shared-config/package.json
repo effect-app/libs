@@ -24,29 +24,29 @@
   },
   "dependencies": {
     "@effect-app/eslint-codegen-model": "workspace:*",
-    "@eslint/js": "9.39.1",
-    "@eslint/eslintrc": "3.3.1",
+    "@eslint/js": "9.39.2",
+    "@eslint/eslintrc": "3.3.3",
     "eslint-plugin-import": "2.32.0",
     "eslint-import-resolver-typescript": "4.4.4",
     "eslint-plugin-codegen": "0.17.0",
     "eslint-plugin-sort-destructure-keys": "2.0.0",
     "eslint-plugin-unused-imports": "4.3.0",
-    "@ben_12/eslint-plugin-dprint": "1.12.0",
-    "eslint-plugin-formatjs": "5.4.2",
+    "@ben_12/eslint-plugin-dprint": "1.14.0",
+    "eslint-plugin-formatjs": "6.1.0",
     "@vue/eslint-config-typescript": "14.6.0",
-    "typescript-eslint": "8.46.4",
-    "eslint-plugin-vue": "10.5.1",
-    "dprint-plugin-malva": "0.15.0",
-    "dprint-plugin-markup": "0.24.1",
-    "dprint-plugin-yaml": "0.5.1",
-    "@dprint/typescript": "0.95.12",
-    "@eslint/compat": "1.4.1",
+    "typescript-eslint": "8.53.0",
+    "eslint-plugin-vue": "10.6.2",
+    "dprint-plugin-malva": "0.15.2",
+    "dprint-plugin-markup": "0.25.3",
+    "dprint-plugin-yaml": "0.6.0",
+    "@dprint/typescript": "0.95.13",
+    "@eslint/compat": "2.0.1",
     "eslint-import-resolver-webpack": "0.13.10",
     "eslint-plugin-simple-import-sort": "12.1.1",
     "eslint-watch": "^8.0.0",
-    "@typescript-eslint/eslint-plugin": "8.46.4",
-    "@typescript-eslint/parser": "8.46.4",
-    "@dprint/formatter": "0.4.1",
+    "@typescript-eslint/eslint-plugin": "8.53.0",
+    "@typescript-eslint/parser": "8.53.0",
+    "@dprint/formatter": "0.5.1",
     "jsonc-parser": "3.3.1"
   },
   "bundledDependencies": [
@@ -56,8 +56,8 @@
     "patch-package": "^8.0.1"
   },
   "peerDependencies": {
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.2",
     "typescript": "~5.9.3",
-    "dprint": "^0.50.2"
+    "dprint": "^0.51.1"
   }
 }

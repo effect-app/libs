@@ -9,6 +9,8 @@ import * as yaml from "js-yaml"
 import path from "path"
 import { RunCommandService } from "./os-command.js"
 
+export class GistError extends Data.TaggedError("GistError")<{ message: string }> {}
+
 //
 //
 // Schemas
@@ -272,8 +274,9 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
         },
         (_, company) =>
           _.pipe(
-            Effect.catchTag("GistCacheNotFound", () =>
-              Effect.gen(function*() {
+            Effect.catchTag(
+              "GistCacheNotFound",
+              Effect.fnUntraced(function*() {
                 yield* Effect.logInfo("Cache gist not found, creating new cache...")
 
                 yield* runGetStringSuppressed(
@@ -282,12 +285,14 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
                 // retry loading the cache after creating it
                 return yield* loadGistCache(company, { recCache: true })
-              }))
+              })
+            )
           ),
         (_, company) =>
           _.pipe(
-            Effect.catchTag("GistCacheOfCompanyNotFound", (e) =>
-              Effect.gen(function*() {
+            Effect.catchTag(
+              "GistCacheOfCompanyNotFound",
+              Effect.fnUntraced(function*(e) {
                 yield* Effect.logInfo(`Cache for company ${company} not found, creating company-specific cache file...`)
 
                 yield* runGetStringSuppressed(
@@ -296,7 +301,8 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
                 // retry loading the cache after creating it
                 return yield* loadGistCache(company, { recCacheCompany: true })
-              }))
+              })
+            )
           )
       )
 
@@ -501,7 +507,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
       const isLogged = yield* runGetExitCode(`echo ${token} | gh auth login --with-token`).pipe(Effect.orDie)
       if (isLogged !== 0) {
-        return yield* Effect.fail(new Error("Failed to log in to GitHub CLI with provided token"))
+        return yield* new GistError({ message: "Failed to log in to GitHub CLI with provided token" })
       } else {
         yield* Effect.logInfo("Successfully logged in to GitHub CLI")
       }
@@ -629,7 +635,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
 
         const configExists = yield* fs.exists(YAMLPath)
         if (!configExists) {
-          return yield* Effect.fail(new Error(`Configuration file not found: ${YAMLPath}`))
+          return yield* new GistError({ message: `Configuration file not found: ${YAMLPath}` })
         }
 
         const configFromYaml = yield* pipe(
@@ -671,22 +677,20 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
 
           const filesOnDiskWithFullPath = yield* Effect
             .all(
-              files_with_name.map((f) =>
-                Effect.gen(function*() {
-                  const fullPath = path.join(configFromYaml.settings.base_directory, f.path)
-                  const fileExists = yield* fs.exists(fullPath)
+              files_with_name.map(Effect.fnUntraced(function*(f) {
+                const fullPath = path.join(configFromYaml.settings.base_directory, f.path)
+                const fileExists = yield* fs.exists(fullPath)
 
-                  if (!fileExists) {
-                    yield* Effect.logWarning(`File not found: ${fullPath}, skipping...`)
-                    return Option.none()
-                  }
+                if (!fileExists) {
+                  yield* Effect.logWarning(`File not found: ${fullPath}, skipping...`)
+                  return Option.none()
+                }
 
-                  return Option.some({
-                    path: fullPath,
-                    name: f.name
-                  })
+                return Option.some({
+                  path: fullPath,
+                  name: f.name
                 })
-              ),
+              })),
               {
                 concurrency: "unbounded"
               }

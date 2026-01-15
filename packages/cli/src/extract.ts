@@ -17,24 +17,23 @@ export const ExtractExportMappingsService = Effect.fn("effa-cli.extractExportMap
   const path = yield* Path.Path
 
   return Effect.fn("effa-cli.extractExportMappings.service")(function*(cwd: string) {
+    // @effect-diagnostics-next-line effectFnOpportunity:off
     const findTsFiles = (dir: string): Effect.Effect<string[], PlatformError.PlatformError, never> =>
       Effect.gen(function*() {
         const entries = yield* fs.readDirectory(dir)
 
         const results = yield* Effect.all(
-          entries.map((entry) =>
-            Effect.gen(function*() {
-              const fullPath = path.join(dir, entry)
-              const stat = yield* fs.stat(fullPath)
+          entries.map(Effect.fnUntraced(function*(entry) {
+            const fullPath = path.join(dir, entry)
+            const stat = yield* fs.stat(fullPath)
 
-              if (stat.type === "Directory") {
-                return yield* findTsFiles(fullPath)
-              } else if (entry.endsWith(".ts") && !entry.includes(".test.")) {
-                return [fullPath]
-              }
-              return []
-            })
-          )
+            if (stat.type === "Directory") {
+              return yield* findTsFiles(fullPath)
+            } else if (entry.endsWith(".ts") && !entry.includes(".test.")) {
+              return [fullPath]
+            }
+            return []
+          }))
         )
 
         return EffectArray.flatten(results)

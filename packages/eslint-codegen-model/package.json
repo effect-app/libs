@@ -14,9 +14,9 @@
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "dependencies": {
-    "@babel/generator": "7.28.5",
-    "@babel/parser": "7.28.5",
-    "@typescript-eslint/utils": "8.46.4",
+    "@babel/generator": "7.28.6",
+    "@babel/parser": "7.28.6",
+    "@typescript-eslint/utils": "8.53.0",
     "eslint-plugin-codegen": "0.17.0",
     "glob": "8.1.0",
     "io-ts": "2.2.22",
@@ -25,14 +25,14 @@
     "lodash": "4.17.21"
   },
   "peerDependencies": {
-    "effect": "^3.19.3"
+    "effect": "^3.19.14"
   },
   "devDependencies": {
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
     "@types/glob": "8.1.0",
-    "@types/lodash": "4.17.20",
-    "effect": "^3.19.3",
+    "@types/lodash": "4.17.23",
+    "effect": "^3.19.14",
     "madge": "8.0.0",
     "typescript": "~5.9.3",
     "effect-app": "workspace:*",

@@ -42,7 +42,7 @@
     "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",
     "nnm": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && pnpm i",
-    "prepare": "effect-language-service patch"
+    "prepare": "true || effect-language-service patch"
   },
   "resolutions": {
     "date-fns": "$date-fns",

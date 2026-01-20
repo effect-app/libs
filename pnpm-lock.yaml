@@ -50,8 +50,8 @@ importers:
         specifier: ^2.29.8
         version: 2.29.8(@types/node@25.0.8)
       '@effect-app/cli':
-        specifier: ^1.28.1
-        version: 1.28.1(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer-ansi@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
+        specifier: ^1.29.1
+        version: 1.29.1(4ff7d73a3d5ba42ef17ca03fad555152)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -1165,8 +1165,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@1.28.1':
-    resolution: {integrity: sha512-HcsmbLmc3GX5eQhrFgWFsMhHlDuJhkvE271SgWIoH5xmjwyXXQiRWPA4zX7EgmsS2lGoe9AyH6fZszaewWW9pQ==}
+  '@effect-app/cli@1.29.1':
+    resolution: {integrity: sha512-LKL6S/JQ2upkgGVMAizpEpYyC6e07yA+x0pEk+9EafYejlAfQd98h3bgf3y71oUQjEWgsopeU+b/ed2HhACtYQ==}
     hasBin: true
 
   '@effect-atom/atom-vue@0.4.5':
@@ -1182,14 +1182,6 @@ packages:
       '@effect/platform': ^0.93.0
       '@effect/rpc': ^0.72.1
       effect: ^3.19.0
-
-  '@effect/cli@0.72.1':
-    resolution: {integrity: sha512-HGDMGD23TxFW9tCSX6g+M2u0robikMA0mP0SqeJMj7FWXTdcQ+cQsJE99bxi9iu+5YID7MIrVJMs8TUwXUV2sg==}
-    peerDependencies:
-      '@effect/platform': ^0.93.0
-      '@effect/printer': ^0.47.0
-      '@effect/printer-ansi': ^0.47.0
-      effect: ^3.19.3
 
   '@effect/cli@0.73.0':
     resolution: {integrity: sha512-KkRtFjfyG52kQ6Z3ZEjwytfKZQACsLzn/RI2jKKxMJDebY9BQganOiE3VGCT4slU3Zisur6SP//ghM0vCLQs4g==}
@@ -1231,15 +1223,6 @@ packages:
       '@effect/platform': ^0.94.0
       effect: ^3.19.13
 
-  '@effect/platform-node-shared@0.53.0':
-    resolution: {integrity: sha512-xqhYyUYotVUJi7Tqd/iM+tqEoNm6fVowcPm9naxKZCa6WPD6TnRfaogxjkB3yNBnPY63Ya/sIkfkeZXA3MwF3w==}
-    peerDependencies:
-      '@effect/cluster': ^0.52.0
-      '@effect/platform': ^0.93.0
-      '@effect/rpc': ^0.72.1
-      '@effect/sql': ^0.48.0
-      effect: ^3.19.0
-
   '@effect/platform-node-shared@0.57.0':
     resolution: {integrity: sha512-QXuvmLNlABCQLcTl+lN1YPhKosR6KqArPYjC2reU0fb5lroCo3YRb/aGpXIgLthHzQL8cLU5XMGA3Cu5hKY2Tw==}
     peerDependencies:
@@ -1248,15 +1231,6 @@ packages:
       '@effect/rpc': ^0.73.0
       '@effect/sql': ^0.49.0
       effect: ^3.19.13
-
-  '@effect/platform-node@0.100.0':
-    resolution: {integrity: sha512-awfeW8zy5hgyRy+ml4bHK27DukTrTV5xvDhZioRF7USjJRwlZ+irdWhR6ExY+UOnAsmq0h8m/1s0l9pUcBi0bw==}
-    peerDependencies:
-      '@effect/cluster': ^0.52.0
-      '@effect/platform': ^0.93.0
-      '@effect/rpc': ^0.72.1
-      '@effect/sql': ^0.48.0
-      effect: ^3.19.0
 
   '@effect/platform-node@0.104.0':
     resolution: {integrity: sha512-2ZkUDDTxLD95ARdYIKBx4tdIIgqA3cwb3jlnVVBxmHUf0Pg5N2HdMuD0Q+CXQ7Q94FDwnLW3ZvaSfxDh6FvrNw==}
@@ -7525,10 +7499,10 @@ snapshots:
   '@dprint/win32-x64@0.51.1':
     optional: true
 
-  '@effect-app/cli@1.28.1(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer-ansi@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
+  '@effect-app/cli@1.29.1(4ff7d73a3d5ba42ef17ca03fad555152)':
     dependencies:
-      '@effect/cli': 0.72.1(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer-ansi@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@effect/platform-node': 0.100.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
+      '@effect/cli': 0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer-ansi@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
+      '@effect/platform-node': 0.104.0(@effect/cluster@0.56.1(ea0a85c9384965b815244e80e26b1417))(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/sql@0.49.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
       js-yaml: 4.1.1
       node-watch: 0.7.4
     transitivePeerDependencies:
@@ -7558,16 +7532,6 @@ snapshots:
       '@effect/platform': 0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
       '@effect/rpc': 0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
       effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
-
-  '@effect/cli@0.72.1(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer-ansi@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
-    dependencies:
-      '@effect/platform': 0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@effect/printer': 0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@effect/printer-ansi': 0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
-      ini: 4.1.3
-      toml: 3.0.0
-      yaml: 2.8.2
 
   '@effect/cli@0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer-ansi@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/printer@0.47.0(@effect/typeclass@0.38.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
     dependencies:
@@ -7602,17 +7566,6 @@ snapshots:
       effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       multipasta: 0.2.7
 
-  '@effect/platform-node-shared@0.53.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
-    dependencies:
-      '@effect/platform': 0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@parcel/watcher': 2.5.4
-      effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
-      multipasta: 0.2.7
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
   '@effect/platform-node-shared@0.57.0(@effect/cluster@0.56.1(ea0a85c9384965b815244e80e26b1417))(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/sql@0.49.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
     dependencies:
       '@effect/cluster': 0.56.1(ea0a85c9384965b815244e80e26b1417)
@@ -7622,18 +7575,6 @@ snapshots:
       '@parcel/watcher': 2.5.4
       effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       multipasta: 0.2.7
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
-  '@effect/platform-node@0.100.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
-    dependencies:
-      '@effect/platform': 0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@effect/platform-node-shared': 0.53.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
-      mime: 3.0.0
-      undici: 7.18.2
       ws: 8.19.0
     transitivePeerDependencies:
       - bufferutil

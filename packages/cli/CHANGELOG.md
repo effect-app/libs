@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.29.1
+
+### Patch Changes
+
+- 5d043d3: propagate exit code
+
 ## 1.29.0
 
 ### Minor Changes

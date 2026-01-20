@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 1.29.2
+
+### Patch Changes
+
+- 5880020: bootstrap
+
 ## 1.29.1
 
 ### Patch Changes

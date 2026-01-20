@@ -446,7 +446,10 @@ Effect
               : wrapOption.value
 
             yield* Effect.logInfo(`Spawning child command: ${val}`)
-            yield* runGetExitCode(val)
+            const exitCode = yield* runGetExitCode(val)
+            if (exitCode !== 0) {
+              return yield* Effect.sync(() => process.exit(exitCode))
+            }
           }
 
           return

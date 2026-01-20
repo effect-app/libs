@@ -50,3 +50,5 @@ fabric.properties
 
 # nix
 .direnv
+
+dist

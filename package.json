@@ -42,7 +42,7 @@
     "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",
     "nnm": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && pnpm i",
-    "prepare": "true || effect-language-service patch"
+    "prepare": "effect-language-service patch"
   },
   "resolutions": {
     "date-fns": "$date-fns",
@@ -61,7 +61,7 @@
     "@effect-app/cli": "^1.29.2",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
-    "@effect/language-service": "0.71.1",
+    "@effect/language-service": "0.71.2",
     "@effect/platform": "^0.94.1",
     "@effect/platform-node": "^0.104.0",
     "@effect/vitest": "^0.27.0",

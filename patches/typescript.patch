@@ -1,8 +1,8 @@
 diff --git a/lib/typescript.js b/lib/typescript.js
-index 2643aa12aa6497ca0b90ecd99b202f37ea0e6330..1c602d55fd8a6ca155928bad28a9377d109896f5 100644
+index afd4986f038d7168711189004606a33a3dfbb3a0..1c602d55fd8a6ca155928bad28a9377d109896f5 100644
 --- a/lib/typescript.js
 +++ b/lib/typescript.js
-@@ -159172,10 +159172,129 @@ function getFixInfos(context, errorCode, pos, useAutoImportProvider) {
+@@ -159205,10 +159205,129 @@ function getFixInfos(context, errorCode, pos, useAutoImportProvider) {
    const packageJsonImportFilter = createPackageJsonImportFilter(context.sourceFile, context.preferences, context.host);
    return info && sortFixInfo(info, context.sourceFile, context.program, packageJsonImportFilter, context.host, context.preferences);
  }
@@ -135,7 +135,7 @@ index 2643aa12aa6497ca0b90ecd99b202f37ea0e6330..1c602d55fd8a6ca155928bad28a9377d
  function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvider) {
    const info = getFixesInfoForNonUMDImport(context, symbolToken, useAutoImportProvider);
    const packageJsonImportFilter = createPackageJsonImportFilter(context.sourceFile, context.preferences, context.host);
-@@ -159183,6 +159302,7 @@ function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvide
+@@ -159216,6 +159335,7 @@ function getFixInfosWithoutDiagnostic(context, symbolToken, useAutoImportProvide
  }
  function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, preferences) {
    if (!some(fixes)) return;
@@ -143,7 +143,7 @@ index 2643aa12aa6497ca0b90ecd99b202f37ea0e6330..1c602d55fd8a6ca155928bad28a9377d
    if (fixes[0].kind === 0 /* UseNamespace */ || fixes[0].kind === 2 /* AddToExisting */) {
      return fixes[0];
    }
-@@ -159203,13 +159323,19 @@ function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, p
+@@ -159236,13 +159356,19 @@ function getBestFix(fixes, sourceFile, program, packageJsonImportFilter, host, p
  }
  function compareModuleSpecifiers(a, b, importingFile, program, preferences, allowsImportingSpecifier, toPath3) {
    if (a.kind !== 0 /* UseNamespace */ && b.kind !== 0 /* UseNamespace */) {

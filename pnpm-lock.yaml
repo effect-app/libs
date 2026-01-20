@@ -50,7 +50,7 @@ importers:
         specifier: ^2.29.8
         version: 2.29.8(@types/node@25.0.8)
       '@effect-app/cli':
-        specifier: ^1.29.1
+        specifier: ^1.29.0
         version: 1.29.1(4ff7d73a3d5ba42ef17ca03fad555152)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
@@ -59,8 +59,8 @@ importers:
         specifier: workspace:*
         version: link:packages/infra
       '@effect/language-service':
-        specifier: 0.65.0
-        version: 0.65.0
+        specifier: 0.71.1
+        version: 0.71.1
       '@effect/platform':
         specifier: ^0.94.1
         version: 0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
@@ -1213,8 +1213,8 @@ packages:
       lmdb:
         optional: true
 
-  '@effect/language-service@0.65.0':
-    resolution: {integrity: sha512-eHcpLNCZa1XEDRrXLZqTdky6jAQojL6zQEW53Ba6vJL35j77tJTnV9BFkk34G3rxKoplNo39U0Mum3RfuH9rsg==}
+  '@effect/language-service@0.71.1':
+    resolution: {integrity: sha512-H4dodHdwkymirPMPm4Z8ogiFvbMnxnO6HHASS5XeptrqRZ8AdA9MLkFxLU6nAn9QbL0I4V26U50lFOju7Z2riA==}
     hasBin: true
 
   '@effect/platform-browser@0.74.0':
@@ -7558,7 +7558,7 @@ snapshots:
       effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       uuid: 11.1.0
 
-  '@effect/language-service@0.65.0': {}
+  '@effect/language-service@0.71.1': {}
 
   '@effect/platform-browser@0.74.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
     dependencies:

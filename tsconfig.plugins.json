@@ -20,10 +20,12 @@
       },
       {
         "name": "@effect/language-service",
+        "ignoreEffectWarningsInTscExitCode": true,
         "diagnosticSeverity": {
           "missingEffectServiceDependency": "error",
           "effectFnOpportunity": "warning",
-          "globalErrorInEffectFailure": "warning"
+          "globalErrorInEffectFailure": "warning",
+          "preferSchemaOverJson": "warning"
         }
       }
     ]

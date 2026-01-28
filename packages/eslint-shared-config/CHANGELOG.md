@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.5.3
+
+### Patch Changes
+
+- 8adb2df: downgrade dprint plugin
+  - @effect-app/eslint-codegen-model@1.47.0
+
 ## 0.5.2
 
 ### Patch Changes

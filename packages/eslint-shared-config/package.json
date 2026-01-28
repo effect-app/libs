@@ -46,7 +46,7 @@
     "eslint-watch": "^8.0.0",
     "@typescript-eslint/eslint-plugin": "8.53.0",
     "@typescript-eslint/parser": "8.53.0",
-    "@dprint/formatter": "0.5.1",
+    "@dprint/formatter": "0.4.1",
     "jsonc-parser": "3.3.1"
   },
   "bundledDependencies": [

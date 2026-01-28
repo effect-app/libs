@@ -1,5 +1,13 @@
 # @effect-app/eslint-shared-config
 
+## 0.5.5
+
+### Patch Changes
+
+- 43334b4: try again
+- d315086: patch dprint
+  - @effect-app/eslint-codegen-model@1.47.0
+
 ## 0.5.2
 
 ### Patch Changes

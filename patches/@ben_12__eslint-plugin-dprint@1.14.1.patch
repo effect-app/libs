@@ -1,5 +1,5 @@
 diff --git a/dist/lib/dprint/dprint.js b/dist/lib/dprint/dprint.js
-index 124201205c4c8f12942bae72018e4bc6351d5c2f..d73dc4f147957331d4bdd29b9451f7947d4312a5 100644
+index 1574a7f0b7010f2cbe23123c6524fccb0bb23b35..c2dcf1d350654b5ee1ccb1237ede0c9c10067519 100644
 --- a/dist/lib/dprint/dprint.js
 +++ b/dist/lib/dprint/dprint.js
 @@ -117,7 +117,8 @@ function getFormatter(filePath, configName, configFile, log = true) {
@@ -8,7 +8,7 @@ index 124201205c4c8f12942bae72018e4bc6351d5c2f..d73dc4f147957331d4bdd29b9451f794
          else if (isPluginName(configName) && log) {
 -            console.warn("File %s not supported by %s", filePath, pluginsName[configName]);
 +            // silenced to reduce noise
-+            //console.warn("File %s not supported by %s", filePath, pluginsName[configName]);
++            // console.warn("File %s not supported by %s", filePath, pluginsName[configName]);
          }
      }
      else if (isPluginName(configName) && log) {

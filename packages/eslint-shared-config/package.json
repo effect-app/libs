@@ -12,7 +12,7 @@
     "pub": "pnpm prepublish && npm publish --access public",
     "prepublish": "echo 'No build step for config package'",
     "postpublish": "echo 'Published @effect-app/eslint-shared-config'",
-    "prepack": "patch-package || echo 'already patched'"
+    "prepack": "echo 'ready'"
   },
   "exports": {
     "./eslint.base.config": {
@@ -52,9 +52,7 @@
   "bundledDependencies": [
     "@ben_12/eslint-plugin-dprint"
   ],
-  "devDependencies": {
-    "patch-package": "^8.0.1"
-  },
+  "devDependencies": {},
   "peerDependencies": {
     "eslint": "^9.39.2",
     "typescript": "~5.9.3",

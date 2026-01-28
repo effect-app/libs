@@ -10,6 +10,9 @@ overrides:
   vue: ^3.5.26
 
 patchedDependencies:
+  '@ben_12/eslint-plugin-dprint@1.14.1':
+    hash: b8e8106d9b2a2cf9ac8b08b3f7b7f5ab6ee17195c86f69601d3218139e96e32b
+    path: patches/@ben_12__eslint-plugin-dprint@1.14.1.patch
   '@tanstack/query-core':
     hash: 351153003e430d89ebb99f44022c6de72d7e21f40056ebf2468626bec8e015c7
     path: patches/@tanstack__query-core.patch
@@ -318,7 +321,7 @@ importers:
     dependencies:
       '@ben_12/eslint-plugin-dprint':
         specifier: 1.14.1
-        version: 1.14.1(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)
+        version: 1.14.1(patch_hash=b8e8106d9b2a2cf9ac8b08b3f7b7f5ab6ee17195c86f69601d3218139e96e32b)(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)
       '@dprint/formatter':
         specifier: 0.5.1
         version: 0.5.1
@@ -7248,7 +7251,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@ben_12/eslint-plugin-dprint@1.14.1(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)':
+  '@ben_12/eslint-plugin-dprint@1.14.1(patch_hash=b8e8106d9b2a2cf9ac8b08b3f7b7f5ab6ee17195c86f69601d3218139e96e32b)(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)':
     dependencies:
       '@dprint/formatter': 0.4.1
       debug: 4.4.3(supports-color@5.5.0)

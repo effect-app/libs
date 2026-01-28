@@ -7,7 +7,8 @@
       "effect": "patches/effect.patch",
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
-      "typescript": "patches/typescript.patch"
+      "typescript": "patches/typescript.patch",
+      "@ben_12/eslint-plugin-dprint@1.14.1": "patches/@ben_12__eslint-plugin-dprint@1.14.1.patch"
     }
   },
   "engines": {

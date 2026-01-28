@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.5.6
+
+### Patch Changes
+
+- dcb2df4: bump down formatter
+  - @effect-app/eslint-codegen-model@1.47.0
+
 ## 0.5.5
 
 ### Patch Changes

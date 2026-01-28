@@ -317,8 +317,8 @@ importers:
   packages/eslint-shared-config:
     dependencies:
       '@ben_12/eslint-plugin-dprint':
-        specifier: 1.14.1
-        version: 1.14.1(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)
+        specifier: 1.12.0
+        version: 1.12.0(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)
       '@dprint/formatter':
         specifier: 0.5.1
         version: 0.5.1
@@ -953,19 +953,19 @@ packages:
     resolution: {integrity: sha512-0ZrskXVEHSWIqZM/sQZ4EV3jZJXRkio/WCxaqKZP1g//CEWEPSfeZFcms4XeKBCHU0ZKnIkdJeU/kF+eRp5lBg==}
     engines: {node: '>=6.9.0'}
 
-  '@ben_12/eslint-plugin-dprint@1.14.1':
-    resolution: {integrity: sha512-/7JIbGz0NK0/fCWt0GpSmDFx8WiA8nV8fweKtp6jT1V+sjSPW7frj4gjogvYb//WGv+1PFfxhk9DnHc2vww3hw==}
+  '@ben_12/eslint-plugin-dprint@1.12.0':
+    resolution: {integrity: sha512-1ItVKrgFhUhLALEdcOPRJqraCNlg1xe+oiR3w3QtrY2SwgoBJ6wVUcgs93OqXJJ8Uk9wVJXc0xFEJHt+0tXlKw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@dprint/dockerfile': ^0.3.3
-      '@dprint/json': ^0.21.1
+      '@dprint/json': ^0.21.0
       '@dprint/markdown': ^0.20.0
       '@dprint/toml': ^0.7.0
-      '@dprint/typescript': ^0.95.13
+      '@dprint/typescript': ^0.95.12
       dprint-plugin-graphql: ^0.2.3
-      dprint-plugin-malva: ^0.15.2
-      dprint-plugin-markup: ^0.25.3
-      dprint-plugin-yaml: ^0.6.0
+      dprint-plugin-malva: ^0.15.0
+      dprint-plugin-markup: ^0.24.0
+      dprint-plugin-yaml: ^0.5.1
       eslint: '>=7.0.0'
     peerDependenciesMeta:
       '@dprint/dockerfile':
@@ -3694,8 +3694,8 @@ packages:
     resolution: {integrity: sha512-Mv/TDa3nZ9sbc5soK+OoA74BsS3mL37yixCvUAQkiuA4Wz6YtwP/K47n2rv2ovzHZvoiQeA5FTQOschKkEwB0Q==}
     engines: {node: '>= 10.14.2'}
 
-  diff@8.0.3:
-    resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
+  diff@7.0.0:
+    resolution: {integrity: sha512-PJWHUb1RFevKCwaFA9RlG5tCd+FO5iRh9A8HEtkmBH2Li03iJriB6m6JIN4rGz3K3JLawI7/veA1xzRKP6ISBw==}
     engines: {node: '>=0.3.1'}
 
   dir-glob@3.0.1:
@@ -7248,11 +7248,11 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@ben_12/eslint-plugin-dprint@1.14.1(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)':
+  '@ben_12/eslint-plugin-dprint@1.12.0(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)':
     dependencies:
       '@dprint/formatter': 0.4.1
       debug: 4.4.3(supports-color@5.5.0)
-      diff: 8.0.3
+      diff: 7.0.0
       eslint: 9.39.2
       jsonc-parser: 3.3.1
     optionalDependencies:
@@ -10091,7 +10091,7 @@ snapshots:
 
   diff-sequences@26.6.2: {}
 
-  diff@8.0.3: {}
+  diff@7.0.0: {}
 
   dir-glob@3.0.1:
     dependencies:

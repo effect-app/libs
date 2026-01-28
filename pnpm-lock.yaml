@@ -323,8 +323,8 @@ importers:
         specifier: 1.14.1
         version: 1.14.1(patch_hash=b8e8106d9b2a2cf9ac8b08b3f7b7f5ab6ee17195c86f69601d3218139e96e32b)(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)
       '@dprint/formatter':
-        specifier: 0.5.1
-        version: 0.5.1
+        specifier: 0.4.1
+        version: 0.4.1
       '@dprint/typescript':
         specifier: 0.95.13
         version: 0.95.13
@@ -1112,9 +1112,6 @@ packages:
 
   '@dprint/formatter@0.4.1':
     resolution: {integrity: sha512-IB/GXdlMOvi0UhQQ9mcY15Fxcrc2JPadmo6tqefCNV0bptFq7YBpggzpqYXldBXDa04CbKJ+rDwO2eNRPE2+/g==}
-
-  '@dprint/formatter@0.5.1':
-    resolution: {integrity: sha512-cdZUrm0iv/FnnY3CKE2dEcVhNEzrC551aE2h2mTFwQCRBrqyARLDnb7D+3PlXTUVp3s34ftlnGOVCmhLT9DeKA==}
 
   '@dprint/linux-arm64-glibc@0.51.1':
     resolution: {integrity: sha512-W+QD/4TkQKMPq02uz+ZIz/EI91YEtS2zHBu/Jihx2lfNh3HjUKgyY1KfqCTg2WGJVDkJtPc5KDw+M8yd4rI+Rg==}
@@ -7420,8 +7417,6 @@ snapshots:
     optional: true
 
   '@dprint/formatter@0.4.1': {}
-
-  '@dprint/formatter@0.5.1': {}
 
   '@dprint/linux-arm64-glibc@0.51.1':
     optional: true

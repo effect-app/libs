@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.5.2
+
+### Patch Changes
+
+- 344f332: bump to latest version again
+  - @effect-app/eslint-codegen-model@1.47.0
+
 ## 0.5.3
 
 ### Patch Changes

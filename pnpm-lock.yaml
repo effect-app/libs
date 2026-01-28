@@ -317,8 +317,8 @@ importers:
   packages/eslint-shared-config:
     dependencies:
       '@ben_12/eslint-plugin-dprint':
-        specifier: 1.14.0
-        version: 1.14.0(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)
+        specifier: 1.14.1
+        version: 1.14.1(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)
       '@dprint/formatter':
         specifier: 0.5.1
         version: 0.5.1
@@ -953,8 +953,8 @@ packages:
     resolution: {integrity: sha512-0ZrskXVEHSWIqZM/sQZ4EV3jZJXRkio/WCxaqKZP1g//CEWEPSfeZFcms4XeKBCHU0ZKnIkdJeU/kF+eRp5lBg==}
     engines: {node: '>=6.9.0'}
 
-  '@ben_12/eslint-plugin-dprint@1.14.0':
-    resolution: {integrity: sha512-XrRq3S0s8qUKJLiqVJVTSQ8jUEkfvete2sCgX9Iay7VSzaouv4UV6YO9SQNtLNVxcMpezNXWdTtVjOWuvAyaHg==}
+  '@ben_12/eslint-plugin-dprint@1.14.1':
+    resolution: {integrity: sha512-/7JIbGz0NK0/fCWt0GpSmDFx8WiA8nV8fweKtp6jT1V+sjSPW7frj4gjogvYb//WGv+1PFfxhk9DnHc2vww3hw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@dprint/dockerfile': ^0.3.3
@@ -963,7 +963,7 @@ packages:
       '@dprint/toml': ^0.7.0
       '@dprint/typescript': ^0.95.13
       dprint-plugin-graphql: ^0.2.3
-      dprint-plugin-malva: ^0.15.1
+      dprint-plugin-malva: ^0.15.2
       dprint-plugin-markup: ^0.25.3
       dprint-plugin-yaml: ^0.6.0
       eslint: '>=7.0.0'
@@ -6575,8 +6575,8 @@ packages:
   vue-component-type-helpers@2.2.12:
     resolution: {integrity: sha512-YbGqHZ5/eW4SnkPNR44mKVc6ZKQoRs/Rux1sxC6rdwXb4qpbOSYfDr9DsTHolOTGmIKgM9j141mZbBeg05R1pw==}
 
-  vue-component-type-helpers@3.2.2:
-    resolution: {integrity: sha512-x8C2nx5XlUNM0WirgfTkHjJGO/ABBxlANZDtHw2HclHtQnn+RFPTnbjMJn8jHZW4TlUam0asHcA14lf1C6Jb+A==}
+  vue-component-type-helpers@3.2.4:
+    resolution: {integrity: sha512-05lR16HeZDcDpB23ku5b5f1fBOoHqFnMiKRr2CiEvbG5Ux4Yi0McmQBOET0dR0nxDXosxyVqv67q6CzS3AK8rw==}
 
   vue-demi@0.14.10:
     resolution: {integrity: sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==}
@@ -7248,7 +7248,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@ben_12/eslint-plugin-dprint@1.14.0(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)':
+  '@ben_12/eslint-plugin-dprint@1.14.1(@dprint/typescript@0.95.13)(dprint-plugin-malva@0.15.2)(dprint-plugin-markup@0.25.3)(dprint-plugin-yaml@0.6.0)(eslint@9.39.2)':
     dependencies:
       '@dprint/formatter': 0.4.1
       debug: 4.4.3(supports-color@5.5.0)
@@ -8661,7 +8661,7 @@ snapshots:
       storybook: 10.1.11(@testing-library/dom@10.4.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       type-fest: 2.19.0
       vue: 3.5.26(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0))
-      vue-component-type-helpers: 3.2.2
+      vue-component-type-helpers: 3.2.4
 
   '@tanstack/devtools-event-client@0.4.0': {}
 
@@ -13364,7 +13364,7 @@ snapshots:
 
   vue-component-type-helpers@2.2.12: {}
 
-  vue-component-type-helpers@3.2.2: {}
+  vue-component-type-helpers@3.2.4: {}
 
   vue-demi@0.14.10(vue@3.5.26(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0))):
     dependencies:

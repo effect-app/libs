@@ -24,6 +24,7 @@ For each step we should find out if we can convert 1:1 or certain things are mis
 - Always check `AGENTS.md` in the root of each repository to understand rules.
 - You're allowed to use different versions of workspace packages within a project for the duration of the migration.
 - Create task files for each Step in markdown files under `task/Migration` directory, and track progress and findings in each.
+- Save all conversion findings in a `task/findings.md` file to speed up future migrations. 
 
 ## Conversion
 

@@ -22,7 +22,7 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "pnpm all clean",
     "clean-dist": "pnpm -r clean-dist",
-    "autofix": "NODE_OPTIONS=--max-old-space-size=6144 pnpm -r --no-bail autofix",
+    "lint-fix": "NODE_OPTIONS=--max-old-space-size=6144 pnpm -r --no-bail lint-fix",
     "lint": "pnpm -r lint",
     "circular:dist": "pnpm -r circular:dist",
     "test": "pnpm -r test:run",

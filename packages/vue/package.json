@@ -124,7 +124,7 @@
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
-    "autofix": "pnpm lint --fix",
+    "lint-fix": "pnpm lint --fix",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

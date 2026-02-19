@@ -14,6 +14,7 @@ This is the Effect App library repository, focusing on functional programming pa
 - **Conciseness**: Keep code and any wording concise and to the point. Sacrifice grammar for the sake of concision.
 - **Reduce comments**: Avoid comments unless absolutely required to explain unusual or complex logic. Comments in jsdocs are acceptable.
 - **Never import local `/repos` files**: Always use the latest online versions of packages instead.
+- **Never webfetch from the `effect` and `effect-smol` repos**: just use the locally included under `repos`
 
 ### Mandatory Validation Steps
 

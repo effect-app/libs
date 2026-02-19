@@ -8,7 +8,7 @@ There are migration guides:
 - [v3 to v4 general](/repos/effect-smol/MIGRATION.md)
 - [Schema v3 to v4](/repos/effect-smol/packages/effect/SCHEMA.md#migration-from-v3)
 
-## Approach
+## Steps
 
 1. Convert `cli` - as it's a standalone utility using minimal effect libraries.
 2. Convert `effect-app` core
@@ -18,10 +18,12 @@ There are migration guides:
 
 Each step will be completed individually, and only move on to the next step when the current is done succesfully.
 For each step we should find out if we can convert 1:1 or certain things are missing preventing that.
-Create task files for each, and track progress and findings in each.
+
+## Rules
 
 - Always check `AGENTS.md` in the root of each repository to understand rules.
 - You're allowed to use different versions of workspace packages within a project for the duration of the migration.
+- Create task files for each Step in markdown files under `task/Migration` directory, and track progress and findings in each.
 
 ## Conversion
 

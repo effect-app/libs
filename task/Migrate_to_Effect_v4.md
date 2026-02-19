@@ -20,9 +20,11 @@ Each step will be completed individually, and only move on to the next step when
 For each step we should find out if we can convert 1:1 or certain things are missing preventing that.
 Create task files for each, and track progress and findings in each.
 
+Always check `AGENTS.md` in the root of each repository to understand rules.
+
 ## Conversion
 
-We start with an as close as possible 1:1 conversion. In future tasks we can worry about refactoring.
+We start with an as close as possible 1:1 conversion.
 
 1. replace `effect` and `@effect/*` package.json references, with their respective v4 counter parts (most @effect/* have moved into `effect/unstable/*`), rerun `pnpm i`
 2. replace `effect` and `@effect/*` typescript references, with their respective v4 counter parts (most @effect/* have moved into `effect/unstable/*`)
@@ -31,6 +33,7 @@ We start with an as close as possible 1:1 conversion. In future tasks we can wor
 ## Out of scope
 
 - detect naming patterns we adopted from effect v3 in our libraries, and change them to match v4 naming patterns.
+- general refactorings and improvementsks
 
 ## Concerns
 

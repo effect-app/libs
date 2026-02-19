@@ -43,7 +43,9 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `Schema.encodeUnknown(schema)` | `Schema.encodeUnknownEffect(schema)` |
 | `Schema.optionalWith({ default: () => x, nullable: true, exact: true })` | `Schema.optional(Schema.NullOr(schema))` + `?? default` at usage |
 | `Schema.Record({ key: K, value: V })` | `Schema.Record(K, V)` (positional args) |
-| `Schema.Class.transformOrFail<T>("T")({fields}, {decode, encode})` | `sourceSchema.pipe(Schema.decodeTo(targetStruct, SchemaTransformation.transformOrFail({decode, encode})))` + `export type T = Schema.Schema.Type<typeof TConst>` |
+| `Schema.Class.transformOrFail<T>("T")({fields}, {decode, encode})` | `sourceSchema.pipe(Schema.decodeTo(targetStruct, SchemaTransformation.transformOrFail({decode, encode})))` — keep as class with `Schema.Opaque<Self>()(schema)` |
+| Schema class → `const + interface` pattern | **Do not do this.** Use `class Foo extends Schema.Opaque<Foo>()(schema) {}` to preserve class semantics |
+| `Array.filterMap(arr, fn)` (using `Option`) | `Array.filter(arr, fn)` where `fn` returns `Result.succeed(mapped)` or `Result.fail(item)` — import `Result` from `"effect"` |
 | `ParseResult.Type(ast, value, msg)` | `SchemaIssue.InvalidValue(Option.some(value), { message: msg })` |
 | `ParseResult.Composite(ast, value, issues)` | `SchemaIssue.Composite(ast, Option.some(value), issues)` (ast still needed) |
 | `ParseResult.succeed(x)` | `Effect.succeed(x)` |
@@ -53,10 +55,10 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 
 | v3 | v4 |
 |---|---|
-| `Effect.dieMessage("msg")` | `Effect.die(new Error("msg"))` |
-| `Effect.catchAll((e) => Effect.dieMessage(...))` | `Effect.mapError((e) => new Error(...)).pipe(Effect.orDie)` |
+| `Effect.dieMessage("msg")` | `Effect.die("msg")` (accepts `unknown`, prefer plain string over `new Error`) |
+| `Effect.catchAll((e) => Effect.dieMessage(...))` | `Effect.mapError((e) => \`...\`).pipe(Effect.orDie)` (mapError returns string, not `new Error`) |
 | `Effect.orElse(() => fallback)` | `Effect.catchCause(() => fallback)` |
-| `Effect.all({ a: Config.string(...) })` | Separate `yield* Config.string(...)` calls |
+| `Effect.all({ a: Config.string(...) })` | `Config.all({ a: Config.string(...) })` — use module's own `.all()` for Config/Either/Option |
 | `Config.withDefault("value")` | `Config.withDefault(() => "value")` (now takes `LazyArg`) |
 
 ## Order Module
@@ -99,6 +101,7 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 Most `@effect/*` sub-packages are now consolidated into `effect`:
 - `import { ServiceMap } from "effect"`
 - `import { SchemaTransformation, SchemaIssue } from "effect"`
+- `import { Result } from "effect"` (for filter/map operations replacing `Array.filterMap`)
 - `import { ChildProcess } from "effect/unstable/process"`
 - `import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"`
 - CLI: `import { Argument, Command, Flag, Prompt } from "effect/unstable/cli"`

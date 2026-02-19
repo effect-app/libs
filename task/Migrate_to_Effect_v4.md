@@ -20,7 +20,8 @@ Each step will be completed individually, and only move on to the next step when
 For each step we should find out if we can convert 1:1 or certain things are missing preventing that.
 Create task files for each, and track progress and findings in each.
 
-Always check `AGENTS.md` in the root of each repository to understand rules.
+- Always check `AGENTS.md` in the root of each repository to understand rules.
+- You're allowed to use different versions of workspace packages within a project for the duration of the migration.
 
 ## Conversion
 

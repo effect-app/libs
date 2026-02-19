@@ -34,6 +34,13 @@ We start with an as close as possible 1:1 conversion.
 2. replace `effect` and `@effect/*` typescript references, with their respective v4 counter parts (most @effect/* have moved into `effect/unstable/*`)
 3. use new names of v4 functions and modules accordingly
 
+## Conversion hints
+
+- `Effect.all()` with `Config`, `Either`, `Option`, etc, should be replaced with `Config.all()` and so forth.
+- `Effect.dieMessage("a message")` is now `Effect.die("a message")`
+- Do not convert Schema classes to non classes (const+interface), instead use the `Schema.Opaque` helper if needed.
+- `Array.filterMap` is replacable by effect's `Array.filter` with a `Filter.Filter` that filters and maps at the same time, using `Result` instead of `Option` it seems. 
+
 ## Out of scope
 
 - detect naming patterns we adopted from effect v3 in our libraries, and change them to match v4 naming patterns.

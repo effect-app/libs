@@ -40,7 +40,31 @@ We start with an as close as possible 1:1 conversion.
 
 ## Concerns
 
-- `Effect.Service` has been removed, to ease migration, we may at first copy (and adjust to effect-smol) the original implementation, export it from `effect-app/core/Effect` and replace it at a later stage.
+### `Effect.Service` migration to `ServiceMap.Service`
+
+Before:
+```ts
+class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
+  dependencies: [RunCommandService.Default],
+  effect: Effect.gen(function*() {
+    // ...
+  })
+} {}
+```
+
+After:
+```ts
+class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService", {
+  make: Effect.gen(function*() {
+    // ...
+  })
+}) {
+  static DefaultWithoutDependencies = Layer.effect(this, this.make)
+  static Default = this.DefaultWithoutDependencies.pipe(
+    Layer.provide(RunCommandService.Default)
+  )
+}
+```
 
 ## Context
 

@@ -18,6 +18,7 @@ There are migration guides:
 
 Each step will be completed individually, and only move on to the next step when the current is done succesfully.
 For each step we should find out if we can convert 1:1 or certain things are missing preventing that.
+Create task files for each, and track progress and findings in each.
 
 ## Conversion
 

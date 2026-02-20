@@ -1,6 +1,6 @@
 import { type Array, Effect, Layer, type Scope, type ServiceMap, type Types } from "effect"
 import { dual } from "effect/Function"
-import { type YieldWrap } from "effect/Utils"
+import type { Layer as L } from "effect/Layer"
 import { type EffectGenUtils } from "./utils/gen.js"
 
 export * from "effect/Layer"
@@ -11,7 +11,7 @@ type MakeEff<S, E, R> = {
   readonly make: Effect.Effect<S, E, R>
 }
 type MakeGen<S, E = never, R = never> = {
-  readonly make: () => Generator<YieldWrap<Effect.Effect<any, E, R>>, S, any>
+  readonly make: () => Generator<Effect.Effect<any, E, R>, S, any>
 }
 type MakeGenNo<S> = {
   readonly make: () => Generator<unknown, S>
@@ -19,20 +19,20 @@ type MakeGenNo<S> = {
 type MakeErr<Opts> = Opts extends { make: () => any } ? EffectGenUtils.Error<Opts["make"]> : never
 type MakeContext<Opts> = Opts extends { make: () => any } ? EffectGenUtils.Context<Opts["make"]> : never
 
-type DependenciesOpt = { dependencies?: Array.NonEmptyReadonlyArray<Layer.Layer.Any> }
-type Dependencies = { dependencies: Array.NonEmptyReadonlyArray<Layer.Layer.Any> }
+type DependenciesOpt = { dependencies?: Array.NonEmptyReadonlyArray<Layer.Any> }
+type Dependencies = { dependencies: Array.NonEmptyReadonlyArray<Layer.Any> }
 type PackedLayers<I, Opts> =
-  & Layer.Layer<
+  & L<
     I,
     MakeErr<Opts>,
     Exclude<MakeContext<Opts>, Scope.Scope>
   >
   & {
-    withoutDependencies: Layer.Layer<I, MakeErr<Opts>, Exclude<MakeContext<Opts>, Scope.Scope>>
+    withoutDependencies: L<I, MakeErr<Opts>, Exclude<MakeContext<Opts>, Scope.Scope>>
   }
 
 type PackedOrUnpackedLayer<I, Opts> = Opts extends Dependencies ? PackedLayers<I, Opts> & {}
-  : Layer.Layer<I, MakeErr<Opts>, MakeContext<Opts>>
+  : L<I, MakeErr<Opts>, MakeContext<Opts>>
 
 export const make: {
   <I, S>(
@@ -48,7 +48,7 @@ export const make: {
   const effect = options.make[Symbol.toStringTag] === "GeneratorFunction"
     ? Effect.fnUntraced(options.make)()
     : options.make
-  const withoutDependencies = Layer.scoped(tag, effect)
+  const withoutDependencies = Layer.effect(tag, effect)
   if (options.dependencies) {
     return Object.assign(
       withoutDependencies.pipe(Layer.provide(options.dependencies)),

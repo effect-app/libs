@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/unstable/rpc"
-import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
-import { ServiceMap, Effect, Layer, type Schema, Schema as S, type Scope } from "effect"
+import { Effect, Layer, type Schema, Schema as S, type Scope, ServiceMap } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
 import { type Simplify } from "effect/Types"
+import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/unstable/rpc"
+import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
 import { typedValuesOf } from "../utils.js"
@@ -23,25 +23,13 @@ export interface MiddlewareMaker<
   RpcMiddleware.ServiceClass<
     Self,
     Id,
-    Simplify<
-      & { readonly wrap: true }
-      & (Exclude<
-        MiddlewareMaker.ManyRequired<MiddlewareProviders>,
-        MiddlewareMaker.ManyProvided<MiddlewareProviders>
-      > extends never ? {} : {
-        readonly requires: MakeTags<
-          Exclude<
-            MiddlewareMaker.ManyRequired<MiddlewareProviders>,
-            MiddlewareMaker.ManyProvided<MiddlewareProviders>
-          >
-        >
-      })
-      & (MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? {}
-        : {
-          readonly failure: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
-        })
-      & (MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
-        : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> })
+    MiddlewareMaker.ManyProvided<MiddlewareProviders>,
+    MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? typeof S.Never
+      : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
+    never,
+    Exclude<
+      MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+      MiddlewareMaker.ManyProvided<MiddlewareProviders>
     >
   >
 {
@@ -77,7 +65,7 @@ export namespace MiddlewareMaker {
     : never
     : never
 
-  export type Errors<T> = T extends TagClassAny ? T extends { failure: S.Schema.Any } ? S.Schema.Type<T["failure"]>
+  export type Errors<T> = T extends TagClassAny ? T extends { failure: S.Any } ? S.Schema.Type<T["failure"]>
     : never
     : never
 
@@ -153,9 +141,9 @@ export interface BuildingMiddleware<
 > {
   rpc: <
     const Tag extends string,
-    Payload extends Schema.Schema.Any | Schema.Struct.Fields = typeof Schema.Void,
-    Success extends Schema.Schema.Any = typeof Schema.Void,
-    Error extends Schema.Schema.All = typeof Schema.Never,
+    Payload extends S.Top | Schema.Struct.Fields = typeof Schema.Void,
+    Success extends S.Top = typeof Schema.Void,
+    Error extends S.Top = typeof Schema.Never,
     const Stream extends boolean = false,
     Config extends GetContextConfig<RequestContextMap> = {}
   >(tag: Tag, options?: {
@@ -165,7 +153,7 @@ export interface BuildingMiddleware<
     readonly stream?: Stream
     readonly config?: Config
     readonly primaryKey?: [Payload] extends [Schema.Struct.Fields]
-      ? ((payload: Schema.Simplify<Schema.Struct.Type<NoInfer<Payload>>>) => string)
+      ? ((payload: Simplify<Schema.Struct.Type<NoInfer<Payload>>>) => string)
       : never
   }) =>
     & Rpc.Rpc<
@@ -262,16 +250,16 @@ const middlewareMaker = <
 
     // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
     return (
-      _options: Parameters<
-        RpcMiddleware.RpcMiddlewareWrap<
-          MiddlewareMaker.ManyProvided<MiddlewareProviders>,
-          never
-        >
-      >[0]
+      effect: Effect.Effect<any, any, any>,
+      options: {
+        readonly clientId: number
+        readonly rpc: any
+        readonly payload: unknown
+        readonly headers: any
+      }
     ) => {
-      const { next, ...options } = _options
       // we start with the actual handler
-      let handler = next
+      let handler: Effect.Effect<any, any, any> = effect
 
       // inspired from Effect/RpcMiddleware
       for (const tag of middlewares) {
@@ -280,7 +268,7 @@ const middlewareMaker = <
 
         // wrap the current handler, allowing the middleware to run before and after it
         handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
-          Effect.zipRight(middleware(handler, options))
+          Effect.andThen(middleware(handler, options))
         ) as any
       }
       return handler
@@ -310,7 +298,7 @@ const makeMiddlewareBasic = <Self>() =>
 
   const MiddlewareMaker = RpcMiddlewareX.Tag<Self>()(id, {
     failure: (failures.length > 0
-      ? S.Union(...failures)
+      ? S.Union(failures as [any, ...any[]])
       : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
         : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
     requires: (requires.length > 0
@@ -334,12 +322,12 @@ const makeMiddlewareBasic = <Self>() =>
   })
 
   const layer = Layer
-    .scoped(
+    .effect(
       MiddlewareMaker,
       middleware as Effect.Effect<
         any, // TODO: why ?
-        Effect.Effect.Error<typeof middleware>,
-        Effect.Effect.Context<typeof middleware>
+        Effect.Error<typeof middleware>,
+        Effect.Services<typeof middleware>
       >
     )
 
@@ -368,9 +356,9 @@ export const Tag = <Self>() =>
     // rpc with config
     rpc: <
       const Tag extends string,
-      Payload extends Schema.Schema.Any | Schema.Struct.Fields = typeof Schema.Void,
-      Success extends Schema.Schema.Any = typeof Schema.Void,
-      Error extends Schema.Schema.All = typeof Schema.Never,
+      Payload extends S.Top | Schema.Struct.Fields = typeof Schema.Void,
+      Success extends S.Top = typeof Schema.Void,
+      Error extends S.Top = typeof Schema.Never,
       const Stream extends boolean = false,
       Config extends GetContextConfig<RequestContextMap["config"]> = {}
     >(tag: Tag, options?: {
@@ -380,7 +368,7 @@ export const Tag = <Self>() =>
       readonly stream?: Stream
       readonly config?: Config
       readonly primaryKey?: [Payload] extends [Schema.Struct.Fields]
-        ? ((payload: Schema.Simplify<Schema.Struct.Type<NoInfer<Payload>>>) => string)
+        ? ((payload: Simplify<Schema.Struct.Type<NoInfer<Payload>>>) => string)
         : never
     }):
       & Rpc.Rpc<
@@ -398,9 +386,9 @@ export const Tag = <Self>() =>
       // TODO: we should only include errors that are relevant based on the middleware config.ks
       const error = options?.error
       const errors = typedValuesOf(rcm.config).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
-      const newError = error ? S.Union(error, ...errors) : S.Union(...errors)
+      const newError = error ? S.Union([error, ...errors] as [any, ...any[]]) : S.Union(errors as [any, ...any[]])
 
-      const rpc = Rpc.make(tag, { ...options, error: newError }) as any
+      const rpc = Rpc.make(tag, { ...options, error: newError } as any) as any
 
       return Object.assign(rpc.annotate(requestContext, config), { config })
     },

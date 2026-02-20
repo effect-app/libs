@@ -41,7 +41,7 @@ export declare namespace RpcContextMap {
 
   export type Any = {
     service: any
-    error: S.Schema.All
+    error: S.All
     contextActivation: any
     inverted: boolean
   }

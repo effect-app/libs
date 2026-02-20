@@ -1,4 +1,5 @@
-import { Effect, Either, Option, type Scope } from "effect"
+import { Effect, Option, type Scope } from "effect"
+import * as Either from "effect/Either"
 import type { LazyArg } from "effect-app/Function"
 
 export type _R<T extends Effect.Effect<any, any, any>> = [T] extends [
@@ -35,7 +36,7 @@ export function scope<R, E, A, R2, E2, A2>(
   scopedEffect: Effect.Effect<A, E, R | Scope.Scope>,
   effect: Effect.Effect<A2, E2, R2>
 ): Effect.Effect<A2, E | E2, Exclude<R | R2, Scope.Scope>> {
-  return Effect.zipRight(scopedEffect, effect).pipe(Effect.scoped)
+  return Effect.andThen(scopedEffect, effect).pipe(Effect.scoped)
 }
 
 export function flatMapScoped<R, E, A, R2, E2, A2>(

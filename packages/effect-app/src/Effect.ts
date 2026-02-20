@@ -4,7 +4,7 @@
 
 import { type ServiceMap, Effect, Option, Ref } from "effect"
 import * as Def from "effect/Deferred"
-import type { Semaphore } from "effect/Effect"
+import type { Semaphore } from "effect/Semaphore"
 import * as Fiber from "effect/Fiber"
 import { curry } from "./Function.js"
 import { typedKeysOf } from "./utils.js"
@@ -109,7 +109,7 @@ export function modifyWithPermitWithEffect<A>(ref: Ref.Ref<A>, semaphore: Semaph
 }
 
 export function joinAll<E, A>(fibers: Iterable<Fiber.Fiber<A, E>>): Effect.Effect<readonly A[], E> {
-  return Fiber.join(Fiber.all(fibers))
+  return Fiber.joinAll(fibers)
 }
 
 type ServiceA<T> = T extends Effect.Effect<infer S, any, any> ? S
@@ -182,5 +182,5 @@ export function allLowerWithEffect<
  */
 export function catchAllMap<E, A2>(f: (e: E) => A2) {
   return <R, A>(self: Effect.Effect<A, E, R>): Effect.Effect<A2 | A, never, R> =>
-    Effect.catchAll(self, (err) => Effect.sync(() => f(err)))
+    Effect["catch"](self, (err: E) => Effect.sync(() => f(err)))
 }

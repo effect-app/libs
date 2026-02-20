@@ -43,8 +43,8 @@ export function uniq<A>(E: Equivalence<A>) {
   return (self: Chunk.Chunk<A>): Chunk.Chunk<A> => {
     let out = Chunk.fromIterable([] as A[])
     for (let i = 0; i < self.length; i++) {
-      const a = Chunk.unsafeGet(self, i)
-      if (!elem(E, a)(out)) {
+      const a = Chunk.toReadonlyArray(self)[i]!
+      if (!elem(E, a)(out as Chunk.Chunk<NonNullable<A>>)) {
         out = Chunk.append(out, a)
       }
     }
@@ -60,7 +60,7 @@ export function uniq<A>(E: Equivalence<A>) {
 export function elem<A>(E: Equivalence<A>, value: A) {
   return (self: Chunk.Chunk<A>): boolean => {
     for (let i = 0; i < self.length; i++) {
-      if (E(Chunk.unsafeGet(self, i), value)) {
+      if (E(Chunk.toReadonlyArray(self)[i]!, value)) {
         return true
       }
     }

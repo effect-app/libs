@@ -5,7 +5,7 @@ import * as T from "effect/Effect"
 import { dual, type Predicate } from "./Function.js"
 import * as Option from "./Option.js"
 
-export const toNonEmptyArray = Option.liftPredicate(Array.isNonEmptyReadonlyArray)
+export const toNonEmptyArray = Option.liftPredicate(Array.isArrayNonEmpty)
 
 export const isArray: {
   // uses ReadonlyArray here because otherwise the second overload don't work when ROA is involved.

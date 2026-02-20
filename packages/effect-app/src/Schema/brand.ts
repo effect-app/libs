@@ -4,48 +4,46 @@
 import type { Option } from "effect"
 import * as B from "effect/Brand"
 import type * as Brand from "effect/Brand"
-import type * as Either from "effect/Either"
+import * as Result from "effect/Result"
 import * as S from "effect/Schema"
 
 export interface Constructor<in out A extends B.Brand<any>> {
-  readonly [B.RefinedConstructorsTypeId]: B.RefinedConstructorsTypeId
   /**
    * Constructs a branded type from a value of type `A`, throwing an error if
    * the provided `A` is not valid.
    */
-  (args: Unbranded<A>): A
+  (args: Brand.Brand.Unbranded<A>): A
   /**
    * Constructs a branded type from a value of type `A`, returning `Some<A>`
    * if the provided `A` is valid, `None` otherwise.
    */
-  option(args: Unbranded<A>): Option.Option<A>
+  option(args: Brand.Brand.Unbranded<A>): Option.Option<A>
   /**
-   * Constructs a branded type from a value of type `A`, returning `Right<A>`
-   * if the provided `A` is valid, `Left<BrandError>` otherwise.
+   * Constructs a branded type from a value of type `A`, returning `Result<A, BrandError>`
+   * if the provided `A` is valid, error otherwise.
    */
-  either(args: Unbranded<A>): Either.Either<A, Brand.Brand.BrandErrors>
+  result(args: Brand.Brand.Unbranded<A>): Result.Result<A, B.BrandError>
   /**
    * Attempts to refine the provided value of type `A`, returning `true` if
    * the provided `A` is valid, `false` otherwise.
    */
-  is(a: Unbranded<A>): a is Unbranded<A> & A
+  is(a: Brand.Brand.Unbranded<A>): a is Brand.Brand.Unbranded<A> & A
 }
 
-export const fromBrand = <C extends Brand.Brand<string | symbol>>(
+export const fromBrand = <C extends B.Brand<string>>(
   constructor: Constructor<C>,
-  options?: S.Annotations.Filter<Unbranded<C>>
+  options?: S.Annotations.Filter
 ) =>
-<R, I, A extends Unbranded<C>>(self: S.Schema<A, I, R>): S.Schema<A & C, I, R> => {
+(self: any): any => {
   return S.fromBrand(constructor as any, options as any)(self as any) as any
 }
 
-export type Brands<P> = P extends B.Brand<any> ? { readonly [B.BrandTypeId]: P[B.BrandTypeId] }
-  : never
-
-export type Unbranded<P> = P extends infer Q & Brands<P> ? Q : P
+export type Unbranded<P> = P extends B.Brand<any> ? Brand.Brand.Unbranded<P> : P
 
 export const nominal: <A extends B.Brand<any>>() => Constructor<A> = <
   A extends B.Brand<any>
 >(): Constructor<
   A
 > => B.nominal<A>() as any
+
+export { Result }

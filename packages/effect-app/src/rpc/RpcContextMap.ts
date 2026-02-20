@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type AnyWithProps } from "@effect/rpc/Rpc"
-import { Context, type Schema as S } from "effect"
+import { Rpc } from "effect/unstable/rpc"
+import { ServiceMap, type Schema as S } from "effect"
 import { type RpcDynamic } from "./RpcMiddleware.js"
 
 type Values<T extends Record<any, any>> = T[keyof T]
@@ -41,7 +41,7 @@ export declare namespace RpcContextMap {
 
   export type Any = {
     service: any
-    error: S.Schema.All
+    error: S.Top
     contextActivation: any
     inverted: boolean
   }
@@ -97,7 +97,7 @@ export type GetEffectError<RequestContextMap extends Record<string, RpcContextMa
   }
 >
 
-const tag = Context.GenericTag("RequestContextConfig")
+const tag = ServiceMap.Service("RequestContextConfig")
 
 export const makeMap = <const Config extends Record<string, RpcContextMap.Any>>(config: Config) => {
   const cls = class {
@@ -108,8 +108,8 @@ export const makeMap = <const Config extends Record<string, RpcContextMap.Any>>(
   }
   return Object.assign(cls, {
     config, /** Retrieves RequestContextConfig out of the Rpc annotations */
-    getConfig: (rpc: AnyWithProps): GetContextConfig<Config> => {
-      return Context.getOrElse(rpc.annotations, tag as any, () => ({}))
+    getConfig: (rpc: Rpc.AnyWithProps): GetContextConfig<Config> => {
+      return ServiceMap.getOrElse(rpc.annotations, tag as any, () => ({}))
     },
     /** Adapter used when setting the dynamic prop on a middleware implementation */
     get: <

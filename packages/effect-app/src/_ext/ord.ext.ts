@@ -13,7 +13,7 @@ export function uniq<A>(E: Equivalence.Equivalence<A>) {
   return (self: Chunk.Chunk<A>): Chunk.Chunk<A> => {
     let out = Chunk.fromIterable<A>([])
     for (let i = 0; i < self.length; i++) {
-      const a = Chunk.unsafeGet(self, i)
+      const a = Chunk.getUnsafe(self, i)
       if (!elem(E, a)(out)) {
         out = Chunk.append(out, a)
       }
@@ -30,7 +30,7 @@ export function uniq<A>(E: Equivalence.Equivalence<A>) {
 export function elem<A>(E: Equivalence.Equivalence<A>, value: A) {
   return (self: Chunk.Chunk<A>): boolean => {
     for (let i = 0; i < self.length; i++) {
-      if (E(Chunk.unsafeGet(self, i), value)) {
+      if (E(Chunk.getUnsafe(self, i), value)) {
         return true
       }
     }

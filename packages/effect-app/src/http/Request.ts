@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { HttpClientResponse } from "@effect/platform/HttpClientResponse"
 import * as Effect from "../Effect.js"
 import * as Option from "../Option.js"
@@ -13,21 +15,21 @@ export interface ResponseWithBody<A> extends Pick<HttpClientResponse, "headers" 
 export const responseWithJsonBody = (
   response: HttpClientResponse
 ) =>
-  Effect.map(response.json, (body): ResponseWithBody<unknown> => ({
+  (Effect.map as any)(response.json, (body: unknown): ResponseWithBody<unknown> => ({
     body,
     headers: response.headers,
     status: response.status,
     remoteAddress: response.remoteAddress
-  }))
+  })) as any
 
 export const demandJson = (client: HttpClient.HttpClient) =>
   HttpClient
     .mapRequest(client, (_) => HttpClientRequest.acceptJson(_))
-    .pipe(HttpClient.transform((r, request) =>
-      Effect.tap(r, (response) =>
-        Option
+    .pipe(HttpClient.transform((r: any, request: any) =>
+      (Effect.tap as any)(r, (response: any) =>
+        (Option
             .getOrUndefined(HttpHeaders
-              .get(response.headers, "Content-Type"))
+              .get(response.headers, "Content-Type") as any) as string | undefined)
             ?.startsWith("application/json")
           ? Effect.void
           : Effect.fail(
@@ -36,7 +38,7 @@ export const demandJson = (client: HttpClient.HttpClient) =>
               response,
               reason: "Decode",
               description: "not json response: "
-                + Option.getOrUndefined(HttpHeaders.get(response.headers, "Content-Type"))
+                + Option.getOrUndefined(HttpHeaders.get(response.headers, "Content-Type") as any)
             })
-          ))
-    ))
+          )) as any
+    )) as any

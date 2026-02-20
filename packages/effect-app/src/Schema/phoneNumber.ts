@@ -13,11 +13,11 @@ export type PhoneNumber = string & PhoneNumberBrand
 export const PhoneNumber = S
   .String
   .pipe(
-    S.filter(isValidPhone as Refinement<string, PhoneNumber>, {
+    S.refine(isValidPhone as Refinement<string, PhoneNumber>, {
       identifier: "PhoneNumber",
       title: "PhoneNumber",
       description: "a phone number with at least 7 digits",
-      arbitrary: () => (fc) => Numbers(7, 10)(fc).map((_) => _ as PhoneNumber),
+      arbitrary: () => (fc: any) => Numbers(7, 10)(fc).map((_: any) => _ as PhoneNumber),
       jsonSchema: { format: "phone" }
     }),
     withDefaultMake

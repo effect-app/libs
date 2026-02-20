@@ -3,7 +3,6 @@
  */
 import { Config, type Equal, type Redacted } from "effect"
 import type * as Chunk from "effect/Chunk"
-import * as Either from "effect/Either"
 import type { SecretTypeId } from "effect/Secret"
 import * as internal from "./internal/configSecretURL.js"
 
@@ -83,10 +82,5 @@ export const value: (self: SecretURL) => string = internal.value
  */
 export const unsafeWipe: (self: SecretURL) => void = internal.unsafeWipe
 
-export const secretURL = (name?: string): Config.Config<SecretURL> => {
-  const config = Config.primitive(
-    "a secret property",
-    (text) => Either.right(fromString(text))
-  )
-  return name === undefined ? config : Config.nested(config, name)
-}
+export const secretURL = (name?: string): Config.Config<SecretURL> =>
+  Config.string(name).pipe(Config.map(fromString))

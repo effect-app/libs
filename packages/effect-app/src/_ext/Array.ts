@@ -9,8 +9,9 @@ function getFirstBy<A, Type extends string>(
 ) {
   return Chunk
     .fromIterable(a)
+    .pipe(Chunk.findFirst((_) => Equal.equals(_[idKey], id)))
     .pipe(
-      Chunk.findFirst((_) => Equal.equals(_[idKey], id)),
+      Effect.fromOption,
       Effect.mapError(() => new NotFoundError<Type>({ type, id }))
     )
 }

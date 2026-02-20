@@ -11,7 +11,7 @@ import { withDefaultConstructor, withDefaultMake, type WithDefaults } from "./ex
 import { type B } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
-const nonEmptyString = S.String.pipe(S.nonEmptyString())
+const nonEmptyString = S.NonEmptyString
 
 /**
  * A string that is at least 1 character long and a maximum of 50.
@@ -27,7 +27,7 @@ export type NonEmptyString50 = string & NonEmptyString50Brand
  * A string that is at least 1 character long and a maximum of 50.
  */
 export const NonEmptyString50 = nonEmptyString.pipe(
-  S.maxLength(50),
+  S.check(S.isMaxLength(50)),
   fromBrand(nominal<NonEmptyString50>(), {
     identifier: "NonEmptyString50",
     title: "NonEmptyString50",
@@ -50,7 +50,7 @@ export type NonEmptyString64 = string & NonEmptyString64Brand
  * A string that is at least 1 character long and a maximum of 64.
  */
 export const NonEmptyString64 = nonEmptyString.pipe(
-  S.maxLength(64),
+  S.check(S.isMaxLength(64)),
   fromBrand(nominal<NonEmptyString64>(), {
     identifier: "NonEmptyString64",
     title: "NonEmptyString64",
@@ -74,7 +74,7 @@ export type NonEmptyString80 = string & NonEmptyString80Brand
  */
 
 export const NonEmptyString80 = nonEmptyString.pipe(
-  S.maxLength(80),
+  S.check(S.isMaxLength(80)),
   fromBrand(nominal<NonEmptyString80>(), {
     identifier: "NonEmptyString80",
     title: "NonEmptyString80",
@@ -97,7 +97,7 @@ export type NonEmptyString100 = string & NonEmptyString100Brand
  * A string that is at least 1 character long and a maximum of 100.
  */
 export const NonEmptyString100 = nonEmptyString.pipe(
-  S.maxLength(100),
+  S.check(S.isMaxLength(100)),
   fromBrand(nominal<NonEmptyString100>(), {
     identifier: "NonEmptyString100",
     title: "NonEmptyString100",
@@ -121,8 +121,8 @@ export type Min3String255 = string & Min3String255Brand
  */
 export const Min3String255 = pipe(
   S.String,
-  S.minLength(3),
-  S.maxLength(255),
+  S.check(S.isMinLength(3)),
+  S.check(S.isMaxLength(255)),
   fromBrand(nominal<Min3String255>(), { identifier: "Min3String255", title: "Min3String255", jsonSchema: {} }),
   withDefaultMake
 )
@@ -153,8 +153,8 @@ const StringIdArb = (): LazyArbitrary<string> => (fc) =>
 export const StringId = extendM(
   pipe(
     S.String,
-    S.minLength(minLength),
-    S.maxLength(maxLength),
+    S.check(S.isMinLength(minLength)),
+    S.check(S.isMaxLength(maxLength)),
     fromBrand(nominal<StringId>(), {
       identifier: "StringId",
       title: "StringId",
@@ -186,9 +186,9 @@ export function prefixedStringId<Brand extends StringId>() {
         (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s: S.Schema<string & Brand, string> = StringId
+    const s: S.Schema<string & Brand> = StringId
       .pipe(
-        S.filter((x: StringId): x is string & Brand => x.startsWith(pref), {
+        S.refine((x: unknown): x is string & Brand => (x as string).startsWith(pref), {
           arbitrary: arb,
           identifier: name,
           title: name
@@ -220,10 +220,10 @@ export const brandedStringId = <
   Brand extends StringIdBrand
 >() =>
   withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as S.Schema<string & Brand, string> & {
+    Object.assign(Object.create(StringId), StringId) as S.Schema<string & Brand> & {
       make: () => string & Brand
-      withDefault: S.PropertySignature<":", string & Brand, never, ":", string, true, never>
-    } & WithDefaults<S.Schema<string & Brand, string>>
+      withDefault: any
+    } & WithDefaults<S.Schema<string & Brand>>
   )
 
 export interface PrefixedStringUtils<
@@ -235,7 +235,7 @@ export interface PrefixedStringUtils<
   readonly unsafeFrom: (str: string) => Brand
   prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Brand
   readonly prefix: Prefix
-  readonly withDefault: S.PropertySignature<":", Brand, never, ":", string, true, never>
+  readonly withDefault: any
 }
 
 export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}
@@ -249,7 +249,7 @@ const isUrl: Refinement<string, Url> = (s: string): s is Url => {
 export const Url = S
   .String
   .pipe(
-    S.filter(isUrl, {
+    S.refine(isUrl, {
       arbitrary: (): LazyArbitrary<Url> => (fc) => fc.webUrl().map((_) => _ as Url),
       identifier: "Url",
       title: "Url",

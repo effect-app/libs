@@ -245,7 +245,7 @@ export const effectify: {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   (<A>(fn: Function, onError?: (e: any, args: any) => any, onSyncError?: (e: any, args: any) => any) =>
   (...args: Array<any>) =>
-    Effect.async<A, Error>((resume) => {
+    Effect.callback<A, Error>((resume) => {
       try {
         fn(...args, (err: Error | null, result: A) => {
           if (err) {

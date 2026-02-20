@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-import { Effect, Exit, Fiber, Option, Record, Runtime } from "effect"
+import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
 import * as Either from "effect/Either"
-import { type RuntimeFiber } from "effect/Fiber"
-import { dual, isFunction } from "effect/Function"
+import { dual } from "effect/Function"
+import { isFunction } from "effect/Predicate"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"
@@ -734,7 +734,7 @@ export const copy = dual<
     <A extends object>(self: A, f: (a: A) => Partial<A>): A
     <A extends object>(self: A, f: Partial<A>): A
   }
->(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
+>(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? (f as (a: A) => Partial<A>)(self) : f) }))
 
 type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
   & {
@@ -783,7 +783,7 @@ export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
         | CopyOriginU<U, Ctor>
         | ((a: A) => CopyOriginU<U, Ctor>)
     ): CopyOriginRet<A, U> => {
-      const o = { ...self, ...(isFunction(f) ? f(self as any) : f) }
+      const o = { ...self, ...(isFunction(f) ? (f as (a: A) => CopyOriginU<U, Ctor>)(self as any) : f) }
 
       if (cloneTrait in (self as any)) {
         const selfWithClone = self as typeof self & Clone
@@ -907,7 +907,7 @@ export type ExcludeFromTuple<T extends readonly any[], E> = T extends [infer F, 
   : [F, ...ExcludeFromTuple<R, E>]
   : []
 
-export const addAbortToRuntimeFiber = <A, E>(fiber: RuntimeFiber<A, E>, signal: AbortSignal) => {
+export const addAbortToRuntimeFiber = <A, E>(fiber: Fiber.Fiber<A, E>, signal: AbortSignal) => {
   const abort = () => Effect.runSync(Fiber.interrupt(fiber))
   if (signal.aborted) {
     abort()
@@ -917,15 +917,15 @@ export const addAbortToRuntimeFiber = <A, E>(fiber: RuntimeFiber<A, E>, signal: 
   return fiber
 }
 
-export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>, signal?: AbortSignal) => {
+export const runtimeFiberAsPromise = <A, E>(fiber: Fiber.Fiber<A, E>, signal?: AbortSignal) => {
   if (signal) addAbortToRuntimeFiber(fiber, signal)
   return new Promise((resolve, reject) =>
-    fiber.addObserver((exit) => {
+    fiber.addObserver((exit: Exit.Exit<A, E>) => {
       if (Exit.isSuccess(exit)) {
         resolve(exit.value)
       } else {
-        // errors really should be of type Error, so we wrap in FiberFailure just as default Effect
-        reject(Runtime.makeFiberFailure(exit.cause))
+        // errors really should be of type Error, so we wrap cause in an error
+        reject(Cause.squash(exit.cause))
       }
     })
   )

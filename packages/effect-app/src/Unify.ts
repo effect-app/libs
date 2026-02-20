@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // TODO: Add effect cause/exit etc
 
-import type { Chunk, Either, Option } from "effect"
-import type { Effect, EffectTypeId } from "effect/Effect"
+import type { Chunk, Option } from "effect"
+import type * as Either from "effect/Either"
+import type { Effect, Variance } from "effect/Effect"
 
-export function unifyEffect<X extends { readonly [EffectTypeId]: Effect.VarianceStruct<any, any, any> }>(
+const EffectTypeId = "~effect/Effect" as const
+
+export function unifyEffect<X extends { readonly [EffectTypeId]: Variance<any, any, any> }>(
   self: X
 ): Effect<
   [X] extends [{ readonly [EffectTypeId]: { _A: (_: never) => infer A } }] ? A : never,

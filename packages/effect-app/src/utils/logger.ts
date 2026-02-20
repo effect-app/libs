@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Context, Effect, type LogLevel } from "effect"
+import { Effect, type LogLevel, ServiceMap } from "effect"
 
 type Levels = "info" | "debug" | "warn" | "error"
 
-export class LogLevels extends Context.Reference<LogLevels>()("LogLevels", {
+export const LogLevels = ServiceMap.Reference<ReadonlyMap<string, Levels>>("LogLevels", {
   defaultValue: (): ReadonlyMap<string, Levels> => new Map<string, Levels>()
-}) {}
+})
 
 export const makeLog = (namespace: string, defaultLevel: Levels = "warn") => {
-  const level = LogLevels.pipe(Effect.andThen((levels) => levels.get(namespace) ?? defaultLevel))
+  const level = Effect.andThen(LogLevels as any, (levels: ReadonlyMap<string, Levels>) => levels.get(namespace) ?? defaultLevel)
   const withLogNamespace = Effect.annotateLogs({ logNamespace: namespace })
   return {
     logWarning: (...message: ReadonlyArray<any>) =>
@@ -35,6 +35,6 @@ export const makeLog = (namespace: string, defaultLevel: Levels = "warn") => {
       ),
     // for now always log
     logWithLevel: (level: LogLevel.LogLevel, ...message: ReadonlyArray<any>) =>
-      Effect.logWithLevel(level, ...message).pipe(withLogNamespace)
+      Effect.logWithLevel(level)(...message).pipe(withLogNamespace)
   }
 }

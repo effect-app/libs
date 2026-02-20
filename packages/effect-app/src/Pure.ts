@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Chunk, Effect, Either, Layer } from "effect"
+import { Chunk, Effect, Layer } from "effect"
+import * as Result from "effect/Result"
 import * as Context from "./Context.js"
 import { tuple } from "./Function.js"
 
@@ -86,9 +87,9 @@ export function GMU<W, S, S2, GA, MR, ME>(modify: (i: GA) => Pure<W, S, S2, MR, 
   ) => GMU_(get, modify, update)
 }
 
-const tagg = Context.GenericTag<{ env: PureEnv<never, unknown, never> }>("PureEnv")
+const tagg = Context.Service<{ env: PureEnv<never, unknown, never> }>("PureEnv")
 function castTag<W, S, S2>() {
-  return tagg as any as Context.Tag<PureEnvEnv<W, S, S2>, PureEnvEnv<W, S, S2>>
+  return Effect.service(tagg as any as Context.Service<PureEnvEnv<W, S, S2>, PureEnvEnv<W, S, S2>>)
 }
 
 export const PureEnvEnv = Symbol()
@@ -118,7 +119,7 @@ export function runAll<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ): Effect.Effect<
-  readonly [Chunk.Chunk<W3>, Either.Either<readonly [S3, A], E>],
+  readonly [Chunk.Chunk<W3>, Result.Result<readonly [S3, A], E>],
   never,
   Exclude<R, { env: PureEnv<W3, S1, S3> }>
 > {
@@ -130,10 +131,10 @@ export function runAll<R, E, A, W3, S1, S3, S4 extends S1>(
             ({ env: _ }) => Effect.sync(() => ({ log: _.log, state: _.state })) //            Ref.get(_.log).flatMap(log => Ref.get(_.state).map(state => ({ log, state })))
           ),
           Effect.map(
-            ({ log, state }) => tuple(log, Either.right(tuple(state, x)))
+            ({ log, state }) => tuple(log, Result.succeed(tuple(state, x)))
           )
         ))
-    .pipe(Effect.catchAll((err) => Effect.map(tagg, (env) => tuple(env.env.log, Either.left(err)))))
+    .pipe(Effect["catch"]((err: unknown) => Effect.map(Effect.service(tagg), (env) => tuple(env.env.log, Result.fail(err as any)))))
   return Effect.provide(a, Layer.succeed(tagg, { env: makePureEnv<W3, S3, S4>(s) as any }) as any) as any
 }
 
@@ -141,14 +142,14 @@ export function runResult<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ) {
-  return Effect.map(runAll(self, s), ([log, r]) => tuple(log, Effect.map(r, ([s]) => s)))
+  return Effect.map(runAll(self, s), ([log, r]) => tuple(log, Effect.fromYieldable(r).pipe(Effect.map(([s]) => s))))
 }
 
 export function runTerm<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ) {
-  return Effect.flatMap(runAll(self, s), ([evts, r]) => Effect.map(r, ([s3, a]) => tuple(s3, Chunk.toArray(evts), a)))
+  return Effect.flatMap(runAll(self, s), ([evts, r]) => Effect.fromYieldable(r).pipe(Effect.map(([s3, a]) => tuple(s3, Chunk.toArray(evts), a))))
 }
 
 export function runTermDiscard<R, E, A, W3, S1, S3, S4 extends S1>(
@@ -162,7 +163,7 @@ export function runA<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ) {
-  return Effect.map(runAll(self, s), ([log, r]) => tuple(log, Effect.map(r, ([, a]) => a)))
+  return Effect.map(runAll(self, s), ([log, r]) => tuple(log, Effect.fromYieldable(r).pipe(Effect.map(([, a]) => a))))
 }
 
 export function modify<S2, A, S3>(

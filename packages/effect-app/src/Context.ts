@@ -7,10 +7,9 @@
 
 import { Effect, Layer, type Scope } from "effect"
 import { type NonEmptyReadonlyArray } from "effect/Array"
-import * as Context from "effect/Context"
-import { type Service } from "effect/Effect"
+import * as Context from "effect/ServiceMap"
 
-export * from "effect/Context"
+export * from "effect/ServiceMap"
 
 export const ServiceTag = Symbol()
 export type ServiceTag = typeof ServiceTag
@@ -21,9 +20,9 @@ export abstract class PhantomTypeParameter<Identifier extends keyof any, Instant
   }
 }
 
-export type ServiceShape<T extends Context.TagClassShape<any, any>> = Omit<
+export type ServiceShape<T extends Context.ServiceClass.Shape<any, any>> = Omit<
   T,
-  keyof Context.TagClassShape<any, any>
+  keyof Context.ServiceClass.Shape<any, any>
 >
 
 export abstract class ServiceTagged<ServiceKey> extends PhantomTypeParameter<string, ServiceKey> {}
@@ -36,8 +35,8 @@ let i = 0
 const randomId = () => "unknown-service-" + i++
 
 export function assignTag<Id, Service = Id>(key?: string, creationError?: Error) {
-  return <S extends object>(cls: S): S & Context.Tag<Id, Service> => {
-    const tag = Context.GenericTag<Id, Service>(key ?? randomId())
+  return <S extends object>(cls: S): S & Context.Service<Id, Service> => {
+    const tag = Context.Service<Id, Service>(key ?? randomId())
     let fields = tag
     if (Reflect.ownKeys(cls).includes("key")) {
       const { key, ...rest } = tag
@@ -83,8 +82,8 @@ export type ServiceAcessorShape<Self, Type> =
     : {})
   & ServiceUse<Self, Type>
 
-export const useify = <T extends Context.Tag<any, any>>(Tag: T) => <Self, Shape>(): T & ServiceUse<Self, Shape> => {
-  return Object.assign(Tag, { use: (body: any) => Effect.andThen(Tag, body) } as ServiceUse<Self, Shape>)
+export const useify = <T extends Context.Service<any, any>>(Tag: T) => <Self, Shape>(): T & ServiceUse<Self, Shape> => {
+  return Object.assign(Tag, { use: (body: any) => Effect.andThen(Tag as any, body) } as ServiceUse<Self, Shape>)
 }
 
 export const proxify = <T extends object>(Tag: T) =>
@@ -128,7 +127,7 @@ export const proxify = <T extends object>(Tag: T) =>
 //   const creationError = new Error()
 //   Error.stackTraceLimit = limit
 //   const c: {
-//     new(): Context.TagClassShape<Key, ServiceImpl>
+//     new(): Context.ServiceClass.Shape<Key, ServiceImpl>
 //     toLayer: () => Layer<Id, E, R>
 //     toLayerScoped: () => Layer<Id, E, Exclude<R, Scope.Scope>>
 //   } = class {
@@ -137,7 +136,7 @@ export const proxify = <T extends object>(Tag: T) =>
 //     }
 
 //     static toLayerScoped = () => {
-//       return Layer.scoped(this as any, make)
+//       return Layer.effect(this as any, make)
 //     }
 //     // eslint-disable-next-line @typescript-eslint/no-explicit-any
 //   } as any
@@ -162,7 +161,7 @@ export const proxify = <T extends object>(Tag: T) =>
 //       return Layer.effect(this as any, eff)
 //     }
 //     static toLayerScoped = <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => {
-//       return Layer.scoped(this as any, eff)
+//       return Layer.effect(this as any, eff)
 //     }
 //     static get key() {
 //       return this._key ?? (this._key = key ?? creationError.stack?.split("\n")[2] ?? this.name)
@@ -200,7 +199,7 @@ export const proxify = <T extends object>(Tag: T) =>
 //     }
 
 //     static toLayerScoped = (arg?: any) => {
-//       return Layer.scoped(this as any, arg ?? this.make)
+//       return Layer.effect(this as any, arg ?? this.make)
 //     }
 
 //     static get key() {
@@ -221,15 +220,15 @@ export function TagId<const Key extends string>(key: Key) {
     const c:
       & (abstract new(
         service: ServiceImpl
-      ) => Readonly<ServiceImpl> & Context.TagClassShape<Key, ServiceImpl>)
+      ) => Readonly<ServiceImpl> & Context.ServiceClass.Shape<Key, ServiceImpl>)
       & {
         toLayer: <E, R>(
-          eff: Effect.Effect<Omit<Id, keyof Context.TagClassShape<any, any>>, E, R>
+          eff: Effect.Effect<Omit<Id, keyof Context.ServiceClass.Shape<any, any>>, E, R>
         ) => Layer.Layer<Id, E, R>
         toLayerScoped: <E, R>(
-          eff: Effect.Effect<Omit<Id, keyof Context.TagClassShape<any, any>>, E, R>
+          eff: Effect.Effect<Omit<Id, keyof Context.ServiceClass.Shape<any, any>>, E, R>
         ) => Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
-        of: (service: Omit<Id, keyof Context.TagClassShape<any, any>>) => Id
+        of: (service: Omit<Id, keyof Context.ServiceClass.Shape<any, any>>) => Id
       } = class {
         constructor(service: any) {
           // TODO: instead, wrap the service, and direct calls?
@@ -240,7 +239,7 @@ export function TagId<const Key extends string>(key: Key) {
           return Layer.effect(this as any, eff)
         }
         static toLayerScoped = <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => {
-          return Layer.scoped(this as any, eff)
+          return Layer.effect(this as any, eff)
         }
       } as any
 
@@ -260,19 +259,19 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
   const c:
     & (abstract new(
       service: ServiceImpl
-    ) => Readonly<ServiceImpl> & Context.TagClassShape<Key, ServiceImpl>)
+    ) => Readonly<ServiceImpl> & Context.ServiceClass.Shape<Key, ServiceImpl>)
     & {
       toLayer: {
         (): Layer.Layer<Id, E, R>
-        <E, R>(eff: Effect.Effect<Omit<Id, keyof Context.TagClassShape<any, any>>, E, R>): Layer.Layer<Id, E, R>
+        <E, R>(eff: Effect.Effect<Omit<Id, keyof Context.ServiceClass.Shape<any, any>>, E, R>): Layer.Layer<Id, E, R>
       }
       toLayerScoped: {
         (): Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
         <E, R>(
-          eff: Effect.Effect<Omit<Id, keyof Context.TagClassShape<any, any>>, E, R>
+          eff: Effect.Effect<Omit<Id, keyof Context.ServiceClass.Shape<any, any>>, E, R>
         ): Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
       }
-      of: (service: Context.TagClassShape<any, any>) => Id
+      of: (service: Context.ServiceClass.Shape<any, any>) => Id
       make: Effect.Effect<Id, E, R>
     } = class {
       constructor(service: any) {
@@ -288,7 +287,7 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
       }
 
       static toLayerScoped = (arg?: any) => {
-        return Layer.scoped(this as any, arg ?? this.make)
+        return Layer.effect(this as any, arg ?? this.make)
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
@@ -296,7 +295,7 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
   return useify(assignTag<Id, Id>(key, creationError)(c))<Id, ServiceImpl>()
 }
 
-export const ServiceDef = <Tag extends Context.Tag<any, any>>(self: Tag) =>
+export const ServiceDef = <Tag extends Context.Service<any, any>>(self: Tag) =>
 <A>() =>
 <
   LayerOpts extends {
@@ -305,47 +304,47 @@ export const ServiceDef = <Tag extends Context.Tag<any, any>>(self: Tag) =>
       any,
       any
     >
-    dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any>
+    dependencies?: NonEmptyReadonlyArray<Layer.Any>
   }
 >(opts: LayerOpts): Layer.Layer<
   Tag,
   | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
     : never)
-  | Service.MakeDepsE<LayerOpts>,
+  | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Error<LayerOpts["dependencies"][number]> : never),
   | Exclude<
     LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
-    Service.MakeDepsOut<LayerOpts>
+    LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Success<LayerOpts["dependencies"][number]> : never
   >
-  | Service.MakeDepsIn<LayerOpts>
+  | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Services<LayerOpts["dependencies"][number]> : never)
 > =>
-  Layer.scoped(self, opts.effect as any).pipe(
+  Layer.effect(self, opts.effect as any).pipe(
     Layer.provide([Layer.empty, ...opts.dependencies ?? []])
   ) as any
 
 /** @deprecated; use `static Default = Layer.make(this, { effect, dependencies })` instead */
 export const DefineService = <
-  Tag extends Context.TagClass<any, any, any>,
+  Tag extends Context.ServiceClass<any, any, any>,
   LayerOpts extends {
     effect: Effect.Effect<
-      Context.Tag.Service<Tag>,
+      Context.Service.Shape<Tag>,
       any,
       any
     >
-    dependencies?: NonEmptyReadonlyArray<Layer.Layer.Any>
+    dependencies?: NonEmptyReadonlyArray<Layer.Any>
   }
 >(tag: Tag, opts: LayerOpts): Tag & {
   Default: Layer.Layer<
-    Context.Tag.Identifier<Tag>,
+    Context.Service.Identifier<Tag>,
     | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
       : never)
-    | Service.MakeDepsE<LayerOpts>,
+    | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Error<LayerOpts["dependencies"][number]> : never),
     | Exclude<
       LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
-      Service.MakeDepsOut<LayerOpts>
+      LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Success<LayerOpts["dependencies"][number]> : never
     >
-    | Service.MakeDepsIn<LayerOpts>
+    | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Services<LayerOpts["dependencies"][number]> : never)
   >
 } =>
   class extends (tag as any) {
-    static readonly Default = ServiceDef<Tag>(tag)<Context.Tag.Service<Tag>>()(opts)
+    static readonly Default = ServiceDef<Tag>(tag)<Context.Service.Shape<Tag>>()(opts)
   } as any

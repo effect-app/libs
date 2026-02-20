@@ -1,22 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { pipe, Struct as Struct2 } from "effect"
-import type { Schema, Struct } from "effect/Schema"
+import type { Struct } from "effect/Schema"
 import * as S from "effect/Schema"
-import type { Simplify } from "effect/Types"
 
 type ClassAnnotations<Self, A> =
-  | S.Annotations.Schema<Self>
+  | S.Annotations.Declaration<Self>
   | readonly [
     // Annotations for the "to" schema
-    S.Annotations.Schema<Self> | undefined,
+    S.Annotations.Declaration<Self> | undefined,
     // Annotations for the "transformation schema
-    (S.Annotations.Schema<Self> | undefined)?,
+    (S.Annotations.Declaration<Self> | undefined)?,
     // Annotations for the "from" schema
-    S.Annotations.Schema<A>?
+    S.Annotations.Declaration<A>?
   ]
 
-export interface EnhancedClass<Self, Fields extends Struct.Fields, I, R, C, Inherited, Proto>
-  extends S.Class<Self, Fields, I, R, C, Inherited, Proto>, /* Reason for enhancement */ PropsExtensions<Fields>
+export interface EnhancedClass<Self, Fields extends Struct.Fields, Inherited>
+  extends S.Class<Self, S.Struct<Fields>, Inherited>, /* Reason for enhancement */ PropsExtensions<Fields>
 {
 }
 type MissingSelfGeneric<Usage extends string, Params extends string = ""> =
@@ -73,10 +72,6 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
   : EnhancedClass<
     Self,
     Fields,
-    Simplify<Struct.Encoded<Fields>>,
-    Struct.Context<Fields>,
-    Simplify<S.Struct.Constructor<Fields>>,
-    {},
     {}
   > = (identifier) => (fields, annotations) => {
     const cls = S.Class as any
@@ -85,8 +80,8 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
         super(a, b)
       }
       // static readonly include = include(fields)
-      static readonly pick = (...selection: any[]) => pipe(this["fields"], Struct2.pick(...selection))
-      static readonly omit = (...selection: any[]) => pipe(this["fields"], Struct2.omit(...selection))
+      static readonly pick = (...selection: any[]) => pipe(this["fields"], (Struct2.pick as any)(...selection))
+      static readonly omit = (...selection: any[]) => pipe(this["fields"], (Struct2.omit as any)(...selection))
     } as any
   }
 
@@ -98,10 +93,6 @@ export const TaggedClass: <Self = never>(identifier?: string) => <Tag extends st
   : EnhancedClass<
     Self,
     { readonly _tag: S.tag<Tag> } & Fields,
-    Simplify<{ readonly _tag: Tag } & Struct.Encoded<Fields>>,
-    Schema.Context<Fields[keyof Fields]>,
-    Simplify<S.Struct.Constructor<Fields>>,
-    {},
     {}
   > = (identifier) => (tag, fields, annotations) => {
     const cls = S.TaggedClass as any
@@ -110,40 +101,32 @@ export const TaggedClass: <Self = never>(identifier?: string) => <Tag extends st
         super(a, b)
       }
       // static readonly include = include(fields)
-      static readonly pick = (...selection: any[]) => pipe(this["fields"], Struct2.pick(...selection))
-      static readonly omit = (...selection: any[]) => pipe(this["fields"], Struct2.omit(...selection))
+      static readonly pick = (...selection: any[]) => pipe(this["fields"], (Struct2.pick as any)(...selection))
+      static readonly omit = (...selection: any[]) => pipe(this["fields"], (Struct2.omit as any)(...selection))
     } as any
   }
 
-export const ExtendedClass: <Self, SelfFrom>(identifier: string) => <Fields extends S.Struct.Fields>(
+export const ExtendedClass: <Self, _SelfFrom>(identifier: string) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self, Struct.Type<Fields>>
 ) => EnhancedClass<
   Self,
   Fields,
-  SelfFrom,
-  Schema.Context<Fields[keyof Fields]>,
-  Simplify<S.Struct.Constructor<Fields>>,
-  {},
   {}
 > = Class as any
 
-export interface EnhancedTaggedClass<Self, Tag extends string, Fields extends Struct.Fields, SelfFrom>
+export interface EnhancedTaggedClass<Self, Tag extends string, Fields extends Struct.Fields, _SelfFrom>
   extends
     EnhancedClass<
       Self,
       Fields,
-      SelfFrom,
-      Struct.Context<Fields>,
-      Struct.Constructor<Omit<Fields, "_tag">>,
-      {},
       {}
     >
 {
   readonly _tag: Tag
 }
 
-export const ExtendedTaggedClass: <Self, SelfFrom>(
+export const ExtendedTaggedClass: <Self, _SelfFrom>(
   identifier?: string
 ) => <Tag extends string, Fields extends S.Struct.Fields>(
   tag: Tag,
@@ -153,5 +136,5 @@ export const ExtendedTaggedClass: <Self, SelfFrom>(
   Self,
   Tag,
   { readonly _tag: S.tag<Tag> } & Fields,
-  SelfFrom
+  _SelfFrom
 > = TaggedClass as any

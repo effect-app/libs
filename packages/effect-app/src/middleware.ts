@@ -2,7 +2,7 @@
 import { Context } from "effect-app"
 import { RpcX } from "./rpc.js"
 
-export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
+export const DevMode = Context.Reference<boolean>("DevMode", { defaultValue: () => false })
 
 export class RequestCacheMiddleware
   extends RpcX.RpcMiddleware.Tag<RequestCacheMiddleware>()("RequestCacheMiddleware")

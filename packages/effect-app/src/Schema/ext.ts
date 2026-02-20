@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, ParseResult, pipe, type SchemaAST } from "effect"
-import type { Tag } from "effect/Context"
+import { Effect, ParseResult, pipe, type SchemaAST, type ServiceMap } from "effect"
 import type { Schema } from "effect/Schema"
 import * as S from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -298,20 +297,20 @@ export const provide = <Self extends S.Schema.Any, R>(
       encode: (t) => (n) => provide(ParseResult.encodeUnknown(t)(n))
     }) as any
 }
-export const contextFromServices = <Self extends S.Schema.Any, Tags extends readonly Tag<any, any>[]>(
+export const contextFromServices = <Self extends S.Schema.Any, Tags extends readonly ServiceMap.Service<any, any>[]>(
   self: Self,
   ...services: Tags
 ): Effect.Effect<
   S.SchemaClass<
     S.Schema.Type<Self>,
     S.Schema.Encoded<Self>,
-    Exclude<S.Schema.Context<Self>, { [K in keyof Tags]: Tag.Identifier<Tags[K]> }[number]>
+    Exclude<S.Schema.Context<Self>, { [K in keyof Tags]: ServiceMap.Service.Identifier<Tags[K]> }[number]>
   >,
   never,
-  { [K in keyof Tags]: Tag.Identifier<Tags[K]> }[number]
+  { [K in keyof Tags]: ServiceMap.Service.Identifier<Tags[K]> }[number]
 > =>
   Effect.gen(function*() {
-    const context = Context.pick(...services)(yield* Effect.context())
+    const context = Context.pick(...services)(yield* Effect.services())
     const provide = Effect.provide(context)
     return S
       .declare([self], {

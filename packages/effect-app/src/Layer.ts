@@ -1,4 +1,4 @@
-import { type Array, type Context, Effect, Layer, type Scope, type Types } from "effect"
+import { type Array, Effect, Layer, type Scope, type ServiceMap, type Types } from "effect"
 import { dual } from "effect/Function"
 import { type YieldWrap } from "effect/Utils"
 import { type EffectGenUtils } from "./utils/gen.js"
@@ -24,8 +24,8 @@ type Dependencies = { dependencies: Array.NonEmptyReadonlyArray<Layer.Layer.Any>
 type PackedLayers<I, Opts> =
   & Layer.Layer<
     I,
-    MakeErr<Opts> | Effect.Service.MakeDepsE<Opts>,
-    Exclude<MakeContext<Opts>, Scope.Scope | Effect.Service.MakeDepsOut<Opts>>
+    MakeErr<Opts>,
+    Exclude<MakeContext<Opts>, Scope.Scope>
   >
   & {
     withoutDependencies: Layer.Layer<I, MakeErr<Opts>, Exclude<MakeContext<Opts>, Scope.Scope>>
@@ -36,12 +36,12 @@ type PackedOrUnpackedLayer<I, Opts> = Opts extends Dependencies ? PackedLayers<I
 
 export const make: {
   <I, S>(
-    tag: Context.Tag<I, S>
+    tag: ServiceMap.Service<I, S>
   ): <Opts extends Make<Types.NoInfer<S>, any, any>>(
     options: Opts
   ) => PackedOrUnpackedLayer<I, Opts>
   <I, S, Opts extends Make<Types.NoInfer<S>, any, any>>(
-    tag: Context.Tag<I, S>,
+    tag: ServiceMap.Service<I, S>,
     options: Opts
   ): PackedOrUnpackedLayer<I, Opts>
 } = dual(2, (tag, options) => {

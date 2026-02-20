@@ -86,9 +86,9 @@ export function GMU<W, S, S2, GA, MR, ME>(modify: (i: GA) => Pure<W, S, S2, MR, 
   ) => GMU_(get, modify, update)
 }
 
-const tagg = Context.GenericTag<{ env: PureEnv<never, unknown, never> }>("PureEnv")
+const tagg = Context.Service<{ env: PureEnv<never, unknown, never> }>("PureEnv")
 function castTag<W, S, S2>() {
-  return tagg as any as Context.Tag<PureEnvEnv<W, S, S2>, PureEnvEnv<W, S, S2>>
+  return tagg as any as Context.Service<PureEnvEnv<W, S, S2>, PureEnvEnv<W, S, S2>>
 }
 
 export const PureEnvEnv = Symbol()

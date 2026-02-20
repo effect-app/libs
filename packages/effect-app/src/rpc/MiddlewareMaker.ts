@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "@effect/rpc"
-import { type HandlersFrom } from "@effect/rpc/RpcGroup"
-import { Context, Effect, Layer, type Schema, Schema as S, type Scope } from "effect"
+import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/unstable/rpc"
+import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
+import { ServiceMap, Effect, Layer, type Schema, Schema as S, type Scope } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
 import { type Simplify } from "effect/Types"
 import { PreludeLogger } from "../logger.js"
@@ -12,7 +12,7 @@ import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewar
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
 
 // adapter for effect/rpc v3 middleware provides. (in effect-smol (v4), it's wrap only, and just a Service Identifier, no tags.)
-type MakeTags<A> = Context.Tag<A, A>
+type MakeTags<A> = ServiceMap.Service<A, A>
 
 export interface MiddlewareMaker<
   Self,
@@ -20,7 +20,7 @@ export interface MiddlewareMaker<
   RequestContextMap extends Record<string, RpcContextMap.Any>,
   MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
 > extends
-  RpcMiddleware.TagClass<
+  RpcMiddleware.ServiceClass<
     Self,
     Id,
     Simplify<
@@ -45,13 +45,13 @@ export interface MiddlewareMaker<
     >
   >
 {
-  readonly layer: Layer.Layer<Self, never, Context.Tag.Identifier<MiddlewareProviders[number]>>
+  readonly layer: Layer.Layer<Self, never, ServiceMap.Service.Identifier<MiddlewareProviders[number]>>
   readonly requestContext: RequestContextTag<RequestContextMap>
   readonly requestContextMap: RequestContextMap
 }
 
 export interface RequestContextTag<RequestContextMap extends Record<string, RpcContextMap.Any>>
-  extends Context.Tag<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+  extends ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>
 {}
 
 export namespace MiddlewareMaker {
@@ -258,7 +258,7 @@ const middlewareMaker = <
   middlewares = middlewares.toReversed() as any
 
   return Effect.gen(function*() {
-    const context = yield* Effect.context()
+    const context = yield* Effect.services()
 
     // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
     return (
@@ -276,7 +276,7 @@ const middlewareMaker = <
       // inspired from Effect/RpcMiddleware
       for (const tag of middlewares) {
         // use the tag to get the middleware from context
-        const middleware = Context.unsafeGet(context, tag)
+        const middleware = ServiceMap.getUnsafe(context, tag)
 
         // wrap the current handler, allowing the middleware to run before and after it
         handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
@@ -347,7 +347,7 @@ const makeMiddlewareBasic = <Self>() =>
   return Object.assign(MiddlewareMaker, {
     layer,
     // tag to be used to retrieve the RequestContextConfig from Rpc annotations
-    requestContext: Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
+    requestContext: ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
       "RequestContextConfig"
     ),
     requestContextMap: rcm
@@ -360,7 +360,7 @@ export const Tag = <Self>() =>
   RequestContextMap extends RequestContextMapTagAny
 >(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap["config"]> => {
   let allMiddleware: MiddlewareMaker.Any[] = []
-  const requestContext = Context.GenericTag<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
+  const requestContext = ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
     "RequestContextConfig"
   )
   const it = {
@@ -422,7 +422,7 @@ export const Tag = <Self>() =>
 // alternatively consider group.serverMiddleware? hmmm
 export const middlewareGroup = <
   RequestContextMap extends Record<string, RpcContextMap.Any>,
-  Middleware extends RpcMiddleware.TagClassAny & {
+  Middleware extends RpcMiddleware.AnyService & {
     readonly requestContext: RequestContextTag<RequestContextMap>
     readonly requestContextMap: RequestContextMap
   }

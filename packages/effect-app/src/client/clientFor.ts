@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { Rpc } from "effect/unstable/rpc"
 import * as Record from "effect/Record"
-import type * as Request from "effect/Request"
 import type { Path } from "path-parser"
 import qs from "query-string"
 import type * as Effect from "../Effect.js"
@@ -69,7 +69,19 @@ export type ExtractEResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.E
 type IsEmpty<T> = keyof T extends never ? true
   : false
 
-type Cruft = "_tag" | Request.RequestTypeId | typeof S.symbolSerializable | typeof S.symbolWithResult
+// Extract type info from Rpc objects
+type RpcPayloadType<R extends Rpc.Any> = R extends Rpc.Rpc<any, infer P, any, any, any>
+  ? S.Schema.Type<P>
+  : never
+type RpcSuccessType<R extends Rpc.Any> = R extends Rpc.Rpc<any, any, infer Succ, any, any>
+  ? S.Schema.Type<Succ>
+  : never
+type RpcErrorType<R extends Rpc.Any> = R extends Rpc.Rpc<any, any, any, infer E, any>
+  ? S.Schema.Type<E>
+  : never
+type RpcSuccessContext<R extends Rpc.Any> = R extends Rpc.Rpc<any, any, infer Succ, any, any>
+  ? S.Schema.Context<Succ>
+  : never
 
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
@@ -91,19 +103,19 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
+  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<RpcPayloadType<M[K]>> extends true
     ? RequestHandler<
-      S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
+      RpcSuccessType<M[K]>,
+      RpcErrorType<M[K]> | E,
+      R | RpcSuccessContext<M[K]>,
       M[K],
       `${ModuleName}.${K & string}`
     >
     : RequestHandlerWithInput<
-      Omit<S.Schema.Type<M[K]>, Cruft>,
-      S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
+      RpcPayloadType<M[K]>,
+      RpcSuccessType<M[K]>,
+      RpcErrorType<M[K]> | E,
+      R | RpcSuccessContext<M[K]>,
       M[K],
       `${ModuleName}.${K & string}`
     >

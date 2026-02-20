@@ -30,16 +30,14 @@ export interface Constructor<in out A extends B.Brand<any>> {
 }
 
 export const fromBrand = <C extends B.Brand<string>>(
-  constructor: Constructor<C>,
-  options?: S.Annotations.Filter
+  // Used only for C type inference; our usage is always `nominal()` (no runtime checks).
+  _constructor: Constructor<C>,
+  // Require identifier typed as Brand.Keys<C> so S.brand(options.identifier)
+  // infers the full brand key union without any casts.
+  options: S.Annotations.Filter & { readonly identifier: B.Brand.Keys<C> }
 ) =>
-// The constraint `{ "Type": Brand.Brand.Unbranded<C> }` on S.fromBrand doesn't evaluate
-// cleanly for complex brand hierarchies using Simplify<>. We assert the type invariant
-// explicitly since we know `self` is always a schema for the unbranded base type.
-<Self extends S.Top>(self: Self): S.brand<Self["~rebuild.out"], B.Brand.Keys<C>> =>
-  S.fromBrand(options?.identifier ?? "Brand", constructor)(
-    self as unknown as S.Top & { readonly "Type": Brand.Brand.Unbranded<C> }
-  ) as S.brand<Self["~rebuild.out"], B.Brand.Keys<C>>
+<Self extends S.Top>(self: Self) =>
+  self.pipe(S.brand(options.identifier))
 
 export type Unbranded<P> = P extends B.Brand<any> ? Brand.Brand.Unbranded<P> : P
 

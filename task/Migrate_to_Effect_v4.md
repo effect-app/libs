@@ -27,7 +27,7 @@ Commit every task you complete for every step.
 - Create task files for each Step in markdown files under `task/Migration` directory, and track progress and findings in each.
 - Save all conversion findings in a `task/findings.md` file to speed up future migrations. 
 - Never replace any function argument type with `any`
-- Never cast to any as a "fix" (`(s as any)`)! nor recasting via `unknown`: e.g `as unknown as S.Schema<any>`
+- Never cast to any as a "fix" (`(s as any)`)! nor recasting via `unknown`: e.g `as unknown as S.Schema<any>`. Maybe you first need to fix other files.
 - Consult the migration guides instead of making up assumptions. e.g `Schema<A, I, R>` is now `Codec<A, I, R>`
 
 ## Conversion

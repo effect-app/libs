@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Rpc } from "effect/unstable/rpc"
-import { ServiceMap, type Schema as S } from "effect"
+import { type Schema as S, ServiceMap } from "effect"
+import { type Rpc } from "effect/unstable/rpc"
 import { type RpcDynamic } from "./RpcMiddleware.js"
 
 type Values<T extends Record<any, any>> = T[keyof T]

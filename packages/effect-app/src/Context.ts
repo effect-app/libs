@@ -310,12 +310,15 @@ export const ServiceDef = <Tag extends Context.Service<any, any>>(self: Tag) =>
   Tag,
   | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
     : never)
-  | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Error<LayerOpts["dependencies"][number]> : never),
+  | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Error<LayerOpts["dependencies"][number]>
+    : never),
   | Exclude<
     LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
-    LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Success<LayerOpts["dependencies"][number]> : never
+    LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Success<LayerOpts["dependencies"][number]>
+      : never
   >
-  | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Services<LayerOpts["dependencies"][number]> : never)
+  | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Services<LayerOpts["dependencies"][number]>
+    : never)
 > =>
   Layer.effect(self, opts.effect as any).pipe(
     Layer.provide([Layer.empty, ...opts.dependencies ?? []])
@@ -337,12 +340,15 @@ export const DefineService = <
     Context.Service.Identifier<Tag>,
     | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
       : never)
-    | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Error<LayerOpts["dependencies"][number]> : never),
+    | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Error<LayerOpts["dependencies"][number]>
+      : never),
     | Exclude<
       LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
-      LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Success<LayerOpts["dependencies"][number]> : never
+      LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Success<LayerOpts["dependencies"][number]>
+        : never
     >
-    | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Services<LayerOpts["dependencies"][number]> : never)
+    | (LayerOpts extends { dependencies: ReadonlyArray<Layer.Any> } ? Layer.Services<LayerOpts["dependencies"][number]>
+      : never)
   >
 } =>
   class extends (tag as any) {

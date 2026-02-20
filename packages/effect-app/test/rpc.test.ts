@@ -3,8 +3,8 @@ import { S } from "../src/index.js"
 import { RpcContextMap } from "../src/rpc.js"
 
 export class RequestContextMap extends RpcContextMap.makeMap({
-  allowAnonymous: RpcContextMap.makeInverted()(NotLoggedInError as unknown as S.Schema<any>),
-  requireRoles: RpcContextMap.makeCustom()(UnauthorizedError as unknown as S.Schema<any>, Array<string>()),
+  allowAnonymous: RpcContextMap.makeInverted()(NotLoggedInError),
+  requireRoles: RpcContextMap.makeCustom()(UnauthorizedError, Array<string>()),
   test: RpcContextMap.make()(S.Never)
 }) {}
 

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
-import * as Either from "effect/Either"
+import * as Result from "effect/Result"
 import { dual } from "effect/Function"
 import { isFunction } from "effect/Predicate"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
@@ -139,12 +139,12 @@ export * from "./utils/logger.js"
 export * from "./utils/logLevel.js"
 // codegen:end
 
-export const unsafeRight = <E, A>(ei: Either.Either<A, E>) => {
-  if (Either.isLeft(ei)) {
-    console.error(ei.left)
-    throw ei.left
+export const unsafeRight = <E, A>(ri: Result.Result<A, E>) => {
+  if (Result.isFailure(ri)) {
+    console.error(ri.failure)
+    throw ri.failure
   }
-  return ei.right
+  return ri.success
 }
 
 export const unsafeSome = (makeErrorMessage: () => string) => <A>(o: Option.Option<A>) => {
@@ -734,7 +734,11 @@ export const copy = dual<
     <A extends object>(self: A, f: (a: A) => Partial<A>): A
     <A extends object>(self: A, f: Partial<A>): A
   }
->(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? (f as (a: A) => Partial<A>)(self) : f) }))
+>(
+  2,
+  <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) =>
+    clone(self, { ...self, ...(isFunction(f) ? (f as (a: A) => Partial<A>)(self) : f) })
+)
 
 type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
   & {
@@ -925,7 +929,8 @@ export const runtimeFiberAsPromise = <A, E>(fiber: Fiber.Fiber<A, E>, signal?: A
         resolve(exit.value)
       } else {
         // errors really should be of type Error, so we wrap cause in an error
-        reject(Cause.squash(exit.cause))
+        const squashed = Cause.squash(exit.cause)
+        reject(squashed instanceof Error ? squashed : new Error(String(squashed), { cause: squashed }))
       }
     })
   )

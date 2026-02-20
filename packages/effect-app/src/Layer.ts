@@ -1,6 +1,6 @@
-import { type Array, Effect, Layer, type Scope, ServiceMap, type Types } from "effect"
-import { dual } from "effect/Function"
+import { type Array, Effect, Layer, type Scope, type ServiceMap, type Types } from "effect"
 import type { Yieldable } from "effect/Effect"
+import { dual } from "effect/Function"
 import { type EffectGenUtils } from "./utils/gen.js"
 
 export * from "effect/Layer"
@@ -25,7 +25,10 @@ type PackedLayers<I, Opts> =
   & Layer.Layer<
     I,
     MakeErr<Opts> | (Opts extends Dependencies ? Layer.Error<Opts["dependencies"][number]> : never),
-    Exclude<MakeContext<Opts>, Scope.Scope | (Opts extends Dependencies ? Layer.Success<Opts["dependencies"][number]> : never)>
+    Exclude<
+      MakeContext<Opts>,
+      Scope.Scope | (Opts extends Dependencies ? Layer.Success<Opts["dependencies"][number]> : never)
+    >
   >
   & {
     withoutDependencies: Layer.Layer<I, MakeErr<Opts>, Exclude<MakeContext<Opts>, Scope.Scope>>

@@ -20,7 +20,7 @@ export const responseWithJsonBody = (
     headers: response.headers,
     status: response.status,
     remoteAddress: response.remoteAddress
-  })) as any
+  }))
 
 export const demandJson = (client: HttpClient.HttpClient) =>
   HttpClient
@@ -39,5 +39,5 @@ export const demandJson = (client: HttpClient.HttpClient) =>
               description: "not json response: "
                 + Option.getOrUndefined(HttpHeaders.get(response.headers, "Content-Type") as any)
             })
-          )) as any
+          ))
     )) as any

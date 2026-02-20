@@ -2,10 +2,10 @@
 /* eslint-disable prefer-destructuring */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-import { Effect, Option, Ref, ServiceMap } from "effect"
-import * as Scope from "effect/Scope"
+import { Effect, Option, Ref, type ServiceMap } from "effect"
 import * as Def from "effect/Deferred"
 import * as Fiber from "effect/Fiber"
+import type * as Scope from "effect/Scope"
 import type { Semaphore } from "effect/Semaphore"
 import { curry } from "./Function.js"
 import { typedKeysOf } from "./utils.js"

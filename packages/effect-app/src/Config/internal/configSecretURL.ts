@@ -1,7 +1,11 @@
 import { Redacted } from "effect"
 import * as Chunk from "effect/Chunk"
-import { SecretTypeId } from "effect/Secret"
 import type * as SecretURL from "../SecretURL.js"
+
+// SecretTypeId was previously from "effect/Secret" which was removed in v4.
+// Define it locally with the same symbol key for backwards compatibility.
+export const SecretTypeId: unique symbol = Symbol.for("effect/Secret")
+export type SecretTypeId = typeof SecretTypeId
 
 /** @internal */
 export const isSecretURL = (u: unknown): u is SecretURL.SecretURL => {

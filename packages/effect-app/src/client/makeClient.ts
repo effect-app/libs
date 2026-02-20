@@ -138,7 +138,7 @@ export const makeRpcClient = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function rpc(tag: any, fields: any, config?: any): any {
     // TODO: filter errors based on config + take care of inversion
-    const errorSchemas = Object.values(rcs.config).map((_: any) => (_ as any).error)
+    const errorSchemas = Object.values(rcs.config).map((_: any) => _.error)
     const errorSchema = merge(
       config?.failure ? S.isSchema(config.failure) ? config.failure : S.Struct(config.failure) : undefined,
       [...errorSchemas, generalErrors].filter(Boolean)

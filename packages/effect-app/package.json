@@ -155,10 +155,6 @@
       "types": "./dist/Types.d.ts",
       "default": "./dist/Types.js"
     },
-    "./Unify": {
-      "types": "./dist/Unify.d.ts",
-      "default": "./dist/Unify.js"
-    },
     "./Widen.type": {
       "types": "./dist/Widen.type.d.ts",
       "default": "./dist/Widen.type.js"

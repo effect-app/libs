@@ -41,32 +41,31 @@ export class NotFoundError<ItemType = string> extends (TaggedErrorClass<NotFound
 const messageFallback = (messageOrObject?: string | { message: string }) =>
   typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject ?? "" }
 
-export class InvalidStateError extends (TaggedErrorClass<InvalidStateError>()("InvalidStateError", {
+export class InvalidStateError extends TaggedErrorClass<InvalidStateError>()("InvalidStateError", {
   message: S.String
-}) as any) {
-  constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject }, disableValidation)
+}) {
+  constructor(messageOrObject: string | { message: string; cause?: unknown }) {
+    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject })
   }
 }
 
-export class ServiceUnavailableError extends (TaggedErrorClass<ServiceUnavailableError>()("ServiceUnavailableError", {
+export class ServiceUnavailableError extends TaggedErrorClass<ServiceUnavailableError>()("ServiceUnavailableError", {
   message: S.String
-}) as any) {
-  constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject }, disableValidation)
+}) {
+  constructor(messageOrObject: string | { message: string; cause?: unknown }) {
+    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject })
   }
 }
 
-export class ValidationError extends (TaggedErrorClass<ValidationError>()("ValidationError", {
+export class ValidationError extends TaggedErrorClass<ValidationError>()("ValidationError", {
   errors: S.Array(S.Unknown)
-}) as any) {
+}) {
   constructor(
-    props: { errors: ReadonlyArray<unknown> } & { cause?: unknown },
-    disableValidation?: boolean
+    props: { errors: ReadonlyArray<unknown> } & { cause?: unknown }
   ) {
-    super(props, disableValidation)
+    super(props)
   }
-  get message() {
+  override get message() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const self = this as any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,30 +73,30 @@ export class ValidationError extends (TaggedErrorClass<ValidationError>()("Valid
   }
 }
 
-export class NotLoggedInError extends (TaggedErrorClass<NotLoggedInError>()("NotLoggedInError", {
+export class NotLoggedInError extends TaggedErrorClass<NotLoggedInError>()("NotLoggedInError", {
   message: S.String
-}) as any) {
-  constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject), disableValidation)
+}) {
+  constructor(messageOrObject?: string | { message: string; cause?: unknown }) {
+    super(messageFallback(messageOrObject))
   }
 }
 
 /**
  * The user carries a valid Userprofile, but there is a problem with the login none the less.
  */
-export class LoginError extends (TaggedErrorClass<LoginError>()("NotLoggedInError", {
+export class LoginError extends TaggedErrorClass<LoginError>()("NotLoggedInError", {
   message: S.String
-}) as any) {
-  constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject), disableValidation)
+}) {
+  constructor(messageOrObject?: string | { message: string; cause?: unknown }) {
+    super(messageFallback(messageOrObject))
   }
 }
 
-export class UnauthorizedError extends (TaggedErrorClass<UnauthorizedError>()("UnauthorizedError", {
+export class UnauthorizedError extends TaggedErrorClass<UnauthorizedError>()("UnauthorizedError", {
   message: S.String
-}) as any) {
-  constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject), disableValidation)
+}) {
+  constructor(messageOrObject?: string | { message: string; cause?: unknown }) {
+    super(messageFallback(messageOrObject))
   }
 }
 
@@ -109,19 +108,18 @@ type OptimisticConcurrencyDetails = {
   readonly found?: string | undefined
 }
 
-export class OptimisticConcurrencyException extends (TaggedErrorClass<OptimisticConcurrencyException>()(
+export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticConcurrencyException>()(
   "OptimisticConcurrencyException",
   { message: S.String }
-) as any) {
+) {
   readonly details?: OptimisticConcurrencyDetails
   readonly raw?: unknown
   constructor(
     args:
       | OptimisticConcurrencyDetails
-      | ({ message: string } & { cause?: unknown; raw?: unknown }),
-    disableValidation?: boolean
+      | ({ message: string } & { cause?: unknown; raw?: unknown })
   ) {
-    super("message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` }, disableValidation)
+    super("message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` })
     if (!("message" in args)) {
       this.details = args
     }

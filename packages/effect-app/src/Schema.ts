@@ -5,7 +5,6 @@ import { fakerArb } from "./faker.js"
 import { Email as EmailT } from "./Schema/email.js"
 import { withDefaultMake } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT } from "./Schema/phoneNumber.js"
-import type { A } from "./Schema/schema.js"
 import { extendM } from "./utils.js"
 
 export * from "effect/Schema"
@@ -26,7 +25,7 @@ export * from "./Schema/schema.js"
 export * from "./Schema/strings.js"
 export { NonEmptyString } from "./Schema/strings.js"
 
-export * as ParseResult from "effect/ParseResult"
+export * as ParseResult from "effect/SchemaParser"
 
 export { Void as Void_ } from "effect/Schema"
 
@@ -41,7 +40,7 @@ export const Email = EmailT
   .pipe(
     S.annotate({
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      arbitrary: (): A.LazyArbitrary<Email> => (fc) => fakerArb((faker) => faker.internet.exampleEmail)(fc).map(Email)
+      arbitrary: (): S.LazyArbitrary<Email> => (fc) => fakerArb((faker) => faker.internet.exampleEmail)(fc).map(Email)
     }),
     withDefaultMake
   )
@@ -51,7 +50,7 @@ export type Email = EmailT
 export const PhoneNumber = PhoneNumberT
   .pipe(
     S.annotate({
-      arbitrary: (): A.LazyArbitrary<PhoneNumber> => (fc) =>
+      arbitrary: (): S.LazyArbitrary<PhoneNumber> => (fc) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method
         fakerArb((faker) => faker.phone.number)(fc).map(PhoneNumber)
     }),
@@ -111,7 +110,7 @@ export const taggedUnionMap = <
 ) =>
   self.reduce((acc, key) => {
     // TODO: check upstream what's going on with literals of _tag
-    const lit = key.fields._tag.ast as SchemaAST.Literal
+    const lit = key.fields._tag.ast
     const tag = lit.literal as string // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     ;(acc as any)[tag] = key as any
     return acc
@@ -124,7 +123,7 @@ export const tags = <
   self: Members
 ) =>
   S.Literals(self.map((key) => {
-    const lit = key.fields._tag.ast as SchemaAST.Literal
+    const lit = key.fields._tag.ast
     const tag = lit.literal
     return tag
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -140,8 +139,8 @@ export const ExtendTaggedUnion = <A extends { _tag: string }>(
     schema as any,
     (_) => ({
       is: S.is(schema as any),
-      isA: makeIs(_ as any),
-      isAnyOf: makeIsAnyOf(_ as any) /*, map: taggedUnionMap(a) */
+      isA: makeIs(_),
+      isAnyOf: makeIsAnyOf(_) /*, map: taggedUnionMap(a) */
     })
   )
 

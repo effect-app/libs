@@ -1,6 +1,6 @@
 import { Effect, Option, type Scope } from "effect"
-import * as Either from "effect/Either"
 import type { LazyArg } from "effect-app/Function"
+import * as Result from "effect/Result"
 
 export type _R<T extends Effect.Effect<any, any, any>> = [T] extends [
   Effect.Effect<any, any, infer R>
@@ -22,8 +22,8 @@ export function encaseMaybeInEffect_<E, A>(
 export function encaseMaybeEither_<E, A>(
   o: Option.Option<A>,
   onError: LazyArg<E>
-): Either.Either<A, E> {
-  return Option.match(o, { onNone: () => Either.left(onError()), onSome: Either.right })
+): Result.Result<A, E> {
+  return Option.match(o, { onNone: () => Result.fail(onError()), onSome: Result.succeed })
 }
 
 export function toNullable<R, E, A>(

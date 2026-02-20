@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
 import * as Config from "effect/Config"
 import { flow } from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -7,6 +6,7 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Struct from "effect/Struct"
+import { type Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
@@ -209,24 +209,36 @@ const makeApiClientFactory = Effect
               // @ts-expect-error doc
               prev[cur] = Object.keys(fields).length === 0
                 ? {
-                  handler: Effect.gen(function*() {
-                    const client = yield* TheClient
-                    return yield* ((client as any)[requestAttr]!({ _tag: requestAttr }) as Effect.Effect<any, any, never>)
-                  }).pipe(
-                    Effect.provide(layers),
-                    Effect.provide(Layer.effectServices(mr.servicesEffect))
-                  ),
+                  handler: Effect
+                    .gen(function*() {
+                      const client = yield* TheClient
+                      return yield* ((client as any)[requestAttr]!({ _tag: requestAttr }) as Effect.Effect<
+                        any,
+                        any,
+                        never
+                      >)
+                    })
+                    .pipe(
+                      Effect.provide(layers),
+                      Effect.provide(Layer.effectServices(mr.servicesEffect))
+                    ),
                   ...requestMeta
                 }
                 : {
                   handler: (req: any) =>
-                    Effect.gen(function*() {
-                      const client = yield* TheClient
-                      return yield* ((client as any)[requestAttr]!({ _tag: requestAttr, ...req }) as Effect.Effect<any, any, never>)
-                    }).pipe(
-                      Effect.provide(layers),
-                      Effect.provide(Layer.effectServices(mr.servicesEffect))
-                    ),
+                    Effect
+                      .gen(function*() {
+                        const client = yield* TheClient
+                        return yield* ((client as any)[requestAttr]!({ _tag: requestAttr, ...req }) as Effect.Effect<
+                          any,
+                          any,
+                          never
+                        >)
+                      })
+                      .pipe(
+                        Effect.provide(layers),
+                        Effect.provide(Layer.effectServices(mr.servicesEffect))
+                      ),
 
                   ...requestMeta
                 }
@@ -287,8 +299,8 @@ export class ApiClientFactory
       resource: M
     ) =>
       this
-        .use((apiClientFactory: any) => (apiClientFactory as any)(requestLevelLayers, options))
+        .use((apiClientFactory: any) => apiClientFactory(requestLevelLayers, options))
         .pipe(
-          Effect.flatMap((f) => (f as any)(resource))
+          Effect.flatMap((f) => f(resource))
         ) // don't rename f to clientFor or integration in vue project linked fucks up
 }

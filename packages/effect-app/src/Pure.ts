@@ -134,7 +134,11 @@ export function runAll<R, E, A, W3, S1, S3, S4 extends S1>(
             ({ log, state }) => tuple(log, Result.succeed(tuple(state, x)))
           )
         ))
-    .pipe(Effect["catch"]((err: unknown) => Effect.map(Effect.service(tagg), (env) => tuple(env.env.log, Result.fail(err as any)))))
+    .pipe(
+      Effect["catch"]((err: unknown) =>
+        Effect.map(Effect.service(tagg), (env) => tuple(env.env.log, Result.fail(err as any)))
+      )
+    )
   return Effect.provide(a, Layer.succeed(tagg, { env: makePureEnv<W3, S3, S4>(s) as any }) as any) as any
 }
 
@@ -149,7 +153,10 @@ export function runTerm<R, E, A, W3, S1, S3, S4 extends S1>(
   self: Effect.Effect<A, E, FixEnv<R, W3, S1, S3>>,
   s: S4
 ) {
-  return Effect.flatMap(runAll(self, s), ([evts, r]) => Effect.fromYieldable(r).pipe(Effect.map(([s3, a]) => tuple(s3, Chunk.toArray(evts), a))))
+  return Effect.flatMap(
+    runAll(self, s),
+    ([evts, r]) => Effect.fromYieldable(r).pipe(Effect.map(([s3, a]) => tuple(s3, Chunk.toArray(evts), a)))
+  )
 }
 
 export function runTermDiscard<R, E, A, W3, S1, S3, S4 extends S1>(

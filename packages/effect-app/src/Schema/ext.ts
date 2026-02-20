@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Effect, Option, pipe, type SchemaAST } from "effect"
 import type { Tag } from "effect/Context"
+import * as S from "effect/Schema"
 import * as Getter from "effect/SchemaGetter"
 import * as Issue from "effect/SchemaIssue"
-import * as S from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
 import { extendM, typedKeysOf } from "../utils.js"
 import { type AST } from "./schema.js"
@@ -12,8 +12,8 @@ import { type AST } from "./schema.js"
 export const withDefaultConstructor = <A>(
   makeDefault: () => NoInfer<A>
 ) =>
-(self: S.Top): any =>
-  (self as any).pipe(S.withConstructorDefault(() => Option.some(makeDefault())))
+<Self extends S.Top & S.WithoutConstructorDefault>(self: Self): S.withConstructorDefault<Self> =>
+  self.pipe(S.withConstructorDefault((_) => Option.some(makeDefault()) as Option.Option<Self["~type.make.in"]>))
 
 /**
  * Like the default Schema `Date` but with `withDefault` => now
@@ -106,28 +106,36 @@ export const NullOr = <T extends S.Top>(self: T) =>
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => null)) })
   )
 
-export const defaultDate = (s: S.Top) => s.pipe(withDefaultConstructor(() => new global.Date()))
+export const defaultDate = <S extends S.Top & S.WithoutConstructorDefault>(s: S) =>
+  s.pipe(withDefaultConstructor(() => new global.Date()))
 
-export const defaultBool = (s: S.Top) => s.pipe(withDefaultConstructor(() => false))
+export const defaultBool = <S extends S.Top & S.WithoutConstructorDefault>(s: S) =>
+  s.pipe(withDefaultConstructor(() => false))
 
-export const defaultNullable = (s: S.Top) => s.pipe(withDefaultConstructor(() => null))
+export const defaultNullable = <S extends S.Top & S.WithoutConstructorDefault>(s: S) =>
+  s.pipe(withDefaultConstructor(() => null))
 
-export const defaultArray = (s: S.Top) => s.pipe(withDefaultConstructor(() => []))
+export const defaultArray = <S extends S.Top & S.WithoutConstructorDefault>(s: S) =>
+  s.pipe(withDefaultConstructor(() => []))
 
-export const defaultMap = (s: S.Top) => s.pipe(withDefaultConstructor(() => new Map()))
+export const defaultMap = <S extends S.Top & S.WithoutConstructorDefault>(s: S) =>
+  s.pipe(withDefaultConstructor(() => new Map()))
 
-export const defaultSet = (s: S.Top) => s.pipe(withDefaultConstructor(() => new Set()))
+export const defaultSet = <S extends S.Top & S.WithoutConstructorDefault>(s: S) =>
+  s.pipe(withDefaultConstructor(() => new Set()))
 
-export const withDefaultMake = <Self extends S.Top>(s: Self) => {
-  const a = Object.assign(S.decodeSync(s as any) as WithDefaults<Self>, s)
+export const withDefaultMake = <Self extends S.Top & { readonly DecodingServices: never }>(
+  s: Self
+): Self & WithDefaults<Self> => {
+  const decode = S.decodeSync(s)
+  const a = Object.assign(decode as WithDefaults<Self>, s)
   Object.setPrototypeOf(a, s)
   return a
 }
 
-export type WithDefaults<Self extends S.Top> = (
-  i: Self["Encoded"],
-  options?: SchemaAST.ParseOptions
-) => Self["Type"]
+export type WithDefaults<Self extends S.Top> =
+  & ((i: Self["Encoded"], options?: SchemaAST.ParseOptions) => Self["Type"])
+  & { readonly DecodingServices: never }
 
 export const inputDate = extendM(
   // S.DateValid is the v4 equivalent of S.ValidDateFromSelf (valid Date object)

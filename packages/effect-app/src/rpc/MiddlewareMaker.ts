@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, type RpcGroup, RpcMiddleware, type RpcSchema } from "effect/unstable/rpc"
-import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
-import { Effect, Layer, type Schema, Schema as S, ServiceMap, type Scope } from "effect"
+import { Effect, Layer, type Schema, Schema as S, type Scope, ServiceMap } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
 import { type Simplify } from "effect/Types"
+import { Rpc, type RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/unstable/rpc"
+import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
 import { typedValuesOf } from "../utils.js"
@@ -276,7 +276,15 @@ const middlewareMaker = <
       // inspired from Effect/RpcMiddleware
       for (const tag of middlewares) {
         // use the tag to get the middleware from context
-        const middleware = ServiceMap.getUnsafe(context as any, tag as any) as any
+        const middleware = ServiceMap.getUnsafe(context as any, tag as any) as (
+          effect: Effect.Effect<any, any, any>,
+          options: {
+            readonly clientId: number
+            readonly rpc: Rpc.AnyWithProps
+            readonly payload: unknown
+            readonly headers: any
+          }
+        ) => Effect.Effect<any, any, any>
 
         // wrap the current handler, allowing the middleware to run before and after it
         handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(

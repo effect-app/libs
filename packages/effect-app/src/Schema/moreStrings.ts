@@ -1,7 +1,7 @@
 import { pipe } from "effect"
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
-import type { LazyArbitrary } from "effect/Arbitrary"
+import type { LazyArbitrary } from "effect/Schema"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
@@ -186,7 +186,7 @@ export function prefixedStringId<Brand extends StringId>() {
         (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s: S.Schema<string & Brand> = StringId
+    const s = StringId
       .pipe(
         S.refine((x: unknown): x is string & Brand => (x as string).startsWith(pref), {
           arbitrary: arb,
@@ -223,6 +223,7 @@ export const brandedStringId = <
     Object.assign(Object.create(StringId), StringId) as S.Schema<string & Brand> & {
       make: () => string & Brand
       withDefault: any
+      readonly DecodingServices: never
     } & WithDefaults<S.Schema<string & Brand>>
   )
 

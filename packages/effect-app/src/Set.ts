@@ -1,7 +1,6 @@
 // ets_tracing: off
 
-import { Array, type Equivalence, Option, type Order } from "effect"
-import type * as Either from "effect/Either"
+import { Array, type Either, type Equivalence, Option, type Order } from "effect"
 import { not } from "effect/Predicate"
 import { identity, pipe, type Predicate, type Refinement, tuple } from "./Function.js"
 

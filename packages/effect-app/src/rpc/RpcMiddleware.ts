@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect, type Schema, type Schema as S, type Scope, type ServiceMap, type Stream } from "effect"
+import { type Rpc, RpcMiddleware } from "@effect/rpc"
+import { type SuccessValue, type TypeId } from "@effect/rpc/RpcMiddleware"
+import { type Context, type Effect, type Schema, type Schema as S, type Scope, type Stream, Unify } from "effect"
 import { type HttpHeaders } from "effect-app/http"
 import { type NonEmptyReadonlyArray } from "effect/Array"
+import { type TagUnify, type TagUnifyIgnore } from "effect/Context"
 import { type ReadonlyMailbox } from "effect/Mailbox"
-import { type Rpc, RpcMiddleware } from "effect/unstable/rpc"
-import { type SuccessValue, type TypeId } from "effect/unstable/rpc/RpcMiddleware"
 import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.js"
 
 // updated to support Scope.Scope and follow V4: Provides/Requires as Identifiers instead of Tag, wrap is default
@@ -56,7 +57,7 @@ export interface RpcMiddlewareDynamic<E, R, _Config> {
   >
 }
 
-export interface TagClassAny extends ServiceMap.Service<any, any> {
+export interface TagClassAny extends Context.Tag<any, any> {
   readonly [TypeId]: TypeId
   readonly optional: boolean
   readonly provides: any
@@ -67,8 +68,6 @@ export interface TagClassAny extends ServiceMap.Service<any, any> {
   readonly dynamic?: RpcDynamic<any, any> | undefined
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
-
-export type AnyService = TagClassAny
 
 export declare namespace TagClass {
   /**
@@ -128,8 +127,8 @@ export declare namespace TagClass {
       requires?: any
       provides?: any
     }
-  > extends ServiceMap.Service<Self, Service> {
-    new(_: never): ServiceMap.ServiceClass.Shape<Name, Service>
+  > extends Context.Tag<Self, Service> {
+    new(_: never): Context.TagClassShape<Name, Service>
     readonly [TypeId]: TypeId
     readonly optional: Optional<Options>
     readonly failure: FailureSchema<Options>
@@ -170,7 +169,7 @@ export interface TagClass<
   >
 {}
 
-export const Service = <
+export const Tag = <
   Self,
   Config extends {
     requires?: any
@@ -184,17 +183,18 @@ export const Service = <
   id: Name,
   options?: Options
 ): TagClass<Self, Name, Options, Config> =>
-  class extends RpcMiddleware.Service<Self>()(id, options) {
+  class extends RpcMiddleware.Tag<Self>()(id, options) {
     static readonly requires: "requires" extends keyof Config ? Config["requires"] : never
     static override readonly provides: "provides" extends keyof Config ? Config["provides"] : never
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined
+    static override [Unify.typeSymbol]?: unknown
+    static override [Unify.unifySymbol]?: TagUnify<typeof this>
+    static override [Unify.ignoreSymbol]?: TagUnifyIgnore
   } as any
 
-export const Tag = Service
-
 // not needed if there's official support in Rpc.Rpc.
-export type AddMiddleware<R extends Rpc.Any, Middleware extends RpcMiddleware.AnyService> = R extends Rpc.Rpc<
+export type AddMiddleware<R extends Rpc.Any, Middleware extends RpcMiddleware.TagClassAny> = R extends Rpc.Rpc<
   infer _Tag,
   infer _Payload,
   infer _Success,
@@ -252,7 +252,7 @@ export type ExtractDynamicallyProvides<R extends Rpc.Any, Tag extends string> = 
 
 export type ExtractProvides<R extends Rpc.Any, Tag extends string> = R extends
   Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
-    readonly provides: ServiceMap.Service<infer _I, infer _S>
+    readonly provides: Context.Tag<infer _I, infer _S>
   } ? _I
   : never
   : never

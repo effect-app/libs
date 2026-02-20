@@ -2,10 +2,11 @@
 /* eslint-disable prefer-destructuring */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-import { type ServiceMap, Effect, Option, Ref } from "effect"
+import { type Context, Effect, HashMap, Option, Ref } from "effect"
 import * as Def from "effect/Deferred"
-import type { Semaphore } from "effect/Semaphore"
+import type { Semaphore } from "effect/Effect"
 import * as Fiber from "effect/Fiber"
+import * as FiberRef from "effect/FiberRef"
 import { curry } from "./Function.js"
 import { typedKeysOf } from "./utils.js"
 
@@ -109,14 +110,14 @@ export function modifyWithPermitWithEffect<A>(ref: Ref.Ref<A>, semaphore: Semaph
 }
 
 export function joinAll<E, A>(fibers: Iterable<Fiber.Fiber<A, E>>): Effect.Effect<readonly A[], E> {
-  return Fiber.joinAll(fibers)
+  return Fiber.join(Fiber.all(fibers))
 }
 
 type ServiceA<T> = T extends Effect.Effect<infer S, any, any> ? S
-  : T extends ServiceMap.Service<any, infer S> ? S
+  : T extends Context.Tag<any, infer S> ? S
   : never
 type ServiceR<T> = T extends Effect.Effect<any, any, infer R> ? R
-  : T extends ServiceMap.Service<infer R, any> ? R
+  : T extends Context.Tag<infer R, any> ? R
   : never
 type ServiceE<T> = T extends Effect.Effect<any, infer E, any> ? E : never
 // type Values<T> = T extends { [s: string]: infer S } ? ServiceA<S> : never
@@ -141,11 +142,11 @@ export interface EffectUnunified<R, E, A> extends Effect.Effect<R, E, A> {}
 
 export type LowerFirst<S extends PropertyKey> = S extends `${infer First}${infer Rest}` ? `${Lowercase<First>}${Rest}`
   : S
-export type LowerServices<T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>> = {
+export type LowerServices<T extends Record<string, Context.Tag<any, any> | Effect.Effect<any, any, any>>> = {
   [key in keyof T as LowerFirst<key>]: ServiceA<T[key]>
 }
 
-export function allLower<T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>>(
+export function allLower<T extends Record<string, Context.Tag<any, any> | Effect.Effect<any, any, any>>>(
   services: T
 ) {
   return Effect.all(
@@ -158,7 +159,7 @@ export function allLower<T extends Record<string, ServiceMap.Service<any, any> |
   ) as any as Effect.Effect<LowerServices<T>, ValuesE<T>, ValuesR<T>>
 }
 
-export function allLowerWith<T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>, A>(
+export function allLowerWith<T extends Record<string, Context.Tag<any, any> | Effect.Effect<any, any, any>>, A>(
   services: T,
   fn: (services: LowerServices<T>) => A
 ) {
@@ -166,7 +167,7 @@ export function allLowerWith<T extends Record<string, ServiceMap.Service<any, an
 }
 
 export function allLowerWithEffect<
-  T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>,
+  T extends Record<string, Context.Tag<any, any> | Effect.Effect<any, any, any>>,
   R,
   E,
   A
@@ -182,5 +183,41 @@ export function allLowerWithEffect<
  */
 export function catchAllMap<E, A2>(f: (e: E) => A2) {
   return <R, A>(self: Effect.Effect<A, E, R>): Effect.Effect<A2 | A, never, R> =>
-    Effect["catch"](self, (err: E) => Effect.sync(() => f(err)))
+    Effect.catchAll(self, (err) => Effect.sync(() => f(err)))
+}
+
+/**
+ * Annotates each log in this scope with the specified log annotation.
+ */
+export function annotateLogscoped(key: string, value: string) {
+  return FiberRef
+    .get(
+      FiberRef
+        .currentLogAnnotations
+    )
+    .pipe(Effect
+      .flatMap((annotations) =>
+        Effect.suspend(() =>
+          FiberRef.currentLogAnnotations.pipe(Effect.locallyScoped(HashMap.set(annotations, key, value)))
+        )
+      ))
+}
+
+/**
+ * Annotates each log in this scope with the specified log annotations.
+ */
+export function annotateLogsScoped(kvps: Record<string, string>) {
+  return FiberRef
+    .get(
+      FiberRef
+        .currentLogAnnotations
+    )
+    .pipe(Effect
+      .flatMap((annotations) =>
+        Effect.suspend(() =>
+          FiberRef.currentLogAnnotations.pipe(
+            Effect.locallyScoped(HashMap.fromIterable([...annotations, ...Object.entries(kvps)]))
+          )
+        )
+      ))
 }

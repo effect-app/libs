@@ -10,7 +10,7 @@ export * from "effect/Option"
 export const getOrUndefined = value
 
 export function omitableToNullable<T>(om: Option.Option<T> | undefined) {
-  return om ?? Option.fromNullishOr(om)
+  return om ?? Option.fromNullable(om)
 }
 
 export const toBool = Option.match({
@@ -31,7 +31,7 @@ export function p<T>(k: any) {
   return (v: Option.Option<T>) => Option.flatMap(v, (a) => convert((a as any)[k]))
 }
 function convert(a: any) {
-  return Option.isSome(a) || Option.isNone(a) ? a : Option.fromNullishOr(a)
+  return Option.isSome(a) || Option.isNone(a) ? a : Option.fromNullable(a)
 }
 export type _A<A> = A extends Some<infer Y> ? Y : never
 type KeysMatching<T, V> = {

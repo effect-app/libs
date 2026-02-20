@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option as Option_, pipe, type SchemaAST, type ServiceMap } from "effect"
-import * as SchemaIssue from "effect/SchemaIssue"
-import * as SchemaParser from "effect/SchemaParser"
+import { Effect, ParseResult, pipe, type SchemaAST } from "effect"
+import type { Tag } from "effect/Context"
+import type { Schema } from "effect/Schema"
 import * as S from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
 import * as Context from "../Context.js"
 import { extendM, typedKeysOf } from "../utils.js"
 import { type AST } from "./schema.js"
 
-export const withDefaultConstructor = <A>(
+export const withDefaultConstructor: <A, I, R>(
   makeDefault: () => NoInfer<A>
-) => (self: any): any =>
-  S.withConstructorDefault((_: Option_.Option<undefined>) => Option_.some(makeDefault()))(self)
+) => (self: Schema<A, I, R>) => S.PropertySignature<":", A, never, ":", I, true, R> = (makeDefault) => (self) =>
+  S.propertySignature(self).pipe(S.withConstructorDefault(makeDefault))
 
 /**
  * Like the default Schema `Date` but with `withDefault` => now
@@ -38,11 +38,11 @@ export const Number = Object.assign(S.Number, { withDefault: S.Number.pipe(withD
  */
 export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(...literals: Literals) =>
   pipe(
-    S.Literal(...(literals as readonly [AST.LiteralValue, ...AST.LiteralValue[]])),
+    S.Literal(...literals),
     (s) =>
       Object.assign(s, {
         changeDefault: <A extends Literals[number]>(a: A) => {
-          return Object.assign(S.Literal(...(literals as readonly [AST.LiteralValue, ...AST.LiteralValue[]])), {
+          return Object.assign(S.Literal(...literals), {
             Default: a,
             withDefault: s.pipe(withDefaultConstructor(() => a))
           }) // todo: copy annotations from original?
@@ -55,7 +55,7 @@ export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>
 /**
  * Like the default Schema `Array` but with `withDefault` => []
  */
-export function Array<Value extends S.Top>(value: Value) {
+export function Array<Value extends Schema.Any>(value: Value) {
   return pipe(
     S.Array(value),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => [])) })
@@ -65,10 +65,10 @@ export function Array<Value extends S.Top>(value: Value) {
 /**
  * Like the default Schema `Map` but with `withDefault` => []
  */
-function Map_<Key extends S.Top, Value extends S.Top>(input: { key: Key; value: Value }) {
+function Map_<Key extends Schema.Any, Value extends Schema.Any>(input: { key: Key; value: Value }) {
   return pipe(
-    (S as any).Map(input),
-    (s: any) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new global.Map())) })
+    S.Map(input),
+    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new global.Map())) })
   )
 }
 
@@ -77,7 +77,7 @@ export { Map_ as Map }
 /**
  * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()
  */
-export const ReadonlySet = <Value extends S.Top>(value: Value) =>
+export const ReadonlySet = <Value extends Schema.Any>(value: Value) =>
   pipe(
     S.ReadonlySet(value),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Set<S.Schema.Type<Value>>())) })
@@ -86,60 +86,80 @@ export const ReadonlySet = <Value extends S.Top>(value: Value) =>
 /**
  * Like the default Schema `ReadonlyMap` but with `withDefault` => new Map()
  */
-export const ReadonlyMap = <K extends S.Top, V extends S.Top>(pair: {
+export const ReadonlyMap = <K extends Schema.Any, V extends Schema.Any>(pair: {
   readonly key: K
   readonly value: V
 }) =>
   pipe(
-    S.ReadonlyMap(pair.key, pair.value),
+    S.ReadonlyMap(pair),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Map())) })
   )
 
 /**
  * Like the default Schema `NullOr` but with `withDefault` => null
  */
-export const NullOr = <Self extends S.Top>(self: Self) =>
+export const NullOr = <S extends Schema.Any>(self: S) =>
   pipe(
     S.NullOr(self),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => null)) })
   )
 
-export const defaultDate = (s: any) => s.pipe(withDefaultConstructor(() => new global.Date()))
+export const defaultDate = <I, R>(s: Schema<Date, I, R>) => s.pipe(withDefaultConstructor(() => new global.Date()))
 
-export const defaultBool = (s: any) => s.pipe(withDefaultConstructor(() => false))
+export const defaultBool = <I, R>(s: Schema<boolean, I, R>) => s.pipe(withDefaultConstructor(() => false))
 
-export const defaultNullable = (s: any) => s.pipe(withDefaultConstructor(() => null))
+export const defaultNullable = <A, I, R>(
+  s: Schema<A | null, I, R>
+) => s.pipe(withDefaultConstructor(() => null))
 
-export const defaultArray = (s: any) => s.pipe(withDefaultConstructor(() => []))
+export const defaultArray = <A, I, R>(s: Schema<ReadonlyArray<A>, I, R>) => s.pipe(withDefaultConstructor(() => []))
 
-export const defaultMap = (s: any) => s.pipe(withDefaultConstructor(() => new Map()))
+export const defaultMap = <A, A2, I, R>(s: Schema<ReadonlyMap<A, A2>, I, R>) =>
+  s.pipe(withDefaultConstructor(() => new Map()))
 
-export const defaultSet = (s: any) => s.pipe(withDefaultConstructor(() => new Set()))
+export const defaultSet = <A, I, R>(s: Schema<ReadonlySet<A>, I, R>) =>
+  s.pipe(withDefaultConstructor(() => new Set<A>()))
 
-export const withDefaultMake = <Self extends S.Top & { readonly DecodingServices: never }>(s: Self) => {
-  const a = Object.assign(SchemaParser.decodeUnknownSync(s) as WithDefaults<Self>, s)
+export const withDefaultMake = <Self extends S.Schema<any, any, never>>(s: Self) => {
+  const a = Object.assign(S.decodeSync(s) as WithDefaults<Self>, s)
   Object.setPrototypeOf(a, s)
   return a
+
+  // return s as Self & WithDefaults<Self>
 }
 
-export type WithDefaults<Self extends S.Top> = (
-  i: Self["Encoded"],
+export type WithDefaults<Self extends S.Schema<any, any, never>> = (
+  i: S.Schema.Encoded<Self>,
   options?: SchemaAST.ParseOptions
-) => Self["Type"]
+) => S.Schema.Type<Self>
+
+// type GetKeys<U> = U extends Record<infer K, any> ? K : never
+// type UnionToIntersection2<U extends object> = {
+//   readonly [K in GetKeys<U>]: U extends Record<K, infer T> ? T : never
+// }
+
+// export type Test<P extends B.Brand<any>> = {
+//   [K in keyof P[B.BrandTypeId]]: K extends string | symbol ? {
+//       readonly [k in K]: k
+//     }
+//     : never
+// }[keyof P[B.BrandTypeId]]
+// export type UnionToIntersection3<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I
+//   : never
 
 export const inputDate = extendM(
-  S.Union([(S as any).ValidDateFromSelf ?? S.Date, S.Date] as any),
+  S.Union(S.ValidDateFromSelf, S.Date),
   (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => new globalThis.Date())) })
 )
 
 export interface UnionBrand {}
 
-const makeOpt = (self: any, exact?: boolean): any => {
+const makeOpt = (self: S.PropertySignature.Any, exact?: boolean) => {
   const ast = self.ast
   switch (ast._tag) {
     case "PropertySignatureDeclaration": {
-      return (S as any).makePropertySignature(
-        new (S as any).PropertySignatureDeclaration(
+      return S.makePropertySignature(
+        new S.PropertySignatureDeclaration(
           exact ? ast.type : S.UndefinedOr(S.make(ast.type)).ast,
           true,
           ast.isReadonly,
@@ -149,15 +169,15 @@ const makeOpt = (self: any, exact?: boolean): any => {
       )
     }
     case "PropertySignatureTransformation": {
-      return (S as any).makePropertySignature(
-        new (S as any).PropertySignatureTransformation(
-          new (S as any).FromPropertySignature(
+      return S.makePropertySignature(
+        new S.PropertySignatureTransformation(
+          new S.FromPropertySignature(
             exact ? ast.from.type : S.UndefinedOr(S.make(ast.from.type)).ast,
             true,
             ast.from.isReadonly,
             ast.from.annotations
           ),
-          new (S as any).ToPropertySignature(
+          new S.ToPropertySignature(
             exact ? ast.to.type : S.UndefinedOr(S.make(ast.to.type)).ast,
             true,
             ast.to.isReadonly,
@@ -172,10 +192,20 @@ const makeOpt = (self: any, exact?: boolean): any => {
   }
 }
 
-export function makeOptional<NER extends S.Struct.Fields | any>(
+export function makeOptional<NER extends S.Struct.Fields | S.PropertySignature.Any>(
   t: NER // TODO: enforce non empty
-): any {
-  return typedKeysOf(t).reduce((prev: any, cur: any) => {
+): {
+  [K in keyof NER]: S.PropertySignature<
+    "?:",
+    Schema.Type<NER[K]> | undefined,
+    never,
+    "?:",
+    Schema.Encoded<NER[K]> | undefined,
+    NER[K] extends S.PropertySignature<any, any, any, any, any, infer Z, any> ? Z : false,
+    Schema.Context<NER[K]>
+  >
+} {
+  return typedKeysOf(t).reduce((prev, cur) => {
     if (S.isSchema(t[cur])) {
       prev[cur] = S.optional(t[cur] as any)
     } else {
@@ -187,86 +217,105 @@ export function makeOptional<NER extends S.Struct.Fields | any>(
 
 export function makeExactOptional<NER extends S.Struct.Fields>(
   t: NER // TODO: enforce non empty
-): any {
-  return typedKeysOf(t).reduce((prev: any, cur: any) => {
+): {
+  [K in keyof NER]: S.PropertySignature<
+    "?:",
+    Schema.Type<NER[K]>,
+    never,
+    "?:",
+    Schema.Encoded<NER[K]>,
+    NER[K] extends S.PropertySignature<any, any, any, any, any, infer Z, any> ? Z : false,
+    Schema.Context<NER[K]>
+  >
+} {
+  return typedKeysOf(t).reduce((prev, cur) => {
     if (S.isSchema(t[cur])) {
-      prev[cur] = S.optionalKey(t[cur] as any)
+      prev[cur] = S.optionalWith(t[cur] as any, { exact: true })
     } else {
-      prev[cur] = makeOpt(t[cur] as any, true)
+      prev[cur] = makeOpt(t[cur] as any)
     }
     return prev
   }, {} as any)
 }
 
 /** A version of transform which is only a one way mapping of From->To */
-export const transformTo = <To extends S.Top, From extends S.Top>(
+export const transformTo = <To extends Schema.Any, From extends Schema.Any>(
   from: From,
   to: To,
   decode: (
-    fromA: From["Type"],
+    fromA: Schema.Type<From>,
     options: SchemaAST.ParseOptions,
-    ast: any,
-    fromI: From["Encoded"]
-  ) => To["Encoded"]
-): any =>
-  (S as any).transformOrFail(
+    ast: SchemaAST.Transformation,
+    fromI: Schema.Encoded<From>
+  ) => Schema.Encoded<To>
+) =>
+  S.transformOrFail<To, From, never, never>(
     from,
     to,
     {
-      decode: (...args: any[]) => Effect.sync(() => (decode as any)(...args)),
-      encode: (i: any, _: any, _ast: any) =>
-        Effect.fail(
-          new SchemaIssue.Forbidden(
-            Option_.some(i),
-            { message: "One way schema transformation, encoding is not allowed" }
+      decode: (...args) => Effect.sync(() => decode(...args)),
+      encode: (i, _, ast) =>
+        ParseResult.fail(
+          new ParseResult.Forbidden(
+            ast,
+            i,
+            "One way schema transformation, encoding is not allowed"
           )
         )
     }
   )
 
 /** A version of transformOrFail which is only a one way mapping of From->To */
-export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
+export const transformToOrFail = <To extends Schema.Any, From extends Schema.Any, RD>(
   from: From,
   to: To,
   decode: (
-    fromA: From["Type"],
+    fromA: Schema.Type<From>,
     options: SchemaAST.ParseOptions,
-    ast: any
-  ) => Effect.Effect<To["Encoded"], SchemaIssue.Issue, RD>
-): any =>
-  (S as any).transformOrFail(from, to, {
+    ast: SchemaAST.Transformation
+  ) => Effect.Effect<Schema.Encoded<To>, ParseResult.ParseIssue, RD>
+) =>
+  S.transformOrFail<To, From, RD, never>(from, to, {
     decode,
-    encode: (i: any, _: any, _ast: any) =>
-      Effect.fail(
-        new SchemaIssue.Forbidden(
-          Option_.some(i),
-          { message: "One way schema transformation, encoding is not allowed" }
+    encode: (i, _, ast) =>
+      ParseResult.fail(
+        new ParseResult.Forbidden(
+          ast,
+          i,
+          "One way schema transformation, encoding is not allowed"
         )
       )
   })
 
-export const provide = <Self extends S.Top, R>(
+export const provide = <Self extends S.Schema.Any, R>(
   self: Self,
   context: Context.Context<R> // TODO: support Layers?
-): any => {
-  const provide_ = Effect.provide(context)
-  return (S as any)
+): S.SchemaClass<S.Schema.Type<Self>, S.Schema.Encoded<Self>, Exclude<S.Schema.Context<Self>, R>> => {
+  const provide = Effect.provide(context)
+  return S
     .declare([self], {
-      decode: (t: any) => (n: any) => provide_(SchemaParser.decodeUnknownEffect(t)(n)),
-      encode: (t: any) => (n: any) => provide_(SchemaParser.encodeUnknownEffect(t)(n))
+      decode: (t) => (n) => provide(ParseResult.decodeUnknown(t)(n)),
+      encode: (t) => (n) => provide(ParseResult.encodeUnknown(t)(n))
     }) as any
 }
-
-export const contextFromServices = <Self extends S.Top, Tags extends readonly ServiceMap.Service<any, any>[]>(
+export const contextFromServices = <Self extends S.Schema.Any, Tags extends readonly Tag<any, any>[]>(
   self: Self,
   ...services: Tags
-): Effect.Effect<any, never, any> =>
+): Effect.Effect<
+  S.SchemaClass<
+    S.Schema.Type<Self>,
+    S.Schema.Encoded<Self>,
+    Exclude<S.Schema.Context<Self>, { [K in keyof Tags]: Tag.Identifier<Tags[K]> }[number]>
+  >,
+  never,
+  { [K in keyof Tags]: Tag.Identifier<Tags[K]> }[number]
+> =>
   Effect.gen(function*() {
-    const context = Context.pick(...services)(yield* Effect.services())
-    const provide_ = Effect.provide(context)
-    return (S as any)
+    const context = Context.pick(...services)(yield* Effect.context())
+    const provide = Effect.provide(context)
+    return S
       .declare([self], {
-        decode: (t: any) => (n: any) => provide_(SchemaParser.decodeUnknownEffect(t)(n)),
-        encode: (t: any) => (n: any) => provide_(SchemaParser.encodeUnknownEffect(t)(n))
+        decode: (t) => (n) => provide(ParseResult.decodeUnknown(t)(n)),
+        encode: (t) => (n) => provide(ParseResult.encodeUnknown(t)(n))
       })
   }) as any

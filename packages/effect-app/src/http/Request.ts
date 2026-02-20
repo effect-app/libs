@@ -1,4 +1,4 @@
-import type { HttpClientResponse } from "effect/unstable/http/HttpClientResponse"
+import type { HttpClientResponse } from "@effect/platform/HttpClientResponse"
 import * as Effect from "../Effect.js"
 import * as Option from "../Option.js"
 import { HttpClient, HttpClientError, HttpClientRequest, HttpHeaders } from "./internal/lib.js"

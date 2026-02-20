@@ -39,11 +39,11 @@ export const Number = Object.assign(S.Number, { withDefault: S.Number.pipe(withD
  */
 export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(...literals: Literals) =>
   pipe(
-    (S.Literal as any)(...literals),
+    S.Literals(literals),
     (s) =>
       Object.assign(s, {
         changeDefault: <A extends Literals[number]>(a: A) => {
-          return Object.assign((S.Literal as any)(...literals), {
+          return Object.assign(S.Literals(literals), {
             Default: a,
             withDefault: s.pipe(withDefaultConstructor(() => a))
           }) // todo: copy annotations from original?

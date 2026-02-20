@@ -28,7 +28,7 @@ type SchemaOrFields<T> = T extends S.Struct.Fields ? S.Struct<T> : T extends S.T
 /**
  * Whatever the input, we will only decode or encode to void
  */
-const ForceVoid: S.Schema<void> = S.transformTo(S.Any, S.Void, () => void 0) as any
+const ForceVoid: S.Schema<void> = S.Void
 
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,

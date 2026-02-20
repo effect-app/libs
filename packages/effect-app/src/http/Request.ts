@@ -33,10 +33,9 @@ export const demandJson = (client: HttpClient.HttpClient) =>
             ?.startsWith("application/json")
           ? Effect.void
           : Effect.fail(
-            new HttpClientError.ResponseError({
+            new HttpClientError.DecodeError({
               request,
               response,
-              reason: "Decode",
               description: "not json response: "
                 + Option.getOrUndefined(HttpHeaders.get(response.headers, "Content-Type") as any)
             })

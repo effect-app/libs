@@ -41,23 +41,23 @@ const RequestName = ServiceMap.Reference<{ requestName: string; moduleName: stri
 
 export const HttpClientLayer = (config: ApiConfig) =>
   Layer.effect(
-    HttpClient.HttpClient as any,
+    HttpClient.HttpClient,
     Effect
       .gen(function*() {
-        const baseClient = yield* (HttpClient.HttpClient as any)
+        const baseClient = yield* HttpClient.HttpClient
         const client = baseClient.pipe(
           HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
           HttpClient.mapRequest(
             HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => ({} as Record<string, string>))))
           ),
-          HttpClient.mapRequestEffect(((req: any) =>
+          HttpClient.mapRequestEffect((req) =>
             Effect.gen(function*() {
               const ctx = yield* RequestName
               return flow(
                 HttpClientRequest.appendUrlParam("action", ctx.requestName),
                 HttpClientRequest.appendUrl("/" + ctx.moduleName)
               )(req)
-            }) as any
+            })
           )
         )
         return client
@@ -150,7 +150,7 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
 
 const makeApiClientFactory = Effect
   .gen(function*() {
-    const ctx = yield* Effect.services<RpcSerialization.RpcSerialization | typeof HttpClient.HttpClient>()
+    const ctx = yield* Effect.services<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
     const makeClientFor = <M extends Requests>(
       resource: M,
       requestLevelLayers = Layer.empty,
@@ -173,7 +173,7 @@ const makeApiClientFactory = Effect
                 url: "" // why not here set meta.moduleName as root?
               })
               .pipe(
-                Layer.provideMerge(Layer.succeedServices(ctx as any))
+                Layer.provideMerge(Layer.succeedServices(ctx))
               )
           )
         )
@@ -204,28 +204,28 @@ const makeApiClientFactory = Effect
 
               const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
 
-              const fields = Struct.omit(Request.fields as any, "_tag" as any)
+              const fields = Struct.omit(Request.fields, ["_tag"] as const)
               const requestAttr = h._tag
               // @ts-expect-error doc
               prev[cur] = Object.keys(fields).length === 0
                 ? {
                   handler: Effect.gen(function*() {
-                    const client = yield* (TheClient as any)
+                    const client = yield* TheClient
                     return yield* ((client as any)[requestAttr]!({ _tag: requestAttr }) as Effect.Effect<any, any, never>)
                   }).pipe(
                     Effect.provide(layers),
-                    Effect.provide(mr as any)
+                    Effect.provide(Layer.effectServices(mr.servicesEffect))
                   ),
                   ...requestMeta
                 }
                 : {
                   handler: (req: any) =>
                     Effect.gen(function*() {
-                      const client = yield* (TheClient as any)
+                      const client = yield* TheClient
                       return yield* ((client as any)[requestAttr]!({ _tag: requestAttr, ...req }) as Effect.Effect<any, any, never>)
                     }).pipe(
                       Effect.provide(layers),
-                      Effect.provide(mr)
+                      Effect.provide(Layer.effectServices(mr.servicesEffect))
                     ),
 
                   ...requestMeta

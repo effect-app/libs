@@ -197,12 +197,6 @@ importers:
 
   packages/effect-app:
     dependencies:
-      '@effect/platform':
-        specifier: ^0.94.1
-        version: 0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@effect/rpc':
-        specifier: ^0.73.0
-        version: 0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
       '@tsconfig/strictest':
         specifier: ^2.0.8
         version: 2.0.8
@@ -210,8 +204,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^3.19.14
-        version: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
+        specifier: ^4.0.0-beta.6
+        version: 4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6

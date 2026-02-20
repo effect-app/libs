@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "@effect/rpc"
+import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
 import * as Config from "effect/Config"
 import { flow } from "effect/Function"
-import * as HashMap from "effect/HashMap"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Predicate from "effect/Predicate"
+import * as ServiceMap from "effect/ServiceMap"
 import * as Struct from "effect/Struct"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
@@ -17,61 +17,58 @@ import type { Client, ClientForOptions, Requests, RequestsAny } from "./clientFo
 
 export interface ApiConfig {
   url: string
-  headers: Option.Option<HashMap.HashMap<string, string>>
+  headers: Option.Option<Record<string, string>>
 }
 
 export const DefaultApiConfig = Config.all({
-  url: Config.string("apiUrl").pipe(Config.withDefault("/api")),
-  headers: Config
-    .hashMap(
-      Config.string(),
-      "headers"
-    )
-    .pipe(Config.option)
+  url: Config.string("apiUrl").pipe(Config.withDefault(() => "/api")),
+  headers: Config.option(
+    Config.string("headers").pipe(Config.map((s) => JSON.parse(s) as Record<string, string>))
+  )
 })
 
-export type Req = S.Schema.All & {
-  new(...args: any[]): any
-  _tag: string
-  fields: S.Struct.Fields
-  success: S.Schema.All
-  failure: S.Schema.All
-  config?: Record<string, any>
+export type Req = {
+  readonly _tag: string
+  readonly fields: S.Struct.Fields
+  readonly success: S.Top
+  readonly failure: S.Top
+  readonly config?: Record<string, any>
 }
 
-class RequestName extends Context.Reference<RequestName>()("RequestName", {
+const RequestName = ServiceMap.Reference<{ requestName: string; moduleName: string }>("RequestName", {
   defaultValue: () => ({ requestName: "Unspecified", moduleName: "Error" })
-}) {}
+})
 
 export const HttpClientLayer = (config: ApiConfig) =>
   Layer.effect(
-    HttpClient.HttpClient,
+    HttpClient.HttpClient as any,
     Effect
       .gen(function*() {
-        const baseClient = yield* HttpClient.HttpClient
+        const baseClient = yield* (HttpClient.HttpClient as any)
         const client = baseClient.pipe(
           HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
           HttpClient.mapRequest(
-            HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => HashMap.empty())))
+            HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => ({} as Record<string, string>))))
           ),
-          HttpClient.mapRequestEffect((req) =>
-            RequestName.pipe(
-              Effect.map((ctx) =>
-                flow(
-                  HttpClientRequest.appendUrlParam("action", ctx.requestName),
-                  HttpClientRequest.appendUrl("/" + ctx.moduleName)
-                )(req)
-              )
-            )
+          HttpClient.mapRequestEffect(((req: any) =>
+            Effect.gen(function*() {
+              const ctx = yield* RequestName
+              return flow(
+                HttpClientRequest.appendUrlParam("action", ctx.requestName),
+                HttpClientRequest.appendUrl("/" + ctx.moduleName)
+              )(req)
+            }) as any
           )
         )
         return client
       })
   )
 
-export const HttpClientFromConfigLayer = DefaultApiConfig.pipe(
-  Effect.map(HttpClientLayer),
-  Layer.unwrapEffect
+export const HttpClientFromConfigLayer = Layer.unwrap(
+  Effect.gen(function*() {
+    const config = yield* DefaultApiConfig
+    return HttpClientLayer(config)
+  })
 )
 
 export const RpcSerializationLayer = (config: ApiConfig) =>
@@ -94,7 +91,7 @@ const getFiltered = <M extends Requests>(resource: M) => {
       Predicate.isObject(resource[cur])
       && (resource[cur].success)
     ) {
-      acc[cur as keyof Filtered] = resource[cur]
+      acc[cur as keyof Filtered] = resource[cur] as unknown as Req
     }
     return acc
   }, {} as Record<keyof Filtered, Req>)
@@ -117,7 +114,7 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends Requests, const 
   const rpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
-        return Rpc.fromTaggedRequest(_ as any)
+        return _ as any
       })
     )
     .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<
@@ -137,23 +134,23 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
   const meta = getMeta(resource)
   const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName)
 
-  return class TheClient extends Context.Tag(`RpcClient.${meta.moduleName}`)<
+  type ClientType = RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
+  const TheClient = ServiceMap.Service<ClientType>(`RpcClient.${meta.moduleName}`)
+
+  const layer = Layer.effect(
     TheClient,
-    RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
-  >() {
-    static layer = Layer.scoped(
-      TheClient,
-      Effect.map(
-        RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }),
-        (cl) => (cl as any)[meta.moduleName]
-      )
+    Effect.map(
+      RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }),
+      (cl) => (cl as any)[meta.moduleName]
     )
-  }
+  )
+
+  return Object.assign(TheClient, { layer })
 }
 
 const makeApiClientFactory = Effect
   .gen(function*() {
-    const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
+    const ctx = yield* Effect.services<RpcSerialization.RpcSerialization | typeof HttpClient.HttpClient>()
     const makeClientFor = <M extends Requests>(
       resource: M,
       requestLevelLayers = Layer.empty,
@@ -176,7 +173,7 @@ const makeApiClientFactory = Effect
                 url: "" // why not here set meta.moduleName as root?
               })
               .pipe(
-                Layer.provideMerge(Layer.succeedContext(ctx))
+                Layer.provideMerge(Layer.succeedServices(ctx as any))
               )
           )
         )
@@ -207,26 +204,26 @@ const makeApiClientFactory = Effect
 
               const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
 
-              const fields = Struct.omit(Request.fields, "_tag")
+              const fields = Struct.omit(Request.fields as any, "_tag" as any)
               const requestAttr = h._tag
               // @ts-expect-error doc
               prev[cur] = Object.keys(fields).length === 0
                 ? {
-                  handler: TheClient.pipe(
-                    Effect.flatMap((client) =>
-                      (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>
-                    ),
+                  handler: Effect.gen(function*() {
+                    const client = yield* (TheClient as any)
+                    return yield* ((client as any)[requestAttr]!({ _tag: requestAttr }) as Effect.Effect<any, any, never>)
+                  }).pipe(
                     Effect.provide(layers),
-                    Effect.provide(mr)
+                    Effect.provide(mr as any)
                   ),
                   ...requestMeta
                 }
                 : {
                   handler: (req: any) =>
-                    TheClient.pipe(
-                      Effect.flatMap((client) =>
-                        (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
-                      ),
+                    Effect.gen(function*() {
+                      const client = yield* (TheClient as any)
+                      return yield* ((client as any)[requestAttr]!({ _tag: requestAttr, ...req }) as Effect.Effect<any, any, never>)
+                    }).pipe(
                       Effect.provide(layers),
                       Effect.provide(mr)
                     ),
@@ -273,11 +270,16 @@ const makeApiClientFactory = Effect
  * Used to create clients for resource modules.
  */
 export class ApiClientFactory
-  extends Context.TagId("ApiClientFactory")<ApiClientFactory, Effect.Effect.Success<typeof makeApiClientFactory>>()
+  extends Context.TagId("ApiClientFactory")<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()
 {
   static readonly layer = (config: ApiConfig) =>
     this.toLayerScoped(makeApiClientFactory).pipe(Layer.provide(RpcSerializationLayer(config)))
-  static readonly layerFromConfig = DefaultApiConfig.pipe(Effect.map(this.layer), Layer.unwrapEffect)
+  static readonly layerFromConfig = Layer.unwrap(
+    Effect.gen(function*() {
+      const config = yield* DefaultApiConfig
+      return ApiClientFactory.layer(config)
+    })
+  )
 
   static readonly makeFor =
     (requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) =>
@@ -285,8 +287,8 @@ export class ApiClientFactory
       resource: M
     ) =>
       this
-        .use((apiClientFactory) => apiClientFactory(requestLevelLayers, options))
+        .use((apiClientFactory: any) => (apiClientFactory as any)(requestLevelLayers, options))
         .pipe(
-          Effect.flatMap((f) => f(resource))
+          Effect.flatMap((f) => (f as any)(resource))
         ) // don't rename f to clientFor or integration in vue project linked fucks up
 }

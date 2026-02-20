@@ -10,7 +10,10 @@ export const LogLevels = ServiceMap.Reference<ReadonlyMap<string, Levels>>("LogL
 })
 
 export const makeLog = (namespace: string, defaultLevel: Levels = "warn") => {
-  const level = Effect.andThen(LogLevels as any, (levels: ReadonlyMap<string, Levels>) => levels.get(namespace) ?? defaultLevel)
+  const level = Effect.gen(function*() {
+    const levels = yield* LogLevels
+    return levels.get(namespace) ?? defaultLevel
+  })
   const withLogNamespace = Effect.annotateLogs({ logNamespace: namespace })
   return {
     logWarning: (...message: ReadonlyArray<any>) =>

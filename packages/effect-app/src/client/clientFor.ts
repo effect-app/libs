@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as Record from "effect/Record"
-import type * as Request from "effect/Request"
 import type { Path } from "path-parser"
 import qs from "query-string"
 import type * as Effect from "../Effect.js"
@@ -58,18 +57,18 @@ export type Client<M extends RequestsAny, ModuleName extends string> = RequestHa
   ModuleName
 >
 
-export type ExtractResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.Type<T>
+export type ExtractResponse<T> = T extends S.Top ? S.Schema.Type<T>
   : T extends unknown ? void
   : never
 
-export type ExtractEResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.Encoded<T>
+export type ExtractEResponse<T> = T extends S.Top ? S.Codec.Encoded<T>
   : T extends unknown ? void
   : never
 
 type IsEmpty<T> = keyof T extends never ? true
   : false
 
-type Cruft = "_tag" | Request.RequestTypeId | typeof S.symbolSerializable | typeof S.symbolWithResult
+type Cruft = "_tag" | "~effect/Request"
 
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
@@ -95,7 +94,7 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
     ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
+      R,
       M[K],
       `${ModuleName}.${K & string}`
     >
@@ -103,7 +102,7 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
       Omit<S.Schema.Type<M[K]>, Cruft>,
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
+      R,
       M[K],
       `${ModuleName}.${K & string}`
     >

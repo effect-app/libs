@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, type RpcGroup, type RpcSchema } from "effect/unstable/rpc"
+import { Rpc, type RpcGroup, RpcMiddleware, type RpcSchema } from "effect/unstable/rpc"
 import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
 import { Effect, Layer, type Schema, Schema as S, ServiceMap, type Scope } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
@@ -276,7 +276,7 @@ const middlewareMaker = <
       // inspired from Effect/RpcMiddleware
       for (const tag of middlewares) {
         // use the tag to get the middleware from context
-        const middleware = ServiceMap.getUnsafe(context as any, tag as any)
+        const middleware = ServiceMap.getUnsafe(context as any, tag as any) as any
 
         // wrap the current handler, allowing the middleware to run before and after it
         handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
@@ -310,7 +310,7 @@ const makeMiddlewareBasic = <Self>() =>
 
   const MiddlewareMaker = RpcMiddlewareX.Tag<Self>()(id, {
     failure: (failures.length > 0
-      ? S.Union(...failures)
+      ? S.Union(failures as any)
       : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
         : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
     requires: (requires.length > 0
@@ -398,9 +398,9 @@ export const Tag = <Self>() =>
       // TODO: we should only include errors that are relevant based on the middleware config.ks
       const error = options?.error
       const errors = typedValuesOf(rcm.config).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
-      const newError = error ? S.Union(error, ...errors) : S.Union(...errors)
+      const newError = error ? S.Union([error, ...errors] as any) : errors.length ? S.Union(errors as any) : S.Never
 
-      const rpc = Rpc.make(tag, { ...options, error: newError }) as any
+      const rpc = Rpc.make(tag, { ...options, error: newError } as any) as any
 
       return Object.assign(rpc.annotate(requestContext, config), { config })
     },
@@ -422,7 +422,7 @@ export const Tag = <Self>() =>
 // alternatively consider group.serverMiddleware? hmmm
 export const middlewareGroup = <
   RequestContextMap extends Record<string, RpcContextMap.Any>,
-  Middleware extends RpcMiddlewareX.TagClassAny & {
+  Middleware extends RpcMiddlewareX.TagClassAny & RpcMiddleware.AnyService & {
     readonly requestContext: RequestContextTag<RequestContextMap>
     readonly requestContextMap: RequestContextMap
   }
@@ -431,7 +431,7 @@ export const middlewareGroup = <
 ) =>
 <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) => {
   type RN = AddMiddleware<R, typeof middleware>
-  const middlewaredGroup = group.middleware(middleware) as unknown as RpcGroup.RpcGroup<RN>
+  const middlewaredGroup = group.middleware(middleware as any) as unknown as RpcGroup.RpcGroup<RN>
   const toLayerOriginal = middlewaredGroup.toLayer.bind(middlewaredGroup)
   return Object.assign(middlewaredGroup, {
     toLayerDynamic: <

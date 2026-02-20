@@ -182,15 +182,15 @@ export const Tag = <
   id: Name,
   options?: Options
 ): TagClass<Self, Name, Options, Config> =>
-  class extends RpcMiddleware.Service<Self>()(id, options) {
+  class extends RpcMiddleware.Service<Self>()(id, options as any) {
     static readonly requires: "requires" extends keyof Config ? Config["requires"] : never
-    static override readonly provides: "provides" extends keyof Config ? Config["provides"] : never
+    static readonly provides: "provides" extends keyof Config ? Config["provides"] : never
     static readonly dynamic = options && "dynamic" in options ? options.dynamic : undefined
     static readonly dependsOn = options && "dependsOn" in options ? options.dependsOn : undefined
   } as any
 
 // not needed if there's official support in Rpc.Rpc.
-export type AddMiddleware<R extends Rpc.Any, Middleware extends RpcMiddleware.TagClassAny> = R extends Rpc.Rpc<
+export type AddMiddleware<R extends Rpc.Any, Middleware extends RpcMiddleware.AnyService> = R extends Rpc.Rpc<
   infer _Tag,
   infer _Payload,
   infer _Success,

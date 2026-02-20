@@ -61,6 +61,44 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `Effect.all({ a: Config.string(...) })` | `Config.all({ a: Config.string(...) })` — use module's own `.all()` for Config/Either/Option |
 | `Config.withDefault("value")` | `Config.withDefault(() => "value")` (now takes `LazyArg`) |
 
+## Either → Result
+
+`effect/Either` is removed. Use `effect/Result`.
+
+| v3 (`Either`) | v4 (`Result`) |
+|---|---|
+| `Either.Either<A, E>` | `Result.Result<A, E>` |
+| `Either.left(e)` | `Result.fail(e)` |
+| `Either.right(a)` | `Result.succeed(a)` |
+| `Either.isLeft(r)` | `Result.isFailure(r)` |
+| `Either.isRight(r)` | `Result.isSuccess(r)` |
+| `r._tag === "Left"` | `r._tag === "Failure"` |
+| `r._tag === "Right"` | `r._tag === "Success"` |
+| `r.left` | `r.failure` |
+| `r.right` | `r.success` |
+
+## Config API
+
+| v3 | v4 |
+|---|---|
+| `Config.hashMap(Config.string(), "name")` | `Config.schema(Config.Record(Schema.String, Schema.String), "name")` — reads sub-keys (e.g. `NAME__key=val`) |
+
+## Removed Modules
+
+| v3 module | v4 replacement |
+|---|---|
+| `effect/Either` | `effect/Result` (see Either → Result section) |
+| `effect/Arbitrary` (`LazyArbitrary`) | `LazyArbitrary` moved to `effect/Schema` |
+| `effect/ParseResult` | `effect/SchemaParser` |
+| `effect/Secret` (`SecretTypeId`) | `effect/Redacted`; or define `Symbol.for("effect/Secret")` locally for backwards-compat |
+
+## Renamed Functions
+
+| v3 | v4 |
+|---|---|
+| `ServiceMap.unsafeGet(map, tag)` | `ServiceMap.getUnsafe(map, tag)` |
+| `Chunk.unsafeGet(chunk, i)` | `Chunk.getUnsafe(chunk, i)` |
+
 ## Order Module
 
 | v3 | v4 |

@@ -11,7 +11,7 @@ import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
 import * as Option from "../Option.js"
-import type * as S from "../Schema.js"
+import * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, Requests, RequestsAny } from "./clientFor.js"
 
@@ -22,9 +22,7 @@ export interface ApiConfig {
 
 export const DefaultApiConfig = Config.all({
   url: Config.string("apiUrl").pipe(Config.withDefault(() => "/api")),
-  headers: Config.option(
-    Config.string("headers").pipe(Config.map((s) => JSON.parse(s) as Record<string, string>))
-  )
+  headers: Config.schema(Config.Record(S.String, S.String), "headers").pipe(Config.option)
 })
 
 export type Req = {

@@ -5,7 +5,7 @@
  * https://github.com/microsoft/TypeScript/issues/52644
  */
 
-import { Effect, Layer, type Scope } from "effect"
+import { Effect, Layer, type Scope, ServiceMap } from "effect"
 import { type NonEmptyReadonlyArray } from "effect/Array"
 import * as Context from "effect/ServiceMap"
 
@@ -354,3 +354,17 @@ export const DefineService = <
   class extends (tag as any) {
     static readonly Default = ServiceDef<Tag>(tag)<Context.Service.Shape<Tag>>()(opts)
   } as any
+
+export const Reference = ServiceMap.Service as unknown as {
+  <Service>(
+    key: string,
+    options: { readonly defaultValue: () => Service }
+  ): ServiceMap.Reference<Service>
+
+  <Self>(): <Service, const Identifier extends string>(
+    key: Identifier,
+    options: { readonly defaultValue: () => Service }
+  ) => ServiceMap.Reference<Self> & {
+    new(_: never): ServiceMap.ServiceClass.Shape<Identifier, Service>
+  }
+}

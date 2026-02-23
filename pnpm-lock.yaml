@@ -161,11 +161,11 @@ importers:
   packages/cli:
     dependencies:
       '@effect/platform-node':
-        specifier: ^4.0.0-beta.6
-        version: 4.0.0-beta.6(effect@4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(ioredis@5.9.3)
+        specifier: ^4.0.0-beta.11
+        version: 4.0.0-beta.11(effect@4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(ioredis@5.9.3)
       effect:
-        specifier: ^4.0.0-beta.6
-        version: 4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
+        specifier: ^4.0.0-beta.11
+        version: 4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       js-yaml:
         specifier: 4.1.1
         version: 4.1.1
@@ -204,8 +204,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^4.0.0-beta.6
-        version: 4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
+        specifier: ^4.0.0-beta.11
+        version: 4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
@@ -1229,11 +1229,11 @@ packages:
       '@effect/sql': ^0.49.0
       effect: ^3.19.13
 
-  '@effect/platform-node-shared@4.0.0-beta.6':
-    resolution: {integrity: sha512-T/lUVcZ1Rba8Cbs+RiG3JPz8IqOUE+M/U/+0MTWy1Cdzk+mEnSeuiIZOawOVWXZ6kAZ43S9AG2f453Vk2bSXHA==}
+  '@effect/platform-node-shared@4.0.0-beta.11':
+    resolution: {integrity: sha512-1GdT63U6CpqDO8R5R9vVVn4fcwcJiYJOcKE5Tr208CB9fxAU2VEmp2Qp5rLqllLiHF+50ZYYMDPgqCKtXl8J7w==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.6
+      effect: ^4.0.0-beta.11
 
   '@effect/platform-node@0.104.0':
     resolution: {integrity: sha512-2ZkUDDTxLD95ARdYIKBx4tdIIgqA3cwb3jlnVVBxmHUf0Pg5N2HdMuD0Q+CXQ7Q94FDwnLW3ZvaSfxDh6FvrNw==}
@@ -1244,11 +1244,11 @@ packages:
       '@effect/sql': ^0.49.0
       effect: ^3.19.13
 
-  '@effect/platform-node@4.0.0-beta.6':
-    resolution: {integrity: sha512-JT+wniar+C9CExwYOPuYGfamBDClb3LAEyqxbxkYSf1crzUf47fX0GtDsSYVyaXWv38HCUWrABjwQp42fzBpug==}
+  '@effect/platform-node@4.0.0-beta.11':
+    resolution: {integrity: sha512-P31Lqw/GZnsqsaxQiWi9XJz6M8aANgLCYdSUwzx0Kx+yKVnVqYA7+eqZVZPi4jLq0oMGE3LnPhBSOYGtY/eSbw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.6
+      effect: ^4.0.0-beta.11
       ioredis: ^5.7.0
 
   '@effect/platform@0.94.1':
@@ -3797,8 +3797,8 @@ packages:
   effect@3.19.14:
     resolution: {integrity: sha512-3vwdq0zlvQOxXzXNKRIPKTqZNMyGCdaFUBfMPqpsyzZDre67kgC1EEHDV4EoQTovJ4w5fmJW756f86kkuz7WFA==}
 
-  effect@4.0.0-beta.6:
-    resolution: {integrity: sha512-2xpzTi1f8eRYByMYso/vBiZGCvK74dVOMHOnXbwgzZQg6t5JaZ6ov7i5AU/vKPtb2y9FJbZwhf8owXBZq+LY0g==}
+  effect@4.0.0-beta.11:
+    resolution: {integrity: sha512-xBUzwvNPoc7bcNUKS1Z7n6Nd5IL9AB/iV64GS1L44qmUgjuPex2A9DAXGUJkolTb8e65G55JerAX9T0Ha5fmRA==}
 
   electron-to-chromium@1.5.267:
     resolution: {integrity: sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==}
@@ -6609,8 +6609,8 @@ packages:
   vue-component-type-helpers@2.2.12:
     resolution: {integrity: sha512-YbGqHZ5/eW4SnkPNR44mKVc6ZKQoRs/Rux1sxC6rdwXb4qpbOSYfDr9DsTHolOTGmIKgM9j141mZbBeg05R1pw==}
 
-  vue-component-type-helpers@3.2.4:
-    resolution: {integrity: sha512-05lR16HeZDcDpB23ku5b5f1fBOoHqFnMiKRr2CiEvbG5Ux4Yi0McmQBOET0dR0nxDXosxyVqv67q6CzS3AK8rw==}
+  vue-component-type-helpers@3.2.5:
+    resolution: {integrity: sha512-tkvNr+bU8+xD/onAThIe7CHFvOJ/BO6XCOrxMzeytJq40nTfpGDJuVjyCM8ccGZKfAbGk2YfuZyDMXM56qheZQ==}
 
   vue-demi@0.14.10:
     resolution: {integrity: sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==}
@@ -7614,10 +7614,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node-shared@4.0.0-beta.6(effect@4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
+  '@effect/platform-node-shared@4.0.0-beta.11(effect@4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':
     dependencies:
       '@types/ws': 8.18.1
-      effect: 4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
+      effect: 4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       ws: 8.19.0
     transitivePeerDependencies:
       - bufferutil
@@ -7638,10 +7638,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0-beta.6(effect@4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(ioredis@5.9.3)':
+  '@effect/platform-node@4.0.0-beta.11(effect@4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.6(effect@4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      effect: 4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
+      '@effect/platform-node-shared': 4.0.0-beta.11(effect@4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
+      effect: 4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       ioredis: 5.9.3
       mime: 4.1.0
       undici: 7.22.0
@@ -8717,7 +8717,7 @@ snapshots:
       storybook: 10.1.11(@testing-library/dom@10.4.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       type-fest: 2.19.0
       vue: 3.5.26(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0))
-      vue-component-type-helpers: 3.2.4
+      vue-component-type-helpers: 3.2.5
 
   '@tanstack/devtools-event-client@0.4.0': {}
 
@@ -10213,7 +10213,7 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.5.3
 
-  effect@4.0.0-beta.6(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc):
+  effect@4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc):
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.5.3
@@ -13411,7 +13411,7 @@ snapshots:
 
   vue-component-type-helpers@2.2.12: {}
 
-  vue-component-type-helpers@3.2.4: {}
+  vue-component-type-helpers@3.2.5: {}
 
   vue-demi@0.14.10(vue@3.5.26(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0))):
     dependencies:

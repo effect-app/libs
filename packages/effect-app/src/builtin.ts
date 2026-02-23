@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-vars */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "effect/Array"
 
 declare global {
@@ -54,11 +55,11 @@ declare module "effect/Option" {
   }
 }
 
-declare module "effect/Either" {
-  export interface Left<E, A> {
-    get right(): A | undefined
+declare module "effect/Result" {
+  export interface Success<A, E> {
+    get failure(): E | undefined
   }
-  export interface Right<E, A> {
-    get left(): E | undefined
+  export interface Failure<A, E> {
+    get success(): A | undefined
   }
 }

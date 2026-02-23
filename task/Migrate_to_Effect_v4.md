@@ -30,6 +30,7 @@ Commit every task you complete for every step.
 - Never cast to any as a "fix" (`(s as any)`)! nor recasting via `unknown`: e.g `as unknown as S.Schema<any>`. Maybe you first need to fix other files.
 - Consult the migration guides instead of making up assumptions. e.g `Schema<A, I, R>` is now `Codec<A, I, R>`
 - Prioritise first fixing files that are dependencies of others (via direct or indirect imports).
+  - Migrate and fix files in dependency order
 
 ## Conversion
 

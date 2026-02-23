@@ -400,21 +400,9 @@ importers:
 
   packages/infra:
     dependencies:
-      '@effect/experimental':
-        specifier: ^0.58.0
-        version: 0.58.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(ioredis@5.9.3)
-      '@effect/platform':
-        specifier: ^0.94.1
-        version: 0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@effect/rpc':
-        specifier: ^0.73.0
-        version: 0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
-      '@effect/sql':
-        specifier: ^0.49.0
-        version: 0.49.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(ioredis@5.9.3))(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))
       '@effect/vitest':
-        specifier: ^0.27.0
-        version: 0.27.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.8)(jsdom@27.4.0)(sass@1.97.2)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.2))
+        specifier: ^4.0.0-beta.11
+        version: 4.0.0-beta.11(effect@4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.8)(jsdom@27.4.0)(sass@1.97.2)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.2))
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -431,8 +419,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^3.19.14
-        version: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
+        specifier: ^4.0.0-beta.11
+        version: 4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -1291,6 +1279,12 @@ packages:
     peerDependencies:
       effect: ^3.19.0
       vitest: ^3.2.0
+
+  '@effect/vitest@4.0.0-beta.11':
+    resolution: {integrity: sha512-+8iJpYUsBxku++jEmqKFA0m62VupG/0jRxAvBWbhcC2ZpWNwye2qXCP1D8mbH2Fwg+ifTPHEIKYmCasgsX3I8Q==}
+    peerDependencies:
+      effect: ^4.0.0-beta.11
+      vitest: ^3.0.0
 
   '@effect/workflow@0.16.0':
     resolution: {integrity: sha512-MiAdlxx3TixkgHdbw+Yf1Z3tHAAE0rOQga12kIydJqj05Fnod+W/I+kQGRMY/XWRg+QUsVxhmh1qTr7Ype6lrw==}
@@ -7687,6 +7681,11 @@ snapshots:
   '@effect/vitest@0.27.0(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.8)(jsdom@27.4.0)(sass@1.97.2)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       effect: 3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
+      vitest: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.8)(jsdom@27.4.0)(sass@1.97.2)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  '@effect/vitest@4.0.0-beta.11(effect@4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.8)(jsdom@27.4.0)(sass@1.97.2)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      effect: 4.0.0-beta.11(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)
       vitest: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.8)(jsdom@27.4.0)(sass@1.97.2)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.2)
 
   '@effect/workflow@0.16.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))(ioredis@5.9.3))(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc)))(effect@3.19.14(patch_hash=a12dc8f2d296f82664b0f522ff021a5c04c3c12eaac619a0db5269d34acd22cc))':

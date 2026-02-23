@@ -25,10 +25,11 @@ Commit every task you complete for every step.
 - Always check `AGENTS.md` in the root of each repository to understand rules.
 - You're allowed to use different versions of workspace packages within a project for the duration of the migration.
 - Create task files for each Step in markdown files under `task/Migration` directory, and track progress and findings in each.
-- Save all conversion findings in a `task/findings.md` file to speed up future migrations. 
+- Save all conversion findings in a `task/findings.md` file to speed up future migrations. Read this file for every step!
 - Never replace any function argument type with `any`
 - Never cast to any as a "fix" (`(s as any)`)! nor recasting via `unknown`: e.g `as unknown as S.Schema<any>`. Maybe you first need to fix other files.
 - Consult the migration guides instead of making up assumptions. e.g `Schema<A, I, R>` is now `Codec<A, I, R>`
+- Prioritise first fixing files that are dependencies of others (via direct or indirect imports).
 
 ## Conversion
 

@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This is the Effect App library repository, focusing on functional programming patterns and effect systems in TypeScript, extending the Effect library.
+This is the Effect App library repository, focusing on functional programming patterns and effect systems in TypeScript, wrapping and extending the Effect library.
 
 ## Development Workflow
 
@@ -18,12 +18,21 @@ This is the Effect App library repository, focusing on functional programming pa
 
 ### Mandatory Validation Steps
 
+#### New Features
+
 - Run `pnpm lint-fix` after editing files
 <!-- - Always run tests after making changes: `pnpm test <test_file.ts>` -->
 - Run type checking: `pnpm build`
   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
 <!-- - Build the project: `pnpm build`
 - Check JSDoc examples compile: `pnpm docgen` -->
+
+#### Migrations
+
+- Run `pnpm eslint fix ./src/<file.ts>` inside the package root after editing files
+- Run type checking: `pnpm tsc --noEmit ./src/<file.ts>` inside the package root after editing files
+  - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm tsc ./src/<file.ts>`
+
 
 ## Code Style Guidelines
 

@@ -10,6 +10,7 @@ There are migration guides:
 
 ## Steps
 
+0. First upgrade/replace all effect v3 packages with v4 counterparts in the repository. Make sure no references to v3 packages remain. Remove v3 patches.
 1. Convert `cli` - as it's a standalone utility using minimal effect libraries.
 2. Convert `effect-app` core
 3. Convert `infra`
@@ -23,14 +24,20 @@ Commit every task you complete for every step.
 ## Rules
 
 - Always check `AGENTS.md` in the root of each repository to understand rules.
-- You're allowed to use different versions of workspace packages within a project for the duration of the migration.
+  - Ignore the `#### New Features` section, instead follow `#### Migrations` for `### Mandatory Validation Steps`
 - Create task files for each Step in markdown files under `task/Migration` directory, and track progress and findings in each.
 - Save all conversion findings in a `task/findings.md` file to speed up future migrations. Read this file for every step!
 - Never replace any function argument type with `any`
-- Never cast to any as a "fix" (`(s as any)`)! nor recasting via `unknown`: e.g `as unknown as S.Schema<any>`. Maybe you first need to fix other files.
+- Never cast to `any` as a "fix" (`(s as any)`)! nor recasting via `any` e.g `as any as S.Schema<any>`. or `unknown`: e.g `as unknown as S.Schema<any>`. Maybe you first need to fix other files.
 - Consult the migration guides instead of making up assumptions. e.g `Schema<A, I, R>` is now `Codec<A, I, R>`
 - Prioritise first fixing files that are dependencies of others (via direct or indirect imports).
   - Migrate and fix files in dependency order
+  
+## Process
+
+- Always consult `findings.md` to help with migration or to fix build errors.
+- When not finding the solution there, inspect the migration guides (this file, and the migration guides listed at the top), and source code in the `repos` folder
+- Once finding a new solution, or fix mistakes, update `findings.md`
 
 ## Conversion
 
@@ -82,7 +89,7 @@ class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService",
 
 ## Context
 
-- The effect repo is located inside `/repos/effect`
-- The effect-smol repo is located inside `/repos/effect-smol`
+- The effect repo is located inside `repos/effect`
+- The effect-smol repo is located inside `repos/effect-smol`
 
 All repos can be kept uptodate with `git submodule foreach git pull origin main` and `git submodule foreach pnpm i`.

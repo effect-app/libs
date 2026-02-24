@@ -16,15 +16,14 @@
   "peerDependencies": {
     "@effect-atom/atom": "^0.4.13",
     "@effect-atom/atom-vue": "^0.4.5",
-    "@effect/platform": "^0.94.1",
-    "@effect/platform-browser": "^0.74.0",
+    "@effect/platform-browser": "^4.0.0-beta.12",
     "@sentry/browser": "^10.34.0",
-    "effect": "^3.19.14",
+    "effect": "^4.0.0-beta.12",
     "vue": "^3.5.26"
   },
   "devDependencies": {
     "@effect-app/eslint-shared-config": "workspace:*",
-    "@effect/vitest": "^0.27.0",
+    "@effect/vitest": "^4.0.0-beta.12",
     "@formatjs/icu-messageformat-parser": "^3.4.0",
     "@types/node": "25.0.8",
     "@vitejs/plugin-vue": "^6.0.3",
@@ -113,7 +112,8 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
+    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson pnpm check",
+    "check": "tsc --build",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",
@@ -124,7 +124,7 @@
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
-    "autofix": "pnpm lint --fix",
+    "lint-fix": "pnpm lint --fix",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

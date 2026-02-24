@@ -9,8 +9,8 @@
     "effect-app-cli": "./bin.js"
   },
   "dependencies": {
-    "@effect/cli": "^0.73.0",
-    "@effect/platform-node": "^0.104.0",
+    "@effect/platform-node": "^4.0.0-beta.12",
+    "effect": "^4.0.0-beta.12",
     "js-yaml": "4.1.1",
     "node-watch": "^0.7.4"
   },
@@ -54,7 +54,8 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && tsc --build",
+    "build:tsc": "pnpm clean-dist && pnpm check",
+    "check": "tsc --build",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",
@@ -65,7 +66,7 @@
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
-    "autofix": "pnpm lint --fix",
+    "lint-fix": "pnpm lint --fix",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

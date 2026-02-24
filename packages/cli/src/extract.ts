@@ -1,5 +1,4 @@
-import { type Error as PlatformError, FileSystem, Path } from "@effect/platform"
-import { Array as EffectArray, Effect, Order, pipe } from "effect"
+import { Array as EffectArray, Effect, FileSystem, Order, Path, pipe, type PlatformError } from "effect"
 
 /**
  * Generates package.json exports mappings for TypeScript modules
@@ -61,7 +60,7 @@ export const ExtractExportMappingsService = Effect.fn("effa-cli.extractExportMap
 
     const sortedMappings = pipe(
       exportMappings,
-      EffectArray.sort(Order.string),
+      EffectArray.sort(Order.String),
       EffectArray.join(",\n")
     )
 

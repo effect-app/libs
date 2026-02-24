@@ -39,11 +39,7 @@
   "peerDependencies": {
     "@azure/cosmos": "^4.9.0",
     "@azure/service-bus": "^7.9.5",
-    "@effect/experimental": "^0.58.0",
-    "@effect/platform": "^0.94.1",
-    "@effect/rpc": "^0.73.0",
-    "@effect/sql": "^0.49.0",
-    "@effect/vitest": "^0.27.0",
+    "@effect/vitest": "^4.0.0-beta.12",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "10.34.0",
@@ -51,7 +47,7 @@
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^3.19.14",
+    "effect": "^4.0.0-beta.12",
     "express": "^5.2.1"
   },
   "typesVersions": {
@@ -385,7 +381,8 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson tsc --build",
+    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson pnpm check",
+    "check": "tsc --build",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",
@@ -396,7 +393,7 @@
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
-    "autofix": "pnpm lint --fix",
+    "lint-fix": "pnpm lint --fix",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

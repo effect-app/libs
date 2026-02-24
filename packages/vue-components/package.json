@@ -10,7 +10,7 @@
     "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint src stories .storybook",
     "ncu": "ncu",
     "clean": "rm -rf dist",
-    "autofix": "pnpm lint --fix",
+    "lint-fix": "pnpm lint --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "vitest",
@@ -19,7 +19,7 @@
   },
   "peerDependencies": {
     "@mdi/js": "^7.4.47",
-    "effect": "^3.19.14",
+    "effect": "^4.0.0-beta.12",
     "intl-messageformat": "^11.1.0",
     "mdi-js": "^1.0.1",
     "primeflex": "^4.0.0",

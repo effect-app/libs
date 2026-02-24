@@ -25,14 +25,14 @@
     "lodash": "4.17.21"
   },
   "peerDependencies": {
-    "effect": "^3.19.14"
+    "effect": "^4.0.0-beta.12"
   },
   "devDependencies": {
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.23",
-    "effect": "^3.19.14",
+    "effect": "^4.0.0-beta.12",
     "madge": "8.0.0",
     "typescript": "~5.9.3",
     "effect-app": "workspace:*",

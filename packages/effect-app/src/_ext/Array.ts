@@ -7,12 +7,11 @@ function getFirstBy<A, Type extends string>(
   id: A[typeof idKey],
   type: Type
 ) {
-  return Chunk
-    .fromIterable(a)
-    .pipe(
-      Chunk.findFirst((_) => Equal.equals(_[idKey], id)),
-      Effect.mapError(() => new NotFoundError<Type>({ type, id }))
+  return Effect
+    .fromOption(
+      Chunk.fromIterable(a).pipe(Chunk.findFirst((_) => Equal.equals(_[idKey], id)))
     )
+    .pipe(Effect.mapError(() => new NotFoundError<Type>({ type, id })))
 }
 
 export function makeGetFirstBy<A>() {

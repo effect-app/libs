@@ -10,6 +10,7 @@ This is the Effect App library repository, focusing on functional programming pa
 ### Core Principles
 
 - **Zero Tolerance for Errors**: All automated checks must pass
+- **No `as any` / `as unknown` casts**: These are never acceptable fixes. Understand the actual types and fix the root cause. If a type mismatch exists, find the correct v4 API, update the type signatures, or restructure the code.
 - **Clarity over Cleverness**: Choose clear, maintainable solutions
 - **Conciseness**: Keep code and any wording concise and to the point. Sacrifice grammar for the sake of concision.
 - **Reduce comments**: Avoid comments unless absolutely required to explain unusual or complex logic. Comments in jsdocs are acceptable.

@@ -278,7 +278,8 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson && tsc --build",
+    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson && pnpm check",
+    "check": "tsc --build",
     "build:tsc-src": "pnpm clean-dist && effect-app-cli packagejson tsc --build ./tsconfig.src.json",
     "build:src": "pnpm build:tsc-src",
     "build": "pnpm build:tsc",

@@ -5,7 +5,8 @@
   "version": "1.47.0",
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && tsc --build",
+    "build:tsc": "pnpm clean-dist && pnpm check",
+    "check": "tsc --build",
     "build": "tsc",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",

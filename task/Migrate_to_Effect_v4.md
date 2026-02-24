@@ -1,7 +1,7 @@
 # Migration
 
-Right now we are using Effect v3 (/repos/effect)
-The task is about migrating to Effect v4 (/repos/effect-smol)
+Right now we are using Effect v3 (repos/effect)
+The task is about migrating to Effect v4 (repos/effect-smol)
 
 There are migration guides: 
 - Announcement: https://effect.website/blog/releases/effect/40-beta/
@@ -29,10 +29,11 @@ Commit every task you complete for every step.
 - Save all conversion findings in a `task/findings.md` file to speed up future migrations. Read this file for every step!
 - Never replace any function argument type with `any`
 - Never cast to `any` as a "fix" (`(s as any)`)! nor recasting via `any` e.g `as any as S.Schema<any>`. or `unknown`: e.g `as unknown as S.Schema<any>`. Maybe you first need to fix other files.
+<!-- - Never replace function bodies with placeholders. Real fixes only. Ask if you can't find a real solution. -->
 - Consult the migration guides instead of making up assumptions. e.g `Schema<A, I, R>` is now `Codec<A, I, R>`
 - Prioritise first fixing files that are dependencies of others (via direct or indirect imports).
   - Migrate and fix files in dependency order
-  
+
 ## Process
 
 - Always consult `findings.md` to help with migration or to fix build errors.
@@ -59,7 +60,7 @@ We start with an as close as possible 1:1 conversion.
 - detect naming patterns we adopted from effect v3 in our libraries, and change them to match v4 naming patterns.
 - general refactorings and improvementsks
 
-## Concerns
+## Hints
 
 ### `Effect.Service` migration to `ServiceMap.Service`
 
@@ -89,7 +90,7 @@ class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService",
 
 ## Context
 
-- The effect repo is located inside `repos/effect`
-- The effect-smol repo is located inside `repos/effect-smol`
+- The effect source code repository is located inside `repos/effect`
+- The effect-smol source code repository is located inside `repos/effect-smol`
 
 All repos can be kept uptodate with `git submodule foreach git pull origin main` and `git submodule foreach pnpm i`.

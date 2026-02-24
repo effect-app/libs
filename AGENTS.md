@@ -22,7 +22,7 @@ This is the Effect App library repository, focusing on functional programming pa
 
 - Run `pnpm lint-fix` after editing files
 <!-- - Always run tests after making changes: `pnpm test <test_file.ts>` -->
-- Run type checking: `pnpm build`
+- Run type checking: `pnpm check`
   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
 <!-- - Build the project: `pnpm build`
 - Check JSDoc examples compile: `pnpm docgen` -->
@@ -30,7 +30,7 @@ This is the Effect App library repository, focusing on functional programming pa
 #### Migrations
 
 - Run `pnpm eslint fix ./src/<file.ts>` inside the package root after editing files
-- Run type checking: `pnpm tsc --noEmit ./src/<file.ts>` inside the package root after editing files
+- Run type checking: `pnpm check` inside the package root after editing files
   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm tsc ./src/<file.ts>`
 
 

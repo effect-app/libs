@@ -1,9 +1,7 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
-import { FileSystem, Path } from "@effect/platform"
-
-import { Array, Config, Data, Effect, Option, ParseResult, pipe, Redacted, Schema, SynchronizedRef } from "effect"
+import { Array, Config, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, ServiceMap, SynchronizedRef } from "effect"
 
 import * as yaml from "js-yaml"
 import path from "path"
@@ -44,71 +42,64 @@ export class GistEntry extends Schema.Class<GistEntry>("GistEntry")({
  * @see {@link https://docs.github.com/articles/creating-gists | GitHub Gist Documentation}
  * @see {@link https://github.com/orgs/community/discussions/29584 | Community Discussion on Gist Folder Support}
  */
-export class GistEntryDecoded extends GistEntry.transformOrFail<GistEntryDecoded>("GistEntryDecoded")({
-  files_with_name: Schema.Array(Schema.Struct({
-    path: Schema.String,
-    name: Schema.String
-  }))
-}, {
-  decode: Effect.fnUntraced(function*(entry, _, ast) {
-    const files_with_name = entry.files.map((file) => ({
-      path: file,
-      name: path.basename(file) // <-- I'm using Node's path module here so that this schema works without requirements on Effect's Path module
-    }))
+export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
+  GistEntry.pipe(
+    Schema.decodeTo(
+      Schema.Struct({
+        description: Schema.String,
+        public: Schema.Boolean,
+        company: Schema.String,
+        files: Schema.Array(Schema.String),
+        files_with_name: Schema.Array(Schema.Struct({
+          path: Schema.String,
+          name: Schema.String
+        }))
+      }),
+      SchemaTransformation.transformOrFail({
+        decode: Effect.fnUntraced(function*(entry) {
+          const files_with_name = entry.files.map((file) => ({
+            path: file,
+            name: path.basename(file) // <-- I'm using Node's path module here so that this schema works without requirements on Effect's Path module
+          }))
 
-    // check for duplicate file names
-    const nameMap = new Map<string, string[]>()
-    for (const { name, path: filePath } of files_with_name) {
-      if (!nameMap.has(name)) {
-        nameMap.set(name, [])
-      }
-      nameMap.get(name)!.push(filePath)
-    }
+          // check for duplicate file names
+          const nameMap = new Map<string, string[]>()
+          for (const { name, path: filePath } of files_with_name) {
+            if (!nameMap.has(name)) {
+              nameMap.set(name, [])
+            }
+            nameMap.get(name)!.push(filePath)
+          }
 
-    // find duplicates and collect all collisions
-    const collisions: ParseResult.ParseIssue[] = []
-    for (const [fileName, paths] of nameMap.entries()) {
-      if (paths.length > 1) {
-        collisions.push(
-          new ParseResult.Type(
-            ast,
-            paths,
-            `Duplicate file name detected: "${fileName}". Colliding paths: ${paths.join(", ")}`
-          )
-        )
-      }
-    }
+          // find duplicates and collect all collision messages
+          const messages: string[] = []
+          for (const [fileName, paths] of nameMap.entries()) {
+            if (paths.length > 1) {
+              messages.push(
+                `Duplicate file name detected: "${fileName}". Colliding paths: ${paths.join(", ")}`
+              )
+            }
+          }
 
-    // if there are any collisions, fail with all of them
-    if (Array.isNonEmptyArray(collisions)) {
-      return yield* Effect.fail(
-        new ParseResult.Composite(
-          ast,
-          entry.files,
-          collisions
-        )
-      )
-    }
+          // if there are any collisions, fail with a combined message
+          if (messages.length > 0) {
+            return yield* Effect.fail(
+              new SchemaIssue.InvalidValue(Option.some(entry.files), { message: messages.join("; ") })
+            )
+          }
 
-    return yield* Effect.succeed({
-      ...entry,
-      files_with_name
-    })
-  }),
-  encode: (({ files_with_name, ...entry }) => ParseResult.succeed(entry))
-}) {}
+          return yield* Effect.succeed({ ...entry, files_with_name })
+        }),
+        encode: ({ files_with_name: _, ...entry }) => Effect.succeed(entry)
+      })
+    )
+  )
+) {}
 
 export class GistYAML extends Schema.Class<GistYAML>("GistYAML")({
-  gists: Schema
-    .Record({
-      key: Schema.String,
-      value: GistEntryDecoded
-    })
-    .pipe(Schema.optionalWith({
-      default: () => ({}),
-      nullable: true,
-      exact: true
-    })),
+  gists: Schema.optional(Schema.NullOr(
+    Schema.Record(Schema.String, GistEntryDecoded)
+  )),
   settings: Schema.Struct({
     token_env: Schema.String,
     base_directory: Schema.String
@@ -176,16 +167,16 @@ class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
 // Services
 //
 
-class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
-  dependencies: [RunCommandService.Default],
-  effect: Effect.gen(function*() {
+class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService", {
+  make: Effect.gen(function*() {
     const CACHE_GIST_DESCRIPTION = "GIST_CACHE_DO_NOT_EDIT_effa_cli_internal"
     const { runGetExitCode, runGetString } = yield* RunCommandService
 
     // the client cannot recover from PlatformErrors, so we convert failures into defects to clean up the signatures
     const runGetExitCodeSuppressed = (...args: Parameters<typeof runGetExitCode>) => {
       return runGetExitCode(...args).pipe(
-        Effect.catchAll((e) => Effect.dieMessage(`Command failed: ${args.join(" ")}\nError: ${e.message}`)),
+        Effect.mapError((e) => `Command failed: ${args.join(" ")}\nError: ${e.message}`),
+        Effect.orDie,
         Effect.asVoid
       )
     }
@@ -193,7 +184,8 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
     // the client cannot recover from PlatformErrors, so we convert failures into defects to clean up the signatures
     const runGetStringSuppressed = (...args: Parameters<typeof runGetString>) => {
       return runGetString(...args).pipe(
-        Effect.catchAll((e) => Effect.dieMessage(`Command failed: ${args.join(" ")}\nError: ${e.message}`))
+        Effect.mapError((e) => `Command failed: ${args.join(" ")}\nError: ${e.message}`),
+        Effect.orDie
       )
     }
 
@@ -218,7 +210,6 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
         ) {
           // search for existing cache gist
           const output = yield* runGetStringSuppressed(`gh gist list --filter "${CACHE_GIST_DESCRIPTION}"`)
-            .pipe(Effect.orElse(() => Effect.succeed("")))
 
           const lines = output.trim().split("\n").filter((line: string) => line.trim())
 
@@ -233,7 +224,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
           if (!gist_id) {
             if (recCache) {
-              return yield* Effect.dieMessage("Failed to create or locate cache gist after creation attempt")
+              return yield* Effect.die("Failed to create or locate cache gist after creation attempt")
             }
             return yield* new GistCacheNotFound({ message: "No gist ID found in output" })
           } else {
@@ -252,7 +243,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
           if (!filesInCache.includes(`${company}.json`)) {
             if (recCacheCompany) {
-              return yield* Effect.dieMessage(
+              return yield* Effect.die(
                 `Failed to create or locate cache entry for company ${company} after creation attempt`
               )
             }
@@ -265,7 +256,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
             const entries = yield* pipe(
               cacheContent,
-              pipe(Schema.parseJson(GistCacheEntries), Schema.decodeUnknown),
+              Schema.decodeUnknownEffect(Schema.fromJsonString(GistCacheEntries)),
               Effect.orDie
             )
 
@@ -310,7 +301,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
       function*(cache: GistCache) {
         const cacheJson = yield* pipe(
           cache.entries,
-          pipe(Schema.parseJson(GistCacheEntries), Schema.encodeUnknown),
+          Schema.encodeUnknownEffect(Schema.fromJsonString(GistCacheEntries)),
           // cannot recover from parse errors in any case, better to die here instead of cluttering the signature
           Effect.orDie
         )
@@ -353,7 +344,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
           gistUrl,
           extractGistIdFromUrl,
           Option.match({
-            onNone: () => Effect.dieMessage(`Failed to extract gist ID from URL: ${gistUrl}`),
+            onNone: () => Effect.die(`Failed to extract gist ID from URL: ${gistUrl}`),
             onSome: (id) =>
               Effect
                 .succeed(
@@ -396,20 +387,11 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
         // filter file names by environment prefix and remove the prefix
         // files in gists are prefixed with "env." to support multiple environments
-        return Array.filterMap(
-          output
-            .trim()
-            .split("\n"),
-          (fn) => {
-            const fnTrimmed = fn.trim()
-            if (!fnTrimmed.startsWith(env + ".")) {
-              return Option.none()
-            }
-            return Option.some(
-              fnTrimmed.substring(env.length + 1) // remove env prefix and dot
-            )
-          }
-        )
+        return Array.filter(output.trim().split("\n"), (fn) => {
+          const fnTrimmed = fn.trim()
+          if (!fnTrimmed.startsWith(env + ".")) return Result.fail(fn)
+          return Result.succeed(fnTrimmed.substring(env.length + 1)) // remove env prefix and dot
+        })
       }
     )
 
@@ -500,7 +482,7 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
 
     const login = Effect.fn("GHGistService.login")(function*(token: string) {
       if ((yield* runGetExitCode("gh --version").pipe(Effect.orDie)) !== 0) {
-        return yield* Effect.dieMessage(
+        return yield* Effect.die(
           "GitHub CLI (gh) is not installed or not found in PATH. Please install it to use the gist command."
         )
       }
@@ -608,13 +590,15 @@ class GHGistService extends Effect.Service<GHGistService>()("GHGistService", {
       deleteGist
     }
   })
-}) {}
+}) {
+  static DefaultWithoutDependencies = Layer.effect(this, this.make)
+  static Default = this.DefaultWithoutDependencies.pipe(
+    Layer.provide(RunCommandService.Default)
+  )
+}
 
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
-  accessors: true,
-  dependencies: [GHGistService.Default],
-  effect: Effect.gen(function*() {
+export class GistHandler extends ServiceMap.Service<GistHandler>()("GistHandler", {
+  make: Effect.gen(function*() {
     const GH = yield* GHGistService
 
     // I prefer to provide these two only once during the main CLI pipeline setup
@@ -624,9 +608,9 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
     return {
       handler: Effect.fn("effa-cli.gist.GistHandler")(function*({ YAMLPath }: { YAMLPath: string }) {
         // load company and environment from environment variables
-        const CONFIG = yield* Effect.all({
+        const CONFIG = yield* Config.all({
           company: Config.string("COMPANY"),
-          env: Config.string("ENV").pipe(Config.withDefault("local-dev"))
+          env: Config.string("ENV").pipe(Config.withDefault(() => "local-dev"))
         })
 
         yield* Effect.logInfo(`Company: ${CONFIG.company}, ENV: ${CONFIG.env}`)
@@ -649,7 +633,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
               }
             })
           ),
-          Effect.andThen(Schema.decodeUnknown(GistYAML))
+          Effect.andThen(Schema.decodeUnknownEffect(GistYAML))
         )
 
         // load GitHub token securely from environment variable
@@ -665,7 +649,7 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
         // filter YAML gists by company to ensure isolation between different organizations
         // this prevents cross-company gist operations and maintains data separation
         const thisCompanyGistsFromYaml = Object
-          .entries(configFromYaml.gists)
+          .entries(configFromYaml.gists ?? {})
           .filter(([, v]) => v.company === CONFIG.company)
 
         for (
@@ -815,4 +799,9 @@ export class GistHandler extends Effect.Service<GistHandler>()("GistHandler", {
       })
     }
   })
-}) {}
+}) {
+  static DefaultWithoutDependencies = Layer.effect(this, this.make)
+  static Default = this.DefaultWithoutDependencies.pipe(
+    Layer.provide(GHGistService.Default)
+  )
+}

@@ -1,114 +1,62 @@
-import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
+import { type GetContextConfig, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
 
-// TODO: Fix error types... (?)
-type JoinSchema<T> = T extends ReadonlyArray<S.Schema.All> ? S.Union<T> : typeof S.Never
-
 const merge = (a: any, b: Array<any>) =>
-  a !== undefined && b.length ? S.Union(a, ...b) : a !== undefined ? a : b.length ? S.Union(...b) : S.Never
-
-/**
- * Converts struct fields to TypeLiteral schema, or returns existing schema.
- *
- * @example
- * ```typescript
- * type Fields = { name: S.String; age: S.Number }
- * type Schema = SchemaOrFields<Fields>
- * // Result: S.TypeLiteral<Fields, []>
- *
- * type Existing = S.String
- * type Same = SchemaOrFields<Existing>
- * // Result: S.String
- * ```
- */
-type SchemaOrFields<T> = T extends S.Struct.Fields ? S.TypeLiteral<T, []> : T extends S.Schema.Any ? T : never
+  a !== undefined && b.length ? S.Union([a, ...b]) : a !== undefined ? a : b.length ? S.Union(b) : S.Never
 
 /**
  * Whatever the input, we will only decode or encode to void
  */
-const ForceVoid: S.Schema<void> = S.transform(S.Any, S.Void, { decode: () => void 0, encode: () => void 0 })
+const ForceVoid: S.Schema<void> = S.Void as any
 
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
-  GeneralErrors extends S.Schema.All = never
+  GeneralErrors extends S.Top = never
 >(rcs: RequestContextMap, generalErrors?: GeneralErrors) => {
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type Context = {
-    success: S.Schema.Any | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
-    failure: S.Schema.Any | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
+    success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
+    failure: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
   }
 
   type RequestConfig = GetContextConfig<RequestContextMap["config"]>
 
-  function TaggedRequest<Self>(): {
+  // TODO: S.TaggedRequestClass and S.TaggedRequest removed in v4 — return types use `any` for now
+  function TaggedRequest<_Self>(): {
     <Tag extends string, Payload extends S.Struct.Fields, C extends Context>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
     ):
-      & S.TaggedRequestClass<
-        Self,
-        Tag,
-        { readonly _tag: S.tag<Tag> } & Payload,
-        SchemaOrFields<typeof config["success"]>,
-        JoinSchema<
-          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap["config"], C> | GeneralErrors]
-        >
-      >
+      & any
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "success">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
     ):
-      & S.TaggedRequestClass<
-        Self,
-        Tag,
-        { readonly _tag: S.tag<Tag> } & Payload,
-        SchemaOrFields<typeof config["success"]>,
-        JoinSchema<[GetEffectError<RequestContextMap["config"], C> | GeneralErrors]>
-      >
+      & any
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "failure">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
     ):
-      & S.TaggedRequestClass<
-        Self,
-        Tag,
-        { readonly _tag: S.tag<Tag> } & Payload,
-        typeof S.Void,
-        JoinSchema<
-          [SchemaOrFields<typeof config["failure"]> | GetEffectError<RequestContextMap["config"], C> | GeneralErrors]
-        >
-      >
+      & any
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
       tag: Tag,
       fields: Payload,
       config: C & RequestConfig
     ):
-      & S.TaggedRequestClass<
-        Self,
-        Tag,
-        { readonly _tag: S.tag<Tag> } & Payload,
-        typeof S.Void,
-        JoinSchema<[GetEffectError<RequestContextMap["config"], C> | GeneralErrors]>
-      >
+      & any
       & { config: Omit<C, "success" | "failure"> }
     <Tag extends string, Payload extends S.Struct.Fields>(
       tag: Tag,
       fields: Payload
     ):
-      & S.TaggedRequestClass<
-        Self,
-        Tag,
-        { readonly _tag: S.tag<Tag> } & Payload,
-        typeof S.Void,
-        GeneralErrors extends never ? typeof S.Never : GeneralErrors
-      >
+      & any
       // eslint-disable-next-line @typescript-eslint/no-empty-object-type
       & { config: {} }
   } {
@@ -119,26 +67,40 @@ export const makeRpcClient = <
       fields: Fields,
       config?: C
     ) => {
-      // S.TaggedRequest is a factory function that creates a TaggedRequest class
-      const req = S.TaggedRequest<Self>()(tag, {
-        payload: fields,
-        // ensure both failure and success are schemas
-        failure: merge(
-          config?.failure ? S.isSchema(config.failure) ? config.failure : S.Struct(config.failure) : undefined,
-          [...errorSchemas, generalErrors].filter(Boolean)
-        ),
-        success: config?.success
-          ? S.isSchema(config.success)
-            ? AST.isVoidKeyword(config.success.ast) ? ForceVoid : config.success
-            : S.Struct(config.success)
-          : ForceVoid
-      })
-      return class extends (Object.assign(req, { config }) as any) {
-        constructor(payload: any, disableValidation: any = true) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          super(payload, disableValidation)
+      // TODO: S.TaggedRequest removed in v4 — needs rework to use Rpc.make or Request.TaggedClass
+      // For now, creating a simple tagged struct class with success/failure properties
+      const failureSchema = merge(
+        config?.failure ? S.isSchema(config.failure) ? config.failure : S.Struct(config.failure) : undefined,
+        [...errorSchemas, generalErrors].filter(Boolean)
+      )
+      const successSchema = config?.success
+        ? S.isSchema(config.success)
+          ? AST.isVoid(config.success.ast) ? ForceVoid : config.success
+          : S.Struct(config.success)
+        : ForceVoid
+
+      const payloadSchema = S.Struct({ _tag: S.tag(tag), ...fields })
+
+      const taggedFields = { _tag: S.tag(tag), ...fields }
+
+      const RequestClass = class {
+        constructor(payload?: any) {
+          if (payload) {
+            Object.assign(this, payload)
+          }
+          ;(this as any)._tag = tag
         }
       }
+
+      Object.assign(RequestClass, payloadSchema, {
+        _tag: tag,
+        fields: taggedFields,
+        success: successSchema,
+        failure: failureSchema,
+        config
+      })
+
+      return RequestClass
     }) as any
   }
 

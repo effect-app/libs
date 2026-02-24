@@ -12,7 +12,7 @@ export type RequestId = NonEmptyString255
 // a request id may be made from a span id, which does not comply with StringId schema.
 export const RequestId = extendM(
   Object
-    .assign(Object.create(NonEmptyString255) as {}, NonEmptyString255 as Schema<NonEmptyString255, string>),
+    .assign(Object.create(NonEmptyString255) as {}, NonEmptyString255 as unknown as Schema<NonEmptyString255>),
   (s) => {
     const make = StringId.make as () => NonEmptyString255
     return ({

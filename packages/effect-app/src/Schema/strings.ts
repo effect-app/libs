@@ -22,7 +22,7 @@ export type NonEmptyString64k = string & NonEmptyString64kBrand
 export const NonEmptyString64k = S
   .NonEmptyString
   .pipe(
-    S.maxLength(64 * 1024),
+    S.check(S.isMaxLength(64 * 1024)),
     fromBrand(nominal<NonEmptyString64k>(), {
       identifier: "NonEmptyString64k",
       title: "NonEmptyString64k",
@@ -36,7 +36,7 @@ export type NonEmptyString2k = string & NonEmptyString2kBrand
 export const NonEmptyString2k = S
   .NonEmptyString
   .pipe(
-    S.maxLength(2 * 1024),
+    S.check(S.isMaxLength(2 * 1024)),
     fromBrand(nominal<NonEmptyString2k>(), {
       identifier: "NonEmptyString2k",
       title: "NonEmptyString2k",
@@ -50,7 +50,7 @@ export type NonEmptyString255 = string & NonEmptyString255Brand
 export const NonEmptyString255 = S
   .NonEmptyString
   .pipe(
-    S.maxLength(255),
+    S.check(S.isMaxLength(255)),
     fromBrand(nominal<NonEmptyString255>(), {
       identifier: "NonEmptyString255",
       title: "NonEmptyString255",

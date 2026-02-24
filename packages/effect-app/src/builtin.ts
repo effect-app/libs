@@ -54,11 +54,5 @@ declare module "effect/Option" {
   }
 }
 
-declare module "effect/Either" {
-  export interface Left<E, A> {
-    get right(): A | undefined
-  }
-  export interface Right<E, A> {
-    get left(): E | undefined
-  }
-}
+// TODO: v4 migration — Either module augmentation removed (Either → Result)
+// Previously added .right to Left and .left to Right for convenience access

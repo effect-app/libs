@@ -1,40 +1,37 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Context, Effect, type LogLevel } from "effect"
+import { Effect, type LogLevel } from "effect"
+import * as Context from "../Context.js"
 
 type Levels = "info" | "debug" | "warn" | "error"
 
 export class LogLevels extends Context.Reference<LogLevels>()("LogLevels", {
-  defaultValue: (): ReadonlyMap<string, Levels> => new Map<string, Levels>()
+  defaultValue: () => new Map<string, Levels>()
 }) {}
 
 export const makeLog = (namespace: string, defaultLevel: Levels = "warn") => {
-  const level = LogLevels.pipe(Effect.andThen((levels) => levels.get(namespace) ?? defaultLevel))
+  const level = LogLevels.use((levels) =>
+    Effect.succeed(levels.get(namespace) ?? defaultLevel)
+  )
   const withLogNamespace = Effect.annotateLogs({ logNamespace: namespace })
   return {
     logWarning: (...message: ReadonlyArray<any>) =>
-      level.pipe(
-        Effect.andThen((l) =>
-          l === "info" || l === "debug" || l === "warn"
-            ? Effect.logWarning(...message).pipe(withLogNamespace)
-            : Effect.void
-        )
-      ),
+      Effect.flatMap(level, (l) =>
+        l === "info" || l === "debug" || l === "warn"
+          ? Effect.logWarning(...message).pipe(withLogNamespace)
+          : Effect.void),
     logError: (...message: ReadonlyArray<any>) => Effect.logError(...message).pipe(withLogNamespace),
     logFatal: (...message: ReadonlyArray<any>) => Effect.logFatal(...message).pipe(withLogNamespace),
     logInfo: (...message: ReadonlyArray<any>) =>
-      level.pipe(
-        Effect.andThen((l) =>
-          l === "info" || l === "debug" ? Effect.logInfo(...message).pipe(withLogNamespace) : Effect.void
-        )
+      Effect.flatMap(
+        level,
+        (l) => l === "info" || l === "debug" ? Effect.logInfo(...message).pipe(withLogNamespace) : Effect.void
       ),
     logDebug: (...message: ReadonlyArray<any>) =>
-      level.pipe(
-        Effect.andThen((l) => l === "debug" ? Effect.logDebug(...message).pipe(withLogNamespace) : Effect.void)
-      ),
+      Effect.flatMap(level, (l) => l === "debug" ? Effect.logDebug(...message).pipe(withLogNamespace) : Effect.void),
     // for now always log
-    logWithLevel: (level: LogLevel.LogLevel, ...message: ReadonlyArray<any>) =>
-      Effect.logWithLevel(level, ...message).pipe(withLogNamespace)
+    logWithLevel: (level: LogLevel.Severity, ...message: ReadonlyArray<any>) =>
+      Effect.logWithLevel(level)(...message).pipe(withLogNamespace)
   }
 }

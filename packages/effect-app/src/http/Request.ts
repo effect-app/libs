@@ -1,6 +1,5 @@
-import type { HttpClientResponse } from "@effect/platform/HttpClientResponse"
+import type { HttpClientResponse } from "effect/unstable/http/HttpClientResponse"
 import * as Effect from "../Effect.js"
-import * as Option from "../Option.js"
 import { HttpClient, HttpClientError, HttpClientRequest, HttpHeaders } from "./internal/lib.js"
 
 export interface ResponseWithBody<A> extends Pick<HttpClientResponse, "headers" | "status" | "remoteAddress"> {
@@ -25,18 +24,16 @@ export const demandJson = (client: HttpClient.HttpClient) =>
     .mapRequest(client, (_) => HttpClientRequest.acceptJson(_))
     .pipe(HttpClient.transform((r, request) =>
       Effect.tap(r, (response) =>
-        Option
-            .getOrUndefined(HttpHeaders
-              .get(response.headers, "Content-Type"))
+        HttpHeaders
+            .get(response.headers, "Content-Type")
             ?.startsWith("application/json")
           ? Effect.void
           : Effect.fail(
-            new HttpClientError.ResponseError({
+            new HttpClientError.DecodeError({
               request,
               response,
-              reason: "Decode",
               description: "not json response: "
-                + Option.getOrUndefined(HttpHeaders.get(response.headers, "Content-Type"))
+                + HttpHeaders.get(response.headers, "Content-Type")
             })
           ))
     ))

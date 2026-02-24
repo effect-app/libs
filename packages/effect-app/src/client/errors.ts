@@ -1,7 +1,6 @@
 /** @effect-diagnostics overriddenSchemaConstructor:skip-file */
 import { TaggedError } from "effect-app/Schema"
 import * as Cause from "effect/Cause"
-import { makeFiberFailure } from "effect/Runtime"
 import * as S from "../Schema.js"
 
 export const tryToJson = (error: { toJSON(): unknown; toString(): string }) => {
@@ -27,13 +26,13 @@ export class NotFoundError<ItemType = string> extends TaggedError<NotFoundError<
   id: S.Unknown
 }) {
   constructor(
-    props: S.Struct.Constructor<typeof NotFoundError.fields> & { cause?: unknown },
+    props: { type: string; id: unknown; cause?: unknown },
     disableValidation?: boolean
   ) {
-    super(props, disableValidation)
+    super(props as any, disableValidation as any)
   }
   override get message() {
-    return `Didn't find ${this.type}#${JSON.stringify(this.id)}`
+    return `Didn't find ${(this as any).type}#${JSON.stringify((this as any).id)}`
   }
 }
 
@@ -44,7 +43,7 @@ export class InvalidStateError extends TaggedError<InvalidStateError>()("Invalid
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject }, disableValidation)
+    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any, disableValidation as any)
   }
 }
 
@@ -52,7 +51,7 @@ export class ServiceUnavailableError extends TaggedError<ServiceUnavailableError
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject }, disableValidation)
+    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any, disableValidation as any)
   }
 }
 
@@ -60,13 +59,13 @@ export class ValidationError extends TaggedError<ValidationError>()("ValidationE
   errors: S.Array(S.Unknown)
 }) {
   constructor(
-    props: S.Struct.Constructor<typeof ValidationError.fields> & { cause?: unknown },
+    props: { errors: ReadonlyArray<unknown>; cause?: unknown },
     disableValidation?: boolean
   ) {
-    super(props, disableValidation)
+    super(props as any, disableValidation as any)
   }
   override get message() {
-    return `Validation failed: ${this.errors.map((e) => JSON.stringify(e, undefined, 2)).join(",\n")}`
+    return `Validation failed: ${(this as any).errors.map((e: any) => JSON.stringify(e, undefined, 2)).join(",\n")}`
   }
 }
 
@@ -74,7 +73,7 @@ export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLogged
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject), disableValidation)
+    super(messageFallback(messageOrObject) as any, disableValidation as any)
   }
 }
 
@@ -85,7 +84,7 @@ export class LoginError extends TaggedError<LoginError>()("NotLoggedInError", {
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject), disableValidation)
+    super(messageFallback(messageOrObject) as any, disableValidation as any)
   }
 }
 
@@ -93,7 +92,7 @@ export class UnauthorizedError extends TaggedError<UnauthorizedError>()("Unautho
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject), disableValidation)
+    super(messageFallback(messageOrObject) as any, disableValidation as any)
   }
 }
 
@@ -114,10 +113,10 @@ export class OptimisticConcurrencyException extends TaggedError<OptimisticConcur
   constructor(
     args:
       | OptimisticConcurrencyDetails
-      | (S.Struct.Constructor<typeof OptimisticConcurrencyException.fields> & { cause?: unknown; raw?: unknown }),
+      | ({ message: string; cause?: unknown; raw?: unknown }),
     disableValidation?: boolean
   ) {
-    super("message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` }, disableValidation)
+    super("message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` } as any, disableValidation as any)
     if (!("message" in args)) {
       this.details = args
     }
@@ -138,10 +137,10 @@ const GeneralErrors = [
   ServiceUnavailableError
 ] as const
 
-export const SupportedErrors = S.Union(
+export const SupportedErrors = S.Union([
   ...MutationOnlyErrors,
   ...GeneralErrors
-)
+])
 // .pipe(named("SupportedErrors"))
 // .pipe(withDefaultMake)
 export type SupportedErrors = S.Schema.Type<typeof SupportedErrors>
@@ -175,11 +174,18 @@ export class CauseException<E> extends Error {
     Error.stackTraceLimit = 0
     super()
     Error.stackTraceLimit = limit
-    const ff = makeFiberFailure(originalCause)
-    this.name = ff.name
-    this.message = ff.message
-    if (ff.stack) {
-      this.stack = ff.stack
+    // v4: makeFiberFailure removed — use Cause.prettyErrors instead
+    const errors = Cause.prettyErrors(originalCause)
+    const first = errors[0]
+    if (first) {
+      this.name = first.name
+      this.message = first.message
+      if (first.stack) {
+        this.stack = first.stack
+      }
+    } else {
+      this.name = "CauseException"
+      this.message = Cause.pretty(originalCause)
     }
   }
   toReport() {
@@ -203,7 +209,7 @@ export class CauseException<E> extends Error {
     return this.toJSON()
   }
   override toString() {
-    return `[${this._tag}] ` + Cause.pretty(this.originalCause, { renderErrorCause: true })
+    return `[${this._tag}] ` + Cause.pretty(this.originalCause)
   }
 }
 

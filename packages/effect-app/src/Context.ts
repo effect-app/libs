@@ -361,10 +361,10 @@ export const Reference = ServiceMap.Service as unknown as {
     options: { readonly defaultValue: () => Service }
   ): ServiceMap.Reference<Service>
 
-  <Self>(): <Service, const Identifier extends string>(
+  <_Self>(): <Service, const Identifier extends string>(
     key: Identifier,
     options: { readonly defaultValue: () => Service }
-  ) => ServiceMap.Reference<Self> & {
+  ) => ServiceMap.Reference<Service> & {
     new(_: never): ServiceMap.ServiceClass.Shape<Identifier, Service>
   }
 }

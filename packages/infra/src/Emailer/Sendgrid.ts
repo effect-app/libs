@@ -31,18 +31,18 @@ const makeSendgrid = ({ apiKey, defaultFrom, defaultReplyTo, realMail, subjectPr
         yield* InfraLogger.logDebug("Sending email").pipe(Effect.annotateLogs("msg", inspect(renderedMsg, false, 5)))
 
         const ret = yield* Effect
-          .async<
+          .callback<
             [sgMail.ClientResponse, Record<string, unknown>],
             Error | sgMail.ResponseError
           >(
-            (cb) =>
+            (resume) =>
               void sgMail.send(
                 renderedMsg as any, // sue me
                 msg.isMultiple ?? true,
                 (err, result) =>
                   err
-                    ? cb(Effect.fail(err))
-                    : cb(Effect.sync(() => result))
+                    ? resume(Effect.fail(err))
+                    : resume(Effect.sync(() => result))
               )
           )
           .pipe(Effect.mapError((raw) => new SendMailError({ raw })))
@@ -107,7 +107,7 @@ function renderFake(addr: EmailData | readonly EmailData[], makeId: () => number
   }
 }
 const eq = Equivalence.mapInput(
-  Equivalence.string,
+  Equivalence.String,
   (to: { name?: string; email: string } | string) => typeof to === "string" ? to.toLowerCase() : to.email.toLowerCase()
 )
 

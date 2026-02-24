@@ -1,6 +1,6 @@
 import { type FileOptions, tempFile } from "@effect-app/infra/fileUtil"
 import cp from "child_process"
-import { Config, Effect, Layer, Predicate, S } from "effect-app"
+import { Config, Effect, Layer, Predicate, S, ServiceMap } from "effect-app"
 import { pretty } from "effect-app/utils"
 import fs from "fs"
 import os from "os"
@@ -79,7 +79,7 @@ function getAvailablePrinters(host?: string) {
     const { stdout } = yield* exec(["lpstat", ...buildListArgs({ host }), "-s"].join(" "))
     return [...stdout.matchAll(/device for (\w+):/g)]
       .map((_) => _[1])
-      .filter(Predicate.isNotNullable)
+      .filter(Predicate.isString)
       .map((_) => S.NonEmptyString255(_))
   })
 }
@@ -92,16 +92,15 @@ function* buildListArgs(config?: { host?: string | undefined }) {
 
 export const CUPSConfig = Config.all({
   server: Config
-    .string("server")
+    .string("cups/server")
     .pipe(
       Config.map((s) => new URL(s)),
-      Config.option,
-      Config.nested("cups")
+      Config.option
     )
 })
 
-export class CUPS extends Effect.Service<CUPS>()("effect-app/CUPS", {
-  effect: Effect.gen(function*() {
+export class CUPS extends ServiceMap.Service<CUPS>()("effect-app/CUPS", {
+  make: Effect.gen(function*() {
     const config = yield* CUPSConfig
     function print(buffer: ArrayBuffer, printerId: PrinterId, ...options: string[]) {
       const _print = printBuffer({
@@ -124,12 +123,12 @@ export class CUPS extends Effect.Service<CUPS>()("effect-app/CUPS", {
   static readonly Fake = Layer.effect(
     this,
     Effect.sync(() => {
-      return this.make({
+      return this.of({
         print: (buffer, printerId, ...options) =>
           InfraLogger
             .logInfo("Printing to fake printer")
             .pipe(
-              Effect.zipRight(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
+              Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
               Effect
                 .annotateLogs({
                   printerId,
@@ -141,7 +140,7 @@ export class CUPS extends Effect.Service<CUPS>()("effect-app/CUPS", {
           InfraLogger
             .logInfo("Printing to fake printer")
             .pipe(
-              Effect.zipRight(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
+              Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
               Effect
                 .annotateLogs({
                   printerId,

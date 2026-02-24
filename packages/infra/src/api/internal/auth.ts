@@ -12,28 +12,28 @@ type Config = Parameters<typeof auth>[0]
 export const checkJWTI = (config: Config) => {
   const mw = auth(config)
   return Effect.fnUntraced(function*(headers: HttpHeaders.Headers) {
-    return yield* Effect.async<
+    return yield* Effect.callback<
       void,
       InsufficientScopeError | InvalidRequestError | InvalidTokenError | UnauthorizedError
     >(
-      (cb) => {
+      (resume) => {
         const next = (err?: unknown) => {
-          if (!err) return cb(Effect.void)
+          if (!err) return resume(Effect.void)
           if (
             err instanceof InsufficientScopeError
             || err instanceof InvalidRequestError
             || err instanceof InvalidTokenError
             || err instanceof UnauthorizedError
           ) {
-            return cb(Effect.fail(err))
+            return resume(Effect.fail(err))
           }
-          return cb(Effect.die(err))
+          return resume(Effect.die(err))
         }
         const r = { headers, query: {}, body: {}, is: () => false, method: "POST" } // is("urlencoded")
         try {
           mw(r as any, {} as any, next)
         } catch (e) {
-          return cb(Effect.die(e))
+          return resume(Effect.die(e))
         }
       }
     )

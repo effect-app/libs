@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
-import * as Result from "effect/Result"
 import { dual } from "effect/Function"
 import { isFunction } from "effect/Predicate"
+import * as Result from "effect/Result"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"

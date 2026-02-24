@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type RpcMiddlewareWrap } from "@effect/rpc/RpcMiddleware"
 import { type Context, type Effect, type Layer } from "effect-app"
 import { type GetContextConfig, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
+import { type RpcMiddlewareWrap } from "effect/unstable/rpc/RpcMiddleware"
 // module:
 //
 

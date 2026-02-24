@@ -7,20 +7,20 @@
 /**
  * @since 1.0.0
  */
-import * as RRX from "@effect/experimental/RequestResolver"
-import * as VariantSchema from "@effect/experimental/VariantSchema"
-import { SqlClient } from "@effect/sql/SqlClient"
-import * as SqlResolver from "@effect/sql/SqlResolver"
-import * as SqlSchema from "@effect/sql/SqlSchema"
 import crypto from "crypto" // TODO
 import type { Brand } from "effect/Brand"
 import * as DateTime from "effect/DateTime"
 import type { DurationInput } from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import * as ParseResult from "effect/ParseResult"
+import * as RequestResolver from "effect/RequestResolver"
 import * as Schema from "effect/Schema"
-import type { Scope } from "effect/Scope"
+import * as Getter from "effect/SchemaGetter"
+import * as SchemaIssue from "effect/SchemaIssue"
+import * as VariantSchema from "effect/unstable/schema/VariantSchema"
+import * as SqlClient from "effect/unstable/sql/SqlClient"
+import * as SqlResolver from "effect/unstable/sql/SqlResolver"
+import * as SqlSchema from "effect/unstable/sql/SqlSchema"
 
 const {
   Class,
@@ -338,7 +338,7 @@ export const DateTimeFromDate: DateTimeFromDate = Schema.transform(
  * @since 1.0.0
  * @category date & time
  */
-export interface Date extends Schema.transformOrFail<typeof Schema.String, typeof Schema.DateTimeUtcFromSelf> {}
+export interface Date extends Schema.decodeTo<typeof Schema.DateTimeUtcFromSelf, typeof Schema.String> {}
 
 /**
  * A schema for a `DateTime.Utc` that is serialized as a date string in the
@@ -347,20 +347,19 @@ export interface Date extends Schema.transformOrFail<typeof Schema.String, typeo
  * @since 1.0.0
  * @category date & time
  */
-export const Date: Date = Schema.transformOrFail(
-  Schema.String,
-  Schema.DateTimeUtcFromSelf,
-  {
-    decode: (s, _, ast) =>
+export const Date: Date = Schema.String.pipe(
+  Schema.decodeTo(Schema.DateTimeUtcFromSelf, {
+    decode: Getter.transformOrFail((s) =>
       DateTime.make(s).pipe(
         Option.map(DateTime.removeTime),
         Option.match({
-          onNone: () => ParseResult.fail(new ParseResult.Type(ast, s)),
-          onSome: (dt) => ParseResult.succeed(dt)
+          onNone: () => Effect.fail(new SchemaIssue.InvalidValue(Option.some(s), { message: `Invalid date: ${s}` })),
+          onSome: Effect.succeed
         })
-      ),
-    encode: (dt) => ParseResult.succeed(DateTime.formatIsoDate(dt))
-  }
+      )
+    ),
+    encode: Getter.transformOrFail((dt) => Effect.succeed(DateTime.formatIsoDate(dt)))
+  })
 )
 
 /**
@@ -652,17 +651,17 @@ export const makeRepository = <
     ) => Effect.Effect<void, never, Schema.Schema.Context<S["fields"][Id]>>
   },
   never,
-  SqlClient
+  SqlClient.SqlClient
 > =>
   Effect.gen(function*() {
-    const sql = yield* SqlClient
+    const sql = yield* SqlClient.SqlClient
     const idSchema = Model.fields[options.idColumn] as Schema.Schema.Any
     const idColumn = options.idColumn as string
     const versionColumn = options.versionColumn
 
     // TODO: insert version automatically...
     // I guess we should hide the versionColumn and insert it in the schema instead
-    const insertSchema = SqlSchema.single({
+    const insertSchema = SqlSchema.findOne({
       Request: Model.insert,
       Result: Model,
       execute: (request) =>
@@ -703,7 +702,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       ) as any
 
-    const updateSchema = SqlSchema.single({
+    const updateSchema = SqlSchema.findOne({
       Request: Model.update,
       Result: Model,
       execute: versionColumn
@@ -776,7 +775,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
         })
       ) as any
 
-    const findByIdSchema = SqlSchema.findOne({
+    const findByIdSchema = SqlSchema.findOneOption({
       Request: idSchema,
       Result: Model,
       execute: (id) => sql`select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
@@ -836,14 +835,20 @@ export const makeDataLoaders = <
     readonly delete: (id: Schema.Schema.Type<S["fields"][Id]>) => Effect.Effect<void>
   },
   never,
-  SqlClient | Scope
+  SqlClient.SqlClient
 > =>
   Effect.gen(function*() {
-    const sql = yield* SqlClient
+    const sql = yield* SqlClient.SqlClient
     const idSchema = Model.fields[options.idColumn] as Schema.Schema.Any
     const idColumn = options.idColumn as string
 
-    const insertResolver = yield* SqlResolver.ordered(`${options.spanPrefix}/insert`, {
+    const applyBatching = <A extends RequestResolver.RequestResolver<any>>(resolver: A): A => {
+      let r: any = resolver.pipe(RequestResolver.setDelay(options.window))
+      if (options.maxBatchSize) r = r.pipe(RequestResolver.batchN(options.maxBatchSize))
+      return r
+    }
+
+    const insertResolver = applyBatching(SqlResolver.ordered({
       Request: Model.insert,
       Result: Model,
       execute: (request) =>
@@ -858,16 +863,11 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
                 ), { concurrency: 10 }),
           orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`
         })
-    })
-    const insertLoader = yield* RRX.dataLoader(insertResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const insertExecute = insertResolver.makeExecute(insertLoader)
+    }))
     const insert = (
       insert: S["insert"]["Type"]
     ): Effect.Effect<S["Type"], never, S["Context"] | S["insert"]["Context"]> =>
-      insertExecute(insert).pipe(
+      SqlResolver.request(insert, insertResolver).pipe(
         Effect.orDie,
         Effect.withSpan(`${options.spanPrefix}.insert`, {
           captureStackTrace: false,
@@ -875,19 +875,14 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       )
 
-    const insertVoidResolver = yield* SqlResolver.void(`${options.spanPrefix}/insertVoid`, {
+    const insertVoidResolver = applyBatching(SqlResolver.void({
       Request: Model.insert,
       execute: (request) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`
-    })
-    const insertVoidLoader = yield* RRX.dataLoader(insertVoidResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const insertVoidExecute = insertVoidResolver.makeExecute(insertVoidLoader)
+    }))
     const insertVoid = (
       insert: S["insert"]["Type"]
     ): Effect.Effect<void, never, S["Context"] | S["insert"]["Context"]> =>
-      insertVoidExecute(insert).pipe(
+      SqlResolver.request(insert, insertVoidResolver).pipe(
         Effect.orDie,
         Effect.withSpan(`${options.spanPrefix}.insertVoid`, {
           captureStackTrace: false,
@@ -895,21 +890,18 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       )
 
-    const findByIdResolver = yield* SqlResolver.findById(`${options.spanPrefix}/findById`, {
+    const findByIdResolver = applyBatching(SqlResolver.findById({
       Id: idSchema,
       Result: Model,
       ResultId(request) {
         return request[idColumn]
       },
       execute: (ids) => sql`select * from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
-    })
-    const findByIdLoader = yield* RRX.dataLoader(findByIdResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const findByIdExecute = findByIdResolver.makeExecute(findByIdLoader)
+    }))
     const findById = (id: Schema.Schema.Type<S["fields"][Id]>): Effect.Effect<Option.Option<S["Type"]>> =>
-      findByIdExecute(id).pipe(
+      SqlResolver.request(id, findByIdResolver).pipe(
+        Effect.map(Option.some),
+        Effect.catchTag("NoSuchElementError", () => Effect.succeedNone),
         Effect.orDie,
         Effect.withSpan(`${options.spanPrefix}.findById`, {
           captureStackTrace: false,
@@ -917,17 +909,12 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       ) as any
 
-    const deleteResolver = yield* SqlResolver.void(`${options.spanPrefix}/delete`, {
+    const deleteResolver = applyBatching(SqlResolver.void({
       Request: idSchema,
       execute: (ids) => sql`delete from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
-    })
-    const deleteLoader = yield* RRX.dataLoader(deleteResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const deleteExecute = deleteResolver.makeExecute(deleteLoader)
+    }))
     const delete_ = (id: Schema.Schema.Type<S["fields"][Id]>): Effect.Effect<void> =>
-      deleteExecute(id).pipe(
+      SqlResolver.request(id, deleteResolver).pipe(
         Effect.orDie,
         Effect.withSpan(`${options.spanPrefix}.delete`, {
           captureStackTrace: false,

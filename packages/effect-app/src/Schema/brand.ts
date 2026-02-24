@@ -3,7 +3,7 @@
 import type { Option } from "effect"
 import * as B from "effect/Brand"
 import type * as Brand from "effect/Brand"
-import * as Result from "effect/Result"
+import type * as Result from "effect/Result"
 import * as S from "effect/Schema"
 
 export interface Constructor<in out A extends B.Brand<any>> {
@@ -36,8 +36,7 @@ export const fromBrand = <C extends B.Brand<string>>(
   // infers the full brand key union without any casts.
   options: S.Annotations.Filter & { readonly identifier: B.Brand.Keys<C> }
 ) =>
-<Self extends S.Top>(self: Self) =>
-  self.pipe(S.brand(options.identifier))
+<Self extends S.Top>(self: Self) => self.pipe(S.brand(options.identifier))
 
 export type Unbranded<P> = P extends B.Brand<any> ? Brand.Brand.Unbranded<P> : P
 

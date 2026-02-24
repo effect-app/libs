@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "@effect/rpc"
 import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, Schema, type Scope } from "effect-app"
 import { type HttpHeaders } from "effect-app/http"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
@@ -10,6 +9,7 @@ import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Service } from "effect/Effect"
 import type { Contravariant } from "effect/Types"
+import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "effect/unstable/rpc"
 import { type YieldWrap } from "effect/Utils"
 import { type LayerUtils } from "./layerUtils.js"
 import { type RouterMiddleware } from "./routing/middleware.js"
@@ -75,7 +75,7 @@ export interface Handler<Action extends AnyRequestModule, RT extends RequestType
     Action,
     RT,
     GetSuccessShape<Action, RT>,
-    S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+    S.Schema.Type<GetFailure<Action>> | S.SchemaError,
     R
   >
 {}
@@ -194,7 +194,7 @@ export const makeRouter = <
       YieldWrap<
         Effect.Effect<
           any,
-          S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+          S.Schema.Type<GetFailure<Action>> | S.SchemaError,
           // the actual implementation of the handler may just require the dynamic context provided by the middleware
           // and the per request context provided by the context provider
           GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
@@ -211,7 +211,7 @@ export const makeRouter = <
       req: S.Schema.Type<Action>
     ) => Effect.Effect<
       GetSuccessShape<Action, RT>,
-      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
       // the actual implementation of the handler may just require the dynamic context provided by the middleware
       // and the per request context provided by the context provider
       GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
@@ -222,7 +222,7 @@ export const makeRouter = <
       RT extends RequestType
     > = Effect.Effect<
       GetSuccessShape<Action, RT>,
-      S.Schema.Type<GetFailure<Action>> | S.ParseResult.ParseError,
+      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
       // the actual implementation of the handler may just require the dynamic context provided by the middleware
       // and the per request context provided by the context provider
       GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
@@ -423,7 +423,11 @@ export const makeRouter = <
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
                 return Rpc
-                  .fromTaggedRequest(resource)
+                  .make(resource._tag, {
+                    payload: resource as any,
+                    success: resource.success,
+                    error: resource.failure
+                  })
                   .annotate(middleware.requestContext, resource.config ?? {})
               })
             )

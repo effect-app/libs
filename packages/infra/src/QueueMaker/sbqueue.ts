@@ -1,5 +1,5 @@
-import { Tracer } from "effect"
-import { Cause, Effect, flow, S } from "effect-app"
+import { flow, Tracer } from "effect"
+import { Cause, Effect, S } from "effect-app"
 import type { StringId } from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
 import { Receiver, Sender } from "../adapters/ServiceBus.js"
@@ -14,15 +14,15 @@ export function makeServiceBusQueue<
   EvtE,
   DrainEvtE
 >(
-  schema: S.Schema<Evt, EvtE>,
-  drainSchema: S.Schema<DrainEvt, DrainEvtE>
+  schema: S.Codec<Evt, EvtE, never>,
+  drainSchema: S.Codec<DrainEvt, DrainEvtE, never>
 ) {
   const wireSchema = S.Struct({
     body: schema,
     meta: QueueMeta
   })
   const drainW = S.Struct({ body: drainSchema, meta: QueueMeta })
-  const parseDrain = flow(S.decodeUnknown(drainW), Effect.orDie)
+  const parseDrain = flow(S.decodeUnknownEffect(drainW), Effect.orDie)
 
   return Effect.gen(function*() {
     const sender = yield* Sender
@@ -57,7 +57,7 @@ export function makeServiceBusQueue<
                             body: pretty(body),
                             meta: pretty(meta)
                           }),
-                          Effect.zipRight(handleEvent(body)),
+                          Effect.andThen(handleEvent(body)),
                           Effect.orDie
                         )
                         // we silenceAndReportError here, so that the error is reported, and moves into the Exit.
@@ -86,7 +86,7 @@ export function makeServiceBusQueue<
                     }),
                   Effect
                     // we reportError here, so that we report the error only, and keep flowing
-                    .tapErrorCause(reportError),
+                    .tapCause(reportError),
                   // we still need to flatten the Exit.
                   Effect.flatMap((_) => _)
                 )

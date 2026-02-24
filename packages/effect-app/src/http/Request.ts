@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { HttpClientResponse } from "@effect/platform/HttpClientResponse"
 import * as Effect from "../Effect.js"
-import * as Option from "../Option.js"
 import { HttpClient, HttpClientError, HttpClientRequest, HttpHeaders } from "./internal/lib.js"
 
 export interface ResponseWithBody<A> extends Pick<HttpClientResponse, "headers" | "status" | "remoteAddress"> {
@@ -27,9 +26,8 @@ export const demandJson = (client: HttpClient.HttpClient) =>
     .mapRequest(client, (_) => HttpClientRequest.acceptJson(_))
     .pipe(HttpClient.transform((r: any, request: any) =>
       (Effect.tap as any)(r, (response: any) =>
-        (Option
-            .getOrUndefined(HttpHeaders
-              .get(response.headers, "Content-Type") as any) as string | undefined)
+        (HttpHeaders
+            .get(response.headers, "Content-Type"))
             ?.startsWith("application/json")
           ? Effect.void
           : Effect.fail(
@@ -37,7 +35,7 @@ export const demandJson = (client: HttpClient.HttpClient) =>
               request,
               response,
               description: "not json response: "
-                + Option.getOrUndefined(HttpHeaders.get(response.headers, "Content-Type") as any)
+                + HttpHeaders.get(response.headers, "Content-Type")
             })
           ))
     )) as any

@@ -1,11 +1,11 @@
 import { getRequestContext, setupRequestContextWithCustomSpan } from "@effect-app/infra/api/setupRequest"
 import { reportNonInterruptedFailure } from "@effect-app/infra/QueueMaker/errors"
 import { type QueueBase, QueueMeta } from "@effect-app/infra/QueueMaker/service"
-import { SqlClient } from "@effect/sql"
 import { subMinutes } from "date-fns"
 import { Effect, Fiber, Option, S, Tracer } from "effect-app"
 import type { NonEmptyString255 } from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
+import * as SqlClient from "effect/unstable/sql/SqlClient"
 import { SQLModel } from "../adapters/SQL.js"
 import { InfraLogger } from "../logger.js"
 
@@ -21,8 +21,8 @@ export function makeSQLQueue<
 >(
   queueName: NonEmptyString255,
   queueDrainName: NonEmptyString255,
-  schema: S.Schema<Evt, EvtE>,
-  drainSchema: S.Schema<DrainEvt, DrainEvtE>
+  schema: S.Codec<Evt, EvtE, never>,
+  drainSchema: S.Codec<DrainEvt, DrainEvtE, never>
 ) {
   return Effect.gen(function*() {
     const base = {
@@ -62,7 +62,7 @@ export function makeSQLQueue<
       versionColumn: "etag"
     })
 
-    const decodeDrain = S.decode(Drain)
+    const decodeDrain = S.decodeEffect(Drain)
 
     const drain = Effect
       .sync(() => subMinutes(new Date(), 15))
@@ -79,14 +79,14 @@ export function makeSQLQueue<
     const q = {
       offer: Effect.fnUntraced(function*(body: Evt, meta: typeof QueueMeta.Type) {
         yield* queueRepo.insertVoid(
-          Queue.insert.make({
+          {
             body,
             meta,
             name: queueName,
             processingAt: Option.none(),
             finishedAt: Option.none(),
             etag: crypto.randomUUID()
-          })
+          }
         )
       }),
       take: Effect.gen(function*() {
@@ -96,7 +96,7 @@ export function makeSQLQueue<
             const dec = yield* decodeDrain(first)
             const { createdAt, updatedAt, ...rest } = dec
             return yield* drainRepo.update(
-              Drain.update.make({ ...rest, processingAt: Option.some(new Date()) }) // auto in lib , etag: crypto.randomUUID()
+              { ...rest, processingAt: Option.some(new Date()) } // auto in lib , etag: crypto.randomUUID()
             )
           }
           if (first) return first
@@ -104,7 +104,7 @@ export function makeSQLQueue<
         }
       }),
       finish: ({ createdAt, updatedAt, ...q }: Drain) =>
-        drainRepo.updateVoid(Drain.update.make({ ...q, finishedAt: Option.some(new Date()) })) // auto in lib , etag: crypto.randomUUID()
+        drainRepo.updateVoid({ ...q, finishedAt: Option.some(new Date()) }) // auto in lib , etag: crypto.randomUUID()
     }
     return {
       publish: (...messages) =>
@@ -142,7 +142,7 @@ export function makeSQLQueue<
                     .logDebug(`[${queueDrainName}] Processing incoming message`)
                     .pipe(
                       Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
-                      Effect.zipRight(handleEvent(body)),
+                      Effect.andThen(handleEvent(body)),
                       silenceAndReportError,
                       (_) =>
                         setupRequestContextWithCustomSpan(
@@ -172,7 +172,7 @@ export function makeSQLQueue<
               Effect.flatMap((x) =>
                 processMessage(x).pipe(
                   Effect.uninterruptible,
-                  Effect.fork,
+                  Effect.forkChild(),
                   Effect.flatMap(Fiber.join),
                   Effect.tap(q.finish(x))
                 )

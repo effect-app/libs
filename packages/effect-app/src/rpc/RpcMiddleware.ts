@@ -216,7 +216,7 @@ export type HandlerContext<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler
 
 // new
 export type ExtractDynamicallyProvides<R extends Rpc.Any, Tag extends string> = R extends
-  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
+  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires> ? _Middleware extends {
     readonly requestContextMap: infer _RC
   } ? _RC extends Record<string, RpcContextMap.Any> // ? GetEffectContext<_RC, { allowAnonymous: false }>
       ? R extends { readonly config: infer _C } ? GetEffectContext<_RC, _C>
@@ -227,8 +227,10 @@ export type ExtractDynamicallyProvides<R extends Rpc.Any, Tag extends string> = 
 
 export type ExtractProvides<R extends Rpc.Any, Tag extends string> = R extends
   Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires> ? _Middleware extends {
-    readonly provides: ServiceMap.Service<infer _I, infer _S>
-  } ? _I
+    readonly provides: infer _P
+  } ? [_P] extends [never] ? never
+    : _P extends ServiceMap.Service<infer _I, infer _S> ? _I
+    : never
   : never
   : never
 

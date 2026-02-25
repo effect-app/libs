@@ -44,7 +44,21 @@ export interface MiddlewareMaker<
         })
       & (MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
         : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> })
-    >
+    >,
+    {
+      provides: MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? never
+        : MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>>
+      requires: Exclude<
+        MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+        MiddlewareMaker.ManyProvided<MiddlewareProviders>
+      > extends never ? never
+        : MakeTags<
+          Exclude<
+            MiddlewareMaker.ManyRequired<MiddlewareProviders>,
+            MiddlewareMaker.ManyProvided<MiddlewareProviders>
+          >
+        >
+    }
   >
 {
   readonly layer: Layer.Layer<Self, never, ServiceMap.Service.Identifier<MiddlewareProviders[number]>>

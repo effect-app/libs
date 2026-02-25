@@ -72,7 +72,6 @@ export const badImpl = UserRpcsBad
       return "also-awesome2" as const
     })
   })
-
 expectTypeOf<Layer.Services<typeof badImpl>>().toEqualTypeOf<UserProfile>()
 
 const middlwareLayer = middleware

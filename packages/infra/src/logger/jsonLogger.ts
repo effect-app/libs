@@ -1,27 +1,28 @@
-import { Cause, FiberId, HashMap, List, Logger } from "effect-app"
+import { Array, Cause, Logger } from "effect-app"
+import { CurrentLogAnnotations, CurrentLogSpans } from "effect/References"
 import { spanAttributes } from "../RequestContext.js"
-import { getRequestContextFromCurrentContext } from "./shared.js"
+import { getRequestContextFromFiber } from "./shared.js"
 
 export const jsonLogger = Logger.make<unknown, void>(
-  ({ annotations, cause, context, fiberId, logLevel, message, spans }) => {
-    const now = new Date()
-    const nowMillis = now.getTime()
+  ({ cause, date, fiber, logLevel, message }) => {
+    const nowMillis = date.getTime()
 
-    const request = getRequestContextFromCurrentContext(context)
+    const request = getRequestContextFromFiber(fiber)
+    const spans = fiber.getRef(CurrentLogSpans)
+    const annotations = fiber.getRef(CurrentLogAnnotations)
 
     const data = {
-      timestamp: now,
-      level: logLevel.label,
-      fiber: FiberId.threadName(fiberId),
+      timestamp: date,
+      level: logLevel,
+      fiber: "#" + fiber.id,
       message,
       request: spanAttributes(request),
-      cause: cause !== null && cause !== Cause.empty ? Cause.pretty(cause, { renderErrorCause: true }) : undefined,
-      spans: List.map(spans, (_) => ({ label: _.label, timing: nowMillis - _.startTime })).pipe(List.toArray),
-      annotations: HashMap.size(annotations) > 0
-        ? [...annotations].reduce((prev, [k, v]) => {
-          prev[k] = v
-          return prev
-        }, {} as Record<string, unknown>)
+      cause: cause !== Cause.empty ? Cause.pretty(cause) : undefined,
+      spans: Array.isReadonlyArrayNonEmpty(spans)
+        ? spans.map(([label, startTime]) => ({ label, timing: nowMillis - startTime }))
+        : undefined,
+      annotations: Object.keys(annotations).length > 0
+        ? annotations
         : undefined
     }
 
@@ -29,4 +30,4 @@ export const jsonLogger = Logger.make<unknown, void>(
   }
 )
 
-export const logJson = Logger.replace(Logger.defaultLogger, Logger.withSpanAnnotations(jsonLogger))
+export const logJson = Logger.layer([jsonLogger])

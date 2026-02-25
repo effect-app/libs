@@ -1,24 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope, type ServiceMap } from "effect-app"
 
-import { type HttpLayerRouter } from "effect-app/http"
+import { type HttpRouter } from "effect-app/http"
 import { type EffectGenUtils } from "effect-app/utils/gen"
-import { type Tag } from "effect/Context"
-import { type YieldWrap } from "effect/Utils"
+import { type Yieldable } from "effect/Effect"
 import { type ContextTagWithDefault, type GetContext, type LayerUtils, mergeContexts } from "./layerUtils.js"
-
-// // the context provider provides additional stuff
-// export type ContextProviderShape<ContextProviderA, ContextProviderR> = Effect.Effect<
-//   Context.Context<ContextProviderA>,
-//   never, // no errors are allowed
-//   ContextProviderR
-// >
 
 export interface ContextProviderId {
   _tag: "ContextProvider"
 }
-
-//  ContextTagWithDefault.Base<Effect.Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
 
 /**
  * TDeps is an array of services with Default implementation
@@ -34,8 +24,8 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope.Scope?
   //  _R extends HttpLayerRouter.Provided => the context provided can only have what HttpLayerRouter.Provided provides as requirements
   (
-    ContextTagWithDefault.Base<Effect.Effect<Context.Context<infer _1>, never, infer _R> & { _tag: infer _2 }>
-  ) ? [_R] extends [HttpLayerRouter.Provided] ? TDeps[K]
+    ContextTagWithDefault.Base<Effect.Effect<ServiceMap.ServiceMap<infer _1>, never, infer _R> & { _tag: infer _2 }>
+  ) ? [_R] extends [HttpRouter.Provided] ? TDeps[K]
     : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
       "_tag"
     ]}'s returned effect can have`
@@ -50,8 +40,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
       >
     ) // [_YW] extends [never] if no yield* is used and just some context is returned
       ? [_YW] extends [never] ? TDeps[K]
-      : [_YW] extends [YieldWrap<Effect.Effect<infer _2, never, infer _R>>]
-        ? [_R] extends [HttpLayerRouter.Provided] ? TDeps[K]
+      : [_YW] extends [Yieldable<any, infer _2, never, infer _R>] ? [_R] extends [HttpRouter.Provided] ? TDeps[K]
         : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
           "_tag"
         ]}'s returned effect can have`
@@ -70,9 +59,10 @@ export const mergeContextProviders = <
   effect: Effect.Effect<
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<EffectGenUtils.Success<Tag.Identifier<TDeps[number]>>>>,
+      // v4: Service.Shape extracts the service value type (v3's Tag.Identifier)
+      ServiceMap.ServiceMap<GetContext<EffectGenUtils.Success<ServiceMap.Service.Shape<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<Tag.Identifier<TDeps[number]>>
+      EffectGenUtils.Context<ServiceMap.Service.Shape<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
@@ -90,7 +80,7 @@ export const mergeContextProviders = <
             handle: handle[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(handle)() : handle
           }
         ))
-        // services are effects which return some Context.Context<...>
+        // services are effects which return some ServiceMap.ServiceMap<...>
         const context = yield* mergeContexts(services as any)
         return context
       })
@@ -103,13 +93,13 @@ export const ContextProvider = <
   MakeContextProviderE,
   MakeContextProviderR,
   ContextProviderR extends Scope.Scope,
-  Dependencies extends NonEmptyReadonlyArray<Layer.Layer.Any>
+  Dependencies extends NonEmptyReadonlyArray<Layer.Any>
 >(
   input: {
     effect: Effect.Effect<
       | Effect.Effect<ContextProviderA, never, ContextProviderR>
       | (() => Generator<
-        YieldWrap<Effect.Effect<any, never, ContextProviderR>>,
+        Yieldable<any, any, never, ContextProviderR>,
         ContextProviderA,
         any
       >),
@@ -119,7 +109,7 @@ export const ContextProvider = <
     dependencies?: Dependencies
   }
 ) => {
-  const ctx = Context.GenericTag<
+  const ctx = Context.Service<
     ContextProviderId,
     Effect.Effect<ContextProviderA, never, ContextProviderR>
   >(
@@ -128,10 +118,10 @@ export const ContextProvider = <
   const e = input.effect.pipe(
     Effect.map((eg) => (eg as any)[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(eg as any)() : eg)
   )
-  const l = Layer.scoped(ctx, e as any)
+  const l = Layer.effect(ctx, e as any)
   return Object.assign(ctx, {
     Default: l.pipe(
-      input.dependencies ? Layer.provide(input.dependencies) as any : (_) => _
+      input.dependencies ? Layer.provide([...input.dependencies] as [Layer.Any, ...Layer.Any[]]) as any : (_: any) => _
     ) satisfies Layer.Layer<
       ContextProviderId,
       | MakeContextProviderE
@@ -157,13 +147,15 @@ export const MergedContextProvider = <
     ContextProviderId,
     Effect.Effect<
       // we need to merge all contexts into one
-      Context.Context<GetContext<EffectGenUtils.Success<Tag.Identifier<TDeps[number]>>>>,
+      // v4: Service.Shape extracts the service value type (v3's Tag.Identifier)
+      ServiceMap.ServiceMap<GetContext<EffectGenUtils.Success<ServiceMap.Service.Shape<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<Tag.Identifier<TDeps[number]>>
+      EffectGenUtils.Context<ServiceMap.Service.Shape<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
+    // v4: Identifier here is correct — it's the nominal service identity for layer provide/exclude
     | Exclude<
-      Tag.Identifier<TDeps[number]>,
+      ServiceMap.Service.Identifier<TDeps[number]>,
       LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
     >
     | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>

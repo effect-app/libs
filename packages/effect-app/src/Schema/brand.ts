@@ -33,7 +33,7 @@ export const fromBrand = <C extends Brand.Brand<string>>(
   constructor: Constructor<C>,
   options?: S.Annotations.Filter
 ) =>
-<Self extends S.Top>(self: Self): Self["~rebuild.out"] => {
+<Self extends S.Top>(self: Self): S.brand<Self["~rebuild.out"], Brand.Brand.Keys<C>> => {
   const branded = S.fromBrand(options?.identifier ?? "Brand", constructor as any)(self as any)
   return options ? (branded as any).pipe(S.annotate(options)) : branded as any
 }

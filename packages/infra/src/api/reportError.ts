@@ -8,7 +8,7 @@ import { logError, reportError } from "../errorReporter.js"
 //     Effect.onExit(self, (exit) =>
 //       Exit.isFailure(exit)
 //         ? unknownOnly
-//           ? Cause.isInterruptedOnly(exit.cause) || Cause.isDie(exit.cause)
+//           ? Cause.hasInterruptsOnly(exit.cause) || Cause.isDie(exit.cause)
 //             ? report(exit.cause)
 //             : log(exit.cause)
 //           : report(exit.cause)
@@ -18,9 +18,9 @@ const tapErrorCause = (name: string, unknownOnly?: boolean) => {
   const report = reportError(name)
   const log = logError(name)
   return <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    Effect.tapErrorCause(self, (cause) =>
+    Effect.tapCause(self, (cause) =>
       unknownOnly
-        ? Cause.isFailure(cause)
+        ? Cause.hasFails(cause)
           ? log(cause)
           : report(cause)
         : report(cause))

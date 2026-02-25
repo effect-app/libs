@@ -3,7 +3,7 @@
 import { faker } from "@faker-js/faker"
 import { type S } from "effect-app"
 import { setFaker } from "effect-app/faker"
-import * as FastCheck from "effect/FastCheck"
+import * as FastCheck from "effect/testing/FastCheck"
 import { Random } from "fast-check"
 import * as rand from "pure-rand"
 

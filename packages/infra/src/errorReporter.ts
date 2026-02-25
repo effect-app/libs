@@ -19,11 +19,11 @@ export function reportError(
   return (
     cause: Cause.Cause<unknown>,
     extras?: Record<string, unknown>,
-    level: LogLevel.LogLevel = LogLevel.Error
+    level: LogLevel.Severity = "Error"
   ) =>
     Effect
       .gen(function*() {
-        if (Cause.isInterruptedOnly(cause)) {
+        if (Cause.hasInterruptsOnly(cause)) {
           yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
           return
         }
@@ -41,16 +41,16 @@ export function reportError(
             }))
           )
           .pipe(
-            Effect.catchAllCause((cause) => InfraLogger.logWarning("Failed to log error", cause)),
-            Effect.catchAllCause(() => InfraLogger.logFatal("Failed to log error cause"))
+            Effect.catchCause((cause) => InfraLogger.logWarning("Failed to log error", cause)),
+            Effect.catchCause(() => InfraLogger.logFatal("Failed to log error cause"))
           )
 
         return error
       })
       .pipe(
-        Effect.tapErrorCause((cause) =>
+        Effect.tapCause((cause) =>
           InfraLogger.logError("Failed to report error", cause).pipe(
-            Effect.tapErrorCause(() => InfraLogger.logFatal("Failed to log error cause"))
+            Effect.tapCause(() => InfraLogger.logFatal("Failed to log error cause"))
           )
         )
       )
@@ -64,10 +64,10 @@ function reportSentry(
   return getRC.pipe(Effect.map((context) => {
     const scope = new Sentry.Scope()
     scope.setLevel(level)
-    if (context) scope.setContext("context", context as unknown as Record<string, unknown>)
+    if (context) scope.setContext("context", { ...context })
     if (extras) scope.setContext("extras", extras)
-    scope.setContext("error", tryToReport(error) as any)
-    scope.setContext("cause", tryToJson(error.originalCause) as any)
+    scope.setContext("error", { data: tryToReport(error) })
+    scope.setContext("cause", { data: tryToJson(error.originalCause) })
     Sentry.captureException(error, scope)
   }))
 }
@@ -78,7 +78,7 @@ export function logError<E>(
   return (cause: Cause.Cause<E>, extras?: Record<string, unknown>) =>
     Effect
       .gen(function*() {
-        if (Cause.isInterruptedOnly(cause)) {
+        if (Cause.hasInterruptsOnly(cause)) {
           yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
           return
         }
@@ -93,7 +93,7 @@ export function logError<E>(
           )
       })
       .pipe(
-        Effect.tapErrorCause(() => InfraLogger.logFatal("Failed to log error cause"))
+        Effect.tapCause(() => InfraLogger.logFatal("Failed to log error cause"))
       )
 }
 
@@ -101,7 +101,7 @@ export function reportMessage(message: string, extras?: Record<string, unknown>)
   return Effect.gen(function*() {
     const context = yield* getRC
     const scope = new Sentry.Scope()
-    if (context) scope.setContext("context", context as unknown as Record<string, unknown>)
+    if (context) scope.setContext("context", { ...context })
     if (extras) scope.setContext("extras", extras)
     Sentry.captureMessage(message, scope)
 

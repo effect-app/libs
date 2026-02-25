@@ -152,7 +152,7 @@ export const TaggedUnion = <
   Members extends readonly (S.Top & { fields: { _tag: S.tag<any> } })[]
 >(...a: Members) =>
   pipe(
-    S.Union(a as any),
+    S.Union(a),
     (_) =>
       extendM(_, (_) => ({
         is: S.is(_ as any),

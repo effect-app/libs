@@ -203,6 +203,15 @@ class MainFiberSet extends ServiceMap.Service<MainFiberSet>()("MainFiberSet", { 
 
 - `@effect-diagnostics-next-line missingEffectServiceDependency:off` — rule renamed or removed in v4, remove stale comments
 
+## RpcMiddleware
+
+| v3 | v4 |
+|---|---|
+| Custom `RpcMiddlewareV4<Provides, E, Requires>` | Use native `RpcMiddleware.RpcMiddleware<Provides, E, Requires>` from `effect/unstable/rpc/RpcMiddleware` |
+| Custom `RpcMiddlewareDynamic<E, R, _Config>` | `extends RpcMiddleware.RpcMiddleware<never, E, R>` for structural compatibility |
+| `TagClassAny extends AnyServiceWithProps` | `TagClassAny extends AnyService` — `AnyServiceWithProps` uses `ServiceMap.Service<any, RpcMiddleware<any, any, any>>` which fails with `exactOptionalPropertyTypes: true` due to invariant Shape + function parameter contravariance. `AnyService` uses `ServiceMap.Service<any, any>` which avoids this. |
+| `TagClass.Base` missing `error` and `~ClientError` | V4's `AnyService` requires `error: Schema.Top` and `"~ClientError": any` — add them to `TagClass.Base` |
+
 ## Imports
 
 Most `@effect/*` sub-packages are now consolidated into `effect`:

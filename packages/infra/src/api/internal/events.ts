@@ -5,18 +5,18 @@ import { setupRequestContextFromCurrent } from "../setupRequest.js"
 
 // Tell the client to retry every 10 seconds if connectivity is lost
 const setRetry = Stream.succeed("retry: 10000")
-const keepAlive = Stream.repeat(Effect.succeed(":keep-alive"), Schedule.fixed(Duration.seconds(15)))
+const keepAlive = Stream.fromEffectSchedule(Effect.succeed(":keep-alive"), Schedule.fixed(Duration.seconds(15)))
 
 let connId = BigInt(0)
 
 export const makeSSE = <A extends { id: any }, SI, SR>(
-  schema: S.Schema<A, SI, SR>
+  schema: S.Codec<A, SI, SR>
 ) =>
 <E, R>(events: Stream.Stream<{ evt: A; namespace: string }, E, R>) =>
   Effect
     .gen(function*() {
       const id = connId++
-      const ctx = yield* Effect.context<R | SR>()
+      const ctx = yield* Effect.services<R | SR>()
       const res = HttpServerResponse.stream(
         // workaround for different scoped behaviour for streams in Bun
         // https://discord.com/channels/795981131316985866/1098177242598756412/1389646879675125861
@@ -28,29 +28,29 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
 
             const enc = new TextEncoder()
 
-            const encode = S.encode(schema)
+            const encode = S.encodeEffect(schema)
 
-            const eventStream = Stream.flatMap(
+            const eventStream = Stream.mapEffect(
               events,
               (_) =>
                 encode(_.evt)
-                  .pipe(Effect.andThen((evt) => `id: ${_.evt.id}\ndata: ${JSON.stringify(evt)}`))
+                  .pipe(Effect.map((evt) => `id: ${_.evt.id}\ndata: ${JSON.stringify(evt)}`))
             )
 
             const stream = pipe(
               setRetry,
               Stream.merge(keepAlive),
               Stream.merge(eventStream, { haltStrategy: "either" }),
-              Stream.tapErrorCause((cause) => Effect.logError("SSE error", cause)),
+              Stream.tapCause((cause) => Effect.logError("SSE error", cause)),
               Stream.map((_) => enc.encode(_ + "\n\n"))
             )
 
             return stream
           })
           .pipe(
-            Stream.unwrapScoped,
-            Stream.tapErrorCause(reportError("Request")),
-            Stream.provideContext(ctx)
+            Stream.unwrap,
+            Stream.tapCause(reportError("Request")),
+            Stream.provide(ctx)
           ),
         {
           contentType: "text/event-stream",
@@ -64,4 +64,4 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
       )
       return res
     })
-    .pipe(Effect.tapErrorCause(reportError("Request")), setupRequestContextFromCurrent("events"))
+    .pipe(Effect.tapCause(reportError("Request")), setupRequestContextFromCurrent("events"))

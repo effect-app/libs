@@ -21,7 +21,7 @@
 // }
 
 import { Array, type Duration, Effect, type NonEmptyArray } from "effect-app"
-import type { Semaphore } from "effect-app/Effect"
+import type { Semaphore } from "effect/Semaphore"
 
 /**
  * Executes the specified effect, acquiring the specified number of permits
@@ -30,8 +30,8 @@ import type { Semaphore } from "effect-app/Effect"
  * failure, or interruption.
  */
 export function SEM_withPermitsDuration(permits: number, duration: Duration.Duration) {
-  return (self: Semaphore): <R, E, A>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R> => {
-    return (effect) =>
+  return (self: Semaphore): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R> => {
+    return <A, E, R>(effect: Effect.Effect<A, E, R>) =>
       Effect.uninterruptibleMask(
         (restore) =>
           restore(self.take(permits))
@@ -52,7 +52,7 @@ export function batchPar<R, E, A, R2, E2, A2, T>(
 ) {
   return (items: Iterable<T>) =>
     Effect.forEach(
-      Array.chunk_(items, n),
+      Array.chunksOf(items, n),
       (_, i) =>
         Effect
           .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: "inherit" })
@@ -68,7 +68,7 @@ export function batch<R, E, A, R2, E2, A2, T>(
 ) {
   return (items: Iterable<T>) =>
     Effect.forEach(
-      Array.chunk_(items, n),
+      Array.chunksOf(items, n),
       (_, i) =>
         Effect
           .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: "inherit" })
@@ -101,12 +101,12 @@ export function naiveRateLimit(
     forEachBatch: (a: A[]) => Effect.Effect<A2, E2, R2>
   ) =>
     Effect.forEach(
-      Array.chunk_(items, n),
+      Array.chunksOf(items, n),
       (batch, i) =>
         ((i === 0)
           ? Effect.void
           : Effect.sleep(d))
-          .pipe(Effect.zipRight(
+          .pipe(Effect.andThen(
             Effect
               .forEach(batch, forEachItem, { concurrency: n })
               .pipe(Effect.flatMap(forEachBatch))

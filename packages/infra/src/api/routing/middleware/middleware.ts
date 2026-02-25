@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Config, Duration, Effect, Layer, ParseResult, Request, Schedule, type Schema } from "effect"
+import { Cause, Config, Effect, Layer, Schema } from "effect"
 import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
 import { pretty } from "effect-app/utils"
 import { logError, reportError } from "../../../errorReporter.js"
@@ -13,34 +13,25 @@ const reportRequestError = reportError("Request")
 export const DevModeLive = Layer.effect(
   DevMode,
   Effect.gen(function*() {
-    const env = yield* Config.string("env").pipe(Config.withDefault("local-dev"))
+    const env = yield* Config.string("env").pipe(Config.withDefault(() => "local-dev"))
     return env !== "prod"
   })
 )
 
-export const RequestCacheLayers = Layer.mergeAll(
-  Layer.setRequestCache(
-    Request.makeCache({ capacity: 500, timeToLive: Duration.hours(8) })
-  ),
-  Layer.setRequestCaching(true),
-  Layer.setRequestBatching(true)
-)
-
 export const RequestCacheMiddlewareLive = Layer.succeed(
   RequestCacheMiddleware,
-  (effect) => effect.pipe(Effect.provide(RequestCacheLayers))
+  (effect) => effect
 )
 
-// retry just once on optimistic concurrency exceptions
-const optimisticConcurrencySchedule = Schedule.once.pipe(
-  Schedule.intersect(Schedule.recurWhile<any>((a) => a?._tag === "OptimisticConcurrencyException"))
-)
+const isOptimisticConcurrencyException = (input: unknown) =>
+  typeof input === "object" && input !== null && "_tag" in input
+    && input._tag === "OptimisticConcurrencyException"
 
 export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
   ConfigureInterruptibilityMiddleware,
   Effect.gen(function*() {
     const cache = new Map()
-    const getCached = (key: string, schema: Schema.Schema.Any) => {
+    const getCached = (key: string, schema: Schema.Top) => {
       const existing = cache.get(key)
       if (existing) return existing
       const n = determineMethod(key, schema)
@@ -51,7 +42,7 @@ export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
       const method = getCached(rpc._tag, rpc.payloadSchema)
 
       effect = isCommand(method)
-        ? Effect.retry(Effect.uninterruptible(effect), optimisticConcurrencySchedule)
+        ? Effect.retry(Effect.uninterruptible(effect), { times: 1, while: isOptimisticConcurrencyException })
         : Effect.interruptible(effect)
 
       return effect
@@ -88,15 +79,14 @@ export const LoggerMiddlewareLive = Layer
               : payload
           })
           .pipe(
-            // can't use andThen due to some being a function and effect
-            Effect.zipRight(effect),
-            // TODO: support ParseResult if the error channel of the request allows it.. but who would want that?
-            Effect.catchAll((_) => ParseResult.isParseError(_) ? Effect.die(_) : Effect.fail(_)),
-            Effect.tapErrorCause((cause) => Cause.isFailure(cause) ? logRequestError(cause) : Effect.void),
+            Effect.andThen(effect),
+            // TODO: support SchemaError if the error channel of the request allows it.. but who would want that?
+            Effect.catch((_) => Schema.isSchemaError(_) ? Effect.die(_) : Effect.fail(_)),
+            Effect.tapCause((cause) => Cause.hasFails(cause) ? logRequestError(cause) : Effect.void),
             Effect.tapDefect((cause) =>
               Effect
                 .all([
-                  reportRequestError(cause, {
+                  reportRequestError(Cause.die(cause), {
                     action: rpc._tag
                   }),
                   InfraLogger
@@ -116,7 +106,7 @@ export const LoggerMiddlewareLive = Layer
                     }))
                 ])
             ),
-            devMode ? (_) => _ : Effect.catchAllDefect(() => Effect.die("Internal Server Error"))
+            devMode ? (_) => _ : Effect.catchDefect(() => Effect.die("Internal Server Error"))
           )
     })
   )

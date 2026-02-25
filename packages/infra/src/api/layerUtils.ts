@@ -19,8 +19,8 @@ export namespace LayerUtils {
     }[number]
     : Layer.Services<Layers[number]>
 
-  export type GetLayersError<Layers extends ReadonlyArray<Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Any> ? {
+  export type GetLayersError<Layers extends ReadonlyArray<Layer.Any>> = Layers extends NonEmptyReadonlyArray<Layer.Any>
+    ? {
       [k in keyof Layers]: Layer.Error<Layers[k]>
     }[number]
     : Layer.Error<Layers[number]>

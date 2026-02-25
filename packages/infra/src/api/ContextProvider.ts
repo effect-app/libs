@@ -23,21 +23,19 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // E = never => the context provided cannot trigger errors
   // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope.Scope?
   //  _R extends HttpLayerRouter.Provided => the context provided can only have what HttpLayerRouter.Provided provides as requirements
-  (
-    ContextTagWithDefault.Base<Effect.Effect<ServiceMap.ServiceMap<infer _1>, never, infer _R> & { _tag: infer _2 }>
-  ) ? [_R] extends [HttpRouter.Provided] ? TDeps[K]
+  ContextTagWithDefault.Base<Effect.Effect<ServiceMap.ServiceMap<infer _1>, never, infer _R>> // & { _tag: infer _2 }>
+    ? [_R] extends [HttpRouter.Provided] ? TDeps[K]
     : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
       "_tag"
     ]}'s returned effect can have`
     : TDeps[K] extends (
       ContextTagWithDefault.Base<
-        & (() => Generator<
+        (() => Generator<
           infer _YW,
           infer _1,
           infer _2
         >)
-        & { _tag: infer _3 }
-      >
+      > // & { _tag: infer _3 }
     ) // [_YW] extends [never] if no yield* is used and just some context is returned
       ? [_YW] extends [never] ? TDeps[K]
       : [_YW] extends [Yieldable<any, infer _2, never, infer _R>] ? [_R] extends [HttpRouter.Provided] ? TDeps[K]

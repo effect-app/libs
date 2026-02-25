@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Fiber, FiberSet, Option, type Tracer } from "effect-app"
+import { Effect, Fiber, FiberSet, Layer, ServiceMap, type Tracer } from "effect-app"
 import { reportRequestError, reportUnknownRequestError } from "./api/reportError.js"
 import { InfraLogger } from "./logger.js"
 
 const getRootParentSpan = Effect.gen(function*() {
   let span: Tracer.AnySpan | null = yield* Effect.currentSpan.pipe(
-    Effect.catchTag("NoSuchElementException", () => Effect.succeed(null))
+    Effect.catchTag("NoSuchElementError", () => Effect.succeed(null))
   )
   if (!span) return span
-  while (span._tag === "Span" && Option.isSome(span.parent)) {
-    span = span.parent.value
+  while (span._tag === "Span" && span.parent !== undefined) {
+    span = span.parent
   }
   return span
 })
@@ -19,17 +19,17 @@ export const setRootParentSpan = <A, E, R>(self: Effect.Effect<A, E, R>) =>
 
 const make = Effect.gen(function*() {
   const set = yield* FiberSet.make<any, any>()
-  const add = (...fibers: Fiber.RuntimeFiber<any, any>[]) =>
-    Effect.sync(() => fibers.forEach((_) => FiberSet.unsafeAdd(set, _)))
-  const addAll = (fibers: readonly Fiber.RuntimeFiber<any, any>[]) =>
-    Effect.sync(() => fibers.forEach((_) => FiberSet.unsafeAdd(set, _)))
+  const add = (...fibers: Fiber.Fiber<any, any>[]) =>
+    Effect.sync(() => fibers.forEach((_) => FiberSet.addUnsafe(set, _)))
+  const addAll = (fibers: readonly Fiber.Fiber<any, any>[]) =>
+    Effect.sync(() => fibers.forEach((_) => FiberSet.addUnsafe(set, _)))
   const join = FiberSet.size(set).pipe(
     Effect.andThen((count) => InfraLogger.logInfo(`Joining ${count} current fibers on the RequestFiberSet`)),
     Effect.andThen(FiberSet.join(set))
   )
   const run = FiberSet.run(set)
   const register = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    self.pipe(Effect.fork, Effect.tap(add), Effect.andThen(Fiber.join))
+    self.pipe(Effect.forkChild, Effect.tap(add), Effect.andThen(Fiber.join))
 
   // const waitUntilEmpty = Effect.gen(function*() {
   //   const currentSize = yield* FiberSet.size(set)
@@ -92,12 +92,14 @@ const make = Effect.gen(function*() {
  * Whenever you fork a fiber for a Request, and you want to prevent dependent services to close prematurely on interruption,
  * like the ServiceBus Sender, you should register these fibers in this FiberSet.
  */
-export class RequestFiberSet extends Context.TagMakeId("RequestFiberSet", make)<RequestFiberSet>() {
-  static readonly Live = this.toLayerScoped()
-  static readonly register = <A, E, R>(self: Effect.Effect<A, E, R>) => this.use((_) => _.register(self))
-  static readonly run = <A, E, R>(self: Effect.Effect<A, E, R>) => this.use((_) => _.run(self))
+export class RequestFiberSet extends ServiceMap.Service<RequestFiberSet>()("RequestFiberSet", { make }) {
+  static readonly Live = Layer.effect(this, this.make)
+  static readonly register = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    this.asEffect().pipe(Effect.andThen((_) => _.register(self)))
+  static readonly run = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    this.asEffect().pipe(Effect.andThen((_) => _.run(self)))
   static readonly forkDaemonReport = <R, E, A>(self: Effect.Effect<A, E, R>) =>
-    this.use((_) => _.forkDaemonReport(self))
+    this.asEffect().pipe(Effect.andThen((_) => _.forkDaemonReport(self)))
   static readonly forkDaemonReportUnexpected = <R, E, A>(self: Effect.Effect<A, E, R>) =>
-    this.use((_) => _.forkDaemonReportUnexpected(self))
+    this.asEffect().pipe(Effect.andThen((_) => _.forkDaemonReportUnexpected(self)))
 }

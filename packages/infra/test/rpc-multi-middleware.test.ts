@@ -1,14 +1,14 @@
-import { FetchHttpClient } from "@effect/platform"
 import { NodeHttpServer } from "@effect/platform-node"
-import { RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Console, Effect, Either, Layer } from "effect"
+import { Console, Effect, Layer, Result } from "effect"
 import { S } from "effect-app"
 import { NotLoggedInError } from "effect-app/client"
-import { HttpLayerRouter } from "effect-app/http"
+import { HttpRouter } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import { MiddlewareMaker } from "effect-app/rpc"
 import { middlewareGroup } from "effect-app/rpc/MiddlewareMaker"
+import { FetchHttpClient } from "effect/unstable/http"
+import { RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/unstable/rpc"
 import { createServer } from "http"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
@@ -54,7 +54,7 @@ const impl = UserRpcs
     })
   })
 
-expectTypeOf<Layer.Layer.Context<typeof impl>>().toEqualTypeOf<never>()
+expectTypeOf<Layer.Services<typeof impl>>().toEqualTypeOf<never>()
 
 const UserRpcsBad = middlewareGroup(middleware)(
   RpcGroup.make(
@@ -73,7 +73,7 @@ export const badImpl = UserRpcsBad
     })
   })
 
-expectTypeOf<Layer.Layer.Context<typeof badImpl>>().toEqualTypeOf<UserProfile>()
+expectTypeOf<Layer.Services<typeof badImpl>>().toEqualTypeOf<UserProfile>()
 
 const middlwareLayer = middleware
   .layer
@@ -96,10 +96,10 @@ export const RpcTestLayer = Layer
 
 export const RpcRealLayer = Layer
   .mergeAll(
-    HttpLayerRouter
+    HttpRouter
       .serve(
         RpcServer
-          .layerHttpRouter({ group: UserRpcs, path: "/rpc", protocol: "http" })
+          .layerHttp({ group: UserRpcs, path: "/rpc", protocol: "http" })
           .pipe(Layer.provide(impl))
           .pipe(Layer.provide(middlwareLayer))
       )
@@ -112,20 +112,20 @@ export const RpcRealLayer = Layer
   )
   .pipe(Layer.provide(RpcSerialization.layerJson))
 
-it.scopedLive(
+it.live(
   "require login",
   Effect.fnUntraced(
     function*() {
       const userClient = yield* RpcTest.makeClient(UserRpcs) // RpcTest.makeClient(UserRpcs) // RpcClient.make(UserRpcs)
 
-      const user = yield* Effect.either(userClient.getUser().pipe(Effect.onExit((_) => Console.dir(_, { depth: 10 }))))
-      expect(user).toStrictEqual(Either.left(new NotLoggedInError("Not logged in")))
+      const user = yield* Effect.result(userClient.getUser().pipe(Effect.onExit((_) => Console.dir(_, { depth: 10 }))))
+      expect(user).toStrictEqual(Result.fail(new NotLoggedInError("Not logged in")))
     },
     Effect.provide(RpcTestLayer)
   )
 )
 
-it.scopedLive(
+it.live(
   "allow anonymous, optional UserProfile",
   Effect.fnUntraced(
     function*() {

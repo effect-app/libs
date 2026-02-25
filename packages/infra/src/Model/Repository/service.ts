@@ -33,9 +33,9 @@ export interface Repository<
   readonly removeById: (...id: readonly T[IdKey][]) => Effect.Effect<void, never, RSchema>
 
   readonly queryRaw: <T, Out, R>(
-    schema: S.Schema<T, Out, R>,
+    schema: S.Codec<T, Out, R>,
     raw: RawQuery<Encoded, Out>
-  ) => Effect.Effect<readonly T[], S.ParseResult.ParseError, R>
+  ) => Effect.Effect<readonly T[], S.SchemaError, R>
 
   readonly query: {
     // ending with projection
@@ -52,7 +52,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -72,7 +72,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -94,7 +94,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -118,7 +118,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -144,7 +144,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -170,7 +170,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -198,7 +198,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -228,7 +228,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -260,7 +260,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
     <
@@ -294,7 +294,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
-      | (TType extends "count" ? never : S.ParseResult.ParseError),
+      | (TType extends "count" ? never : S.SchemaError),
       R | RSchema
     >
 

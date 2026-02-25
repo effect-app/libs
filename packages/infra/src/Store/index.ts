@@ -27,7 +27,7 @@ export function StoreMakerLayer(cfg: StorageConfig) {
       console.log("Using Cosmos DB store")
       return CosmosStoreLayer(cfg)
     })
-    .pipe(Layer.unwrapEffect)
+    .pipe(Layer.unwrap)
 }
 
 export * from "./service.js"

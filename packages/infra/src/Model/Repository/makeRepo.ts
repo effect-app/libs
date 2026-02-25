@@ -52,7 +52,7 @@ export interface RepositoryOptions<
    * Optional context to be provided to Schema decode/encode.
    * Useful for effectful transformations like XWithItems, where items is a transformation retrieving elements from another database table or other source.
    */
-  schemaContext?: Context.Context<RCtx>
+  schemaContext?: Context.ServiceMap<RCtx>
 
   overrides?: (
     repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>
@@ -80,7 +80,7 @@ export const makeRepo: {
     RCtx = never
   >(
     itemType: ItemType,
-    schema: S.Schema<T, Encoded, RSchema>,
+    schema: S.Codec<T, Encoded, RSchema>,
     options: RepositoryOptions<IdKey, Encoded, T, ItemType, Evt, RPublish, E, RInitial, RCtx, RSchema>
   ): Effect.Effect<
     ExtendedRepository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>,
@@ -99,7 +99,7 @@ export const makeRepo: {
     RCtx = never
   >(
     itemType: ItemType,
-    schema: S.Schema<T, Encoded, RSchema>,
+    schema: S.Codec<T, Encoded, RSchema>,
     options: Omit<RepositoryOptions<"id", Encoded, T, ItemType, Evt, RPublish, E, RInitial, RCtx, RSchema>, "idKey">
   ): Effect.Effect<
     ExtendedRepository<T, Encoded, Evt, ItemType, "id", Exclude<RSchema, RCtx>, RPublish>,
@@ -119,7 +119,7 @@ export const makeRepo: {
   RCtx = never
 >(
   itemType: ItemType,
-  schema: S.Schema<T, Encoded, RSchema>,
+  schema: S.Codec<T, Encoded, RSchema>,
   options: Omit<RepositoryOptions<IdKey, Encoded, T, ItemType, Evt, RPublish, E, RInitial, RCtx, RSchema>, "idKey"> & {
     idKey?: IdKey
   }

@@ -17,11 +17,15 @@ export const makeUpdateETag =
   <IdKey extends keyof E, E extends PersistenceModelType<{}>>(e: E, idKey: IdKey, current: Option.Option<E>) =>
     Effect.gen(function*() {
       if (e._etag) {
-        yield* Effect.mapError(
-          current,
-          () =>
-            new OptimisticConcurrencyException({ type, id: e[idKey] as string, current: "", found: e._etag, code: 409 })
-        )
+        if (Option.isNone(current)) {
+          return yield* new OptimisticConcurrencyException({
+            type,
+            id: e[idKey] as string,
+            current: "",
+            found: e._etag,
+            code: 409
+          })
+        }
       }
       if (Option.isSome(current) && current.value._etag !== e._etag) {
         return yield* new OptimisticConcurrencyException({

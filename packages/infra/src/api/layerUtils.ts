@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option } from "effect-app"
+import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option, type ServiceMap } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
 // TODO: These LayerUtils are flaky, like in dependencies as a readonly array, it breaks when there are two entries
@@ -7,27 +7,27 @@ import { InfraLogger } from "../logger.js"
 // and in general make sure `dependencies` are NonEmptyReadonlyArrays, so they infer to consts.
 
 export namespace LayerUtils {
-  export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-      [k in keyof Layers]: Layer.Layer.Success<Layers[k]>
+  export type GetLayersSuccess<Layers extends ReadonlyArray<Layer.Any>> = Layers extends
+    NonEmptyReadonlyArray<Layer.Any> ? {
+      [k in keyof Layers]: Layer.Success<Layers[k]>
     }[number]
-    : Layer.Layer.Success<Layers[number]>
+    : Layer.Success<Layers[number]>
 
-  export type GetLayersContext<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-      [k in keyof Layers]: Layer.Layer.Context<Layers[k]>
+  export type GetLayersContext<Layers extends ReadonlyArray<Layer.Any>> = Layers extends
+    NonEmptyReadonlyArray<Layer.Any> ? {
+      [k in keyof Layers]: Layer.Services<Layers[k]>
     }[number]
-    : Layer.Layer.Context<Layers[number]>
+    : Layer.Services<Layers[number]>
 
-  export type GetLayersError<Layers extends ReadonlyArray<Layer.Layer.Any>> = Layers extends
-    NonEmptyReadonlyArray<Layer.Layer.Any> ? {
-      [k in keyof Layers]: Layer.Layer.Error<Layers[k]>
+  export type GetLayersError<Layers extends ReadonlyArray<Layer.Any>> = Layers extends
+    NonEmptyReadonlyArray<Layer.Any> ? {
+      [k in keyof Layers]: Layer.Error<Layers[k]>
     }[number]
-    : Layer.Layer.Error<Layers[number]>
+    : Layer.Error<Layers[number]>
 }
 
 export type ContextTagWithDefault<Id, A, LayerE, LayerR> =
-  & Context.Tag<Id, A>
+  & Context.Service<Id, A>
   & {
     Default: Layer.Layer<Id, LayerE, LayerR>
   }
@@ -36,13 +36,13 @@ export namespace ContextTagWithDefault {
   export type Base<A> = ContextTagWithDefault<any, A, any, any>
 }
 
-export type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
+export type GetContext<T> = T extends ServiceMap.ServiceMap<infer Y> ? Y : never
 
 export const mergeContexts = Effect.fnUntraced(
   function*<
     T extends readonly {
       maker: any
-      handle: Effect.Effect<Context.Context<any> | Option.Option<Context.Context<any>>>
+      handle: Effect.Effect<ServiceMap.ServiceMap<any> | Option.Option<ServiceMap.ServiceMap<any>>>
     }[]
   >(
     makers: T
@@ -50,7 +50,7 @@ export const mergeContexts = Effect.fnUntraced(
     let context = Context.empty()
     for (const mw of makers) {
       const ctx = yield* mw.handle.pipe(Effect.provide(context))
-      const moreContext = Context.isContext(ctx) ? Option.some(ctx) : ctx
+      const moreContext = Context.isServiceMap(ctx) ? Option.some(ctx) : ctx
       yield* InfraLogger.logDebug(
         "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
         Option.map(moreContext, (c) => (c as any).toJSON().services)
@@ -59,6 +59,6 @@ export const mergeContexts = Effect.fnUntraced(
         context = Context.merge(context, moreContext.value)
       }
     }
-    return context as Context.Context<Effect.Effect.Success<T[number]["handle"]>>
+    return context as ServiceMap.ServiceMap<Effect.Success<T[number]["handle"]>>
   }
 )

@@ -7,19 +7,22 @@
 /**
  * @since 1.0.0
  */
-import * as RRX from "@effect/experimental/RequestResolver"
-import * as VariantSchema from "@effect/experimental/VariantSchema"
-import { SqlClient } from "@effect/sql/SqlClient"
-import * as SqlResolver from "@effect/sql/SqlResolver"
-import * as SqlSchema from "@effect/sql/SqlSchema"
+import * as VariantSchema from "effect/unstable/schema/VariantSchema"
+import { SqlClient } from "effect/unstable/sql/SqlClient"
+import * as SqlResolver from "effect/unstable/sql/SqlResolver"
+import * as SqlSchema from "effect/unstable/sql/SqlSchema"
 import crypto from "crypto" // TODO
 import type { Brand } from "effect/Brand"
 import * as DateTime from "effect/DateTime"
-import type { DurationInput } from "effect/Duration"
+import type { Input } from "effect/Duration"
 import * as Effect from "effect/Effect"
+import { identity } from "effect/Function"
 import * as Option from "effect/Option"
-import * as ParseResult from "effect/ParseResult"
+import * as Predicate from "effect/Predicate"
+import * as RequestResolver from "effect/RequestResolver"
 import * as Schema from "effect/Schema"
+import * as Getter from "effect/SchemaGetter"
+import * as Transformation from "effect/SchemaTransformation"
 import type { Scope } from "effect/Scope"
 
 const {
@@ -30,8 +33,7 @@ const {
   Struct,
   Union,
   extract,
-  fieldEvolve,
-  fieldFromKey
+  fieldEvolve
 } = VariantSchema.make({
   variants: ["select", "insert", "update", "json", "jsonCreate", "jsonUpdate"],
   defaultVariant: "select"
@@ -41,26 +43,13 @@ const {
  * @since 1.0.0
  * @category models
  */
-export type Any = Schema.Schema.Any & {
+export type Any = Schema.Top & {
   readonly fields: Schema.Struct.Fields
-  readonly insert: Schema.Schema.Any
-  readonly update: Schema.Schema.Any
-  readonly json: Schema.Schema.Any
-  readonly jsonCreate: Schema.Schema.Any
-  readonly jsonUpdate: Schema.Schema.Any
-}
-
-/**
- * @since 1.0.0
- * @category models
- */
-export type AnyNoContext = Schema.Schema.AnyNoContext & {
-  readonly fields: Schema.Struct.Fields
-  readonly insert: Schema.Schema.AnyNoContext
-  readonly update: Schema.Schema.AnyNoContext
-  readonly json: Schema.Schema.AnyNoContext
-  readonly jsonCreate: Schema.Schema.AnyNoContext
-  readonly jsonUpdate: Schema.Schema.AnyNoContext
+  readonly insert: Schema.Top
+  readonly update: Schema.Top
+  readonly json: Schema.Top
+  readonly jsonCreate: Schema.Top
+  readonly jsonUpdate: Schema.Top
 }
 
 /**
@@ -84,14 +73,14 @@ export {
    * @since 1.0.0
    * @category constructors
    * @example
-   * import { Schema } from "effect/Schema"
-   * import { Model } from "@effect/sql"
+   * import { Schema } from "effect"
+   * import { Model } from "effect/unstable/schema"
    *
    * export const GroupId = Schema.Number.pipe(Schema.brand("GroupId"))
    *
    * export class Group extends Model.Class<Group>("Group")({
    *   id: Model.Generated(GroupId),
-   *   name: Schema.NonEmptyTrimmedString,
+   *   name: Schema.String,
    *   createdAt: Model.DateTimeInsertFromDate,
    *   updatedAt: Model.DateTimeUpdateFromDate
    * }) {}
@@ -142,11 +131,6 @@ export {
    * @since 1.0.0
    * @category fields
    */
-  fieldFromKey,
-  /**
-   * @since 1.0.0
-   * @category fields
-   */
   FieldOnly,
   /**
    * @since 1.0.0
@@ -164,7 +148,8 @@ export {
  * @since 1.0.0
  * @category fields
  */
-export const fields: <A extends VariantSchema.Struct<any>>(self: A) => A[VariantSchema.TypeId] = VariantSchema.fields
+export const fields: <A extends VariantSchema.Struct<any>>(self: A) => A[typeof VariantSchema.TypeId] =
+  VariantSchema.fields
 
 /**
  * @since 1.0.0
@@ -176,7 +161,7 @@ export const Override: <A>(value: A) => A & Brand<"Override"> = VariantSchema.Ov
  * @since 1.0.0
  * @category generated
  */
-export interface Generated<S extends Schema.Schema.All | Schema.PropertySignature.All> extends
+export interface Generated<S extends Schema.Top> extends
   VariantSchema.Field<{
     readonly select: S
     readonly update: S
@@ -192,7 +177,7 @@ export interface Generated<S extends Schema.Schema.All | Schema.PropertySignatur
  * @since 1.0.0
  * @category generated
  */
-export const Generated = <S extends Schema.Schema.All | Schema.PropertySignature.All>(
+export const Generated = <S extends Schema.Top>(
   schema: S
 ): Generated<S> =>
   Field({
@@ -205,7 +190,7 @@ export const Generated = <S extends Schema.Schema.All | Schema.PropertySignature
  * @since 1.0.0
  * @category generated
  */
-export interface GeneratedByApp<S extends Schema.Schema.All | Schema.PropertySignature.All>
+export interface GeneratedByApp<S extends Schema.Top>
   extends
     VariantSchema.Field<{
       readonly select: S
@@ -223,7 +208,7 @@ export interface GeneratedByApp<S extends Schema.Schema.All | Schema.PropertySig
  * @since 1.0.0
  * @category generated
  */
-export const GeneratedByApp = <S extends Schema.Schema.All | Schema.PropertySignature.All>(
+export const GeneratedByApp = <S extends Schema.Top>(
   schema: S
 ): GeneratedByApp<S> =>
   Field({
@@ -237,7 +222,7 @@ export const GeneratedByApp = <S extends Schema.Schema.All | Schema.PropertySign
  * @since 1.0.0
  * @category sensitive
  */
-export interface Sensitive<S extends Schema.Schema.All | Schema.PropertySignature.All> extends
+export interface Sensitive<S extends Schema.Top> extends
   VariantSchema.Field<{
     readonly select: S
     readonly insert: S
@@ -252,7 +237,7 @@ export interface Sensitive<S extends Schema.Schema.All | Schema.PropertySignatur
  * @since 1.0.0
  * @category sensitive
  */
-export const Sensitive = <S extends Schema.Schema.All | Schema.PropertySignature.All>(
+export const Sensitive = <S extends Schema.Top>(
   schema: S
 ): Sensitive<S> =>
   Field({
@@ -260,6 +245,29 @@ export const Sensitive = <S extends Schema.Schema.All | Schema.PropertySignature
     insert: schema,
     update: schema
   })
+
+/**
+ * @since 1.0.0
+ * @category optional
+ */
+export interface optionalOption<S extends Schema.Top>
+  extends Schema.decodeTo<Schema.Option<Schema.toType<S>>, Schema.optionalKey<Schema.NullOr<S>>>
+{}
+
+/**
+ * @since 1.0.0
+ * @category optional
+ */
+export const optionalOption = <S extends Schema.Top>(schema: S): optionalOption<S> =>
+  Schema.optionalKey(Schema.NullOr(schema)).pipe(
+    Schema.decodeTo(
+      Schema.Option(Schema.toType(schema)),
+      Transformation.transformOptional<Option.Option<S["Type"]>, S["Type"] | null>({
+        decode: (oe) => oe.pipe(Option.filter(Predicate.isNotNull), Option.some),
+        encode: Option.flatten
+      }) as any
+    )
+  )
 
 /**
  * Convert a field to one that is optional for all variants.
@@ -270,14 +278,14 @@ export const Sensitive = <S extends Schema.Schema.All | Schema.PropertySignature
  * @since 1.0.0
  * @category optional
  */
-export interface FieldOption<S extends Schema.Schema.Any> extends
+export interface FieldOption<S extends Schema.Top> extends
   VariantSchema.Field<{
     readonly select: Schema.OptionFromNullOr<S>
     readonly insert: Schema.OptionFromNullOr<S>
     readonly update: Schema.OptionFromNullOr<S>
-    readonly json: Schema.optionalWith<S, { as: "Option" }>
-    readonly jsonCreate: Schema.optionalWith<S, { as: "Option"; nullable: true }>
-    readonly jsonUpdate: Schema.optionalWith<S, { as: "Option"; nullable: true }>
+    readonly json: optionalOption<S>
+    readonly jsonCreate: optionalOption<S>
+    readonly jsonUpdate: optionalOption<S>
   }>
 {}
 
@@ -290,14 +298,14 @@ export interface FieldOption<S extends Schema.Schema.Any> extends
  * @since 1.0.0
  * @category optional
  */
-export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Schema.Any>(
+export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Top>(
   self: Field
-) => Field extends Schema.Schema.Any ? FieldOption<Field>
+) => Field extends Schema.Top ? FieldOption<Field>
   : Field extends VariantSchema.Field<infer S> ? VariantSchema.Field<
       {
-        readonly [K in keyof S]: S[K] extends Schema.Schema.Any
+        readonly [K in keyof S]: S[K] extends Schema.Top
           ? K extends VariantsDatabase ? Schema.OptionFromNullOr<S[K]>
-          : Schema.optionalWith<S[K], { as: "Option"; nullable: true }>
+          : optionalOption<S[K]>
           : never
       }
     >
@@ -305,40 +313,16 @@ export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Schem
     select: Schema.OptionFromNullOr,
     insert: Schema.OptionFromNullOr,
     update: Schema.OptionFromNullOr,
-    json: Schema.optionalWith({ as: "Option" }),
-    jsonCreate: Schema.optionalWith({ as: "Option", nullable: true }),
-    jsonUpdate: Schema.optionalWith({ as: "Option", nullable: true })
+    json: optionalOption,
+    jsonCreate: optionalOption,
+    jsonUpdate: optionalOption
   }) as any
 
 /**
  * @since 1.0.0
  * @category date & time
  */
-export interface DateTimeFromDate extends
-  Schema.transform<
-    typeof Schema.ValidDateFromSelf,
-    typeof Schema.DateTimeUtcFromSelf
-  >
-{}
-
-/**
- * @since 1.0.0
- * @category date & time
- */
-export const DateTimeFromDate: DateTimeFromDate = Schema.transform(
-  Schema.ValidDateFromSelf,
-  Schema.DateTimeUtcFromSelf,
-  {
-    decode: DateTime.unsafeFromDate,
-    encode: DateTime.toDateUtc
-  }
-)
-
-/**
- * @since 1.0.0
- * @category date & time
- */
-export interface Date extends Schema.transformOrFail<typeof Schema.String, typeof Schema.DateTimeUtcFromSelf> {}
+export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.String> {}
 
 /**
  * A schema for a `DateTime.Utc` that is serialized as a date string in the
@@ -347,64 +331,43 @@ export interface Date extends Schema.transformOrFail<typeof Schema.String, typeo
  * @since 1.0.0
  * @category date & time
  */
-export const Date: Date = Schema.transformOrFail(
-  Schema.String,
-  Schema.DateTimeUtcFromSelf,
-  {
-    decode: (s, _, ast) =>
-      DateTime.make(s).pipe(
-        Option.map(DateTime.removeTime),
-        Option.match({
-          onNone: () => ParseResult.fail(new ParseResult.Type(ast, s)),
-          onSome: (dt) => ParseResult.succeed(dt)
-        })
-      ),
-    encode: (dt) => ParseResult.succeed(DateTime.formatIsoDate(dt))
-  }
+export const Date: Date = Schema.String.pipe(
+  Schema.decodeTo(Schema.DateTimeUtc, {
+    decode: Getter.dateTimeUtcFromInput().map(DateTime.removeTime),
+    encode: Getter.transform(DateTime.formatIsoDate)
+  })
 )
 
 /**
  * @since 1.0.0
  * @category date & time
  */
-export const DateWithNow = VariantSchema.Overrideable(Date, Schema.DateTimeUtcFromSelf, {
-  generate: Option.match({
-    onNone: () => Effect.map(DateTime.now, DateTime.removeTime),
-    onSome: (dt) => Effect.succeed(DateTime.removeTime(dt))
-  })
+export const DateWithNow = VariantSchema.Overrideable(Date, {
+  defaultValue: Effect.map(DateTime.now, DateTime.removeTime)
 })
 
 /**
  * @since 1.0.0
  * @category date & time
  */
-export const DateTimeWithNow = VariantSchema.Overrideable(Schema.String, Schema.DateTimeUtcFromSelf, {
-  generate: Option.match({
-    onNone: () => Effect.map(DateTime.now, DateTime.formatIso),
-    onSome: (dt) => Effect.succeed(DateTime.formatIso(dt))
-  })
+export const DateTimeWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromString, {
+  defaultValue: DateTime.now
 })
 
 /**
  * @since 1.0.0
  * @category date & time
  */
-export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateFromSelf, Schema.DateTimeUtcFromSelf, {
-  generate: Option.match({
-    onNone: () => Effect.map(DateTime.now, DateTime.toDateUtc),
-    onSome: (dt) => Effect.succeed(DateTime.toDateUtc(dt))
-  })
+export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromDate, {
+  defaultValue: DateTime.now
 })
 
 /**
  * @since 1.0.0
  * @category date & time
  */
-export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.Number, Schema.DateTimeUtcFromSelf, {
-  generate: Option.match({
-    onNone: () => Effect.map(DateTime.now, DateTime.toEpochMillis),
-    onSome: (dt) => Effect.succeed(DateTime.toEpochMillis(dt))
-  })
+export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromMillis, {
+  defaultValue: DateTime.now
 })
 
 /**
@@ -413,9 +376,9 @@ export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.Numbe
  */
 export interface DateTimeInsert extends
   VariantSchema.Field<{
-    readonly select: typeof Schema.DateTimeUtc
-    readonly insert: VariantSchema.Overrideable<DateTime.Utc, string>
-    readonly json: typeof Schema.DateTimeUtc
+    readonly select: Schema.DateTimeUtcFromString
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromString>
+    readonly json: Schema.DateTimeUtcFromString
   }>
 {}
 
@@ -429,9 +392,9 @@ export interface DateTimeInsert extends
  * @category date & time
  */
 export const DateTimeInsert: DateTimeInsert = Field({
-  select: Schema.DateTimeUtc,
+  select: Schema.DateTimeUtcFromString,
   insert: DateTimeWithNow,
-  json: Schema.DateTimeUtc
+  json: Schema.DateTimeUtcFromString
 })
 
 /**
@@ -440,9 +403,9 @@ export const DateTimeInsert: DateTimeInsert = Field({
  */
 export interface DateTimeInsertFromDate extends
   VariantSchema.Field<{
-    readonly select: DateTimeFromDate
-    readonly insert: VariantSchema.Overrideable<DateTime.Utc, globalThis.Date>
-    readonly json: typeof Schema.DateTimeUtc
+    readonly select: Schema.DateTimeUtcFromDate
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromDate>
+    readonly json: Schema.DateTimeUtcFromString
   }>
 {}
 
@@ -456,9 +419,9 @@ export interface DateTimeInsertFromDate extends
  * @category date & time
  */
 export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
-  select: DateTimeFromDate,
+  select: Schema.DateTimeUtcFromDate,
   insert: DateTimeFromDateWithNow,
-  json: Schema.DateTimeUtc
+  json: Schema.DateTimeUtcFromString
 })
 
 /**
@@ -467,9 +430,9 @@ export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
  */
 export interface DateTimeInsertFromNumber extends
   VariantSchema.Field<{
-    readonly select: typeof Schema.DateTimeUtcFromNumber
-    readonly insert: VariantSchema.Overrideable<DateTime.Utc, number>
-    readonly json: typeof Schema.DateTimeUtcFromNumber
+    readonly select: Schema.DateTimeUtcFromMillis
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromMillis>
+    readonly json: Schema.DateTimeUtcFromMillis
   }>
 {}
 
@@ -483,9 +446,9 @@ export interface DateTimeInsertFromNumber extends
  * @category date & time
  */
 export const DateTimeInsertFromNumber: DateTimeInsertFromNumber = Field({
-  select: Schema.DateTimeUtcFromNumber,
+  select: Schema.DateTimeUtcFromMillis,
   insert: DateTimeFromNumberWithNow,
-  json: Schema.DateTimeUtcFromNumber
+  json: Schema.DateTimeUtcFromMillis
 })
 
 /**
@@ -494,10 +457,10 @@ export const DateTimeInsertFromNumber: DateTimeInsertFromNumber = Field({
  */
 export interface DateTimeUpdate extends
   VariantSchema.Field<{
-    readonly select: typeof Schema.DateTimeUtc
-    readonly insert: VariantSchema.Overrideable<DateTime.Utc, string>
-    readonly update: VariantSchema.Overrideable<DateTime.Utc, string>
-    readonly json: typeof Schema.DateTimeUtc
+    readonly select: Schema.DateTimeUtcFromString
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromString>
+    readonly update: VariantSchema.Overrideable<Schema.DateTimeUtcFromString>
+    readonly json: Schema.DateTimeUtcFromString
   }>
 {}
 
@@ -512,10 +475,10 @@ export interface DateTimeUpdate extends
  * @category date & time
  */
 export const DateTimeUpdate: DateTimeUpdate = Field({
-  select: Schema.DateTimeUtc,
+  select: Schema.DateTimeUtcFromString,
   insert: DateTimeWithNow,
   update: DateTimeWithNow,
-  json: Schema.DateTimeUtc
+  json: Schema.DateTimeUtcFromString
 })
 
 /**
@@ -524,10 +487,10 @@ export const DateTimeUpdate: DateTimeUpdate = Field({
  */
 export interface DateTimeUpdateFromDate extends
   VariantSchema.Field<{
-    readonly select: DateTimeFromDate
-    readonly insert: VariantSchema.Overrideable<DateTime.Utc, globalThis.Date>
-    readonly update: VariantSchema.Overrideable<DateTime.Utc, globalThis.Date>
-    readonly json: typeof Schema.DateTimeUtc
+    readonly select: Schema.DateTimeUtcFromDate
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromDate>
+    readonly update: VariantSchema.Overrideable<Schema.DateTimeUtcFromDate>
+    readonly json: Schema.DateTimeUtcFromString
   }>
 {}
 
@@ -542,10 +505,10 @@ export interface DateTimeUpdateFromDate extends
  * @category date & time
  */
 export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
-  select: DateTimeFromDate,
+  select: Schema.DateTimeUtcFromDate,
   insert: DateTimeFromDateWithNow,
   update: DateTimeFromDateWithNow,
-  json: Schema.DateTimeUtc
+  json: Schema.DateTimeUtcFromString
 })
 
 /**
@@ -554,10 +517,10 @@ export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
  */
 export interface DateTimeUpdateFromNumber extends
   VariantSchema.Field<{
-    readonly select: typeof Schema.DateTimeUtcFromNumber
-    readonly insert: VariantSchema.Overrideable<DateTime.Utc, number>
-    readonly update: VariantSchema.Overrideable<DateTime.Utc, number>
-    readonly json: typeof Schema.DateTimeUtcFromNumber
+    readonly select: Schema.DateTimeUtcFromMillis
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromMillis>
+    readonly update: VariantSchema.Overrideable<Schema.DateTimeUtcFromMillis>
+    readonly json: Schema.DateTimeUtcFromMillis
   }>
 {}
 
@@ -572,22 +535,22 @@ export interface DateTimeUpdateFromNumber extends
  * @category date & time
  */
 export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({
-  select: Schema.DateTimeUtcFromNumber,
+  select: Schema.DateTimeUtcFromMillis,
   insert: DateTimeFromNumberWithNow,
   update: DateTimeFromNumberWithNow,
-  json: Schema.DateTimeUtcFromNumber
+  json: Schema.DateTimeUtcFromMillis
 })
 
 /**
  * @since 1.0.0
  * @category json
  */
-export interface JsonFromString<S extends Schema.Schema.All | Schema.PropertySignature.All>
+export interface JsonFromString<S extends Schema.Top>
   extends
     VariantSchema.Field<{
-      readonly select: Schema.Schema<Schema.Schema.Type<S>, string, Schema.Schema.Context<S>>
-      readonly insert: Schema.Schema<Schema.Schema.Type<S>, string, Schema.Schema.Context<S>>
-      readonly update: Schema.Schema<Schema.Schema.Type<S>, string, Schema.Schema.Context<S>>
+      readonly select: Schema.fromJsonString<S>
+      readonly insert: Schema.fromJsonString<S>
+      readonly update: Schema.fromJsonString<S>
       readonly json: S
       readonly jsonCreate: S
       readonly jsonUpdate: S
@@ -602,10 +565,10 @@ export interface JsonFromString<S extends Schema.Schema.All | Schema.PropertySig
  * @since 1.0.0
  * @category json
  */
-export const JsonFromString = <S extends Schema.Schema.All | Schema.PropertySignature.All>(
+export const JsonFromString = <S extends Schema.Top>(
   schema: S
 ): JsonFromString<S> => {
-  const parsed = Schema.parseJson(schema as any)
+  const parsed = Schema.fromJsonString(schema)
   return Field({
     select: parsed,
     insert: parsed,
@@ -613,7 +576,7 @@ export const JsonFromString = <S extends Schema.Schema.All | Schema.PropertySign
     json: schema,
     jsonCreate: schema,
     jsonUpdate: schema
-  }) as any
+  })
 }
 
 /**
@@ -634,80 +597,79 @@ export const makeRepository = <
   {
     readonly insert: (
       insert: S["insert"]["Type"]
-    ) => Effect.Effect<S["Type"], never, S["Context"] | S["insert"]["Context"]>
+    ) => Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["insert"]["EncodingServices"]>
     readonly insertVoid: (
       insert: S["insert"]["Type"]
-    ) => Effect.Effect<void, never, S["Context"] | S["insert"]["Context"]>
+    ) => Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]>
     readonly update: (
       update: S["update"]["Type"]
-    ) => Effect.Effect<S["Type"], never, S["Context"] | S["update"]["Context"]>
+    ) => Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["update"]["EncodingServices"]>
     readonly updateVoid: (
       update: S["update"]["Type"]
-    ) => Effect.Effect<void, never, S["Context"] | S["update"]["Context"]>
+    ) => Effect.Effect<void, Schema.SchemaError, S["update"]["EncodingServices"]>
     readonly findById: (
-      id: Schema.Schema.Type<S["fields"][Id]>
-    ) => Effect.Effect<Option.Option<S["Type"]>, never, S["Context"] | Schema.Schema.Context<S["fields"][Id]>>
+      id: S["fields"][Id]["Type"]
+    ) => Effect.Effect<
+      Option.Option<S["Type"]>,
+      Schema.SchemaError,
+      S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
+    >
     readonly delete: (
-      id: Schema.Schema.Type<S["fields"][Id]>
-    ) => Effect.Effect<void, never, Schema.Schema.Context<S["fields"][Id]>>
+      id: S["fields"][Id]["Type"]
+    ) => Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]>
   },
   never,
   SqlClient
 > =>
   Effect.gen(function*() {
     const sql = yield* SqlClient
-    const idSchema = Model.fields[options.idColumn] as Schema.Schema.Any
+    const idSchema = Model.fields[options.idColumn] as Schema.Top
     const idColumn = options.idColumn as string
     const versionColumn = options.versionColumn
 
-    // TODO: insert version automatically...
-    // I guess we should hide the versionColumn and insert it in the schema instead
-    const insertSchema = SqlSchema.single({
+    const insertSchema = SqlSchema.findOne({
       Request: Model.insert,
       Result: Model,
       execute: (request) =>
         sql.onDialectOrElse({
           mysql: () =>
-            sql`insert into ${sql(options.tableName)} ${sql.insert(request)};
+            sql`insert into ${sql(options.tableName)} ${sql.insert(request as any)};
 select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID();`
               .unprepared
               .pipe(
                 Effect.map(([, results]) => results as any)
               ),
-          orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`
+          orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request as any).returning("*")}`
         })
     })
     const insert = (
       insert: S["insert"]["Type"]
-    ): Effect.Effect<S["Type"], never, S["Context"] | S["insert"]["Context"]> =>
+    ): Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["insert"]["EncodingServices"]> =>
       insertSchema(insert).pipe(
-        Effect.orDie,
-        Effect.withSpan(`${options.spanPrefix}.insert`, {
-          captureStackTrace: false,
-          attributes: { insert }
+        Effect.catchTag("NoSuchElementError", Effect.die),
+        Effect.withSpan(`${options.spanPrefix}.insert`, {}, {
+          captureStackTrace: false
         })
       ) as any
 
     const insertVoidSchema = SqlSchema.void({
       Request: Model.insert,
-      execute: (request) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`
+      execute: (request) => sql`insert into ${sql(options.tableName)} ${sql.insert(request as any)}`
     })
     const insertVoid = (
       insert: S["insert"]["Type"]
-    ): Effect.Effect<void, never, S["Context"] | S["insert"]["Context"]> =>
+    ): Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]> =>
       insertVoidSchema(insert).pipe(
-        Effect.orDie,
-        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {
-          captureStackTrace: false,
-          attributes: { insert }
+        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {}, {
+          captureStackTrace: false
         })
       ) as any
 
-    const updateSchema = SqlSchema.single({
+    const updateSchema = SqlSchema.findOne({
       Request: Model.update,
       Result: Model,
       execute: versionColumn
-        ? (request) =>
+        ? (request: any) =>
           sql.onDialectOrElse({
             mysql: () =>
               sql`update ${sql(options.tableName)} set ${
@@ -725,7 +687,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
                 request[versionColumn]
               } returning *`
           })
-        : (request) =>
+        : (request: any) =>
           sql.onDialectOrElse({
             mysql: () =>
               sql`update ${sql(options.tableName)} set ${sql.update(request, [idColumn])} where ${sql(idColumn)} = ${
@@ -744,66 +706,69 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
     })
     const update = (
       update: S["update"]["Type"]
-    ): Effect.Effect<S["Type"], never, S["Context"] | S["update"]["Context"]> =>
+    ): Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["update"]["EncodingServices"]> =>
       updateSchema(update).pipe(
-        Effect.orDie,
+        Effect.catchTag("NoSuchElementError", Effect.die),
         Effect.withSpan(`${options.spanPrefix}.update`, {
-          captureStackTrace: false,
-          attributes: { update }
+          attributes: { id: (update as any)[idColumn] }
+        }, {
+          captureStackTrace: false
         })
       ) as any
 
     const updateVoidSchema = SqlSchema.void({
       Request: Model.update,
       execute: versionColumn
-        ? (request) =>
+        ? (request: any) =>
           sql`update ${sql(options.tableName)} set ${
             sql.update({ ...request, [versionColumn]: crypto.randomUUID() }, [idColumn])
           } where ${sql(idColumn)} = ${request[idColumn]} and ${sql(versionColumn)} = ${request[versionColumn]}`
-        : (request) =>
+        : (request: any) =>
           sql`update ${sql(options.tableName)} set ${sql.update(request, [idColumn])} where ${sql(idColumn)} = ${
             request[idColumn]
           }`
     })
     const updateVoid = (
       update: S["update"]["Type"]
-    ): Effect.Effect<void, never, S["Context"] | S["update"]["Context"]> =>
+    ): Effect.Effect<void, Schema.SchemaError, S["update"]["EncodingServices"]> =>
       updateVoidSchema(update).pipe(
-        Effect.orDie,
         Effect.withSpan(`${options.spanPrefix}.updateVoid`, {
-          captureStackTrace: false,
-          attributes: { update }
+          attributes: { id: (update as any)[idColumn] }
+        }, {
+          captureStackTrace: false
         })
       ) as any
 
-    const findByIdSchema = SqlSchema.findOne({
+    const findByIdSchema = SqlSchema.findOneOption({
       Request: idSchema,
       Result: Model,
-      execute: (id) => sql`select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
+      execute: (id: any) => sql`select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
     })
     const findById = (
-      id: Schema.Schema.Type<S["fields"][Id]>
-    ): Effect.Effect<Option.Option<S["Type"]>, never, S["Context"] | Schema.Schema.Context<S["fields"][Id]>> =>
+      id: S["fields"][Id]["Type"]
+    ): Effect.Effect<
+      Option.Option<S["Type"]>,
+      Schema.SchemaError,
+      S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
+    > =>
       findByIdSchema(id).pipe(
-        Effect.orDie,
-        Effect.withSpan(`${options.spanPrefix}.findById`, {
-          captureStackTrace: false,
-          attributes: { id }
+        Effect.withSpan(`${options.spanPrefix}.findById`, { attributes: { id } }, {
+          captureStackTrace: false
         })
       ) as any
 
     const deleteSchema = SqlSchema.void({
       Request: idSchema,
-      execute: (id) => sql`delete from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
+      execute: (id: any) => sql`delete from ${sql(options.tableName)} where ${sql(idColumn)} = ${id}`
     })
     const delete_ = (
-      id: Schema.Schema.Type<S["fields"][Id]>
-    ): Effect.Effect<void, never, Schema.Schema.Context<S["fields"][Id]>> =>
+      id: S["fields"][Id]["Type"]
+    ): Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]> =>
       deleteSchema(id).pipe(
-        Effect.orDie,
         Effect.withSpan(`${options.spanPrefix}.delete`, {
-          captureStackTrace: false,
           attributes: { id }
+        }, {
+          captureStackTrace: false
         })
       ) as any
 
@@ -817,7 +782,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
  * @category repository
  */
 export const makeDataLoaders = <
-  S extends AnyNoContext,
+  S extends Any,
   Id extends (keyof S["Type"]) & (keyof S["update"]["Type"]) & (keyof S["fields"])
 >(
   Model: S,
@@ -825,113 +790,135 @@ export const makeDataLoaders = <
     readonly tableName: string
     readonly spanPrefix: string
     readonly idColumn: Id
-    readonly window: DurationInput
+    readonly window: Input
     readonly maxBatchSize?: number | undefined
   }
 ): Effect.Effect<
   {
-    readonly insert: (insert: S["insert"]["Type"]) => Effect.Effect<S["Type"]>
-    readonly insertVoid: (insert: S["insert"]["Type"]) => Effect.Effect<void>
-    readonly findById: (id: Schema.Schema.Type<S["fields"][Id]>) => Effect.Effect<Option.Option<S["Type"]>>
-    readonly delete: (id: Schema.Schema.Type<S["fields"][Id]>) => Effect.Effect<void>
+    readonly insert: (
+      insert: S["insert"]["Type"]
+    ) => Effect.Effect<
+      S["Type"],
+      Schema.SchemaError,
+      S["DecodingServices"] | S["insert"]["EncodingServices"]
+    >
+    readonly insertVoid: (
+      insert: S["insert"]["Type"]
+    ) => Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]>
+    readonly findById: (
+      id: S["fields"][Id]["Type"]
+    ) => Effect.Effect<
+      S["Type"],
+      Schema.SchemaError,
+      S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
+    >
+    readonly delete: (
+      id: S["fields"][Id]["Type"]
+    ) => Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]>
   },
   never,
   SqlClient | Scope
 > =>
   Effect.gen(function*() {
     const sql = yield* SqlClient
-    const idSchema = Model.fields[options.idColumn] as Schema.Schema.Any
+    const idSchema = Model.fields[options.idColumn] as Schema.Top
     const idColumn = options.idColumn as string
+    const setMaxBatchSize = options.maxBatchSize ? RequestResolver.batchN(options.maxBatchSize) : identity
 
-    const insertResolver = yield* SqlResolver.ordered(`${options.spanPrefix}/insert`, {
+    const insertResolver = SqlResolver.ordered({
       Request: Model.insert,
       Result: Model,
-      execute: (request) =>
+      execute: (request: any) =>
         sql.onDialectOrElse({
           mysql: () =>
-            Effect.forEach(request, (request) =>
+            Effect.forEach(request, (request: any) =>
               sql`insert into ${sql(options.tableName)} ${sql.insert(request)};
 select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID();`
                 .unprepared
                 .pipe(
-                  Effect.map(([, results]) => results as any)
+                  Effect.map(([, results]) => results![0] as any)
                 ), { concurrency: 10 }),
           orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`
         })
-    })
-    const insertLoader = yield* RRX.dataLoader(insertResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const insertExecute = insertResolver.makeExecute(insertLoader)
+    }).pipe(
+      RequestResolver.setDelay(options.window),
+      setMaxBatchSize,
+      RequestResolver.withSpan(`${options.spanPrefix}.insertResolver`)
+    )
+    const insertExecute = SqlResolver.request(insertResolver)
     const insert = (
       insert: S["insert"]["Type"]
-    ): Effect.Effect<S["Type"], never, S["Context"] | S["insert"]["Context"]> =>
+    ): Effect.Effect<
+      S["Type"],
+      Schema.SchemaError,
+      S["DecodingServices"] | S["insert"]["EncodingServices"]
+    > =>
       insertExecute(insert).pipe(
-        Effect.orDie,
-        Effect.withSpan(`${options.spanPrefix}.insert`, {
-          captureStackTrace: false,
-          attributes: { insert }
-        })
-      )
-
-    const insertVoidResolver = yield* SqlResolver.void(`${options.spanPrefix}/insertVoid`, {
-      Request: Model.insert,
-      execute: (request) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`
-    })
-    const insertVoidLoader = yield* RRX.dataLoader(insertVoidResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const insertVoidExecute = insertVoidResolver.makeExecute(insertVoidLoader)
-    const insertVoid = (
-      insert: S["insert"]["Type"]
-    ): Effect.Effect<void, never, S["Context"] | S["insert"]["Context"]> =>
-      insertVoidExecute(insert).pipe(
-        Effect.orDie,
-        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {
-          captureStackTrace: false,
-          attributes: { insert }
-        })
-      )
-
-    const findByIdResolver = yield* SqlResolver.findById(`${options.spanPrefix}/findById`, {
-      Id: idSchema,
-      Result: Model,
-      ResultId(request) {
-        return request[idColumn]
-      },
-      execute: (ids) => sql`select * from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
-    })
-    const findByIdLoader = yield* RRX.dataLoader(findByIdResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const findByIdExecute = findByIdResolver.makeExecute(findByIdLoader)
-    const findById = (id: Schema.Schema.Type<S["fields"][Id]>): Effect.Effect<Option.Option<S["Type"]>> =>
-      findByIdExecute(id).pipe(
-        Effect.orDie,
-        Effect.withSpan(`${options.spanPrefix}.findById`, {
-          captureStackTrace: false,
-          attributes: { id }
+        Effect.catchTag("ResultLengthMismatch", Effect.die),
+        Effect.withSpan(`${options.spanPrefix}.insert`, {}, {
+          captureStackTrace: false
         })
       ) as any
 
-    const deleteResolver = yield* SqlResolver.void(`${options.spanPrefix}/delete`, {
+    const insertVoidResolver = SqlResolver.void({
+      Request: Model.insert,
+      execute: (request: any) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`
+    }).pipe(
+      RequestResolver.setDelay(options.window),
+      setMaxBatchSize,
+      RequestResolver.withSpan(`${options.spanPrefix}.insertVoidResolver`)
+    )
+    const insertVoidExecute = SqlResolver.request(insertVoidResolver)
+    const insertVoid = (
+      insert: S["insert"]["Type"]
+    ): Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]> =>
+      insertVoidExecute(insert).pipe(
+        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {}, {
+          captureStackTrace: false
+        })
+      ) as any
+
+    const findByIdResolver = SqlResolver.findById({
+      Id: idSchema,
+      Result: Model,
+      ResultId(request: any) {
+        return request[idColumn]
+      },
+      execute: (ids: any) => sql`select * from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
+    }).pipe(
+      RequestResolver.setDelay(options.window),
+      setMaxBatchSize,
+      RequestResolver.withSpan(`${options.spanPrefix}.findByIdResolver`)
+    )
+    const findByIdExecute = SqlResolver.request(findByIdResolver)
+    const findById = (
+      id: S["fields"][Id]["Type"]
+    ): Effect.Effect<
+      S["Type"],
+      Schema.SchemaError,
+      S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
+    > =>
+      findByIdExecute(id).pipe(
+        Effect.withSpan(`${options.spanPrefix}.findById`, { attributes: { id } }, {
+          captureStackTrace: false
+        })
+      ) as any
+
+    const deleteResolver = SqlResolver.void({
       Request: idSchema,
-      execute: (ids) => sql`delete from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
-    })
-    const deleteLoader = yield* RRX.dataLoader(deleteResolver, {
-      window: options.window,
-      maxBatchSize: options.maxBatchSize!
-    })
-    const deleteExecute = deleteResolver.makeExecute(deleteLoader)
-    const delete_ = (id: Schema.Schema.Type<S["fields"][Id]>): Effect.Effect<void> =>
+      execute: (ids: any) => sql`delete from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
+    }).pipe(
+      RequestResolver.setDelay(options.window),
+      setMaxBatchSize,
+      RequestResolver.withSpan(`${options.spanPrefix}.deleteResolver`)
+    )
+    const deleteExecute = SqlResolver.request(deleteResolver)
+    const delete_ = (
+      id: S["fields"][Id]["Type"]
+    ): Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]> =>
       deleteExecute(id).pipe(
-        Effect.orDie,
-        Effect.withSpan(`${options.spanPrefix}.delete`, {
-          captureStackTrace: false,
-          attributes: { id }
+        Effect.withSpan(`${options.spanPrefix}.delete`, { attributes: { id } }, {
+          captureStackTrace: false
         })
       ) as any
 

@@ -2,23 +2,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Effect, type Schema, type Schema as S, type Scope, type ServiceMap, type Stream } from "effect"
-import { type HttpHeaders } from "effect-app/http"
 import { type NonEmptyReadonlyArray } from "effect/Array"
 import { type Rpc, RpcMiddleware } from "effect/unstable/rpc"
-import { type RequestId } from "effect/unstable/rpc/RpcMessage"
-import { type SuccessValue, type TypeId } from "effect/unstable/rpc/RpcMiddleware"
+import { type TypeId } from "effect/unstable/rpc/RpcMiddleware"
 import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.js"
 
-// updated to support Scope.Scope and follow V4: Provides/Requires as Identifiers instead of Tag, wrap is default
-export interface RpcMiddlewareV4<Provides, E, Requires> {
-  (effect: Effect.Effect<SuccessValue, E, Provides | Scope.Scope | Requires>, options: {
-    readonly clientId: number
-    readonly requestId: RequestId
-    readonly rpc: Rpc.AnyWithProps
-    readonly payload: unknown
-    readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<SuccessValue, E, Scope.Scope | Requires>
-}
+export type RpcMiddlewareV4<Provides, E, Requires> = RpcMiddleware.RpcMiddleware<Provides, E, Requires>
 
 export type RpcOptionsOriginal = {
   readonly optional?: boolean
@@ -44,21 +33,9 @@ export interface RpcOptionsDynamic<Key extends string, A extends RpcContextMap.A
 
 export type Dynamic<Options> = Options extends RpcOptionsDynamic<any, any> ? true : false
 
-export interface RpcMiddlewareDynamic<E, R, _Config> {
-  (effect: Effect.Effect<SuccessValue, E, Scope.Scope | R>, options: {
-    readonly clientId: number
-    readonly requestId: RequestId
-    readonly rpc: Rpc.AnyWithProps
-    readonly payload: unknown
-    readonly headers: HttpHeaders.Headers
-  }): Effect.Effect<
-    SuccessValue,
-    E,
-    Scope.Scope | R
-  >
-}
+export interface RpcMiddlewareDynamic<E, R, _Config> extends RpcMiddleware.RpcMiddleware<never, E, R> {}
 
-export interface TagClassAny extends RpcMiddleware.AnyServiceWithProps {
+export interface TagClassAny extends RpcMiddleware.AnyService {
   readonly optional: boolean
   readonly provides: any
   readonly requires: any
@@ -131,6 +108,8 @@ export declare namespace TagClass {
     readonly [TypeId]: TypeId
     readonly optional: Optional<Options>
     readonly failure: FailureSchema<Options>
+    readonly error: FailureSchema<Options>
+    readonly "~ClientError": Options extends { readonly clientError: infer CE } ? CE : never
     readonly provides: "provides" extends keyof Config ? Config["provides"] : never
     readonly requires: "requires" extends keyof Config ? Config["requires"] : never
     readonly dynamic: Options extends RpcOptionsDynamic<any, any> ? Options["dynamic"]
@@ -217,13 +196,13 @@ export type HandlerContext<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler
     | Stream.Stream<infer _A, infer _E, infer _R>
     | Rpc.Wrapper<Stream.Stream<infer _A, infer _E, infer _R>>
     | Effect.Effect<
-      any, // v4: Mailbox removed
+      infer _A,
       infer _EX,
       infer _R
     >
     | Rpc.Wrapper<
       Effect.Effect<
-        any, // v4: Mailbox removed
+        infer _A,
         infer _EX,
         infer _R
       >
@@ -247,7 +226,7 @@ export type ExtractDynamicallyProvides<R extends Rpc.Any, Tag extends string> = 
   : never
 
 export type ExtractProvides<R extends Rpc.Any, Tag extends string> = R extends
-  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? _Middleware extends {
+  Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires> ? _Middleware extends {
     readonly provides: ServiceMap.Service<infer _I, infer _S>
   } ? _I
   : never

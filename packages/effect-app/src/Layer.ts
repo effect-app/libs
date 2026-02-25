@@ -1,4 +1,5 @@
 import { type Array, Effect, Layer, type Scope, type ServiceMap, type Types } from "effect"
+import { type Yieldable } from "effect/Effect"
 import { dual } from "effect/Function"
 import { type EffectGenUtils } from "./utils/gen.js"
 
@@ -10,7 +11,7 @@ type MakeEff<S, E, R> = {
   readonly make: Effect.Effect<S, E, R>
 }
 type MakeGen<S, E = never, R = never> = {
-  readonly make: () => Generator<Effect.Effect<any, E, R>, S, any>
+  readonly make: () => Generator<Yieldable<any, any, E, R>, S, any>
 }
 type MakeGenNo<S> = {
   readonly make: () => Generator<unknown, S>

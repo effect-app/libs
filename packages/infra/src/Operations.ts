@@ -52,12 +52,12 @@ const make = Effect.gen(function*() {
               result: Exit.isSuccess(exit)
                 ? new OperationSuccess()
                 : new OperationFailure({
-                  message: Cause.isInterrupted(exit.cause)
+                  message: Cause.hasInterruptsOnly(exit.cause)
                     ? NonEmptyString2k("Interrupted")
-                    : Cause.isDie(exit.cause)
+                    : Cause.hasDies(exit.cause)
                     ? NonEmptyString2k("Unknown error")
                     : Cause
-                      .failureOption(exit.cause)
+                      .findErrorOption(exit.cause)
                       .pipe(
                         Option.flatMap((_) =>
                           typeof _ === "object" && _ !== null && "message" in _ && S.is(NonEmptyString2k)(_.message)
@@ -93,11 +93,11 @@ const make = Effect.gen(function*() {
         (scope) =>
           register(title)
             .pipe(
-              Scope.extend(scope),
+              Scope.provide(scope),
               Effect.flatMap((id) =>
                 reqFiberSet
                   .forkDaemonReportUnexpected(Scope.use(
-                    self(id).pipe(Effect.withSpan(title, { captureStackTrace: false })),
+                    self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
                     scope
                   ))
                   .pipe(Effect.map((fiber): RunningOperation<A, E> => ({ fiber, id })))
@@ -105,7 +105,7 @@ const make = Effect.gen(function*() {
               Effect.tap(({ id }) =>
                 Effect.interruptible(fnc(id)).pipe(
                   Effect.forkScoped,
-                  Scope.extend(scope)
+                  Scope.provide(scope)
                 )
               )
             )
@@ -128,12 +128,12 @@ const make = Effect.gen(function*() {
         (scope) =>
           register(title)
             .pipe(
-              Scope.extend(scope),
+              Scope.provide(scope),
               Effect
                 .flatMap((id) =>
                   reqFiberSet
                     .forkDaemonReportUnexpected(Scope.use(
-                      self(id).pipe(Effect.withSpan(title, { captureStackTrace: false })),
+                      self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
                       scope
                     ))
                     .pipe(Effect.map((fiber): RunningOperation<A, E> => ({ fiber, id })))
@@ -158,12 +158,12 @@ const make = Effect.gen(function*() {
         (scope) =>
           register(title)
             .pipe(
-              Scope.extend(scope),
+              Scope.provide(scope),
               Effect
                 .flatMap((id) =>
                   reqFiberSet
                     .forkDaemonReportUnexpected(Scope.use(
-                      self.pipe(Effect.withSpan(title, { captureStackTrace: false })),
+                      self.pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
                       scope
                     ))
                     .pipe(Effect.map((fiber): RunningOperation<A, E> => ({ fiber, id })))
@@ -228,5 +228,5 @@ export class Operations extends Context.TagMakeId("effect-app/Operations", make)
 
 export interface RunningOperation<A, E> {
   id: OperationId
-  fiber: Fiber.RuntimeFiber<A, E>
+  fiber: Fiber.Fiber<A, E>
 }

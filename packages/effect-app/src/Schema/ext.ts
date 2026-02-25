@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, type SchemaAST, SchemaIssue, SchemaParser, SchemaTransformation, type ServiceMap } from "effect"
+import { Effect, Option, pipe, Schema, type SchemaAST, SchemaGetter, SchemaIssue, SchemaParser, SchemaTransformation, type ServiceMap } from "effect"
 import * as S from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
 import { extendM, typedKeysOf } from "../utils.js"
@@ -20,11 +20,19 @@ export const withDefaultConstructor = <A>(
   )(self as Narrowed)
 }
 
+// TODO: v4 migration - Date is no longer by default encoded to string.
+const DateFromString = Schema.Date.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.Date(),
+    encode: SchemaGetter.transform((_) => _.toISOString())
+  })
+)
+
 /**
- * Like the default Schema `Date` but with `withDefault` => now
+ * Like the default Schema `Date` but from String with `withDefault` => now
  */
-export const Date = Object.assign(S.Date, {
-  withDefault: S.Date.pipe(withDefaultConstructor(() => new global.Date()))
+export const Date = Object.assign(DateFromString, {
+  withDefault: DateFromString.pipe(withDefaultConstructor(() => new global.Date()))
 })
 
 /**

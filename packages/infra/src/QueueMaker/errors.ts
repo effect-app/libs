@@ -22,7 +22,7 @@ export function reportNonInterruptedFailure(context?: Record<string, unknown>) {
 
 export function reportNonInterruptedFailureCause(context?: Record<string, unknown>) {
   return <E>(cause: Cause.Cause<E>): Effect.Effect<void> => {
-    if (Cause.isInterruptedOnly(cause)) {
+    if (Cause.hasInterruptsOnly(cause)) {
       return Effect.failCause(cause as Cause.Cause<never>)
     }
     return reportQueueError(cause, context)

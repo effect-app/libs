@@ -22,9 +22,9 @@ This is the Effect App library repository, focusing on functional programming pa
 
 #### New Features
 
-- Run `pnpm lint-fix` after editing files
+- Run `pnpm lint-fix` (available inside each package) after editing files
 <!-- - Always run tests after making changes: `pnpm test <test_file.ts>` -->
-- Run type checking: `pnpm check`
+- Run type checking: `pnpm check` (available inside each package
   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
 <!-- - Build the project: `pnpm build`
 - Check JSDoc examples compile: `pnpm docgen` -->

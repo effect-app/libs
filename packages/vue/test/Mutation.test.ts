@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
-import { type RuntimeFiber } from "effect/Fiber"
 import { CommandContext, DefaultIntl } from "../src/experimental/commander.js"
 import { Result } from "../src/lib.js"
 import { useExperimental } from "./stubs.js"
 
-const unwrap = <A, E>(r: RuntimeFiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
+const unwrap = <A, E>(r: Fiber.Fiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
 
 // declare const mutation: {
 //   name: "myMutation"

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as Sentry from "@sentry/browser"
-import { Cause, Effect, LogLevel } from "effect-app"
+import { Cause, Effect, type LogLevel } from "effect-app"
 import { CauseException, tryToJson, tryToReport } from "effect-app/client/errors"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 
@@ -19,11 +19,11 @@ export function reportError(
   return (
     cause: Cause.Cause<unknown>,
     extras?: Record<string, unknown>,
-    level: LogLevel.LogLevel = LogLevel.Error
+    level: LogLevel.Severity = "Error"
   ): Effect.Effect<unknown, never, never> =>
     Effect
       .gen(function*() {
-        if (Cause.isInterruptedOnly(cause)) {
+        if (Cause.hasInterruptsOnly(cause)) {
           yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
           return Cause.squash(cause)
         }
@@ -31,7 +31,7 @@ export function reportError(
         const error = tryCauseException(cause, name)
         yield* reportSentry(error, extras, LogLevelToSentry(level))
         yield* Effect
-          .logWithLevel(level, "Reporting error", cause)
+          .logWithLevel(level)("Reporting error", cause)
           .pipe(
             Effect.annotateLogs(dropUndefined({
               extras,
@@ -39,16 +39,16 @@ export function reportError(
               cause: tryToJson(cause),
               __error_name__: name
             })),
-            Effect.catchAllCause((cause) => Effect.logWarning("Failed to log error", cause)),
-            Effect.catchAllCause(() => Effect.logFatal("Failed to log error cause"))
+            Effect.catchCause((cause) => Effect.logWarning("Failed to log error", cause)),
+            Effect.catchCause(() => Effect.logFatal("Failed to log error cause"))
           )
 
         return error
       })
       .pipe(
-        Effect.tapErrorCause((cause) =>
+        Effect.tapCause((cause) =>
           Effect.logError("Failed to report error", cause).pipe(
-            Effect.tapErrorCause(() => Effect.logFatal("Failed to log error cause"))
+            Effect.tapCause(() => Effect.logFatal("Failed to log error cause"))
           )
         )
       )
@@ -75,7 +75,7 @@ export function logError<E>(
   return (cause: Cause.Cause<E>, extras?: Record<string, unknown>) =>
     Effect
       .gen(function*() {
-        if (Cause.isInterruptedOnly(cause)) {
+        if (Cause.hasInterruptsOnly(cause)) {
           yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs(dropUndefined({ extras })))
           return
         }
@@ -90,9 +90,9 @@ export function logError<E>(
           )
       })
       .pipe(
-        Effect.tapErrorCause((cause) =>
+        Effect.tapCause((cause) =>
           Effect.logError("Failed to log error", cause).pipe(
-            Effect.tapErrorCause(() => Effect.logFatal("Failed to log error cause"))
+            Effect.tapCause(() => Effect.logFatal("Failed to log error cause"))
           )
         )
       )

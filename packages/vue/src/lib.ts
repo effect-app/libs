@@ -1,8 +1,8 @@
-import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
-import { Cause, type Effect, LogLevel, pipe } from "effect-app"
+import { Cause, type Effect, pipe } from "effect-app"
 import { type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
+import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import type { MaybeRefOrGetter } from "vue"
 import { reportError } from "./errorReporter.js"
 
@@ -17,12 +17,14 @@ const determineLevel = (cause: Cause.Cause<unknown>) => {
   if (!isHttpClientError(sq)) {
     return undefined
   }
-  const causeStr = sq.cause?.toString().toLowerCase()
-  switch (sq._tag) {
-    case "RequestError":
-      return sq.reason === "Transport" ? LogLevel.Info : undefined
-    case "ResponseError":
-      return sq.reason === "Decode" && filters.some((_) => causeStr?.includes(_)) ? LogLevel.Info : undefined
+  const causeStr = sq.reason.message?.toLowerCase()
+  switch (sq.reason._tag) {
+    case "TransportError":
+      return "Info" as const
+    case "DecodeError":
+      return filters.some((_) => causeStr?.includes(_)) ? "Info" as const : undefined
+    default:
+      return undefined
   }
 }
 

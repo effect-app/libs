@@ -45,6 +45,7 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `S.decode(schema)` | `S.decodeEffect(schema)` — returns curried `(encoded) => Effect<Type, SchemaError, Services>` |
 | `Schema.optionalWith({ default: () => x, nullable: true, exact: true })` | `Schema.optional(Schema.NullOr(schema))` + `?? default` at usage |
 | `Schema.Record({ key: K, value: V })` | `Schema.Record(K, V)` (positional args) |
+| `Schema.decodeUnknownEither(schema)` | `Schema.decodeUnknownExit(schema)` for `Exit` results or `Schema.decodeUnknownOption(schema)` for `Option` |
 | `Schema.Class.transformOrFail<T>("T")({fields}, {decode, encode})` | `sourceSchema.pipe(Schema.decodeTo(targetStruct, SchemaTransformation.transformOrFail({decode, encode})))` — keep as class with `Schema.Opaque<Self>()(schema)` |
 | Schema class → `const + interface` pattern | **Do not do this.** Use `class Foo extends Schema.Opaque<Foo>()(schema) {}` to preserve class semantics |
 | `Array.filterMap(arr, fn)` (using `Option`) | `Array.filter(arr, fn)` where `fn` returns `Result.succeed(mapped)` or `Result.fail(item)` — import `Result` from `"effect"` |
@@ -56,6 +57,9 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `S.ParseResult.ParseError` | `S.SchemaError` |
 | `schema.pipe(S.pick("field1", "field2"))` | `S.pick` removed. For Struct schemas: `(schema as Struct<F>).mapFields(({ field1, field2 }) => ({ field1, field2 }))`. Or access `schema.fields` to create a new struct: `S.Struct({ field: schema.fields.field })` |
 | `ast._tag === "Transformation"` | `"Transformation"` tag removed from AST. v4 AST tags are: `"Declaration"`, `"Objects"`, `"Arrays"`, `"Union"`, `"Filter"`, `"FilterGroup"`, plus primitive tags. |
+| `AST.TypeLiteral` | `AST.Objects` (TypeLiteral renamed; use `SchemaAST.isObjects`) |
+| `AST.getIdentifierAnnotation(ast)` | `SchemaAST.resolveIdentifier(ast)` (returns `string | undefined`) |
+| `new AST.PropertySignature(name, type, ...flags)` | `new AST.PropertySignature(name, type)` (flags moved to type context) |
 
 ## Effect API
 
@@ -184,6 +188,7 @@ class MainFiberSet extends ServiceMap.Service<MainFiberSet>()("MainFiberSet", { 
 | `command.string()` | `ChildProcess.string(ChildProcess.make(...))` |
 | `command.exitCode()` | `ChildProcess.exitCode(ChildProcess.make(...))` |
 | `FileSystem.FileSystem.watch(path, { recursive: true })` | `FileSystem.FileSystem.watch(path)` (no options object) |
+| `@effect/platform/HttpClientError` | `effect/unstable/http/HttpClientError` |
 
 ## CLI (from `@effect/cli` → `effect/unstable/cli`)
 

@@ -1,11 +1,11 @@
-import { Context, S } from "effect-app"
+import { S, ServiceMap } from "effect-app"
 import { UserProfileId } from "effect-app/ids"
 import { NonEmptyString255 } from "effect-app/Schema"
 
 export const Locale = S.Literal("en", "de")
 export type Locale = typeof Locale.Type
 
-export class LocaleRef extends Context.Reference<LocaleRef>()("Locale", { defaultValue: (): Locale => "en" }) {}
+export class LocaleRef extends ServiceMap.Reference<LocaleRef>()("Locale", { defaultValue: (): Locale => "en" }) {}
 
 export class RequestContext extends S.ExtendedClass<
   RequestContext,
@@ -23,7 +23,7 @@ export class RequestContext extends S.ExtendedClass<
   /** @deprecated */
   userProfile: S.optional(S.Struct({ sub: UserProfileId })) //
 }) {
-  // static Tag = Context.Tag<RequestContext>()
+  // static Tag = ServiceMap.Tag<RequestContext>()
 
   static toMonitoring(this: void, self: RequestContext) {
     return {

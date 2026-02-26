@@ -259,7 +259,7 @@ export const provide = <Self extends S.Top, R>(
       ) as any
     )
 }
-// TODO: v4 migration — Context.pick and S.declare pattern removed
+// TODO: v4 migration — ServiceMap.pick and S.declare pattern removed
 export const contextFromServices = <Self extends S.Top, Tags extends readonly any[]>(
   _self: Self,
   ..._services: Tags

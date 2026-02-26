@@ -17,7 +17,7 @@ type MakeGenNo<S> = {
   readonly make: () => Generator<unknown, S>
 }
 type MakeErr<Opts> = Opts extends { make: () => any } ? EffectGenUtils.Error<Opts["make"]> : never
-type MakeContext<Opts> = Opts extends { make: () => any } ? EffectGenUtils.Context<Opts["make"]> : never
+type MakeContext<Opts> = Opts extends { make: () => any } ? EffectGenUtils.ServiceMap<Opts["make"]> : never
 
 type DependenciesOpt = { dependencies?: Array.NonEmptyReadonlyArray<Layer.Any> }
 type Dependencies = { dependencies: Array.NonEmptyReadonlyArray<Layer.Any> }

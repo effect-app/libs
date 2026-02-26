@@ -1,9 +1,9 @@
-import { Context, Effect, Layer, S, Scope } from "effect-app"
+import { Effect, Layer, S, Scope, ServiceMap } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { RpcContextMap, RpcX } from "effect-app/rpc"
 import { TaggedError } from "effect-app/Schema"
 
-export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
+export class UserProfile extends ServiceMap.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({
     id: S.String,
     roles: S.Array(S.String)
@@ -11,10 +11,10 @@ export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("Us
 ) {
 }
 
-export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
-export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
+export class Some extends ServiceMap.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
+export class SomeElse extends ServiceMap.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
 const MakeSomeService = Effect.succeed({ a: 1 })
-export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
+export class SomeService extends ServiceMap.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
 
 // functionally equivalent to the one above
 export class SomeMiddleware extends RpcX.RpcMiddleware.Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware") {

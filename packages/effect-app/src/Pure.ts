@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Chunk, Effect, Layer, Result } from "effect"
-import * as Context from "./Context.js"
 import { tuple } from "./Function.js"
+import * as ServiceMap from "./ServiceMap.js"
 
 const S1 = Symbol()
 const S2 = Symbol()
@@ -86,9 +86,9 @@ export function GMU<W, S, S2, GA, MR, ME>(modify: (i: GA) => Pure<W, S, S2, MR, 
   ) => GMU_(get, modify, update)
 }
 
-const tagg = Context.assignTag<{ env: PureEnv<never, unknown, never> }>("PureEnv")({})
+const tagg = ServiceMap.assignTag<{ env: PureEnv<never, unknown, never> }>("PureEnv")({})
 function castTag<W, S, S2>() {
-  return tagg as any as Context.Service<PureEnvEnv<W, S, S2>, PureEnvEnv<W, S, S2>>
+  return tagg as any as ServiceMap.Service<PureEnvEnv<W, S, S2>, PureEnvEnv<W, S, S2>>
 }
 
 export const ServiceTag = Symbol()
@@ -100,9 +100,9 @@ export abstract class PhantomTypeParameter<Identifier extends keyof any, Instant
   }
 }
 
-export type ServiceShape<T extends Context.ServiceClass.Shape<any, any>> = Omit<
+export type ServiceShape<T extends ServiceMap.ServiceClass.Shape<any, any>> = Omit<
   T,
-  keyof Context.ServiceClass.Shape<any, any>
+  keyof ServiceMap.ServiceClass.Shape<any, any>
 >
 
 export abstract class ServiceTagged<ServiceKey> extends PhantomTypeParameter<string, ServiceKey> {}

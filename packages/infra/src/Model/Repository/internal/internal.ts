@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {} from "effect/Equal"
 import type {} from "effect/Hash"
-import { Array, Chunk, Context, Effect, Equivalence, flow, type NonEmptyReadonlyArray, Option, pipe, Pipeable, PubSub, Result, S, SchemaAST, Unify } from "effect-app"
+import { Array, Chunk, Effect, Equivalence, flow, type NonEmptyReadonlyArray, Option, pipe, Pipeable, PubSub, Result, S, SchemaAST, ServiceMap, Unify } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { NotFoundError } from "effect-app/client/errors"
 import { flatMapOption } from "effect-app/Effect"
@@ -55,14 +55,14 @@ export function makeRepoInternal<
 
     function make<RInitial = never, E = never, RPublish = never, RCtx = never>(
       args: [Evt] extends [never] ? {
-          schemaContext?: Context.ServiceMap<RCtx>
+          schemaContext?: ServiceMap.ServiceMap<RCtx>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (e?: Encoded) => string
           }
         }
         : {
-          schemaContext?: Context.ServiceMap<RCtx>
+          schemaContext?: ServiceMap.ServiceMap<RCtx>
           publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, RPublish>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
@@ -72,7 +72,7 @@ export function makeRepoInternal<
     ) {
       return Effect
         .gen(function*() {
-          const rctx: Context.ServiceMap<RCtx> = args.schemaContext ?? Context.empty() as any
+          const rctx: ServiceMap.ServiceMap<RCtx> = args.schemaContext ?? ServiceMap.empty() as any
           const provideRctx = Effect.provide(rctx)
           const encodeMany = flow(
             S.encodeEffect(S.Array(schema)),
@@ -134,7 +134,9 @@ export function makeRepoInternal<
             })
           const encodeId = flow(S.encodeEffect(i), provideRctx)
           const encodeIdOnly = (id: string) =>
-            encodeId({ [idKey]: id } as any).pipe(Effect.map((_: Record<string, unknown>) => _[idKey as string] as Encoded[IdKey]))
+            encodeId({ [idKey]: id } as any).pipe(
+              Effect.map((_: Record<string, unknown>) => _[idKey as string] as Encoded[IdKey])
+            )
           const findEId = Effect.fnUntraced(function*(id: Encoded[IdKey]) {
             yield* Effect.annotateCurrentSpan({ itemId: id })
 

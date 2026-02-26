@@ -392,8 +392,8 @@ export const useMutationInt = (): typeof _useMutation => {
 export class LegacyMutationImpl<RT> {
   constructor(
     private readonly getRuntime: () => ServiceMap.ServiceMap<RT>,
-    private readonly toast: Toast["Service"],
-    private readonly intl: I18n["Service"]
+    private readonly toast: Toast,
+    private readonly intl: I18n
   ) {}
 
   /**

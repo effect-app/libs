@@ -112,6 +112,26 @@ export const proxify = <T extends object>(Tag: T) =>
   return done
 }
 
+export const TypeId = "~ServiceMap.Opaque"
+
+export function Opaque<const Key extends string>(key: Key) {
+  return <Id, ServiceImpl>() => {
+    const limit = Error.stackTraceLimit
+    Error.stackTraceLimit = 2
+    const creationError = new Error()
+    Error.stackTraceLimit = limit
+    const c:
+      & (abstract new(_: never) => ServiceImpl & { readonly [TypeId]: Key })
+      & {
+        of: (service: Omit<Id, keyof { readonly [TypeId]: Key }>) => Id
+      } = class {
+        static of = (service: ServiceImpl) => service
+      } as any
+
+    return assignTag<Id, Id>(key, creationError)(c)
+  }
+}
+
 /**
  * @deprecated use `ServiceMap.Service` instead
  */

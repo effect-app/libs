@@ -1048,7 +1048,7 @@ export declare namespace Commander {
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
 
-const renderErrorMaker = I18n.use(
+const renderErrorMaker = I18n.useSync(
   ({ intl }) =>
   <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
   (e: E, ...args: Args): string => {
@@ -1325,7 +1325,7 @@ const getStateValues = <const Id extends string, const I18nKey extends string, S
 export class CommanderImpl<RT, RTHooks> {
   constructor(
     private readonly rt: ServiceMap.ServiceMap<RT>,
-    private readonly intl: I18n["Service"],
+    private readonly intl: I18n,
     private readonly hooks: Layer.Layer<RTHooks, never, RT>
   ) {
   }

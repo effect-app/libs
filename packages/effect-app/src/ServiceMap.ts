@@ -128,9 +128,6 @@ export function TagId<const Key extends string>(key: Key) {
       & {
         toLayer: <E, R>(
           eff: Effect.Effect<Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>, E, R>
-        ) => Layer.Layer<Id, E, R>
-        toLayerScoped: <E, R>(
-          eff: Effect.Effect<Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>, E, R>
         ) => Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
         of: (service: Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>) => Id
       } = class {
@@ -140,9 +137,6 @@ export function TagId<const Key extends string>(key: Key) {
         }
         static of = (service: ServiceImpl) => service
         static toLayer = <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => {
-          return Layer.effect(this as any, eff)
-        }
-        static toLayerScoped = <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => {
           return Layer.effect(this as any, eff)
         }
       } as any
@@ -172,12 +166,6 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
         (): Layer.Layer<Id, E, R>
         <E, R>(eff: Effect.Effect<Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>, E, R>): Layer.Layer<Id, E, R>
       }
-      toLayerScoped: {
-        (): Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
-        <E, R>(
-          eff: Effect.Effect<Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>, E, R>
-        ): Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
-      }
       of: (service: ServiceMap.ServiceClass.Shape<any, any>) => Id
       make: Effect.Effect<Id, E, R>
     } = class {
@@ -193,9 +181,6 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
         return Layer.effect(this as any, arg ?? this.make)
       }
 
-      static toLayerScoped = (arg?: any) => {
-        return Layer.effect(this as any, arg ?? this.make)
-      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
 

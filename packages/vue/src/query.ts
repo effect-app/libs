@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as Result from "@effect-atom/atom/Result"
-import { isHttpClientError } from "@effect/platform/HttpClientError"
 import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
-import { Array, Cause, Effect, Option, Runtime, S } from "effect-app"
+import { Array, Cause, Effect, Exit, flow, Option, S, type ServiceMap } from "effect-app"
 import { type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
+import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
 import { makeQueryKey, reportRuntimeError } from "./lib.js"
 
@@ -74,11 +74,15 @@ export interface CustomDefinedPlaceholderQueryOptions<
     | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
 }
 
-export interface KnownFiberFailure<E> extends Runtime.FiberFailure {
-  readonly [Runtime.FiberFailureCauseId]: Cause.Cause<E>
+export class KnownFiberFailure<E> extends Error {
+  readonly error: unknown
+  constructor(public effectCause: Cause.Cause<E>) {
+    super("Query failed with cause: " + Cause.squash(effectCause))
+    this.error = Cause.squash(effectCause)
+  }
 }
 
-export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
+export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
   const useQuery_: {
     <I, A, E, Request extends Req, Name extends string>(
       q:
@@ -126,7 +130,14 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     options?: any
     // TODO
   ) => {
-    const runPromise = Runtime.runPromise(getRuntime())
+    // we wrap into KnownFiberFailure because we want to keep the full cause of the failure.
+    const runPromise = flow(Effect.runPromiseExitWith(getRuntime()), (_) =>
+      _.then(
+        Exit.match({
+          onFailure: (cause) => Promise.reject(new KnownFiberFailure(cause)),
+          onSuccess: (value) => Promise.resolve(value)
+        })
+      ))
     const arr = arg
     const req: { value: I } = !arg
       ? undefined
@@ -156,10 +167,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
           ...defaultOptions,
           ...options,
           retry: (retryCount, error) => {
-            if (Runtime.isFiberFailure(error)) {
-              const cause = error[Runtime.FiberFailureCauseId]
-              const sq = Cause.squash(cause)
-              if (!isHttpClientError(sq) && !S.is(ServiceUnavailableError)(sq)) {
+            if (error instanceof KnownFiberFailure) {
+              if (!isHttpClientError(error.error) && !S.is(ServiceUnavailableError)(error.error)) {
                 return false
               }
             }
@@ -171,8 +180,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
             runPromise(
               handler
                 .pipe(
-                  Effect.tapDefect(reportRuntimeError),
-                  Effect.withSpan(`query ${q.id}`, { captureStackTrace: false }),
+                  Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+                  Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
                   meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
                 ),
               { signal }
@@ -182,10 +191,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
           ...defaultOptions,
           ...options,
           retry: (retryCount, error) => {
-            if (Runtime.isFiberFailure(error)) {
-              const cause = error[Runtime.FiberFailureCauseId]
-              const sq = Cause.squash(cause)
-              if (!isHttpClientError(sq) && !S.is(ServiceUnavailableError)(sq)) {
+            if (error instanceof KnownFiberFailure) {
+              if (!isHttpClientError(error.error) && !S.is(ServiceUnavailableError)(error.error)) {
                 return false
               }
             }
@@ -197,8 +204,8 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
             runPromise(
               handler(req.value)
                 .pipe(
-                  Effect.tapDefect(reportRuntimeError),
-                  Effect.withSpan(`query ${q.id}`, { captureStackTrace: false }),
+                  Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+                  Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
                   meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
                 ),
               { signal }
@@ -221,7 +228,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
       result,
       computed(() => latestSuccess.value),
       // one thing to keep in mind is that span will be disconnected as Context does not pass from outside.
-      // TODO: consider how we should handle the Result here which is `QueryObserverResult<A, KnownFiberFailure<E>>`
+      // TODO: consider how we should handle the Result here which is `QueryObserverResult<A, E>`
       // and always ends up in the success channel, even when error..
       (options?: RefetchOptions) =>
         Effect.currentSpan.pipe(
@@ -237,9 +244,9 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     data: A | undefined
     isValidating: boolean
   }): Result.Result<A, E> {
-    if (r.error) {
+    if (r.error !== undefined) {
       return Result.failureWithPrevious(
-        r.error[Runtime.FiberFailureCauseId],
+        r.error.effectCause,
         {
           previous: r.data === undefined ? Option.none() : Option.some(Result.success(r.data)),
           waiting: r.isValidating

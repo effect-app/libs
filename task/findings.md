@@ -140,7 +140,7 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 |---|---|
 | `Context.Context<R>` (as type for service context) | `ServiceMap.ServiceMap<R>` |
 | `Context.empty()` | `ServiceMap.empty()` |
-| `Context.TagMakeId("Tag", makeEffect)<Self>()` — creates class with `toLayerScoped()`, `use()`, `pipe()` | `ServiceMap.Service<Self>()("Tag", { make: makeEffect })` — auto-generates `Default` layer, `Layer.scoped(this, make)` in place of `this.toLayerScoped()` |
+| `Context.TagMakeId("Tag", makeEffect)<Self>()` — creates class with `use()`, `pipe()` | `ServiceMap.Service<Self>()("Tag", { make: makeEffect })` — auto-generates `Default` layer, `Layer.scoped(this, make)` in place of `this.toLayerScoped()` |
 | `Effect.gen(function*() { return yield* MyReference })` — unwrapping a Reference/Service into an Effect | `MyReference.asEffect()` — use `.asEffect()` for turning a Reference or Service tag into an Effect |
 | `class MyRef extends Context.Reference<MyRef>()("key", { defaultValue })` — class-based Reference with `static readonly layer` | **Keep the class pattern** — `effect-app` exports a custom `Context.Reference` that re-adds the curried `<Self>()("key", { defaultValue })` overload. `ServiceMap.Reference` in vanilla v4 is not curried, but `effect-app/Context.Reference` supports both the direct form `Context.Reference<ValueType>("key", { defaultValue })` and the class form `class X extends Context.Reference<X>()("key", { defaultValue }) { static readonly layer = Layer.effect(this, make) }`. Use `.asEffect()` to get an Effect from the reference. |
 

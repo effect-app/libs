@@ -1,4 +1,4 @@
-import { Context, Effect, Option } from "effect-app"
+import { Effect, Option, ServiceMap } from "effect-app"
 import { proxify } from "effect-app/ServiceMap"
 
 export type ToastId = string | number
@@ -13,7 +13,7 @@ export type UseToast = () => {
   dismiss: (this: void, id: ToastId) => void
 }
 
-export class CurrentToastId extends Context.TagId("CurrentToastId")<CurrentToastId, { toastId: ToastId }>() {}
+export class CurrentToastId extends ServiceMap.Opaque("CurrentToastId")<CurrentToastId, { toastId: ToastId }>() {}
 
 /** fallback to CurrentToastId when available unless id is explicitly set to a value or null */
 export const wrap = (toast: ReturnType<UseToast>) => {
@@ -42,6 +42,23 @@ export const wrap = (toast: ReturnType<UseToast>) => {
 }
 
 export class Toast
-  extends proxify(Context.TagId("Toast")<Toast, ReturnType<typeof wrap>>())<Toast, ReturnType<typeof wrap>>()
+  extends proxify(ServiceMap.Opaque("Toast")<Toast, ReturnType<typeof wrap>>())<Toast, ReturnType<typeof wrap>>()
 {
 }
+
+// const A = Toast.of({
+//   error: () => Effect.succeed(null as any),
+//   info: () => Effect.succeed(null as any),
+//   success: () => Effect.succeed(null as any),
+//   warning: () => Effect.succeed(null as any),
+//   dismiss: () => Effect.succeed(null as any)
+// })
+
+// const b = Toast.info("test")
+
+// const a = Toast.use((_) => _.error("test"))
+
+// const b = Effect.gen(function*() {
+//   const toast = yield* Toast
+//   toast.error("test")
+// })

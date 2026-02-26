@@ -1,5 +1,6 @@
-import { ServiceMap } from "effect"
 import "./builtin.js"
+
+import * as ServiceMap from "./ServiceMap.js"
 
 export * as Fnc from "./Function.js"
 export * as Utils from "./utils.js"

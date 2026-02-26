@@ -1,5 +1,5 @@
 import { Context, Effect, Option } from "effect-app"
-import { proxify } from "effect-app/Context"
+import { proxify } from "effect-app/ServiceMap"
 
 export type ToastId = string | number
 export type ToastOpts = { id?: ToastId; timeout?: number }

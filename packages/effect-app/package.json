@@ -51,9 +51,9 @@
       "types": "./dist/Config/SecretURL.d.ts",
       "default": "./dist/Config/SecretURL.js"
     },
-    "./Context": {
-      "types": "./dist/Context.d.ts",
-      "default": "./dist/Context.js"
+    "./ServiceMap": {
+      "types": "./dist/ServiceMap.d.ts",
+      "default": "./dist/ServiceMap.js"
     },
     "./Effect": {
       "types": "./dist/Effect.d.ts",

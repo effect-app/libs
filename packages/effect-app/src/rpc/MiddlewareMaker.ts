@@ -13,7 +13,7 @@ import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap
 import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
 
-// adapter for effect/rpc v3 middleware provides. (in effect-smol (v4), it's wrap only, and just a Service Identifier, no tags.)
+// adapter for effect/rpc v3 middleware provides. (in effect-smol (v4), it's just a Service Identifier, no tags.)
 type MakeTags<A> = ServiceMap.Service<A, A>
 
 export interface MiddlewareMaker<
@@ -26,7 +26,6 @@ export interface MiddlewareMaker<
     Self,
     Id,
     Simplify<
-      & { readonly wrap: true }
       & (Exclude<
         MiddlewareMaker.ManyRequired<MiddlewareProviders>,
         MiddlewareMaker.ManyProvided<MiddlewareProviders>
@@ -40,7 +39,7 @@ export interface MiddlewareMaker<
       })
       & (MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? {}
         : {
-          readonly failure: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
+          readonly error: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
         })
       & (MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
         : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> })
@@ -93,7 +92,7 @@ export namespace MiddlewareMaker {
     : never
     : never
 
-  export type Errors<T> = T extends TagClassAny ? T extends { failure: S.Top } ? S.Schema.Type<T["failure"]>
+  export type Errors<T> = T extends TagClassAny ? T extends { error: S.Top } ? S.Schema.Type<T["error"]>
     : never
     : never
 
@@ -321,7 +320,7 @@ const makeMiddlewareBasic = <Self>() =>
   // reverse middlewares and wrap one after the other
   const middleware = middlewareMaker(make)
 
-  const failures = make.map((_) => _.failure).filter(Boolean)
+  const failures = make.map((_) => _.error).filter(Boolean)
   const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
   const requires = make
     .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
@@ -330,7 +329,7 @@ const makeMiddlewareBasic = <Self>() =>
   const [firstFailure, ...restFailures] = failures
 
   const MiddlewareMaker = RpcMiddlewareX.Tag<Self>()(id, {
-    failure: (firstFailure
+    error: (firstFailure
       ? S.Union([firstFailure, ...restFailures])
       : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
         : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
@@ -350,8 +349,7 @@ const makeMiddlewareBasic = <Self>() =>
     provides: (provides.length > 0
       ? provides
       : undefined) as unknown as MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? never
-        : MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>>,
-    wrap: true
+        : MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>>
   })
 
   const layer = Layer

@@ -100,7 +100,7 @@ export class GetSomething2WithDependencies extends Req<GetSomething2WithDependen
   id: S.String
 }, {
   success: S.NumberFromString as S.Schema<number, string, "dep-a">,
-  failure: S.String as S.Schema<string, string, "dep-b">
+  error: S.String as S.Schema<string, string, "dep-b">
 }) {}
 
 export const Something = { GetSomething2, GetSomething2WithDependencies, meta: { moduleName: "Something" as const } }

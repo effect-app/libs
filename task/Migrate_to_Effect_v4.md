@@ -3,7 +3,7 @@
 Right now we are using Effect v3 - effect (repos/effect-v3)
 The task is about migrating to Effect v4 - effect-smol (repos/effect-v4)
 
-There are migration guides: 
+There are migration guides:
 - Announcement: https://effect.website/blog/releases/effect/40-beta/
 - [v3 to v4 general](/repos/effect-v4/MIGRATION.md)
 - [Schema v3 to v4](/repos/effect-v4/packages/effect/SCHEMA.md#migration-from-v3)
@@ -27,6 +27,7 @@ Commit every task you complete for every step.
 
 - Always check `AGENTS.md` in the root of each repository to understand rules.
   - Ignore the `#### New Features` section, instead follow `#### Migrations` for `### Mandatory Validation Steps`
+- Consult the earlier mentioned Migration Guides for hints
 - Create task files for each Step in markdown files under `task/Migration` directory, and track progress and findings in each.
 - Save all conversion findings in a `task/findings.md` file to speed up future migrations. Read this file for every step!
 - Never replace any function argument type with `any`

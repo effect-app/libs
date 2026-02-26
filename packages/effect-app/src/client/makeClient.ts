@@ -14,8 +14,8 @@ export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Top = never
 >(rcs: RequestContextMap, generalErrors?: GeneralErrors) => {
-  // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
-  type Context = {
+  // Long way around ServiceMap/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
+  type ServiceMap = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     error: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
   }
@@ -24,21 +24,21 @@ export const makeRpcClient = <
 
   // TODO: S.TaggedRequestClass and S.TaggedRequest removed in v4 — return types use `any` for now
   function TaggedRequest<_Self>(): {
-    <Tag extends string, Payload extends S.Struct.Fields, C extends Context>(
+    <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
     ):
       & any
       & { config: Omit<C, "success" | "error"> }
-    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "success">>(
+    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
     ):
       & any
       & { config: Omit<C, "success" | "error"> }
-    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "error">>(
+    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
@@ -62,7 +62,7 @@ export const makeRpcClient = <
   } {
     // TODO: filter errors based on config + take care of inversion
     const errorSchemas = Object.values(rcs.config).map((_) => _.error)
-    return (<Tag extends string, Fields extends S.Struct.Fields, C extends Context>(
+    return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
       tag: Tag,
       fields: Fields,
       config?: C

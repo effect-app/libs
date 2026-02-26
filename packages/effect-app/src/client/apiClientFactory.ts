@@ -7,11 +7,11 @@ import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 import * as Struct from "effect/Struct"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
-import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
 import * as Option from "../Option.js"
 import type * as S from "../Schema.js"
+import * as ServiceMap from "../ServiceMap.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, Requests, RequestsAny } from "./clientFor.js"
 
@@ -39,7 +39,7 @@ export type Req = S.Top & {
   config?: Record<string, any>
 }
 
-class RequestName extends Context.Reference<RequestName>()("RequestName", {
+class RequestName extends ServiceMap.Reference<RequestName>()("RequestName", {
   defaultValue: () => ({ requestName: "Unspecified", moduleName: "Error" })
 }) {}
 
@@ -138,7 +138,7 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
 
   // Use Object.assign instead of class extension to avoid TS2509 with complex generic return types.
   // The first type arg is `any` because this is a dynamically created tag — its identity is the string key.
-  const TheClient = Context.TagId(`RpcClient.${meta.moduleName}`)<
+  const TheClient = ServiceMap.TagId(`RpcClient.${meta.moduleName}`)<
     any,
     RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
   >()
@@ -283,7 +283,7 @@ const makeApiClientFactory = Effect
  * Used to create clients for resource modules.
  */
 export class ApiClientFactory
-  extends Context.TagId("ApiClientFactory")<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()
+  extends ServiceMap.TagId("ApiClientFactory")<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()
 {
   static readonly layer = (config: ApiConfig) =>
     ApiClientFactory.toLayer(makeApiClientFactory).pipe(Layer.provide(RpcSerializationLayer(config)))

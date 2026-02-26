@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type RpcMiddlewareV4 } from "effect-app/rpc/RpcMiddleware"
-import { type Context, type Layer, type ServiceMap } from "effect-app"
+import { type Layer, type ServiceMap } from "effect-app"
 import { type GetContextConfig, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
+import { type RpcMiddlewareV4 } from "effect-app/rpc/RpcMiddleware"
 // module:
 //
 
@@ -21,6 +21,6 @@ export type RouterMiddleware<
   & ServiceMap.Service<Self, RpcMiddlewareV4<ContextProviderA, ContextProviderE, never>>
   & {
     readonly Default: Layer.Layer<Self, MakeMiddlewareE, MakeMiddlewareR>
-    readonly requestContext: Context.Service<RequestContextId, GetContextConfig<RequestContextMap>>
+    readonly requestContext: ServiceMap.Service<RequestContextId, GetContextConfig<RequestContextMap>>
     readonly requestContextMap: RequestContextMap
   }

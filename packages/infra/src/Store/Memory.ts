@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, Struct } from "effect-app"
+import { Array, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, ServiceMap, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { get } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
@@ -73,7 +73,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
 
 const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
 export class storeId
-  extends Context.Reference<storeId>()("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
+  extends ServiceMap.Reference<storeId>()("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
 {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
@@ -164,11 +164,11 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           ),
 
       all: all.pipe(Effect.withSpan("Memory.all [effect-app/infra/Store]", {
-              attributes: {
+        attributes: {
           modelName,
           namespace
         }
-            }, { captureStackTrace: false })),
+      }, { captureStackTrace: false })),
       find: (id) =>
         Ref
           .get(store)
@@ -243,8 +243,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
         batchSet,
         (_) =>
           _.pipe(Effect.withSpan("Memory.bulkSet [effect-app/infra/Store]", {
-              attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-            }, { captureStackTrace: false }))
+            attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+          }, { captureStackTrace: false }))
       )
     }
     return s

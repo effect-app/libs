@@ -7,7 +7,7 @@
 // import type { ParserEnv } from "effect-app/Schema/custom/Parser"
 import type {} from "effect/Equal"
 import type {} from "effect/Hash"
-import { type Context, Effect, type NonEmptyReadonlyArray, type S } from "effect-app"
+import { Effect, type NonEmptyReadonlyArray, type S, type ServiceMap } from "effect-app"
 import type { StoreConfig, StoreMaker } from "../../Store.js"
 import type { FieldValues } from "../filter/types.js"
 import { type ExtendedRepository, extendRepo } from "./ext.js"
@@ -52,7 +52,7 @@ export interface RepositoryOptions<
    * Optional context to be provided to Schema decode/encode.
    * Useful for effectful transformations like XWithItems, where items is a transformation retrieving elements from another database table or other source.
    */
-  schemaContext?: Context.ServiceMap<RCtx>
+  schemaContext?: ServiceMap.ServiceMap<RCtx>
 
   overrides?: (
     repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>

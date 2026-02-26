@@ -1,6 +1,6 @@
 import { reportError } from "@effect-app/infra/errorReporter"
 import { subHours } from "date-fns"
-import { Cause, Context, copy, Duration, Effect, Exit, type Fiber, Layer, Option, S, Schedule } from "effect-app"
+import { Cause, copy, Duration, Effect, Exit, type Fiber, Layer, Option, S, Schedule, ServiceMap } from "effect-app"
 import { annotateLogscoped } from "effect-app/Effect"
 import { dual, pipe } from "effect-app/Function"
 import { Operation, OperationFailure, OperationId, type OperationProgress, OperationSuccess } from "effect-app/Operations"
@@ -189,7 +189,7 @@ const make = Effect.gen(function*() {
   }
 })
 
-export class Operations extends Context.TagMakeId("effect-app/Operations", make)<Operations>() {
+export class Operations extends ServiceMap.TagMakeId("effect-app/Operations", make)<Operations>() {
   private static readonly CleanupLive = this
     .use((_) =>
       _.cleanup.pipe(

@@ -15,7 +15,7 @@ export namespace EffectGenUtils {
     : EG extends (..._: infer _3) => Generator<Yieldable<any, infer _, infer E, infer _R>, infer _A, infer _2> ? E
     : never
 
-  export type Context<EG> = EG extends Effect<infer _A, infer _E, infer R> ? R
+  export type ServiceMap<EG> = EG extends Effect<infer _A, infer _E, infer R> ? R
     // there could be a case where the generator function does not yield anything, so we need to handle that
     : EG extends (..._: infer _3) => Generator<never, infer _A, infer _2> ? never
     // v4: generators can yield Yieldable (Effect, Service, etc.), all have asEffect()

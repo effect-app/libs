@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope, type ServiceMap } from "effect-app"
+import { Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope, ServiceMap } from "effect-app"
 
 import { type HttpRouter } from "effect-app/http"
 import { type EffectGenUtils } from "effect-app/utils/gen"
@@ -60,7 +60,7 @@ export const mergeContextProviders = <
       // v4: Service.Shape extracts the service value type (v3's Tag.Identifier)
       ServiceMap.ServiceMap<GetContext<EffectGenUtils.Success<ServiceMap.Service.Shape<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<ServiceMap.Service.Shape<TDeps[number]>>
+      EffectGenUtils.ServiceMap<ServiceMap.Service.Shape<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
@@ -85,7 +85,7 @@ export const mergeContextProviders = <
   }) as any
 })
 
-// Effect Rpc Middleware: for single tag providing, we could use Provides, for providing Context or Layer (bad boy) we could use Wrap..
+// Effect Rpc Middleware: for single tag providing, we could use Provides, for providing ServiceMap or Layer (bad boy) we could use Wrap..
 export const ContextProvider = <
   ContextProviderA,
   MakeContextProviderE,
@@ -107,7 +107,7 @@ export const ContextProvider = <
     dependencies?: Dependencies
   }
 ) => {
-  const ctx = Context.Service<
+  const ctx = ServiceMap.Service<
     ContextProviderId,
     Effect.Effect<ContextProviderA, never, ContextProviderR>
   >(
@@ -148,7 +148,7 @@ export const MergedContextProvider = <
       // v4: Service.Shape extracts the service value type (v3's Tag.Identifier)
       ServiceMap.ServiceMap<GetContext<EffectGenUtils.Success<ServiceMap.Service.Shape<TDeps[number]>>>>,
       never,
-      EffectGenUtils.Context<ServiceMap.Service.Shape<TDeps[number]>>
+      EffectGenUtils.ServiceMap<ServiceMap.Service.Shape<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     // v4: Identifier here is correct — it's the nominal service identity for layer provide/exclude
@@ -159,4 +159,4 @@ export const MergedContextProvider = <
     | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
   >
 
-export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(Context.empty())) })
+export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(ServiceMap.empty())) })

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { UniqueKey } from "@azure/cosmos"
-import { Context, Effect, type NonEmptyReadonlyArray, type Option, type Redacted } from "effect-app"
+import { Effect, type NonEmptyReadonlyArray, type Option, type Redacted, ServiceMap } from "effect-app"
 import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
@@ -89,7 +89,7 @@ export interface Store<
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
 }
 
-export class StoreMaker extends Context.TagId("effect-app/StoreMaker")<StoreMaker, {
+export class StoreMaker extends ServiceMap.TagId("effect-app/StoreMaker")<StoreMaker, {
   make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
     name: string,
     idKey: IdKey,
@@ -170,7 +170,7 @@ export const makeContextMap = () => {
 
 const makeMap = Effect.sync(() => makeContextMap())
 
-export class ContextMap extends Context.TagMakeId("effect-app/ContextMap", makeMap)<ContextMap>() {
+export class ContextMap extends ServiceMap.TagMakeId("effect-app/ContextMap", makeMap)<ContextMap>() {
 }
 
 export type PersistenceModelType<Encoded extends object> = Encoded & {

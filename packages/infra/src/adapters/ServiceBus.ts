@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 import { type OperationOptionsBase, type ProcessErrorArgs, ServiceBusClient, type ServiceBusMessage, type ServiceBusMessageBatch, type ServiceBusReceivedMessage, type ServiceBusReceiver } from "@azure/service-bus"
-import { Cause, Context, Effect, Exit, FiberSet, Layer, ServiceMap, type Scope } from "effect-app"
+import { Cause, Effect, Exit, FiberSet, Layer, type Scope, ServiceMap } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
 const withSpanAndLog = (name: string) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
@@ -18,7 +18,7 @@ function makeClient(url: string) {
   )
 }
 
-export class ServiceBusClientTag extends Context.TagId("@services/Client")<ServiceBusClientTag, ServiceBusClient>() {
+export class ServiceBusClientTag extends ServiceMap.TagId("@services/Client")<ServiceBusClientTag, ServiceBusClient>() {
   static readonly make = makeClient
   static readonly layer = (url: string) => Layer.effect(this, makeClient(url))
 }
@@ -49,7 +49,7 @@ const makeSender = (name: string) =>
     return { name, sendMessages }
   })
 
-export class Sender extends Context.TagId("Sender")<Sender, {
+export class Sender extends ServiceMap.TagId("Sender")<Sender, {
   name: string
   sendMessages: (
     messages: ServiceBusMessage | ServiceBusMessage[] | ServiceBusMessageBatch,
@@ -163,7 +163,7 @@ const makeReceiver = (name: string) =>
     }
   })
 
-export class Receiver extends Context.TagId("Receiver")<Receiver, {
+export class Receiver extends ServiceMap.TagId("Receiver")<Receiver, {
   name: string
   make: (waitTillEmpty: Effect.Effect<void>) => Effect.Effect<ServiceBusReceiver, never, Scope.Scope>
   makeSession: (

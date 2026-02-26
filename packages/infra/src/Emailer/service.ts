@@ -1,13 +1,13 @@
 import type { MailContent, MailData } from "@sendgrid/helpers/classes/mail.js"
 import type { ResponseError } from "@sendgrid/mail"
-import { Context, Data, type Effect, type NonEmptyReadonlyArray, type Redacted } from "effect-app"
+import { Data, type Effect, type NonEmptyReadonlyArray, type Redacted, ServiceMap } from "effect-app"
 import type { Email } from "effect-app/Schema"
 
 export class SendMailError extends Data.TaggedError("SendMailError")<{
   readonly raw: Error | ResponseError
 }> {}
 
-export class Emailer extends Context.TagId("effect-app/Emailer")<Emailer, {
+export class Emailer extends ServiceMap.TagId("effect-app/Emailer")<Emailer, {
   sendMail: (msg: EmailMsgOptionalFrom) => Effect.Effect<void, SendMailError>
 }>() {}
 

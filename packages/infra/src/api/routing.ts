@@ -54,7 +54,7 @@ namespace RequestTypes {
 type RequestType = typeof RequestTypes[keyof typeof RequestTypes]
 
 type GetSuccess<T> = T extends { success: S.Any } ? T["success"] : typeof S.Void
-type GetFailure<T extends { failure?: S.Any }> = T["failure"] extends never ? typeof S.Never : T["failure"]
+type GetFailure<T extends { error?: S.Any }> = T["error"] extends never ? typeof S.Never : T["error"]
 
 type GetSuccessShape<Action extends { success?: S.Any }, RT extends RequestType> = {
   d: S.Schema.Type<GetSuccess<Action>>

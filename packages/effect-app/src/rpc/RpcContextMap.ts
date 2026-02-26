@@ -9,7 +9,7 @@ import { type RpcDynamic } from "./RpcMiddleware.js"
 type Values<T extends Record<any, any>> = T[keyof T]
 
 /**
- * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
+ * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect ServiceMap.
  * Unless explicitly configured as `true`.
  */
 export type RpcContextMap<Service, E> = {
@@ -22,7 +22,7 @@ export type RpcContextMap<Service, E> = {
 
 export declare namespace RpcContextMap {
   /**
-   * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect Context.
+   * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect ServiceMap.
    * Unless explicitly omitted.
    */
   export type Inverted<Service, E> = {

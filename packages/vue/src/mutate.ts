@@ -58,7 +58,7 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
     .pipe(
       Effect.andThen(self),
       Effect.exit,
-      Effect.andThen(Result.fromExit),
+      Effect.map(Result.fromExit),
       Effect.flatMap((r) => Effect.sync(() => result.value = r))
     )
 
@@ -118,7 +118,7 @@ export const asResult: {
         state.value = Result.initial(true)
       })
       .pipe(
-        Effect.zipRight(Effect.suspend(() =>
+        Effect.andThen(Effect.suspend(() =>
           handler.pipe(
             Effect.exit,
             Effect.tap((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
@@ -131,7 +131,7 @@ export const asResult: {
           state.value = Result.initial(true)
         })
         .pipe(
-          Effect.zipRight(Effect.suspend(() =>
+          Effect.andThen(Effect.suspend(() =>
             handler(...args).pipe(
               Effect.exit,
               Effect.tap((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
@@ -171,7 +171,7 @@ export const invalidateQueries = (
           Effect.annotateCurrentSpan({ queryKey, opts }),
           Effect.forEach(opts, (_) => invalidateQueries(_.filters, _.options), { concurrency: "inherit" })
         )
-        .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
+        .pipe(Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false }))
     }
 
     if (!queryKey) return Effect.void
@@ -187,12 +187,11 @@ export const invalidateQueries = (
           // TODO: should we do this in general on any mutation, regardless of invalidation?
           Effect.sleep(0)
         ),
-        Effect.withSpan("client.query.invalidation", { captureStackTrace: false })
+        Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
       )
   })
 
-  const handle = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache })
+  const handle = <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.ensuring(self, invalidateCache)
 
   return handle
 }

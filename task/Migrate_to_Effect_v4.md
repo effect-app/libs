@@ -1,12 +1,12 @@
 # Migration
 
-Right now we are using Effect v3 (repos/effect)
-The task is about migrating to Effect v4 (repos/effect-smol)
+Right now we are using Effect v3 - effect (repos/effect-v3)
+The task is about migrating to Effect v4 - effect-smol (repos/effect-v4)
 
 There are migration guides: 
 - Announcement: https://effect.website/blog/releases/effect/40-beta/
-- [v3 to v4 general](/repos/effect-smol/MIGRATION.md)
-- [Schema v3 to v4](/repos/effect-smol/packages/effect/SCHEMA.md#migration-from-v3)
+- [v3 to v4 general](/repos/effect-v4/MIGRATION.md)
+- [Schema v3 to v4](/repos/effect-v4/packages/effect/SCHEMA.md#migration-from-v3)
 
 ## Steps
 

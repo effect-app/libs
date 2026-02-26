@@ -1,6 +1,6 @@
-[submodule "repos/effect-smol"]
-	path = repos/effect-smol
+[submodule "repos/effect-v4"]
+	path = repos/effect-v4
 	url = https://github.com/Effect-TS/effect-smol.git
-[submodule "repos/effect"]
-	path = repos/effect
+[submodule "repos/effect-v3"]
+	path = repos/effect-v3
 	url = https://github.com/Effect-TS/effect.git

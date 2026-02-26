@@ -59,8 +59,8 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export type Failure<Options> = Options extends
-    { readonly error: Schema.Schema<infer _A>; readonly optional?: false } ? _A
+  export type Failure<Options> = Options extends { readonly error: Schema.Schema<infer _A>; readonly optional?: false }
+    ? _A
     // actually not, the Failure depends on Dynamic Middleware Configuration!
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
     : never

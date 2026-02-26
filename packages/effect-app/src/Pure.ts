@@ -91,8 +91,28 @@ function castTag<W, S, S2>() {
   return tagg as any as Context.Service<PureEnvEnv<W, S, S2>, PureEnvEnv<W, S, S2>>
 }
 
+export const ServiceTag = Symbol()
+export type ServiceTag = typeof ServiceTag
+
+export abstract class PhantomTypeParameter<Identifier extends keyof any, InstantiatedType> {
+  protected abstract readonly [ServiceTag]: {
+    readonly [NameP in Identifier]: (_: InstantiatedType) => InstantiatedType
+  }
+}
+
+export type ServiceShape<T extends Context.ServiceClass.Shape<any, any>> = Omit<
+  T,
+  keyof Context.ServiceClass.Shape<any, any>
+>
+
+export abstract class ServiceTagged<ServiceKey> extends PhantomTypeParameter<string, ServiceKey> {}
+
+export function makeService<T extends ServiceTagged<any>>(_: Omit<T, ServiceTag>) {
+  return _ as T
+}
+
 export const PureEnvEnv = Symbol()
-export interface PureEnvEnv<W, S, S2> extends Context.ServiceTagged<typeof PureEnvEnv> {
+export interface PureEnvEnv<W, S, S2> extends ServiceTagged<typeof PureEnvEnv> {
   env: PureEnv<W, S, S2>
 }
 

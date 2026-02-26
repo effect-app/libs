@@ -11,7 +11,7 @@ export type RpcMiddlewareV4<Provides, E, Requires> = RpcMiddleware.RpcMiddleware
 
 export type RpcOptionsOriginal = {
   readonly optional?: boolean
-  readonly failure?: Schema.Top
+  readonly error?: Schema.Top
   readonly requiredForClient?: boolean
 }
 
@@ -39,8 +39,7 @@ export interface TagClassAny extends RpcMiddleware.AnyService {
   readonly optional: boolean
   readonly provides: any
   readonly requires: any
-  readonly failure: Schema.Top
-  readonly wrap: true
+  readonly error: Schema.Top
   readonly dynamic?: RpcDynamic<any, any> | undefined
   readonly dependsOn?: NonEmptyReadonlyArray<AnyDynamic> | undefined
 }
@@ -50,8 +49,8 @@ export declare namespace TagClass {
    * @since 1.0.0
    * @category models
    */
-  export type FailureSchema<Options> = Options extends { readonly failure: Schema.Top; readonly optional?: false }
-    ? Options["failure"]
+  export type FailureSchema<Options> = Options extends { readonly error: Schema.Top; readonly optional?: false }
+    ? Options["error"]
     // actually not, the Failure depends on Dynamic Middleware Configuration!
     // : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? A["error"]
     : typeof Schema.Never
@@ -61,7 +60,7 @@ export declare namespace TagClass {
    * @category models
    */
   export type Failure<Options> = Options extends
-    { readonly failure: Schema.Schema<infer _A>; readonly optional?: false } ? _A
+    { readonly error: Schema.Schema<infer _A>; readonly optional?: false } ? _A
     // actually not, the Failure depends on Dynamic Middleware Configuration!
     : Options extends { readonly dynamic: RpcDynamic<any, infer A> } ? S.Schema.Type<A["error"]>
     : never
@@ -107,7 +106,6 @@ export declare namespace TagClass {
     new(_: never): ServiceMap.ServiceClass.Shape<Name, Service>
     readonly [TypeId]: TypeId
     readonly optional: Optional<Options>
-    readonly failure: FailureSchema<Options>
     readonly error: FailureSchema<Options>
     readonly "~ClientError": Options extends { readonly clientError: infer CE } ? CE : never
     readonly provides: "provides" extends keyof Config ? Config["provides"] : never
@@ -116,7 +114,6 @@ export declare namespace TagClass {
       : undefined
     readonly dependsOn: Options extends DependsOn ? Options["dependsOn"] : undefined
     readonly requiredForClient: RequiredForClient<Options>
-    readonly wrap: true
   }
 }
 

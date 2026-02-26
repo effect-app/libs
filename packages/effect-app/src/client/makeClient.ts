@@ -17,7 +17,7 @@ export const makeRpcClient = <
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type Context = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
-    failure: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
+    error: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
   }
 
   type RequestConfig = GetContextConfig<RequestContextMap["config"]>
@@ -30,28 +30,28 @@ export const makeRpcClient = <
       config: RequestConfig & C
     ):
       & any
-      & { config: Omit<C, "success" | "failure"> }
+      & { config: Omit<C, "success" | "error"> }
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "success">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
     ):
       & any
-      & { config: Omit<C, "success" | "failure"> }
-    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "failure">>(
+      & { config: Omit<C, "success" | "error"> }
+    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<Context, "error">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
     ):
       & any
-      & { config: Omit<C, "success" | "failure"> }
+      & { config: Omit<C, "success" | "error"> }
     <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
       tag: Tag,
       fields: Payload,
       config: C & RequestConfig
     ):
       & any
-      & { config: Omit<C, "success" | "failure"> }
+      & { config: Omit<C, "success" | "error"> }
     <Tag extends string, Payload extends S.Struct.Fields>(
       tag: Tag,
       fields: Payload
@@ -70,7 +70,7 @@ export const makeRpcClient = <
       // TODO: S.TaggedRequest removed in v4 — needs rework to use Rpc.make or Request.TaggedClass
       // For now, creating a simple tagged struct class with success/failure properties
       const failureSchema = merge(
-        config?.failure ? S.isSchema(config.failure) ? config.failure : S.Struct(config.failure) : undefined,
+        config?.error ? S.isSchema(config.error) ? config.error : S.Struct(config.error) : undefined,
         [...errorSchemas, generalErrors].filter(Boolean)
       )
       const successSchema = config?.success
@@ -96,7 +96,7 @@ export const makeRpcClient = <
         _tag: tag,
         fields: taggedFields,
         success: successSchema,
-        failure: failureSchema,
+        error: failureSchema,
         config
       })
 

@@ -20,7 +20,7 @@ export type AnyRequestModule = S.Any & {
   _tag: string // unique identifier for the request module
   config: any // ?
   success: S.Any // validates the success response
-  failure: S.Any // validates the failure response
+  error: S.Any // validates the failure response
 }
 
 // builder pattern for adding actions to a router until all actions are added
@@ -141,7 +141,7 @@ export type RouteMatcher<
     & {
       success: Resource[Key]["success"]
       successRaw: S.Schema<S.Codec.Encoded<Resource[Key]["success"]>>
-      failure: Resource[Key]["failure"]
+      error: Resource[Key]["failure"]
       /**
        * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
        */
@@ -275,7 +275,7 @@ export const makeRouter = <
         }, {
           success: rsc[cur].success,
           successRaw: S.toEncoded(rsc[cur].success),
-          failure: rsc[cur].failure,
+          error: rsc[cur].error,
           raw: // "Raw" variations are for when you don't want to decode just to encode it again on the response
             // e.g for direct projection from DB
             // but more importantly, to skip Effectful decoders, like to resolve relationships from the database or remote client.

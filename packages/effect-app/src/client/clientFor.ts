@@ -95,16 +95,16 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
   [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
     ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Codec.DecodingServices<M[K]["success"]> | S.Codec.DecodingServices<M[K]["failure"]>,
+      S.Schema.Type<M[K]["error"]> | E,
+      R | S.Codec.DecodingServices<M[K]["success"]> | S.Codec.DecodingServices<M[K]["error"]>,
       M[K],
       `${ModuleName}.${K & string}`
     >
     : RequestHandlerWithInput<
       Omit<S.Schema.Type<M[K]>, Cruft>,
       S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Codec.DecodingServices<M[K]["success"]> | S.Codec.DecodingServices<M[K]["failure"]>,
+      S.Schema.Type<M[K]["error"]> | E,
+      R | S.Codec.DecodingServices<M[K]["success"]> | S.Codec.DecodingServices<M[K]["error"]>,
       M[K],
       `${ModuleName}.${K & string}`
     >

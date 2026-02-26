@@ -35,7 +35,7 @@ export type Req = S.Top & {
   _tag: string
   fields: S.Struct.Fields
   success: S.Top
-  failure: S.Top
+  error: S.Top
   config?: Record<string, any>
 }
 
@@ -80,7 +80,7 @@ export const RpcSerializationLayer = (config: ApiConfig) =>
   )
 
 type RpcHandlers<M extends RequestsAny> = {
-  [K in keyof M]: Rpc.Rpc<M[K]["_tag"], M[K], M[K]["success"], M[K]["failure"]>
+  [K in keyof M]: Rpc.Rpc<M[K]["_tag"], M[K], M[K]["success"], M[K]["error"]>
 }
 
 const getFiltered = <M extends Requests>(resource: M) => {
@@ -116,7 +116,7 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends Requests, const 
   const rpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
-        return Rpc.make((_ as any)._tag, { payload: _ as any, success: (_ as any).success, error: (_ as any).failure })
+        return Rpc.make((_ as any)._tag, { payload: _ as any, success: (_ as any).success, error: (_ as any).error })
       })
     )
     .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<

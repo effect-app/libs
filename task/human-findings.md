@@ -20,6 +20,7 @@
 ## Follow ups
 
 - [ ] RpcMiddlewareV4 - probably get rid of and use official v4 type?
+  - [ ] Try to remove all RPC customization apart from dynamic support
 - [ ] deal with having to use JSON decode to get Dates back from JSON, and start using S.Date without ISO conversion
   - [ ] update Query accordingly to support actual Date objects!
   - [ ] assess impact on frontend..

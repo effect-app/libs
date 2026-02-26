@@ -6,43 +6,20 @@
  */
 
 import { type Effect, Layer, type Scope } from "effect"
-import { type NonEmptyReadonlyArray } from "effect/Array"
 import * as ServiceMap from "effect/ServiceMap"
 
 export * from "effect/ServiceMap"
 
-export const Reference = ServiceMap.Service as unknown as {
-  <Service>(
-    key: string,
-    options: { readonly defaultValue: () => Service }
-  ): ServiceMap.Reference<Service>
-
+/**
+ * Customized version of `ServiceMap.Reference` that supports classes
+ */
+export const Reference = ServiceMap.Reference as typeof ServiceMap.Reference & {
   <_Self>(): <Service, const Identifier extends string>(
     key: Identifier,
     options: { readonly defaultValue: () => Service }
   ) => ServiceMap.Reference<Service> & {
     new(_: never): ServiceMap.ServiceClass.Shape<Identifier, Service>
   }
-}
-
-export const ServiceTag = Symbol()
-export type ServiceTag = typeof ServiceTag
-
-export abstract class PhantomTypeParameter<Identifier extends keyof any, InstantiatedType> {
-  protected abstract readonly [ServiceTag]: {
-    readonly [NameP in Identifier]: (_: InstantiatedType) => InstantiatedType
-  }
-}
-
-export type ServiceShape<T extends ServiceMap.ServiceClass.Shape<any, any>> = Omit<
-  T,
-  keyof ServiceMap.ServiceClass.Shape<any, any>
->
-
-export abstract class ServiceTagged<ServiceKey> extends PhantomTypeParameter<string, ServiceKey> {}
-
-export function makeService<T extends ServiceTagged<any>>(_: Omit<T, ServiceTag>) {
-  return _ as T
 }
 
 let i = 0
@@ -96,11 +73,15 @@ export type ServiceAcessorShape<Self, Type> =
     : {})
   & ServiceUse<Self, Type>
 
+/** @deprecated */
 export const useify =
   <T extends ServiceMap.Service<any, any>>(Tag: T) => <Self, Shape>(): T & ServiceUse<Self, Shape> => {
     return Object.assign(Tag, { use: (body: any) => (Tag as any).use(body) } as ServiceUse<Self, Shape>)
   }
 
+/**
+ * Only use this in very specific cases where using dependencies directly is prefered, like inside command handlers.
+ */
 export const proxify = <T extends object>(Tag: T) =>
 <Self, Shape>():
   & T
@@ -131,11 +112,9 @@ export const proxify = <T extends object>(Tag: T) =>
   return done
 }
 
-// Local replacements for removed Effect.Service.MakeDeps* types
-type MakeDepsE<Opts> = Opts extends { dependencies: ReadonlyArray<Layer.Layer<any, infer E, any>> } ? E : never
-type MakeDepsOut<Opts> = Opts extends { dependencies: ReadonlyArray<Layer.Layer<infer Out, any, any>> } ? Out : never
-type MakeDepsIn<Opts> = Opts extends { dependencies: ReadonlyArray<Layer.Layer<any, any, infer R>> } ? R : never
-
+/**
+ * @deprecated use `ServiceMap.Service` instead
+ */
 export function TagId<const Key extends string>(key: Key) {
   return <Id, ServiceImpl>() => {
     const limit = Error.stackTraceLimit
@@ -172,6 +151,9 @@ export function TagId<const Key extends string>(key: Key) {
   }
 }
 
+/**
+ * @deprecated use `ServiceMap.Service` instead
+ */
 export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
   key: Key,
   make: Effect.Effect<ServiceImpl, E, R>
@@ -219,57 +201,3 @@ export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
 
   return useify(assignTag<Id, ServiceImpl>(key, creationError)(c))<Id, ServiceImpl>()
 }
-
-export const ServiceDef = <Tag extends ServiceMap.Service<any, any>>(self: Tag) =>
-<A>() =>
-<
-  LayerOpts extends {
-    effect: Effect.Effect<
-      A,
-      any,
-      any
-    >
-    dependencies?: NonEmptyReadonlyArray<Layer.Any>
-  }
->(opts: LayerOpts): Layer.Layer<
-  Tag,
-  | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
-    : never)
-  | MakeDepsE<LayerOpts>,
-  | Exclude<
-    LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
-    MakeDepsOut<LayerOpts>
-  >
-  | MakeDepsIn<LayerOpts>
-> =>
-  Layer.effect(self, opts.effect as any).pipe(
-    Layer.provide([Layer.empty, ...opts.dependencies ?? []])
-  ) as any
-
-/** @deprecated; use `static Default = Layer.make(this, { effect, dependencies })` instead */
-export const DefineService = <
-  Tag extends ServiceMap.ServiceClass<any, any, any>,
-  LayerOpts extends {
-    effect: Effect.Effect<
-      ServiceMap.Service.Shape<Tag>,
-      any,
-      any
-    >
-    dependencies?: NonEmptyReadonlyArray<Layer.Any>
-  }
->(tag: Tag, opts: LayerOpts): Tag & {
-  Default: Layer.Layer<
-    ServiceMap.Service.Identifier<Tag>,
-    | (LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _E
-      : never)
-    | MakeDepsE<LayerOpts>,
-    | Exclude<
-      LayerOpts extends { effect: Effect.Effect<infer _A, infer _E, infer _R> } ? _R : never,
-      MakeDepsOut<LayerOpts>
-    >
-    | MakeDepsIn<LayerOpts>
-  >
-} =>
-  class extends (tag as any) {
-    static readonly Default = ServiceDef<Tag>(tag)<ServiceMap.Service.Shape<Tag>>()(opts)
-  } as any

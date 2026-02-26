@@ -24,8 +24,7 @@ export const RequestCacheMiddlewareLive = Layer.succeed(
 )
 
 const isOptimisticConcurrencyException = (input: unknown) =>
-  typeof input === "object" && input !== null && "_tag" in input
-    && input._tag === "OptimisticConcurrencyException"
+  typeof input === "object" && input !== null && "_tag" in input && input._tag === "OptimisticConcurrencyException"
 
 export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
   ConfigureInterruptibilityMiddleware,
@@ -83,10 +82,10 @@ export const LoggerMiddlewareLive = Layer
             // TODO: support SchemaError if the error channel of the request allows it.. but who would want that?
             Effect.catch((_) => Schema.isSchemaError(_) ? Effect.die(_) : Effect.fail(_)),
             Effect.tapCause((cause) => Cause.hasFails(cause) ? logRequestError(cause) : Effect.void),
-            Effect.tapDefect((cause) =>
+            Effect.tapCauseIf(Cause.hasDies, (cause) =>
               Effect
                 .all([
-                  reportRequestError(Cause.die(cause), {
+                  reportRequestError(cause, {
                     action: rpc._tag
                   }),
                   InfraLogger
@@ -104,8 +103,7 @@ export const LoggerMiddlewareLive = Layer
                       //     }, {} as Record<string, any>)
                       // )
                     }))
-                ])
-            ),
+                ])),
             devMode ? (_) => _ : Effect.catchDefect(() => Effect.die("Internal Server Error"))
           )
     })

@@ -2,13 +2,11 @@
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type Result } from "@effect-atom/atom/Result"
-import { Cause, Context, Effect, type Exit, flow, type Layer, Match, MutableHashMap, Option, Runtime, S, Utils } from "effect-app"
+import { Cause, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, S, ServiceMap } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
-import { id, type RuntimeFiber } from "effect/Fiber"
-import { type NoInfer } from "effect/Types"
-import { isGeneratorFunction, type YieldWrap } from "effect/Utils"
+import { isGeneratorFunction } from "effect/Utils"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref } from "vue"
 import { Confirm } from "./confirm.js"
@@ -69,18 +67,17 @@ export const DefaultIntl = {
   }
 }
 
-export class CommandContext extends Effect.Tag("CommandContext")<
-  CommandContext,
-  {
-    id: string
-    i18nKey: string
-    action: string
-    label: string
-    namespace: string
-    namespaced: (key: string) => string
-    state?: IntlRecord | undefined
-  }
->() {}
+export class CommandContext extends ServiceMap.Service<CommandContext, {
+  id: string
+  i18nKey: string
+  action: string
+  label: string
+  namespace: string
+  namespaced: (key: string) => string
+  state?: IntlRecord | undefined
+}>()(
+  "CommandContext"
+) {}
 
 export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
 
@@ -100,7 +97,7 @@ export declare namespace Commander {
     & NonGen<RT, Id, I18nKey, State>
     & CommandContextLocal<Id, I18nKey>
     & {
-      state: Context.Tag<`Commander.Command.${Id}.state`, State>
+      state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>
     }
 
   export type CommanderFn<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> =
@@ -120,7 +117,7 @@ export declare namespace Commander {
     & GenWrap<RT, Id, I18nCustomKey, I, A, E, R, State>
     & NonGenWrap<RT, Id, I18nCustomKey, I, A, E, R, State>
     & {
-      state: Context.Tag<`Commander.Command.${Id}.state`, State>
+      state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>
     }
 
   export interface CommandContextLocal<Id extends string, I18nKey extends string> {
@@ -165,7 +162,7 @@ export declare namespace Commander {
     new(): {}
 
     /** click handlers */
-    handle: ((arg: Arg) => RuntimeFiber<Exit.Exit<A, E>, never>) & {
+    handle: ((arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>, never>) & {
       /** @deprecated don't exist */
       effect: (arg: Arg) => Effect.Effect<A, E, R>
     }
@@ -179,7 +176,7 @@ export declare namespace Commander {
     //  * @experimental
     //  * captures the current span and returns an Effect that when run will execute the command
     //  */
-    // handleEffect: (arg: Arg) => Effect.Effect<RuntimeFiber<Exit.Exit<A, E>, never>>
+    // handleEffect: (arg: Arg) => Effect.Effect<Fiber.Fiber<Exit.Exit<A, E>, never>>
     // /**
     //  * @experimental
     //  */
@@ -200,9 +197,9 @@ export declare namespace Commander {
     State extends IntlRecord | undefined
   > = CommandOut<
     Arg,
-    Effect.Effect.Success<Eff>,
-    Effect.Effect.Error<Eff>,
-    Effect.Effect.Context<Eff>,
+    Effect.Success<Eff>,
+    Effect.Error<Eff>,
+    Effect.Services<Eff>,
     Id,
     I18nKey,
     State
@@ -210,7 +207,7 @@ export declare namespace Commander {
 
   export type Gen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>,
+      Eff extends Effect.Yieldable<any, any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       AEff,
       Arg = void
     >(
@@ -219,17 +216,17 @@ export declare namespace Commander {
       Arg,
       AEff,
       [Eff] extends [never] ? never
-        : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+        : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
         : never,
       [Eff] extends [never] ? never
-        : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+        : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
         : never,
       Id,
       I18nKey,
       State
     >
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
       Arg = void
@@ -239,10 +236,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -250,7 +247,7 @@ export declare namespace Commander {
       ) => A
     ): CommandOutHelper<Arg, A, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B extends Effect.Effect<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
@@ -261,10 +258,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -273,7 +270,7 @@ export declare namespace Commander {
       b: (_: A, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => B
     ): CommandOutHelper<Arg, B, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B,
@@ -285,10 +282,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -298,7 +295,7 @@ export declare namespace Commander {
       c: (_: B, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => C
     ): CommandOutHelper<Arg, C, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B,
@@ -311,10 +308,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -325,7 +322,7 @@ export declare namespace Commander {
       d: (_: C, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => D
     ): CommandOutHelper<Arg, D, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B,
@@ -339,10 +336,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -354,7 +351,7 @@ export declare namespace Commander {
       e: (_: D, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => E
     ): CommandOutHelper<Arg, E, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B,
@@ -369,10 +366,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -385,7 +382,7 @@ export declare namespace Commander {
       f: (_: E, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => F
     ): CommandOutHelper<Arg, F, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B,
@@ -401,10 +398,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -418,7 +415,7 @@ export declare namespace Commander {
       g: (_: F, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => G
     ): CommandOutHelper<Arg, G, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B,
@@ -435,10 +432,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -453,7 +450,7 @@ export declare namespace Commander {
       h: (_: G, arg: NoInfer<Arg>, ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>) => H
     ): CommandOutHelper<Arg, H, Id, I18nKey, State>
     <
-      Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+      Eff extends Effect.Yieldable<any, any, any, any>,
       AEff,
       A,
       B,
@@ -471,10 +468,10 @@ export declare namespace Commander {
         _: Effect.Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never
         >,
         arg: NoInfer<Arg>,
@@ -1061,7 +1058,7 @@ const renderErrorMaker = I18n.use(
         return m
       }
     }
-    if (!S.is(SupportedErrors)(e) && !S.ParseResult.isParseError(e)) {
+    if (!S.is(SupportedErrors)(e) && !S.isSchemaError(e)) {
       if (typeof e === "object" && e !== null) {
         if ("message" in e) {
           return `${e.message}`
@@ -1072,13 +1069,13 @@ const renderErrorMaker = I18n.use(
       }
       return ""
     }
-    const e2: SupportedErrors | S.ParseResult.ParseError = e
+    const e2: SupportedErrors | S.SchemaError = e
     return Match.value(e2).pipe(
       Match.tags({
         NotFoundError: (e) => {
           return intl.formatMessage({ id: "handle.not_found" }, { type: e.type, id: e.id })
         },
-        ParseError: (e) => {
+        SchemaError: (e) => {
           console.warn(e.toString())
           return intl.formatMessage({ id: "validation.failed" })
         }
@@ -1217,7 +1214,7 @@ export const CommanderStatic = {
           ? cc.id
           : typeof options.stableToastId === "function"
           ? (...args: Args) => {
-            const r = (options.stableToastId as any)(id, ...args)
+            const r = (options.stableToastId as any)(cc.id, ...args)
             if (typeof r === "string") return r
             if (r === true) return cc.id
             return undefined
@@ -1267,17 +1264,15 @@ export const CommanderStatic = {
     return (_k: ArgIn) => {
       const k = keyMaker ? keyMaker(_k) : _k as unknown as Arg
       // we want to compare structurally, unless custom equal/hash has been implemented
-      return Utils.structuralRegion(() => {
-        const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullable(r.deref())))
-        if (item.value) {
-          return item.value
-        }
-        const v = maker(k)
-        MutableHashMap.set(commands, k, new WeakRef(v))
+      const item = MutableHashMap.get(commands, k).pipe(Option.flatMap((r) => Option.fromNullishOr(r.deref())))
+      if (item.value) {
+        return item.value
+      }
+      const v = maker(k)
+      MutableHashMap.set(commands, k, new WeakRef(v))
 
-        registry.register(v, k)
-        return v
-      })
+      registry.register(v, k)
+      return v
     }
   }
 }
@@ -1329,8 +1324,8 @@ const getStateValues = <const Id extends string, const I18nKey extends string, S
 // class preserves JSDoc throughout..
 export class CommanderImpl<RT, RTHooks> {
   constructor(
-    private readonly rt: Runtime.Runtime<RT>,
-    private readonly intl: I18n,
+    private readonly rt: ServiceMap.ServiceMap<RT>,
+    private readonly intl: I18n["Service"],
     private readonly hooks: Layer.Layer<RTHooks, never, RT>
   ) {
   }
@@ -1391,7 +1386,7 @@ export class CommanderImpl<RT, RTHooks> {
         }
 
         const key = `Commander.Command.${id}.state` as const
-        const stateTag = Context.GenericTag<typeof key, State>(key)
+        const stateTag = ServiceMap.Service<typeof key, State>(key)
 
         const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
         const initialContext = makeContext_()
@@ -1401,14 +1396,14 @@ export class CommanderImpl<RT, RTHooks> {
 
         const errorReporter = <A, E, R>(self: Effect.Effect<A, E, R>) =>
           self.pipe(
-            Effect.tapErrorCause(
+            Effect.tapCause(
               Effect.fnUntraced(function*(cause) {
-                if (Cause.isInterruptedOnly(cause)) {
+                if (Cause.hasInterruptsOnly(cause)) {
                   console.info(`Interrupted while trying to ${id}`)
                   return
                 }
 
-                const fail = Cause.failureOption(cause)
+                const fail = Cause.findErrorOption(cause)
                 if (Option.isSome(fail)) {
                   // if (fail.value._tag === "SuppressErrors") {
                   //   console.info(
@@ -1485,8 +1480,8 @@ export class CommanderImpl<RT, RTHooks> {
         const computeAllowed = options?.allowed
         const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
 
-        const rt = Effect.runtime<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Runtime.runSync(this.rt))
-        const runFork = Runtime.runFork(rt)
+        const rt = Effect.services<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
+        const runFork = Effect.runForkWith(rt)
 
         const handle = Object.assign((arg: Arg) => {
           // we capture the call site stack here
@@ -1660,7 +1655,7 @@ export class CommanderImpl<RT, RTHooks> {
     id: Id | { id: Id },
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> & Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
-    state: Context.Tag<`Commander.Command.${Id}.state`, State>
+    state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>
   } =>
     Object.assign(
       (
@@ -1685,7 +1680,7 @@ export class CommanderImpl<RT, RTHooks> {
       },
       makeBaseInfo(typeof id === "string" ? id : id.id, options),
       {
-        state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
+        state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>(
           `Commander.Command.${typeof id === "string" ? id : id.id}.state`
         )
       }
@@ -1710,7 +1705,7 @@ export class CommanderImpl<RT, RTHooks> {
     & Commander.CommandContextLocal<Id, I18nKey>
     & (<A, E, R extends RT | RTHooks | CommandContext | `Commander.Command.${Id}.state`, Arg = void>(
       handler: (
-        ctx: Effect.fn.Gen & Effect.fn.NonGen & Commander.CommandContextLocal<Id, I18nKey> & {
+        ctx: Effect.fn.Traced & Effect.fn.Untraced & Commander.CommandContextLocal<Id, I18nKey> & {
           // todo: only if we passed in one
           mutate: (arg: Arg) => Effect.Effect<MutA, MutE, MutR>
         }
@@ -1821,7 +1816,7 @@ export class CommanderImpl<RT, RTHooks> {
       },
       makeBaseInfo(mutation.id, options),
       {
-        state: Context.GenericTag<`Commander.Command.${Id}.state`, State>(
+        state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>(
           `Commander.Command.${mutation.id}.state`
         )
       }
@@ -1829,11 +1824,13 @@ export class CommanderImpl<RT, RTHooks> {
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class Commander extends Effect.Service<Commander>()("Commander", {
-  dependencies: [WithToast.Default],
-  effect: Effect.gen(function*() {
+export class Commander extends ServiceMap.Service<Commander>()("Commander", {
+  make: Effect.gen(function*() {
     const i18n = yield* I18n
-    return <RT, RTHooks>(rt: Runtime.Runtime<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) =>
+    return <RT, RTHooks>(rt: ServiceMap.ServiceMap<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) =>
       new CommanderImpl(rt, i18n, rtHooks)
   })
-}) {}
+}) {
+  static readonly DefaultWithoutDependencies = Layer.effect(this, this.make)
+  static readonly Default = this.DefaultWithoutDependencies
+}

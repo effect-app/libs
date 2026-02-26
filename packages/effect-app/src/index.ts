@@ -1,3 +1,4 @@
+import { ServiceMap } from "effect"
 import "./builtin.js"
 
 export * as Fnc from "./Function.js"
@@ -9,6 +10,13 @@ export * as Layer from "./Layer.js"
 export * as NonEmptySet from "./NonEmptySet.js"
 export * as ServiceMap from "./ServiceMap.js"
 export * as Set from "./Set.js"
+
+export {
+  /**
+   * @deprecated use ServiceMap directly instead
+   */
+  ServiceMap as Context
+}
 
 export { type NonEmptyArray, type NonEmptyReadonlyArray } from "./Array.js"
 

@@ -18,9 +18,10 @@ function makeClient(url: string) {
   )
 }
 
-export class ServiceBusClientTag extends ServiceMap.TagId("@services/Client")<ServiceBusClientTag, ServiceBusClient>() {
-  static readonly make = makeClient
-  static readonly layer = (url: string) => Layer.effect(this, makeClient(url))
+export class ServiceBusClientTag
+  extends ServiceMap.Opaque<ServiceBusClientTag, ServiceBusClient>()("@services/Client", { make: makeClient })
+{
+  static readonly layer = (url: string) => this.toLayer(this.make(url))
 }
 
 function makeSender_(queueName: string) {
@@ -49,15 +50,14 @@ const makeSender = (name: string) =>
     return { name, sendMessages }
   })
 
-export class Sender extends ServiceMap.TagId("Sender")<Sender, {
+export class Sender extends ServiceMap.Opaque<Sender, {
   name: string
   sendMessages: (
     messages: ServiceBusMessage | ServiceBusMessage[] | ServiceBusMessageBatch,
     options?: Omit<OperationOptionsBase, "abortSignal">
   ) => Effect.Effect<void, never, never>
-}>() {
-  static readonly make = makeSender
-  static readonly layer = (name: string) => this.toLayer(makeSender(name))
+}>()("Sender", { make: makeSender }) {
+  static readonly layer = (name: string) => this.toLayer(this.make(name))
 }
 
 export const SenderTag = <Id>() => <Key extends string>(queueName: Key) => {
@@ -66,7 +66,7 @@ export const SenderTag = <Id>() => <Key extends string>(queueName: Key) => {
   return Object.assign(tag, {
     layer: Layer.effect(
       tag,
-      makeSender(queueName).pipe(Effect.map((_) => Sender.of(_)))
+      Sender.make(queueName).pipe(Effect.map((_) => Sender.of2(_)))
     )
   })
 }
@@ -163,7 +163,7 @@ const makeReceiver = (name: string) =>
     }
   })
 
-export class Receiver extends ServiceMap.TagId("Receiver")<Receiver, {
+export class Receiver extends ServiceMap.Opaque<Receiver, {
   name: string
   make: (waitTillEmpty: Effect.Effect<void>) => Effect.Effect<ServiceBusReceiver, never, Scope.Scope>
   makeSession: (
@@ -174,7 +174,7 @@ export class Receiver extends ServiceMap.TagId("Receiver")<Receiver, {
     hndlr: MessageHandlers<RMsg, RErr>,
     sessionId?: string
   ): Effect.Effect<void, never, Scope.Scope | RMsg | RErr>
-}>() {
+}>()("Receiver") {
   static readonly make = makeReceiver
   static readonly layer = (name: string) => this.toLayer(makeReceiver(name))
 }
@@ -185,7 +185,7 @@ export const ReceiverTag = <Id>() => <Key extends string>(queueName: Key) => {
   return Object.assign(tag, {
     layer: Layer.effect(
       tag,
-      makeReceiver(queueName).pipe(Effect.map((_) => Receiver.of(_)))
+      makeReceiver(queueName).pipe(Effect.map((_) => Receiver.of2(_)))
     )
   })
 }

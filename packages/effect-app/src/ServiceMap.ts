@@ -5,7 +5,7 @@
  * https://github.com/microsoft/TypeScript/issues/52644
  */
 
-import { type Effect, Layer, type Scope } from "effect"
+import { type Effect, Layer, type Scope, type Types } from "effect"
 import * as ServiceMap from "effect/ServiceMap"
 
 export * from "effect/ServiceMap"
@@ -25,9 +25,37 @@ export const Reference = ServiceMap.Reference as typeof ServiceMap.Reference & {
 let i = 0
 const randomId = () => "unknown-service-" + i++
 
-export function assignTag<Id, Svc = Id>(key?: string, creationError?: Error) {
-  return <S extends object>(cls: S): S & ServiceMap.Service<Id, Svc> => {
-    const tag = ServiceMap.Service<Id, Svc>(key ?? randomId())
+export interface Opaque<Self extends object, in out Shape extends object> extends ServiceMap.Service<Self, Self> {
+  // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
+  of2(self: Shape): Self
+  serviceMap2(self: Shape): ServiceMap.ServiceMap<Self>
+  // a version that leverages the Shape -> Self conversion
+  toLayer: <E, R>(
+    eff: Effect.Effect<Shape, E, R>
+  ) => Layer.Layer<Self, E, Exclude<R, Scope.Scope>>
+}
+
+// export interface OpaqueMake<Self extends object, in out Shape extends object, E, R>
+//   extends ServiceMap.Service<Self, Self>
+// {
+//   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
+//   of2(self: Shape): Self
+//   serviceMap2(self: Shape): ServiceMap.ServiceMap<Self>
+//   // a version that leverages the Shape -> Self conversion
+//   toLayer: {
+//     <E, R>(
+//       eff: Effect.Effect<Shape, E, R>
+//     ): Layer.Layer<Self, E, Exclude<R, Scope.Scope>>
+//     (): Layer.Layer<Self, E, Exclude<R, Scope.Scope>>
+//   }
+// }
+
+export function assignTag<Identifier extends object, Shape extends object = Identifier>(
+  key?: string,
+  creationError?: Error
+) {
+  return <S extends object>(cls: S): S & Opaque<Identifier, Shape> => {
+    const tag = ServiceMap.Service<Identifier, Shape>(key ?? randomId())
     let fields = tag
     if (Reflect.ownKeys(cls).includes("key")) {
       const { key, ...rest } = tag
@@ -50,34 +78,19 @@ export function assignTag<Id, Svc = Id>(key?: string, creationError?: Error) {
   }
 }
 
-export type ServiceUse<Self, Type> = {
-  use: <X>(
-    body: (_: Type) => X
-  ) => X extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, R | Self>
-    : Effect.Effect<X, never, Self>
-}
-
-export type ServiceAcessorShape<Self, Type> =
-  & (Type extends Record<PropertyKey, any> ? {
-      [
-        k in keyof Type as Type[k] extends ((...args: [...infer Args]) => infer Ret)
-          ? ((...args: Readonly<Args>) => Ret) extends Type[k] ? k : never
-          : k
-      ]: Type[k] extends (...args: [...infer Args]) => Effect.Effect<infer A, infer E, infer R>
-        ? (...args: Readonly<Args>) => Effect.Effect<A, E, Self | R>
-        : Type[k] extends (...args: [...infer Args]) => infer A
-          ? (...args: Readonly<Args>) => Effect.Effect<A, never, Self>
-        : Type[k] extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, Self | R>
-        : Effect.Effect<Type[k], never, Self>
-    }
-    : {})
-  & ServiceUse<Self, Type>
-
-/** @deprecated */
-export const useify =
-  <T extends ServiceMap.Service<any, any>>(Tag: T) => <Self, Shape>(): T & ServiceUse<Self, Shape> => {
-    return Object.assign(Tag, { use: (body: any) => (Tag as any).use(body) } as ServiceUse<Self, Shape>)
+export type ServiceAcessorShape<Self, Type> = Type extends Record<PropertyKey, any> ? {
+    [
+      k in keyof Type as Type[k] extends ((...args: [...infer Args]) => infer Ret)
+        ? ((...args: Readonly<Args>) => Ret) extends Type[k] ? k : never
+        : k
+    ]: Type[k] extends (...args: [...infer Args]) => Effect.Effect<infer A, infer E, infer R>
+      ? (...args: Readonly<Args>) => Effect.Effect<A, E, Self | R>
+      : Type[k] extends (...args: [...infer Args]) => infer A
+        ? (...args: Readonly<Args>) => Effect.Effect<A, never, Self>
+      : Type[k] extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, Self | R>
+      : Effect.Effect<Type[k], never, Self>
   }
+  : {}
 
 /**
  * Only use this in very specific cases where using dependencies directly is prefered, like inside command handlers.
@@ -114,95 +127,74 @@ export const proxify = <T extends object>(Tag: T) =>
 
 export const TypeId = "~ServiceMap.Opaque"
 
-export function Opaque<const Key extends string>(key: Key) {
-  return <Id, ServiceImpl>() => {
-    const limit = Error.stackTraceLimit
-    Error.stackTraceLimit = 2
-    const creationError = new Error()
-    Error.stackTraceLimit = limit
-    const c:
-      & (abstract new(_: never) => ServiceImpl & { readonly [TypeId]: Key })
-      & {
-        of: (service: Omit<Id, keyof { readonly [TypeId]: Key }>) => Id
-      } = class {
-        static of = (service: ServiceImpl) => service
-      } as any
+// export function Opaque<const Key extends string>(key: Key) {
+//   return <Identifier extends object, Shape extends object>() => {
+//     const limit = Error.stackTraceLimit
+//     Error.stackTraceLimit = 2
+//     const creationError = new Error()
+//     Error.stackTraceLimit = limit
+//     const c: abstract new(_: never) => Shape & { readonly [TypeId]: Key } = class {} as any
 
-    return assignTag<Id, Id>(key, creationError)(c)
-  }
+//     return assignTag<Identifier, Shape>(key, creationError)(c)
+//   }
+// }
+
+export interface OpaqueClass<Self extends object, in out Identifier extends string, Shape extends object>
+  extends Opaque<Self, Shape>
+{
+  new(_: never): Shape & { readonly [TypeId]: Identifier }
+  readonly key: Identifier
 }
 
-/**
- * @deprecated use `ServiceMap.Service` instead
- */
-export function TagId<const Key extends string>(key: Key) {
-  return <Id, ServiceImpl>() => {
-    const limit = Error.stackTraceLimit
-    Error.stackTraceLimit = 2
-    const creationError = new Error()
-    Error.stackTraceLimit = limit
-    const c:
-      & (abstract new(
-        service: ServiceImpl
-      ) => Readonly<ServiceImpl> & ServiceMap.ServiceClass.Shape<Key, ServiceImpl>)
-      & {
-        toLayer: <E, R>(
-          eff: Effect.Effect<Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>, E, R>
-        ) => Layer.Layer<Id, E, Exclude<R, Scope.Scope>>
-        of: (service: Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>) => Id
-      } = class {
-        constructor(service: any) {
-          // TODO: instead, wrap the service, and direct calls?
-          Object.assign(this, service)
-        }
-        static of = (service: ServiceImpl) => service
-        static toLayer = <E, R>(eff: Effect.Effect<ServiceImpl, E, R>) => {
-          return Layer.effect(this as any, eff)
-        }
-      } as any
+// export interface OpaqueClassMake<Self extends object, in out Identifier extends string, Shape extends object, E, R>
+//   extends OpaqueMake<Self, Shape, E, R>
+// {
+//   new(_: never): Shape & { readonly [TypeId]: Identifier }
+//   readonly key: Identifier
+// }
 
-    return useify(assignTag<Id, ServiceImpl>(key, creationError)(c))<Id, ServiceImpl>()
-  }
-}
-
-/**
- * @deprecated use `ServiceMap.Service` instead
- */
-export const TagMakeId = <ServiceImpl, R, E, const Key extends string>(
-  key: Key,
-  make: Effect.Effect<ServiceImpl, E, R>
-) =>
-<Id>() => {
-  const limit = Error.stackTraceLimit
-  Error.stackTraceLimit = 2
-  const creationError = new Error()
-  Error.stackTraceLimit = limit
-  const c:
-    & (abstract new(
-      service: ServiceImpl
-    ) => Readonly<ServiceImpl> & ServiceMap.ServiceClass.Shape<Key, ServiceImpl>)
-    & {
-      toLayer: {
-        (): Layer.Layer<Id, E, R>
-        <E, R>(eff: Effect.Effect<Omit<Id, keyof ServiceMap.ServiceClass.Shape<any, any>>, E, R>): Layer.Layer<Id, E, R>
-      }
-      of: (service: ServiceMap.ServiceClass.Shape<any, any>) => Id
-      make: Effect.Effect<Id, E, R>
-    } = class {
-      constructor(service: any) {
-        // TODO: instead, wrap the service, and direct calls?
-        Object.assign(this, service)
-      }
-
-      static of = (service: ServiceImpl) => service
-      static make = make
-      // works around an issue where defining layer on the class messes up and causes the Tag to infer to `any, any` :/
-      static toLayer = (arg?: any) => {
-        return Layer.effect(this as any, arg ?? this.make)
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any
-
-  return useify(assignTag<Id, ServiceImpl>(key, creationError)(c))<Id, ServiceImpl>()
+export const Opaque: {
+  <Self extends object, Shape extends object>(): <
+    const Identifier extends string,
+    E,
+    R = Types.unassigned,
+    Args extends ReadonlyArray<any> = never
+  >(
+    id: Identifier,
+    options?: {
+      readonly make: ((...args: Args) => Effect.Effect<Shape, E, R>) | Effect.Effect<Shape, E, R> | undefined
+    } | undefined
+  ) =>
+    & OpaqueClass<Self, Identifier, Shape>
+    & ([Types.unassigned] extends [R] ? unknown
+      : {
+        readonly make: [Args] extends [never] ? Effect.Effect<Shape, E, R>
+          : (...args: Args) => Effect.Effect<Shape, E, R>
+      })
+  <Self extends object>(): <
+    const Identifier extends string,
+    Make extends Effect.Effect<any, any, any> | ((...args: any) => Effect.Effect<any, any, any>)
+  >(
+    id: Identifier,
+    options: {
+      readonly make: Make
+    }
+  ) =>
+    & OpaqueClass<
+      Self,
+      Identifier,
+      Make extends
+        | Effect.Effect<infer _A, infer _E, infer _R>
+        | ((...args: infer _Args) => Effect.Effect<infer _A, infer _E, infer _R>) ? _A
+        : never
+    >
+    & { readonly make: Make }
+} = () => (id: string, options: any) => {
+  const svc = ServiceMap.Service()(id, options) as any
+  return Object.assign(svc, {
+    of2: (self: any) => svc.of(self),
+    toLayer: (eff: Effect.Effect<any, any, any>) => {
+      return Layer.effect(svc as any, eff)
+    }
+  })
 }

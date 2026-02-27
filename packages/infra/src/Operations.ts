@@ -189,7 +189,7 @@ const make = Effect.gen(function*() {
   }
 })
 
-export class Operations extends ServiceMap.TagMakeId("effect-app/Operations", make)<Operations>() {
+export class Operations extends ServiceMap.Opaque<Operations>()("effect-app/Operations", { make }) {
   private static readonly CleanupLive = this
     .use((_) =>
       _.cleanup.pipe(
@@ -209,7 +209,10 @@ export class Operations extends ServiceMap.TagMakeId("effect-app/Operations", ma
     )
     .pipe(Layer.effectDiscard, Layer.provide(MainFiberSet.Live))
 
-  static readonly Live = this.CleanupLive.pipe(Layer.provideMerge(this.toLayer()), Layer.provide(RequestFiberSet.Live))
+  static readonly Live = this.CleanupLive.pipe(
+    Layer.provideMerge(this.toLayer(this.make)),
+    Layer.provide(RequestFiberSet.Live)
+  )
 
   static readonly forkOperation = (title: NonEmptyString2k) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
     this.use((_) => _.forkOperation(self, title))

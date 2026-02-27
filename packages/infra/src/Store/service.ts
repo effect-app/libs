@@ -89,14 +89,14 @@ export interface Store<
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
 }
 
-export class StoreMaker extends ServiceMap.TagId("effect-app/StoreMaker")<StoreMaker, {
+export class StoreMaker extends ServiceMap.Opaque<StoreMaker, {
   make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
     name: string,
     idKey: IdKey,
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
   ) => Effect.Effect<Store<IdKey, Encoded>, E, R>
-}>() {
+}>()("effect-app/StoreMaker") {
 }
 
 export const makeContextMap = () => {
@@ -170,7 +170,7 @@ export const makeContextMap = () => {
 
 const makeMap = Effect.sync(() => makeContextMap())
 
-export class ContextMap extends ServiceMap.TagMakeId("effect-app/ContextMap", makeMap)<ContextMap>() {
+export class ContextMap extends ServiceMap.Opaque<ContextMap, {}>()("effect-app/ContextMap", { make: makeMap }) {
 }
 
 export type PersistenceModelType<Encoded extends object> = Encoded & {

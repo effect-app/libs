@@ -16,6 +16,6 @@ const make = Effect
     }
   })
 
-export class MemQueue extends ServiceMap.TagMakeId("effect-app/MemQueue", make)<MemQueue>() {
-  static readonly Live = this.toLayer()
+export class MemQueue extends ServiceMap.Opaque<MemQueue>()("effect-app/MemQueue", { make }) {
+  static readonly Live = this.toLayer(this.make)
 }

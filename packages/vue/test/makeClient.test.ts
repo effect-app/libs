@@ -53,15 +53,18 @@ it.skip("works", () => {
   const e = client.GetSomething2.wrap(null as any)
   const f = client.GetSomething2.fn(null as any)
 
-  // v4: GetSomething2WithDependencies schemas no longer carry service requirements, so these calls are now valid
-  const e0 = client.GetSomething2WithDependencies.wrap().handle
-  const e000 = Command.wrap(client.GetSomething2WithDependencies)().handle
+  // @ts-expect-error dependencies required that are not provided
+  const e0 = client.GetSomething2WithDependencies.wrap().handle // not available as we require dependencies not provided by the runtime
+  // @ts-expect-error dependencies required that are not provided
+  const e000 = Command.wrap(client.GetSomething2WithDependencies)().handle // not available as we require dependencies not provided by the runtime
   const e00 = client.GetSomething2WithDependencies.wrap((_) => _ as Effect.Effect<number, never, never>).handle(
     null as any
   )
   const e0000 =
     Command.wrap(client.GetSomething2WithDependencies)((_) => _ as Effect.Effect<number, never, never>).handle
+  // @ts-expect-error dependencies required that are not provided
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)
+  // @ts-expect-error dependencies required that are not provided
   const e2 = client.GetSomething2WithDependencies.query(null as any)
   const f0 = client.GetSomething2WithDependencies.fn(null as any)
 

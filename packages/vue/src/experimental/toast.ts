@@ -13,7 +13,7 @@ export type UseToast = () => {
   dismiss: (this: void, id: ToastId) => void
 }
 
-export class CurrentToastId extends ServiceMap.Opaque("CurrentToastId")<CurrentToastId, { toastId: ToastId }>() {}
+export class CurrentToastId extends ServiceMap.Opaque<CurrentToastId, { toastId: ToastId }>()("CurrentToastId") {}
 
 /** fallback to CurrentToastId when available unless id is explicitly set to a value or null */
 export const wrap = (toast: ReturnType<UseToast>) => {
@@ -42,11 +42,13 @@ export const wrap = (toast: ReturnType<UseToast>) => {
 }
 
 export class Toast
-  extends proxify(ServiceMap.Opaque("Toast")<Toast, ReturnType<typeof wrap>>())<Toast, ReturnType<typeof wrap>>()
+  extends proxify(ServiceMap.Opaque<Toast, ReturnType<typeof wrap>>()("Toast"))<Toast, ReturnType<typeof wrap>>()
 {
 }
 
-// const A = Toast.of({
+// const a = Layer.effect(Toast, Effect.sync(() => Toast.of(null as any)))
+
+// const A = Toast.of2({
 //   error: () => Effect.succeed(null as any),
 //   info: () => Effect.succeed(null as any),
 //   success: () => Effect.succeed(null as any),
@@ -56,9 +58,9 @@ export class Toast
 
 // const b = Toast.info("test")
 
-// const a = Toast.use((_) => _.error("test"))
+// const a2 = Toast.use((_) => _.error("test"))
 
-// const b = Effect.gen(function*() {
+// const b2 = Effect.gen(function*() {
 //   const toast = yield* Toast
 //   toast.error("test")
 // })

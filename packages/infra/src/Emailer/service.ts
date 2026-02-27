@@ -7,9 +7,9 @@ export class SendMailError extends Data.TaggedError("SendMailError")<{
   readonly raw: Error | ResponseError
 }> {}
 
-export class Emailer extends ServiceMap.TagId("effect-app/Emailer")<Emailer, {
+export class Emailer extends ServiceMap.Opaque<Emailer, {
   sendMail: (msg: EmailMsgOptionalFrom) => Effect.Effect<void, SendMailError>
-}>() {}
+}>()("effect-app/Emailer") {}
 
 export type EmailData = Email | {
   name?: string

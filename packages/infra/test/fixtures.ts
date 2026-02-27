@@ -11,10 +11,10 @@ export class UserProfile extends ServiceMap.assignTag<UserProfile, UserProfile>(
 ) {
 }
 
-export class Some extends ServiceMap.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
-export class SomeElse extends ServiceMap.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
+export class Some extends ServiceMap.Opaque<Some>()("Some", { make: Effect.succeed({ a: 1 }) }) {}
+export class SomeElse extends ServiceMap.Opaque<SomeElse>()("SomeElse", { make: Effect.succeed({ b: 2 }) }) {}
 const MakeSomeService = Effect.succeed({ a: 1 })
-export class SomeService extends ServiceMap.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
+export class SomeService extends ServiceMap.Opaque<SomeService>()("SomeService", { make: MakeSomeService }) {}
 
 // functionally equivalent to the one above
 export class SomeMiddleware extends RpcX.RpcMiddleware.Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware") {
@@ -24,7 +24,7 @@ export const SomeMiddlewareLive = Layer.effect(
   SomeMiddleware,
   Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return (effect) => effect.pipe(Effect.provideService(Some, new Some({ a: 1 })))
+    return (effect) => effect.pipe(Effect.provideService(Some, Some.of2({ a: 1 })))
   })
 )
 
@@ -39,7 +39,7 @@ export const SomeElseMiddlewareLive = Layer.effect(
     return (effect) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* effect.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
+        return yield* effect.pipe(Effect.provideService(SomeElse, SomeElse.of2({ b: 2 })))
       })
   })
 )

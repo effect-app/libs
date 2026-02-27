@@ -138,10 +138,10 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
 
   // Use Object.assign instead of class extension to avoid TS2509 with complex generic return types.
   // The first type arg is `any` because this is a dynamically created tag — its identity is the string key.
-  const TheClient = ServiceMap.TagId(`RpcClient.${meta.moduleName}`)<
+  const TheClient = ServiceMap.Opaque<
     any,
     RpcClient.RpcClient<RpcGroup.Rpcs<typeof rpcs>>
-  >()
+  >()(`RpcClient.${meta.moduleName}`)
   // Use Layer.effect directly (not TheClient.toLayer) so TypeScript properly excludes Scope
   const layer = Layer.effect(
     TheClient,
@@ -283,7 +283,7 @@ const makeApiClientFactory = Effect
  * Used to create clients for resource modules.
  */
 export class ApiClientFactory
-  extends ServiceMap.TagId("ApiClientFactory")<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()
+  extends ServiceMap.Opaque<ApiClientFactory, Effect.Success<typeof makeApiClientFactory>>()("ApiClientFactory")
 {
   static readonly layer = (config: ApiConfig) =>
     ApiClientFactory.toLayer(makeApiClientFactory).pipe(Layer.provide(RpcSerializationLayer(config)))

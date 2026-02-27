@@ -100,7 +100,8 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
 export class GetSomething2WithDependencies extends Req<GetSomething2WithDependencies>()("GetSomething2", {
   id: S.String
 }, {
-  success: S.NumberFromString,
+  // this is intentilally fake, to simulate a codec that requires a dependency
+  success: S.NumberFromString as S.Codec<number, string, "dep-a">,
   error: S.String
 }) {}
 

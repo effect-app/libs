@@ -248,3 +248,19 @@ Most `@effect/*` sub-packages are now consolidated into `effect`:
 - `import { ChildProcess } from "effect/unstable/process"`
 - `import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"`
 - CLI: `import { Argument, Command, Flag, Prompt } from "effect/unstable/cli"`
+
+## Schema DecodingServices gotcha
+
+- `S.Schema<T>` extends `Top` but does **NOT** override `DecodingServices`. So `Schema<T>["DecodingServices"]` = `Top["DecodingServices"]` = `unknown`.
+- `S.Void` extends `Bottom<void, void, never, never, ...>` — has `DecodingServices: never`.
+- `S.Optic<T, Iso>` extends `Schema<T>` with explicit `DecodingServices: never`.
+- `S.Struct<Fields>` extends `Bottom<..., Struct.DecodingServices<Fields>, ...>` — computed from fields.
+- When using `S.Codec.DecodingServices<S>` in generic contexts where `S extends S.Top`, TypeScript falls back to `Top["DecodingServices"]` = `unknown`. Pre-compute these at definition time and store as a property.
+- Use `S.Void` instead of `S.Schema<void>` when a concrete "no services" schema type is needed.
+
+## TaggedRequest (v3) → TaggedRequestResult (v4)
+
+- v3's `S.TaggedRequestClass` and `S.TaggedRequest` are removed in v4.
+- Custom `TaggedRequestResult` type: intersection of `S.TaggedStruct<Tag, Payload>` with `{ new(...): any; _tag; fields; success; error; config; ~decodingServices }`.
+- `~decodingServices` phantom property pre-computes `S.Codec.DecodingServices<Success> | S.Codec.DecodingServices<Error>` to avoid generic-context resolution issues.
+- `RequestHandlers` uses `ReqDecodingServices<M[K]>` (property access) instead of re-computing `S.Codec.DecodingServices` in generic mapped types.

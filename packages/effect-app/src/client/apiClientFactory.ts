@@ -37,6 +37,7 @@ export type Req = S.Top & {
   success: S.Top
   error: S.Top
   config?: Record<string, any>
+  readonly "~decodingServices"?: unknown
 }
 
 class RequestName extends ServiceMap.Reference<RequestName>()("RequestName", {

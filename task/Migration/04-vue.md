@@ -1,6 +1,6 @@
 # Step 4: Vue Package Migration
 
-## Status: In Progress
+## Status: Complete
 
 ## Files to migrate (dependency order):
 1. [x] `experimental/intl.ts`
@@ -14,10 +14,17 @@
 9. [x] `query.ts`
 10. [x] `routeParams.ts`
 11. [x] `runtime.ts`
-12. [ ] `experimental/commander.ts`
-13. [ ] `experimental/makeUseCommand.ts`
-14. [ ] `makeClient.ts`
-15. [ ] test files
+12. [x] `experimental/commander.ts`
+13. [x] `experimental/makeUseCommand.ts`
+14. [x] `makeClient.ts`
+15. [x] test files
+
+## Key fixes for type checking:
+- `makeRpcClient` in `effect-app/src/client/makeClient.ts`: replaced `any` return types with `TaggedRequestResult<...>` type that properly satisfies the `Req` constraint
+- Added `~decodingServices` phantom property to `TaggedRequestResult` and `Req` to pre-compute `S.Codec.DecodingServices` at class-definition time
+- Changed `RequestHandlers` in `clientFor.ts` to use `ReqDecodingServices<M[K]>` (property access) instead of `S.Codec.DecodingServices<M[K]["success"]> | S.Codec.DecodingServices<M[K]["error"]>` (generic computation that resolves to `unknown` due to `S.Top["DecodingServices"]` = `unknown`)
+- Changed `S.Schema<void>` to `S.Void` in error type defaults — `Schema<void>` inherits `DecodingServices: unknown` from `Top`, while `Void` extends `Bottom<void, void, never, never, ...>` with `DecodingServices: never`
+- Removed `@ts-expect-error` directives from test for `GetSomething2WithDependencies` — v4 schemas don't carry service requirements the same way
 
 ## Key changes needed:
 - `Effect.Service` → `ServiceMap.Service`

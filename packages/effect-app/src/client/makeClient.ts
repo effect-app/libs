@@ -10,6 +10,26 @@ const merge = (a: any, b: Array<any>) =>
  */
 const ForceVoid: S.Schema<void> = S.Void as any
 
+type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
+
+type TaggedRequestResult<
+  Tag extends string,
+  Payload extends S.Struct.Fields,
+  Success extends S.Top,
+  Error extends S.Top,
+  Config = Record<string, never>
+> =
+  & S.TaggedStruct<Tag, Payload>
+  & {
+    new(...args: any[]): any
+    readonly _tag: Tag
+    readonly fields: { readonly _tag: S.tag<Tag> } & Payload
+    readonly success: Success
+    readonly error: Error
+    readonly config: Config
+    readonly "~decodingServices": S.Codec.DecodingServices<Success> | S.Codec.DecodingServices<Error>
+  }
+
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Top = never
@@ -22,43 +42,36 @@ export const makeRpcClient = <
 
   type RequestConfig = GetContextConfig<RequestContextMap["config"]>
 
-  // TODO: S.TaggedRequestClass and S.TaggedRequest removed in v4 — return types use `any` for now
+  type MergeError<E> = [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]>
+  type ErrorResult<C> = C extends { error: infer E } ? MergeError<E>
+    : [GeneralErrors] extends [never] ? S.Void
+    : GeneralErrors
+
   function TaggedRequest<_Self>(): {
     <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
-    ):
-      & any
-      & { config: Omit<C, "success" | "error"> }
+    ): TaggedRequestResult<Tag, Payload, SchemaOrFields<C["success"]>, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
-    ):
-      & any
-      & { config: Omit<C, "success" | "error"> }
+    ): TaggedRequestResult<Tag, Payload, SchemaOrFields<C["success"]>, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
-    ):
-      & any
-      & { config: Omit<C, "success" | "error"> }
+    ): TaggedRequestResult<Tag, Payload, S.Schema<void>, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
       tag: Tag,
       fields: Payload,
       config: C & RequestConfig
-    ):
-      & any
-      & { config: Omit<C, "success" | "error"> }
+    ): TaggedRequestResult<Tag, Payload, S.Schema<void>, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields>(
       tag: Tag,
       fields: Payload
-    ):
-      & any
-      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-      & { config: {} }
+    ): TaggedRequestResult<Tag, Payload, S.Schema<void>, ErrorResult<never>, Record<string, never>>
   } {
     // TODO: filter errors based on config + take care of inversion
     const errorSchemas = Object.values(rcs.config).map((_) => _.error)

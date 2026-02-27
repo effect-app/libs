@@ -258,6 +258,12 @@ Most `@effect/*` sub-packages are now consolidated into `effect`:
 - When using `S.Codec.DecodingServices<S>` in generic contexts where `S extends S.Top`, TypeScript falls back to `Top["DecodingServices"]` = `unknown`. Pre-compute these at definition time and store as a property.
 - Use `S.Void` instead of `S.Schema<void>` when a concrete "no services" schema type is needed.
 
+## Vue-components migration notes
+
+- `packages/vue-components` currently uses `tsconfig` with `moduleResolution: "node"`, which can fail to resolve v4-style package export maps (`effect/*`).
+- `OmegaFormStuff.ts` is not a pure rename migration: it depends on old AST tag names / shapes (`TypeLiteral`, `TupleType`, `StringKeyword`, `UndefinedKeyword`, transformation wrappers).
+  - In v4, AST node names are changed (`Objects`, `Arrays`, `String`, `Undefined`, etc.) and metadata extraction must be rewritten accordingly.
+
 ## TaggedRequest (v3) → TaggedRequestResult (v4)
 
 - v3's `S.TaggedRequestClass` and `S.TaggedRequest` are removed in v4.

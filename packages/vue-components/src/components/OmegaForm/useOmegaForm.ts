@@ -3,8 +3,13 @@
 
 import * as api from "@opentelemetry/api"
 import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
+import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import * as Option from "effect/Option"
+import * as Order from "effect/Order"
+import * as S from "effect/Schema"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
 import { MergedInputProps } from "./InputProps"
@@ -102,25 +107,26 @@ const eHoc = (errorProps: {
 
         const errors = computed(() => {
           // Collect errors from fieldMeta (field-level errors for registered fields)
-          const fieldErrors = Array.filterMap(
-            Object
-              .entries(fieldMeta.value),
-            ([key, m]): Option.Option<OmegaError> => {
-              const fieldErrors = (m as any).errors ?? []
-              if (!fieldErrors.length) return Option.none()
+          const fieldErrors = Object
+            .entries(fieldMeta.value)
+            .reduce<OmegaError[]>((acc, [key, m]) => {
+              const fieldErrors = (m as { errors?: Array<{ message?: string }> } | undefined)?.errors ?? []
+              if (!fieldErrors.length) {
+                return acc
+              }
 
               const fieldInfo = fieldMap.value.get(key)
-              // Only show errors for fields that are currently mounted (registered in fieldMap)
-              if (!fieldInfo) return Option.none()
+              if (!fieldInfo) {
+                return acc
+              }
 
-              return Option.some({
+              acc.push({
                 label: fieldInfo.label,
                 inputId: fieldInfo.id,
-                // Only show the first error
-                errors: [fieldErrors[0]?.message].filter(Boolean)
+                errors: [fieldErrors[0]?.message].filter(Boolean) as string[]
               })
-            }
-          )
+              return acc
+            }, [])
 
           // Collect errors from errorMap.onSubmit ONLY for fields that are NOT registered
           // (registered fields already have their errors in fieldMeta)
@@ -396,7 +402,7 @@ export interface OmegaFormReturn<
   // Pre-computed type aliases - computed ONCE for performance
   _paths: FieldPath<From>
   _keys: DeepKeys<From>
-  _schema: S.Schema<To, From, never>
+  _schema: S.Codec<To, From, never>
 
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
   Input: <Name extends OmegaFormReturn<From, To, TypeProps>["_paths"]>(
@@ -675,13 +681,13 @@ export const useOmegaForm = <
   To extends Record<PropertyKey, any>,
   TypeProps = DefaultTypeProps
 >(
-  schema: S.Schema<To, From, never>,
+  schema: S.Codec<To, From, never>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
-  const standardSchema = S.standardSchemaV1(schema)
-  const decode = S.decode(schema)
+  const standardSchema = S.toStandardSchemaV1(schema)
+  const decode = S.decodeEffect(schema)
 
   const { meta, unionMeta } = generateMetaFromSchema(schema)
 
@@ -796,18 +802,11 @@ export const useOmegaForm = <
             meta,
             value: parsedValue
           })
-          if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
-            return await runtimeFiberAsPromise(r)
+          if (Fiber.isFiber(r)) {
+            return await runtimeFiberAsPromise(r as any)
           }
           if (Effect.isEffect(r)) {
-            return await Effect.runPromise(
-              r.pipe(
-                // meta?.currentSpan
-                //   ? Effect.withParentSpan(meta.currentSpan)
-                //   : (_) => _,
-                Effect.flatMap((_) => Fiber.join(_))
-              )
-            )
+            return await Effect.runPromise(r)
           }
           return r
         })

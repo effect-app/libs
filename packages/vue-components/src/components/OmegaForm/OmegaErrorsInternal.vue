@@ -130,9 +130,10 @@ const showedGeneralErrors = computed(() => {
         .flatMap((issues) =>
           issues
             .filter(
-              (issue): issue is StandardSchemaV1Issue & { message: string } => Boolean(issue?.message)
+              (issue): issue is StandardSchemaV1Issue & { message: string } =>
+                typeof (issue as { message?: unknown })?.message === "string"
             )
-            .map((issue) => issue.message)
+            .map((issue) => (issue as StandardSchemaV1Issue & { message: string }).message)
         )
     )
 })

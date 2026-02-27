@@ -20,7 +20,8 @@
   Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { Array as A, Order, pipe } from "effect-app"
+import { pipe } from "effect/Function"
+import * as Order from "effect/Order"
 import { computed } from "vue"
 import { type FieldMeta, type FieldPath, type OmegaAutoGenMeta, type OmegaInputProps } from "./OmegaFormStuff"
 
@@ -66,7 +67,7 @@ const namePosition = (name: DeepKeys<From>, order: DeepKeys<From>[]) => {
 }
 
 const orderBy: Order.Order<NewMeta> = Order.mapInput(
-  Order.number,
+  Order.Number,
   (x: NewMeta) => namePosition(x.name, props.order || [])
 )
 
@@ -79,26 +80,26 @@ const children = computed<NewMeta[]>(() =>
         ? props.pick.includes(metaKey) && !props.omit?.includes(metaKey)
         : !props.omit?.includes(metaKey)
     ),
-    (x) => x,
+    (x: Record<DeepKeys<From>, FieldMeta | undefined>) => x,
     // labelMap and adding name
     mapObject((metaValue, metaKey) => ({
-      name: metaKey,
+      name: metaKey as Name,
       label: props.labelMap?.(metaKey) || metaKey,
-      ...metaValue
+      ...(metaValue ?? {})
     })),
     // filterMap
     props.filterMap
-      ? filterMapRecord((m) => {
+      ? filterMapRecord((m: NewMeta) => {
         const result = props.filterMap?.(m.name!, m as NewMeta)
         return result === undefined || result === true ? m : result
       })
-      : (x) => x,
+      : (x: Record<DeepKeys<From>, NewMeta>) => x,
     // transform to array
-    (obj) => Object.values(obj) as NewMeta[],
+    (obj: Record<DeepKeys<From>, NewMeta>) => Object.values(obj) as NewMeta[],
     // order
-    A.sort(orderBy),
+    (items: NewMeta[]) => [...items].sort((a, b) => orderBy(a, b)),
     // sort
-    props.sort ? A.sort(props.sort) : (x) => x
+    props.sort ? (items: NewMeta[]) => [...items].sort((a, b) => props.sort!(a, b)) : (x: NewMeta[]) => x
   )
 )
 

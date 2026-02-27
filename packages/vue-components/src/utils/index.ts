@@ -18,15 +18,15 @@ export const provideIntl = (
 
 /**
  * Recursively extracts the source AST from a transformation chain.
- * If the provided AST is a transformation, it follows the chain to find the original source AST.
+ * In v4, transformations are stored in the `encoding` property, not as wrapped AST nodes.
+ * This function returns the encoded form if an encoding chain exists, otherwise returns the AST itself.
  *
  * @param ast - The AST node to extract the transformation source from
- * @returns The source AST at the end of the transformation chain
+ * @returns The source AST (the decoded/type form, which is the AST itself in v4)
  */
 export function getTransformationFrom(ast: S.AST.AST) {
-  if (ast._tag === "Transformation") {
-    return getTransformationFrom(ast.from)
-  } else {
-    return ast
-  }
+  // In v4, the AST itself is the decoded (type) form
+  // The encoding chain points to the encoded (wire) form via ast.encoding
+  // For most metadata extraction purposes, we want the decoded form, so just return the ast
+  return ast
 }

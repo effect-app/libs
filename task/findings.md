@@ -56,6 +56,12 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `S.Schema<T, E, R>` (3 type params — schema with requirements) | `S.Codec<T, E, R>` — **IMPORTANT**: in v4, a schema with context/service requirements is `Codec<T, E, R>`, not `Schema<T, E, R>`. `Schema<T, E>` is always 2-param. **Never remove the R param — change `Schema` to `Codec` instead.** |
 | `S.ParseResult.ParseError` | `S.SchemaError` |
 | `schema.pipe(S.pick("field1", "field2"))` | `S.pick` removed. For Struct schemas: `(schema as Struct<F>).mapFields(({ field1, field2 }) => ({ field1, field2 }))`. Or access `schema.fields` to create a new struct: `S.Struct({ field: schema.fields.field })` |
+| `S.propertySignature(schema)` | In v4 class definitions, just use the schema directly without `propertySignature` wrapper |
+| `schema.pipe(S.compose(targetSchema))` | `schema.pipe(S.decodeTo(targetSchema))` — `compose` renamed to `decodeTo` |
+| `S.Union(schema1, schema2, schema3)` | `S.Union([schema1, schema2, schema3])` — now takes array parameter instead of rest parameters |
+| `import { FetchHttpClient } from "@effect/platform"` | `import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"` — FetchHttpClient moved to effect core unstable |
+| `ServiceClass.toLayer(effect)` | `Layer.effect(ServiceClass, effect)` — toLayer method removed, use Layer.effect function |
+| `Layer.effect(ServiceMap.Opaque service, effect)` | May require `as any` cast on service parameter due to type system limitations with opaque branded services |
 | `ast._tag === "Transformation"` | `"Transformation"` tag removed from AST. v4 AST tags are: `"Declaration"`, `"Objects"`, `"Arrays"`, `"Union"`, `"Filter"`, `"FilterGroup"`, plus primitive tags. |
 | `AST.TypeLiteral` | `AST.Objects` (TypeLiteral renamed; use `SchemaAST.isObjects`) |
 | `AST.getIdentifierAnnotation(ast)` | `SchemaAST.resolveIdentifier(ast)` (returns `string | undefined`) |
@@ -66,7 +72,8 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | v3 | v4 |
 |---|---|
 | `Effect.dieMessage("msg")` | `Effect.die("msg")` (accepts `unknown`, prefer plain string over `new Error`) |
-| `Effect.catchAll((e) => Effect.dieMessage(...))` | `Effect.mapError((e) => \`...\`).pipe(Effect.orDie)` (mapError returns string, not `new Error`) |
+| `Effect.catchAll((e) => Effect.dieMessage(...))` |  `Effect.mapError((e) => \`...\`).pipe(Effect.orDie)` (mapError returns string, not `new Error`) |
+| `Effect.catchAll(() => Effect.succeed(value))` | `Effect.orElseSucceed(() => value)` — catch all errors and succeed with a value |
 | `Effect.orElse(() => fallback)` | `Effect.catchCause(() => fallback)` |
 | `Effect.all({ a: Config.string(...) })` | `Config.all({ a: Config.string(...) })` — use module's own `.all()` for Config/Either/Option |
 | `Config.withDefault("value")` | `Config.withDefault(() => "value")` (now takes `LazyArg`) |
@@ -76,6 +83,7 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `Effect.async<A, E>(cb => ...)` | `Effect.callback<A, E>(resume => ...)` — rename param `cb` → `resume` |
 | `Effect.andThen(eff, _ => plainValue)` | `Effect.map(eff, _ => plainValue)` — `Effect.andThen` in v4 only accepts Effect-returning functions, not plain values |
 | `Effect.mapError(option, () => error)` | `Effect.flatMap(effect, Option.match({ onNone: () => Effect.fail(error), onSome: Effect.succeed }))` — `Effect.mapError` no longer has polymorphic overloads for Option |
+| `Effect.tap(() => sideEffect)` where `sideEffect` is not an Effect | `Effect.tap(() => Effect.sync(() => sideEffect))` — in v4, `Effect.tap` requires the callback to return an Effect, not a plain value or void |
 
 ## Either → Result
 
@@ -133,6 +141,20 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | v3 | v4 |
 |---|---|
 | `Fiber.RuntimeFiber<A, E>` | `Fiber.Fiber<A, E>` — `RuntimeFiber` namespace removed, use plain `Fiber` |
+
+## Exit API
+
+| v3 | v4 |
+|---|---|
+| `Exit.isInterrupted(exit)` | `Exit.hasInterrupts(exit)` — check if exit has interrupts |
+| `Exit.isFailure(exit)` | Still exists in v4 |
+
+## Cause API
+
+| v3 | v4 |
+|---|---|
+| `Cause.isFailure(cause)` | `Cause.hasFails(cause)` — check if cause contains typed errors |
+| `Cause.isDie(cause)` | `Cause.hasDies(cause)` — check if cause contains defects |
 
 ## Context / ServiceMap
 

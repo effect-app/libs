@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FetchHttpClient } from "@effect/platform"
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
 import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
@@ -15,7 +15,7 @@ import { LegacyMutation, makeClient } from "../src/makeClient.js"
 import { type MakeIntlReturn } from "../src/makeIntl.js"
 
 const fakeToastLayer = (toasts: any[] = []) =>
-  Toast.Toast.toLayer(Effect.sync(() => {
+  Layer.effect(Toast.Toast as any, Effect.sync(() => {
     const dismiss = (id: Toast.ToastId) => {
       const idx = toasts.findIndex((_) => _.id === id)
       if (idx > -1) {
@@ -46,13 +46,13 @@ const fakeToastLayer = (toasts: any[] = []) =>
       }
       return id
     }
-    return Toast.wrap({
+    return Toast.Toast.of(Toast.wrap({
       error: fakeToast,
       warning: fakeToast,
       success: fakeToast,
       info: fakeToast,
       dismiss
-    })
+    }) as any)
   }))
 
 export const makeFakeIntl = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) => {
@@ -74,8 +74,8 @@ export const makeFakeIntl = (messages: Record<string, string> | Record<string, M
 }
 
 export const fakeIntlLayer = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) =>
-  I18n.toLayer(
-    Effect.sync(() => makeFakeIntl(messages))
+  Layer.effect(I18n as any,
+    Effect.sync(() => I18n.of(makeFakeIntl(messages) as any))
   )
 
 export const useExperimental = (
@@ -99,8 +99,8 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
 export class GetSomething2WithDependencies extends Req<GetSomething2WithDependencies>()("GetSomething2", {
   id: S.String
 }, {
-  success: S.NumberFromString as S.Schema<number, string, "dep-a">,
-  error: S.String as S.Schema<string, string, "dep-b">
+  success: S.NumberFromString,
+  error: S.String
 }) {}
 
 export const Something = { GetSomething2, GetSomething2WithDependencies, meta: { moduleName: "Something" as const } }

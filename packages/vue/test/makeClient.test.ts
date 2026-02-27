@@ -2,6 +2,8 @@
 import { type Effect } from "effect-app"
 import { Something, useClient, useExperimental } from "./stubs.js"
 
+// TODO: v4 migration - client type generation not working correctly, investigate makeClient/ApiClientFactory
+
 it.skip("works2", () => {
   const { legacy } = useClient()
   const n = legacy.useQuery({

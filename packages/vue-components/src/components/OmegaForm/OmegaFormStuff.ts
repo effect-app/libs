@@ -397,7 +397,7 @@ export const createMeta = <T = any>(
         const unwrappedTypes = unwrapNestedUnions(p.type.types)
         const nonNullTypes = unwrappedTypes
           .filter(
-            (t) => !AST.isUndefined(t) && t !== S.Null.ast
+            (t) => !AST.isUndefined(t) && !AST.isNull(t)
           )
           // unwraps class (Class are transformations)
           .map(getTransformationFrom)
@@ -614,7 +614,7 @@ export const createMeta = <T = any>(
       // First unwrap any nested unions, then filter out null/undefined
       const unwrappedTypes = unwrapNestedUnions(property.types)
       const nonNullType = unwrappedTypes.find(
-        (t) => !AST.isUndefined(t) && t !== S.Null.ast
+        (t) => !AST.isUndefined(t) && !AST.isNull(t)
       )!
 
       if (AST.isObjects(nonNullType)) {
@@ -709,7 +709,7 @@ const metadataFromAst = <_From, To>(
 
     // Filter out null/undefined types and unwrap transformations
     const nonNullTypes = types
-      .filter((t: any) => !AST.isUndefined(t) && t !== S.Null.ast)
+      .filter((t: any) => !AST.isUndefined(t) && !AST.isNull(t))
       .map(getTransformationFrom)
 
     // Check if this is a discriminated union (all members are structs)

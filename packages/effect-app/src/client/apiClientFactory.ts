@@ -40,7 +40,7 @@ export type Req = S.Top & {
   readonly "~decodingServices"?: unknown
 }
 
-class RequestName extends ServiceMap.ReferenceClass<RequestName>()("RequestName", {
+class RequestName extends ServiceMap.Reference("RequestName", {
   defaultValue: () => ({ requestName: "Unspecified", moduleName: "Error" })
 }) {}
 

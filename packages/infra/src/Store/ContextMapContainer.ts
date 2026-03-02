@@ -7,7 +7,7 @@ import { ContextMap } from "./service.js"
 // we can call another start after startup. but it would be even better if we could Die on accessing rootmap
 // we could also make the ContextMap optional, and when missing, issue a warning instead?
 
-export class ContextMapContainer extends ServiceMap.ReferenceClass<ContextMapContainer>()("ContextMapContainer", {
+export class ContextMapContainer extends ServiceMap.Reference("ContextMapContainer", {
   defaultValue: (): ContextMap | "root" => "root"
 }) {
   static readonly layer = Layer.effect(this, ContextMap.make.pipe(Effect.map(ContextMap.of)))

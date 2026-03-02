@@ -21,7 +21,7 @@ export interface ApiConfig {
 }
 
 export const DefaultApiConfig = Config.all({
-  url: Config.string("apiUrl").pipe(Config.withDefault(() => "/api")),
+  url: Config.string("apiUrl").pipe(Config.withDefault("/api")),
   headers: Config
     .schema(
       Config.Record(Schema.String, Schema.String),
@@ -40,7 +40,7 @@ export type Req = S.Top & {
   readonly "~decodingServices"?: unknown
 }
 
-class RequestName extends ServiceMap.Reference<RequestName>()("RequestName", {
+class RequestName extends ServiceMap.ReferenceClass<RequestName>()("RequestName", {
   defaultValue: () => ({ requestName: "Unspecified", moduleName: "Error" })
 }) {}
 

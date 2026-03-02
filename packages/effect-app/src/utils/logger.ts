@@ -6,7 +6,7 @@ import * as ServiceMap from "../ServiceMap.js"
 
 type Levels = "info" | "debug" | "warn" | "error"
 
-export class LogLevels extends ServiceMap.Reference<LogLevels>()("LogLevels", {
+export class LogLevels extends ServiceMap.ReferenceClass<LogLevels>()("LogLevels", {
   defaultValue: () => new Map<string, Levels>()
 }) {}
 

@@ -85,7 +85,7 @@ class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
       Layer.provide(
         Effect.gen(function*() {
           const url = yield* Config.redacted("STORAGE_URL").pipe(
-            Config.withDefault(() =>
+            Config.withDefault(
               Redacted.make(
                 // the emulator doesn't implement array projections :/ so you need an actual cloud instance!
                 "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
@@ -209,7 +209,7 @@ describe("filter first-level array fields as groups", () => {
           WHERE (items["value"] > @v1 AND CONTAINS(items["description"], @v2, true))`,
           parameters: [{ name: "@v1", value: 20 }, { name: "@v2", value: "d item" }]
         }),
-        memory: Array.filter((item: Something) =>
+        memory: Array.filterMap((item: Something) =>
           item.items.some((_) => _.value > 20 && _.description.includes("d item"))
             ? Result.succeed({
               name: item.name,
@@ -230,7 +230,7 @@ describe("filter first-level array fields as groups", () => {
           WHERE EXISTS(SELECT VALUE item FROM item IN f.items WHERE item["value"] > @v1 AND CONTAINS(item.description, @v2, true))`,
           parameters: [{ name: "@v1", value: 20 }, { name: "@v2", value: "d item" }]
         }),
-        memory: Array.filter((item: Something) =>
+        memory: Array.filterMap((item: Something) =>
           item.items.some((_) => _.value > 20 && _.description.includes("d item"))
             ? Result.succeed({
               name: item.name,

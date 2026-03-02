@@ -13,7 +13,7 @@ const reportRequestError = reportError("Request")
 export const DevModeLive = Layer.effect(
   DevMode,
   Effect.gen(function*() {
-    const env = yield* Config.string("env").pipe(Config.withDefault(() => "local-dev"))
+    const env = yield* Config.string("env").pipe(Config.withDefault("local-dev"))
     return env !== "prod"
   })
 )

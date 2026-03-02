@@ -18,13 +18,13 @@ export * from "effect/Struct"
  */
 export const pick: {
   <Keys extends Array<PropertyKey>>(
-    ...keys: Keys
+    keys: Keys
   ): <S extends { [K in Keys[number]]?: any }>(
     s: S
   ) => Types.MatchRecord<S, { [K in Keys[number]]?: S[K] }, Pick<S, Keys[number]>>
   <S extends object, Keys extends Array<keyof S>>(
     s: S,
-    ...keys: Keys
+    keys: Keys
   ): Types.MatchRecord<S, { [K in Keys[number]]?: S[K] }, Pick<S, Keys[number]>>
 } = Struct.pick
 
@@ -45,10 +45,10 @@ export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K
  */
 export const omit: {
   <Keys extends Array<PropertyKey>>(
-    ...keys: Keys
+    keys: Keys
   ): <S extends { [K in Keys[number]]?: any }>(s: S) => DistributiveOmit<S, Keys[number]>
   <S extends object, Keys extends Array<keyof S>>(
     s: S,
-    ...keys: Keys
+    keys: Keys
   ): DistributiveOmit<S, Keys[number]>
 } = Struct.omit as any

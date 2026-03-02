@@ -23,11 +23,10 @@ export class RunCommandService extends ServiceMap.Service<RunCommandService>()("
      * @returns An Effect that succeeds with the exit code or fails with a PlatformError
      */
     const runGetExitCode = (cmd: string, cwd?: string) =>
-      ChildProcess
+      spawner
         .exitCode(
           ChildProcess.make("sh", ["-c", cmd], { stdout: "inherit", stderr: "inherit", cwd })
         )
-        .pipe(Effect.provideService(ChildProcessSpawner, spawner))
 
     /**
      * Executes a shell command using Command API and returns the output as a string.
@@ -38,11 +37,10 @@ export class RunCommandService extends ServiceMap.Service<RunCommandService>()("
      * @returns An Effect that succeeds with the command's stdout output as string or fails with a PlatformError
      */
     const runGetString = (cmd: string, cwd?: string) =>
-      ChildProcess
+      spawner
         .string(
           ChildProcess.make("sh", ["-c", cmd], { cwd })
         )
-        .pipe(Effect.provideService(ChildProcessSpawner, spawner))
 
     return {
       runGetExitCode,

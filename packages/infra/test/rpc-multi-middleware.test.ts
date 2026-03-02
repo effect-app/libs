@@ -82,7 +82,7 @@ const middlwareLayer = middleware
       SomeElseMiddlewareLive,
       SomeMiddlewareLive,
       TestLive,
-      RequireRolesLive.pipe(Layer.provide(SomeService.toLayer())),
+      RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
       AllowAnonymousLive
     ])
   )

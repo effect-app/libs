@@ -1016,7 +1016,7 @@ export class LegacyMutationImpl<RT> {
     onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, RT>
   ) => {
     const fields = buildFieldInfoFromFieldsRoot(s).fields
-    const schema = S.Struct(Struct.omit(s.fields, "_tag")) as unknown as S.Schema<any> & {
+    const schema = S.Struct(Struct.omit(s.fields, ["_tag"])) as unknown as S.Schema<any> & {
       readonly DecodingServices: never
     }
     const parse = S.decodeUnknownSync(schema)

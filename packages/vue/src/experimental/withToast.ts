@@ -5,6 +5,7 @@ import { CurrentToastId, Toast } from "./toast.js"
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, SucR, ErrR> {
   stableToastId?: undefined | string | ((...args: Args) => string | undefined)
   timeout?: number
+  showSpanInfo?: boolean
   onWaiting:
     | string
     | ((...args: Args) => string | null)
@@ -74,10 +75,12 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               return
             }
 
-            const spanInfo = yield* Effect.currentSpan.pipe(
-              Effect.map((span) => `\nTrace: ${span.traceId}\nSpan: ${span.spanId}`),
-              Effect.orElseSucceed(() => "")
-            )
+            const spanInfo = (options.showSpanInfo ?? true)
+              ? yield* Effect.currentSpan.pipe(
+                Effect.map((span) => `\nTrace: ${span.traceId}\nSpan: ${span.spanId}`),
+                Effect.orElseSucceed(() => "")
+              )
+              : ""
 
             const t = yield* wrapEffect(options.onFailure)(Cause.failureOption(cause), ...args)
             const opts = { timeout: baseTimeout * 2 }

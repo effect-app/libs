@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.0
+
+### Major Changes
+
+- 7e9e02b: Update to Effect v4
+
 ## 1.29.2
 
 ### Patch Changes

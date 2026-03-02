@@ -79,11 +79,6 @@ class MyService extends ServiceMap.Service<MyService, {
 
 Avoid `.length > 0` or `.length === 0` or `!.length` or `!!.length` checks, use `Array.isArrayNonEmpty` for type narrowing by default.
 
-## Filtering and Mapping
-
-Use Effect's `Array.filter()` with a `Filter.Filter` to do both the filtering and mapping.
-
-
 <!-- ## Barrel files
 
 The `index.ts` files are automatically generated. Do not manually edit them. Use

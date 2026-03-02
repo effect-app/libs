@@ -48,7 +48,7 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `Schema.decodeUnknownEither(schema)` | `Schema.decodeUnknownExit(schema)` for `Exit` results or `Schema.decodeUnknownOption(schema)` for `Option` |
 | `Schema.Class.transformOrFail<T>("T")({fields}, {decode, encode})` | `sourceSchema.pipe(Schema.decodeTo(targetStruct, SchemaTransformation.transformOrFail({decode, encode})))` — keep as class with `Schema.Opaque<Self>()(schema)` |
 | Schema class → `const + interface` pattern | **Do not do this.** Use `class Foo extends Schema.Opaque<Foo>()(schema) {}` to preserve class semantics |
-| `Array.filterMap(arr, fn)` (using `Option`) | `Array.filter(arr, fn)` where `fn` returns `Result.succeed(mapped)` or `Result.fail(item)` — import `Result` from `"effect"` |
+| `Array.filterMap(arr, fn)` (using `Option`) | `Array.filterMap(arr, fn)` where `fn` returns `Result.succeed(mapped)` or `Result.fail(item)` — import `Result` from `"effect"` |
 | `ParseResult.Type(ast, value, msg)` | `SchemaIssue.InvalidValue(Option.some(value), { message: msg })` |
 | `ParseResult.Composite(ast, value, issues)` | `SchemaIssue.Composite(ast, Option.some(value), issues)` (ast still needed) |
 | `ParseResult.succeed(x)` | `Effect.succeed(x)` |
@@ -76,7 +76,6 @@ class MyService extends ServiceMap.Service<MyService>()("MyService", {
 | `Effect.catchAll(() => Effect.succeed(value))` | `Effect.orElseSucceed(() => value)` — catch all errors and succeed with a value |
 | `Effect.orElse(() => fallback)` | `Effect.catchCause(() => fallback)` |
 | `Effect.all({ a: Config.string(...) })` | `Config.all({ a: Config.string(...) })` — use module's own `.all()` for Config/Either/Option |
-| `Config.withDefault("value")` | `Config.withDefault(() => "value")` (now takes `LazyArg`) |
 | `Effect.either(effect)` | `Effect.result(effect)` — returns `Result` not `Either` |
 | `Effect.catchAllCause(handler)` | `Effect.catchCause(handler)` |
 | `Effect.zipRight(next)` | `Effect.andThen(next)` |

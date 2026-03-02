@@ -48,7 +48,7 @@ export class Toast
 
 // const a = Layer.effect(Toast, Effect.sync(() => Toast.of(null as any)))
 
-// const A = Toast.of2({
+// const A = Toast.of({
 //   error: () => Effect.succeed(null as any),
 //   info: () => Effect.succeed(null as any),
 //   success: () => Effect.succeed(null as any),

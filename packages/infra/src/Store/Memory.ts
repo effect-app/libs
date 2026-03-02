@@ -18,13 +18,13 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       return r.map((i) => {
         const [keys, subKeys] = pipe(
           sel,
-          Array.partitionMap((r) =>
+          Array.partition((r) =>
             typeof r === "string" ? Result.fail(String(r)) : Result.succeed(r as { key: string; subKeys: string[] })
           )
         )
-        const n = Struct.pick(i, ...keys)
+        const n = Struct.pick(i, keys)
         subKeys.forEach((subKey) => {
-          n[subKey.key] = i[subKey.key]!.map(Struct.pick(...subKey.subKeys))
+          n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys))
         })
         return n as M
       }) as any
@@ -73,7 +73,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
 
 const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
 export class storeId
-  extends ServiceMap.Reference<storeId>()("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
+  extends ServiceMap.ReferenceClass<storeId>()("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
 {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {

@@ -5,7 +5,7 @@ import { NonEmptyString255 } from "effect-app/Schema"
 export const Locale = S.Literal("en", "de")
 export type Locale = typeof Locale.Type
 
-export class LocaleRef extends ServiceMap.Reference<LocaleRef>()("Locale", { defaultValue: (): Locale => "en" }) {}
+export class LocaleRef extends ServiceMap.ReferenceClass<LocaleRef>()("Locale", { defaultValue: (): Locale => "en" }) {}
 
 export class RequestContext extends S.ExtendedClass<
   RequestContext,

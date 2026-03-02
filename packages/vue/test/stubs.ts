@@ -48,7 +48,7 @@ const fakeToastLayer = (toasts: any[] = []) =>
         }
         return id
       }
-      return Toast.Toast.of2(Toast.wrap({
+      return Toast.Toast.of(Toast.wrap({
         error: fakeToast,
         warning: fakeToast,
         success: fakeToast,
@@ -77,7 +77,7 @@ export const makeFakeIntl = (messages: Record<string, string> | Record<string, M
 }
 
 export const fakeIntlLayer = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) =>
-  Layer.effect(I18n, Effect.sync(() => I18n.of2(makeFakeIntl(messages))))
+  Layer.effect(I18n, Effect.sync(() => I18n.of(makeFakeIntl(messages))))
 
 export const useExperimental = (
   options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }

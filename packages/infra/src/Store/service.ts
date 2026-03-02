@@ -170,7 +170,7 @@ export const makeContextMap = () => {
 
 const makeMap = Effect.sync(() => makeContextMap())
 
-export class ContextMap extends ServiceMap.Opaque<ContextMap, {}>()("effect-app/ContextMap", { make: makeMap }) {
+export class ContextMap extends ServiceMap.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
 }
 
 export type PersistenceModelType<Encoded extends object> = Encoded & {

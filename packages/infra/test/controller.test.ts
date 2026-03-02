@@ -37,7 +37,7 @@ class MyContextProvider extends RpcX.RpcMiddleware.Tag<MyContextProvider, {
         // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
         // if (Math.random() > 0.5) return yield* new CustomError2()
 
-        return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+        return yield* Effect.provideService(effect, Some, Some.of({ a: 1 }))
       })
     }
   })
@@ -49,7 +49,7 @@ class MyContextProvider3 extends RpcX.RpcMiddleware.Tag<MyContextProvider3, {
   requires: SomeElse
 }>()("MyContextProvider3") {
   static Default = Layer.make(this, {
-    dependencies: [Layer.effect(SomeService, SomeService.make)],
+    dependencies: [SomeService.Default],
     *make() {
       yield* SomeService
       if (Math.random() > 0.5) return yield* new CustomError1()
@@ -69,7 +69,7 @@ class MyContextProvider3 extends RpcX.RpcMiddleware.Tag<MyContextProvider3, {
         // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
         // if (Math.random() > 0.5) return yield* new CustomError2()
 
-        return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+        return yield* Effect.provideService(effect, Some, Some.of({ a: 1 }))
       })
     }
   })
@@ -91,7 +91,7 @@ class MyContextProvider2
       return Effect.fnUntraced(function*(effect) {
         // we test without dependencies, so that we end up with an R of never.
 
-        return yield* Effect.provideService(effect, SomeElse, new SomeElse({ b: 2 }))
+        return yield* Effect.provideService(effect, SomeElse, SomeElse.of({ b: 2 }))
       })
     }
   })

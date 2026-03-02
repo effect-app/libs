@@ -74,7 +74,7 @@ const testSuite = (_mw: typeof middleware3) =>
           Layer.provide([
             RequiresSomeMiddleware.Default,
             SomeMiddlewareLive,
-            RequireRolesLive.pipe(Layer.provide(SomeService.toLayer())),
+            RequireRolesLive.pipe(Layer.provide(SomeService.toLayer(SomeService.make))),
             AllowAnonymousLive,
             TestLive,
             SomeElseMiddlewareLive

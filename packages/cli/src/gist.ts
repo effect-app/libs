@@ -387,7 +387,7 @@ class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService",
 
         // filter file names by environment prefix and remove the prefix
         // files in gists are prefixed with "env." to support multiple environments
-        return Array.filter(output.trim().split("\n"), (fn) => {
+        return Array.filterMap(output.trim().split("\n"), (fn) => {
           const fnTrimmed = fn.trim()
           if (!fnTrimmed.startsWith(env + ".")) return Result.fail(fn)
           return Result.succeed(fnTrimmed.substring(env.length + 1)) // remove env prefix and dot
@@ -610,7 +610,7 @@ export class GistHandler extends ServiceMap.Service<GistHandler>()("GistHandler"
         // load company and environment from environment variables
         const CONFIG = yield* Config.all({
           company: Config.string("COMPANY"),
-          env: Config.string("ENV").pipe(Config.withDefault(() => "local-dev"))
+          env: Config.string("ENV").pipe(Config.withDefault("local-dev"))
         })
 
         yield* Effect.logInfo(`Company: ${CONFIG.company}, ENV: ${CONFIG.env}`)

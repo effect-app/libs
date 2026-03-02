@@ -6,7 +6,7 @@ import { Emailer } from "./service.js"
 const makeFake = InfraLogger
   .logInfo("FAKE Emailer Service enabled")
   .pipe(Effect.map(() =>
-    Emailer.of2({
+    Emailer.of({
       sendMail: Effect.fn("Fake.sendMail")((msg) =>
         InfraLogger
           .logDebug(`Fake send mail`)

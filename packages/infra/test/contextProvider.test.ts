@@ -20,7 +20,7 @@ class MyContextProvider extends ServiceMap.Service<MyContextProvider>()(
         yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
         yield* Effect.succeed("this is a generator")
 
-        return ServiceMap.make(Some, new Some({ a: 1 }))
+        return Some.serviceMap({ a: 1 }) 
       })
     })
   }
@@ -37,7 +37,7 @@ class MyContextProvider2 extends ServiceMap.Service<MyContextProvider2>()(
       return Effect.gen(function*() {
         // we test without dependencies, so that we end up with an R of never.
 
-        return ServiceMap.make(SomeElse, new SomeElse({ b: 2 }))
+        return SomeElse.serviceMap({ b: 2 })
       })
     })
   }
@@ -54,7 +54,7 @@ class MyContextProvider2Gen extends ServiceMap.Service<MyContextProvider2Gen>()(
       return function*() {
         // we test without dependencies, so that we end up with an R of never
 
-        return ServiceMap.make(SomeElse, new SomeElse({ b: 2 }))
+        return SomeElse.serviceMap({ b: 2 })
       }
     })
   }
@@ -77,7 +77,7 @@ class MyContextProviderGen extends ServiceMap.Service<MyContextProviderGen>()(
         yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
         yield* Effect.succeed("this is a generator")
 
-        return ServiceMap.make(Some, new Some({ a: 1 }))
+        return Some.serviceMap({ a: 1 })
       }
     })
   }
@@ -100,7 +100,7 @@ export const someContextProvider = ContextProvider({
       // currently the effectful context provider cannot trigger an error when building the per request context
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return ServiceMap.make(Some, new Some({ a: 1 }))
+      return Some.serviceMap({ a: 1 })
     })
   })
 })
@@ -119,7 +119,7 @@ export const someContextProviderGen = ContextProvider({
       // currently the effectful context provider cannot trigger an error when building the per request context
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return ServiceMap.make(Some, new Some({ a: 1 }))
+      return Some.serviceMap({ a: 1 })
     }
   })
 })

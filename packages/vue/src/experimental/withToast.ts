@@ -84,7 +84,7 @@ export class WithToast extends ServiceMap.Service<WithToast>()("WithToast", {
             }
             yield* toast.error(t, toastId !== undefined ? { ...opts, id: toastId } : opts)
           }, Effect.uninterruptible)),
-          toastId !== undefined ? Effect.provideService(CurrentToastId, CurrentToastId.of2({ toastId })) : (_) => _
+          toastId !== undefined ? Effect.provideService(CurrentToastId, CurrentToastId.of({ toastId })) : (_) => _
         )
       })
   })

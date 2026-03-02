@@ -66,7 +66,7 @@ export const SenderTag = <Id>() => <Key extends string>(queueName: Key) => {
   return Object.assign(tag, {
     layer: Layer.effect(
       tag,
-      Sender.make(queueName).pipe(Effect.map((_) => Sender.of2(_)))
+      Sender.make(queueName).pipe(Effect.map((_) => Sender.of(_)))
     )
   })
 }
@@ -185,7 +185,7 @@ export const ReceiverTag = <Id>() => <Key extends string>(queueName: Key) => {
   return Object.assign(tag, {
     layer: Layer.effect(
       tag,
-      makeReceiver(queueName).pipe(Effect.map((_) => Receiver.of2(_)))
+      makeReceiver(queueName).pipe(Effect.map((_) => Receiver.of(_)))
     )
   })
 }

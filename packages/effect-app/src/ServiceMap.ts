@@ -7,39 +7,43 @@
 
 import { type Effect, Layer, type Scope, type Types } from "effect"
 import * as ServiceMap from "effect/ServiceMap"
+import { Yieldable } from "./Effect.js"
 
 export * from "effect/ServiceMap"
 
+// TODO: Unify with `Reference` once we can access `ServiceProto`
 /**
  * Customized version of `ServiceMap.Reference` that supports classes
  */
-export const Reference = ServiceMap.Reference as typeof ServiceMap.Reference & {
+export const ReferenceClass: {
   <_Self>(): <Service, const Identifier extends string>(
     key: Identifier,
     options: { readonly defaultValue: () => Service }
   ) => ServiceMap.Reference<Service> & {
     new(_: never): ServiceMap.ServiceClass.Shape<Identifier, Service>
   }
-}
+} = () => ServiceMap.Reference as any
 
 let i = 0
 const randomId = () => "unknown-service-" + i++
 
-export interface Opaque<Self extends object, in out Shape extends object> extends ServiceMap.Service<Self, Self> {
+export interface Opaque<Self extends object, in out Shape extends object> extends ServiceMap.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self> {
   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
-  of2(self: Shape): Self
-  serviceMap2(self: Shape): ServiceMap.ServiceMap<Self>
+  of(self: Shape): Self
+  serviceMap(self: Shape): ServiceMap.ServiceMap<Self>
   // a version that leverages the Shape -> Self conversion
   toLayer: <E, R>(
     eff: Effect.Effect<Shape, E, R>
   ) => Layer.Layer<Self, E, Exclude<R, Scope.Scope>>
+  use<A, E, R>(f: (service: Shape) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R | Self>
+  useSync<A>(f: (service: Shape) => A): Effect.Effect<A, never, Self>
 }
 
 // export interface OpaqueMake<Self extends object, in out Shape extends object, E, R>
 //   extends ServiceMap.Service<Self, Self>
 // {
 //   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
-//   of2(self: Shape): Self
+//   of(self: Shape): Self
 //   serviceMap2(self: Shape): ServiceMap.ServiceMap<Self>
 //   // a version that leverages the Shape -> Self conversion
 //   toLayer: {
@@ -192,7 +196,6 @@ export const Opaque: {
 } = () => (id: string, options: any) => {
   const svc = ServiceMap.Service()(id, options) as any
   return Object.assign(svc, {
-    of2: (self: any) => svc.of(self),
     toLayer: (eff: Effect.Effect<any, any, any>) => {
       return Layer.effect(svc as any, eff)
     }

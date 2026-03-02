@@ -38,8 +38,8 @@ const q = make<Something.Encoded>()
     // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
     project(
       S.transformToOrFail(
-        S.Struct(Struct.pick(Something.fields, "id", "displayName")),
-        S.Struct(Struct.pick(Something.fields, "id", "displayName")),
+        S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
+        S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
         (_) =>
           Effect.gen(function*() {
             yield* SomeService
@@ -95,7 +95,7 @@ it("works", () => {
     }))(_)
   ))
 
-  expect(processed).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("id", "displayName")))
+  expect(processed).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
 })
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
@@ -138,8 +138,8 @@ it("works with repo", () =>
           // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
           project(
             S.transformToOrFail(
-              S.Struct(Struct.pick(Something.fields, "displayName")),
-              S.Struct(Struct.pick(Something.fields, "displayName")),
+              S.Struct(Struct.pick(Something.fields, ["displayName"])),
+              S.Struct(Struct.pick(Something.fields, ["displayName"])),
               (_) =>
                 Effect.gen(function*() {
                   yield* SomeService
@@ -156,11 +156,13 @@ it("works with repo", () =>
 
       expectTypeOf(smtArr).toEqualTypeOf<readonly Something[]>()
 
-      expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("id", "displayName")))
-      expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("displayName")))
+      console.log(" $$$$$$")
+      console.log(Struct.pick(["id", "displayName"]))
+      expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
+      expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
     })
     .pipe(
-      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
       setupRequestContextFromCurrent(),
       Effect.runPromise
     ))
@@ -180,7 +182,7 @@ it("collect", () =>
             project(
               S.transformTo(
                 S.toEncoded(S.Struct({
-                  ...Struct.pick(Something.fields, "n"),
+                  ...Struct.pick(Something.fields, ["n"]),
                   displayName: S.String
                 })),
                 S.toType(S.Option(S.String)),
@@ -231,7 +233,7 @@ it("collect", () =>
       expect(value).toEqual("hi")
     })
     .pipe(
-      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
       setupRequestContextFromCurrent(),
       Effect.runPromise
     ))

@@ -75,7 +75,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             dropUndefinedT({
                               operationType: "Create" as const,
                               resourceBody: {
-                                ...Struct.omit(x, "_etag", idKey),
+                                ...Struct.omit(x, ["_etag", idKey]),
                                 id: x[idKey],
                                 _partitionKey: config?.partitionValue(x)
                               }
@@ -87,7 +87,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                               operationType: "Replace" as const,
                               id: x[idKey],
                               resourceBody: {
-                                ...Struct.omit(x, "_etag", idKey),
+                                ...Struct.omit(x, ["_etag", idKey]),
                                 id: x[idKey],
                                 _partitionKey: config?.partitionValue(x)
                               },
@@ -176,7 +176,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                         onNone: () => ({
                           operationType: "Create" as const,
                           resourceBody: {
-                            ...Struct.omit(x, "_etag", idKey),
+                            ...Struct.omit(x, ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: config?.partitionValue(x)
                           }
@@ -187,7 +187,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                           operationType: "Replace" as const,
                           id: x[idKey],
                           resourceBody: {
-                            ...Struct.omit(x, "_etag", idKey),
+                            ...Struct.omit(x, ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: config?.partitionValue(x)
                           },
@@ -332,7 +332,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                                 ({
                                   ...pipe(
                                     defaultValues,
-                                    Struct.pick(...f.select!.filter((_) => typeof _ === "string"))
+                                    Struct.pick(f.select!.filter((_) => typeof _ === "string"))
                                   ),
                                   ...mapReverseId(_ as any)
                                 }) as any

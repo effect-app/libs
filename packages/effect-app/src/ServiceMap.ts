@@ -11,18 +11,17 @@ import { Yieldable } from "./Effect.js"
 
 export * from "effect/ServiceMap"
 
-// TODO: Unify with `Reference` once we can access `ServiceProto`
 /**
  * Customized version of `ServiceMap.Reference` that supports classes
  */
-export const ReferenceClass: {
-  <_Self>(): <Service, const Identifier extends string>(
-    key: Identifier,
+export const Reference: {
+   <Service>(
+    key: string,
     options: { readonly defaultValue: () => Service }
-  ) => ServiceMap.Reference<Service> & {
-    new(_: never): ServiceMap.ServiceClass.Shape<Identifier, Service>
+    ): ServiceMap.Reference<Service> & {
+      new(): ServiceMap.Reference<Service>
   }
-} = () => ServiceMap.Reference as any
+} = ServiceMap.Reference as any
 
 let i = 0
 const randomId = () => "unknown-service-" + i++

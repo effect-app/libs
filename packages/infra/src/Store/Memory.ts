@@ -73,7 +73,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
 
 const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
 export class storeId
-  extends ServiceMap.ReferenceClass<storeId>()("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
+  extends ServiceMap.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
 {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {

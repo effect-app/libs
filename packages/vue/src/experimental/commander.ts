@@ -1192,7 +1192,7 @@ export const CommanderStatic = {
        */
       stableToastId?: undefined | true | string | ((id: string, ...args: Args) => true | string | undefined)
       errorRenderer?: ErrorRenderer<E, Args>
-      showSpanInfo?: boolean
+      showSpanInfo?: false
       onWaiting?: null | undefined | string | ((id: string, ...args: Args) => string | null | undefined)
       onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
     }
@@ -1251,7 +1251,7 @@ export const CommanderStatic = {
               options?.errorRenderer
             ),
             stableToastId,
-            ...options?.showSpanInfo != null ? { showSpanInfo: options.showSpanInfo } : {}
+            ...options?.showSpanInfo === false ? { showSpanInfo: false as const } : {}
           })(_, ...args)
       )
     }),

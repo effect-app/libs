@@ -74,15 +74,21 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               return
             }
 
+            const spanInfo = yield* Effect.currentSpan.pipe(
+              Effect.map((span) => `\nTrace: ${span.traceId}\nSpan: ${span.spanId}`),
+              Effect.orElseSucceed(() => "")
+            )
+
             const t = yield* wrapEffect(options.onFailure)(Cause.failureOption(cause), ...args)
             const opts = { timeout: baseTimeout * 2 }
 
             if (typeof t === "object") {
+              const message = t.message + spanInfo
               return t.level === "warn"
-                ? yield* toast.warning(t.message, toastId !== undefined ? { ...opts, id: toastId } : opts)
-                : yield* toast.error(t.message, toastId !== undefined ? { ...opts, id: toastId } : opts)
+                ? yield* toast.warning(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
+                : yield* toast.error(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
             }
-            yield* toast.error(t, toastId !== undefined ? { ...opts, id: toastId } : opts)
+            yield* toast.error(t + spanInfo, toastId !== undefined ? { ...opts, id: toastId } : opts)
           }, Effect.uninterruptible)),
           toastId !== undefined ? Effect.provideService(CurrentToastId, CurrentToastId.of({ toastId })) : (_) => _
         )

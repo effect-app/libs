@@ -51,10 +51,6 @@
       "types": "./dist/Config/SecretURL.d.ts",
       "default": "./dist/Config/SecretURL.js"
     },
-    "./ServiceMap": {
-      "types": "./dist/ServiceMap.d.ts",
-      "default": "./dist/ServiceMap.js"
-    },
     "./Effect": {
       "types": "./dist/Effect.d.ts",
       "default": "./dist/Effect.js"
@@ -135,6 +131,10 @@
       "types": "./dist/Schema/strings.d.ts",
       "default": "./dist/Schema/strings.js"
     },
+    "./ServiceMap": {
+      "types": "./dist/ServiceMap.d.ts",
+      "default": "./dist/ServiceMap.js"
+    },
     "./Set": {
       "types": "./dist/Set.d.ts",
       "default": "./dist/Set.js"
@@ -142,10 +142,6 @@
     "./Struct": {
       "types": "./dist/Struct.d.ts",
       "default": "./dist/Struct.js"
-    },
-    "./Tag": {
-      "types": "./dist/Tag.d.ts",
-      "default": "./dist/Tag.js"
     },
     "./TypeTest": {
       "types": "./dist/TypeTest.d.ts",

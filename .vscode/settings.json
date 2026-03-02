@@ -1,4 +1,7 @@
 {
+  "files.exclude": {
+     "**/.git": false
+  },
   "explorer.sortOrderLexicographicOptions": "upper",
   "typescript.preferences.includePackageJsonAutoImports": "on",
   "typescript.experimental.expandableHover": true,

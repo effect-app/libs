@@ -25,15 +25,11 @@
     "js-yaml": "4.1.1",
     "lodash": "4.17.23"
   },
-  "peerDependencies": {
-    "effect": "^4.0.0-beta.23"
-  },
   "devDependencies": {
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.24",
-    "effect": "^4.0.0-beta.23",
     "madge": "8.0.0",
     "typescript": "~5.9.3",
     "effect-app": "workspace:*",

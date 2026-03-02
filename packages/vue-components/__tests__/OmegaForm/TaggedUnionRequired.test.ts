@@ -21,7 +21,6 @@ describe("TaggedUnion required field handling", () => {
         ])
       )
     })
-
     const { meta } = generateMetaFromSchema(schema)
 
     // Top-level required field should be required

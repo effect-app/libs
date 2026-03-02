@@ -1251,7 +1251,7 @@ export const CommanderStatic = {
               options?.errorRenderer
             ),
             stableToastId,
-            ...options?.showSpanInfo === false ? { showSpanInfo: false as const } : {}
+            ...options?.showSpanInfo === false ? { showSpanInfo: options.showSpanInfo } : {}
           })(_, ...args)
       )
     }),

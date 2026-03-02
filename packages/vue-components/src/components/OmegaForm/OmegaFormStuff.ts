@@ -1,7 +1,6 @@
 import type * as Effect from "effect/Effect"
 import * as AST from "effect/SchemaAST"
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getMetadataFromSchema } from "@effect-app/vue/form"
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { isObject } from "@vueuse/core"
 import * as S from "effect/Schema"
@@ -376,6 +375,10 @@ export const createMeta = <T = any>(
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
 
+      // Check if this property has title "Int" or "int" annotation (from Int brand wrapper)
+      const propertyTitle = p.type.annotations?.title ?? ""
+      const isIntField = propertyTitle === "Int" || propertyTitle === "int"
+
       // Determine if this field should be required:
       // - For nullable discriminated unions, only _tag should be non-required
       // - All other fields should calculate their required status normally
@@ -589,10 +592,9 @@ export const createMeta = <T = any>(
             parent: key,
             property: p.type,
             meta: {
-              // an empty string is valid for a S.String field, so we should not mark it as required
-              // TODO: handle this better via the createMeta minLength parsing
-              required: isRequired && (!AST.isString(p.type) || getMetadataFromSchema(p.type).minLength),
-              nullableOrUndefined
+              required: isRequired,
+              nullableOrUndefined,
+              ...(isIntField && { refinement: "int" })
             }
           })
 
@@ -657,7 +659,18 @@ export const createMeta = <T = any>(
     meta = { ...JSONAnnotation, ...meta }
 
     // check the title annotation BEFORE following "from" to detect refinements like S.Int
-    const titleType = property.annotations?.title ?? "unknown"
+    let titleType = property.annotations?.title ?? "unknown"
+
+    // Detect basic types from AST if no title annotation
+    if (titleType === "unknown") {
+      if (AST.isString(property)) {
+        titleType = "string"
+      } else if (AST.isNumber(property)) {
+        titleType = "number"
+      } else if (AST.isBoolean(property)) {
+        titleType = "boolean"
+      }
+    }
 
     // if this is S.Int (a refinement), set the type and skip following "from"
     // otherwise we'd lose the "Int" information and get "number" instead
@@ -667,6 +680,11 @@ export const createMeta = <T = any>(
       // don't follow "from" for Int refinements
     } else {
       meta["type"] = titleType
+    }
+
+    // Always ensure required is set before returning
+    if (!Object.hasOwnProperty.call(meta, "required")) {
+      meta["required"] = !nullableOrUndefined
     }
 
     return meta as FieldMeta
@@ -1044,10 +1062,6 @@ export const defaultsValueFromSchema = (
 ): any => {
   const ast = schema.ast
 
-  // v4: defaultValue is in ast.context?.defaultValue but complex to extract
-  // Skip default value extraction for now
-  // if (ast?.defaultValue) { ... }
-
   if (isNullableOrUndefined(schema.ast) === "null") {
     return null
   }
@@ -1055,7 +1069,35 @@ export const defaultsValueFromSchema = (
     return undefined
   }
 
-  // Check if schema has fields directly
+  // Handle v4 Objects AST structure
+  if (AST.isObjects(ast)) {
+    const result: Record<string, any> = { ...record }
+
+    for (const prop of ast.propertySignatures) {
+      const key = prop.name.toString()
+      const propType = prop.type
+
+      // Get the property schema from the original schema's fields if available
+      // This preserves schema wrappers like withDefaultConstructor
+      let propSchema: S.Schema<any>
+      if ((schema as any).fields && (schema as any).fields[key]) {
+        propSchema = (schema as any).fields[key]
+      } else {
+        propSchema = S.make(propType)
+      }
+
+      // Recursively process the property to get its defaults
+      const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
+
+      if (propValue !== undefined) {
+        result[key] = propValue
+      }
+    }
+
+    return result
+  }
+
+  // v3 compatible fields extraction
   if (hasFields(schema)) {
     // Process fields and extract default values
     const result: Record<string, any> = {}
@@ -1121,39 +1163,12 @@ export const defaultsValueFromSchema = (
       // For now, skip complex default extraction
       // TODO: properly extract default from encoding chain
     }
+  }
 
-    if (AST.isObjects(ast)) {
-      // Process Objects fields directly to build the result object
-      const result: Record<string, any> = { ...record }
-
-      for (const prop of ast.propertySignatures) {
-        const key = prop.name.toString()
-        const propType = prop.type
-
-        // Check context for constructor defaults
-        if (propType.context?.defaultValue) {
-          // Skip for now - complex to extract from Encoding
-          continue
-        }
-
-        // Create a schema from the property type and get its defaults
-        const propSchema = S.make(propType)
-
-        // Recursively process the property
-        const propValue = defaultsValueFromSchema(propSchema)
-
-        if (propValue !== undefined) {
-          result[key] = propValue
-        }
-      }
-
-      return result
-    }
-    if (AST.isString(ast)) {
-      return ""
-    }
-    if (AST.isBoolean(ast)) {
-      return false
-    }
+  if (AST.isString(ast)) {
+    return ""
+  }
+  if (AST.isBoolean(ast)) {
+    return false
   }
 }

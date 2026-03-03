@@ -1,7 +1,6 @@
 import { createIntl, type IntlFormatters } from "@formatjs/intl"
 import type {} from "intl-messageformat"
 import { Cause, Exit, Option, pipe, S } from "effect-app"
-import type { Schema } from "effect-app/Schema"
 import type { Unbranded } from "effect-app/Schema/brand"
 import type { IsUnion } from "effect-app/utils"
 import { capitalize, ref } from "vue"
@@ -122,7 +121,7 @@ function handlePropertySignature(
   switch (schema.ast._tag) {
     case "Objects": {
       return buildFieldInfoFromFieldsRoot(
-        schema as S.Schema<Record<PropertyKey, any>>
+        schema as S.Codec<Record<PropertyKey, any>>
       )
     }
     case "Union": {
@@ -194,7 +193,7 @@ export function buildFieldInfoFromFields<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>
 >(
-  schema: (Schema<To> | S.Codec<To, From>) & { fields?: S.Struct.Fields }
+  schema: (S.Codec<To, From>) & { fields?: S.Struct.Fields }
 ) {
   return buildFieldInfoFromFieldsRoot(schema).fields
 }
@@ -204,7 +203,7 @@ export function buildFieldInfoFromFieldsRoot<
   To extends Record<PropertyKey, any>,
   R
 >(
-  schema: (Schema<To> | S.Codec<To, From, R>) & { fields?: S.Struct.Fields }
+  schema: (S.Codec<To, From, R>) & { fields?: S.Struct.Fields }
 ): NestedFieldInfo<To> {
   const ast = getObjectsAST(schema.ast)
 
@@ -245,9 +244,9 @@ function buildFieldInfo(
   property: S.AST.PropertySignature
 ): FieldInfo<any> {
   const propertyKey = property.name
-  const schema = S.make<S.Schema<unknown>>(property.type)
+  const schema = S.make<S.Codec<unknown>>(property.type)
   const metadata = getMetadataFromSchema(property.type)
-  const parse = S.decodeUnknownExit(schema as S.Schema<unknown> & { readonly DecodingServices: never })
+  const parse = S.decodeUnknownExit(schema as S.Codec<unknown> & { readonly DecodingServices: never })
 
   const nullableOrUndefined = S.AST.isUnion(property.type)
     && (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "Undefined"))
@@ -419,7 +418,7 @@ export function getMetadataFromSchema(
 
   let jschema: any
   try {
-    const doc = S.toJsonSchemaDocument(S.make<S.Schema<unknown>>(realSelf))
+    const doc = S.toJsonSchemaDocument(S.make<S.Codec<unknown>>(realSelf))
     jschema = doc.schema as any
     const defs = doc.definitions as Record<string, any>
     // resolve $ref against definitions

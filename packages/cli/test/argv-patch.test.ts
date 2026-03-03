@@ -1,70 +1,53 @@
+import { execFileSync } from "node:child_process"
+import path from "node:path"
+import url from "node:url"
 import { describe, expect, it } from "vitest"
 import { patchArgvForWrapCommands } from "../src/argv-patch.js"
 
 describe("patchArgvForWrapCommands", () => {
   const make = (...args: Array<string>) => ["node", "effect-app-cli", ...args]
 
-  describe("inserts -- for wrap-enabled subcommands", () => {
+  describe("joins wrap args into a single element", () => {
     it("index-multi with tsc --build", () => {
       const argv = make("index-multi", "tsc", "--build")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("index-multi", "--", "tsc", "--build"))
+      expect(argv).toEqual(make("index-multi", "tsc --build"))
     })
 
     it("packagejson with tsc --build and tsconfig path", () => {
       const argv = make("packagejson", "tsc", "--build", "./tsconfig.src.json")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("packagejson", "--", "tsc", "--build", "./tsconfig.src.json"))
+      expect(argv).toEqual(make("packagejson", "tsc --build ./tsconfig.src.json"))
     })
 
     it("packagejson-packages with pnpm check", () => {
       const argv = make("packagejson-packages", "pnpm", "check")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("packagejson-packages", "--", "pnpm", "check"))
+      expect(argv).toEqual(make("packagejson-packages", "pnpm check"))
     })
 
-    it("wrap args without flags", () => {
-      const argv = make("packagejson", "pnpm", "check")
-      patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("packagejson", "--", "pnpm", "check"))
-    })
-
-    it("single wrap arg", () => {
+    it("single wrap arg stays as-is", () => {
       const argv = make("index-multi", "tsc")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("index-multi", "--", "tsc"))
+      expect(argv).toEqual(make("index-multi", "tsc"))
     })
 
-    it("wrap arg with multiple --flags", () => {
+    it("wrap args with multiple --flags", () => {
       const argv = make("index-multi", "tsc", "--build", "--watch", "--verbose")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("index-multi", "--", "tsc", "--build", "--watch", "--verbose"))
+      expect(argv).toEqual(make("index-multi", "tsc --build --watch --verbose"))
     })
 
-    it("wrap arg with short flags", () => {
+    it("wrap args with short flags", () => {
       const argv = make("packagejson", "pnpm", "-r", "check")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("packagejson", "--", "pnpm", "-r", "check"))
+      expect(argv).toEqual(make("packagejson", "pnpm -r check"))
     })
 
-    it("wrap arg with --flag=value syntax", () => {
+    it("wrap args with --flag=value syntax", () => {
       const argv = make("index-multi", "tsc", "--build=./tsconfig.json")
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("index-multi", "--", "tsc", "--build=./tsconfig.json"))
-    })
-  })
-
-  describe("does not insert -- when already present", () => {
-    it("-- immediately after subcommand", () => {
-      const argv = make("index-multi", "--", "tsc", "--build")
-      patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("index-multi", "--", "tsc", "--build"))
-    })
-
-    it("-- somewhere later in argv", () => {
-      const argv = make("index-multi", "tsc", "--", "--build")
-      patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(make("index-multi", "tsc", "--", "--build"))
+      expect(argv).toEqual(make("index-multi", "tsc --build=./tsconfig.json"))
     })
   })
 
@@ -101,7 +84,7 @@ describe("patchArgvForWrapCommands", () => {
   })
 
   describe("edge cases", () => {
-    it("argv with only node and script (no subcommand)", () => {
+    it("no subcommand", () => {
       const argv = ["node", "effect-app-cli"]
       patchArgvForWrapCommands(argv)
       expect(argv).toEqual(["node", "effect-app-cli"])
@@ -125,25 +108,62 @@ describe("patchArgvForWrapCommands", () => {
       expect(argv).toEqual(["node"])
     })
 
-    it("wrap subcommand name found at later position still triggers patch", () => {
-      const argv = make("nuke", "index-multi", "--build")
-      patchArgvForWrapCommands(argv)
-      // index-multi at position 3 is still >= 2, so it matches
-      expect(argv).toEqual(make("nuke", "index-multi", "--", "--build"))
-    })
-
     it("mutates the original array", () => {
       const argv = make("index-multi", "tsc", "--build")
       const ref = argv
       patchArgvForWrapCommands(argv)
       expect(ref).toBe(argv)
-      expect(ref).toEqual(make("index-multi", "--", "tsc", "--build"))
+      expect(ref).toEqual(make("index-multi", "tsc --build"))
     })
 
     it("different node/script paths", () => {
       const argv = ["/usr/local/bin/node", "/home/user/.npm/bin/effa", "packagejson", "pnpm", "check"]
       patchArgvForWrapCommands(argv)
-      expect(argv).toEqual(["/usr/local/bin/node", "/home/user/.npm/bin/effa", "packagejson", "--", "pnpm", "check"])
+      expect(argv).toEqual(["/usr/local/bin/node", "/home/user/.npm/bin/effa", "packagejson", "pnpm check"])
     })
+  })
+})
+
+describe("e2e: CLI spawns wrap command correctly", () => {
+  const binPath = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), "../bin.js")
+
+  const run = (...args: Array<string>) =>
+    execFileSync("node", [binPath, ...args], {
+      encoding: "utf-8",
+      timeout: 10_000,
+      env: { ...process.env, NO_COLOR: "1" }
+    })
+
+  it("packagejson spawns 'echo hello' and captures output", () => {
+    const out = run("packagejson", "echo", "hello")
+    expect(out).toContain("Spawning child command: echo hello")
+    expect(out).toContain("hello")
+  })
+
+  it("packagejson spawns command with --flags without quoting", () => {
+    const out = run("packagejson", "echo", "--build-test", "extra")
+    expect(out).toContain("Spawning child command: echo --build-test extra")
+    expect(out).toContain("--build-test extra")
+  })
+
+  it("packagejson with single quoted arg still works", () => {
+    const out = run("packagejson", "echo from-quoted")
+    expect(out).toContain("Spawning child command: echo from-quoted")
+    expect(out).toContain("from-quoted")
+  })
+
+  it("propagates non-zero exit code", () => {
+    try {
+      run("packagejson", "exit 42")
+      expect.unreachable("should have thrown")
+    } catch (e: any) {
+      expect(e.status).toBe(42)
+    }
+  })
+
+  it("index-multi spawns wrap command with --flags", () => {
+    const out = run("index-multi", "echo", "--build", "done")
+    expect(out).toContain("Spawning child command: echo --build done")
+    expect(out).toContain("--build done")
   })
 })

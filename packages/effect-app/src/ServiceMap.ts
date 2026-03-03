@@ -11,21 +11,6 @@ import { Yieldable } from "./Effect.js"
 
 export * from "effect/ServiceMap"
 
-/**
- * Customized version of `ServiceMap.Reference` that supports classes
- */
-export const Reference: {
-   <Service>(
-    key: string,
-    options: { readonly defaultValue: () => Service }
-    ): ServiceMap.Reference<Service> & {
-      new(): ServiceMap.Reference<Service>
-  }
-} = ServiceMap.Reference as any
-
-let i = 0
-const randomId = () => "unknown-service-" + i++
-
 export interface Opaque<Self extends object, in out Shape extends object> extends ServiceMap.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self> {
   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
   of(self: Shape): Self
@@ -54,11 +39,11 @@ export interface Opaque<Self extends object, in out Shape extends object> extend
 // }
 
 export function assignTag<Identifier extends object, Shape extends object = Identifier>(
-  key?: string,
+  key: string,
   creationError?: Error
 ) {
   return <S extends object>(cls: S): S & Opaque<Identifier, Shape> => {
-    const tag = ServiceMap.Service<Identifier, Shape>(key ?? randomId())
+    const tag = ServiceMap.Service<Identifier, Shape>(key)
     let fields = tag
     if (Reflect.ownKeys(cls).includes("key")) {
       const { key, ...rest } = tag

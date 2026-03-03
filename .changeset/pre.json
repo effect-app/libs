@@ -11,6 +11,7 @@
     "@effect-app/vue-components": "3.2.0"
   },
   "changesets": [
+    "clever-pets-follow",
     "crisp-seals-care",
     "slimy-lions-laugh",
     "wet-sites-fall",

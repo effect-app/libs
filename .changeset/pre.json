@@ -11,6 +11,8 @@
     "@effect-app/vue-components": "3.2.0"
   },
   "changesets": [
+    "crisp-seals-care",
+    "slimy-lions-laugh",
     "witty-bats-return"
   ]
 }

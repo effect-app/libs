@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 64786af: Beta25
+- 02f27bd: fix atom references
+- Updated dependencies [64786af]
+  - effect-app@4.0.0-beta.1
+
 ## 4.0.0-beta.0
 
 ### Major Changes

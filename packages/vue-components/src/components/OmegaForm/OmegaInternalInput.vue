@@ -1,6 +1,6 @@
 <template>
   <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field, state: inputProps.state }">
-    <div :class="$attrs.class">
+    <div :class="$attrs.class as any">
       <OmegaInputVuetify
         v-if="vuetified"
         v-bind="{ ...attrsWithoutClass, ...inputProps, class: props.inputClass }"

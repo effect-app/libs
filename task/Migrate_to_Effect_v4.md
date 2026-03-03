@@ -47,8 +47,8 @@ Commit every task you complete for every step.
 
 We start with an as close as possible 1:1 conversion.
 
-1. replace `effect` and `@effect/*` package.json references, with their respective v4 counter parts (most @effect/* have moved into `effect/unstable/*`), rerun `pnpm i`
-2. replace `effect` and `@effect/*` typescript references, with their respective v4 counter parts (most @effect/* have moved into `effect/unstable/*`)
+1. replace `effect`, `@effect/*`, `@effect-*/*` package.json references, with their respective v4 counter parts (most `@effect/*` and `@effect-*/*` have moved into `effect/unstable/*`), rerun `pnpm i`
+2. replace `effect`, `@effect/*` and `@effect-*/*`  typescript references, with their respective v4 counter parts (most @effect/* have moved into `effect/unstable/*`)
 3. use new names of v4 functions and modules accordingly
 
 ## Conversion hints

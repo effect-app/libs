@@ -1,0 +1,14 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "@effect-app/cli": "2.0.0",
+    "effect-app": "3.16.0",
+    "@effect-app/eslint-codegen-model": "1.47.0",
+    "@effect-app/eslint-shared-config": "0.5.6",
+    "@effect-app/infra": "3.10.0",
+    "@effect-app/vue": "2.94.0",
+    "@effect-app/vue-components": "3.2.0"
+  },
+  "changesets": []
+}

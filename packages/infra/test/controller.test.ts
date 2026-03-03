@@ -242,7 +242,9 @@ export class SomethingService extends ServiceMap.Service<SomethingService>()(
   "SomethingService",
   {
     make: Effect.gen(function*() {
-      return {}
+      return {
+        a: 1
+      }
     })
   }
 ) {
@@ -262,7 +264,7 @@ export class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
     make: Effect.gen(function*() {
       const smth = yield* SomethingService
       console.log({ smth })
-      return {}
+      return { b: 2 }
     })
   }
 ) {
@@ -273,7 +275,7 @@ export class SomethingService2 extends ServiceMap.Service<SomethingService2>()(
   "SomethingService2",
   {
     make: Effect.gen(function*() {
-      return {}
+      return { c: 3 }
     })
   }
 ) {
@@ -318,7 +320,7 @@ const router = Router(Something)({
         const some = yield* Some
         return yield* Effect.logInfo("Some", some)
       },
-      *GetSomething(req: GetSomething) {
+      *GetSomething(req) {
         console.log(req["id"])
 
         const _b = yield* Effect.succeed(false)
@@ -383,7 +385,7 @@ const router2 = r2.Router(Something)({
         const some = yield* Some
         return yield* Effect.logInfo("Some", some)
       },
-      *GetSomething(req: GetSomething) {
+      *GetSomething(req) {
         console.log(req["id"])
 
         const _b = yield* Effect.succeed(false)

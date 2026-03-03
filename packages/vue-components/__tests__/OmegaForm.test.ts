@@ -149,7 +149,7 @@ describe("OmegaForm", () => {
       const result = generateMetaFromSchema(testSchema)
 
       // Type check: ensure the meta record has the correct keys
-      type TestType = typeof testSchema extends S.Schema<infer _, infer T, any> ? T : never
+      type TestType = typeof testSchema extends S.Codec<infer _, infer T, any> ? T : never
       const meta: MetaRecord<TestType> = result.meta
 
       // Value check

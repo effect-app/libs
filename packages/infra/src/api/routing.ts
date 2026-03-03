@@ -140,7 +140,7 @@ export type RouteMatcher<
     & Match<Resource, RequestContextMap, RequestTypes.DECODED, Key>
     & {
       success: Resource[Key]["success"]
-      successRaw: S.Schema<S.Codec.Encoded<Resource[Key]["success"]>>
+      successRaw: S.Codec<S.Codec.Encoded<Resource[Key]["success"]>>
       error: Resource[Key]["failure"]
       /**
        * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)

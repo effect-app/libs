@@ -58,11 +58,11 @@ export type Client<M extends RequestsAny, ModuleName extends string> = RequestHa
   ModuleName
 >
 
-export type ExtractResponse<T> = T extends S.Schema<any> ? S.Schema.Type<T>
+export type ExtractResponse<T> = T extends S.Codec<any> ? S.Schema.Type<T>
   : T extends unknown ? void
   : never
 
-export type ExtractEResponse<T> = T extends S.Schema<any> ? S.Codec.Encoded<T>
+export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
   : T extends unknown ? void
   : never
 

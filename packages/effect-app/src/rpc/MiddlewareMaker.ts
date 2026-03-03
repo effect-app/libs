@@ -39,7 +39,7 @@ export interface MiddlewareMaker<
       })
       & (MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? {}
         : {
-          readonly error: S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
+          readonly error: S.Codec<MiddlewareMaker.ManyErrors<MiddlewareProviders>>
         })
       & (MiddlewareMaker.ManyProvided<MiddlewareProviders> extends never ? {}
         : { readonly provides: MakeTags<MiddlewareMaker.ManyProvided<MiddlewareProviders>> })
@@ -332,7 +332,7 @@ const makeMiddlewareBasic = <Self>() =>
     error: (firstFailure
       ? S.Union([firstFailure, ...restFailures])
       : S.Never) as unknown as MiddlewareMaker.ManyErrors<MiddlewareProviders> extends never ? never
-        : S.Schema<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
+        : S.Codec<MiddlewareMaker.ManyErrors<MiddlewareProviders>>,
     requires: (requires.length > 0
       ? requires
       : undefined) as unknown as Exclude<

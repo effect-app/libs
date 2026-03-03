@@ -8,7 +8,7 @@ const merge = (a: any, b: Array<any>) =>
 /**
  * Whatever the input, we will only decode or encode to void
  */
-const ForceVoid: S.Schema<void> = S.Void as any
+const ForceVoid: S.Codec<void> = S.Void as any
 
 type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
 
@@ -62,16 +62,16 @@ export const makeRpcClient = <
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
-    ): TaggedRequestResult<Tag, Payload, S.Schema<void>, ErrorResult<C>, Omit<C, "success" | "error">>
+    ): TaggedRequestResult<Tag, Payload, S.Codec<void>, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
       tag: Tag,
       fields: Payload,
       config: C & RequestConfig
-    ): TaggedRequestResult<Tag, Payload, S.Schema<void>, ErrorResult<C>, Omit<C, "success" | "error">>
+    ): TaggedRequestResult<Tag, Payload, S.Codec<void>, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields>(
       tag: Tag,
       fields: Payload
-    ): TaggedRequestResult<Tag, Payload, S.Schema<void>, ErrorResult<never>, Record<string, never>>
+    ): TaggedRequestResult<Tag, Payload, S.Codec<void>, ErrorResult<never>, Record<string, never>>
   } {
     // TODO: filter errors based on config + take care of inversion
     const errorSchemas = Object.values(rcs.config).map((_) => _.error)

@@ -711,7 +711,7 @@ const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = "")
   return result
 }
 
-const _schemaFromAst = (ast: AST.AST): S.Schema<any> => S.make(ast)
+const _schemaFromAst = (ast: AST.AST): S.Codec<any> => S.make(ast)
 
 const metadataFromAst = <_From, To>(
   schema: any // v4 Schema type is complex, use any for now
@@ -833,7 +833,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
   if (!trans) {
     trans = useIntl().trans
   }
-  let schema: S.Schema<any>
+  let schema: S.Codec<any>
 
   switch (meta.type) {
     case "string": {
@@ -982,9 +982,9 @@ export const generateInputStandardSchemaFromFieldMeta = (
 
 // TODO: Fix v4 migration - nullableInput transformation needs proper type handling
 // export const nullableInput = <A>(
-//   schema: S.Schema<A>,
+//   schema: S.Codec<A>,
 //   defaultValue: () => A
-// ): S.Schema<A> =>
+// ): S.Codec<A> =>
 //   S.NullOr(schema).pipe(
 //     S.decodeTo(
 //       schema,
@@ -1057,7 +1057,7 @@ function hasMembers(schema: any): schema is SchemaWithMembers {
 
 // Internal implementation with WeakSet tracking
 export const defaultsValueFromSchema = (
-  schema: S.Schema<any>,
+  schema: S.Codec<any>,
   record: Record<string, any> = {}
 ): any => {
   const ast = schema.ast
@@ -1079,7 +1079,7 @@ export const defaultsValueFromSchema = (
 
       // Get the property schema from the original schema's fields if available
       // This preserves schema wrappers like withDefaultConstructor
-      let propSchema: S.Schema<any>
+      let propSchema: S.Codec<any>
       if ((schema as any).fields && (schema as any).fields[key]) {
         propSchema = (schema as any).fields[key]
       } else {

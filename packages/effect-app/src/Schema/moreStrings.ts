@@ -183,7 +183,7 @@ export function prefixedStringId<Brand extends StringId>() {
         (x: any) => (pref + x.substring(0, 50 - pref.length)) as Brand
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s: S.Schema<string & Brand> = StringId
+    const s: S.Codec<string & Brand, string> = StringId
       .pipe(
         S.refine((x: string): x is string & Brand => x.startsWith(pref), {
           arbitrary: arb,
@@ -217,10 +217,10 @@ export const brandedStringId = <
   Brand extends StringIdBrand
 >() =>
   withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as S.Schema<string & Brand> & {
+    Object.assign(Object.create(StringId), StringId) as S.Codec<string & Brand> & {
       make: () => string & Brand
       withDefault: any
-    } & WithDefaults<S.Schema<string & Brand>>
+    } & WithDefaults<S.Codec<string & Brand>>
   )
 
 export interface PrefixedStringUtils<

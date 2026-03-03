@@ -194,7 +194,7 @@ export const makeRouter = <
     > = (
       req: S.Schema.Type<Action>
     ) => Generator<
-      Effect.Effect<
+      Yieldable<any,
         any,
         S.Schema.Type<GetFailure<Action>> | S.SchemaError,
         // the actual implementation of the handler may just require the dynamic context provided by the middleware
@@ -319,7 +319,7 @@ export const makeRouter = <
               ? Impl[K]["raw"] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends (...args: any[]) => Generator<
-                Effect.Effect<any, any, infer R>,
+                Yieldable<any,any, any, infer R>,
                 any,
                 any
               > ? R
@@ -327,7 +327,7 @@ export const makeRouter = <
               : Impl[K] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends (...args: any[]) => Generator<
-                Effect.Effect<any, any, infer R>,
+                Yieldable<any,any, any, infer R>,
                 any,
                 any
               > ? R
@@ -509,13 +509,7 @@ export const makeRouter = <
           dependencies?: ReadonlyArray<Layer.Any>
           // v4: generators yield Yieldable with asEffect()
           effect: (match: typeof router3) => Generator<
-            {
-              asEffect(): Effect.Effect<
-                any,
-                any,
-                any
-              >
-            },
+            Yieldable<any, any, any, any>,
             { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
             any
           >

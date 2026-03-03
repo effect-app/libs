@@ -56,7 +56,7 @@ export function setupRequestContext<R, E, A>(self: Effect.Effect<A, E, R>, reque
   const layer = Layer.mergeAll(
     ContextMapContainer.layer,
     Layer.succeed(LocaleRef, requestContext.locale),
-    Layer.succeed(storeId, NonEmptyString255(requestContext.namespace))
+    Layer.succeed(storeId, requestContext.namespace)
   )
   return self
     .pipe(
@@ -74,7 +74,7 @@ export function setupRequestContextWithCustomSpan<R, E, A>(
   const layer = Layer.mergeAll(
     ContextMapContainer.layer,
     Layer.succeed(LocaleRef, requestContext.locale),
-    Layer.succeed(storeId, NonEmptyString255(requestContext.namespace))
+    Layer.succeed(storeId, requestContext.namespace)
   )
   return self
     .pipe(

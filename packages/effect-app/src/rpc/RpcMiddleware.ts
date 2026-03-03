@@ -226,8 +226,8 @@ export type ExtractProvides<R extends Rpc.Any, Tag extends string> = R extends
   Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires> ? _Middleware extends {
     readonly provides: infer _P
   } ? [_P] extends [never] ? never
-    : _P extends ServiceMap.Service<infer _I, infer _S> ? _I
-    : never
+    : _P /*_P extends ServiceMap.Service<infer _I, infer _S> ? _I
+    : never */
   : never
   : never
 

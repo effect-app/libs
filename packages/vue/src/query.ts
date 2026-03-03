@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import * as Result from "@effect-atom/atom/Result"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, Effect, Exit, flow, Option, S, type ServiceMap } from "effect-app"
 import { type Req } from "effect-app/client"
@@ -93,7 +93,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
         arg: I | WatchSource<I> | undefined,
         options?: CustomUndefinedInitialQueryOptions<A, E, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
         UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
@@ -103,7 +103,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
         arg: I | WatchSource<I> | undefined,
         options: CustomDefinedInitialQueryOptions<A, E, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
         UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
@@ -113,7 +113,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
         arg: I | WatchSource<I> | undefined,
         options: CustomDefinedPlaceholderQueryOptions<A, E, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
         UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
@@ -214,7 +214,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
     )
 
     const latestSuccess = shallowRef<TData>()
-    const result = computed((): Result.Result<TData, E> =>
+    const result = computed((): AsyncResult.AsyncResult<TData, E> =>
       swrToQuery({
         error: r.error.value ?? undefined,
         data: r.data.value === undefined ? latestSuccess.value : r.data.value, // we fall back to existing data, as tanstack query might loose it when the key changes
@@ -222,7 +222,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
       })
     )
     // not using `computed` here as we have a circular dependency
-    watch(result, (value) => latestSuccess.value = Option.getOrUndefined(Result.value(value)), { immediate: true })
+    watch(result, (value) => latestSuccess.value = Option.getOrUndefined(AsyncResult.value(value)), { immediate: true })
 
     return [
       result,
@@ -243,21 +243,21 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
     error: KnownFiberFailure<E> | undefined
     data: A | undefined
     isValidating: boolean
-  }): Result.Result<A, E> {
+  }): AsyncResult.AsyncResult<A, E> {
     if (r.error !== undefined) {
-      return Result.failureWithPrevious(
+      return AsyncResult.failureWithPrevious(
         r.error.effectCause,
         {
-          previous: r.data === undefined ? Option.none() : Option.some(Result.success(r.data)),
+          previous: r.data === undefined ? Option.none() : Option.some(AsyncResult.success(r.data)),
           waiting: r.isValidating
         }
       )
     }
     if (r.data !== undefined) {
-      return Result.success<A, E>(r.data, { waiting: r.isValidating })
+      return AsyncResult.success<A, E>(r.data, { waiting: r.isValidating })
     }
 
-    return Result.initial(r.isValidating)
+    return AsyncResult.initial(r.isValidating)
   }
 
   const useQuery: {
@@ -275,7 +275,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
       <TData = A>(
         options: CustomDefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
@@ -283,7 +283,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
       <TData = A>(
         options: CustomDefinedPlaceholderQueryOptions<A, E, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
         UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
@@ -293,7 +293,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
        * Effect results are passed to the caller, including errors.
        */
       <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>): readonly [
-        ComputedRef<Result.Result<A, E>>,
+        ComputedRef<AsyncResult.AsyncResult<A, E>>,
         ComputedRef<A | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
@@ -314,7 +314,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
         arg: Arg | WatchSource<Arg>,
         options: CustomDefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
@@ -327,7 +327,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
         arg: Arg | WatchSource<Arg>,
         options: CustomDefinedPlaceholderQueryOptions<A, KnownFiberFailure<E>, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
@@ -340,7 +340,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
         arg: Arg | WatchSource<Arg>,
         options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
       ): readonly [
-        ComputedRef<Result.Result<TData, E>>,
+        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData | undefined>,
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
         UseQueryReturnType<any, any>
@@ -362,31 +362,31 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
 
-function orPrevious<E, A>(result: Result.Result<A, E>) {
-  return Result.isFailure(result) && Option.isSome(result.previousSuccess)
-    ? Result.success(result.previousSuccess.value, { waiting: result.waiting })
+function orPrevious<E, A>(result: AsyncResult.AsyncResult<A, E>) {
+  return AsyncResult.isFailure(result) && Option.isSome(result.previousSuccess)
+    ? AsyncResult.success(result.previousSuccess.value, { waiting: result.waiting })
     : result
 }
 
 export function composeQueries<
-  R extends Record<string, Result.Result<any, any>>
+  R extends Record<string, AsyncResult.AsyncResult<any, any>>
 >(
   results: R,
   renderPreviousOnFailure?: boolean
-): Result.Result<
+): AsyncResult.AsyncResult<
   {
-    [Property in keyof R]: R[Property] extends Result.Result<infer A, any> ? A
+    [Property in keyof R]: R[Property] extends AsyncResult.AsyncResult<infer A, any> ? A
       : never
   },
   {
-    [Property in keyof R]: R[Property] extends Result.Result<any, infer E> ? E
+    [Property in keyof R]: R[Property] extends AsyncResult.AsyncResult<any, infer E> ? E
       : never
   }[keyof R]
 > {
   const values = renderPreviousOnFailure
     ? Object.values(results).map(orPrevious)
     : Object.values(results)
-  const error = values.find(Result.isFailure)
+  const error = values.find(AsyncResult.isFailure)
   if (error) {
     return error
   }
@@ -394,7 +394,7 @@ export function composeQueries<
   if (initial.value !== undefined) {
     return initial.value
   }
-  const loading = Array.findFirst(values, (x) => Result.isInitial(x) && x.waiting ? Option.some(x) : Option.none())
+  const loading = Array.findFirst(values, (x) => AsyncResult.isInitial(x) && x.waiting ? Option.some(x) : Option.none())
   if (loading.value !== undefined) {
     return loading.value
   }
@@ -402,10 +402,10 @@ export function composeQueries<
   const isRefreshing = values.some((x) => x.waiting)
 
   const r = Object.entries(results).reduce((prev, [key, value]) => {
-    prev[key] = Result.value(value).value
+    prev[key] = AsyncResult.value(value).value
     return prev
   }, {} as any)
-  return Result.success(r, { waiting: isRefreshing })
+  return AsyncResult.success(r, { waiting: isRefreshing })
 }
 
 export const useUpdateQuery = () => {

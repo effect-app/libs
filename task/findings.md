@@ -7,6 +7,12 @@
 | `@effect/cli` (separate package) | `effect/unstable/cli` (built into `effect`) |
 | `@effect/platform` (separate package) | Built into `effect` |
 | `@effect/platform-node` (peer deps) | `@effect/platform-node ^4.0.0-beta.5` |
+| `@effect/platform-browser` | `@effect/platform-browser ^4.0.0-beta.x` (no major changes, mainly import paths) |
+| `@effect/vitest` | `@effect/vitest ^4.0.0-beta.x` (no major changes) |
+| `@effect-atom/atom` | `@effect/atom` (check package version) |
+| `@effect-atom/atom-vue` | `@effect/atom-vue` (rename only, no import changes) |
+| `@effect-atom/atom-react` | `@effect/atom-react` (rename only) |
+| `@effect-atom/atom-solid` | `@effect/atom-solid` (rename only) |
 
 ## Service Classes
 

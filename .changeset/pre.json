@@ -10,5 +10,7 @@
     "@effect-app/vue": "2.94.0",
     "@effect-app/vue-components": "3.2.0"
   },
-  "changesets": []
+  "changesets": [
+    "witty-bats-return"
+  ]
 }

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 64786af: Beta25
+
 ## 4.0.0-beta.0
 
 ### Major Changes

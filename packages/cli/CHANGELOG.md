@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.0
+
+### Patch Changes
+
+- 64786af: Beta25
+
 ## 2.0.0
 
 ### Major Changes

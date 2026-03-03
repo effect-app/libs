@@ -14,7 +14,8 @@ import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewar
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
 
 // adapter for effect/rpc v3 middleware provides. (in effect-smol (v4), it's just a Service Identifier, no tags.)
-type MakeTags<A> = ServiceMap.Service<A, A>
+// TODO: bs adapter
+type MakeTags<A> = A
 
 export interface MiddlewareMaker<
   Self,

@@ -16,11 +16,11 @@ export * from "./routing/middleware.js"
 
 // it's the result of extending S.Req setting success, config
 // it's a schema plus some metadata
-export type AnyRequestModule = S.Any & {
+export type AnyRequestModule = S.Top & {
   _tag: string // unique identifier for the request module
   config: any // ?
-  success: S.Any // validates the success response
-  error: S.Any // validates the failure response
+  success: S.Top // validates the success response
+  error: S.Top // validates the failure response
 }
 
 // builder pattern for adding actions to a router until all actions are added
@@ -53,10 +53,10 @@ namespace RequestTypes {
 }
 type RequestType = typeof RequestTypes[keyof typeof RequestTypes]
 
-type GetSuccess<T> = T extends { success: S.Any } ? T["success"] : typeof S.Void
-type GetFailure<T extends { error?: S.Any }> = T["error"] extends never ? typeof S.Never : T["error"]
+type GetSuccess<T> = T extends { success: S.Top } ? T["success"] : typeof S.Void
+type GetFailure<T extends { error?: S.Top }> = T["error"] extends never ? typeof S.Never : T["error"]
 
-type GetSuccessShape<Action extends { success?: S.Any }, RT extends RequestType> = {
+type GetSuccessShape<Action extends { success?: S.Top }, RT extends RequestType> = {
   d: S.Schema.Type<GetSuccess<Action>>
   raw: S.Codec.Encoded<GetSuccess<Action>>
 }[RT]
@@ -141,7 +141,7 @@ export type RouteMatcher<
     & {
       success: Resource[Key]["success"]
       successRaw: S.Codec<S.Codec.Encoded<Resource[Key]["success"]>>
-      error: Resource[Key]["failure"]
+      error: Resource[Key]["error"]
       /**
        * Requires the Encoded shape (e.g directly undecoded from DB, so that we don't do multiple Decode/Encode)
        */
@@ -415,7 +415,7 @@ export const makeRouter = <
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
                 return Rpc
-                  .make(resource._tag, { payload: resource, success: resource.success, error: resource.failure })
+                  .make(resource._tag, { payload: resource, success: resource.success, error: resource.error })
                   .annotate(middleware.requestContext, resource.config ?? {})
               })
             )

@@ -6,7 +6,7 @@ import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import type { MaybeRefOrGetter } from "vue"
 import { reportError } from "./errorReporter.js"
 
-export * as Result from "@effect-atom/atom/Result"
+export * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 
 const reportRuntimeError_ = reportError("Runtime")
 

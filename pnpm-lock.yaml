@@ -494,12 +494,9 @@ importers:
 
   packages/vue:
     dependencies:
-      '@effect-atom/atom':
-        specifier: ^0.5.3
-        version: 0.5.3(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(ioredis@5.9.3))(@effect/platform@0.94.1(effect@4.0.0-beta.25))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)
-      '@effect-atom/atom-vue':
-        specifier: ^0.5.0
-        version: 0.5.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(ioredis@5.9.3))(@effect/platform@0.94.1(effect@4.0.0-beta.25))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(vue@3.5.29(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0)))
+      '@effect/atom-vue':
+        specifier: ^4.0.0-beta.25
+        version: 4.0.0-beta.25(effect@4.0.0-beta.25)(vue@3.5.29(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0)))
       '@effect/platform-browser':
         specifier: ^4.0.0-beta.25
         version: 4.0.0-beta.25(effect@4.0.0-beta.25)
@@ -1147,32 +1144,11 @@ packages:
     resolution: {integrity: sha512-g4lEcxFEDGw7Z9I+AGDQibCVMJLVcSSQAxeFyGKmmqEv5PqgwaB92vQFCxX6qNiEzW86K/9vbbDdckzr50c26w==}
     hasBin: true
 
-  '@effect-atom/atom-vue@0.5.0':
-    resolution: {integrity: sha512-woEuk0o0VlGujonlWaRFV7z7VOlpeSWRwzPRGuXT/+mQmYYLADiE4YzIwowtjkQWdwbNk/Ooab1t+fonVX2+dw==}
+  '@effect/atom-vue@4.0.0-beta.25':
+    resolution: {integrity: sha512-fs4cYWSl4cm0/SPj9zZfnu+CAqmKi5S1vQ3gn/OGa4M05EL5JABuCYbJKnHoGtFS+Z8XL0rWht5NUQMi0iZqyw==}
     peerDependencies:
-      effect: ^3.19
+      effect: ^4.0.0-beta.25
       vue: ^3.5.29
-
-  '@effect-atom/atom@0.5.3':
-    resolution: {integrity: sha512-TRZv/i+YT3TtnN0oFORJqXdxSs1fc7lrJlH+1xZvDFyjC9hgoVnrcKbeZsDFmr6r0wYRqVo7U3IftxiQNjpNZA==}
-    peerDependencies:
-      '@effect/experimental': ^0.58.0
-      '@effect/platform': ^0.94.2
-      '@effect/rpc': ^0.73.0
-      effect: ^3.19.15
-
-  '@effect/experimental@0.58.0':
-    resolution: {integrity: sha512-IEP9sapjF6rFy5TkoqDPc86st/fnqUfjT7Xa3pWJrFGr1hzaMXHo+mWsYOZS9LAOVKnpHuVziDK97EP5qsCHVA==}
-    peerDependencies:
-      '@effect/platform': ^0.94.0
-      effect: ^3.19.13
-      ioredis: ^5
-      lmdb: ^3
-    peerDependenciesMeta:
-      ioredis:
-        optional: true
-      lmdb:
-        optional: true
 
   '@effect/language-service@0.77.0':
     resolution: {integrity: sha512-QP2bri8DdcK7Eo+SqFS2yNeD0Ch9kKHYxq2jeE9CaPpBknevCNFb3+hT6qSsPt2P6yOkhNP83KMy5Uk7DGBXlg==}
@@ -1195,17 +1171,6 @@ packages:
     peerDependencies:
       effect: ^4.0.0-beta.25
       ioredis: ^5.7.0
-
-  '@effect/platform@0.94.1':
-    resolution: {integrity: sha512-SlL8OMTogHmMNnFLnPAHHo3ua1yrB1LNQOVQMiZsqYu9g3216xjr0gn5WoDgCxUyOdZcseegMjWJ7dhm/2vnfg==}
-    peerDependencies:
-      effect: ^3.19.14
-
-  '@effect/rpc@0.73.0':
-    resolution: {integrity: sha512-iMPf6tTriz8sK0l5x4koFId8Hz5nFptHYg8WqyjHGIIVLTpZxuiSqhmXZG7FnAs5N2n6uCEws4wWGcIgXNUrFg==}
-    peerDependencies:
-      '@effect/platform': ^0.94.0
-      effect: ^3.19.13
 
   '@effect/vitest@4.0.0-beta.25':
     resolution: {integrity: sha512-K8Fhs3gvlSvmU2Ye6y4nCLP3Y0qh9M6I0ZRCOb4lvwe9lacR597jROxWcsm3RDOXE/8vHkSye7+9pqqm7Jog0Q==}
@@ -6505,10 +6470,6 @@ packages:
   util@0.12.5:
     resolution: {integrity: sha512-kZf/K6hEIrWHI6XqOFUiiMa+79wE/D8Q+NCNAWclkyg3b4d2k7s0QGepNjiABc+aR3N1PAyHL7p6UcLY6LmrnA==}
 
-  uuid@11.1.0:
-    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
-    hasBin: true
-
   uuid@13.0.0:
     resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
     hasBin: true
@@ -7614,30 +7575,10 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  '@effect-atom/atom-vue@0.5.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(ioredis@5.9.3))(@effect/platform@0.94.1(effect@4.0.0-beta.25))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(vue@3.5.29(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0)))':
+  '@effect/atom-vue@4.0.0-beta.25(effect@4.0.0-beta.25)(vue@3.5.29(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0)))':
     dependencies:
-      '@effect-atom/atom': 0.5.3(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(ioredis@5.9.3))(@effect/platform@0.94.1(effect@4.0.0-beta.25))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)
       effect: 4.0.0-beta.25
       vue: 3.5.29(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0))
-    transitivePeerDependencies:
-      - '@effect/experimental'
-      - '@effect/platform'
-      - '@effect/rpc'
-
-  '@effect-atom/atom@0.5.3(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(ioredis@5.9.3))(@effect/platform@0.94.1(effect@4.0.0-beta.25))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)':
-    dependencies:
-      '@effect/experimental': 0.58.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(ioredis@5.9.3)
-      '@effect/platform': 0.94.1(effect@4.0.0-beta.25)
-      '@effect/rpc': 0.73.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)
-      effect: 4.0.0-beta.25
-
-  '@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)(ioredis@5.9.3)':
-    dependencies:
-      '@effect/platform': 0.94.1(effect@4.0.0-beta.25)
-      effect: 4.0.0-beta.25
-      uuid: 11.1.0
-    optionalDependencies:
-      ioredis: 5.9.3
 
   '@effect/language-service@0.77.0': {}
 
@@ -7665,19 +7606,6 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-
-  '@effect/platform@0.94.1(effect@4.0.0-beta.25)':
-    dependencies:
-      effect: 4.0.0-beta.25
-      find-my-way-ts: 0.1.6
-      msgpackr: 1.11.8
-      multipasta: 0.2.7
-
-  '@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@4.0.0-beta.25))(effect@4.0.0-beta.25)':
-    dependencies:
-      '@effect/platform': 0.94.1(effect@4.0.0-beta.25)
-      effect: 4.0.0-beta.25
-      msgpackr: 1.11.8
 
   '@effect/vitest@4.0.0-beta.25(effect@4.0.0-beta.25)(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.3.3)(jsdom@28.1.0)(sass@1.97.3)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
@@ -13415,8 +13343,6 @@ snapshots:
       is-generator-function: 1.1.2
       is-typed-array: 1.1.15
       which-typed-array: 1.1.20
-
-  uuid@11.1.0: {}
 
   uuid@13.0.0: {}
 

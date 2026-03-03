@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
-import { type Result } from "@effect-atom/atom/Result"
+import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
 import { Cause, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, S, ServiceMap } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
@@ -139,7 +139,7 @@ export declare namespace Commander {
     /** reactive */
     label: string
     /** reactive */
-    result: Result<A, E>
+    result: AsyncResult<A, E>
     /** reactive */
     waiting: boolean
     /** reactive */

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as Result from "@effect-atom/atom/Result"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
 import { Cause, Data, Effect, Exit, Layer, type ManagedRuntime, Match, Option, S, ServiceMap, Struct } from "effect-app"
@@ -411,7 +411,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
-      ComputedRef<Result.Result<A2, E2>>,
+      ComputedRef<AsyncResult.AsyncResult<A2, E2>>,
       (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
     /**
@@ -423,7 +423,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandler<A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
-      ComputedRef<Result.Result<A2, E2>>,
+      ComputedRef<AsyncResult.AsyncResult<A2, E2>>,
       Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
   } = <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
@@ -617,7 +617,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
+    ): Resp<I, A2, E2, R2, ComputedRef<AsyncResult.AsyncResult<A2, E2>>>
     /**
      * Pass a function that returns an Effect, e.g from a client action, give it a name.
      * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
@@ -642,7 +642,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandler<A, E, R, Request, Name>,
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
+    ): ActResp<A2, E2, R2, ComputedRef<AsyncResult.AsyncResult<A2, E2>>>
   } = <E extends ResponseErrors, A, R, Request extends Req, Name extends string, I>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
     action: any,
@@ -1121,7 +1121,7 @@ export class QueryImpl<R> {
        */
       <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
-          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<AsyncResult.AsyncResult<TData, E>>,
           ComputedRef<TData>,
           (
             options?: RefetchOptions
@@ -1151,7 +1151,7 @@ export class QueryImpl<R> {
        */
       <TData = A>(arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
-          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<AsyncResult.AsyncResult<TData, E>>,
           ComputedRef<TData>,
           (
             options?: RefetchOptions
@@ -1189,7 +1189,7 @@ export class QueryImpl<R> {
           return yield* Effect.interrupt
         }
         const result = resultRef.value
-        if (Result.isInitial(result)) {
+        if (AsyncResult.isInitial(result)) {
           console.error("Internal Error: Promise should be resolved already", {
             self,
             argOrOptions,
@@ -1201,7 +1201,7 @@ export class QueryImpl<R> {
             "Internal Error: Promise should be resolved already"
           )
         }
-        if (Result.isFailure(result)) {
+        if (AsyncResult.isFailure(result)) {
           return yield* Exit.failCause(result.cause)
         }
 

@@ -2,7 +2,7 @@
 import { it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
 import { CommandContext, DefaultIntl } from "../src/experimental/commander.js"
-import { Result } from "../src/lib.js"
+import { AsyncResult } from "../src/lib.js"
 import { useExperimental } from "./stubs.js"
 
 const unwrap = <A, E>(r: Fiber.Fiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
@@ -88,7 +88,7 @@ describe("alt2", () => {
         expect(r).toBe("test-value") // to confirm that the initial function has ran.
         expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-        expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+        expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
         expect(toasts.length).toBe(0)
 
@@ -140,7 +140,7 @@ it.live("works", () =>
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-      expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+      expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
 
@@ -187,7 +187,7 @@ it.live("works non-gen", () =>
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-      expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+      expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
     }))
@@ -360,7 +360,7 @@ it.live("interrupted", () =>
       expect(Exit.hasInterrupts(r)).toBe(true) // to confirm that the initial function has interrupted
 
       expect(command.waiting).toBe(false)
-      expect(Exit.hasInterrupts(Result.toExit(command.result))).toBe(true)
+      expect(Exit.hasInterrupts(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(0) // toast is removed on interruption. TODO: maybe a nicer user experience can be had?
     }))
 
@@ -386,7 +386,7 @@ it.live("fail", () =>
       expect(Exit.isFailure(r) && Cause.hasFails(r.cause)).toBe(true) // to confirm that the initial function has failed
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
     }))
@@ -414,7 +414,7 @@ it.live("fail and recover", () =>
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
 
       expect(command.waiting).toBe(false)
-      expect(Result.toExit(command.result)).toEqual(Exit.succeed("recovered"))
+      expect(AsyncResult.toExit(command.result)).toEqual(Exit.succeed("recovered"))
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Success")
     }))
@@ -442,7 +442,7 @@ it.live("defect", () =>
       expect(Exit.isFailure(r) && Cause.hasDies(r.cause)).toBe(true) // to confirm that the initial function has died
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action unexpected error, please try again shortly.")
     }))
@@ -484,7 +484,7 @@ it.live("works with alt", () =>
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-      expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+      expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
     }))
@@ -666,7 +666,7 @@ it.live("interrupted with alt", () =>
       expect(Exit.hasInterrupts(r)).toBe(true) // to confirm that the initial function has interrupted
 
       expect(command.waiting).toBe(false)
-      expect(Exit.hasInterrupts(Result.toExit(command.result))).toBe(true)
+      expect(Exit.hasInterrupts(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(0) // toast is removed on interruption. TODO: maybe a nicer user experience can be had?
     }))
 
@@ -694,7 +694,7 @@ it.live("fail with alt", () =>
       expect(Exit.isFailure(r) && Cause.hasFails(r.cause)).toBe(true) // to confirm that the initial function has failed
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
     }))
@@ -724,7 +724,7 @@ it.live("fail and recover with alt", () =>
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
 
       expect(command.waiting).toBe(false)
-      expect(Result.toExit(command.result)).toEqual(Exit.succeed("recovered"))
+      expect(AsyncResult.toExit(command.result)).toEqual(Exit.succeed("recovered"))
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Success")
     }))
@@ -754,7 +754,7 @@ it.live("defect with alt", () =>
       expect(Exit.isFailure(r) && Cause.hasDies(r.cause)).toBe(true) // to confirm that the initial function has died
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action unexpected error, please try again shortly.")
     }))

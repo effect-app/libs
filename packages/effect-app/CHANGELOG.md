@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 880df28: Effect v4 beta
+
 ## 3.16.0
 
 ### Minor Changes

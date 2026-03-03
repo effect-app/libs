@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.2
+
+### Major Changes
+
+- 3887256: Fix Schema->Codec
+
 ## 4.0.0-beta.1
 
 ### Patch Changes

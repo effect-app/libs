@@ -1,5 +1,16 @@
 # @effect-app/infra
 
+## 4.0.0-beta.2
+
+### Major Changes
+
+- 3887256: Fix Schema->Codec
+
+### Patch Changes
+
+- Updated dependencies [3887256]
+  - effect-app@4.0.0-beta.2
+
 ## 4.0.0-beta.1
 
 ### Patch Changes

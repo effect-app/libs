@@ -61,8 +61,8 @@ export const PhoneNumber = PhoneNumberT
     withDefaultMake
   )
 
-export const makeIs = <A extends { _tag: string }>(
-  schema: S.Codec<A>
+export const makeIs = <A extends { _tag: string }, I, R>(
+  schema: S.Codec<A, I, R>
 ) => {
   // In v4, transformations are stored as encoding on nodes, not as wrapper nodes.
   // Union member ASTs are directly Objects (TypeLiteral equivalent).
@@ -89,8 +89,8 @@ export const makeIs = <A extends { _tag: string }>(
   throw new Error("Unsupported")
 }
 
-export const makeIsAnyOf = <A extends { _tag: string }>(
-  schema: S.Codec<A>
+export const makeIsAnyOf = <A extends { _tag: string }, I, R>(
+  schema: S.Codec<A, I, R>
 ): IsAny<A> => {
   if (SchemaAST.isUnion(schema.ast)) {
     return <Keys extends A["_tag"][]>(...keys: Keys) => (a: A): a is ExtractUnion<A, ElemType<Keys>> =>
@@ -135,8 +135,8 @@ export const tags = <
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as any
 
-export const ExtendTaggedUnion = <A extends { _tag: string }>(
-  schema: S.Codec<A>
+export const ExtendTaggedUnion = <A extends { _tag: string }, I, R>(
+  schema: S.Codec<A, I, R>
 ) =>
   extendM(
     schema,

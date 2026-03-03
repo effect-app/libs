@@ -1,4 +1,4 @@
-import { type GetContextConfig, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
+import { GetEffectError, type GetContextConfig, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
 
@@ -44,8 +44,8 @@ export const makeRpcClient = <
 
   type MergeError<E> = [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]>
   type ErrorResult<C> = C extends { error: infer E } ? MergeError<E>
-    : [GeneralErrors] extends [never] ? S.Void
-    : GeneralErrors
+    : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C>
+    : MergeError<GetEffectError<RequestContextMap["config"], C>>
 
   function TaggedRequest<_Self>(): {
     <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(

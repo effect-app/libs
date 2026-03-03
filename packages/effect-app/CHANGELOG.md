@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 3a7abae: fix bs
+
 ## 4.0.0-beta.2
 
 ### Major Changes

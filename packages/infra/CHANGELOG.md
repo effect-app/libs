@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 3a7abae: fix bs
+- Updated dependencies [3a7abae]
+  - effect-app@4.0.0-beta.3
+
 ## 4.0.0-beta.2
 
 ### Major Changes

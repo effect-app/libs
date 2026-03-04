@@ -10,6 +10,10 @@ import { GistHandler } from "./gist.js"
 import { RunCommandService } from "./os-command.js"
 import { packages } from "./shared.js"
 
+import { patchArgvForWrapCommands } from "./argv-patch.js"
+
+patchArgvForWrapCommands(process.argv)
+
 NodeRuntime.runMain(
   Effect
     .fn("effa-cli")(function*() {

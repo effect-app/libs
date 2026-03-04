@@ -92,22 +92,9 @@ export const makeRpcClient = <
           : S.Struct(config.success)
         : ForceVoid
 
-      const payloadSchema = S.Struct({ _tag: S.tag(tag), ...fields })
-
-      const taggedFields = { _tag: S.tag(tag), ...fields }
-
-      const RequestClass = class {
-        constructor(payload?: any) {
-          if (payload) {
-            Object.assign(this, payload)
-          }
-          ;(this as any)._tag = tag
-        }
-      }
-
-      Object.assign(RequestClass, payloadSchema, {
+      const RequestClass = S.TaggedClass<any>()(tag, fields)
+      Object.assign(RequestClass, {
         _tag: tag,
-        fields: taggedFields,
         success: successSchema,
         error: failureSchema,
         config

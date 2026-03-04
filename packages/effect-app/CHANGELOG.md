@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- df75041: fix Req
+
 ## 4.0.0-beta.5
 
 ### Patch Changes

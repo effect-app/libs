@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 1f336bc: fix RequestName
+
 ## 4.0.0-beta.7
 
 ### Patch Changes

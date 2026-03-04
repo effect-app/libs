@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 5727372: switch to NdJson
+- Updated dependencies [5727372]
+  - effect-app@4.0.0-beta.9
+
 ## 4.0.0-beta.9
 
 ### Patch Changes

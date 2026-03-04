@@ -140,11 +140,10 @@ const minLength = 6
 const maxLength = 50
 const size = 21
 const length = 10 * size
-const StringIdArb = (): any => (fc: any) =>
+const StringIdArb = (): S.LazyArbitrary<string> => (fc) =>
   fc
     .uint8Array({ minLength: length, maxLength: length })
-    .map((_: any) => customRandom(urlAlphabet, size, (size: number) => _.subarray(0, size))())
-
+    .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))())
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  */
@@ -178,9 +177,9 @@ export function prefixedStringId<Brand extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    const arb = (): any => (fc: any) =>
+    const arb = (): S.LazyArbitrary<string & Brand> => (fc) =>
       StringIdArb()(fc).map(
-        (x: any) => (pref + x.substring(0, 50 - pref.length)) as Brand
+        (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const s: S.Codec<string & Brand, string> = StringId
@@ -217,10 +216,10 @@ export const brandedStringId = <
   Brand extends StringIdBrand
 >() =>
   withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as S.Codec<string & Brand> & {
+    Object.assign(Object.create(StringId), StringId) as S.Codec<string & Brand, string> & {
       make: () => string & Brand
       withDefault: any
-    } & WithDefaults<S.Codec<string & Brand>>
+    } & WithDefaults<S.Codec<string & Brand, string>>
   )
 
 export interface PrefixedStringUtils<
@@ -247,7 +246,7 @@ export const Url = S
   .String
   .pipe(
     S.refine(isUrl, {
-      arbitrary: (): any => (fc: any) => fc.webUrl().map((_: any) => _ as Url),
+      arbitrary: (): S.LazyArbitrary<Url> => (fc) => fc.webUrl().map((_) => _ as Url),
       identifier: "Url",
       title: "Url",
       jsonSchema: { format: "uri" }

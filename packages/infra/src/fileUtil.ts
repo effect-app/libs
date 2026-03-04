@@ -119,7 +119,8 @@ export function withFileLock<A, E, R>(
       // ensure lock is released
       yield* Effect.addFinalizer(() =>
         Effect
-          .tryPromise(release)
+           // we have to make sure we use a thunk, or the library will cause problems because effect passes abortsignal as first argument
+          .tryPromise(() => release())
           .pipe(Effect.orDie)
       )
 

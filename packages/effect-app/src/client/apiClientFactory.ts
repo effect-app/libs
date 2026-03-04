@@ -75,7 +75,7 @@ export const HttpClientFromConfigLayer = Layer.unwrap(
 
 export const RpcSerializationLayer = (config: ApiConfig) =>
   Layer.mergeAll(
-    RpcSerialization.layerJson,
+    RpcSerialization.layerNdjson,
     HttpClientLayer(config)
   )
 

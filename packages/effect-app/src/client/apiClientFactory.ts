@@ -91,7 +91,7 @@ const getFiltered = <M extends Requests>(resource: M) => {
   // TODO: Record.filter
   const filtered = typedKeysOf(resource).reduce((acc, cur) => {
     if (
-      Predicate.isObject(resource[cur])
+      Predicate.isObjectKeyword(resource[cur])
       && (resource[cur].success)
     ) {
       acc[cur as keyof Filtered] = resource[cur] as any

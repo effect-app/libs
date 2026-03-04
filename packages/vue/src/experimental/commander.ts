@@ -2,7 +2,7 @@
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
-import { Cause, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, S, ServiceMap } from "effect-app"
+import { Cause, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S, ServiceMap } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
@@ -1714,7 +1714,7 @@ export class CommanderImpl<RT, RTHooks> {
       _id,
       options?
     ) => {
-      const isObject = typeof _id === "object" || typeof _id === "function"
+      const isObject = Predicate.isObjectKeyword(_id)
       const id = isObject ? _id.id : _id
       const baseInfo = makeBaseInfo(id, options)
       const idCmd = this.makeCommand(id, options)

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 62b4989: fix request attr
+
 ## 4.0.0-beta.6
 
 ### Patch Changes

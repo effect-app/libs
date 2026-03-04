@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- 016c5a3: adapt isObject change
+- Updated dependencies [016c5a3]
+  - effect-app@4.0.0-beta.5
+
 ## 4.0.0-beta.4
 
 ### Patch Changes

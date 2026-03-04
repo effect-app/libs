@@ -218,7 +218,7 @@ export const brandedStringId = <
   withDefaultMake(
     Object.assign(Object.create(StringId), StringId) as S.Codec<string & Brand, string> & {
       make: () => string & Brand
-      withDefault: any
+      withDefault: S.withConstructorDefault<S.Codec<string & Brand, string> & S.WithoutConstructorDefault>
     } & WithDefaults<S.Codec<string & Brand, string>>
   )
 
@@ -231,7 +231,7 @@ export interface PrefixedStringUtils<
   readonly unsafeFrom: (str: string) => Brand
   prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Brand
   readonly prefix: Prefix
-  readonly withDefault: any
+  readonly withDefault: S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>
 }
 
 export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}

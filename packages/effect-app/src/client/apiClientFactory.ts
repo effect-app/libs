@@ -50,17 +50,16 @@ export const HttpClientLayer = (config: ApiConfig) =>
     Effect
       .gen(function*() {
         const baseClient = yield* HttpClient.HttpClient
-        const ctx = yield* RequestName
         const client = baseClient.pipe(
           HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
           HttpClient.mapRequest(
             HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => ({}))))
           ),
-          HttpClient.mapRequest((req) =>
-            flow(
+          HttpClient.mapRequestEffect((req) =>
+            Effect.map(RequestName.asEffect(), ctx => flow(
               HttpClientRequest.appendUrlParam("action", ctx.requestName),
               HttpClientRequest.appendUrl("/" + ctx.moduleName)
-            )(req)
+            )(req))
           )
         )
         return client

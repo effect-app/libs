@@ -109,7 +109,7 @@ export const RpcRealLayer = Layer
         Layer.provide(FetchHttpClient.layer)
       )
   )
-  .pipe(Layer.provide(RpcSerialization.layerJson))
+  .pipe(Layer.provide(RpcSerialization.layerNdjson))
 
 it.live(
   "require login",

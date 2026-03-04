@@ -146,10 +146,7 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
   // Use Layer.effect directly (not TheClient.toLayer) so TypeScript properly excludes Scope
   const layer = Layer.effect(
     TheClient,
-    Effect.map(
-      RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName }),
-      (cl) => (cl as any)[meta.moduleName]
-    )
+    RpcClient.make(rpcs, { spanPrefix: "RpcClient." + meta.moduleName })
   )
   return Object.assign(TheClient, { layer })
 }
@@ -211,7 +208,7 @@ const makeApiClientFactory = Effect
               const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
 
               const fields = Struct.omit(Request.fields, ["_tag"] as const)
-              const requestAttr = h._tag
+              const requestAttr = `${meta.moduleName}.${h._tag}`
               // @ts-expect-error doc
               prev[cur] = Object.keys(fields).length === 0
                 ? {

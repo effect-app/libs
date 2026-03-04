@@ -49,6 +49,30 @@ describe("patchArgvForWrapCommands", () => {
       patchArgvForWrapCommands(argv)
       expect(argv).toEqual(make("index-multi", "tsc --build=./tsconfig.json"))
     })
+
+    it("wrap args with --flag=\"quoted value\" syntax", () => {
+      const argv = make("index-multi", "tsc", '--outDir="dist/build"')
+      patchArgvForWrapCommands(argv)
+      expect(argv).toEqual(make("index-multi", 'tsc --outDir="dist/build"'))
+    })
+
+    it("wrap args with mixed quoted and unquoted flags", () => {
+      const argv = make("packagejson", "cmd", "--x=\"abc\"", "--y", "plain")
+      patchArgvForWrapCommands(argv)
+      expect(argv).toEqual(make("packagejson", 'cmd --x="abc" --y plain'))
+    })
+
+    it("wrap args with single-quoted value in flag", () => {
+      const argv = make("index-multi", "cmd", "--config='my config.json'")
+      patchArgvForWrapCommands(argv)
+      expect(argv).toEqual(make("index-multi", "cmd --config='my config.json'"))
+    })
+
+    it("wrap args with spaces inside quoted flag value", () => {
+      const argv = make("packagejson-packages", "cmd", '--msg="hello world"', "--verbose")
+      patchArgvForWrapCommands(argv)
+      expect(argv).toEqual(make("packagejson-packages", 'cmd --msg="hello world" --verbose'))
+    })
   })
 
   describe("does nothing for non-wrap subcommands", () => {
@@ -165,5 +189,10 @@ describe("e2e: CLI spawns wrap command correctly", () => {
     const out = run("index-multi", "echo", "--build", "done")
     expect(out).toContain("Spawning child command: echo --build done")
     expect(out).toContain("--build done")
+  })
+
+  it("packagejson spawns command with --flag=\"value\" syntax", () => {
+    const out = run("packagejson", "echo", '--x="abc"', "--y")
+    expect(out).toContain('Spawning child command: echo --x="abc" --y')
   })
 })

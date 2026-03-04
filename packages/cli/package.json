@@ -35,6 +35,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./argv-patch": {
+      "types": "./dist/argv-patch.d.ts",
+      "default": "./dist/argv-patch.js"
+    },
     "./extract": {
       "types": "./dist/extract.d.ts",
       "default": "./dist/extract.js"

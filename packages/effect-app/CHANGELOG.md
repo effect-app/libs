@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 88b90c3: fix withDefault
+
 ## 4.0.0-beta.3
 
 ### Patch Changes

@@ -11,6 +11,7 @@
     "@effect-app/vue-components": "3.2.0"
   },
   "changesets": [
+    "brave-bushes-fold",
     "clever-pets-follow",
     "crisp-seals-care",
     "legal-weeks-raise",

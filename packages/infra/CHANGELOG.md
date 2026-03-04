@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 418b80e: fix lock
+
 ## 4.0.0-beta.6
 
 ### Patch Changes

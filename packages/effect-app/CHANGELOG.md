@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 01c70d0: update all teh tings
+
 ## 4.0.0-beta.9
 
 ### Patch Changes

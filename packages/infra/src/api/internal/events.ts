@@ -28,13 +28,13 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
 
             const enc = new TextEncoder()
 
-            const encode = S.encodeEffect(schema)
+            const encode = S.encodeEffect(S.fromJsonString(schema))
 
             const eventStream = Stream.mapEffect(
               events,
               (_) =>
                 encode(_.evt)
-                  .pipe(Effect.map((evt) => `id: ${_.evt.id}\ndata: ${JSON.stringify(evt)}`))
+                  .pipe(Effect.map((data) => `id: ${_.evt.id}\ndata: ${data}`))
             )
 
             const stream = pipe(

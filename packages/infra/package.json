@@ -18,8 +18,8 @@
   "devDependencies": {
     "@azure/cosmos": "^4.9.1",
     "@azure/service-bus": "^7.9.5",
-    "@sentry/node": "10.40.0",
-    "@sentry/opentelemetry": "10.40.0",
+    "@sentry/node": "10.42.0",
+    "@sentry/opentelemetry": "10.42.0",
     "@types/express": "^5.0.6",
     "@types/node": "25.3.3",
     "@types/proper-lockfile": "^4.1.4",
@@ -39,15 +39,15 @@
   "peerDependencies": {
     "@azure/cosmos": "^4.9.1",
     "@azure/service-bus": "^7.9.5",
-    "@effect/vitest": "^4.0.0-beta.25",
+    "@effect/vitest": "^4.0.0-beta.27",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
-    "@sentry/node": "10.40.0",
-    "@sentry/opentelemetry": "10.40.0",
+    "@sentry/node": "10.42.0",
+    "@sentry/opentelemetry": "10.42.0",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
-    "effect": "^4.0.0-beta.25",
+    "effect": "^4.0.0-beta.27",
     "express": "^5.2.1"
   },
   "typesVersions": {

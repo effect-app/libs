@@ -43,7 +43,10 @@ export class InvalidStateError extends TaggedError<InvalidStateError>()("Invalid
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any, disableValidation as any)
+    super(
+      typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any,
+      disableValidation as any
+    )
   }
 }
 
@@ -51,7 +54,10 @@ export class ServiceUnavailableError extends TaggedError<ServiceUnavailableError
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any, disableValidation as any)
+    super(
+      typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any,
+      disableValidation as any
+    )
   }
 }
 
@@ -116,7 +122,10 @@ export class OptimisticConcurrencyException extends TaggedError<OptimisticConcur
       | ({ message: string; cause?: unknown; raw?: unknown }),
     disableValidation?: boolean
   ) {
-    super("message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` } as any, disableValidation as any)
+    super(
+      "message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` } as any,
+      disableValidation as any
+    )
     if (!("message" in args)) {
       this.details = args
     }

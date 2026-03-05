@@ -1,4 +1,4 @@
-import { brandedStringId, NonEmptyString255, StringId, type StringIdBrand, withDefaultMake, Codec } from "effect-app/Schema"
+import { brandedStringId, type Codec, NonEmptyString255, StringId, type StringIdBrand, withDefaultMake } from "effect-app/Schema"
 import type { B } from "effect-app/Schema/schema"
 import type { Simplify } from "effect/Types"
 import { S } from "./index.js"

@@ -1,12 +1,11 @@
 import { Cause, Tracer } from "effect"
-import { Effect, Fiber, flow, S } from "effect-app"
-import * as Q from "effect/Queue"
+import { Effect, Fiber, flow, type NonEmptyReadonlyArray, S } from "effect-app"
 import { pretty } from "effect-app/utils"
+import * as Q from "effect/Queue"
 import { MemQueue } from "../adapters/memQueue.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.js"
-import type { NonEmptyReadonlyArray } from "effect-app"
 import { type QueueBase, QueueMeta } from "./service.js"
 
 export function makeMemQueue<
@@ -91,8 +90,9 @@ export function makeMemQueue<
                 }
                 return effect
               })
-            )
-        return Q.take(qDrain)
+          )
+        return Q
+          .take(qDrain)
           .pipe(
             Effect
               .flatMap((x) =>

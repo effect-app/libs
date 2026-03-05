@@ -7,10 +7,6 @@
 /**
  * @since 1.0.0
  */
-import * as VariantSchema from "effect/unstable/schema/VariantSchema"
-import { SqlClient } from "effect/unstable/sql/SqlClient"
-import * as SqlResolver from "effect/unstable/sql/SqlResolver"
-import * as SqlSchema from "effect/unstable/sql/SqlSchema"
 import crypto from "crypto" // TODO
 import type { Brand } from "effect/Brand"
 import * as DateTime from "effect/DateTime"
@@ -24,6 +20,10 @@ import * as Schema from "effect/Schema"
 import * as Getter from "effect/SchemaGetter"
 import * as Transformation from "effect/SchemaTransformation"
 import type { Scope } from "effect/Scope"
+import * as VariantSchema from "effect/unstable/schema/VariantSchema"
+import { SqlClient } from "effect/unstable/sql/SqlClient"
+import * as SqlResolver from "effect/unstable/sql/SqlResolver"
+import * as SqlSchema from "effect/unstable/sql/SqlSchema"
 
 const {
   Class,
@@ -190,14 +190,13 @@ export const Generated = <S extends Schema.Top>(
  * @since 1.0.0
  * @category generated
  */
-export interface GeneratedByApp<S extends Schema.Top>
-  extends
-    VariantSchema.Field<{
-      readonly select: S
-      readonly insert: S
-      readonly update: S
-      readonly json: S
-    }>
+export interface GeneratedByApp<S extends Schema.Top> extends
+  VariantSchema.Field<{
+    readonly select: S
+    readonly insert: S
+    readonly update: S
+    readonly json: S
+  }>
 {}
 
 /**
@@ -303,8 +302,7 @@ export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Top>(
 ) => Field extends Schema.Top ? FieldOption<Field>
   : Field extends VariantSchema.Field<infer S> ? VariantSchema.Field<
       {
-        readonly [K in keyof S]: S[K] extends Schema.Top
-          ? K extends VariantsDatabase ? Schema.OptionFromNullOr<S[K]>
+        readonly [K in keyof S]: S[K] extends Schema.Top ? K extends VariantsDatabase ? Schema.OptionFromNullOr<S[K]>
           : optionalOption<S[K]>
           : never
       }
@@ -545,16 +543,15 @@ export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({
  * @since 1.0.0
  * @category json
  */
-export interface JsonFromString<S extends Schema.Top>
-  extends
-    VariantSchema.Field<{
-      readonly select: Schema.fromJsonString<S>
-      readonly insert: Schema.fromJsonString<S>
-      readonly update: Schema.fromJsonString<S>
-      readonly json: S
-      readonly jsonCreate: S
-      readonly jsonUpdate: S
-    }>
+export interface JsonFromString<S extends Schema.Top> extends
+  VariantSchema.Field<{
+    readonly select: Schema.fromJsonString<S>
+    readonly insert: Schema.fromJsonString<S>
+    readonly update: Schema.fromJsonString<S>
+    readonly json: S
+    readonly jsonCreate: S
+    readonly jsonUpdate: S
+  }>
 {}
 
 /**
@@ -825,26 +822,28 @@ export const makeDataLoaders = <
     const idColumn = options.idColumn as string
     const setMaxBatchSize = options.maxBatchSize ? RequestResolver.batchN(options.maxBatchSize) : identity
 
-    const insertResolver = SqlResolver.ordered({
-      Request: Model.insert,
-      Result: Model,
-      execute: (request: any) =>
-        sql.onDialectOrElse({
-          mysql: () =>
-            Effect.forEach(request, (request: any) =>
-              sql`insert into ${sql(options.tableName)} ${sql.insert(request)};
+    const insertResolver = SqlResolver
+      .ordered({
+        Request: Model.insert,
+        Result: Model,
+        execute: (request: any) =>
+          sql.onDialectOrElse({
+            mysql: () =>
+              Effect.forEach(request, (request: any) =>
+                sql`insert into ${sql(options.tableName)} ${sql.insert(request)};
 select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID();`
-                .unprepared
-                .pipe(
-                  Effect.map(([, results]) => results![0] as any)
-                ), { concurrency: 10 }),
-          orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`
-        })
-    }).pipe(
-      RequestResolver.setDelay(options.window),
-      setMaxBatchSize,
-      RequestResolver.withSpan(`${options.spanPrefix}.insertResolver`)
-    )
+                  .unprepared
+                  .pipe(
+                    Effect.map(([, results]) => results![0] as any)
+                  ), { concurrency: 10 }),
+            orElse: () => sql`insert into ${sql(options.tableName)} ${sql.insert(request).returning("*")}`
+          })
+      })
+      .pipe(
+        RequestResolver.setDelay(options.window),
+        setMaxBatchSize,
+        RequestResolver.withSpan(`${options.spanPrefix}.insertResolver`)
+      )
     const insertExecute = SqlResolver.request(insertResolver)
     const insert = (
       insert: S["insert"]["Type"]
@@ -860,14 +859,16 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       ) as any
 
-    const insertVoidResolver = SqlResolver.void({
-      Request: Model.insert,
-      execute: (request: any) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`
-    }).pipe(
-      RequestResolver.setDelay(options.window),
-      setMaxBatchSize,
-      RequestResolver.withSpan(`${options.spanPrefix}.insertVoidResolver`)
-    )
+    const insertVoidResolver = SqlResolver
+      .void({
+        Request: Model.insert,
+        execute: (request: any) => sql`insert into ${sql(options.tableName)} ${sql.insert(request)}`
+      })
+      .pipe(
+        RequestResolver.setDelay(options.window),
+        setMaxBatchSize,
+        RequestResolver.withSpan(`${options.spanPrefix}.insertVoidResolver`)
+      )
     const insertVoidExecute = SqlResolver.request(insertVoidResolver)
     const insertVoid = (
       insert: S["insert"]["Type"]
@@ -878,18 +879,20 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       ) as any
 
-    const findByIdResolver = SqlResolver.findById({
-      Id: idSchema,
-      Result: Model,
-      ResultId(request: any) {
-        return request[idColumn]
-      },
-      execute: (ids: any) => sql`select * from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
-    }).pipe(
-      RequestResolver.setDelay(options.window),
-      setMaxBatchSize,
-      RequestResolver.withSpan(`${options.spanPrefix}.findByIdResolver`)
-    )
+    const findByIdResolver = SqlResolver
+      .findById({
+        Id: idSchema,
+        Result: Model,
+        ResultId(request: any) {
+          return request[idColumn]
+        },
+        execute: (ids: any) => sql`select * from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
+      })
+      .pipe(
+        RequestResolver.setDelay(options.window),
+        setMaxBatchSize,
+        RequestResolver.withSpan(`${options.spanPrefix}.findByIdResolver`)
+      )
     const findByIdExecute = SqlResolver.request(findByIdResolver)
     const findById = (
       id: S["fields"][Id]["Type"]
@@ -904,14 +907,16 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
         })
       ) as any
 
-    const deleteResolver = SqlResolver.void({
-      Request: idSchema,
-      execute: (ids: any) => sql`delete from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
-    }).pipe(
-      RequestResolver.setDelay(options.window),
-      setMaxBatchSize,
-      RequestResolver.withSpan(`${options.spanPrefix}.deleteResolver`)
-    )
+    const deleteResolver = SqlResolver
+      .void({
+        Request: idSchema,
+        execute: (ids: any) => sql`delete from ${sql(options.tableName)} where ${sql.in(idColumn, ids)}`
+      })
+      .pipe(
+        RequestResolver.setDelay(options.window),
+        setMaxBatchSize,
+        RequestResolver.withSpan(`${options.spanPrefix}.deleteResolver`)
+      )
     const deleteExecute = SqlResolver.request(deleteResolver)
     const delete_ = (
       id: S["fields"][Id]["Type"]

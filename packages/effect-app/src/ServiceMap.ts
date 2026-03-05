@@ -7,13 +7,15 @@
 
 import { type Effect, Layer, type Scope, type Types } from "effect"
 import * as ServiceMap from "effect/ServiceMap"
-import { Yieldable } from "./Effect.js"
+import { type Yieldable } from "./Effect.js"
 
 export * from "effect/ServiceMap"
 
-export interface Opaque<Self extends object, in out Shape extends object> extends ServiceMap.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self> {
+export interface Opaque<Self extends object, in out Shape extends object>
+  extends ServiceMap.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
+{
   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
-  of(self: Shape): Self
+  of(this: void, self: Shape): Self
   serviceMap(self: Shape): ServiceMap.ServiceMap<Self>
   // a version that leverages the Shape -> Self conversion
   toLayer: <E, R>(
@@ -151,7 +153,7 @@ export const Opaque: {
     id: Identifier,
     options?: {
       readonly make: ((...args: Args) => Effect.Effect<Shape, E, R>) | Effect.Effect<Shape, E, R> | undefined
-    } | undefined
+    }
   ) =>
     & OpaqueClass<Self, Identifier, Shape>
     & ([Types.unassigned] extends [R] ? unknown
@@ -181,7 +183,7 @@ export const Opaque: {
   const svc = ServiceMap.Service()(id, options) as any
   return Object.assign(svc, {
     toLayer: (eff: Effect.Effect<any, any, any>) => {
-      return Layer.effect(svc as any, eff)
+      return Layer.effect(svc, eff)
     }
   })
 }

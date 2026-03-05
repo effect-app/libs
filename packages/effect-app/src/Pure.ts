@@ -202,7 +202,7 @@ export function modify<S2, A, S3>(
     const [s, a] = mod(_.env.state)
     _.env.state = s as any
     return a
-  }) as any
+  })
 }
 
 export function modifyM<W, R, E, A, S2, S3>(
@@ -213,7 +213,7 @@ export function modifyM<W, R, E, A, S2, S3>(
     (castTag<W, S3, S2>() as any).use((_: any) => _),
     (_: any) =>
       Effect.map(mod(_.env.state), ([s, a]: any) => {
-        _.env.state = s as any
+        _.env.state = s
         return a
       })
   ) as any

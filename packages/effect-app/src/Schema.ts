@@ -116,7 +116,7 @@ export const taggedUnionMap = <
     // TODO: v4 migration — PropertySignatureDeclaration removed, need v4 AST traversal
     const ast = key.fields._tag.ast as any
     const tag = ((ast.type ?? ast) as SchemaAST.Literal).literal as string // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    ;(acc as any)[tag] = key as any
+    acc[tag] = key as any
     return acc
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, {} as any)

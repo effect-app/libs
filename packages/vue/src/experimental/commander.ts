@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
-import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
 import { Cause, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S, ServiceMap } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { wrapEffect } from "effect-app/utils"
+import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
 import { isGeneratorFunction } from "effect/Utils"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref } from "vue"

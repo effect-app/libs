@@ -404,7 +404,9 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   Effect
                     .flatMap((x) => {
                       if (x.statusCode === 412 || x.statusCode === 404 || x.statusCode === 409) {
-                        return Effect.fail(new OptimisticConcurrencyException({ type: name, id: e[idKey], code: x.statusCode }))
+                        return Effect.fail(
+                          new OptimisticConcurrencyException({ type: name, id: e[idKey], code: x.statusCode })
+                        )
                       }
                       if (x.statusCode > 299 || x.statusCode < 200) {
                         return Effect.die(

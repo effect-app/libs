@@ -15,8 +15,7 @@ export const parseJwt = <Sch extends S.Top>(
       (s, _options) =>
         Effect.try({
           try: () => jwtDecode(s, options),
-          catch: (e: any) =>
-            new S.SchemaIssue.InvalidValue(Option.some(s), { message: e?.message })
+          catch: (e: any) => new S.SchemaIssue.InvalidValue(Option.some(s), { message: e?.message })
         })
     )
-    .pipe(S.decodeTo(schema) as any) as any as S.decodeTo<Sch, S.String>
+    .pipe(S.decodeTo(schema) as any)

@@ -42,7 +42,7 @@ const makeSendgrid = ({ apiKey, defaultFrom, defaultReplyTo, realMail, subjectPr
                 (err, result) =>
                   err
                     ? resume(Effect.fail(err))
-                    : resume(Effect.sync(() => result!))
+                    : resume(Effect.sync(() => result))
               )
           )
           .pipe(Effect.mapError((raw) => new SendMailError({ raw })))

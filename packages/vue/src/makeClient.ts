@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
 import { Cause, Data, Effect, Exit, Layer, type ManagedRuntime, Match, Option, S, ServiceMap, Struct } from "effect-app"
@@ -10,6 +9,7 @@ import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { dropUndefinedT, extendM } from "effect-app/utils"
 import { type Fiber } from "effect/Fiber"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { type Commander, CommanderStatic } from "./experimental/commander.js"

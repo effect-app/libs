@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node"
-import { Cause, Effect, LogLevel } from "effect-app"
+import { Cause, Effect, type LogLevel } from "effect-app"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 import { getRC } from "./api/setupRequest.js"
 import { CauseException, tryToJson, tryToReport } from "./errors.js"

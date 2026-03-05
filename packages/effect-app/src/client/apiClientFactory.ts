@@ -56,10 +56,11 @@ export const HttpClientLayer = (config: ApiConfig) =>
             HttpClientRequest.setHeaders(config.headers.pipe(Option.getOrElse(() => ({}))))
           ),
           HttpClient.mapRequestEffect((req) =>
-            Effect.map(RequestName.asEffect(), ctx => flow(
-              HttpClientRequest.appendUrlParam("action", ctx.requestName),
-              HttpClientRequest.appendUrl("/" + ctx.moduleName)
-            )(req))
+            Effect.map(RequestName.asEffect(), (ctx) =>
+              flow(
+                HttpClientRequest.appendUrlParam("action", ctx.requestName),
+                HttpClientRequest.appendUrl("/" + ctx.moduleName)
+              )(req))
           )
         )
         return client
@@ -184,7 +185,7 @@ const makeApiClientFactory = Effect
         const filtered = getFiltered(resource)
         return {
           mr,
-          client: (typedKeysOf(filtered)
+          client: typedKeysOf(filtered)
             .reduce((prev, cur) => {
               const h = filtered[cur]!
 
@@ -242,7 +243,7 @@ const makeApiClientFactory = Effect
                 }
 
               return prev
-            }, {} as Client<M, M["meta"]["moduleName"]>))
+            }, {} as Client<M, M["meta"]["moduleName"]>)
         }
       })
 

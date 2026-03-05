@@ -56,7 +56,7 @@ export function batchPar<R, E, A, R2, E2, A2, T>(
       (_, i) =>
         Effect
           .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: "inherit" })
-          .pipe(Effect.flatMap((_) => forEachBatch(_ as NonEmptyArray<A>, i))),
+          .pipe(Effect.flatMap((_) => forEachBatch(_, i))),
       { concurrency: "inherit" }
     )
 }
@@ -72,7 +72,7 @@ export function batch<R, E, A, R2, E2, A2, T>(
       (_, i) =>
         Effect
           .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: "inherit" })
-          .pipe(Effect.flatMap((_) => forEachBatch(_ as NonEmptyArray<A>, i)))
+          .pipe(Effect.flatMap((_) => forEachBatch(_, i)))
     )
 }
 

@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 01c70d0: update all teh tings
+
 ## 2.0.0-beta.1
 
 ### Patch Changes

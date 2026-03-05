@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.1
+
+### Patch Changes
+
+- 01c70d0: update all teh tings
+
 ## 2.0.1-beta.0
 
 ### Patch Changes

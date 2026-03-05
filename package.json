@@ -3,11 +3,11 @@
   "private": true,
   "pnpm": {
     "patchedDependencies": {
-      "eslint-plugin-codegen@0.17.0": "patches/eslint-plugin-codegen@0.17.0.patch",
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
       "typescript": "patches/typescript.patch",
-      "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch"
+      "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch",
+      "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch"
     }
   },
   "engines": {

@@ -22,8 +22,11 @@ export function makeServiceBusQueue<
     body: schema,
     meta: QueueMeta
   })
+  const wireSchemaJson = S.fromJsonString(wireSchema)
+  const encodePublish = S.encodeEffect(wireSchemaJson)
   const drainW = S.Struct({ body: drainSchema, meta: QueueMeta })
-  const parseDrain = flow(S.decodeUnknownEffect(drainW), Effect.orDie)
+  const drainWJson = S.fromJsonString(drainW)
+  const parseDrain = flow(S.decodeUnknownEffect(drainWJson), Effect.orDie)
 
   return Effect.gen(function*() {
     const sender = yield* Sender
@@ -40,12 +43,8 @@ export function makeServiceBusQueue<
         handleEvent: (ks: DrainEvt) => Effect.Effect<void, DrainE, DrainR>,
         sessionId?: string
       ) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        function processMessage(messageBody: any) {
-          return Effect
-            .sync(() => JSON.parse(messageBody))
-            .pipe(
-              Effect.flatMap((x) => parseDrain(x)),
+        function processMessage(messageBody: unknown) {
+          return parseDrain(messageBody).pipe(
               Effect.orDie,
               Effect
                 .flatMap(({ body, meta }) => {
@@ -112,11 +111,11 @@ export function makeServiceBusQueue<
           .pipe(
             Effect.flatMap((requestContext) =>
               Effect.forEach(messages, (m) =>
-                S.encodeEffect(wireSchema)({
+                encodePublish({
                   body: m,
                   meta: requestContext
-                }).pipe(Effect.orDie, Effect.map((encoded) => ({
-                  body: JSON.stringify(encoded),
+                }).pipe(Effect.orDie, Effect.map((body) => ({
+                  body,
                   messageId: m.id, /* correllationid: requestId */
                   contentType: "application/json",
                   sessionId: "sessionId" in m ? m.sessionId as string : undefined as unknown as string // TODO: optional

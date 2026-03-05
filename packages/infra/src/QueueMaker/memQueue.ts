@@ -26,8 +26,12 @@ export function makeMemQueue<
     const qDrain = yield* mem.getOrCreateQueue(queueDrainName)
 
     const wireSchema = S.Struct({ body: schema, meta: QueueMeta })
+    const wireSchemaJson = S.fromJsonString(wireSchema)
+    const encodePublish = S.encodeEffect(wireSchemaJson)
     const drainW = S.Struct({ body: drainSchema, meta: QueueMeta })
-    const parseDrain = flow(S.decodeUnknownEffect(drainW), Effect.orDie)
+    const drainWJson = S.fromJsonString(drainW)
+
+    const parseDrain = flow(S.decodeUnknownEffect(drainWJson), Effect.orDie)
 
     const queue = {
       publish: (...messages: NonEmptyReadonlyArray<Evt>) =>
@@ -37,10 +41,8 @@ export function makeMemQueue<
               Effect
                 .forEach(messages, (m) =>
                   // we JSON encode, because that is what the wire also does, and it reveals holes in e.g unknown encoders (Date->String)
-                  S.encodeEffect(wireSchema)({ body: m, meta: requestContext }).pipe(
+                  encodePublish({ body: m, meta: requestContext }).pipe(
                     Effect.orDie,
-                    Effect
-                      .map(JSON.stringify),
                     // .tap((msg) => info("Publishing Mem Message: " + utils.inspect(msg)))
                     Effect.flatMap((_) => Q.offer(q, _))
                   ), { discard: true })
@@ -58,40 +60,37 @@ export function makeMemQueue<
         const reportError = reportNonInterruptedFailureCause({ name: "MemQueue.drain." + queueDrainName })
         const processMessage = (msg: string) =>
           // we JSON parse, because that is what the wire also does, and it reveals holes in e.g unknown encoders (Date->String)
-          Effect
-            .sync(() => JSON.parse(msg))
-            .pipe(
-              Effect.flatMap(parseDrain),
-              Effect.orDie,
-              Effect
-                .flatMap(({ body, meta }) => {
-                  let effect = InfraLogger
-                    .logDebug(`[${queueDrainName}] Processing incoming message`)
-                    .pipe(
-                      Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
-                      Effect.andThen(handleEvent(body)),
-                      silenceAndReportError,
-                      (_) =>
-                        setupRequestContextWithCustomSpan(
-                          _,
-                          meta,
-                          `queue.drain: ${queueDrainName}.${body._tag}`,
-                          {
-                            captureStackTrace: false,
-                            kind: "consumer",
-                            attributes: {
-                              "queue.name": queueDrainName,
-                              "queue.sessionId": sessionId,
-                              "queue.input": body
-                            }
+          parseDrain(msg).pipe(
+            Effect.orDie,
+            Effect
+              .flatMap(({ body, meta }) => {
+                let effect = InfraLogger
+                  .logDebug(`[${queueDrainName}] Processing incoming message`)
+                  .pipe(
+                    Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
+                    Effect.andThen(handleEvent(body)),
+                    silenceAndReportError,
+                    (_) =>
+                      setupRequestContextWithCustomSpan(
+                        _,
+                        meta,
+                        `queue.drain: ${queueDrainName}.${body._tag}`,
+                        {
+                          captureStackTrace: false,
+                          kind: "consumer",
+                          attributes: {
+                            "queue.name": queueDrainName,
+                            "queue.sessionId": sessionId,
+                            "queue.input": body
                           }
-                        )
-                    )
-                  if (meta.span) {
-                    effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
-                  }
-                  return effect
-                })
+                        }
+                      )
+                  )
+                if (meta.span) {
+                  effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
+                }
+                return effect
+              })
             )
         return Q.take(qDrain)
           .pipe(

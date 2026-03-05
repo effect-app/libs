@@ -16,9 +16,9 @@ patchedDependencies:
   '@tanstack/query-core':
     hash: 351153003e430d89ebb99f44022c6de72d7e21f40056ebf2468626bec8e015c7
     path: patches/@tanstack__query-core.patch
-  eslint-plugin-codegen@0.17.0:
-    hash: 976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7
-    path: patches/eslint-plugin-codegen@0.17.0.patch
+  eslint-plugin-codegen:
+    hash: c7a8546a270abdcd8317f0584f04f3bca89e9aeaab011d433623e3def2405058
+    path: patches/eslint-plugin-codegen.patch
   ts-plugin-sort-import-suggestions:
     hash: 4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561
     path: patches/ts-plugin-sort-import-suggestions.patch
@@ -260,7 +260,7 @@ importers:
         version: 8.56.1(eslint@10.0.2)(typescript@5.9.3(patch_hash=58625d8335f517e3d6974ef9faaff583d531ee7d0e9630b0ee4bab0fb5db70b0))
       eslint-plugin-codegen:
         specifier: 0.17.0
-        version: 0.17.0(patch_hash=976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7)
+        version: 0.17.0(patch_hash=c7a8546a270abdcd8317f0584f04f3bca89e9aeaab011d433623e3def2405058)
       glob:
         specifier: 8.1.0
         version: 8.1.0
@@ -357,7 +357,7 @@ importers:
         version: 0.13.10(eslint-plugin-import@2.32.0)(webpack@5.104.1)
       eslint-plugin-codegen:
         specifier: 0.17.0
-        version: 0.17.0(patch_hash=976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7)
+        version: 0.17.0(patch_hash=c7a8546a270abdcd8317f0584f04f3bca89e9aeaab011d433623e3def2405058)
       eslint-plugin-formatjs:
         specifier: 6.2.0
         version: 6.2.0(eslint@10.0.2)
@@ -7214,7 +7214,7 @@ snapshots:
       '@babel/parser': 7.29.0
       '@babel/template': 7.28.6
       '@babel/traverse': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
       debug: 4.4.3(supports-color@5.5.0)
@@ -7226,7 +7226,7 @@ snapshots:
 
   '@babel/generator@7.12.17':
     dependencies:
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
       jsesc: 2.5.2
       source-map: 0.5.7
 
@@ -7251,7 +7251,7 @@ snapshots:
   '@babel/helper-module-imports@7.28.6':
     dependencies:
       '@babel/traverse': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
 
@@ -7273,7 +7273,7 @@ snapshots:
   '@babel/helpers@7.28.6':
     dependencies:
       '@babel/template': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
 
   '@babel/parser@7.29.0':
     dependencies:
@@ -7285,7 +7285,7 @@ snapshots:
     dependencies:
       '@babel/code-frame': 7.28.6
       '@babel/parser': 7.29.0
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
 
   '@babel/traverse@7.28.6':
     dependencies:
@@ -7294,7 +7294,7 @@ snapshots:
       '@babel/helper-globals': 7.28.0
       '@babel/parser': 7.29.0
       '@babel/template': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
       debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
@@ -10541,7 +10541,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-codegen@0.17.0(patch_hash=976e78798a0da613a33b2a0ab43a31863dc355721545f2235e0b4922f2f409d7):
+  eslint-plugin-codegen@0.17.0(patch_hash=c7a8546a270abdcd8317f0584f04f3bca89e9aeaab011d433623e3def2405058):
     dependencies:
       '@babel/core': 7.28.6
       '@babel/generator': 7.12.17

@@ -21,6 +21,7 @@ export default function makeConfig(dirName?: string) {
     //plugins: [autoImport],
     test: {
       include:  ["./test/**/*.test.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+      exclude: ["./test/dist"],
       reporters: "verbose",
       globals: true,
       setupFiles: [path.join(__dirname, "vitest.setup.ts")],

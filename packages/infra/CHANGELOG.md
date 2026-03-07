@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- 622d54a: Configure Changesets fixed versioning for public packages.
+- Updated dependencies [622d54a]
+  - effect-app@4.0.0-beta.12
+
 ## 4.0.0-beta.11
 
 ### Patch Changes

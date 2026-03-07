@@ -924,6 +924,7 @@ export const runtimeFiberAsPromise = <A, E>(fiber: Fiber.Fiber<A, E>, signal?: A
       if (Exit.isSuccess(exit)) {
         resolve(exit.value)
       } else {
+        // eslint-disable-next-line
         reject(Cause.squash(exit.cause))
       }
     })

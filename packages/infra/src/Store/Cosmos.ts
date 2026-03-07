@@ -328,15 +328,13 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             .query<M>(q, { partitionKey: mainPartitionKey })
                             .fetchAll()
                             .then(({ resources }) =>
-                              resources.map((_) =>
-                                ({
-                                  ...pipe(
-                                    defaultValues,
-                                    Struct.pick(f.select!.filter((_) => typeof _ === "string"))
-                                  ),
-                                  ...mapReverseId(_ as any)
-                                }) as any
-                              )
+                              resources.map((_) => ({
+                                ...pipe(
+                                  defaultValues,
+                                  Struct.pick(f.select!.filter((_) => typeof _ === "string"))
+                                ),
+                                ...mapReverseId(_ as any)
+                              }))
                             )
                           : container
                             .items

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Types } from "effect"
 import * as Struct from "effect/Struct"
 
 export * from "effect/Struct"
+
+type MatchRecord<S, OnPartial, OnExact> = {} extends S ? OnPartial : OnExact
 
 /**
  * Create a new object by picking properties of an existing object.
@@ -21,11 +22,11 @@ export const pick: {
     keys: Keys
   ): <S extends { [K in Keys[number]]?: any }>(
     s: S
-  ) => Types.MatchRecord<S, { [K in Keys[number]]?: S[K] }, Pick<S, Keys[number]>>
+  ) => MatchRecord<S, { [K in Keys[number]]?: S[K] }, Pick<S, Keys[number]>>
   <S extends object, Keys extends Array<keyof S>>(
     s: S,
     keys: Keys
-  ): Types.MatchRecord<S, { [K in Keys[number]]?: S[K] }, Pick<S, Keys[number]>>
+  ): MatchRecord<S, { [K in Keys[number]]?: S[K] }, Pick<S, Keys[number]>>
 } = Struct.pick
 
 export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K>

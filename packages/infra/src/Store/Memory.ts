@@ -24,7 +24,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
         )
         const n = Struct.pick(i, keys)
         subKeys.forEach((subKey) => {
-          n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys))
+          n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys as never[]))
         })
         return n as M
       }) as any

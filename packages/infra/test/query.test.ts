@@ -156,8 +156,6 @@ it("works with repo", () =>
 
       expectTypeOf(smtArr).toEqualTypeOf<readonly Something[]>()
 
-      console.log(" $$$$$$")
-      console.log(Struct.pick(["id", "displayName"]))
       expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
       expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
     })

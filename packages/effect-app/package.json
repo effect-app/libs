@@ -139,10 +139,6 @@
       "types": "./dist/Set.d.ts",
       "default": "./dist/Set.js"
     },
-    "./Struct": {
-      "types": "./dist/Struct.d.ts",
-      "default": "./dist/Struct.js"
-    },
     "./TypeTest": {
       "types": "./dist/TypeTest.d.ts",
       "default": "./dist/TypeTest.js"

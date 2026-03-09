@@ -23,7 +23,6 @@ export { type NonEmptyArray, type NonEmptyReadonlyArray } from "./Array.js"
 
 export * from "effect"
 
-export * as Struct from "./Struct.js"
 export type * as Types from "./Types.js"
 
 export * as SecretURL from "./Config/SecretURL.js"

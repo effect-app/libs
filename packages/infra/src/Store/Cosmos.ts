@@ -331,7 +331,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                               resources.map((_) => ({
                                 ...pipe(
                                   defaultValues,
-                                  Struct.pick(f.select!.filter((_) => typeof _ === "string"))
+                                  Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])
                                 ),
                                 ...mapReverseId(_ as any)
                               }))

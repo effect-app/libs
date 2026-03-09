@@ -20,7 +20,7 @@
   },
   "peerDependencies": {
     "@mdi/js": "^7.4.47",
-    "effect": "^4.0.0-beta.28",
+    "effect": "^4.0.0-beta.29",
     "intl-messageformat": "^11.1.2",
     "mdi-js": "^1.0.1",
     "primeflex": "^4.0.0",

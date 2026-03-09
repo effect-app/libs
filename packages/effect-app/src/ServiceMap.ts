@@ -14,7 +14,6 @@ export * from "effect/ServiceMap"
 export interface Opaque<Self extends object, in out Shape extends object>
   extends ServiceMap.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
 {
-  // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
   of(this: void, self: Shape): Self
   serviceMap(self: Shape): ServiceMap.ServiceMap<Self>
   // a version that leverages the Shape -> Self conversion

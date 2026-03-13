@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
 import { dual } from "effect/Function"
-import { isFunction } from "effect/Predicate"
+import { isFunction, isObject } from "effect/Predicate"
 import * as Result from "effect/Result"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
@@ -950,3 +950,25 @@ export type UnionToTuples<T, U = T> = [T] extends [never] ? []
       | [T, ...UnionToTuples<Exclude<U, T>>]
       | UnionToTuples<Exclude<U, T>>
   : []
+
+const genConstructor = (function*() {}).constructor
+
+/**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * function* generatorFn() {
+ *   yield 1
+ *   yield 2
+ * }
+ *
+ * console.log(Utils.isGeneratorFunction(generatorFn)) // true
+ * console.log(Utils.isGeneratorFunction(() => {})) // false
+ * ```
+ *
+ * @category predicates
+ * @since 3.11.0
+ */
+export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any, any, any> =>
+  isObject(u) && u.constructor === genConstructor

@@ -140,10 +140,10 @@ const minLength = 6
 const maxLength = 50
 const size = 21
 const length = 10 * size
-const StringIdArb = (): S.LazyArbitrary<string> => (fc) =>
+const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
   fc
     .uint8Array({ minLength: length, maxLength: length })
-    .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))())
+    .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))() as StringId)
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  */
@@ -154,7 +154,7 @@ export const StringId = extendM(
     fromBrand(nominal<StringId>(), {
       identifier: "StringId",
       title: "StringId",
-      arbitrary: StringIdArb,
+      toArbitrary: () => (fc) => StringIdArb()(fc),
       jsonSchema: {}
     })
   ),
@@ -185,11 +185,13 @@ export function prefixedStringId<Brand extends StringId>() {
     const s: S.Codec<string & Brand, string> = StringId
       .pipe(
         S.refine((x: string): x is string & Brand => x.startsWith(pref), {
-          arbitrary: arb,
           identifier: name,
           title: name
+        }),
+        S.annotate({
+          toArbitrary: () => (fc) => arb()(fc)
         })
-      ) as any
+      ) as S.Codec<string & Brand, string>
     const schema = s.pipe(withDefaultMake)
     const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Brand
 
@@ -246,10 +248,12 @@ export const Url = S
   .String
   .pipe(
     S.refine(isUrl, {
-      arbitrary: (): S.LazyArbitrary<Url> => (fc) => fc.webUrl().map((_) => _ as Url),
       identifier: "Url",
       title: "Url",
       jsonSchema: { format: "uri" }
+    }),
+    S.annotate({
+      toArbitrary: () => (fc) => fc.webUrl().map((_) => _ as Url)
     }),
     withDefaultMake
   )

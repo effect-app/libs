@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- a3c9cc8: fix SSE event stream merge in pipe usage
+- Updated dependencies [20186b6]
+  - effect-app@4.0.0-beta.15
+
 ## 4.0.0-beta.14
 
 ### Patch Changes

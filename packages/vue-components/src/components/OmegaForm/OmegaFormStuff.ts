@@ -1,9 +1,8 @@
-import type * as Effect from "effect/Effect"
-import * as AST from "effect/SchemaAST"
+import { Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { isObject } from "@vueuse/core"
-import * as S from "effect/Schema"
+import type * as Fiber from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
@@ -145,7 +144,7 @@ export type FormProps<From, To> =
       formApi: OmegaFormParams<From, To>
       meta: any
       value: To
-    }) => Promise<any> | Effect.Effect<unknown, any, never>
+    }) => Promise<any> | Fiber.Fiber<any, any> | Effect.Effect<unknown, any, never>
   }
 
 export type OmegaFormParams<From, To> = FormApi<
@@ -262,7 +261,7 @@ export type SelectFieldMeta = BaseFieldMeta & {
 export type MultipleFieldMeta = BaseFieldMeta & {
   type: "multiple"
   members: any[] // TODO: should be non empty array?
-  rest: readonly AST.AST[]
+  rest: readonly S.AST.AST[]
 }
 
 export type BooleanFieldMeta = BaseFieldMeta & {
@@ -301,34 +300,46 @@ export type CreateMeta =
   }
   & (
     | {
-      propertySignatures: readonly AST.PropertySignature[]
+      propertySignatures: readonly S.AST.PropertySignature[]
       property?: never
     }
     | {
       propertySignatures?: never
-      property: AST.AST
+      property: S.AST.AST
     }
   )
 
-const getNullableOrUndefined = (property: AST.AST) => {
-  if (!AST.isUnion(property)) return false
-  return property.types.find((_) => AST.isUndefined(_) || _ === S.Null.ast)
+const unwrapDeclaration = (property: S.AST.AST): S.AST.AST => {
+  let current = getTransformationFrom(property)
+
+  while (S.AST.isDeclaration(current) && current.typeParameters.length > 0) {
+    current = getTransformationFrom(current.typeParameters[0]!)
+  }
+
+  return current
 }
 
-export const isNullableOrUndefined = (property: false | AST.AST | undefined) => {
-  if (!property || !AST.isUnion(property)) return false
-  if (property.types.find((_) => AST.isUndefined(_))) {
+const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.AST.isNull(property)
+
+const getNullableOrUndefined = (property: S.AST.AST) =>
+  S.AST.isUnion(property)
+    ? property.types.find((_) => isNullishType(_))
+    : false
+
+export const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
+  if (!property || !S.AST.isUnion(property)) return false
+  if (property.types.find((_) => S.AST.isUndefined(_))) {
     return "undefined"
   }
-  if (property.types.find((_) => _ === S.Null.ast)) return "null"
+  if (property.types.find((_) => S.AST.isNull(_))) return "null"
   return false
 }
 
 // Helper function to recursively unwrap nested unions (e.g., S.NullOr(S.NullOr(X)) -> X)
-const unwrapNestedUnions = (types: readonly AST.AST[]): readonly AST.AST[] => {
-  const result: AST.AST[] = []
+const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] => {
+  const result: S.AST.AST[] = []
   for (const type of types) {
-    if (AST.isUnion(type)) {
+    if (S.AST.isUnion(type)) {
       // Recursively unwrap nested unions
       const unwrapped = unwrapNestedUnions(type.types)
       result.push(...unwrapped)
@@ -339,31 +350,108 @@ const unwrapNestedUnions = (types: readonly AST.AST[]): readonly AST.AST[] => {
   return result
 }
 
+const getNonNullTypes = (types: readonly S.AST.AST[]) =>
+  unwrapNestedUnions(types)
+    .map(unwrapDeclaration)
+    .filter((_) => !isNullishType(_))
+
+const getJsonSchemaAnnotation = (property: S.AST.AST): Record<string, unknown> => {
+  const jsonSchema = S.AST.resolve(property)?.jsonSchema
+  return jsonSchema && typeof jsonSchema === "object" ? jsonSchema as Record<string, unknown> : {}
+}
+
+const getDefaultFromAst = (property: S.AST.AST) => {
+  const link = property.context?.defaultValue?.[0] as any
+
+  if (!link?.transformation?.decode?.run) {
+    return undefined
+  }
+
+  try {
+    const result = Effect.runSync(link.transformation.decode.run(Option.none())) as Option.Option<unknown>
+    return Option.isSome(result) ? result.value : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {
+  const checks = property.checks ?? []
+
+  return checks.flatMap((check) => {
+    if (check._tag === "FilterGroup") {
+      return check.checks.flatMap((inner) => {
+        const meta = inner.annotations?.meta
+        return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
+      })
+    }
+
+    const meta = check.annotations?.meta
+    return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
+  })
+}
+
+const getFieldMetadataFromAst = (property: S.AST.AST) => {
+  const base: Partial<FieldMeta> & Record<string, unknown> = {
+    description: S.AST.resolveDescription(property)
+  }
+  const checks = getCheckMetas(property)
+
+  if (S.AST.isString(property)) {
+    base.type = "string"
+    for (const check of checks) {
+      switch (check._tag) {
+        case "isMinLength":
+          base.minLength = check.minLength
+          break
+        case "isMaxLength":
+          base.maxLength = check.maxLength
+          break
+      }
+    }
+
+    if (S.AST.resolveTitle(property) === "Email") {
+      base.format = "email"
+    }
+  } else if (S.AST.isNumber(property)) {
+    base.type = "number"
+    for (const check of checks) {
+      switch (check._tag) {
+        case "isInt":
+          base.refinement = "int"
+          break
+        case "isGreaterThanOrEqualTo":
+          base.minimum = check.minimum
+          break
+        case "isLessThanOrEqualTo":
+          base.maximum = check.maximum
+          break
+        case "isGreaterThan":
+          base.exclusiveMinimum = check.exclusiveMinimum
+          break
+        case "isLessThan":
+          base.exclusiveMaximum = check.exclusiveMaximum
+          break
+      }
+    }
+  } else if (S.AST.isBoolean(property)) {
+    base.type = "boolean"
+  } else {
+    base.type = "unknown"
+  }
+
+  return base
+}
+
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
   acc: Partial<MetaRecord<T>> = {}
 ): MetaRecord<T> | FieldMeta => {
-  // unwraps class (Class are transformations)
-  // this calls createMeta recursively, so wrapped transformations are also unwrapped
-  // BUT: check for Int title annotation first - S.Int and branded Int have title "Int" or "int"
-  // and we don't want to lose that information by unwrapping
-  if (property && AST.isDeclaration(property)) {
-    const titleOnTransform = property.annotations?.title ?? ""
-
-    // only unwrap if this is NOT an Int type
-    if (titleOnTransform !== "Int" && titleOnTransform !== "int") {
-      // In v4, Declaration doesn't have a 'from' property
-      // Just return the property as-is
-      return createMeta<T>({
-        parent,
-        meta,
-        property
-      })
-    }
-    // if it's Int, fall through to process it with the Int type
+  if (property) {
+    property = unwrapDeclaration(property)
   }
 
-  if (property && AST.isObjects(property)) {
+  if (property && S.AST.isObjects(property)) {
     return createMeta<T>({
       meta,
       propertySignatures: property.propertySignatures
@@ -374,10 +462,6 @@ export const createMeta = <T = any>(
     for (const p of propertySignatures) {
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
-
-      // Check if this property has title "Int" or "int" annotation (from Int brand wrapper)
-      const propertyTitle = p.type.annotations?.title ?? ""
-      const isIntField = propertyTitle === "Int" || propertyTitle === "int"
 
       // Determine if this field should be required:
       // - For nullable discriminated unions, only _tag should be non-required
@@ -394,20 +478,11 @@ export const createMeta = <T = any>(
         isRequired = !nullableOrUndefined
       }
 
-      const typeToProcess = p.type
-      if (AST.isUnion(p.type)) {
-        // First unwrap any nested unions, then filter out null/undefined
-        const unwrappedTypes = unwrapNestedUnions(p.type.types)
-        const nonNullTypes = unwrappedTypes
-          .filter(
-            (t) => !AST.isUndefined(t) && !AST.isNull(t)
-          )
-          // unwraps class (Class are transformations)
-          .map(getTransformationFrom)
+      const typeToProcess = unwrapDeclaration(p.type)
+      if (S.AST.isUnion(p.type)) {
+        const nonNullTypes = getNonNullTypes(p.type.types)
 
-        const hasStructMembers = nonNullTypes.some(
-          (t) => AST.isObjects(t)
-        )
+        const hasStructMembers = nonNullTypes.some(S.AST.isObjects)
 
         if (hasStructMembers) {
           // Only create parent meta for non-NullOr unions to avoid duplicates
@@ -422,7 +497,7 @@ export const createMeta = <T = any>(
 
           // Process each non-null type and merge their metadata
           for (const nonNullType of nonNullTypes) {
-            if (AST.isObjects(nonNullType)) {
+            if (S.AST.isObjects(nonNullType)) {
               // For discriminated unions (multiple branches):
               // - If the parent union is nullable, only _tag should be non-required
               // - All other fields maintain their normal required status based on their own types
@@ -439,8 +514,7 @@ export const createMeta = <T = any>(
             }
           }
         } else {
-          // Check if any of the union types are arrays
-          const arrayTypes = nonNullTypes.filter(AST.isArrays)
+          const arrayTypes = nonNullTypes.filter(S.AST.isArrays)
           if (arrayTypes.length > 0) {
             const arrayType = arrayTypes[0] // Take the first array type
 
@@ -454,8 +528,8 @@ export const createMeta = <T = any>(
 
             // If the array has struct elements, also create metadata for their properties
             if (arrayType.rest && arrayType.rest.length > 0) {
-              const restElement = arrayType.rest[0]
-              if (AST.isObjects(restElement)) {
+              const restElement = unwrapDeclaration(arrayType.rest[0]!)
+              if (S.AST.isObjects(restElement)) {
                 for (const prop of restElement.propertySignatures) {
                   const propKey = `${key}.${prop.name.toString()}`
 
@@ -473,12 +547,12 @@ export const createMeta = <T = any>(
                     acc[propKey as NestedKeyOf<T>] = propMeta as FieldMeta
 
                     if (
-                      propMeta.type === "multiple" && AST.isArrays(prop.type) && prop
+                      propMeta.type === "multiple" && S.AST.isArrays(prop.type) && prop
                         .type
                         .rest && prop.type.rest.length > 0
                     ) {
-                      const nestedRestElement = prop.type.rest[0]
-                      if (AST.isObjects(nestedRestElement)) {
+                      const nestedRestElement = unwrapDeclaration(prop.type.rest[0]!)
+                      if (S.AST.isObjects(nestedRestElement)) {
                         for (const nestedProp of nestedRestElement.propertySignatures) {
                           const nestedPropKey = `${propKey}.${nestedProp.name.toString()}`
 
@@ -513,34 +587,32 @@ export const createMeta = <T = any>(
           }
         }
       } else {
-        // Unwrap transformations (like ExtendedClass) to check for propertySignatures
-        const unwrappedTypeToProcess = getTransformationFrom(typeToProcess)
-        if (AST.isObjects(unwrappedTypeToProcess)) {
+        if (S.AST.isObjects(typeToProcess)) {
           Object.assign(
             acc,
             createMeta<T>({
               parent: key,
-              propertySignatures: unwrappedTypeToProcess.propertySignatures,
+              propertySignatures: typeToProcess.propertySignatures,
               meta: { required: isRequired, nullableOrUndefined }
             })
           )
-        } else if (AST.isArrays(p.type)) {
+        } else if (S.AST.isArrays(p.type)) {
           // Check if it has struct elements
           const hasStructElements = p.type.rest.length > 0
-            && AST.isObjects(p.type.rest[0])
+            && S.AST.isObjects(unwrapDeclaration(p.type.rest[0]!))
 
           if (hasStructElements) {
             // For arrays with struct elements, only create meta for nested fields, not the array itself
-            const elementType = p.type.rest[0]
-            if (AST.isObjects(elementType)) {
+            const elementType = unwrapDeclaration(p.type.rest[0]!)
+            if (S.AST.isObjects(elementType)) {
               // Process each property in the array element
               for (const prop of elementType.propertySignatures) {
                 const propKey = `${key}.${prop.name.toString()}`
 
                 // Check if the property is another array
-                if (AST.isArrays(prop.type) && prop.type.rest.length > 0) {
-                  const nestedElementType = prop.type.rest[0]
-                  if (AST.isObjects(nestedElementType)) {
+                if (S.AST.isArrays(prop.type) && prop.type.rest.length > 0) {
+                  const nestedElementType = unwrapDeclaration(prop.type.rest[0]!)
+                  if (S.AST.isObjects(nestedElementType)) {
                     // Array with struct elements - process nested fields
                     for (const nestedProp of nestedElementType.propertySignatures) {
                       const nestedKey = `${propKey}.${nestedProp.name.toString()}`
@@ -592,9 +664,11 @@ export const createMeta = <T = any>(
             parent: key,
             property: p.type,
             meta: {
-              required: isRequired,
-              nullableOrUndefined,
-              ...(isIntField && { refinement: "int" })
+              // an empty string is valid for a S.String field, so we should not mark it as required
+              // TODO: handle this better via the createMeta minLength parsing
+              required: isRequired
+                && (!S.AST.isString(typeToProcess) || !!getFieldMetadataFromAst(p.type).minLength),
+              nullableOrUndefined
             }
           })
 
@@ -607,19 +681,17 @@ export const createMeta = <T = any>(
 
   if (property) {
     const nullableOrUndefined = getNullableOrUndefined(property)
+    property = unwrapDeclaration(property)
 
     if (!Object.hasOwnProperty.call(meta, "required")) {
       meta["required"] = !nullableOrUndefined
     }
 
-    if (AST.isUnion(property)) {
-      // First unwrap any nested unions, then filter out null/undefined
-      const unwrappedTypes = unwrapNestedUnions(property.types)
-      const nonNullType = unwrappedTypes.find(
-        (t) => !AST.isUndefined(t) && !AST.isNull(t)
-      )!
+    if (S.AST.isUnion(property)) {
+      const unwrappedTypes = unwrapNestedUnions(property.types).map(unwrapDeclaration)
+      const nonNullType = unwrappedTypes.find((t) => !isNullishType(t))!
 
-      if (AST.isObjects(nonNullType)) {
+      if (S.AST.isObjects(nonNullType)) {
         return createMeta<T>({
           propertySignatures: nonNullType.propertySignatures,
           parent,
@@ -627,11 +699,11 @@ export const createMeta = <T = any>(
         })
       }
 
-      if (unwrappedTypes.every(AST.isLiteral)) {
+      if (unwrappedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
         return {
           ...meta,
           type: "select",
-          members: unwrappedTypes.map((t) => t.literal)
+          members: unwrappedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
         } as FieldMeta
       }
 
@@ -645,7 +717,7 @@ export const createMeta = <T = any>(
       } as FieldMeta
     }
 
-    if (AST.isArrays(property)) {
+    if (S.AST.isArrays(property)) {
       return {
         ...meta,
         type: "multiple",
@@ -654,38 +726,7 @@ export const createMeta = <T = any>(
       } as FieldMeta
     }
 
-    const JSONAnnotation = (property.annotations?.jsonSchema ?? {}) as Record<string, unknown>
-
-    meta = { ...JSONAnnotation, ...meta }
-
-    // check the title annotation BEFORE following "from" to detect refinements like S.Int
-    let titleType = property.annotations?.title ?? "unknown"
-
-    // Detect basic types from AST if no title annotation
-    if (titleType === "unknown") {
-      if (AST.isString(property)) {
-        titleType = "string"
-      } else if (AST.isNumber(property)) {
-        titleType = "number"
-      } else if (AST.isBoolean(property)) {
-        titleType = "boolean"
-      }
-    }
-
-    // if this is S.Int (a refinement), set the type and skip following "from"
-    // otherwise we'd lose the "Int" information and get "number" instead
-    if (titleType === "Int" || titleType === "int") {
-      meta["type"] = "number"
-      meta["refinement"] = "int"
-      // don't follow "from" for Int refinements
-    } else {
-      meta["type"] = titleType
-    }
-
-    // Always ensure required is set before returning
-    if (!Object.hasOwnProperty.call(meta, "required")) {
-      meta["required"] = !nullableOrUndefined
-    }
+    meta = { ...getJsonSchemaAnnotation(property), ...getFieldMetadataFromAst(property), ...meta }
 
     return meta as FieldMeta
   }
@@ -711,27 +752,21 @@ const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = "")
   return result
 }
 
-const _schemaFromAst = (ast: AST.AST): S.Codec<any> => S.make(ast)
-
-const metadataFromAst = <_From, To>(
-  schema: any // v4 Schema type is complex, use any for now
+const metadataFromAst = <From, To>(
+  schema: S.Codec<To, From, never>
 ): { meta: MetaRecord<To>; defaultValues: Record<string, any>; unionMeta: Record<string, MetaRecord<To>> } => {
-  const ast = schema.ast
+  const ast = unwrapDeclaration(schema.ast)
   const newMeta: MetaRecord<To> = {}
   const defaultValues: Record<string, any> = {}
   const unionMeta: Record<string, MetaRecord<To>> = {}
 
   // Handle root-level Union types (discriminated unions)
-  if (AST.isUnion(ast)) {
-    const types = ast.types
-
+  if (S.AST.isUnion(ast)) {
     // Filter out null/undefined types and unwrap transformations
-    const nonNullTypes = types
-      .filter((t: any) => !AST.isUndefined(t) && !AST.isNull(t))
-      .map(getTransformationFrom)
+    const nonNullTypes = getNonNullTypes(ast.types)
 
     // Check if this is a discriminated union (all members are structs)
-    const allStructs = nonNullTypes.every((t: any) => AST.isObjects(t))
+    const allStructs = nonNullTypes.every(S.AST.isObjects)
 
     if (allStructs && nonNullTypes.length > 0) {
       // Extract discriminator values from each union member
@@ -739,14 +774,14 @@ const metadataFromAst = <_From, To>(
 
       // Store metadata for each union member by its tag value
       for (const memberType of nonNullTypes) {
-        if (AST.isObjects(memberType)) {
+        if (S.AST.isObjects(memberType)) {
           // Find the discriminator field (usually _tag)
           const tagProp = memberType.propertySignatures.find(
-            (p: any) => p.name.toString() === "_tag"
+            (p) => p.name.toString() === "_tag"
           )
 
           let tagValue: string | null = null
-          if (tagProp && AST.isLiteral(tagProp.type)) {
+          if (tagProp && S.AST.isLiteral(tagProp.type)) {
             tagValue = tagProp.type.literal as string
             discriminatorValues.push(tagValue)
           }
@@ -779,7 +814,7 @@ const metadataFromAst = <_From, To>(
     }
   }
 
-  if (AST.isObjects(ast)) {
+  if (S.AST.isObjects(ast)) {
     const meta = createMeta<To>({
       propertySignatures: ast.propertySignatures
     })
@@ -814,10 +849,10 @@ export const duplicateSchema = <From, To>(
   return schema
 }
 
-export const generateMetaFromSchema = <_From, To>(
-  schema: any // v4 Schema type is complex, use any for now
+export const generateMetaFromSchema = <From, To>(
+  schema: S.Codec<To, From, never>
 ): {
-  schema: any
+  schema: S.Codec<To, From, never>
   meta: MetaRecord<To>
   unionMeta: Record<string, MetaRecord<To>>
 } => {
@@ -833,167 +868,138 @@ export const generateInputStandardSchemaFromFieldMeta = (
   if (!trans) {
     trans = useIntl().trans
   }
-  let schema: S.Codec<any>
-
+  let schema: any
   switch (meta.type) {
-    case "string": {
-      schema = S.String
+    case "string":
+      schema = meta.format === "email"
+        ? S.Email.annotate({
+          message: trans("validation.email.invalid")
+        })
+        : S.String.annotate({
+          message: trans("validation.empty")
+        })
 
-      // Apply format-specific schemas
-      if (meta.format === "email") {
-        // v4 doesn't have S.Email, use pattern validation
-        schema = S.String.check(
-          S.makeFilter(
-            (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) || trans("validation.email.invalid"),
-            { title: "email format" }
-          )
-        )
-      }
-
-      // Apply length validations
-      if (meta.required || typeof meta.minLength === "number") {
-        const minLen = meta.required ? Math.max(1, meta.minLength || 0) : (meta.minLength || 0)
-        if (minLen > 0) {
-          schema = schema.check(
-            S.makeFilter(
-              (s) => s.length >= minLen || trans("validation.string.minLength", { minLength: minLen }),
-              { title: `minLength(${minLen})` }
-            )
-          )
-        }
+      if (meta.required) {
+        schema = schema.check(S.isMinLength(1, {
+          message: trans("validation.empty")
+        }))
       }
 
       if (typeof meta.maxLength === "number") {
-        schema = schema.check(
-          S.makeFilter(
-            (s) => s.length <= meta.maxLength! || trans("validation.string.maxLength", { maxLength: meta.maxLength }),
-            { title: `maxLength(${meta.maxLength})` }
-          )
-        )
+        schema = schema.check(S.isMaxLength(meta.maxLength, {
+          message: trans("validation.string.maxLength", {
+            maxLength: meta.maxLength
+          })
+        }))
+      }
+      if (typeof meta.minLength === "number") {
+        schema = schema.check(S.isMinLength(meta.minLength, {
+          message: trans("validation.string.minLength", {
+            minLength: meta.minLength
+          })
+        }))
       }
       break
-    }
 
-    case "number": {
+    case "number":
       if (meta.refinement === "int") {
-        schema = S.Int
+        schema = S
+          .Number
+          .annotate({
+            message: trans("validation.empty")
+          })
+          .check(S.isInt({
+            message: trans("validation.integer.expected", { actualValue: "NaN" })
+          }))
       } else {
-        schema = S.Number
+        schema = S.Number.annotate({
+          message: trans("validation.number.expected", { actualValue: "NaN" })
+        })
+
+        if (meta.required) {
+          schema = schema.annotate({
+            message: trans("validation.empty")
+          })
+        }
       }
 
-      // Apply numeric validations
       if (typeof meta.minimum === "number") {
-        schema = schema.check(
-          S.makeFilter(
-            (n) =>
-              n >= meta.minimum! || trans(
-                meta.minimum === 0 ? "validation.number.positive" : "validation.number.min",
-                { minimum: meta.minimum, isExclusive: false }
-              ),
-            { title: `>=${meta.minimum}` }
-          )
-        )
+        schema = schema.check(S.isGreaterThanOrEqualTo(meta.minimum, {
+          message: trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+            minimum: meta.minimum,
+            isExclusive: true
+          })
+        }))
       }
-
       if (typeof meta.maximum === "number") {
-        schema = schema.check(
-          S.makeFilter(
-            (n) =>
-              n <= meta.maximum! || trans("validation.number.max", {
-                maximum: meta.maximum,
-                isExclusive: false
-              }),
-            { title: `<=${meta.maximum}` }
-          )
-        )
+        schema = schema.check(S.isLessThanOrEqualTo(meta.maximum, {
+          message: trans("validation.number.max", {
+            maximum: meta.maximum,
+            isExclusive: true
+          })
+        }))
       }
-
       if (typeof meta.exclusiveMinimum === "number") {
-        schema = schema.check(
-          S.makeFilter(
-            (n) =>
-              n > meta.exclusiveMinimum! || trans(
-                meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min",
-                { minimum: meta.exclusiveMinimum, isExclusive: true }
-              ),
-            { title: `>${meta.exclusiveMinimum}` }
-          )
-        )
+        schema = schema.check(S.isGreaterThan(meta.exclusiveMinimum, {
+          message: trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
+            minimum: meta.exclusiveMinimum,
+            isExclusive: false
+          })
+        }))
       }
-
       if (typeof meta.exclusiveMaximum === "number") {
-        schema = schema.check(
-          S.makeFilter(
-            (n) =>
-              n < meta.exclusiveMaximum! || trans("validation.number.max", {
-                maximum: meta.exclusiveMaximum,
-                isExclusive: true
-              }),
-            { title: `<${meta.exclusiveMaximum}` }
-          )
-        )
+        schema = schema.check(S.isLessThan(meta.exclusiveMaximum, {
+          message: trans("validation.number.max", {
+            maximum: meta.exclusiveMaximum,
+            isExclusive: false
+          })
+        }))
       }
       break
-    }
+    case "select":
+      schema = S.Literals(meta.members as [any, ...any[]]).annotate({
+        message: trans("validation.not_a_valid", {
+          type: "select",
+          message: meta.members.join(", ")
+        })
+      })
 
-    case "select": {
-      // Use Literal for select options
-      if (meta.members.length === 0) {
-        schema = S.Unknown
-      } else if (meta.members.length === 1) {
-        schema = S.Literal(meta.members[0])
-      } else {
-        // v4 Union accepts an array of schemas
-        schema = S.Union(meta.members.map((m) => S.Literal(m)))
-      }
       break
-    }
 
-    case "multiple": {
-      schema = S.Array(S.String)
+    case "multiple":
+      schema = S.Array(S.String).annotate({
+        message: trans("validation.not_a_valid", {
+          type: "multiple",
+          message: meta.members.join(", ")
+        })
+      })
       break
-    }
 
-    case "boolean": {
+    case "boolean":
       schema = S.Boolean
       break
-    }
 
-    case "unknown": {
+    case "unknown":
       schema = S.Unknown
       break
-    }
 
-    default: {
-      console.warn(`Unhandled field type: ${(meta as any).type}`)
+    default:
+      // For any unhandled types, use Unknown schema to prevent undefined errors
+      console.warn(`Unhandled field type: ${meta}`)
       schema = S.Unknown
       break
-    }
   }
-
-  // Wrap in union with null/undefined if not required
   if (!meta.required) {
-    // v4 Union takes an array of schemas
-    schema = S.Union([schema, S.Null, S.Undefined])
+    schema = S.NullishOr(schema)
   }
-
-  return S.toStandardSchemaV1(schema as any)
+  const result = S.toStandardSchemaV1(schema as any)
+  return result
 }
 
-// TODO: Fix v4 migration - nullableInput transformation needs proper type handling
-// export const nullableInput = <A>(
-//   schema: S.Codec<A>,
-//   defaultValue: () => A
-// ): S.Codec<A> =>
-//   S.NullOr(schema).pipe(
-//     S.decodeTo(
-//       schema,
-//       SchemaTransformation.transform({
-//         decode: (input: A | null) => input ?? defaultValue(),
-//         encode: (output: A) => output
-//       })
-//     )
-//   )
+export const nullableInput = <A, I, R>(
+  schema: S.Codec<A, I, R>,
+  _defaultValue: () => A
+) => S.NullOr(schema) as any
 
 export type OmegaAutoGenMeta<
   From extends Record<PropertyKey, any>,
@@ -1039,11 +1045,11 @@ export function deepMerge(target: any, source: any) {
 
 // Type definitions for schemas with fields and members
 type SchemaWithFields = {
-  fields: Record<string, S.Top>
+  fields: Record<string, S.Schema<any>>
 }
 
 type SchemaWithMembers = {
-  members: readonly S.Top[]
+  members: readonly S.Schema<any>[]
 }
 
 // Type guards to check schema types
@@ -1057,10 +1063,15 @@ function hasMembers(schema: any): schema is SchemaWithMembers {
 
 // Internal implementation with WeakSet tracking
 export const defaultsValueFromSchema = (
-  schema: S.Codec<any>,
+  schema: S.Schema<any>,
   record: Record<string, any> = {}
 ): any => {
   const ast = schema.ast
+  const defaultValue = getDefaultFromAst(ast)
+
+  if (defaultValue !== undefined) {
+    return defaultValue
+  }
 
   if (isNullableOrUndefined(schema.ast) === "null") {
     return null
@@ -1069,35 +1080,7 @@ export const defaultsValueFromSchema = (
     return undefined
   }
 
-  // Handle v4 Objects AST structure
-  if (AST.isObjects(ast)) {
-    const result: Record<string, any> = { ...record }
-
-    for (const prop of ast.propertySignatures) {
-      const key = prop.name.toString()
-      const propType = prop.type
-
-      // Get the property schema from the original schema's fields if available
-      // This preserves schema wrappers like withDefaultConstructor
-      let propSchema: S.Codec<any>
-      if ((schema as any).fields && (schema as any).fields[key]) {
-        propSchema = (schema as any).fields[key]
-      } else {
-        propSchema = S.make(propType)
-      }
-
-      // Recursively process the property to get its defaults
-      const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
-
-      if (propValue !== undefined) {
-        result[key] = propValue
-      }
-    }
-
-    return result
-  }
-
-  // v3 compatible fields extraction
+  // Check if schema has fields directly
   if (hasFields(schema)) {
     // Process fields and extract default values
     const result: Record<string, any> = {}
@@ -1157,18 +1140,41 @@ export const defaultsValueFromSchema = (
   }
 
   if (Object.keys(record).length === 0) {
-    // Check for constructor defaults in v4's context
-    if (ast.context?.defaultValue) {
-      // In v4, defaultValue is an Encoding type, not directly callable
-      // For now, skip complex default extraction
-      // TODO: properly extract default from encoding chain
-    }
-  }
+    if (S.AST.isObjects(ast)) {
+      // Process TypeLiteral fields directly to build the result object
+      const result: Record<string, any> = { ...record }
 
-  if (AST.isString(ast)) {
-    return ""
-  }
-  if (AST.isBoolean(ast)) {
-    return false
+      for (const prop of ast.propertySignatures) {
+        const key = prop.name.toString()
+        const propType = prop.type
+
+        const propDefault = getDefaultFromAst(propType)
+        if (propDefault !== undefined) {
+          result[key] = propDefault
+          continue
+        }
+
+        // Create a schema from the property type and get its defaults
+        const propSchema = S.make(propType)
+
+        // Recursively process the property - don't pas for prop processing
+        // to allow proper unwrapping of nested structures
+        const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
+
+        if (propValue !== undefined) {
+          result[key] = propValue
+        }
+      }
+
+      return result
+    }
+
+    if (S.AST.isString(ast)) {
+      return ""
+    }
+
+    if (S.AST.isBoolean(ast)) {
+      return false
+    }
   }
 }

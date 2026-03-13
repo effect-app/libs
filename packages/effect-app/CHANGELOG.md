@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 20186b6: Migrate schema arbitrary annotations to Effect v4 `toArbitrary` and cover `StringId` generation with a fast-check test.
+
 ## 4.0.0-beta.14
 
 ## 4.0.0-beta.13

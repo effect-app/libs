@@ -17,7 +17,7 @@ There are migration guides:
 3. Convert `infra`
    - remove `api/internal/middlewares.ts` and all it's reexports from `api/middlewares.ts` 
 4. Convert `vue`
-5. Convert `vue-components`
+5. Convert `vue-components` - code, tests but also storybook. test storybook build with `build-storybook`
 
 Each step will be completed individually, and only move on to the next step when the current is done succesfully.
 For each step we should find out if we can convert 1:1 or certain things are missing preventing that.

@@ -2,9 +2,9 @@ import { Array, Option, pipe, SchemaAST, type Tracer } from "effect"
 import * as S from "effect/Schema"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import { fakerArb } from "./faker.js"
-import { Email as EmailT } from "./Schema/email.js"
+import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
 import { withDefaultMake } from "./Schema/ext.js"
-import { PhoneNumber as PhoneNumberT } from "./Schema/phoneNumber.js"
+import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
 import type { AST } from "./Schema/schema.js"
 import { extendM } from "./utils.js"
 
@@ -40,26 +40,31 @@ export interface WithOptionalSpan {
   [SpanId]?: Tracer.Span
 }
 
+const makeEmail = S.decodeSync(EmailT as any) as (value: string) => EmailType
+const makePhoneNumber = S.decodeSync(PhoneNumberT as any) as (value: string) => PhoneNumberType
+
 export const Email = EmailT
   .pipe(
     S.annotate({
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      arbitrary: (): any => (fc: any) => fakerArb((faker) => faker.internet.exampleEmail)(fc).map(Email)
+      toArbitrary: () => (fc) => fakerArb((faker) => faker.internet.exampleEmail)(fc).map(makeEmail)
     }),
     withDefaultMake
   )
 
-export type Email = EmailT
+export type Email = EmailType
 
 export const PhoneNumber = PhoneNumberT
   .pipe(
     S.annotate({
-      arbitrary: (): any => (fc: any) =>
+      toArbitrary: () => (fc) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        fakerArb((faker) => faker.phone.number)(fc).map(PhoneNumber)
+        fakerArb((faker) => faker.phone.number)(fc).map(makePhoneNumber)
     }),
     withDefaultMake
   )
+
+export type PhoneNumber = PhoneNumberType
 
 export const makeIs = <A extends { _tag: string }, I, R>(
   schema: S.Codec<A, I, R>
@@ -162,5 +167,3 @@ export const TaggedUnion = <
         tags: tags(a as any)
       }))
   )
-
-export type PhoneNumber = PhoneNumberT

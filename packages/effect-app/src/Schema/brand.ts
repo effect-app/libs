@@ -28,9 +28,16 @@ export interface Constructor<in out A extends B.Brand<any>> {
   is(a: Unbranded<A>): a is Unbranded<A> & A
 }
 
-export const fromBrand = <C extends B.Brand<string>>(
+type BrandAnnotations<C extends B.Brand<any>> =
+  & S.Annotations.Filter
+  & (
+    C extends string ? { readonly toArbitrary?: S.Annotations.ToArbitrary.Declaration<C, readonly []> }
+      : {}
+  )
+
+export const fromBrand = <C extends B.Brand<any>>(
   constructor: Constructor<C>,
-  options?: S.Annotations.Filter
+  options?: BrandAnnotations<C>
 ) =>
 <Self extends S.Top>(self: Self): S.brand<Self["~rebuild.out"], B.Brand.Keys<C>> => {
   const branded = S.fromBrand(options?.identifier ?? "Brand", constructor as any)(self as any)

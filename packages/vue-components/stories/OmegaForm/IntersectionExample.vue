@@ -44,7 +44,7 @@ const BetaSchema = S.Struct({
 })
 
 const MySchema = S.Struct({
-  myUnion: S.Union(AlphaSchema, BetaSchema)
+  myUnion: S.Union([AlphaSchema, BetaSchema])
 })
 
 const form = useOmegaForm(MySchema, {

@@ -3,7 +3,8 @@
 ## Status
 
 - In progress
-- `pnpm check` in `packages/vue-components` currently fails
+- `pnpm check` in `packages/vue-components` passes
+- Storybook step 5b is complete: `pnpm build-storybook` succeeds
 
 ## What was done
 
@@ -18,12 +19,23 @@
    - `OmegaErrorsInternal.vue`
    - `OmegaFormStuff.ts`
    - `useOmegaForm.ts`
+4. Converted Storybook stories/helpers to v4 APIs:
+   - replaced remaining v3 schema helper calls in OmegaForm stories with `S.check(S.is*)`
+   - replaced `S.standardSchemaV1` with `S.toStandardSchemaV1`
+   - migrated the Commands router story helper from `Effect.Service` to `ServiceMap.Service` + explicit default layer
+   - replaced Storybook-only cross-field `S.filter` usages with `S.refine` message checks
+5. Validation:
+   - `pnpm lint-fix`
+   - `pnpm check`
+   - `pnpm build-storybook`
 
 ## Current blocker
 
 `OmegaFormStuff.ts` still relies on v3-style schema/AST assumptions (e.g. `TypeLiteral`, `TupleType`, `StringKeyword`, `UndefinedKeyword`, transformation wrapper tags) while v4 AST uses different node names and shapes (`Objects`, `Arrays`, `String`, `Undefined`, etc.), and different annotation APIs.
 
 This means the step is **not** a 1:1 symbol rename. The metadata/default-value extraction logic needs a focused rewrite against v4 AST semantics.
+
+Storybook is no longer blocked by these issues because the stories were updated to use the v4 surface directly.
 
 ## Additional finding for this package
 

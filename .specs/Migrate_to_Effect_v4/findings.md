@@ -268,6 +268,11 @@ Most `@effect/*` sub-packages are now consolidated into `effect`:
 - `packages/vue-components` currently uses `tsconfig` with `moduleResolution: "node"`, which can fail to resolve v4-style package export maps (`effect/*`).
 - `OmegaFormStuff.ts` is not a pure rename migration: it depends on old AST tag names / shapes (`TypeLiteral`, `TupleType`, `StringKeyword`, `UndefinedKeyword`, transformation wrappers).
   - In v4, AST node names are changed (`Objects`, `Arrays`, `String`, `Undefined`, etc.) and metadata extraction must be rewritten accordingly.
+- Storybook story code still had several v3-era helper calls even after the package compiled:
+  - `S.standardSchemaV1` -> `S.toStandardSchemaV1`
+  - pipeable helpers like `S.minLength`, `S.maxLength`, `S.greaterThan`, `S.lessThan`, `S.between`, `S.int` -> `S.check(...)` with the corresponding `S.is*` predicates
+- Cross-field Storybook examples using `S.filter` can be migrated to `S.refine` when a plain message string is sufficient for the demo.
+- Storybook-only service helpers that still use `Effect.Service` can be migrated to `ServiceMap.Service` plus an explicit `Layer.sync(this, make)` default layer.
 
 ## TaggedRequest (v3) → TaggedRequestResult (v4)
 

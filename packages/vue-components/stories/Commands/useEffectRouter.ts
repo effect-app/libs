@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect } from "effect-app"
+import { Effect, Layer, ServiceMap } from "effect-app"
 import { type RouteLocationAsPath, type RouteLocationAsRelative, type RouteLocationAsRelativeTyped, type RouteLocationAsString, type RouteLocationNormalizedLoaded, type RouteLocationRaw, type RouteLocationResolved, type RouteMap, type RouteRecordNameGeneric, type RouteRecordRaw, useRoute, useRouter } from "vue-router"
 
 /**
@@ -26,10 +26,9 @@ export const useEffectRouter = () => {
   return proxy
 }
 
-export class Router extends Effect.Service<Router>()("Router", {
-  sync: useEffectRouter,
-  accessors: true
-}) {
+export class Router extends ServiceMap.Service<Router, ReturnType<typeof useEffectRouter>>()("Router") {
+  static readonly Default = Layer.sync(this, useEffectRouter)
+
   static readonly addRoute: {
     /**
      * Add a new {@link RouteRecordRaw | route record} as the child of an existing route.
@@ -47,9 +46,9 @@ export class Router extends Effect.Service<Router>()("Router", {
      * @param route - Route Record to add
      */
     (route: RouteRecordRaw): Effect.Effect<void, never, Router>
-  } = ((...args: any[]) => Router.use((_) => _.addRoute(...(args as [any, any])))) as any
+  } = ((...args: any[]) => Router.useSync((_) => _.addRoute(...(args as [any, any])))) as any
 
-  static override readonly resolve: {
+  static readonly resolve: {
     /**
      * Returns the {@link RouteLocation | normalized version} of a
      * {@link RouteLocationRaw | route location}. Also includes an `href` property
@@ -67,5 +66,5 @@ export class Router extends Effect.Service<Router>()("Router", {
       to: RouteLocationAsString | RouteLocationAsRelative | RouteLocationAsPath,
       currentLocation?: RouteLocationNormalizedLoaded
     ): Effect.Effect<RouteLocationResolved, never, Router>
-  } = (...args: any[]) => Router.use((_) => _.resolve(...(args as [any, any])))
+  } = ((...args: any[]) => Router.useSync((_) => _.resolve(...(args as [any, any])))) as any
 }

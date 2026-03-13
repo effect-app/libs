@@ -1,5 +1,14 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 16de88c: remove hopefully obsolete Struct overrides
+- 1c3c541: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- de2359d: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- 0d72f34: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+
 ## 4.0.0-beta.12
 
 ### Patch Changes

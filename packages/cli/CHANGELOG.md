@@ -1,5 +1,13 @@
 # @effect-app/cli
 
+## 2.0.1-beta.2
+
+### Patch Changes
+
+- 1c3c541: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- de2359d: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- 0d72f34: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+
 ## 2.0.1-beta.1
 
 ### Patch Changes

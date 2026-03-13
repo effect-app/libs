@@ -40,7 +40,8 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
             const stream = pipe(
               setRetry,
               Stream.merge(keepAlive),
-              Stream.merge(eventStream, { haltStrategy: "either" }),
+              // Keep this unary so pipe receives a function, not a Stream value.
+              (self) => Stream.merge(self, eventStream, { haltStrategy: "either" }),
               Stream.tapCause((cause) => Effect.logError("SSE error", cause)),
               Stream.map((_) => enc.encode(_ + "\n\n"))
             )

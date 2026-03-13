@@ -27,11 +27,11 @@ const schema = S
     confirm: S.Email
   })
   .pipe(
-    S.refine((form) => {
+    S.check(S.makeFilter((form) => {
       if (form.email !== form.confirm) {
         return "Email and confirmation must match!"
       }
-    })
+    }))
   )
 
 const form = useOmegaForm(schema, {

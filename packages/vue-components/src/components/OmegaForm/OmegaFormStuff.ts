@@ -1132,6 +1132,10 @@ export const defaultsValueFromSchema = (
       return acc
     }, {} as Record<string, any>)
 
+    if (Object.keys(mergedMembers).length === 0) {
+      return Object.keys(record).length > 0 ? record : undefined
+    }
+
     // Use reduce to properly accumulate the merged fields
     return Object.entries(mergedMembers).reduce((acc, [key, value]) => {
       acc[key] = defaultsValueFromSchema(value, record[key] || {})

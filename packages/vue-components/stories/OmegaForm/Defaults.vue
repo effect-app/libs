@@ -179,18 +179,18 @@ const seven = useOmegaForm(S.Union([
 
 const eight = useOmegaForm(ClassSchema
   .pipe(
-    S.refine((form) => {
+    S.check(S.makeFilter((form) => {
       if (form.a !== form.b) {
         return "Email and confirmation must match!"
       }
-    })
+    }))
   ))
 
-const nine = useOmegaForm(ClassSchema.pipe(S.refine((form) => {
+const nine = useOmegaForm(ClassSchema.pipe(S.check(S.makeFilter((form) => {
   if (form.a !== form.b) {
     return "Email and confirmation must match!"
   }
-})))
+}))))
 </script>
 
 <style scoped>

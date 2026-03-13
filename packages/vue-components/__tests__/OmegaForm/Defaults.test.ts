@@ -207,6 +207,40 @@ describe("OmegaForm Defaults", () => {
     })
   })
 
+  it("should not initialize _tag for a root union without explicit defaults", async () => {
+    const wrapper = mount({
+      components: { OmegaIntlProvider },
+      template: `
+        <OmegaIntlProvider>
+          <component :is="form.Form" :subscribe="['values']">
+            <template #default="{ subscribedValues: { values } }">
+              <div data-testid="values">{{ JSON.stringify(values) }}</div>
+            </template>
+          </component>
+        </OmegaIntlProvider>
+      `,
+      setup() {
+        const form = useOmegaForm(S.Union([
+          S.Struct({
+            _tag: S.Literal("one"),
+            a: S.Struct({ z: S.NonEmptyString100 })
+          }),
+          S.Struct({
+            _tag: S.Literal("two"),
+            a: S.Struct({ y: S.NonNegativeInt })
+          })
+        ]))
+
+        return { form }
+      }
+    })
+
+    await wrapper.vm.$nextTick()
+
+    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    expect(JSON.parse(valuesText)).not.toHaveProperty("_tag")
+  })
+
   it("should have correct default values for form three (with defaultValues merged)", async () => {
     const wrapper = mount({
       components: { OmegaIntlProvider },

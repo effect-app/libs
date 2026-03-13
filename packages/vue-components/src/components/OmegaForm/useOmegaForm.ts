@@ -3,13 +3,8 @@
 
 import * as api from "@opentelemetry/api"
 import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
+import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
-import * as Data from "effect/Data"
-import * as Effect from "effect/Effect"
-import * as Fiber from "effect/Fiber"
-import * as Option from "effect/Option"
-import * as Order from "effect/Order"
-import * as S from "effect/Schema"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
 import { MergedInputProps } from "./InputProps"
@@ -107,26 +102,25 @@ const eHoc = (errorProps: {
 
         const errors = computed(() => {
           // Collect errors from fieldMeta (field-level errors for registered fields)
-          const fieldErrors = Object
-            .entries(fieldMeta.value)
-            .reduce<OmegaError[]>((acc, [key, m]) => {
-              const fieldErrors = (m as { errors?: Array<{ message?: string }> } | undefined)?.errors ?? []
-              if (!fieldErrors.length) {
-                return acc
-              }
-
-              const fieldInfo = fieldMap.value.get(key)
-              if (!fieldInfo) {
-                return acc
-              }
-
-              acc.push({
-                label: fieldInfo.label,
-                inputId: fieldInfo.id,
-                errors: [fieldErrors[0]?.message].filter(Boolean) as string[]
-              })
+          const fieldErrors = Object.entries(fieldMeta.value).reduce<OmegaError[]>((acc, [key, m]) => {
+            const fieldErrors = (m as { errors?: Array<{ message?: string }> } | undefined)?.errors ?? []
+            if (!fieldErrors.length) {
               return acc
-            }, [])
+            }
+
+            const fieldInfo = fieldMap.value.get(key)
+            if (!fieldInfo) {
+              return acc
+            }
+
+            acc.push({
+              label: fieldInfo.label,
+              inputId: fieldInfo.id,
+              errors: [fieldErrors[0]?.message].filter(Boolean) as string[]
+            })
+
+            return acc
+          }, [])
 
           // Collect errors from errorMap.onSubmit ONLY for fields that are NOT registered
           // (registered fields already have their errors in fieldMeta)
@@ -687,7 +681,7 @@ export const useOmegaForm = <
 ): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
   const standardSchema = S.toStandardSchemaV1(schema)
-  const decode = S.decodeEffect(schema)
+  const decode = S.decodeUnknownEffect(schema)
 
   const { meta, unionMeta } = generateMetaFromSchema(schema)
 
@@ -803,10 +797,13 @@ export const useOmegaForm = <
             value: parsedValue
           })
           if (Fiber.isFiber(r)) {
-            return await runtimeFiberAsPromise(r as any)
+            return await runtimeFiberAsPromise(r)
           }
           if (Effect.isEffect(r)) {
-            return await Effect.runPromise(r)
+            const effectResult = await Effect.runPromise(r)
+            return Fiber.isFiber(effectResult)
+              ? await runtimeFiberAsPromise(effectResult)
+              : effectResult
           }
           return r
         })
@@ -836,11 +833,12 @@ export const useOmegaForm = <
 
   const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
     if (!persistency) return
-    if (Array.isArray(persistency.keys)) {
-      return createNestedObjectFromPaths(persistency.keys)
+    const { banKeys, keys } = persistency
+    if (Array.isArray(keys)) {
+      return createNestedObjectFromPaths(keys as string[])
     }
-    if (Array.isArray(persistency.banKeys)) {
-      const subs = Object.keys(meta).filter((metakey) => persistency.banKeys?.includes(metakey as any))
+    if (Array.isArray(banKeys)) {
+      const subs = Object.keys(meta).filter((metakey) => banKeys.includes(metakey as any))
       return createNestedObjectFromPaths(subs)
     }
     return form.store.state.values
@@ -939,7 +937,7 @@ export const useOmegaForm = <
       ? handleSubmitEffect_(options?.meta).pipe(Effect.flatMap(Effect.fnUntraced(function*() {
         const errors = form.getAllErrors()
         if (Object.keys(errors.fields).length || errors.form.errors.length) {
-          return yield* new FormErrors({ form: errors.form, fields: errors.fields })
+          return yield* Effect.fail(new FormErrors({ form: errors.form, fields: errors.fields }))
         }
       })))
       : handleSubmitEffect_(options?.meta)

@@ -1,6 +1,6 @@
 <template>
   <slot v-bind="{ ...inputProps.inputProps, field: inputProps.field, state: inputProps.state }">
-    <div :class="$attrs.class as any">
+    <div :class="rootClass">
       <OmegaInputVuetify
         v-if="vuetified"
         v-bind="{ ...attrsWithoutClass, ...inputProps, class: props.inputClass }"
@@ -77,6 +77,8 @@ const attrsWithoutClass = computed(() => {
   const { class: _, ...rest } = attrs
   return rest
 })
+
+const rootClass = computed(() => attrs.class as any)
 
 const id = useId()
 

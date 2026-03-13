@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- 756c8b4: fix union default value
+  - effect-app@4.0.0-beta.14
+  - @effect-app/vue@4.0.0-beta.14
+
 ## 4.0.0-beta.13
 
 ### Patch Changes

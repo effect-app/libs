@@ -21,7 +21,8 @@
           <code>"union.a"</code>
         </li>
         <li>
-          <strong>Schema:</strong> Pass <code>S.Union(...)</code> directly to <code>useOmegaForm</code>, not wrapped in
+          <strong>Schema:</strong> Pass <code>S.Union([...])</code> directly to <code>useOmegaForm</code>, not wrapped
+          in
           <code>S.Struct</code>
         </li>
       </ul>
@@ -77,7 +78,7 @@ import { S } from "effect-app"
 import { useOmegaForm } from "../../src"
 
 // Root-level union schema - the entire form is a union
-const schema = S.Union(
+const schema = S.Union([
   S.Struct({
     a: S.NonEmptyString255.pipe(S.withDefaultConstructor(() => S.NonEmptyString255("aaaa"))),
     common: S.String,
@@ -90,7 +91,7 @@ const schema = S.Union(
     common: S.String,
     _tag: S.Literal("B")
   })
-)
+])
 
 const form = useOmegaForm(
   schema,

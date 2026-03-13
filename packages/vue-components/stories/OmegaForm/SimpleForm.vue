@@ -35,25 +35,25 @@ import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const form = useOmegaForm(
-  S.Union(
+  S.Union([
     S.Struct({
       a: S.Struct({
-        number: S.Number.pipe(S.int()).pipe(S.between(1, 20)),
-        height: S.NonEmptyString100.pipe(S.minLength(10)),
-        width: S.NonEmptyString100.pipe(S.minLength(10)),
-        z: S.NonEmptyString100.pipe(S.minLength(10))
+        number: S.Int.pipe(S.check(S.isBetween({ minimum: 1, maximum: 20 }))),
+        height: S.NonEmptyString100.pipe(S.check(S.isMinLength(10))),
+        width: S.NonEmptyString100.pipe(S.check(S.isMinLength(10))),
+        z: S.NonEmptyString100.pipe(S.check(S.isMinLength(10)))
       }),
       _tag: S.Literal("one")
     }),
     S.Struct({
       a: S.Struct({
-        number: S.Number.pipe(S.int()).pipe(S.between(1, 20)),
-        height: S.NonNegativeInt.pipe(S.greaterThan(11)),
-        width: S.NonNegativeInt.pipe(S.greaterThan(11)),
-        y: S.NonNegativeInt.pipe(S.greaterThan(11))
+        number: S.Int.pipe(S.check(S.isBetween({ minimum: 1, maximum: 20 }))),
+        height: S.NonNegativeInt.pipe(S.check(S.isGreaterThan(11))),
+        width: S.NonNegativeInt.pipe(S.check(S.isGreaterThan(11))),
+        y: S.NonNegativeInt.pipe(S.check(S.isGreaterThan(11)))
       }),
       _tag: S.Literal("two")
     })
-  )
+  ])
 )
 </script>

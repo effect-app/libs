@@ -27,12 +27,9 @@ const schema = S
     confirm: S.Email
   })
   .pipe(
-    S.filter((form) => {
+    S.refine((form) => {
       if (form.email !== form.confirm) {
-        return {
-          path: ["confirm"],
-          message: "Email and confirmation must match!"
-        }
+        return "Email and confirmation must match!"
       }
     })
   )

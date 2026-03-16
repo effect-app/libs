@@ -165,11 +165,13 @@ const inputProps: ComputedRef<InputProps<From, Name>> = computed(() => ({
     minLength: props.meta?.type === "string" && props.meta?.minLength,
     maxLength: props.meta?.type === "string" && props.meta?.maxLength,
     max: (props.meta?.type === "number")
-      && (props.meta?.maximum
-        ?? (typeof props.meta?.exclusiveMaximum === "number" && props.meta.exclusiveMaximum - 1)),
+      ? (props.meta?.maximum
+        ?? (typeof props.meta?.exclusiveMaximum === "number" ? props.meta.exclusiveMaximum - 1 : undefined))
+      : undefined,
     min: (props.meta?.type === "number")
-      && (props.meta?.minimum
-        ?? (typeof props.meta?.exclusiveMinimum === "number" && props.meta.exclusiveMinimum + 1)),
+      ? (props.meta?.minimum
+        ?? (typeof props.meta?.exclusiveMinimum === "number" ? props.meta.exclusiveMinimum + 1 : undefined))
+      : undefined,
     errorMessages: errors.value,
     error: !!errors.value.length,
     type: fieldType.value,

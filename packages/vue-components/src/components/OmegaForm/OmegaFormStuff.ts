@@ -717,7 +717,20 @@ export const createMeta = <T = any>(
 
     if (S.AST.isUnion(property)) {
       const unwrappedTypes = unwrapNestedUnions(property.types).map(unwrapDeclaration)
-      const nonNullType = unwrappedTypes.find((t) => !isNullishType(t))!
+      const nonNullTypes = unwrappedTypes.filter((t) => !isNullishType(t))
+
+      // Unwrap single-element unions when the literal is a boolean
+      // (effect-app's S.Literal wraps as S.Literals([x]) → Union([Literal(x)]))
+      // Don't unwrap string/number literals — they may be discriminator values in a union
+      if (
+        nonNullTypes.length === 1
+        && S.AST.isLiteral(nonNullTypes[0]!)
+        && typeof nonNullTypes[0]!.literal === "boolean"
+      ) {
+        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! })
+      }
+
+      const nonNullType = nonNullTypes[0]!
 
       if (S.AST.isObjects(nonNullType)) {
         return createMeta<T>({

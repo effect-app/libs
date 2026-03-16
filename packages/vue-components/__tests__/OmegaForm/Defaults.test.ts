@@ -19,7 +19,7 @@ describe("OmegaForm Defaults", () => {
       .pipe(
         S.withDefaultConstructor(() => [{ e: S.NonEmptyString("default") }])
       ),
-    f: S.Union(
+    f: S.Union([
       S.Struct({
         _tag: S.Literal("taggo1").pipe(S.withDefaultConstructor(() => "taggo1")),
         g: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
@@ -30,11 +30,11 @@ describe("OmegaForm Defaults", () => {
         h: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
         i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
       })
-    ),
+    ]),
     j: S.Number.pipe(S.withDefaultConstructor(() => 0)),
     k: S.Boolean.pipe(S.withDefaultConstructor(() => true)),
     l: S.NullOr(
-      S.Union(
+      S.Union([
         S.Struct({
           a: S.NonEmptyString255,
           common: S.NonEmptyString255,
@@ -45,7 +45,7 @@ describe("OmegaForm Defaults", () => {
           common: S.NonEmptyString255,
           _tag: S.Literal("B")
         })
-      )
+      ])
     ),
     m: S.Struct({
       n: S.NullOr(S.Struct({ q: S.String })),
@@ -68,7 +68,7 @@ describe("OmegaForm Defaults", () => {
   class ClassSchema extends S.ExtendedClass<ClassSchema, any>("ClassSchema")(struct) {}
   const schema = S.Struct(struct)
 
-  const Union = S.Union(
+  const Union = S.Union([
     S.Struct({
       _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
       a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
@@ -80,7 +80,7 @@ describe("OmegaForm Defaults", () => {
       b: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
       c: schema
     })
-  )
+  ])
 
   it("should have correct default values for form zero (ClassSchema)", async () => {
     const wrapper = mount({

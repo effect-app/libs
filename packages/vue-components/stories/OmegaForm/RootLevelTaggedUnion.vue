@@ -79,17 +79,15 @@ import { useOmegaForm } from "../../src"
 
 // Root-level union schema - the entire form is a union
 const schema = S.Union([
-  S.Struct({
+  S.TaggedStruct("A", {
     a: S.NonEmptyString255.pipe(S.withDefaultConstructor(() => S.NonEmptyString255("aaaa"))),
-    common: S.String,
-    _tag: S.Literal("A")
+    common: S.String
   }),
-  S.Struct({
+  S.TaggedStruct("B", {
     b: S.Number,
     // this field is nullable but not with default, still it gets initialized to null
     nullableB: S.NullOr(S.Number),
-    common: S.String,
-    _tag: S.Literal("B")
+    common: S.String
   })
 ])
 

@@ -82,15 +82,13 @@ const form = useOmegaForm(
     aString: S.NonEmptyString255,
     union: S.NullOr(
       S.Union([
-        S.Struct({
+        S.TaggedStruct("A", {
           a: S.NonEmptyString255,
-          common: S.NonEmptyString255,
-          _tag: S.Literal("A")
+          common: S.NonEmptyString255
         }),
-        S.Struct({
+        S.TaggedStruct("B", {
           b: S.NonEmptyString255,
-          common: S.NonEmptyString255,
-          _tag: S.Literal("B")
+          common: S.NonEmptyString255
         })
       ])
     )

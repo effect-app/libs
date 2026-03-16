@@ -268,6 +268,10 @@ export type BooleanFieldMeta = BaseFieldMeta & {
   type: "boolean"
 }
 
+export type DateFieldMeta = BaseFieldMeta & {
+  type: "date"
+}
+
 export type UnknownFieldMeta = BaseFieldMeta & {
   type: "unknown"
 }
@@ -278,6 +282,7 @@ export type FieldMeta =
   | SelectFieldMeta
   | MultipleFieldMeta
   | BooleanFieldMeta
+  | DateFieldMeta
   | UnknownFieldMeta
 
 export type MetaRecord<T = string> = {
@@ -450,6 +455,11 @@ const getFieldMetadataFromAst = (property: S.AST.AST) => {
     }
   } else if (S.AST.isBoolean(property)) {
     base.type = "boolean"
+  } else if (
+    S.AST.isDeclaration(property)
+    && (property.annotations as any)?.typeConstructor?._tag === "Date"
+  ) {
+    base.type = "date"
   } else {
     base.type = "unknown"
   }
@@ -1018,6 +1028,10 @@ export const generateInputStandardSchemaFromFieldMeta = (
 
     case "boolean":
       schema = S.Boolean
+      break
+
+    case "date":
+      schema = S.Date
       break
 
     case "unknown":

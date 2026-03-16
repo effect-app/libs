@@ -29,7 +29,10 @@ const schema = S
   .pipe(
     S.check(S.makeFilter((form) => {
       if (form.email !== form.confirm) {
-        return "Email and confirmation must match!"
+        return {
+          path: ["confirm"],
+          message: "Email and confirmation must match!"
+        }
       }
     }))
   )

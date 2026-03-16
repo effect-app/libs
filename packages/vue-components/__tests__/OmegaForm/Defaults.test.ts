@@ -423,7 +423,7 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(S.Union(
+        const form = useOmegaForm(S.Union([
           S.Struct({
             _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
             a: S.NonEmptyString,
@@ -434,7 +434,7 @@ describe("OmegaForm Defaults", () => {
             b: S.NonEmptyString,
             t: S.Number
           })
-        ))
+        ]))
         return { form }
       }
     })
@@ -466,14 +466,14 @@ describe("OmegaForm Defaults", () => {
       setup() {
         const form = useOmegaForm(ClassSchema
           .pipe(
-            S.filter((form) => {
+            S.check(S.makeFilter((form) => {
               if (form.a !== form.b) {
                 return {
                   path: ["a"],
                   message: "Email and confirmation must match!"
                 }
               }
-            })
+            }))
           ))
         return { form }
       }
@@ -514,14 +514,14 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(ClassSchema.pipe(S.filter((form) => {
+        const form = useOmegaForm(ClassSchema.pipe(S.check(S.makeFilter((form) => {
           if (form.a !== form.b) {
             return {
               path: ["a"],
               message: "Email and confirmation must match!"
             }
           }
-        })))
+        }))))
         return { form }
       }
     })

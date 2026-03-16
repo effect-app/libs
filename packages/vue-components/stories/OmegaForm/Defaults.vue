@@ -181,14 +181,20 @@ const eight = useOmegaForm(ClassSchema
   .pipe(
     S.check(S.makeFilter((form) => {
       if (form.a !== form.b) {
-        return "Email and confirmation must match!"
+        return {
+          path: ["a"],
+          message: "Email and confirmation must match!"
+        }
       }
     }))
   ))
 
 const nine = useOmegaForm(ClassSchema.pipe(S.check(S.makeFilter((form) => {
   if (form.a !== form.b) {
-    return "Email and confirmation must match!"
+    return {
+      path: ["a"],
+      message: "Email and confirmation must match!"
+    }
   }
 }))))
 </script>

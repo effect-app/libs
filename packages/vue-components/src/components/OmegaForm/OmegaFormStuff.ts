@@ -517,14 +517,28 @@ export const createMeta = <T = any>(
               // - All other fields maintain their normal required status based on their own types
               const isNullableDiscriminatedUnion = nullableOrUndefined && nonNullTypes.length > 1
 
-              Object.assign(
-                acc,
-                createMeta<T>({
-                  parent: key,
-                  propertySignatures: nonNullType.propertySignatures,
-                  meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
-                })
-              )
+              const branchMeta = createMeta<T>({
+                parent: key,
+                propertySignatures: nonNullType.propertySignatures,
+                meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
+              })
+
+              // Merge branch metadata, combining select members for shared discriminator fields
+              for (const [metaKey, metaValue] of Object.entries(branchMeta)) {
+                const existing = acc[metaKey as NestedKeyOf<T>] as FieldMeta | undefined
+                if (
+                  existing && existing.type === "select" && (metaValue as any)?.type === "select"
+                ) {
+                  existing.members = [
+                    ...existing.members,
+                    ...(metaValue as SelectFieldMeta).members.filter(
+                      (m: any) => !existing.members.includes(m)
+                    )
+                  ]
+                } else {
+                  acc[metaKey as NestedKeyOf<T>] = metaValue as FieldMeta
+                }
+              }
             }
           }
         } else {

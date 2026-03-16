@@ -1010,11 +1010,6 @@ export const generateInputStandardSchemaFromFieldMeta = (
   return result
 }
 
-export const nullableInput = <A, I, R>(
-  schema: S.Codec<A, I, R>,
-  _defaultValue: () => A
-) => S.NullOr(schema) as any
-
 export type OmegaAutoGenMeta<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,

@@ -360,19 +360,29 @@ const getJsonSchemaAnnotation = (property: S.AST.AST): Record<string, unknown> =
   return jsonSchema && typeof jsonSchema === "object" ? jsonSchema as Record<string, unknown> : {}
 }
 
-const getDefaultFromAst = (property: S.AST.AST) => {
-  const link = property.context?.defaultValue?.[0] as any
-
-  if (!link?.transformation?.decode?.run) {
-    return undefined
-  }
-
+const extractDefaultFromLink = (link: any): unknown | undefined => {
+  if (!link?.transformation?.decode?.run) return undefined
   try {
     const result = Effect.runSync(link.transformation.decode.run(Option.none())) as Option.Option<unknown>
     return Option.isSome(result) ? result.value : undefined
   } catch {
     return undefined
   }
+}
+
+const getDefaultFromAst = (property: S.AST.AST) => {
+  // 1. Check withConstructorDefault (stored in context.defaultValue)
+  const constructorLink = (property as any).context?.defaultValue?.[0]
+  const constructorDefault = extractDefaultFromLink(constructorLink)
+  if (constructorDefault !== undefined) return constructorDefault
+
+  // 2. Check withDecodingDefault (stored in encoding)
+  const encodingLink = (property as any).encoding?.[0]
+  if (encodingLink && (property as any).context?.isOptional) {
+    return extractDefaultFromLink(encodingLink)
+  }
+
+  return undefined
 }
 
 const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {
@@ -424,6 +434,10 @@ const getFieldMetadataFromAst = (property: S.AST.AST) => {
           base.minimum = check.minimum
           break
         case "isLessThanOrEqualTo":
+          base.maximum = check.maximum
+          break
+        case "isBetween":
+          base.minimum = check.minimum
           base.maximum = check.maximum
           break
         case "isGreaterThan":

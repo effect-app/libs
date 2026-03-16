@@ -3,7 +3,7 @@
     <form.AutoGen
       :pick="['string', 'number', 'email']"
       :sort="Order.mapInput(
-        Order.string,
+        Order.String,
         (
           x: Meta
         ) => x.name

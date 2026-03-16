@@ -7,17 +7,17 @@ import OmegaForm from "./OmegaFormTest.vue"
 import OmegaIntlProvider from "./OmegaIntlProvider.vue"
 
 class kkk extends S.Class<kkk>("kkk")({
-  lll: S.String.pipe(S.minLength(10)).pipe(S.maxLength(21)),
-  mmm: S.Number.pipe(S.between(10, 20))
+  lll: S.String.pipe(S.check(S.isMinLength(10)), S.check(S.isMaxLength(21))),
+  mmm: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 })))
 }) {}
 
 class bbb extends S.Class<bbb>("bbb")({
-  ccc: S.String.pipe(S.minLength(1)).pipe(S.maxLength(2)),
-  ddd: S.NullOr(S.String.pipe(S.maxLength(3))),
-  jjj: S.UndefinedOr(S.String.pipe(S.maxLength(4))),
-  nnn: S.Number.pipe(S.between(10, 20)),
+  ccc: S.String.pipe(S.check(S.isMinLength(1)), S.check(S.isMaxLength(2))),
+  ddd: S.NullOr(S.String.pipe(S.check(S.isMaxLength(3)))),
+  jjj: S.UndefinedOr(S.String.pipe(S.check(S.isMaxLength(4)))),
+  nnn: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 }))),
   kkk,
-  ooo: S.String.pipe(S.minLength(1)).pipe(S.maxLength(23))
+  ooo: S.String.pipe(S.check(S.isMinLength(1)), S.check(S.isMaxLength(23)))
 }) {}
 
 describe("OmegaForm", () => {
@@ -26,10 +26,10 @@ describe("OmegaForm", () => {
       const testSchema = S.Struct({
         aaa: NonEmptyString255,
         bbb: S.NullOr(bbb),
-        eee: S.Number.pipe(S.between(10, 20)),
-        fff: S.Union(S.Literal("left"), S.Literal("right"), S.Literal("both")),
-        zzz: S.NullOr(S.Number.pipe(S.between(10, 20))).pipe(
-          S.annotations({
+        eee: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 }))),
+        fff: S.Union([S.Literal("left"), S.Literal("right"), S.Literal("both")]),
+        zzz: S.NullOr(S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 })))).pipe(
+          S.annotate({
             message: () => "foobar"
           })
         )
@@ -130,20 +130,20 @@ describe("OmegaForm", () => {
         aaa: S.String,
         bbb: S.NullOr(
           S.Struct({
-            ccc: S.String.pipe(S.minLength(1)).pipe(S.maxLength(2)),
-            ddd: S.NullOr(S.String.pipe(S.maxLength(3))),
-            jjj: S.UndefinedOr(S.String.pipe(S.maxLength(4))),
-            nnn: S.Number.pipe(S.between(10, 20)),
+            ccc: S.String.pipe(S.check(S.isMinLength(1)), S.check(S.isMaxLength(2))),
+            ddd: S.NullOr(S.String.pipe(S.check(S.isMaxLength(3)))),
+            jjj: S.UndefinedOr(S.String.pipe(S.check(S.isMaxLength(4)))),
+            nnn: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 }))),
             kkk: S.Struct({
-              lll: S.String.pipe(S.minLength(10)).pipe(S.maxLength(21)),
-              mmm: S.Number.pipe(S.between(10, 20))
+              lll: S.String.pipe(S.check(S.isMinLength(10)), S.check(S.isMaxLength(21))),
+              mmm: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 })))
             }),
-            ooo: S.String.pipe(S.minLength(1)).pipe(S.maxLength(23))
+            ooo: S.String.pipe(S.check(S.isMinLength(1)), S.check(S.isMaxLength(23)))
           })
         ),
-        eee: S.Number.pipe(S.between(10, 20)),
-        fff: S.Union(S.Literal("left"), S.Literal("right"), S.Literal("both")),
-        zzz: S.NullOr(S.Number.pipe(S.between(10, 20)))
+        eee: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 }))),
+        fff: S.Union([S.Literal("left"), S.Literal("right"), S.Literal("both")]),
+        zzz: S.NullOr(S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 }))))
       })
 
       const result = generateMetaFromSchema(testSchema)

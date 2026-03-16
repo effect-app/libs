@@ -1146,6 +1146,8 @@ export const defaultsValueFromSchema = (
       const fieldValue = defaultsValueFromSchema(fieldSchema as any, record[key] || {})
       if (fieldValue !== undefined) {
         result[key] = fieldValue
+      } else if (isNullableOrUndefined((fieldSchema as any).ast) === "undefined") {
+        result[key] = undefined
       }
     }
 
@@ -1212,6 +1214,8 @@ export const defaultsValueFromSchema = (
 
         if (propValue !== undefined) {
           result[key] = propValue
+        } else if (isNullableOrUndefined(propType) === "undefined") {
+          result[key] = undefined
         }
       }
 

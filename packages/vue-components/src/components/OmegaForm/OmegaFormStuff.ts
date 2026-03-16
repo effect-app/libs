@@ -1136,15 +1136,10 @@ export const defaultsValueFromSchema = (
     const result: Record<string, any> = {}
 
     for (const [key, fieldSchema] of Object.entries(schema.fields)) {
-      // Check if this field has a defaultValue in its AST
-      const fieldAst = (fieldSchema as any)?.ast
-      if (fieldAst?.defaultValue) {
-        try {
-          result[key] = fieldAst.defaultValue()
-          continue
-        } catch {
-          // If defaultValue() throws, fall through to recursive processing
-        }
+      const fieldDefault = getDefaultFromAst((fieldSchema as any)?.ast)
+      if (fieldDefault !== undefined) {
+        result[key] = fieldDefault
+        continue
       }
 
       // Recursively process the field
@@ -1168,11 +1163,11 @@ export const defaultsValueFromSchema = (
       if (hasFields(member)) {
         // Check each field and give precedence to ones with default values
         Object.entries(member.fields).forEach(([key, fieldSchema]) => {
-          const fieldAst: any = fieldSchema.ast
-          const existingFieldAst: any = acc[key]?.ast
+          const fieldDefault = getDefaultFromAst(fieldSchema.ast)
+          const existingDefault = acc[key] ? getDefaultFromAst(acc[key].ast) : undefined
 
           // If field doesn't exist yet, or new field has default and existing doesn't, use new field
-          if (!acc[key] || (fieldAst?.defaultValue && !existingFieldAst?.defaultValue)) {
+          if (!acc[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
             acc[key] = fieldSchema
           }
           // If both have defaults or neither have defaults, keep the first one (existing)

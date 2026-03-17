@@ -14,9 +14,9 @@
 
       <h2>Known Issue</h2>
       <p>
-        After <code>AST.toType</code>, the <code>_tag</code> Literal gets wrapped in a single-element Union (<code>Union([Literal("A")])</code>), which causes
-        <code>isLiteral</code> to fail and <code>unionMeta</code> to be empty. Compare the <code>unionMeta</code> output
-        here vs. the TaggedStruct version.
+        After <code>AST.toType</code>, the <code>_tag</code> Literal gets wrapped in a single-element Union (<code>Union([Literal("A")])</code>).
+        OmegaForm now unwraps this single-element Union for meta extraction, so <code>unionMeta</code> is populated, but using the legacy
+        <code>_tag: S.Literal(...)</code> pattern is deprecated and will emit a warning. Prefer <code>S.TaggedStruct</code> for new code.
       </p>
     </div>
 
@@ -68,9 +68,9 @@
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src"
 
-// Legacy pattern: S.Struct with _tag: S.Literal instead of S.TaggedStruct
-// After AST.toType, _tag becomes Union([Literal("A")]) instead of Literal("A"),
-// which breaks unionMeta generation.
+// Legacy pattern: S.Struct with _tag: S.Literal instead of S.TaggedStruct.
+// After AST.toType, _tag becomes Union([Literal("A")]) instead of Literal("A").
+// OmegaForm now unwraps this for unionMeta, but this pattern is deprecated and will warn; prefer S.TaggedStruct.
 const schema = S.Union([
   S.Struct({
     _tag: S.Literal("A"),

@@ -7,6 +7,8 @@ import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
+const legacyTagWarningEmittedFor = new Set<string>()
+
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
   : T extends string | boolean | number | null | undefined | symbol | bigint ? ""
@@ -851,7 +853,15 @@ const metadataFromAst = <From, To>(
             tagValue = resolvedTagType.literal as string
             discriminatorValues.push(tagValue)
             // Warn if the tag was wrapped in a single-element Union (legacy pattern)
-            if (tagProp && S.AST.isUnion(tagProp.type)) {
+            if (
+              tagProp &&
+              S.AST.isUnion(tagProp.type) &&
+              typeof process !== "undefined" &&
+              (process as any).env?.NODE_ENV !== "production" &&
+              tagValue != null &&
+              !legacyTagWarningEmittedFor.has(tagValue)
+            ) {
+              legacyTagWarningEmittedFor.add(tagValue)
               console.warn(
                 `[OmegaForm] Union member with _tag "${tagValue}" uses S.Struct({ _tag: S.Literal("${tagValue}"), ... }). `
                   + `Please migrate to S.TaggedStruct("${tagValue}", { ... }) for cleaner AST handling.`

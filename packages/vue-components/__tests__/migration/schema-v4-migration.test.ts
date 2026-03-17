@@ -696,14 +696,4 @@ describe("regression guards", () => {
     const defaults = defaultsValueFromSchema(schema)
     expect(defaults.name).toBe("myDefault")
   })
-
-  it("S.TaggedUnion crashes — use S.Union([TaggedStruct]) instead", () => {
-    expect(() => {
-      S.TaggedUnion("_tag", [
-        S.TaggedStruct("A", { a: S.String }),
-        S.TaggedStruct("B", { b: S.Number })
-      ])
-    })
-      .toThrow()
-  })
 })

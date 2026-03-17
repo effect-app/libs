@@ -21,9 +21,11 @@ import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerma
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
+import OptionalKeyComponent from "./OmegaForm/OptionalKey.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
 import RootLevelTaggedUnionComponent from "./OmegaForm/RootLevelTaggedUnion.vue"
+import RootLevelTaggedUnionLegacyComponent from "./OmegaForm/RootLevelTaggedUnionLegacy.vue"
 import SetErrorOnSubmitComponent from "./OmegaForm/SetErrorOnSubmit.vue"
 import SimpleFormComponent from "./OmegaForm/SimpleForm.vue"
 import SimpleFormVuetifyDefaultComponent from "./OmegaForm/SimpleFormVuetifyDefault.vue"
@@ -139,6 +141,13 @@ export const RootLevelTaggedUnion: Story = {
   render: () => ({
     components: { RootLevelTaggedUnionComponent },
     template: "<RootLevelTaggedUnionComponent />"
+  })
+}
+
+export const RootLevelTaggedUnionLegacy: Story = {
+  render: () => ({
+    components: { RootLevelTaggedUnionLegacyComponent },
+    template: "<RootLevelTaggedUnionLegacyComponent />"
   })
 }
 
@@ -292,6 +301,12 @@ export const CustomLabelSlot: Story = {
   render: () => ({
     components: { CustomLabelSlotComponent },
     template: "<CustomLabelSlotComponent />"
+  })
+}
+export const OptionalKey: Story = {
+  render: () => ({
+    components: { OptionalKeyComponent },
+    template: "<OptionalKeyComponent />"
   })
 }
 export const WithDefaultConstructor: Story = {

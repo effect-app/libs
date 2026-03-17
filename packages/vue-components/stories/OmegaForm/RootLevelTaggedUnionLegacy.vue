@@ -1,31 +1,23 @@
 <template>
   <div>
-    <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px; border-left: 4px solid #1976d2">
+    <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px; border-left: 4px solid #e65100">
       <h1 style="margin-top: 0">
-        Root-Level TaggedUnion Component Usage
+        Root-Level TaggedUnion — Legacy Literal Pattern
       </h1>
 
       <h2>Overview</h2>
       <p>
-        This example demonstrates using a tagged union at the ROOT level of your form schema. The entire form is a
-        discriminated union, not nested within a struct.
+        Same as the Root-Level TaggedUnion story, but uses the legacy
+        <code>S.Struct({ _tag: S.Literal("A"), ... })</code> pattern instead of
+        <code>S.TaggedStruct("A", { ... })</code>.
       </p>
 
-      <h2>Key Differences from Nested Usage</h2>
-      <ul>
-        <li>
-          <strong>No <code>name</code> prop:</strong> Since the union is at the root, omit the <code>name</code> prop
-        </li>
-        <li>
-          <strong>Field paths:</strong> Use direct paths like <code>"a"</code>, <code>"common"</code> instead of
-          <code>"union.a"</code>
-        </li>
-        <li>
-          <strong>Schema:</strong> Pass <code>S.Union([...])</code> directly to <code>useOmegaForm</code>, not wrapped
-          in
-          <code>S.Struct</code>
-        </li>
-      </ul>
+      <h2>Known Issue</h2>
+      <p>
+        After <code>AST.toType</code>, the <code>_tag</code> Literal gets wrapped in a single-element Union (<code>Union([Literal("A")])</code>), which causes
+        <code>isLiteral</code> to fail and <code>unionMeta</code> to be empty. Compare the <code>unionMeta</code> output
+        here vs. the TaggedStruct version.
+      </p>
     </div>
 
     <form.Form :subscribe="['values', 'canSubmit']">
@@ -38,9 +30,11 @@
           ] as const"
         >
           <!-- Default slot: rendered for ALL branches (common fields) -->
+          <!-- In branch A: common is required (NonEmptyString255) -->
+          <!-- In branch B: common is nullable (NullOr(String)) -->
           <form.Input
             name="common"
-            label="Common Field (shared by both A and B)"
+            label="Common Field (required in A, nullable in B)"
           />
           <!-- Named slot #A: rendered only when _tag === "A" -->
           <template #A>
@@ -53,11 +47,6 @@
           <template #B>
             <form.Input
               name="b"
-              label="Field B (number)"
-              type="number"
-            />
-            <form.Input
-              name="nullableB"
               label="Field B (number)"
               type="number"
             />
@@ -75,23 +64,22 @@
 </template>
 
 <script setup lang="ts">
+// TODO: remove the story after manual _tag deprecation
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src"
 
-// Root-level union schema - the entire form is a union
-// NOTE: "common" has different constraints per branch to test unionMeta:
-//   - Branch A: common is required (NonEmptyString255)
-//   - Branch B: common is nullable (NullOr(String))
-// Without unionMeta, the required state won't switch when toggling branches.
+// Legacy pattern: S.Struct with _tag: S.Literal instead of S.TaggedStruct
+// After AST.toType, _tag becomes Union([Literal("A")]) instead of Literal("A"),
+// which breaks unionMeta generation.
 const schema = S.Union([
-  S.TaggedStruct("A", {
+  S.Struct({
+    _tag: S.Literal("A"),
     a: S.NonEmptyString255.pipe(S.withDefaultConstructor(() => S.NonEmptyString255("aaaa"))),
     common: S.NonEmptyString255
   }),
-  S.TaggedStruct("B", {
+  S.Struct({
+    _tag: S.Literal("B"),
     b: S.Number,
-    // this field is nullable but not with default, still it gets initialized to null
-    nullableB: S.NullOr(S.Number),
     common: S.NullOr(S.String)
   })
 ])

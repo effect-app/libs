@@ -326,6 +326,17 @@ const unwrapDeclaration = (property: S.AST.AST): S.AST.AST => {
 
 const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.AST.isNull(property)
 
+/**
+ * Unwrap a single-element Union to its inner type if it's a Literal.
+ * After AST.toType, S.Struct({ _tag: S.Literal("X") }) produces Union([Literal("X")])
+ * instead of bare Literal("X") like S.TaggedStruct does.
+ * TODO: remove after manual _tag deprecation
+ */
+const unwrapSingleLiteralUnion = (ast: S.AST.AST): S.AST.AST =>
+  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0]!)
+    ? ast.types[0]!
+    : ast
+
 const getNullableOrUndefined = (property: S.AST.AST) =>
   S.AST.isUnion(property)
     ? property.types.find((_) => isNullishType(_))
@@ -750,11 +761,13 @@ export const createMeta = <T = any>(
         })
       }
 
-      if (unwrappedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
+      // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
+      const resolvedTypes = unwrappedTypes.map(unwrapSingleLiteralUnion)
+      if (resolvedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
         return {
           ...meta,
           type: "select",
-          members: unwrappedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
+          members: resolvedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
         } as FieldMeta
       }
 
@@ -832,9 +845,18 @@ const metadataFromAst = <From, To>(
           )
 
           let tagValue: string | null = null
-          if (tagProp && S.AST.isLiteral(tagProp.type)) {
-            tagValue = tagProp.type.literal as string
+          // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
+          const resolvedTagType = tagProp ? unwrapSingleLiteralUnion(tagProp.type) : null
+          if (resolvedTagType && S.AST.isLiteral(resolvedTagType)) {
+            tagValue = resolvedTagType.literal as string
             discriminatorValues.push(tagValue)
+            // Warn if the tag was wrapped in a single-element Union (legacy pattern)
+            if (tagProp && S.AST.isUnion(tagProp.type)) {
+              console.warn(
+                `[OmegaForm] Union member with _tag "${tagValue}" uses S.Struct({ _tag: S.Literal("${tagValue}"), ... }). `
+                  + `Please migrate to S.TaggedStruct("${tagValue}", { ... }) for cleaner AST handling.`
+              )
+            }
           }
 
           // Create metadata for this member's properties

@@ -303,6 +303,7 @@ export const CustomLabelSlot: Story = {
     template: "<CustomLabelSlotComponent />"
   })
 }
+
 export const OptionalKey: Story = {
   render: () => ({
     components: { OptionalKeyComponent },

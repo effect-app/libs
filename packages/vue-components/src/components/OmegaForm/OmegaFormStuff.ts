@@ -2,12 +2,24 @@ import { Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { isObject } from "@vueuse/core"
-import type * as Fiber from "effect/Fiber"
+import type { Fiber as EffectFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
 const legacyTagWarningEmittedFor = new Set<string>()
+type GlobalThisWithOptionalProcess = typeof globalThis & {
+  process?: {
+    env?: {
+      NODE_ENV?: string
+    }
+  }
+}
+
+const isDevelopmentEnvironment = () => {
+  const process = (globalThis as GlobalThisWithOptionalProcess).process
+  return process?.env?.NODE_ENV !== "production"
+}
 
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
@@ -146,7 +158,7 @@ export type FormProps<From, To> =
       formApi: OmegaFormParams<From, To>
       meta: any
       value: To
-    }) => Promise<any> | Fiber.Fiber<any, any> | Effect.Effect<unknown, any, never>
+    }) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any, never>
   }
 
 export type OmegaFormParams<From, To> = FormApi<
@@ -854,12 +866,11 @@ const metadataFromAst = <From, To>(
             discriminatorValues.push(tagValue)
             // Warn if the tag was wrapped in a single-element Union (legacy pattern)
             if (
-              tagProp &&
-              S.AST.isUnion(tagProp.type) &&
-              typeof process !== "undefined" &&
-              (process as any).env?.NODE_ENV !== "production" &&
-              tagValue != null &&
-              !legacyTagWarningEmittedFor.has(tagValue)
+              tagProp
+              && S.AST.isUnion(tagProp.type)
+              && isDevelopmentEnvironment()
+              && tagValue != null
+              && !legacyTagWarningEmittedFor.has(tagValue)
             ) {
               legacyTagWarningEmittedFor.add(tagValue)
               console.warn(

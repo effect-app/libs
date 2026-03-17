@@ -14,9 +14,11 @@
 
       <h2>Known Issue</h2>
       <p>
-        After <code>AST.toType</code>, the <code>_tag</code> Literal gets wrapped in a single-element Union (<code>Union([Literal("A")])</code>).
-        OmegaForm now unwraps this single-element Union for meta extraction, so <code>unionMeta</code> is populated, but using the legacy
-        <code>_tag: S.Literal(...)</code> pattern is deprecated and will emit a warning. Prefer <code>S.TaggedStruct</code> for new code.
+        After <code>AST.toType</code>, the <code>_tag</code> Literal gets wrapped in a single-element Union (<code
+        >Union([Literal("A")])</code>). OmegaForm now unwraps this single-element Union for meta extraction, so <code
+        >unionMeta</code> is populated, but using the legacy
+        <code>_tag: S.Literal(...)</code> pattern is deprecated and will emit a warning. Prefer <code
+        >S.TaggedStruct</code> for new code.
       </p>
     </div>
 

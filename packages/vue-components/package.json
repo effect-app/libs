@@ -4,7 +4,7 @@
   "scripts": {
     "check": "vue-tsc",
     "build": "pnpm build:run",
-    "build:run": "rimraf dist && vue-tsc && vite build",
+    "build:run": "rimraf dist && vue-tsc && vite build && cp src/reset.css dist/reset.css",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs",
@@ -62,7 +62,11 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/vue-components.es.js"
     },
-    "./dist/vue-components.css": "./dist/vue-components.css"
+    "./dist/vue-components.css": "./dist/vue-components.css",
+    "./reset.css": {
+      "development": "./src/reset.css",
+      "default": "./dist/reset.css"
+    }
   },
   "dependencies": {
     "@effect-app/vue": "workspace:*",

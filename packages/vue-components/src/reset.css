@@ -1,0 +1,51 @@
+/*
+ * Supplemental CSS reset for Vuetify 4.
+ * Vuetify 4 removed the aggressive global reset that v3 included.
+ * Import this file to restore equivalent behavior:
+ *   import '@effect-app/vue-components/reset.css'
+ */
+
+body {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+p {
+  margin: 0;
+}
+
+input,
+textarea,
+select {
+  border: 0;
+  background: transparent;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+figure,
+details,
+summary {
+  margin: 0;
+  padding: 0;
+}

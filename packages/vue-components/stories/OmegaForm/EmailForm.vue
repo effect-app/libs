@@ -27,6 +27,8 @@ const schema = S
     confirm: S.Email
   })
   .pipe(
+    // You can also return a plain string: return "Email and confirmation must match!"
+    // Using { path, message } targets the error at a specific field.
     S.check(S.makeFilter((form) => {
       if (form.email !== form.confirm) {
         return {

@@ -389,7 +389,7 @@ const extractDefaultFromLink = (link: any): unknown | undefined => {
 }
 
 const getDefaultFromAst = (property: S.AST.AST) => {
-  // 1. Check withConstructorDefault (stored in context.defaultValue)
+  // 1. Check withDefaultConstructor (stored in context.defaultValue)
   const constructorLink = (property as any).context?.defaultValue?.[0]
   const constructorDefault = extractDefaultFromLink(constructorLink)
   if (constructorDefault !== undefined) return constructorDefault

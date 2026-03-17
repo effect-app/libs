@@ -402,13 +402,13 @@ const extractDefaultFromLink = (link: any): unknown | undefined => {
 
 const getDefaultFromAst = (property: S.AST.AST) => {
   // 1. Check withDefaultConstructor (stored in context.defaultValue)
-  const constructorLink = (property as any).context?.defaultValue?.[0]
+  const constructorLink = property.context?.defaultValue?.[0]
   const constructorDefault = extractDefaultFromLink(constructorLink)
   if (constructorDefault !== undefined) return constructorDefault
 
   // 2. Check withDecodingDefault (stored in encoding)
-  const encodingLink = (property as any).encoding?.[0]
-  if (encodingLink && (property as any).context?.isOptional) {
+  const encodingLink = property.encoding?.[0]
+  if (encodingLink && property.context?.isOptional) {
     return extractDefaultFromLink(encodingLink)
   }
 

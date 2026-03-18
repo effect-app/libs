@@ -1,5 +1,11 @@
 # @effect-app/vue
 
+## 2.94.1
+
+### Patch Changes
+
+- 0a667ad: fix: tanstack query throwing error via watcher
+
 ## 2.94.0
 
 ### Minor Changes

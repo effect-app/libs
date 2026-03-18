@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "@effect/rpc"
+import { Schedule } from "effect"
 import * as Config from "effect/Config"
 import { flow } from "effect/Function"
 import * as HashMap from "effect/HashMap"
@@ -49,6 +50,7 @@ export const HttpClientLayer = (config: ApiConfig) =>
     Effect
       .gen(function*() {
         const baseClient = yield* HttpClient.HttpClient
+        // const devMode = yield* DevMode
         const client = baseClient.pipe(
           HttpClient.mapRequest(HttpClientRequest.prependUrl(config.url + "/rpc")),
           HttpClient.mapRequest(
@@ -63,7 +65,24 @@ export const HttpClientLayer = (config: ApiConfig) =>
                 )(req)
               )
             )
-          )
+          ),
+          // TODO: should we enable this?
+          // it would increase local e2e test time too
+          // perhaps it's better to teach developers to use "slow browser" throttling instead
+          // or we should be able to skip in on e2e requests?
+          // HttpClient.transformResponse(
+          //   Effect.fnUntraced(function*(response) {
+          //     if (devMode) {
+          //       const sleepFor = yield* Random.nextRange(200, 500)
+          //       yield* Effect.sleep(Duration.millis(sleepFor))
+          //     }
+          //     return yield* response
+          //   })
+          // ),
+          HttpClient.retryTransient({
+            times: 3,
+            schedule: Schedule.exponential("100 millis")
+          })
         )
         return client
       })

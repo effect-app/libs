@@ -140,9 +140,20 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
     const queryKey = makeQueryKey(q)
     const handler = q.handler
 
+    const defaultOptions = {
+      // we do not want to throw errors, because we turn the success and error responses into a Result type
+      // why don't we turn the error/success response into a Result type before returning to tanstack query? because we want to leverage tanstack query's retry and caching mechanism, which relies on throwing errors to trigger retries, and we don't want to interfere with that by catching the errors too early.
+      // but if we allow tanstack query to throw, it will trigger the error boundary in Vue - via a "watcher callback" error - which we currently report and log, which is not what we want.
+      // TODO: we might want to rethink the strategy of how to handle errors that happen after the initial load.
+      // For suspense, the initial load is captured by the suspense boundary.
+      // For subsequent loads (or non suspense use) we currently are required to use the QueryResult component to conditionally render error/loading/etc.
+      throwOnError: false
+    }
+
     const r = useTanstackQuery<A, KnownFiberFailure<E>, TData>(
       Effect.isEffect(handler)
         ? {
+          ...defaultOptions,
           ...options,
           retry: (retryCount, error) => {
             if (Runtime.isFiberFailure(error)) {
@@ -168,6 +179,7 @@ export const makeQuery = <R>(getRuntime: () => Runtime.Runtime<R>) => {
             )
         }
         : {
+          ...defaultOptions,
           ...options,
           retry: (retryCount, error) => {
             if (Runtime.isFiberFailure(error)) {

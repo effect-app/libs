@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- e9dbbdd: Tighten schema helper generics in `Schema/ext.ts` so default-related helpers accept properly named schema type parameters instead of bare `S.Top` inputs.
+
 ## 4.0.0-beta.17
 
 ### Patch Changes

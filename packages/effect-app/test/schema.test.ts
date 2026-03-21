@@ -27,14 +27,30 @@ test("literal default works", () => {
 test("tagged union derives tag map and tags from v4 literal ast", () => {
   const schema = S.TaggedUnion(
     S.TaggedStruct("A", { a: S.String }),
-    S.TaggedStruct("B", { b: S.Number })
+    S.TaggedStruct("B", { b: S.Number }),
+    S.TaggedStruct("C", { c: S.Boolean })
   )
   const caseA = schema.tagMap["A"]
   const caseB = schema.tagMap["B"]
+  const caseC = schema.tagMap["C"]
+  const isAOrB = schema.isAnyOf("A", "B")
 
   expect(caseA.fields._tag.ast.literal).toBe("A")
   expect(caseB.fields._tag.ast.literal).toBe("B")
+  expect(caseC.fields._tag.ast.literal).toBe("C")
   expect(S.decodeSync(schema.tags)("A")).toBe("A")
   expect(S.decodeSync(schema.tags)("B")).toBe("B")
-  expect(() => S.decodeUnknownSync(schema.tags)("C")).toThrow()
+  expect(S.decodeSync(schema.tags)("C")).toBe("C")
+  expect(() => S.decodeUnknownSync(schema.tags)("D")).toThrow()
+
+  expect(schema.isA.A({ _tag: "A", a: "ok" })).toBe(true)
+  expect(schema.isA.A({ _tag: "B", b: 1 })).toBe(false)
+  expect(schema.isA.B({ _tag: "B", b: 1 })).toBe(true)
+  expect(schema.isA.B({ _tag: "A", a: "ok" })).toBe(false)
+  expect(schema.isA.C({ _tag: "C", c: true })).toBe(true)
+  expect(schema.isA.C({ _tag: "A", a: "ok" })).toBe(false)
+
+  expect(isAOrB({ _tag: "A", a: "ok" })).toBe(true)
+  expect(isAOrB({ _tag: "B", b: 1 })).toBe(true)
+  expect(isAOrB({ _tag: "C", c: true })).toBe(false)
 })

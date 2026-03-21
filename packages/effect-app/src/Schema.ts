@@ -72,7 +72,7 @@ export const makeIs = <A extends { _tag: string }, I, R>(
   // In v4, transformations are stored as encoding on nodes, not as wrapper nodes.
   // Union member ASTs are directly Objects (TypeLiteral equivalent).
   if (SchemaAST.isUnion(schema.ast)) {
-    return schema.ast.types.reduce((acc: any, t: AST.AST) => {
+    return schema.ast.types.reduce((acc, t: AST.AST) => {
       if (!SchemaAST.isObjects(t)) return acc
       const tag = Array.findFirst(t.propertySignatures, (_: any) => {
         if (_.name === "_tag" && SchemaAST.isLiteral(_.type)) {

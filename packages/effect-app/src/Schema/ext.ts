@@ -69,7 +69,7 @@ export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>
 /**
  * Like the default Schema `Array` but with `withDefault` => []
  */
-export function Array<Value extends S.Top>(value: Value) {
+export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
   return pipe(
     S.Array(value),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => [])) })
@@ -79,7 +79,7 @@ export function Array<Value extends S.Top>(value: Value) {
 /**
  * Like the default Schema `Map` but with `withDefault` => []
  */
-function Map_<Key extends S.Top, Value extends S.Top>(input: { key: Key; value: Value }) {
+function Map_<KeySchema extends S.Top, ValueSchema extends S.Top>(input: { key: KeySchema; value: ValueSchema }) {
   return pipe(
     S.ReadonlyMap(input.key, input.value),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new global.Map())) })
@@ -91,18 +91,19 @@ export { Map_ as Map }
 /**
  * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()
  */
-export const ReadonlySet = <Value extends S.Top>(value: Value) =>
+export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
   pipe(
     S.ReadonlySet(value),
-    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Set<S.Schema.Type<Value>>())) })
+    (s) =>
+      Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Set<S.Schema.Type<ValueSchema>>())) })
   )
 
 /**
  * Like the default Schema `ReadonlyMap` but with `withDefault` => new Map()
  */
-export const ReadonlyMap = <K extends S.Top, V extends S.Top>(pair: {
-  readonly key: K
-  readonly value: V
+export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
+  readonly key: KeySchema
+  readonly value: ValueSchema
 }) =>
   pipe(
     S.ReadonlyMap(pair.key, pair.value),
@@ -112,25 +113,24 @@ export const ReadonlyMap = <K extends S.Top, V extends S.Top>(pair: {
 /**
  * Like the default Schema `NullOr` but with `withDefault` => null
  */
-export const NullOr = <S extends S.Top>(self: S) =>
+export const NullOr = <Schema extends S.Top>(self: Schema) =>
   pipe(
     S.NullOr(self),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => null)) })
   )
 
-export const defaultDate = (s: S.Top) => s.pipe(withDefaultConstructor(() => new global.Date()))
+export const defaultDate = <Schema extends S.Top>(schema: Schema) =>
+  schema.pipe(withDefaultConstructor(() => new global.Date()))
 
-export const defaultBool = (s: S.Top) => s.pipe(withDefaultConstructor(() => false))
+export const defaultBool = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => false))
 
-export const defaultNullable = (
-  s: S.Top
-) => s.pipe(withDefaultConstructor(() => null))
+export const defaultNullable = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => null))
 
-export const defaultArray = (s: S.Top) => s.pipe(withDefaultConstructor(() => []))
+export const defaultArray = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => []))
 
-export const defaultMap = (s: S.Top) => s.pipe(withDefaultConstructor(() => new Map()))
+export const defaultMap = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => new Map()))
 
-export const defaultSet = (s: S.Top) => s.pipe(withDefaultConstructor(() => new Set()))
+export const defaultSet = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => new Set()))
 
 export const withDefaultMake = <Self extends S.Top>(s: Self) => {
   const a = Object.assign(S.decodeSync(s as any) as WithDefaults<Self>, s)

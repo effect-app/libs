@@ -30,10 +30,10 @@ test("tagged union derives tag map and tags from v4 literal ast", () => {
     S.TaggedStruct("B", { b: S.Number }),
     S.TaggedStruct("C", { c: S.Boolean })
   )
-  const caseA = schema.tagMap["A"]
-  const caseB = schema.tagMap["B"]
-  const caseC = schema.tagMap["C"]
-  const isAOrB = schema.isAnyOf("A", "B")
+  const caseA = schema.cases["A"]
+  const caseB = schema.cases["B"]
+  const caseC = schema.cases["C"]
+  const isAOrB = schema.isAnyOf(["A", "B"])
 
   expect(caseA.fields._tag.ast.literal).toBe("A")
   expect(caseB.fields._tag.ast.literal).toBe("B")
@@ -43,12 +43,12 @@ test("tagged union derives tag map and tags from v4 literal ast", () => {
   expect(S.decodeSync(schema.tags)("C")).toBe("C")
   expect(() => S.decodeUnknownSync(schema.tags)("D")).toThrow()
 
-  expect(schema.isA.A({ _tag: "A", a: "ok" })).toBe(true)
-  expect(schema.isA.A({ _tag: "B", b: 1 })).toBe(false)
-  expect(schema.isA.B({ _tag: "B", b: 1 })).toBe(true)
-  expect(schema.isA.B({ _tag: "A", a: "ok" })).toBe(false)
-  expect(schema.isA.C({ _tag: "C", c: true })).toBe(true)
-  expect(schema.isA.C({ _tag: "A", a: "ok" })).toBe(false)
+  expect(schema.guards.A({ _tag: "A", a: "ok" })).toBe(true)
+  expect(schema.guards.A({ _tag: "B", b: 1 })).toBe(false)
+  expect(schema.guards.B({ _tag: "B", b: 1 })).toBe(true)
+  expect(schema.guards.B({ _tag: "A", a: "ok" })).toBe(false)
+  expect(schema.guards.C({ _tag: "C", c: true })).toBe(true)
+  expect(schema.guards.C({ _tag: "A", a: "ok" })).toBe(false)
 
   expect(isAOrB({ _tag: "A", a: "ok" })).toBe(true)
   expect(isAOrB({ _tag: "B", b: 1 })).toBe(true)

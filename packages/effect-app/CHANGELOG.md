@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 56db2c4: fix: isA
+
 ## 4.0.0-beta.15
 
 ### Patch Changes

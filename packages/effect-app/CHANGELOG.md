@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- c8a6a3f: fix TaggedUnion
+
 ## 4.0.0-beta.16
 
 ### Patch Changes

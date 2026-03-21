@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, Schema, type SchemaAST, SchemaGetter, SchemaIssue, SchemaParser, SchemaTransformation, type ServiceMap } from "effect"
+import { Effect, Option, pipe, Schema, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
 import * as S from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
 import { extendM, typedKeysOf } from "../utils.js"
 import { type AST } from "./schema.js"
+
+type ProvidedCodec<Self extends S.Top, R> = S.Codec<
+  Self["Type"],
+  Self["Encoded"],
+  Exclude<Self["DecodingServices"], R>,
+  Exclude<Self["EncodingServices"], R>
+>
 
 // TODO: v4 migration — withConstructorDefault signature changed, propertySignature removed
 // Constraint relaxed from `Self extends S.Top & S.WithoutConstructorDefault` to `Self extends S.Top`
@@ -240,29 +247,30 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
     )
   )
 
-// TODO: v4 migration — S.declare API changed (no [self] + decode/encode pattern)
-// Need to find v4 equivalent for contextual schema wrapping
 export const provide = <Self extends S.Top, R>(
   self: Self,
   context: ServiceMap.ServiceMap<R>
-): any => {
+): ProvidedCodec<Self, R> => {
   const prov = Effect.provide(context)
-  return S
-    .declare((_u: unknown): _u is unknown => true) // placeholder — needs proper v4 declare
-    .pipe(
-      S.decodeTo(
-        self,
-        SchemaTransformation.transformOrFail({
-          decode: (n: any) => prov(SchemaParser.decodeUnknownEffect(self)(n)),
-          encode: (n: any) => prov(SchemaParser.encodeUnknownEffect(self)(n))
-        }) as any
-      ) as any
+  return self.pipe(
+    S.middlewareDecoding((effect) => prov(effect)),
+    S.middlewareEncoding((effect) => prov(effect))
+  ) as ProvidedCodec<Self, R>
+}
+export const contextFromServices = <
+  Self extends S.Top,
+  Tags extends ReadonlyArray<ServiceMap.Key<any, any>>
+>(
+  self: Self,
+  ...services: Tags
+): Effect.Effect<
+  ProvidedCodec<Self, ServiceMap.Service.Identifier<Tags[number]>>,
+  never,
+  ServiceMap.Service.Identifier<Tags[number]>
+> =>
+  Effect.gen(function*() {
+    const context: ServiceMap.ServiceMap<ServiceMap.Service.Identifier<Tags[number]>> = ServiceMap.pick(...services)(
+      yield* Effect.services<ServiceMap.Service.Identifier<Tags[number]>>()
     )
-}
-// TODO: v4 migration — ServiceMap.pick and S.declare pattern removed
-export const contextFromServices = <Self extends S.Top, Tags extends readonly any[]>(
-  _self: Self,
-  ..._services: Tags
-): any => {
-  throw new Error("contextFromServices: not yet migrated to v4")
-}
+    return provide(self, context)
+  })

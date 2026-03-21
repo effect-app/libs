@@ -66,8 +66,8 @@ export const PhoneNumber = PhoneNumberT
 
 export type PhoneNumber = PhoneNumberType
 
-export const makeIs = <A extends { _tag: string }, I, R>(
-  schema: S.Codec<A, I, R>
+export const makeIs = <A extends { _tag: string }, I, RD, RE>(
+  schema: S.Codec<A, I, RD, RE>
 ) => {
   // In v4, transformations are stored as encoding on nodes, not as wrapper nodes.
   // Union member ASTs are directly Objects (TypeLiteral equivalent).
@@ -94,8 +94,8 @@ export const makeIs = <A extends { _tag: string }, I, R>(
   throw new Error("Unsupported")
 }
 
-export const makeIsAnyOf = <A extends { _tag: string }, I, R>(
-  schema: S.Codec<A, I, R>
+export const makeIsAnyOf = <A extends { _tag: string }, I, RD, RE>(
+  schema: S.Codec<A, I, RD, RE>
 ): IsAny<A> => {
   if (SchemaAST.isUnion(schema.ast)) {
     return <Keys extends A["_tag"][]>(...keys: Keys) => (a: A): a is ExtractUnion<A, ElemType<Keys>> =>
@@ -111,20 +111,30 @@ export interface IsAny<A extends { _tag: string }> {
   <Keys extends A["_tag"][]>(...keys: Keys): (a: A) => a is ExtractUnion<A, ElemType<Keys>>
 }
 
+const getTagLiteral = <Tag extends string>(schema: S.tag<Tag>): Tag => {
+  if (!SchemaAST.isLiteral(schema.ast)) {
+    throw new Error("Unsupported _tag schema: expected a literal AST")
+  }
+  return schema.ast.literal as Tag
+}
+
+type TaggedUnionMap<Members extends readonly (S.Top & { fields: { _tag: S.tag<string> } })[]> = {
+  [Key in Members[number] as Key["fields"]["_tag"]["Type"]]: Key
+}
+
 export const taggedUnionMap = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Members extends readonly (S.Top & { fields: { _tag: S.tag<string> } })[]
 >(
   self: Members
-) =>
-  self.reduce((acc, key) => {
-    // TODO: v4 migration — PropertySignatureDeclaration removed, need v4 AST traversal
-    const ast = key.fields._tag.ast as any
-    const tag = ((ast.type ?? ast) as SchemaAST.Literal).literal as string // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    acc[tag] = key as any
-    return acc
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }, {} as any)
+) => {
+  const out = {} as TaggedUnionMap<Members>
+  for (const key of self) {
+    const tag = getTagLiteral(key.fields._tag) as keyof TaggedUnionMap<Members>
+    out[tag] = key as TaggedUnionMap<Members>[typeof tag]
+  }
+  return out
+}
 
 export const tags = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,38 +142,41 @@ export const tags = <
 >(
   self: Members
 ) =>
-  S.Literals(self.map((key) => {
-    // TODO: v4 migration — PropertySignatureDeclaration removed, need v4 AST traversal
-    const ast = key.fields._tag.ast as any
-    const tag = ((ast.type ?? ast) as SchemaAST.Literal).literal
-    return tag
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  })) as any
+  S.Literals(
+    self.map((key) => getTagLiteral(key.fields._tag)) as {
+      [Index in keyof Members]: S.Schema.Type<Members[Index]["fields"]["_tag"]>
+    }
+  ) as S.Literals<
+    {
+      [Index in keyof Members]: S.Schema.Type<Members[Index]["fields"]["_tag"]>
+    }
+  >
 
-export const ExtendTaggedUnion = <A extends { _tag: string }, I, R>(
+export const ExtendTaggedUnion = <A extends { readonly _tag: string }, I, R>(
   schema: S.Codec<A, I, R>
 ) =>
   extendM(
     schema,
     (_) => ({
-      is: S.is(schema as any),
-      isA: makeIs(_ as any),
-      isAnyOf: makeIsAnyOf(_ as any) /*, map: taggedUnionMap(a) */
+      // is: S.is(schema), // only works with never DecodingServices
+      isA: makeIs(_),
+      isAnyOf: makeIsAnyOf(_) /*, map: taggedUnionMap(a) */
     })
   )
 
 export const TaggedUnion = <
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Members extends readonly (S.Top & { fields: { _tag: S.tag<any> } })[]
+  Members extends NonEmptyReadonlyArray<
+    S.Codec<{ readonly _tag: string }, any, any, any> & { fields: { _tag: S.tag<string> } }
+  >
 >(...a: Members) =>
   pipe(
     S.Union(a),
     (_) =>
       extendM(_, (_) => ({
-        is: S.is(_ as any),
-        isA: makeIs(_ as any),
-        isAnyOf: makeIsAnyOf(_ as any),
+        // is: S.is(_), // only works with never DecodingServices
+        isA: makeIs(_),
+        isAnyOf: makeIsAnyOf(_),
         tagMap: taggedUnionMap(a),
-        tags: tags(a as any)
+        tags: tags(a)
       }))
   )

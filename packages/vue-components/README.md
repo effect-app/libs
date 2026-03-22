@@ -183,6 +183,30 @@ In [tsconfig.json](tsconfig.js), set the following to address [Issue #32](https:
 }
 ```
 
+## v4 Breaking Changes (from v3)
+
+### 1. Vuetify 4 CSS Reset Removed
+
+Vuetify 4 removed the aggressive global CSS reset that v3 included (universal `margin: 0; padding: 0`, list/heading/input resets, etc.). If your app relied on these defaults, opt in to the supplemental reset:
+
+```ts
+import '@effect-app/vue-components/reset.css'
+```
+
+### 2. Nested union `_tag` handling
+
+`S.TaggedStruct` produces a bare `Literal` AST node, while legacy `S.Struct({ _tag: S.Literal("X") })` produces `Union([Literal("X")])` after `AST.toType`. Both patterns now correctly produce `"select"` metadata thanks to the `unwrapSingleLiteralUnion` helper. A `console.warn` is emitted for the legacy pattern to encourage migration to `TaggedStruct`.
+
+### 3. `UndefinedOr` defaults include the key with explicit `undefined`
+
+- **v3**: `defaultsValueFromSchema` skipped keys where the recursive call returned `undefined`, so `UndefinedOr` fields were omitted from the result object entirely.
+- **v4**: The key is present in the result with an explicit `undefined` value.
+
+### 4. `S.optionalKey(X).pipe(S.withDecodingDefault(...))` support
+
+- **v3**: Not supported. The v3 equivalent `S.optionalWith` encoded defaults inside a `PropertySignatureTransformation`, opaque to AST inspection.
+- **v4**: `defaultsValueFromSchema` detects `PropertySignatureTransformation` and extracts defaults, enabling `withDecodingDefault` as a new pattern for declaring field defaults directly on the schema.
+
 ### On Submit event
 The :on-submit event could be tricky in `<OmegaForm />` component. 
 This is a prop that is basically a map of Tanstack Form `onSubmit` option and accept a function that return a Promise. If you want to use it as an event, you have to manage the state of loading yourself with `@submit` with a function returning `void`

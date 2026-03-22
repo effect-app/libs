@@ -8,15 +8,13 @@ describe("TaggedUnion required field handling", () => {
       aString: S.NonEmptyString,
       union: S.NullOr(
         S.Union([
-          S.Struct({
+          S.TaggedStruct("A", {
             a: S.NonEmptyString255,
-            common: S.String,
-            _tag: S.Literal("A")
+            common: S.String
           }),
-          S.Struct({
+          S.TaggedStruct("B", {
             b: S.Number,
-            common: S.String,
-            _tag: S.Literal("B")
+            common: S.String
           })
         ])
       )
@@ -44,13 +42,11 @@ describe("TaggedUnion required field handling", () => {
   it("should mark all fields as required in non-nullable discriminated unions", () => {
     const schema = S.Struct({
       union: S.Union([
-        S.Struct({
-          a: S.NonEmptyString,
-          _tag: S.Literal("A")
+        S.TaggedStruct("A", {
+          a: S.NonEmptyString
         }),
-        S.Struct({
-          b: S.Number,
-          _tag: S.Literal("B")
+        S.TaggedStruct("B", {
+          b: S.Number
         })
       ])
     })

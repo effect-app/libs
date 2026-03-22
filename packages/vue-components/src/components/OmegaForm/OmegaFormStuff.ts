@@ -2,10 +2,24 @@ import { Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { isObject } from "@vueuse/core"
-import type * as Fiber from "effect/Fiber"
+import type { Fiber as EffectFiber } from "effect/Fiber"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
+
+const legacyTagWarningEmittedFor = new Set<string>()
+type GlobalThisWithOptionalProcess = typeof globalThis & {
+  process?: {
+    env?: {
+      NODE_ENV?: string
+    }
+  }
+}
+
+const isDevelopmentEnvironment = () => {
+  const process = (globalThis as GlobalThisWithOptionalProcess).process
+  return process?.env?.NODE_ENV !== "production"
+}
 
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
@@ -144,7 +158,7 @@ export type FormProps<From, To> =
       formApi: OmegaFormParams<From, To>
       meta: any
       value: To
-    }) => Promise<any> | Fiber.Fiber<any, any> | Effect.Effect<unknown, any, never>
+    }) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any, never>
   }
 
 export type OmegaFormParams<From, To> = FormApi<
@@ -268,6 +282,10 @@ export type BooleanFieldMeta = BaseFieldMeta & {
   type: "boolean"
 }
 
+export type DateFieldMeta = BaseFieldMeta & {
+  type: "date"
+}
+
 export type UnknownFieldMeta = BaseFieldMeta & {
   type: "unknown"
 }
@@ -278,6 +296,7 @@ export type FieldMeta =
   | SelectFieldMeta
   | MultipleFieldMeta
   | BooleanFieldMeta
+  | DateFieldMeta
   | UnknownFieldMeta
 
 export type MetaRecord<T = string> = {
@@ -321,6 +340,17 @@ const unwrapDeclaration = (property: S.AST.AST): S.AST.AST => {
 
 const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.AST.isNull(property)
 
+/**
+ * Unwrap a single-element Union to its inner type if it's a Literal.
+ * After AST.toType, S.Struct({ _tag: S.Literal("X") }) produces Union([Literal("X")])
+ * instead of bare Literal("X") like S.TaggedStruct does.
+ * TODO: remove after manual _tag deprecation
+ */
+const unwrapSingleLiteralUnion = (ast: S.AST.AST): S.AST.AST =>
+  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0]!)
+    ? ast.types[0]!
+    : ast
+
 const getNullableOrUndefined = (property: S.AST.AST) =>
   S.AST.isUnion(property)
     ? property.types.find((_) => isNullishType(_))
@@ -360,19 +390,29 @@ const getJsonSchemaAnnotation = (property: S.AST.AST): Record<string, unknown> =
   return jsonSchema && typeof jsonSchema === "object" ? jsonSchema as Record<string, unknown> : {}
 }
 
-const getDefaultFromAst = (property: S.AST.AST) => {
-  const link = property.context?.defaultValue?.[0] as any
-
-  if (!link?.transformation?.decode?.run) {
-    return undefined
-  }
-
+const extractDefaultFromLink = (link: any): unknown | undefined => {
+  if (!link?.transformation?.decode?.run) return undefined
   try {
     const result = Effect.runSync(link.transformation.decode.run(Option.none())) as Option.Option<unknown>
     return Option.isSome(result) ? result.value : undefined
   } catch {
     return undefined
   }
+}
+
+const getDefaultFromAst = (property: S.AST.AST) => {
+  // 1. Check withDefaultConstructor (stored in context.defaultValue)
+  const constructorLink = property.context?.defaultValue?.[0]
+  const constructorDefault = extractDefaultFromLink(constructorLink)
+  if (constructorDefault !== undefined) return constructorDefault
+
+  // 2. Check withDecodingDefault (stored in encoding)
+  const encodingLink = property.encoding?.[0]
+  if (encodingLink && property.context?.isOptional) {
+    return extractDefaultFromLink(encodingLink)
+  }
+
+  return undefined
 }
 
 const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {
@@ -426,6 +466,10 @@ const getFieldMetadataFromAst = (property: S.AST.AST) => {
         case "isLessThanOrEqualTo":
           base.maximum = check.maximum
           break
+        case "isBetween":
+          base.minimum = check.minimum
+          base.maximum = check.maximum
+          break
         case "isGreaterThan":
           base.exclusiveMinimum = check.exclusiveMinimum
           break
@@ -436,6 +480,11 @@ const getFieldMetadataFromAst = (property: S.AST.AST) => {
     }
   } else if (S.AST.isBoolean(property)) {
     base.type = "boolean"
+  } else if (
+    S.AST.isDeclaration(property)
+    && (property.annotations as any)?.typeConstructor?._tag === "Date"
+  ) {
+    base.type = "date"
   } else {
     base.type = "unknown"
   }
@@ -503,14 +552,28 @@ export const createMeta = <T = any>(
               // - All other fields maintain their normal required status based on their own types
               const isNullableDiscriminatedUnion = nullableOrUndefined && nonNullTypes.length > 1
 
-              Object.assign(
-                acc,
-                createMeta<T>({
-                  parent: key,
-                  propertySignatures: nonNullType.propertySignatures,
-                  meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
-                })
-              )
+              const branchMeta = createMeta<T>({
+                parent: key,
+                propertySignatures: nonNullType.propertySignatures,
+                meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
+              })
+
+              // Merge branch metadata, combining select members for shared discriminator fields
+              for (const [metaKey, metaValue] of Object.entries(branchMeta)) {
+                const existing = acc[metaKey as NestedKeyOf<T>] as FieldMeta | undefined
+                if (
+                  existing && existing.type === "select" && (metaValue as any)?.type === "select"
+                ) {
+                  existing.members = [
+                    ...existing.members,
+                    ...(metaValue as SelectFieldMeta).members.filter(
+                      (m: any) => !existing.members.includes(m)
+                    )
+                  ]
+                } else {
+                  acc[metaKey as NestedKeyOf<T>] = metaValue as FieldMeta
+                }
+              }
             }
           }
         } else {
@@ -689,7 +752,20 @@ export const createMeta = <T = any>(
 
     if (S.AST.isUnion(property)) {
       const unwrappedTypes = unwrapNestedUnions(property.types).map(unwrapDeclaration)
-      const nonNullType = unwrappedTypes.find((t) => !isNullishType(t))!
+      const nonNullTypes = unwrappedTypes.filter((t) => !isNullishType(t))
+
+      // Unwrap single-element unions when the literal is a boolean
+      // (effect-app's S.Literal wraps as S.Literals([x]) → Union([Literal(x)]))
+      // Don't unwrap string/number literals — they may be discriminator values in a union
+      if (
+        nonNullTypes.length === 1
+        && S.AST.isLiteral(nonNullTypes[0]!)
+        && typeof nonNullTypes[0]!.literal === "boolean"
+      ) {
+        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! })
+      }
+
+      const nonNullType = nonNullTypes[0]!
 
       if (S.AST.isObjects(nonNullType)) {
         return createMeta<T>({
@@ -699,11 +775,13 @@ export const createMeta = <T = any>(
         })
       }
 
-      if (unwrappedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
+      // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
+      const resolvedTypes = unwrappedTypes.map(unwrapSingleLiteralUnion)
+      if (resolvedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
         return {
           ...meta,
           type: "select",
-          members: unwrappedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
+          members: resolvedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
         } as FieldMeta
       }
 
@@ -781,9 +859,25 @@ const metadataFromAst = <From, To>(
           )
 
           let tagValue: string | null = null
-          if (tagProp && S.AST.isLiteral(tagProp.type)) {
-            tagValue = tagProp.type.literal as string
+          // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
+          const resolvedTagType = tagProp ? unwrapSingleLiteralUnion(tagProp.type) : null
+          if (resolvedTagType && S.AST.isLiteral(resolvedTagType)) {
+            tagValue = resolvedTagType.literal as string
             discriminatorValues.push(tagValue)
+            // Warn if the tag was wrapped in a single-element Union (legacy pattern)
+            if (
+              tagProp
+              && S.AST.isUnion(tagProp.type)
+              && isDevelopmentEnvironment()
+              && tagValue != null
+              && !legacyTagWarningEmittedFor.has(tagValue)
+            ) {
+              legacyTagWarningEmittedFor.add(tagValue)
+              console.warn(
+                `[OmegaForm] Union member with _tag "${tagValue}" uses S.Struct({ _tag: S.Literal("${tagValue}"), ... }). `
+                  + `Please migrate to S.TaggedStruct("${tagValue}", { ... }) for cleaner AST handling.`
+              )
+            }
           }
 
           // Create metadata for this member's properties
@@ -979,6 +1073,10 @@ export const generateInputStandardSchemaFromFieldMeta = (
       schema = S.Boolean
       break
 
+    case "date":
+      schema = S.Date
+      break
+
     case "unknown":
       schema = S.Unknown
       break
@@ -995,11 +1093,6 @@ export const generateInputStandardSchemaFromFieldMeta = (
   const result = S.toStandardSchemaV1(schema as any)
   return result
 }
-
-export const nullableInput = <A, I, R>(
-  schema: S.Codec<A, I, R>,
-  _defaultValue: () => A
-) => S.NullOr(schema) as any
 
 export type OmegaAutoGenMeta<
   From extends Record<PropertyKey, any>,
@@ -1086,21 +1179,18 @@ export const defaultsValueFromSchema = (
     const result: Record<string, any> = {}
 
     for (const [key, fieldSchema] of Object.entries(schema.fields)) {
-      // Check if this field has a defaultValue in its AST
-      const fieldAst = (fieldSchema as any)?.ast
-      if (fieldAst?.defaultValue) {
-        try {
-          result[key] = fieldAst.defaultValue()
-          continue
-        } catch {
-          // If defaultValue() throws, fall through to recursive processing
-        }
+      const fieldDefault = getDefaultFromAst((fieldSchema as any)?.ast)
+      if (fieldDefault !== undefined) {
+        result[key] = fieldDefault
+        continue
       }
 
       // Recursively process the field
       const fieldValue = defaultsValueFromSchema(fieldSchema as any, record[key] || {})
       if (fieldValue !== undefined) {
         result[key] = fieldValue
+      } else if (isNullableOrUndefined((fieldSchema as any).ast) === "undefined") {
+        result[key] = undefined
       }
     }
 
@@ -1118,11 +1208,11 @@ export const defaultsValueFromSchema = (
       if (hasFields(member)) {
         // Check each field and give precedence to ones with default values
         Object.entries(member.fields).forEach(([key, fieldSchema]) => {
-          const fieldAst: any = fieldSchema.ast
-          const existingFieldAst: any = acc[key]?.ast
+          const fieldDefault = getDefaultFromAst(fieldSchema.ast)
+          const existingDefault = acc[key] ? getDefaultFromAst(acc[key].ast) : undefined
 
           // If field doesn't exist yet, or new field has default and existing doesn't, use new field
-          if (!acc[key] || (fieldAst?.defaultValue && !existingFieldAst?.defaultValue)) {
+          if (!acc[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
             acc[key] = fieldSchema
           }
           // If both have defaults or neither have defaults, keep the first one (existing)
@@ -1167,6 +1257,8 @@ export const defaultsValueFromSchema = (
 
         if (propValue !== undefined) {
           result[key] = propValue
+        } else if (isNullableOrUndefined(propType) === "undefined") {
+          result[key] = undefined
         }
       }
 

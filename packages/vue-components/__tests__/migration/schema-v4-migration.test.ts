@@ -11,18 +11,17 @@
  * NOTE: Uses `S.withDefaultConstructor` from effect-app (wraps in Option.some),
  *       NOT `S.withConstructorDefault` from native effect (expects raw Option return).
  *
- * ---- v4 breaking changes ----
+ * ---- v4 breaking changes (from v3) ----
  *
- * 1. Nested union _tag correctly defaulted as "select" instead of "unknown"
- *    v3: S.Union(varargs) wraps members in a way that createMeta can't resolve
- *        the Literal type for _tag, so it falls back to "unknown".
- *    v4: S.Union([array]) produces a cleaner AST where _tag Literals are
- *        properly detected, resulting in type "select" with members.
+ * 1. Nested union _tag: FIXED — both patterns now produce "select"
+ *    S.TaggedStruct produces a bare Literal AST node.
+ *    Legacy S.Struct({ _tag: S.Literal("X") }) produces Union([Literal("X")])
+ *    after AST.toType. Fixed via unwrapSingleLiteralUnion helper.
+ *    A console.warn is emitted for the legacy pattern to encourage migration.
  *
- * 2. Root-level union no longer generates unionMeta
- *    v3: root-level S.Union(varargs) generates unionMeta with one entry per member.
- *    v4: root-level S.Union([array]) is transformed by unwrapDeclaration before
- *        the union check runs, so unionMeta is empty.
+ * 2. Root-level union unionMeta: FIXED — both patterns now generate unionMeta
+ *    Same root cause as #1: single-element Union wrapping prevented tag extraction.
+ *    Fixed via the same unwrapSingleLiteralUnion helper in metadataFromAst.
  *
  * 3. UndefinedOr defaults include the key with explicit undefined
  *    v3: defaultsValueFromSchema skips keys where the recursive call returns
@@ -30,16 +29,30 @@
  *        omitted from the result object entirely.
  *    v4: the key will be present in the result with an explicit undefined value.
  *
- * 4. S.optionalWith({ default }) support in defaultsValueFromSchema
- *    v3: not supported. optionalWith encodes defaults inside a decode
- *        transformation (PropertySignatureTransformation) which is opaque to
- *        AST inspection. defaultsValueFromSchema only finds defaults via
- *        ast.defaultValue (set by withDefaultConstructor).
- *    v4: defaultsValueFromSchema will detect PropertySignatureTransformation
- *        and extract defaults, enabling S.optionalWith as a new pattern for
+ * 4. S.optionalKey(X).pipe(S.withDecodingDefault(...)) support in defaultsValueFromSchema
+ *    v3: not supported (v3 equivalent was S.optionalWith which encoded defaults
+ *        inside a PropertySignatureTransformation, opaque to AST inspection).
+ *    v4: defaultsValueFromSchema detects PropertySignatureTransformation
+ *        and extracts defaults, enabling withDecodingDefault as a new pattern for
  *        declaring field defaults directly on the schema.
- *        (tests currently skipped — see sections 3, 9, 10)
+ *
+ * ---- API mapping ----
+ *
+ * | v4                                         | v3                             |
+ * |--------------------------------------------|--------------------------------|
+ * | `S.check(S.isGreaterThanOrEqualTo(x))`     | `S.greaterThanOrEqualTo(x)`    |
+ * | `S.check(S.isLessThanOrEqualTo(x))`        | `S.lessThanOrEqualTo(x)`       |
+ * | `S.check(S.isGreaterThan(x))`              | `S.greaterThan(x)`             |
+ * | `S.check(S.isLessThan(x))`                 | `S.lessThan(x)`                |
+ * | `S.check(S.isBetween({minimum, maximum}))` | `S.between(minimum, maximum)`  |
+ * | `S.check(S.isInt())`                       | `S.int()`                      |
+ * | `S.check(S.isMinLength(x))`                | `S.minLength(x)`               |
+ * | `S.check(S.isMaxLength(x))`                | `S.maxLength(x)`               |
+ * | `S.Union([...members])`                    | `S.Union(...members)`          |
+ * | `S.optionalKey(S.X)`                       | `S.optionalWith`               |
+ * |   `.pipe(S.withDecodingDefault(...))`       |   `(S.X, { default: ... })`    |
  */
+
 import { mount } from "@vue/test-utils"
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
@@ -81,7 +94,7 @@ describe("generateMetaFromSchema", () => {
   describe("simple struct", () => {
     const schema = S.Struct({
       name: S.NonEmptyString255,
-      age: S.Number.pipe(S.greaterThanOrEqualTo(0)),
+      age: S.Number.pipe(S.check(S.isGreaterThanOrEqualTo(0))),
       active: S.Boolean
     })
 
@@ -137,20 +150,19 @@ describe("generateMetaFromSchema", () => {
 
   describe("discriminated union (nested in struct)", () => {
     const schema = S.Struct({
-      union: S.Union(
+      union: S.Union([
         S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255 }),
         S.Struct({ _tag: S.Literal("B"), b: S.Number })
-      )
+      ])
     })
 
-    it("generates _tag metadata for union members", () => {
+    it("generates _tag as select with member values", () => {
       const { meta } = generateMetaFromSchema(schema)
-      // v3: nested union _tag is detected as "unknown" because the AST for
-      // S.Union(varargs) wraps members differently than S.Union([array]) in v4,
-      // and createMeta doesn't resolve the Literal type through the v3 wrapping.
-      // v4 breaking change: _tag will be detected as "select" with members.
-      expect(meta["union._tag"]?.type).toBe("unknown")
+      // Works for both S.TaggedStruct and legacy S.Struct({ _tag: S.Literal(...) })
+      // thanks to single-element Union unwrapping in createMeta
+      expect(meta["union._tag"]?.type).toBe("select")
       expect(meta["union._tag"]?.required).toBe(true)
+      expect(meta["union._tag"]?.members).toBeDefined()
     })
 
     it("generates field metadata for each union branch", () => {
@@ -168,10 +180,10 @@ describe("generateMetaFromSchema", () => {
   describe("nullable discriminated union", () => {
     const schema = S.Struct({
       union: S.NullOr(
-        S.Union(
+        S.Union([
           S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255, common: S.String }),
           S.Struct({ _tag: S.Literal("B"), b: S.Number, common: S.String })
-        )
+        ])
       )
     })
 
@@ -183,29 +195,58 @@ describe("generateMetaFromSchema", () => {
     })
   })
 
-  describe("root-level discriminated union", () => {
-    const schema = S.Union(
+  describe("root-level discriminated union (legacy Literal pattern)", () => {
+    const schema = S.Union([
       S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255 }),
       S.Struct({ _tag: S.Literal("B"), b: S.Number })
-    )
+    ])
 
-    it("generates _tag select and per-member fields", () => {
+    it("generates _tag select and per-member fields with unionMeta", () => {
       const { meta, unionMeta } = generateMetaFromSchema(schema)
 
       expect(meta["_tag"]?.type).toBe("select")
       expect(meta["_tag"]?.required).toBe(true)
       expect(meta.a?.type).toBe("string")
       expect(meta.b?.type).toBe("number")
-      // v3: root-level unions DO generate unionMeta (one entry per member).
-      // v4 breaking change: root-level S.Union([array]) will NOT generate unionMeta
-      // because unwrapDeclaration transforms the AST before the union check.
       expect(Object.keys(unionMeta).length).toBe(2)
+    })
+  })
+
+  describe("root-level discriminated union (TaggedStruct pattern)", () => {
+    const schema = S.Union([
+      S.TaggedStruct("A", { a: S.NonEmptyString255 }),
+      S.TaggedStruct("B", { b: S.Number })
+    ])
+
+    it("generates _tag select and per-member fields with unionMeta", () => {
+      const { meta, unionMeta } = generateMetaFromSchema(schema)
+
+      expect(meta["_tag"]?.type).toBe("select")
+      expect(meta["_tag"]?.required).toBe(true)
+      expect(meta["_tag"]?.members).toEqual(["A", "B"])
+      expect(meta.a?.type).toBe("string")
+      expect(meta.b?.type).toBe("number")
+      expect(Object.keys(unionMeta).length).toBe(2)
+      expect(unionMeta["A"]).toBeDefined()
+      expect(unionMeta["B"]).toBeDefined()
+    })
+
+    it("unionMeta contains per-branch field metadata", () => {
+      const { unionMeta } = generateMetaFromSchema(schema)
+
+      expect(unionMeta["A"]?.["a"]?.type).toBe("string")
+      expect(unionMeta["A"]?.["a"]?.required).toBe(true)
+      expect(unionMeta["B"]?.["b"]?.type).toBe("number")
+      expect(unionMeta["B"]?.["b"]?.required).toBe(true)
+      // Each branch should NOT contain the other branch's fields
+      expect(unionMeta["A"]?.["b"]).toBeUndefined()
+      expect(unionMeta["B"]?.["a"]).toBeUndefined()
     })
   })
 
   describe("literal union (select)", () => {
     const schema = S.Struct({
-      direction: S.Union(S.Literal("left"), S.Literal("right"), S.Literal("both"))
+      direction: S.Union([S.Literal("left"), S.Literal("right"), S.Literal("both")])
     })
 
     it("generates select type with members", () => {
@@ -237,13 +278,11 @@ describe("defaultsValueFromSchema", () => {
       expect(defaultsValueFromSchema(schema)).toEqual({ value: null })
     })
 
-    it("UndefinedOr defaults omit the key from result", () => {
+    it("UndefinedOr defaults include the key with undefined value", () => {
       const schema = S.Struct({ value: S.UndefinedOr(S.String) })
       const result = defaultsValueFromSchema(schema)
-      // v3: UndefinedOr returns undefined from recursive call, and
-      // defaultsValueFromSchema skips keys with undefined values (line: if fieldValue !== undefined).
-      // v4 breaking change: the key will be included with an explicit undefined value.
-      expect("value" in result).toBe(false)
+      expect("value" in result).toBe(true)
+      expect(result.value).toBeUndefined()
     })
   })
 
@@ -259,7 +298,7 @@ describe("defaultsValueFromSchema", () => {
     })
 
     it("constructor defaults in union members", () => {
-      const schema = S.Union(
+      const schema = S.Union([
         S.Struct({
           _tag: S.Literal("A").pipe(S.withDefaultConstructor(() => "A")),
           a: S.String.pipe(S.withDefaultConstructor(() => "defaultA"))
@@ -268,7 +307,7 @@ describe("defaultsValueFromSchema", () => {
           _tag: S.Literal("B"),
           b: S.String
         })
-      )
+      ])
       const defaults = defaultsValueFromSchema(schema)
       expect(defaults._tag).toBe("A")
       expect(defaults.a).toBe("defaultA")
@@ -300,35 +339,33 @@ describe("defaultsValueFromSchema", () => {
 })
 
 // ============================================================================
-// 3. optionalWith + default — decoding defaults
+// 3. withDecodingDefault — decoding defaults
 // ============================================================================
 
-// v4: optionalWith encodes defaults in a decode transformation (PropertySignatureTransformation),
-// not as a declarative ast.defaultValue. defaultsValueFromSchema doesn't support this yet.
-describe.skip("optionalWith decoding defaults", () => {
-  it("optionalWith default fills value during decoding", () => {
+describe("withDecodingDefault decoding defaults", () => {
+  it("withDecodingDefault fills value during decoding", () => {
     const schema = S.Struct({
-      name: S.optionalWith(S.String, { default: () => "defaultName" }),
-      age: S.optionalWith(S.Number, { default: () => 0 })
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "defaultName")),
+      age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 0))
     })
 
     const decoded = S.decodeUnknownSync(schema)({})
     expect(decoded).toEqual({ name: "defaultName", age: 0 })
   })
 
-  it("optionalWith default respects provided values", () => {
+  it("withDecodingDefault respects provided values", () => {
     const schema = S.Struct({
-      name: S.optionalWith(S.String, { default: () => "defaultName" })
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "defaultName"))
     })
 
     const decoded = S.decodeUnknownSync(schema)({ name: "provided" })
     expect(decoded).toEqual({ name: "provided" })
   })
 
-  it("mixed withDefaultConstructor and optionalWith default", () => {
+  it("mixed withDefaultConstructor and withDecodingDefault", () => {
     const schema = S.Struct({
       constructorDefault: S.String.pipe(S.withDefaultConstructor(() => "fromConstructor")),
-      decodingDefault: S.optionalWith(S.String, { default: () => "fromDecoding" })
+      decodingDefault: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "fromDecoding"))
     })
 
     // defaultsValueFromSchema should pick up constructor default
@@ -340,9 +377,9 @@ describe.skip("optionalWith decoding defaults", () => {
     expect(decoded).toEqual({ constructorDefault: "x", decodingDefault: "fromDecoding" })
   })
 
-  it("defaultsValueFromSchema extracts optionalWith default alongside regular fields", () => {
+  it("defaultsValueFromSchema extracts withDecodingDefault alongside regular fields", () => {
     const schema = S.Struct({
-      name: S.optionalWith(S.String, { default: () => "decodingDefault" }),
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decodingDefault")),
       required: S.String
     })
 
@@ -351,11 +388,11 @@ describe.skip("optionalWith decoding defaults", () => {
     expect(defaults.name).toBe("decodingDefault")
   })
 
-  it("optionalWith default can replace manual form default initialization", () => {
+  it("withDecodingDefault can replace manual form default initialization", () => {
     const schema = S.Struct({
-      name: S.optionalWith(S.String, { default: () => "John" }),
-      age: S.optionalWith(S.Number, { default: () => 25 }),
-      active: S.optionalWith(S.Boolean, { default: () => true })
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
+      age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 25)),
+      active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(() => true))
     })
 
     // Single decode call produces all defaults — no AST walking needed
@@ -387,7 +424,7 @@ describe("Form defaults integration", () => {
   })
 
   it("union defaults flow into form values", async () => {
-    const schema = S.Union(
+    const schema = S.Union([
       S.Struct({
         _tag: S.Literal("A").pipe(S.withDefaultConstructor(() => "A")),
         value: S.String.pipe(S.withDefaultConstructor(() => "default"))
@@ -396,7 +433,7 @@ describe("Form defaults integration", () => {
         _tag: S.Literal("B"),
         value: S.Number
       })
-    )
+    ])
 
     const values = await mountAndGetDefaults(schema)
     expect(values._tag).toBe("A")
@@ -422,11 +459,11 @@ describe("Form defaults integration", () => {
 // ============================================================================
 
 describe("number constraint metadata", () => {
-  it("separate greaterThanOrEqualTo + lessThanOrEqualTo extracts min and max", () => {
+  it("separate isGreaterThanOrEqualTo + isLessThanOrEqualTo extracts min and max", () => {
     const schema = S.Struct({
       value: S.Number.pipe(
-        S.greaterThanOrEqualTo(10),
-        S.lessThanOrEqualTo(20)
+        S.check(S.isGreaterThanOrEqualTo(10)),
+        S.check(S.isLessThanOrEqualTo(20))
       )
     })
     const { meta } = generateMetaFromSchema(schema)
@@ -435,9 +472,9 @@ describe("number constraint metadata", () => {
     expect(meta.value?.maximum).toBe(20)
   })
 
-  it("between extracts min and max", () => {
+  it("isBetween extracts min and max", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.between(10, 20))
+      value: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 })))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.type).toBe("number")
@@ -445,25 +482,25 @@ describe("number constraint metadata", () => {
     expect(meta.value?.maximum).toBe(20)
   })
 
-  it("int extracts refinement", () => {
+  it("isInt extracts refinement", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.int())
+      value: S.Number.pipe(S.check(S.isInt()))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.refinement).toBe("int")
   })
 
-  it("greaterThan extracts exclusive minimum", () => {
+  it("isGreaterThan extracts exclusive minimum", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.greaterThan(5))
+      value: S.Number.pipe(S.check(S.isGreaterThan(5)))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.exclusiveMinimum).toBe(5)
   })
 
-  it("lessThan extracts exclusive maximum", () => {
+  it("isLessThan extracts exclusive maximum", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.lessThan(100))
+      value: S.Number.pipe(S.check(S.isLessThan(100)))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.exclusiveMaximum).toBe(100)
@@ -475,9 +512,9 @@ describe("number constraint metadata", () => {
 // ============================================================================
 
 describe("string constraint metadata", () => {
-  it("minLength and maxLength", () => {
+  it("isMinLength and isMaxLength", () => {
     const schema = S.Struct({
-      value: S.String.pipe(S.minLength(3), S.maxLength(50))
+      value: S.String.pipe(S.check(S.isMinLength(3)), S.check(S.isMaxLength(50)))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.minLength).toBe(3)
@@ -509,12 +546,12 @@ describe("TaggedStruct API", () => {
     expect((tagProp!.type as any).literal).toBe("A")
   })
 
-  it("Union(TaggedStruct, TaggedStruct) generates field metadata", () => {
+  it("Union([TaggedStruct, TaggedStruct]) generates field metadata", () => {
     const taggedSchema = S.Struct({
-      union: S.Union(
+      union: S.Union([
         S.TaggedStruct("A", { a: S.NonEmptyString255 }),
         S.TaggedStruct("B", { b: S.Number })
-      )
+      ])
     })
 
     const { meta } = generateMetaFromSchema(taggedSchema)
@@ -524,13 +561,13 @@ describe("TaggedStruct API", () => {
     expect(meta["union._tag"]).toBeDefined()
   })
 
-  it("NullOr(Union(TaggedStruct)) works for nullable discriminated unions", () => {
+  it("NullOr(Union([TaggedStruct])) works for nullable discriminated unions", () => {
     const schema = S.Struct({
       union: S.NullOr(
-        S.Union(
+        S.Union([
           S.TaggedStruct("A", { a: S.NonEmptyString255, common: S.String }),
           S.TaggedStruct("B", { b: S.Number, common: S.String })
-        )
+        ])
       )
     })
 
@@ -541,22 +578,22 @@ describe("TaggedStruct API", () => {
   })
 
   it("TaggedStruct defaults work with withDefaultConstructor", () => {
-    const schema = S.Union(
+    const schema = S.Union([
       S.TaggedStruct("A", {
         a: S.String.pipe(S.withDefaultConstructor(() => "defaultA"))
       }),
       S.TaggedStruct("B", { b: S.Number })
-    )
+    ])
 
     const defaults = defaultsValueFromSchema(schema)
     expect(defaults.a).toBe("defaultA")
   })
 
   it("TaggedStruct decoding works correctly", () => {
-    const schema = S.Union(
+    const schema = S.Union([
       S.TaggedStruct("A", { a: S.String }),
       S.TaggedStruct("B", { b: S.Number })
-    )
+    ])
 
     const decoded = S.decodeUnknownSync(schema)({ _tag: "A", a: "hello" })
     expect(decoded).toEqual({ _tag: "A", a: "hello" })
@@ -594,15 +631,14 @@ describe("array metadata", () => {
 })
 
 // ============================================================================
-// 9. optionalWith default form integration
+// 9. withDecodingDefault form integration
 // ============================================================================
 
-// v4: optionalWith defaults not yet supported by defaultsValueFromSchema / form integration
-describe.skip("optionalWith default form integration", () => {
-  it("optionalWith defaults flow into form values", async () => {
+describe("withDecodingDefault form integration", () => {
+  it("withDecodingDefault defaults flow into form values", async () => {
     const schema = S.Struct({
-      name: S.optionalWith(S.String, { default: () => "John" }),
-      age: S.optionalWith(S.Number, { default: () => 25 }),
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
+      age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 25)),
       active: S.Boolean
     })
 
@@ -612,9 +648,9 @@ describe.skip("optionalWith default form integration", () => {
     expect(values.active).toBe(false)
   })
 
-  it("optionalWith default mixed with withDefaultConstructor", async () => {
+  it("withDecodingDefault mixed with withDefaultConstructor", async () => {
     const schema = S.Struct({
-      fromDecoding: S.optionalWith(S.String, { default: () => "decoding" }),
+      fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decoding")),
       fromConstructor: S.String.pipe(S.withDefaultConstructor(() => "constructor")),
       plain: S.Boolean
     })
@@ -625,10 +661,10 @@ describe.skip("optionalWith default form integration", () => {
     expect(values.plain).toBe(false)
   })
 
-  it("tanstack defaultValues override optionalWith default", async () => {
+  it("tanstack defaultValues override withDecodingDefault", async () => {
     const schema = S.Struct({
-      name: S.optionalWith(S.String, { default: () => "fromSchema" }),
-      other: S.optionalWith(S.Number, { default: () => 99 })
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "fromSchema")),
+      other: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 99))
     })
 
     const values = await mountAndGetDefaults(schema, {
@@ -644,31 +680,20 @@ describe.skip("optionalWith default form integration", () => {
 // ============================================================================
 
 describe("regression guards", () => {
-  it("between extracts min and max metadata", () => {
+  it("isBetween extracts min and max metadata", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.between(5, 15))
+      value: S.Number.pipe(S.check(S.isBetween({ minimum: 5, maximum: 15 })))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.minimum).toBe(5)
     expect(meta.value?.maximum).toBe(15)
   })
 
-  // v4: optionalWith defaults not yet supported by defaultsValueFromSchema
-  it.skip("optionalWith default extracted by defaultsValueFromSchema", () => {
+  it("withDecodingDefault extracted by defaultsValueFromSchema", () => {
     const schema = S.Struct({
-      name: S.optionalWith(S.String, { default: () => "myDefault" })
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "myDefault"))
     })
     const defaults = defaultsValueFromSchema(schema)
     expect(defaults.name).toBe("myDefault")
-  })
-
-  it("S.TaggedUnion crashes (effect bug) — use S.Union(TaggedStruct) instead", () => {
-    expect(() => {
-      S.TaggedUnion("_tag", [
-        S.TaggedStruct("A", { a: S.String }),
-        S.TaggedStruct("B", { b: S.Number })
-      ])
-    })
-      .toThrow()
   })
 })

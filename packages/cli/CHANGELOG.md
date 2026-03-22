@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.3
+
+### Patch Changes
+
+- 75c72ee: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+
 ## 2.0.1-beta.2
 
 ### Patch Changes

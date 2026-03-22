@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 75c72ee: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+- Updated dependencies [0d349e7]
+- Updated dependencies [75c72ee]
+  - effect-app@4.0.0-beta.21
+
 ## 4.0.0-beta.20
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 0d349e7: Align effect-app tagged union helpers with Effect v4 by delegating to the native tagged union utilities, exposing v4-style `cases` and `guards`, and preserving the local `tags` helper.
+- 75c72ee: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+
 ## 4.0.0-beta.20
 
 ### Patch Changes

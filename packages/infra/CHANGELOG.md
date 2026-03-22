@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- aa921db: Fix `TaggedRequest` no-config error type inference so requests without a third argument infer the same default error schema as requests with explicit success config.
+- Updated dependencies [aa921db]
+  - effect-app@4.0.0-beta.20
+
 ## 4.0.0-beta.19
 
 ### Patch Changes

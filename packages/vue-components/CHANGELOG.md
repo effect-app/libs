@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- db690e1: update vue-components with more effect v4
+  - effect-app@4.0.0-beta.22
+  - @effect-app/vue@4.0.0-beta.22
+
 ## 4.0.0-beta.21
 
 ### Patch Changes

@@ -71,7 +71,7 @@ export const makeRpcClient = <
     <Tag extends string, Payload extends S.Struct.Fields>(
       tag: Tag,
       fields: Payload
-    ): TaggedRequestResult<Tag, Payload, S.Codec<void>, ErrorResult<never>, Record<string, never>>
+    ): TaggedRequestResult<Tag, Payload, S.Codec<void>, ErrorResult<{}>, Record<string, never>>
   } {
     // TODO: filter errors based on config + take care of inversion
     const errorSchemas = Object.values(rcs.config).map((_) => _.error)

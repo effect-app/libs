@@ -205,7 +205,9 @@ export const middleware3 = MiddlewareMaker
 export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
 
 export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
-export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}
+export class Gen extends Req<Gen>()("Gen", {}) {}
+
+expectTypeOf(Eff.error).toEqualTypeOf<typeof Gen.error>()
 
 export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String

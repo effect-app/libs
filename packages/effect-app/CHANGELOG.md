@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- ea08a79: remove `fields` constraint from TaggedUnion/tags helpers, extract `_tag` via AST walk instead
+
 ## 4.0.0-beta.22
 
 ## 4.0.0-beta.21

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Fiber, FiberSet, Layer, ServiceMap, type Tracer } from "effect-app"
+import { Effect, Fiber, FiberSet, Layer, Option, ServiceMap, type Tracer } from "effect-app"
 import { reportRequestError, reportUnknownRequestError } from "./api/reportError.js"
 import { InfraLogger } from "./logger.js"
 
@@ -8,8 +8,8 @@ const getRootParentSpan = Effect.gen(function*() {
     Effect.catchTag("NoSuchElementError", () => Effect.succeed(null))
   )
   if (!span) return span
-  while (span._tag === "Span" && span.parent !== undefined) {
-    span = span.parent
+  while (span._tag === "Span" && Option.isSome(span.parent)) {
+    span = span.parent.value
   }
   return span
 })

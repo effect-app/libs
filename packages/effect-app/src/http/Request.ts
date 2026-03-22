@@ -1,3 +1,4 @@
+import { Option } from "effect"
 import type { HttpClientResponse } from "effect/unstable/http/HttpClientResponse"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientError, HttpClientRequest, HttpHeaders } from "./internal/lib.js"
@@ -24,16 +25,18 @@ export const demandJson = (client: HttpClient.HttpClient) =>
     .mapRequest(client, (_) => HttpClientRequest.acceptJson(_))
     .pipe(HttpClient.transform((r, request) =>
       Effect.tap(r, (response) =>
-        HttpHeaders
-            .get(response.headers, "Content-Type")
-            ?.startsWith("application/json")
+        Option
+            .exists(
+              HttpHeaders.get(response.headers, "Content-Type"),
+              (_) => _.startsWith("application/json")
+            )
           ? Effect.void
           : Effect.fail(
             new HttpClientError.DecodeError({
               request,
               response,
               description: "not json response: "
-                + HttpHeaders.get(response.headers, "Content-Type")
+                + Option.getOrElse(HttpHeaders.get(response.headers, "Content-Type"), () => "<missing>")
             })
           ))
     ))

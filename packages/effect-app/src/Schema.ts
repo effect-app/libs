@@ -65,36 +65,41 @@ export const PhoneNumber = PhoneNumberT
 
 export type PhoneNumber = PhoneNumberType
 
-const getTagLiteral = <Tag extends string>(schema: S.tag<Tag>): Tag => {
-  if (!SchemaAST.isLiteral(schema.ast)) {
-    throw new Error("Unsupported _tag schema: expected a literal AST")
+const getTagFromAST = (schema: S.Top): string => {
+  let ast = schema.ast
+  if (SchemaAST.isSuspend(ast)) ast = ast.thunk()
+  if (SchemaAST.isObjects(ast)) {
+    for (const ps of ast.propertySignatures) {
+      if (ps.name === "_tag" && !SchemaAST.isOptional(ps.type) && SchemaAST.isLiteral(ps.type)) {
+        return ps.type.literal as string
+      }
+    }
   }
-  return schema.ast.literal as Tag
+  throw new Error("No _tag literal found on schema member")
 }
 
 export const tags = <
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Members extends NonEmptyReadonlyArray<(S.Top & { fields: { _tag: S.tag<string> } })>
+  Members extends NonEmptyReadonlyArray<(S.Top & { readonly Type: { readonly _tag: string } })>
 >(
   self: Members
 ) =>
   S.Literals(
-    self.map((key) => getTagLiteral(key.fields._tag)) as {
-      [Index in keyof Members]: S.Schema.Type<Members[Index]["fields"]["_tag"]>
+    self.map(getTagFromAST) as {
+      [Index in keyof Members]: Members[Index]["Type"]["_tag"]
     }
   ) as S.Literals<
     {
-      [Index in keyof Members]: S.Schema.Type<Members[Index]["fields"]["_tag"]>
+      [Index in keyof Members]: Members[Index]["Type"]["_tag"]
     }
   >
 
 type TaggedUnionMembers = NonEmptyReadonlyArray<
-  S.Top & { readonly Type: { readonly _tag: string }; fields: { _tag: S.tag<string> } }
+  S.Top & { readonly Type: { readonly _tag: string } }
 >
 
 type TaggedUnionTags<Members extends TaggedUnionMembers> = S.Literals<
   {
-    [Index in keyof Members]: S.Schema.Type<Members[Index]["fields"]["_tag"]>
+    [Index in keyof Members]: Members[Index]["Type"]["_tag"]
   }
 >
 

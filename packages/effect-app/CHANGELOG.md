@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 5ec1f45: fix ForceVoid for real
+
 ## 4.0.0-beta.29
 
 ### Patch Changes

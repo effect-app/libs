@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- 0099208: Refactor `Pure` helpers to use typed `useSync` calls instead of unsafe casts.
+
 ## 4.0.0-beta.27
 
 ### Patch Changes

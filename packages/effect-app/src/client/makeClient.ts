@@ -1,3 +1,4 @@
+import { SchemaTransformation } from "effect"
 import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
@@ -8,7 +9,9 @@ const merge = (a: any, b: Array<any>) =>
 /**
  * Whatever the input, we will only decode or encode to void
  */
-const ForceVoid: S.Codec<void> = S.Void as any
+const ForceVoid: S.Codec<void> = S.Any.pipe(
+  S.decodeTo(S.Void, SchemaTransformation.transform({ decode: () => void 0 as void, encode: () => void 0 }))
+)
 
 type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
 

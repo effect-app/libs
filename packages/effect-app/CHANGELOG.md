@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 601a1ff: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+
 ## 4.0.0-beta.26
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.4
+
+### Patch Changes
+
+- 601a1ff: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+
 ## 2.0.1-beta.3
 
 ### Patch Changes

@@ -78,7 +78,7 @@
         name="age"
         type="number"
         :validators="{
-          onChange: S.standardSchemaV1(schema.fields['age'])
+          onChange: S.toStandardSchemaV1(schema.fields['age'])
         }"
       >
         <template #default="{ field, state }">
@@ -112,7 +112,7 @@
         name="email"
         type="text"
         :validators="{
-          onBlur: S.standardSchemaV1(schema.fields['email'])
+          onBlur: S.toStandardSchemaV1(schema.fields['email'])
         }"
       >
         <template #default="{ field, state }">
@@ -154,11 +154,11 @@ import { useForm } from "@tanstack/vue-form"
 import { S } from "effect-app"
 
 const schema = S.Struct({
-  age: S.Number.pipe(S.lessThan(2)),
+  age: S.Number.pipe(S.check(S.isLessThan(2))),
   email: S.Email
 })
 
-const defaultSchema = S.standardSchemaV1(schema)
+const defaultSchema = S.toStandardSchemaV1(schema)
 
 const form = useForm({
   defaultValues: {

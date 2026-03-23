@@ -1,16 +1,16 @@
-import { LogLevel } from "effect"
+import { type LogLevel } from "effect"
 
 export const LogLevelToSentry = (level: LogLevel.LogLevel) => {
   switch (level) {
-    case LogLevel.Debug:
+    case "Debug":
       return "debug" as const
-    case LogLevel.Info:
+    case "Info":
       return "info" as const
-    case LogLevel.Warning:
+    case "Warn":
       return "warning" as const
-    case LogLevel.Error:
+    case "Error":
       return "error" as const
-    case LogLevel.Fatal:
+    case "Fatal":
       return "fatal" as const
   }
   return "log" as const

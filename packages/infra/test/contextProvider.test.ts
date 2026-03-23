@@ -1,82 +1,89 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, Scope } from "effect-app"
+import { Effect, Layer, Scope, ServiceMap } from "effect-app"
 import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/ContextProvider.js"
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends Effect.Service<MyContextProvider>()("MyContextProvider", {
-  effect: Effect.gen(function*() {
-    yield* SomeService
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider extends ServiceMap.Service<MyContextProvider>()(
+  "MyContextProvider",
+  {
+    make: Effect.gen(function*() {
+      yield* SomeService
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.gen(function*() {
-      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
-      yield* Scope.Scope
+      return Effect.gen(function*() {
+        // the only requirements you can have are the one provided by HttpLayerRouter.Provided
+        yield* Scope.Scope
 
-      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
-      yield* Effect.succeed("this is a generator")
+        yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+        yield* Effect.succeed("this is a generator")
 
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
-
-      return Context.make(Some, new Some({ a: 1 }))
+        return Some.serviceMap({ a: 1 }) 
+      })
     })
-  })
-}) {}
+  }
+) {
+  static readonly Default = Layer.effect(this, this.make)
+}
 
-class MyContextProvider2 extends Effect.Service<MyContextProvider2>()("MyContextProvider2", {
-  effect: Effect.gen(function*() {
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider2 extends ServiceMap.Service<MyContextProvider2>()(
+  "MyContextProvider2",
+  {
+    make: Effect.gen(function*() {
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return Effect.gen(function*() {
-      // we test without dependencies, so that we end up with an R of never.
+      return Effect.gen(function*() {
+        // we test without dependencies, so that we end up with an R of never.
 
-      return Context.make(SomeElse, new SomeElse({ b: 2 }))
+        return SomeElse.serviceMap({ b: 2 })
+      })
     })
-  })
-}) {}
+  }
+) {
+  static readonly Default = Layer.effect(this, this.make)
+}
 
-class MyContextProvider2Gen extends Effect.Service<MyContextProvider2Gen>()("MyContextProvider2Gen", {
-  effect: Effect.gen(function*() {
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProvider2Gen extends ServiceMap.Service<MyContextProvider2Gen>()(
+  "MyContextProvider2Gen",
+  {
+    make: Effect.gen(function*() {
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return function*() {
-      // we test without dependencies, so that we end up with an R of never
+      return function*() {
+        // we test without dependencies, so that we end up with an R of never
 
-      return Context.make(SomeElse, new SomeElse({ b: 2 }))
-    }
-  })
-}) {}
+        return SomeElse.serviceMap({ b: 2 })
+      }
+    })
+  }
+) {
+  static readonly Default = Layer.effect(this, this.make)
+}
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProviderGen extends Effect.Service<MyContextProviderGen>()("MyContextProviderGen", {
-  effect: Effect.gen(function*() {
-    yield* SomeService
-    if (Math.random() > 0.5) return yield* new CustomError1()
+class MyContextProviderGen extends ServiceMap.Service<MyContextProviderGen>()(
+  "MyContextProviderGen",
+  {
+    make: Effect.gen(function*() {
+      yield* SomeService
+      if (Math.random() > 0.5) return yield* new CustomError1()
 
-    return function*() {
-      // the only requirements you can have are the one provided by HttpLayerRouter.Provided
-      yield* Scope.Scope
+      return function*() {
+        // the only requirements you can have are the one provided by HttpLayerRouter.Provided
+        yield* Scope.Scope
 
-      yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
-      yield* Effect.succeed("this is a generator")
+        yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
+        yield* Effect.succeed("this is a generator")
 
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // yield* SomeElse
-
-      // currently the effectful context provider cannot trigger an error when building the per request context
-      // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
-      // if (Math.random() > 0.5) return yield* new CustomError2()
-      return Context.make(Some, new Some({ a: 1 }))
-    }
-  })
-}) {}
+        return Some.serviceMap({ a: 1 })
+      }
+    })
+  }
+) {
+  static readonly Default = Layer.effect(this, this.make)
+}
 
 export const someContextProvider = ContextProvider({
   effect: Effect.gen(function*() {
@@ -93,7 +100,7 @@ export const someContextProvider = ContextProvider({
       // currently the effectful context provider cannot trigger an error when building the per request context
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return Context.make(Some, new Some({ a: 1 }))
+      return Some.serviceMap({ a: 1 })
     })
   })
 })
@@ -112,7 +119,7 @@ export const someContextProviderGen = ContextProvider({
       // currently the effectful context provider cannot trigger an error when building the per request context
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return Context.make(Some, new Some({ a: 1 }))
+      return Some.serviceMap({ a: 1 })
     }
   })
 })

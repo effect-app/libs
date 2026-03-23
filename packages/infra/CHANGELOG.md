@@ -1,5 +1,257 @@
 # @effect-app/infra
 
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [01d862a]
+  - effect-app@4.0.0-beta.32
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [6b6d601]
+  - effect-app@4.0.0-beta.31
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [5ec1f45]
+  - effect-app@4.0.0-beta.30
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [a899d46]
+  - effect-app@4.0.0-beta.29
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [0099208]
+  - effect-app@4.0.0-beta.28
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 601a1ff: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+- Updated dependencies [601a1ff]
+  - effect-app@4.0.0-beta.27
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [4da28e2]
+  - effect-app@4.0.0-beta.26
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [6282d4b]
+  - effect-app@4.0.0-beta.25
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [32f71bf]
+  - effect-app@4.0.0-beta.24
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [ea08a79]
+  - effect-app@4.0.0-beta.23
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.22
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 75c72ee: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+- Updated dependencies [0d349e7]
+- Updated dependencies [75c72ee]
+  - effect-app@4.0.0-beta.21
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- aa921db: Fix `TaggedRequest` no-config error type inference so requests without a third argument infer the same default error schema as requests with explicit success config.
+- Updated dependencies [aa921db]
+  - effect-app@4.0.0-beta.20
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [ffc10a4]
+  - effect-app@4.0.0-beta.19
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [e9dbbdd]
+  - effect-app@4.0.0-beta.18
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [c8a6a3f]
+  - effect-app@4.0.0-beta.17
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [56db2c4]
+  - effect-app@4.0.0-beta.16
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- a3c9cc8: fix SSE event stream merge in pipe usage
+- Updated dependencies [20186b6]
+  - effect-app@4.0.0-beta.15
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.14
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 1c3c541: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- de2359d: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- 0d72f34: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+- Updated dependencies [16de88c]
+- Updated dependencies [1c3c541]
+- Updated dependencies [de2359d]
+- Updated dependencies [0d72f34]
+  - effect-app@4.0.0-beta.13
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- 622d54a: Configure Changesets fixed versioning for public packages.
+- Updated dependencies [622d54a]
+  - effect-app@4.0.0-beta.12
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [01c70d0]
+  - effect-app@4.0.0-beta.10
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 5727372: switch to NdJson
+- Updated dependencies [5727372]
+  - effect-app@4.0.0-beta.9
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [1f336bc]
+  - effect-app@4.0.0-beta.8
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [62b4989]
+  - effect-app@4.0.0-beta.7
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 418b80e: fix lock
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [df75041]
+  - effect-app@4.0.0-beta.6
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- 016c5a3: adapt isObject change
+- Updated dependencies [016c5a3]
+  - effect-app@4.0.0-beta.5
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [88b90c3]
+  - effect-app@4.0.0-beta.4
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 3a7abae: fix bs
+- Updated dependencies [3a7abae]
+  - effect-app@4.0.0-beta.3
+
+## 4.0.0-beta.2
+
+### Major Changes
+
+- 3887256: Fix Schema->Codec
+
+### Patch Changes
+
+- Updated dependencies [3887256]
+  - effect-app@4.0.0-beta.2
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 64786af: Beta25
+- Updated dependencies [64786af]
+  - effect-app@4.0.0-beta.1
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 880df28: Effect v4 beta
+
+### Patch Changes
+
+- Updated dependencies [880df28]
+  - effect-app@4.0.0-beta.0
+
 ## 3.10.0
 
 ### Minor Changes

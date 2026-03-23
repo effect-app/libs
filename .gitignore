@@ -50,3 +50,6 @@ fabric.properties
 
 # nix
 .direnv
+
+
+storybook-static/

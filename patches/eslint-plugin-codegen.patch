@@ -1,8 +1,8 @@
 diff --git a/dist/index.js b/dist/index.js
-index 69126edc70f6abdf3ba0306db22059fc812bfa89..6ea6404fedc663e7b74357503e38c02d141c8ee7 100644
+index 69126edc70f6abdf3ba0306db22059fc812bfa89..9fe32bcf722c967321d72f37159aa27bbdaaf005 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -55,7 +55,7 @@ exports.processors = {
+@@ -55,12 +55,12 @@ exports.processors = {
  };
  const codegen = {
      // @ts-expect-error types are wrong?
@@ -11,6 +11,22 @@ index 69126edc70f6abdf3ba0306db22059fc812bfa89..6ea6404fedc663e7b74357503e38c02d
      create(context) {
          const validate = () => {
              const sourceCode = context
+-                .getSourceCode()
+-                .text.split(os.EOL)
++                .sourceCode
++                .getText().split(os.EOL)
+                 .map(line => `${line}`.replace('// eslint-plugin-codegen:trim', ''))
+                 .join(os.EOL);
+             const markersByExtension = {
+@@ -83,7 +83,7 @@ const codegen = {
+             markersByExtension['.mjs'] = markersByExtension['.ts'];
+             markersByExtension['.jsx'] = markersByExtension['.ts'];
+             markersByExtension['.yaml'] = markersByExtension['.yml'];
+-            const markers = markersByExtension[path.extname(context.getFilename())];
++            const markers = markersByExtension[path.extname(context.filename)];
+             const position = (index) => {
+                 const stringUpToPosition = sourceCode.slice(0, index);
+                 const lines = stringUpToPosition.split(os.EOL);
 @@ -115,7 +115,7 @@ const codegen = {
                      return;
                  }
@@ -20,11 +36,13 @@ index 69126edc70f6abdf3ba0306db22059fc812bfa89..6ea6404fedc663e7b74357503e38c02d
                  const preset = typeof (opts === null || opts === void 0 ? void 0 : opts.preset) === 'string' && presets[opts.preset];
                  if (typeof preset !== 'function') {
                      context.report({
-@@ -129,7 +129,7 @@ const codegen = {
+@@ -128,8 +128,8 @@ const codegen = {
+                 const existingContent = sourceCode.slice(...range);
                  const normalise = (val) => val.trim().replace(/\r?\n/g, os.EOL);
                  const result = (0, Either_1.tryCatch)(() => {
-                     const meta = { filename: context.getFilename(), existingContent };
+-                    const meta = { filename: context.getFilename(), existingContent };
 -                    return preset({ meta, options: opts });
++                    const meta = { filename: context.filename, existingContent };
 +                    return preset({ meta, options: opts }, context);
                  }, err => `${err}`);
                  if (result._tag === 'Left') {

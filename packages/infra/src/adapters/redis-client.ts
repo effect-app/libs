@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Layer, Option } from "effect-app"
+import { Data, Effect, Layer, Option, ServiceMap } from "effect-app"
 import type { RedisClient as Client } from "redis"
 import Redlock from "redlock"
 
@@ -17,21 +17,21 @@ export const makeRedisClient = (makeClient: () => Client) =>
 
         function get(key: string) {
           return Effect
-            .async<Option.Option<string>, ConnectionException>((res) => {
+            .callback<Option.Option<string>, ConnectionException>((res) => {
               client.get(key, (err, v) =>
                 err
-                  ? res(new ConnectionException(err))
-                  : res(Effect.sync(() => Option.fromNullable(v))))
+                  ? res(Effect.fail(new ConnectionException(err)))
+                  : res(Effect.sync(() => Option.fromNullishOr(v))))
             })
             .pipe(Effect.uninterruptible)
         }
 
         function set(key: string, val: string) {
           return Effect
-            .async<void, ConnectionException>((res) => {
+            .callback<void, ConnectionException>((res) => {
               client.set(key, val, (err) =>
                 err
-                  ? res(new ConnectionException(err))
+                  ? res(Effect.fail(new ConnectionException(err)))
                   : res(Effect.sync(() => void 0)))
             })
             .pipe(Effect.uninterruptible)
@@ -39,10 +39,10 @@ export const makeRedisClient = (makeClient: () => Client) =>
 
         function hset(key: string, field: string, value: string) {
           return Effect
-            .async<void, ConnectionException>((res) => {
+            .callback<void, ConnectionException>((res) => {
               client.hset(key, field, value, (err) =>
                 err
-                  ? res(new ConnectionException(err))
+                  ? res(Effect.fail(new ConnectionException(err)))
                   : res(Effect.sync(() => void 0)))
             })
             .pipe(Effect.uninterruptible)
@@ -50,22 +50,22 @@ export const makeRedisClient = (makeClient: () => Client) =>
 
         function hget(key: string, field: string) {
           return Effect
-            .async<Option.Option<string>, ConnectionException>((res) => {
+            .callback<Option.Option<string>, ConnectionException>((res) => {
               client.hget(key, field, (err, v) =>
                 err
-                  ? res(new ConnectionException(err))
-                  : res(Effect.sync(() => Option.fromNullable(v))))
+                  ? res(Effect.fail(new ConnectionException(err)))
+                  : res(Effect.sync(() => Option.fromNullishOr(v))))
             })
             .pipe(Effect.uninterruptible)
         }
         function hmgetAll(key: string) {
           return Effect
-            .async<Option.Option<{ [key: string]: string }>, ConnectionException>(
+            .callback<Option.Option<{ [key: string]: string }>, ConnectionException>(
               (res) => {
                 client.hgetall(key, (err, v) =>
                   err
-                    ? res(new ConnectionException(err))
-                    : res(Effect.sync(() => Option.fromNullable(v))))
+                    ? res(Effect.fail(new ConnectionException(err)))
+                    : res(Effect.sync(() => Option.fromNullishOr(v))))
               }
             )
             .pipe(Effect.uninterruptible)
@@ -84,18 +84,24 @@ export const makeRedisClient = (makeClient: () => Client) =>
       }),
     (cl) =>
       Effect
-        .async<void, Error>((res) => {
+        .callback<void, Error>((res) => {
           cl.client.quit((err) => res(err ? Effect.fail(err) : Effect.void))
         })
         .pipe(Effect.uninterruptible, Effect.orDie)
   )
 
-export interface RedisClient extends Effect.Effect.Success<ReturnType<typeof makeRedisClient>> {}
-
-export const RedisClient = Context.GenericTag<RedisClient>("@services/RedisClient")
+export class RedisClient extends ServiceMap.Service<RedisClient, {
+  readonly client: Client
+  readonly lock: Redlock
+  readonly get: (key: string) => Effect.Effect<Option.Option<string>, ConnectionException>
+  readonly hget: (key: string, field: string) => Effect.Effect<Option.Option<string>, ConnectionException>
+  readonly hset: (key: string, field: string, value: string) => Effect.Effect<void, ConnectionException>
+  readonly hmgetAll: (key: string) => Effect.Effect<Option.Option<{ [key: string]: string }>, ConnectionException>
+  readonly set: (key: string, val: string) => Effect.Effect<void, ConnectionException>
+}>()("@services/RedisClient") {}
 
 export const RedisClientLayer = (storageUrl: string) =>
-  Layer.scoped(RedisClient, makeRedisClient(makeRedis(storageUrl)))
+  Layer.effect(RedisClient, makeRedisClient(makeRedis(storageUrl)))
 
 function createClient(makeClient: () => Client) {
   const client = makeClient()

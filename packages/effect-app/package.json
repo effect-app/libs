@@ -1,10 +1,9 @@
 {
   "name": "effect-app",
-  "version": "3.16.0",
+  "version": "4.0.0-beta.32",
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@effect/rpc": "^0.73.0",
     "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.1.0",
     "nanoid": "^5.1.6",
@@ -17,17 +16,16 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "25.0.8",
+    "@types/node": "25.3.3",
     "@types/uuid": "^11.0.0",
     "@types/validator": "^13.15.10",
     "@effect-app/eslint-shared-config": "workspace:*",
     "fast-check": "~4.5.3",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@effect/platform": "^0.94.1",
-    "effect": "^3.19.14"
+    "effect": "^4.0.0-beta.37"
   },
   "typesVersions": {
     "*": {
@@ -52,10 +50,6 @@
     "./Config/SecretURL": {
       "types": "./dist/Config/SecretURL.d.ts",
       "default": "./dist/Config/SecretURL.js"
-    },
-    "./Context": {
-      "types": "./dist/Context.d.ts",
-      "default": "./dist/Context.js"
     },
     "./Effect": {
       "types": "./dist/Effect.d.ts",
@@ -137,17 +131,13 @@
       "types": "./dist/Schema/strings.d.ts",
       "default": "./dist/Schema/strings.js"
     },
+    "./ServiceMap": {
+      "types": "./dist/ServiceMap.d.ts",
+      "default": "./dist/ServiceMap.js"
+    },
     "./Set": {
       "types": "./dist/Set.d.ts",
       "default": "./dist/Set.js"
-    },
-    "./Struct": {
-      "types": "./dist/Struct.d.ts",
-      "default": "./dist/Struct.js"
-    },
-    "./Tag": {
-      "types": "./dist/Tag.d.ts",
-      "default": "./dist/Tag.js"
     },
     "./TypeTest": {
       "types": "./dist/TypeTest.d.ts",
@@ -156,10 +146,6 @@
     "./Types": {
       "types": "./dist/Types.d.ts",
       "default": "./dist/Types.js"
-    },
-    "./Unify": {
-      "types": "./dist/Unify.d.ts",
-      "default": "./dist/Unify.js"
     },
     "./Widen.type": {
       "types": "./dist/Widen.type.d.ts",
@@ -284,7 +270,8 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson && tsc --build",
+    "build:tsc": "pnpm clean-dist && effect-app-cli packagejson && pnpm check",
+    "check": "tsc --build",
     "build:tsc-src": "pnpm clean-dist && effect-app-cli packagejson tsc --build ./tsconfig.src.json",
     "build:src": "pnpm build:tsc-src",
     "build": "pnpm build:tsc",
@@ -297,7 +284,7 @@
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
-    "autofix": "pnpm lint --fix",
+    "lint-fix": "pnpm lint --fix",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

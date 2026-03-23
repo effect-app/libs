@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as Result from "@effect-atom/atom/Result"
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
-import { Cause, Effect, Exit, type Layer, type ManagedRuntime, Match, Option, Runtime, S, Struct } from "effect-app"
+import { Cause, Data, Effect, Exit, Layer, type ManagedRuntime, Match, Option, S, ServiceMap, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
 import { constant, identity, pipe, tuple } from "effect-app/Function"
 import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
-import { type Schema } from "effect-app/Schema"
 import { dropUndefinedT, extendM } from "effect-app/utils"
-import { type RuntimeFiber } from "effect/Fiber"
+import { type Fiber } from "effect/Fiber"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type WatchSource } from "vue"
 import { reportMessage } from "./errorReporter.js"
 import { type Commander, CommanderStatic } from "./experimental/commander.js"
@@ -20,7 +19,7 @@ import { Toast } from "./experimental/toast.js"
 import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
 import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res, useMakeMutation } from "./mutate.js"
-import { type CustomUndefinedInitialQueryOptions, type KnownFiberFailure, makeQuery } from "./query.js"
+import { type CustomUndefinedInitialQueryOptions, makeQuery } from "./query.js"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -180,12 +179,11 @@ export type Queries<RT, Req> = Req extends
 /**
  * Use this after handling an error yourself, still continueing on the Error track, but the error will not be reported.
  */
-export class SuppressErrors extends Cause.YieldableError {
-  readonly _tag = "SuppressErrors"
-  readonly [ErrorSilenced] = true
+export class SuppressErrors extends Data.TaggedError("SuppressErrors")<{}> {
+  readonly [ErrorSilenced] = true as const
 }
 
-export type ResponseErrors = S.ParseResult.ParseError | SupportedErrors | SuppressErrors | OperationFailure
+export type ResponseErrors = S.SchemaError | SupportedErrors | SuppressErrors | OperationFailure
 
 export interface Opts<
   A,
@@ -290,16 +288,16 @@ function handleRequest<
   const handleEffect = (i: any) => (self: Effect.Effect<Exit.Exit<A, E>, never, R>) =>
     self.pipe(
       Effect.tap(
-        Exit.matchEffect({
+        Effect.matchCauseEffect({
           onSuccess: (r) => options.onSuccess(r, i),
           onFailure: (cause) =>
             Effect.gen(function*() {
-              if (Cause.isInterruptedOnly(cause)) {
+              if (Cause.hasInterruptsOnly(cause)) {
                 console.info(`Interrupted while trying to ${action}`)
                 return
               }
 
-              const fail = Cause.failureOption(cause)
+              const fail = Cause.findErrorOption(cause)
               if (Option.isSome(fail)) {
                 if (fail.value._tag === "SuppressErrors") {
                   console.info(`Suppressed error trying to ${action}`, fail.value)
@@ -321,7 +319,7 @@ function handleRequest<
             })
         })
       ),
-      Effect.withSpan(`mutation ${id}`, { captureStackTrace: false })
+      Effect.withSpan(`mutation ${id}`, {}, { captureStackTrace: false })
     )
   return Object.assign(
     Effect.isEffect(f)
@@ -359,7 +357,7 @@ export const useMutation: typeof _useMutation = <
   Object.assign(
     mapHandler(
       _useMutation(self as any, options),
-      Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
+      Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })
     ) as any,
     { id: self.id }
   )
@@ -385,7 +383,7 @@ export const useMutationInt = (): typeof _useMutation => {
     Object.assign(
       mapHandler(
         _useMutation(self as any, options),
-        Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
+        Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })
       ) as any,
       { id: self.id }
     )
@@ -393,7 +391,7 @@ export const useMutationInt = (): typeof _useMutation => {
 
 export class LegacyMutationImpl<RT> {
   constructor(
-    private readonly getRuntime: () => Runtime.Runtime<RT>,
+    private readonly getRuntime: () => ServiceMap.ServiceMap<RT>,
     private readonly toast: Toast,
     private readonly intl: I18n
   ) {}
@@ -413,7 +411,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2, I>
     ): readonly [
-      ComputedRef<Result.Result<A2, E2>>,
+      ComputedRef<AsyncResult.AsyncResult<A2, E2>>,
       (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
     /**
@@ -425,7 +423,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandler<A, E, R, Request, Name>,
       options?: MutationOptions<A, E, R, A2, E2, R2>
     ): readonly [
-      ComputedRef<Result.Result<A2, E2>>,
+      ComputedRef<AsyncResult.AsyncResult<A2, E2>>,
       Effect.Effect<Exit.Exit<A2, E2>, never, R2>
     ]
   } = <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
@@ -437,12 +435,17 @@ export class LegacyMutationImpl<RT> {
     type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
     const mh = options?.mapHandler ?? identity as MH
 
-    const [a, b] = asResult(mapHandler(mapHandler(unsafe as any, mh), Effect.tapDefect(reportRuntimeError)) as any)
+    const [a, b] = asResult(
+      mapHandler(
+        mapHandler(unsafe as any, mh),
+        Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause))
+      ) as any
+    )
     return [
       a,
       mapHandler(
         b,
-        Effect.withSpan(`mutation ${self.id}`, { captureStackTrace: false })
+        Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })
       )
     ] as const as any
   }
@@ -537,7 +540,7 @@ export class LegacyMutationImpl<RT> {
     }
 
     function renderError(e: ResponseErrors): string {
-      return Match.value(e).pipe(
+      return Match.value(e as any).pipe(
         Match.tags({
           // HttpErrorRequest: e =>
           //   this.intl.value.formatMessage(
@@ -573,12 +576,12 @@ export class LegacyMutationImpl<RT> {
           //     { id: "handle.response_error" },
           //     { error: `${e.error}` },
           //   ),
-          ParseError: (e) => {
+          SchemaError: (e: any) => {
             console.warn(e.toString())
             return self.intl.formatMessage({ id: "validation.failed" })
           }
         }),
-        Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+        Match.orElse((e: any) => `${e.message ?? e._tag ?? e}`)
       )
     }
   }
@@ -614,7 +617,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
       action: string,
       options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
+    ): Resp<I, A2, E2, R2, ComputedRef<AsyncResult.AsyncResult<A2, E2>>>
     /**
      * Pass a function that returns an Effect, e.g from a client action, give it a name.
      * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
@@ -639,7 +642,7 @@ export class LegacyMutationImpl<RT> {
       self: RequestHandler<A, E, R, Request, Name>,
       action: string,
       options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<A2, E2, R2, ComputedRef<Result.Result<A2, E2>>>
+    ): ActResp<A2, E2, R2, ComputedRef<AsyncResult.AsyncResult<A2, E2>>>
   } = <E extends ResponseErrors, A, R, Request extends Req, Name extends string, I>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
     action: any,
@@ -652,12 +655,12 @@ export class LegacyMutationImpl<RT> {
       handler: Effect.isEffect(handler)
         ? (pipe(
           Effect.annotateCurrentSpan({ action }),
-          Effect.zipRight(handler)
+          Effect.andThen(handler)
         ) as any)
         : (...args: [any]) =>
           pipe(
             Effect.annotateCurrentSpan({ action }),
-            Effect.zipRight(handler(...args))
+            Effect.andThen(handler(...args))
           )
     }, options ? dropUndefinedT(options) : undefined)
 
@@ -939,7 +942,12 @@ export class LegacyMutationImpl<RT> {
     type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
     const mh = options?.mapHandler ?? identity as MH
 
-    const [a, b] = asResult(mapHandler(mapHandler(unsafe as any, mh), Effect.tapDefect(reportRuntimeError)) as any)
+    const [a, b] = asResult(
+      mapHandler(
+        mapHandler(unsafe as any, mh),
+        Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause))
+      ) as any
+    )
 
     return tuple(
       computed(() => mutationResultToVue(a.value)),
@@ -1002,36 +1010,34 @@ export class LegacyMutationImpl<RT> {
     OnSubmitA
   >(
     s:
-      & Schema<
-        To,
-        From,
-        RT
-      >
+      & S.Codec<To>
       & { new(c: C): any; extend: any; fields: S.Struct.Fields },
     state: Ref<Omit<From, "_tag">>,
     onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, RT>
   ) => {
     const fields = buildFieldInfoFromFieldsRoot(s).fields
-    const schema = S.Struct(Struct.omit(s.fields, "_tag")) as any
-    const parse = S.decodeUnknown<any, any, RT>(schema)
+    const schema = S.Struct(Struct.omit(s.fields, ["_tag"])) as unknown as S.Codec<any> & {
+      readonly DecodingServices: never
+    }
+    const parse = S.decodeUnknownSync(schema)
     const isDirty = ref(false)
     const isValid = ref(true)
     const isLoading = ref(false)
-    const runPromise = Runtime.runPromise(this.getRuntime())
+    const runPromise = Effect.runPromiseWith(this.getRuntime())
 
     const submit1 =
-      (onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, RT>) =>
+      (onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, never>) =>
       async <T extends Promise<{ valid: boolean }>>(e: T) => {
         isLoading.value = true
         try {
           const r = await e
           if (!r.valid) return
-          return await runPromise(onSubmit(new s(await runPromise(parse(state.value)))))
+          return await runPromise(onSubmit(new (s as any)(await runPromise(parse(state.value)))) as any)
         } finally {
           isLoading.value = false
         }
       }
-    const submit = submit1(onSubmit)
+    const submit = submit1(onSubmit as any)
 
     watch(
       state,
@@ -1043,10 +1049,10 @@ export class LegacyMutationImpl<RT> {
     )
 
     const submitFromState = Effect.gen(function*() {
-      return yield* onSubmit(yield* parse(state.value))
+      return yield* (onSubmit(yield* parse(state.value)) as any)
     })
 
-    const submitFromStatePromise = () => runPromise(submitFromState)
+    const submitFromStatePromise = () => runPromise(submitFromState as any)
 
     return {
       fields,
@@ -1063,19 +1069,22 @@ export class LegacyMutationImpl<RT> {
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class LegacyMutation extends Effect.Service<LegacyMutation>()("LegacyMutation", {
-  effect: Effect.gen(function*() {
+export class LegacyMutation extends ServiceMap.Service<LegacyMutation>()("LegacyMutation", {
+  make: Effect.gen(function*() {
     const intl = yield* I18n
     const toast = yield* Toast
 
-    return <R>(getRuntime: () => Runtime.Runtime<R>) => new LegacyMutationImpl(getRuntime, toast, intl)
+    return <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => new LegacyMutationImpl(getRuntime, toast, intl)
   })
-}) {}
+}) {
+  static readonly DefaultWithoutDependencies = Layer.effect(this, this.make)
+  static readonly Default = this.DefaultWithoutDependencies
+}
 
 export type ClientFrom<M extends Requests> = RequestHandlers<never, never, M, M["meta"]["moduleName"]>
 
 export class QueryImpl<R> {
-  constructor(readonly getRuntime: () => Runtime.Runtime<R>) {
+  constructor(readonly getRuntime: () => ServiceMap.ServiceMap<R>) {
     this.useQuery = makeQuery(this.getRuntime)
   }
   /**
@@ -1112,11 +1121,11 @@ export class QueryImpl<R> {
        */
       <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
-          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<AsyncResult.AsyncResult<TData, E>>,
           ComputedRef<TData>,
           (
             options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+          ) => Effect.Effect<QueryObserverResult<TData, E>>,
           UseQueryReturnType<any, any>
         ]
       >
@@ -1142,11 +1151,11 @@ export class QueryImpl<R> {
        */
       <TData = A>(arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
-          ComputedRef<Result.Result<TData, E>>,
+          ComputedRef<AsyncResult.AsyncResult<TData, E>>,
           ComputedRef<TData>,
           (
             options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+          ) => Effect.Effect<QueryObserverResult<TData, E>>,
           UseQueryReturnType<any, any>
         ]
       >
@@ -1154,7 +1163,7 @@ export class QueryImpl<R> {
   } = <Arg, E, A, Request extends Req, Name extends string>(
     self: RequestHandlerWithInput<Arg, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
   ) => {
-    const runPromise = Runtime.runPromise(this.getRuntime())
+    const runPromise = Effect.runPromiseWith(this.getRuntime())
     const q = this.useQuery(self as any) as any
     return (argOrOptions?: any, options?: any) => {
       const [resultRef, latestRef, fetch, uqrt] = q(argOrOptions, { ...options, suspense: true } // experimental_prefetchInRender: true }
@@ -1171,18 +1180,16 @@ export class QueryImpl<R> {
         // what's the difference with just calling `fetch` ?
         // we will receive a CancelledError which we will have to ignore in our ErrorBoundary, otherwise the user ends up on an error page even if the user e.g cancelled a navigation
         const r = yield* Effect.tryPromise(() => uqrt.suspense()).pipe(
-          Effect.catchTag("UnknownException", (err) =>
-            Runtime.isFiberFailure(err.error)
-              ? Effect.failCause(err.error[Runtime.FiberFailureCauseId])
-              : isCancelledError(err.error)
+          Effect.catchTag("UnknownError", (err) =>
+            isCancelledError(err.cause)
               ? Effect.interrupt
-              : Effect.die(err.error))
+              : Effect.die(err.cause))
         )
         if (!isMounted.value) {
           return yield* Effect.interrupt
         }
         const result = resultRef.value
-        if (Result.isInitial(result)) {
+        if (AsyncResult.isInitial(result)) {
           console.error("Internal Error: Promise should be resolved already", {
             self,
             argOrOptions,
@@ -1194,7 +1201,7 @@ export class QueryImpl<R> {
             "Internal Error: Promise should be resolved already"
           )
         }
-        if (Result.isFailure(result)) {
+        if (AsyncResult.isFailure(result)) {
           return yield* Exit.failCause(result.cause)
         }
 
@@ -1207,7 +1214,7 @@ export class QueryImpl<R> {
 }
 
 // somehow mrt.runtimeEffect doesnt work sync, but this workaround works fine? not sure why though as the layers are generally only sync
-const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.runtime<A>())
+const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.services<A>())
 
 type Base = I18n | Toast
 type Mix = ApiClientFactory | Commander | LegacyMutation | Base
@@ -1218,7 +1225,7 @@ export const makeClient = <RT_, RTHooks>(
   rtHooks: Layer.Layer<RTHooks, never, Mix>
 ) => {
   type RT = RT_ | Mix
-  const getRt = Effect.runtime<RT>()
+  const getRt = Effect.services<RT>()
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
   const makeCommand = makeUseCommand<RT, RTHooks>(rtHooks)
   const makeMutation = Effect.gen(function*() {
@@ -1226,9 +1233,9 @@ export const makeClient = <RT_, RTHooks>(
 
     return mut(() => getBaseMrt().runSync(getRt))
   })
-  let cmd: Effect.Effect.Success<typeof makeCommand>
+  let cmd: Effect.Success<typeof makeCommand>
   const useCommand = () => cmd ??= getBaseMrt().runSync(makeCommand)
-  let mut: Effect.Effect.Success<typeof makeMutation>
+  let mut: Effect.Success<typeof makeMutation>
   const getMutation = () => mut ??= getBaseMrt().runSync(makeMutation)
 
   let m: ReturnType<typeof useMutationInt>
@@ -1488,7 +1495,7 @@ export interface CommandBase<I = void, A = void> {
   label: string
 }
 
-export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, RuntimeFiber<A, E>> {}
+export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>> {}
 
 export interface CommandFromRequest<I extends abstract new(...args: any) => any, A = unknown, E = unknown>
   extends EffectCommand<ConstructorParameters<I>[0], A, E>

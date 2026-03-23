@@ -7,7 +7,11 @@
 
       <h2>Requirements</h2>
       <ul>
-        <li>Your schema MUST use discriminated unions with a <code>_tag</code> field</li>
+        <li>Use <code>S.TaggedStruct("TagValue", { ... })</code> for each union member (preferred)</li>
+        <li>
+          Legacy <code>S.Struct({ _tag: S.Literal("X"), ... })</code> is also accepted but will emit a deprecation
+          warning
+        </li>
         <li>
           <strong>ONLY</strong> the <code>_tag</code> field is supported for discrimination (no other field names)
         </li>
@@ -17,7 +21,7 @@
       <ol>
         <li>The component creates a selector for the <code>_tag</code> field</li>
         <li>Based on the selected tag, it renders the corresponding slot</li>
-        <li>Named slots match the literal values of <code>_tag</code></li>
+        <li>Named slots match the tag values passed to <code>S.TaggedStruct</code></li>
       </ol>
 
       <h3>Slots</h3>
@@ -81,18 +85,16 @@ const form = useOmegaForm(
   S.Struct({
     aString: S.NonEmptyString255,
     union: S.NullOr(
-      S.Union(
-        S.Struct({
+      S.Union([
+        S.TaggedStruct("A", {
           a: S.NonEmptyString255,
-          common: S.NonEmptyString255,
-          _tag: S.Literal("A")
+          common: S.NonEmptyString255
         }),
-        S.Struct({
+        S.TaggedStruct("B", {
           b: S.NonEmptyString255,
-          common: S.NonEmptyString255,
-          _tag: S.Literal("B")
+          common: S.NonEmptyString255
         })
-      )
+      ])
     )
   }),
   {

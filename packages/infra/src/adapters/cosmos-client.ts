@@ -1,16 +1,16 @@
 import { CosmosClient as ComosClient_ } from "@azure/cosmos"
-import { Context, Effect, Layer } from "effect-app"
+import { Effect, Layer, ServiceMap } from "effect-app"
 
 const withClient = (url: string) => Effect.sync(() => new ComosClient_(url))
 
 export const makeCosmosClient = (url: string, dbName: string) =>
   Effect.map(withClient(url), (x) => ({ db: x.database(dbName) }))
 
-export interface CosmosClient extends Effect.Effect.Success<ReturnType<typeof makeCosmosClient>> {}
+export class CosmosClient extends ServiceMap.Service<CosmosClient, {
+  readonly db: ReturnType<InstanceType<typeof ComosClient_>["database"]>
+}>()("@services/CosmosClient") {}
 
-export const CosmosClient = Context.GenericTag<CosmosClient>("@services/CosmosClient")
-
-export const db = Effect.map(CosmosClient, (_) => _.db)
+export const db = CosmosClient.asEffect().pipe(Effect.map((_) => _.db))
 
 export const CosmosClientLayer = (cosmosUrl: string, dbName: string) =>
   Layer.effect(CosmosClient, makeCosmosClient(cosmosUrl, dbName))

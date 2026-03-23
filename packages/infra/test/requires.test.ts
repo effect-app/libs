@@ -1,11 +1,12 @@
-import { Rpc } from "@effect/rpc"
-import { type SuccessValue } from "@effect/rpc/RpcMiddleware"
 import { describe, expect, expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, Either, Layer, S } from "effect-app"
+import { Effect, Layer, Result, S, ServiceMap } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import * as RpcX from "effect-app/rpc"
 import { MiddlewareMaker } from "effect-app/rpc"
+import type { unhandled } from "effect-app/Types"
+import { Rpc } from "effect/unstable/rpc"
+import { type SuccessValue } from "effect/unstable/rpc/RpcMiddleware"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive } from "./fixtures.js"
 
 export class RequiresSomeMiddleware
@@ -54,29 +55,26 @@ expectTypeOf(_middlewareSideways).toEqualTypeOf<typeof middleware3>()
 expectTypeOf(_middlewareSidewaysFully).toEqualTypeOf<typeof _middlewareSideways>()
 expectTypeOf(_middleware3Bis).toEqualTypeOf<typeof middleware3>()
 
-class TestRequest extends S.TaggedRequest<TestRequest>("Test")("Test", {
-  payload: {},
-  success: S.Void,
-  failure: S.Never
-}) {}
+const TestRpc = Rpc.make("Test", { success: S.Void })
 
 const testSuite = (_mw: typeof middleware3) =>
   describe("middleware" + _mw, () => {
     it.effect(
       "works",
       Effect.fn(function*() {
-        const defaultReq = {
-          headers: HttpHeaders.unsafeFromRecord({}),
+        const defaultOpts = {
+          headers: HttpHeaders.fromRecordUnsafe({}),
           payload: { _tag: "Test" },
           clientId: 0,
-          rpc: { ...Rpc.fromTaggedRequest(TestRequest), annotations: Context.make(_mw.requestContext, {}) },
-          next: Effect.void as unknown as Effect.Effect<SuccessValue, never, any>
+          requestId: "test-id" as any,
+          rpc: { ...TestRpc, annotations: ServiceMap.make(_mw.requestContext, {}) }
         }
+        const next = Effect.void as unknown as Effect.Effect<SuccessValue, unhandled, never>
         const layer = _mw.layer.pipe(
           Layer.provide([
             RequiresSomeMiddleware.Default,
             SomeMiddlewareLive,
-            RequireRolesLive.pipe(Layer.provide(SomeService.toLayer())),
+            RequireRolesLive.pipe(Layer.provide(SomeService.toLayer(SomeService.make))),
             AllowAnonymousLive,
             TestLive,
             SomeElseMiddlewareLive
@@ -86,9 +84,13 @@ const testSuite = (_mw: typeof middleware3) =>
           .gen(function*() {
             const mw = yield* _mw
             const mwM = mw(
-              Object.assign({ ...defaultReq }, {
-                headers: { "x-user": "test-user", "x-is-manager": "true" },
-                rpc: { ...defaultReq.rpc, annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] }) }
+              next,
+              Object.assign({ ...defaultOpts }, {
+                headers: HttpHeaders.fromRecordUnsafe({ "x-user": "test-user", "x-is-manager": "true" }),
+                rpc: {
+                  ...defaultOpts.rpc,
+                  annotations: ServiceMap.make(_mw.requestContext, { requireRoles: ["manager"] })
+                }
               })
             )
             yield* mwM
@@ -103,27 +105,29 @@ const testSuite = (_mw: typeof middleware3) =>
             .gen(function*() {
               const mw = yield* _mw
               const mwM = mw(
-                Object.assign({ ...defaultReq }, {})
+                next,
+                Object.assign({ ...defaultOpts }, {})
               )
               yield* mwM
             })
             .pipe(
               Effect.scoped,
               Effect.provide(layer),
-              Effect.either
+              Effect.result
             )
         )
-          .toEqual(Either.left(new NotLoggedInError()))
+          .toEqual(Result.fail(new NotLoggedInError()))
 
         expect(
           yield* Effect
             .gen(function*() {
               const mw = yield* _mw
               const mwM = mw(
-                Object.assign({ ...defaultReq }, {
+                next,
+                Object.assign({ ...defaultOpts }, {
                   rpc: {
-                    ...defaultReq.rpc,
-                    annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] })
+                    ...defaultOpts.rpc,
+                    annotations: ServiceMap.make(_mw.requestContext, { requireRoles: ["manager"] })
                   }
                 })
               )
@@ -132,32 +136,37 @@ const testSuite = (_mw: typeof middleware3) =>
             .pipe(
               Effect.scoped,
               Effect.provide(layer),
-              Effect.either
+              Effect.result
             )
         )
-          .toEqual(Either.left(new NotLoggedInError()))
+          .toEqual(Result.fail(new NotLoggedInError()))
 
         expect(
           yield* Effect
             .gen(function*() {
               const mw = yield* _mw
               const mwM = mw(
-                Object.assign({ ...defaultReq }, { headers: { "x-user": "test-user" } }, {
-                  rpc: {
-                    ...defaultReq.rpc,
-                    annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] })
+                next,
+                Object.assign(
+                  { ...defaultOpts },
+                  { headers: HttpHeaders.fromRecordUnsafe({ "x-user": "test-user" }) },
+                  {
+                    rpc: {
+                      ...defaultOpts.rpc,
+                      annotations: ServiceMap.make(_mw.requestContext, { requireRoles: ["manager"] })
+                    }
                   }
-                })
+                )
               )
               yield* mwM
             })
             .pipe(
               Effect.scoped,
               Effect.provide(layer),
-              Effect.either
+              Effect.result
             )
         )
-          .toEqual(Either.left(new UnauthorizedError({ message: "don't have the right roles" })))
+          .toEqual(Result.fail(new UnauthorizedError({ message: "don't have the right roles" })))
       })
     )
   })

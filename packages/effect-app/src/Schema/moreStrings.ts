@@ -1,7 +1,6 @@
 import { pipe } from "effect"
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
-import type { LazyArbitrary } from "effect/Arbitrary"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
@@ -11,7 +10,7 @@ import { withDefaultConstructor, withDefaultMake, type WithDefaults } from "./ex
 import { type B } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
-const nonEmptyString = S.String.pipe(S.nonEmptyString())
+const nonEmptyString = S.NonEmptyString
 
 /**
  * A string that is at least 1 character long and a maximum of 50.
@@ -27,7 +26,7 @@ export type NonEmptyString50 = string & NonEmptyString50Brand
  * A string that is at least 1 character long and a maximum of 50.
  */
 export const NonEmptyString50 = nonEmptyString.pipe(
-  S.maxLength(50),
+  S.check(S.isMaxLength(50)),
   fromBrand(nominal<NonEmptyString50>(), {
     identifier: "NonEmptyString50",
     title: "NonEmptyString50",
@@ -50,7 +49,7 @@ export type NonEmptyString64 = string & NonEmptyString64Brand
  * A string that is at least 1 character long and a maximum of 64.
  */
 export const NonEmptyString64 = nonEmptyString.pipe(
-  S.maxLength(64),
+  S.check(S.isMaxLength(64)),
   fromBrand(nominal<NonEmptyString64>(), {
     identifier: "NonEmptyString64",
     title: "NonEmptyString64",
@@ -74,7 +73,7 @@ export type NonEmptyString80 = string & NonEmptyString80Brand
  */
 
 export const NonEmptyString80 = nonEmptyString.pipe(
-  S.maxLength(80),
+  S.check(S.isMaxLength(80)),
   fromBrand(nominal<NonEmptyString80>(), {
     identifier: "NonEmptyString80",
     title: "NonEmptyString80",
@@ -97,7 +96,7 @@ export type NonEmptyString100 = string & NonEmptyString100Brand
  * A string that is at least 1 character long and a maximum of 100.
  */
 export const NonEmptyString100 = nonEmptyString.pipe(
-  S.maxLength(100),
+  S.check(S.isMaxLength(100)),
   fromBrand(nominal<NonEmptyString100>(), {
     identifier: "NonEmptyString100",
     title: "NonEmptyString100",
@@ -121,8 +120,7 @@ export type Min3String255 = string & Min3String255Brand
  */
 export const Min3String255 = pipe(
   S.String,
-  S.minLength(3),
-  S.maxLength(255),
+  S.check(S.isMinLength(3), S.isMaxLength(255)),
   fromBrand(nominal<Min3String255>(), { identifier: "Min3String255", title: "Min3String255", jsonSchema: {} }),
   withDefaultMake
 )
@@ -142,23 +140,21 @@ const minLength = 6
 const maxLength = 50
 const size = 21
 const length = 10 * size
-const StringIdArb = (): LazyArbitrary<string> => (fc) =>
+const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
   fc
     .uint8Array({ minLength: length, maxLength: length })
-    .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))())
-
+    .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))() as StringId)
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  */
 export const StringId = extendM(
   pipe(
     S.String,
-    S.minLength(minLength),
-    S.maxLength(maxLength),
+    S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
     fromBrand(nominal<StringId>(), {
       identifier: "StringId",
       title: "StringId",
-      arbitrary: StringIdArb,
+      toArbitrary: () => (fc) => StringIdArb()(fc),
       jsonSchema: {}
     })
   ),
@@ -181,19 +177,21 @@ export function prefixedStringId<Brand extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    const arb = (): LazyArbitrary<string & Brand> => (fc) =>
+    const arb = (): S.LazyArbitrary<string & Brand> => (fc) =>
       StringIdArb()(fc).map(
         (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s: S.Schema<string & Brand, string> = StringId
+    const s: S.Codec<string & Brand, string> = StringId
       .pipe(
-        S.filter((x: StringId): x is string & Brand => x.startsWith(pref), {
-          arbitrary: arb,
+        S.refine((x: string): x is string & Brand => x.startsWith(pref), {
           identifier: name,
           title: name
+        }),
+        S.annotate({
+          toArbitrary: () => (fc) => arb()(fc)
         })
-      )
+      ) as S.Codec<string & Brand, string>
     const schema = s.pipe(withDefaultMake)
     const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Brand
 
@@ -220,10 +218,10 @@ export const brandedStringId = <
   Brand extends StringIdBrand
 >() =>
   withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as S.Schema<string & Brand, string> & {
+    Object.assign(Object.create(StringId), StringId) as S.Codec<string & Brand, string> & {
       make: () => string & Brand
-      withDefault: S.PropertySignature<":", string & Brand, never, ":", string, true, never>
-    } & WithDefaults<S.Schema<string & Brand, string>>
+      withDefault: S.withConstructorDefault<S.Codec<string & Brand, string> & S.WithoutConstructorDefault>
+    } & WithDefaults<S.Codec<string & Brand, string>>
   )
 
 export interface PrefixedStringUtils<
@@ -235,7 +233,7 @@ export interface PrefixedStringUtils<
   readonly unsafeFrom: (str: string) => Brand
   prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Brand
   readonly prefix: Prefix
-  readonly withDefault: S.PropertySignature<":", Brand, never, ":", string, true, never>
+  readonly withDefault: S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>
 }
 
 export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}
@@ -249,11 +247,13 @@ const isUrl: Refinement<string, Url> = (s: string): s is Url => {
 export const Url = S
   .String
   .pipe(
-    S.filter(isUrl, {
-      arbitrary: (): LazyArbitrary<Url> => (fc) => fc.webUrl().map((_) => _ as Url),
+    S.refine(isUrl, {
       identifier: "Url",
       title: "Url",
       jsonSchema: { format: "uri" }
+    }),
+    S.annotate({
+      toArbitrary: () => (fc) => fc.webUrl().map((_) => _ as Url)
     }),
     withDefaultMake
   )

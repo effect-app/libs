@@ -12,7 +12,7 @@ export class ValidationError extends S.Class<ValidationError>("@effect-app/infra
   rawData: S.Unknown,
   /** the data after applying jitM transformation */
   jitMResult: S.Unknown,
-  /** the ParseResult.ParseError from schema decode */
+  /** the S.SchemaError from schema decode */
   error: S.Unknown
 }) {}
 

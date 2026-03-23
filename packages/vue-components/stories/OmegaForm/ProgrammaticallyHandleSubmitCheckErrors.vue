@@ -22,7 +22,7 @@ import { Effect, type Exit, S } from "effect-app"
 import { ref } from "vue"
 import { useOmegaForm } from "../../src"
 
-const form = useOmegaForm(S.Struct({ aString: S.String.pipe(S.minLength(2)) }))
+const form = useOmegaForm(S.Struct({ aString: S.String.pipe(S.check(S.isMinLength(2))) }))
 const scan = Effect.fn(function*(data: string) {
   if (data === "print") {
     // we can respond to the `FormErrors` failure or just short circuit.

@@ -115,7 +115,7 @@ export class Initial<TFieldValues extends FieldValues> extends Data.TaggedClass(
   constructor() {
     super({ value: "initial" as const })
   }
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -129,7 +129,7 @@ export class Where<TFieldValues extends FieldValues> extends Data.TaggedClass("w
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
 
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -141,7 +141,7 @@ export class And<TFieldValues extends FieldValues> extends Data.TaggedClass("and
   relation: RelationDirection
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -153,7 +153,7 @@ export class Or<TFieldValues extends FieldValues> extends Data.TaggedClass("or")
   relation: RelationDirection
 }> implements QueryWhere<TFieldValues> {
   readonly [QId]!: any
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -165,7 +165,7 @@ export class Page<TFieldValues extends FieldValues> extends Data.TaggedClass("pa
   skip?: number | undefined
 }> implements QueryEnd<TFieldValues> {
   readonly [QId]!: any
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -175,7 +175,7 @@ export class One<TFieldValues extends FieldValues> extends Data.TaggedClass("one
   current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
 }> implements QueryEnd<TFieldValues, "one"> {
   readonly [QId]!: any
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -185,7 +185,7 @@ export class Count<TFieldValues extends FieldValues> extends Data.TaggedClass("c
   current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues>
 }> implements QueryEnd<TFieldValues, "count"> {
   readonly [QId]!: any
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -200,7 +200,7 @@ export class Order<TFieldValues extends FieldValues, TFieldName extends FieldPat
   implements QueryEnd<TFieldValues>
 {
   readonly [QId]!: any
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -209,13 +209,13 @@ export class Order<TFieldValues extends FieldValues, TFieldName extends FieldPat
 export class Project<A, TFieldValues extends FieldValues, R, TType extends "one" | "many" = "many">
   extends Data.TaggedClass("project")<{
     current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues, TType>
-    schema: S.Schema<A, TFieldValues, R>
+    schema: S.Codec<A, TFieldValues, R>
     mode: "collect" | "project" | "transform"
   }>
   implements QueryProjection<TFieldValues, A, R>
 {
   readonly [QId]!: any
-  pipe() {
+  override pipe() {
     // eslint-disable-next-line prefer-rest-params
     return Pipeable.pipeArguments(this, arguments)
   }
@@ -307,7 +307,7 @@ export const project: {
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Schema<
+    schema: S.Codec<
       Option.Option<A>,
       {
         [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
@@ -326,7 +326,7 @@ export const project: {
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Schema<
+    schema: S.Codec<
       A,
       {
         [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
@@ -344,7 +344,7 @@ export const project: {
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Schema<
+    schema: S.Codec<
       A,
       {
         [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never

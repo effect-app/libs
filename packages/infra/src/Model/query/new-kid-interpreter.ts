@@ -10,7 +10,7 @@ import { make, type Q, type QAll } from "../query/dsl.js"
 
 type Result<TFieldValues extends FieldValues, A = TFieldValues, R = never> = {
   filter: FilterResult[]
-  schema: S.Schema<A, TFieldValues, R> | undefined
+  schema: S.Codec<A, TFieldValues, R> | undefined
   limit: number | undefined
   skip: number | undefined
   order: { key: FieldPath<TFieldValues>; direction: "ASC" | "DESC" }[]
@@ -144,9 +144,9 @@ const interpret = <
   return data
 }
 
-const walkTransformation = (t: S.AST.AST) => {
-  if (S.AST.isTransformation(t)) {
-    return walkTransformation(t.from)
+const walkTransformation = (t: S.AST.AST): S.AST.AST => {
+  if (S.AST.isDeclaration(t) && t.typeParameters.length > 0) {
+    return walkTransformation(t.typeParameters[0]!)
   }
   return t
 }
@@ -166,10 +166,10 @@ export const toFilter = <
   // TODO: support more complex (nested) schemas?
   if (schema) {
     const t = walkTransformation(schema.ast)
-    if (S.AST.isTypeLiteral(t)) {
+    if (S.AST.isObjects(t)) {
       select = t.propertySignatures.map((_) => _.name as string)
       for (const prop of t.propertySignatures) {
-        if (S.AST.isTupleType(prop.type)) {
+        if (S.AST.isArrays(prop.type)) {
           // make sure we only select when there are actually type literals in the tuple...
           // otherwise we might be dealing with strings etc.
           // TODO; be more strict, can't support arrays with unions that have non TypeLiteral members etc..
@@ -178,8 +178,8 @@ export const toFilter = <
             subKeys: Array.flatMap(
               prop.type.rest,
               (x) => {
-                const t = walkTransformation(x.type)
-                return S.AST.isTypeLiteral(t) ? t.propertySignatures.map((y) => y.name as string) : []
+                const t = walkTransformation(x)
+                return S.AST.isObjects(t) ? t.propertySignatures.map((y) => y.name as string) : []
               }
             )
           }

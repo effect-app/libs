@@ -1,5 +1,5 @@
 import { type makeIntl } from "@effect-app/vue"
-import { type S } from "effect-app"
+import { S } from "effect-app"
 import { inject, type InjectionKey, provide } from "vue"
 
 export const useIntlKey = Symbol() as InjectionKey<
@@ -24,9 +24,5 @@ export const provideIntl = (
  * @returns The source AST at the end of the transformation chain
  */
 export function getTransformationFrom(ast: S.AST.AST) {
-  if (ast._tag === "Transformation") {
-    return getTransformationFrom(ast.from)
-  } else {
-    return ast
-  }
+  return S.AST.toType(ast)
 }

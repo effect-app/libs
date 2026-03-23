@@ -1,7 +1,7 @@
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, flow, Layer, Option, pipe, S, Struct } from "effect-app"
+import { Effect, flow, Layer, Option, pipe, S, ServiceMap, Struct } from "effect-app"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
@@ -12,7 +12,7 @@ import { SomeService } from "./fixtures.js"
 
 const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
 const num = S.Struct({ _tag: S.Literal("number"), value: S.Number })
-const someUnion = S.Union(str, num)
+const someUnion = S.Union([str, num])
 
 export class Something extends S.Class<Something>("Something")({
   id: S.StringId.withDefault,
@@ -23,7 +23,7 @@ export class Something extends S.Class<Something>("Something")({
 }) {}
 export declare namespace Something {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  export interface Encoded extends S.Schema.Encoded<typeof Something> {}
+  export interface Encoded extends S.Codec.Encoded<typeof Something> {}
 }
 
 const q = make<Something.Encoded>()
@@ -38,9 +38,13 @@ const q = make<Something.Encoded>()
     // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
     project(
       S.transformToOrFail(
-        S.Struct(Struct.pick(Something.fields, "id", "displayName")),
-        S.Struct(Struct.pick(Something.fields, "id", "displayName")),
-        (_) => Effect.andThen(SomeService, _)
+        S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
+        S.Struct(Struct.pick(Something.fields, ["id", "displayName"])),
+        (_) =>
+          Effect.gen(function*() {
+            yield* SomeService
+            return _
+          })
       )
     )
   )
@@ -91,12 +95,12 @@ it("works", () => {
     }))(_)
   ))
 
-  expect(processed).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("id", "displayName")))
+  expect(processed).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
 })
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
-  effect: Effect.gen(function*() {
+class SomethingRepo extends ServiceMap.Service<SomethingRepo>()("SomethingRepo", {
+  make: Effect.gen(function*() {
     return yield* makeRepo("Something", Something, {})
   })
 }) {
@@ -104,7 +108,7 @@ class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
     .effect(
       SomethingRepo,
       Effect.gen(function*() {
-        return SomethingRepo.make(yield* makeRepo("Something", Something, { makeInitial: Effect.sync(() => items) }))
+        return SomethingRepo.of(yield* makeRepo("Something", Something, { makeInitial: Effect.sync(() => items) }))
       })
     )
     .pipe(
@@ -134,9 +138,13 @@ it("works with repo", () =>
           // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
           project(
             S.transformToOrFail(
-              S.Struct(Struct.pick(Something.fields, "displayName")),
-              S.Struct(Struct.pick(Something.fields, "displayName")),
-              (_) => Effect.andThen(SomeService, _)
+              S.Struct(Struct.pick(Something.fields, ["displayName"])),
+              S.Struct(Struct.pick(Something.fields, ["displayName"])),
+              (_) =>
+                Effect.gen(function*() {
+                  yield* SomeService
+                  return _
+                })
             )
           )
         )
@@ -148,11 +156,11 @@ it("works with repo", () =>
 
       expectTypeOf(smtArr).toEqualTypeOf<readonly Something[]>()
 
-      expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("id", "displayName")))
-      expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick("displayName")))
+      expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
+      expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
     })
     .pipe(
-      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
       setupRequestContextFromCurrent(),
       Effect.runPromise
     ))
@@ -171,11 +179,11 @@ it("collect", () =>
             // for projection performance benefit, this should be limited to the fields interested, and leads to SELECT fields
             project(
               S.transformTo(
-                S.encodedSchema(S.Struct({
-                  ...Struct.pick(Something.fields, "n"),
+                S.toEncoded(S.Struct({
+                  ...Struct.pick(Something.fields, ["n"]),
                   displayName: S.String
                 })),
-                S.typeSchema(S.Option(S.String)),
+                S.toType(S.Option(S.String)),
                 (_) =>
                   _.displayName === "Riley" && _.n === "2020-01-01T00:00:00.000Z"
                     ? Option.some(`${_.displayName}-${_.n}`)
@@ -223,7 +231,7 @@ it("collect", () =>
       expect(value).toEqual("hi")
     })
     .pipe(
-      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.toLayer())),
+      Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),
       setupRequestContextFromCurrent(),
       Effect.runPromise
     ))
@@ -250,7 +258,7 @@ namespace Test {
   export interface Encoded extends S.Struct.Encoded<typeof Test["fields"]> {}
 }
 
-const TestUnion = S.Union(Person, Animal, Test)
+const TestUnion = S.Union([Person, Animal, Test])
 type TestUnion = typeof TestUnion.Type
 namespace TestUnion {
   export type Encoded = typeof TestUnion.Encoded
@@ -487,7 +495,7 @@ it(
 
         type Union = AA | BB | CC | DD
 
-        const repo = yield* makeRepo("test", S.Union(AA, BB, CC, DD), {})
+        const repo = yield* makeRepo("test", S.Union([AA, BB, CC, DD]), {})
 
         const query1 = make<Union>().pipe(
           where("id", "AA")
@@ -510,11 +518,10 @@ it(
       .gen(function*() {
         const schema = S.Struct({
           id: S.String,
-          createdAt: S
-            .optional(S.Date)
-            .pipe(
-              S.withDefaults({ constructor: () => new Date(), decoding: () => new Date() })
-            )
+          createdAt: S.Date.pipe(
+            S.withDecodingDefault(() => new Date().toISOString()),
+            S.withConstructorDefault(() => Option.some(new Date()))
+          )
         })
         const repo = yield* makeRepo(
           "test",
@@ -524,11 +531,10 @@ it(
 
         const outputSchema = S.Struct({
           id: S.Literal("123"),
-          createdAt: S
-            .optional(S.Date)
-            .pipe(
-              S.withDefaults({ constructor: () => new Date(), decoding: () => new Date() })
-            )
+          createdAt: S.Date.pipe(
+            S.withDecodingDefault(() => new Date().toISOString()),
+            S.withConstructorDefault(() => Option.some(new Date()))
+          )
         })
 
         const result = yield* repo.query(where("id", "123"), project(outputSchema))
@@ -575,7 +581,7 @@ it(
       .gen(function*() {
         const schema = S.Struct({
           id: S.String,
-          literals: S.Union(S.Literal("a", "b", "c"), S.Null)
+          literals: S.Union([S.Literal("a", "b", "c"), S.Null])
         })
 
         type Schema = typeof schema.Type
@@ -619,7 +625,7 @@ it(
       .gen(function*() {
         const schema = S.Struct({
           id: S.String,
-          literals: S.Union(S.String, S.Null)
+          literals: S.Union([S.String, S.Null])
         })
 
         type Schema = typeof schema.Type
@@ -671,7 +677,7 @@ it("remove null from one constituent of a tagged union", () =>
 
       type Union = AA | BB
 
-      const repo = yield* makeRepo("test", S.Union(AA, BB), {})
+      const repo = yield* makeRepo("test", S.Union([AA, BB]), {})
 
       const query1 = make<Union>().pipe(
         where("id", "AA"),
@@ -729,7 +735,7 @@ it("refine 3", () =>
 
       type Union = AA | BB | CC | DD
 
-      const repo = yield* makeRepo("test", S.Union(AA, BB, CC, DD), {})
+      const repo = yield* makeRepo("test", S.Union([AA, BB, CC, DD]), {})
 
       const query1 = make<Union>().pipe(
         where("id", "AA")
@@ -773,7 +779,7 @@ it("refine inner without imposing a projection", () =>
 
       class Data extends S.Class<Data>("Data")({
         id: S.String,
-        union: S.Union(AA, BB)
+        union: S.Union([AA, BB])
       }) {}
 
       const repo = yield* makeRepo("data", Data, {})
@@ -1001,20 +1007,20 @@ it("refine union with nested union", () =>
 
       class Container1 extends S.TaggedClass<Container1>()("Container1", {
         id: S.String,
-        nested: S.Union(A, B, C)
+        nested: S.Union([A, B, C])
       }) {}
 
       class Container2 extends S.TaggedClass<Container2>()("Container2", {
         id: S.String,
-        nested: S.Union(B, C, D)
+        nested: S.Union([B, C, D])
       }) {}
 
       class Container3 extends S.TaggedClass<Container3>()("Container3", {
         id: S.String,
-        nested: S.Union(C, D, E)
+        nested: S.Union([C, D, E])
       }) {}
 
-      const Containers = S.Union(Container1, Container2, Container3)
+      const Containers = S.Union([Container1, Container2, Container3])
       type Containers = typeof Containers.Type
 
       const repo = yield* makeRepo("containers", Containers, {})

@@ -19,7 +19,7 @@ describe("OmegaForm Defaults", () => {
       .pipe(
         S.withDefaultConstructor(() => [{ e: S.NonEmptyString("default") }])
       ),
-    f: S.Union(
+    f: S.Union([
       S.Struct({
         _tag: S.Literal("taggo1").pipe(S.withDefaultConstructor(() => "taggo1")),
         g: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
@@ -30,11 +30,11 @@ describe("OmegaForm Defaults", () => {
         h: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
         i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
       })
-    ),
+    ]),
     j: S.Number.pipe(S.withDefaultConstructor(() => 0)),
     k: S.Boolean.pipe(S.withDefaultConstructor(() => true)),
     l: S.NullOr(
-      S.Union(
+      S.Union([
         S.Struct({
           a: S.NonEmptyString255,
           common: S.NonEmptyString255,
@@ -45,7 +45,7 @@ describe("OmegaForm Defaults", () => {
           common: S.NonEmptyString255,
           _tag: S.Literal("B")
         })
-      )
+      ])
     ),
     m: S.Struct({
       n: S.NullOr(S.Struct({ q: S.String })),
@@ -68,7 +68,7 @@ describe("OmegaForm Defaults", () => {
   class ClassSchema extends S.ExtendedClass<ClassSchema, any>("ClassSchema")(struct) {}
   const schema = S.Struct(struct)
 
-  const Union = S.Union(
+  const Union = S.Union([
     S.Struct({
       _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
       a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
@@ -80,7 +80,7 @@ describe("OmegaForm Defaults", () => {
       b: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
       c: schema
     })
-  )
+  ])
 
   it("should have correct default values for form zero (ClassSchema)", async () => {
     const wrapper = mount({
@@ -205,6 +205,40 @@ describe("OmegaForm Defaults", () => {
         "u": null
       }
     })
+  })
+
+  it("should not initialize _tag for a root union without explicit defaults", async () => {
+    const wrapper = mount({
+      components: { OmegaIntlProvider },
+      template: `
+        <OmegaIntlProvider>
+          <component :is="form.Form" :subscribe="['values']">
+            <template #default="{ subscribedValues: { values } }">
+              <div data-testid="values">{{ JSON.stringify(values) }}</div>
+            </template>
+          </component>
+        </OmegaIntlProvider>
+      `,
+      setup() {
+        const form = useOmegaForm(S.Union([
+          S.Struct({
+            _tag: S.Literal("one"),
+            a: S.Struct({ z: S.NonEmptyString100 })
+          }),
+          S.Struct({
+            _tag: S.Literal("two"),
+            a: S.Struct({ y: S.NonNegativeInt })
+          })
+        ]))
+
+        return { form }
+      }
+    })
+
+    await wrapper.vm.$nextTick()
+
+    const valuesText = wrapper.find("[data-testid=\"values\"]").text()
+    expect(JSON.parse(valuesText)).not.toHaveProperty("_tag")
   })
 
   it("should have correct default values for form three (with defaultValues merged)", async () => {
@@ -389,7 +423,7 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(S.Union(
+        const form = useOmegaForm(S.Union([
           S.Struct({
             _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
             a: S.NonEmptyString,
@@ -400,7 +434,7 @@ describe("OmegaForm Defaults", () => {
             b: S.NonEmptyString,
             t: S.Number
           })
-        ))
+        ]))
         return { form }
       }
     })
@@ -432,14 +466,14 @@ describe("OmegaForm Defaults", () => {
       setup() {
         const form = useOmegaForm(ClassSchema
           .pipe(
-            S.filter((form) => {
+            S.check(S.makeFilter((form) => {
               if (form.a !== form.b) {
                 return {
                   path: ["a"],
                   message: "Email and confirmation must match!"
                 }
               }
-            })
+            }))
           ))
         return { form }
       }
@@ -480,14 +514,14 @@ describe("OmegaForm Defaults", () => {
         </OmegaIntlProvider>
       `,
       setup() {
-        const form = useOmegaForm(ClassSchema.pipe(S.filter((form) => {
+        const form = useOmegaForm(ClassSchema.pipe(S.check(S.makeFilter((form) => {
           if (form.a !== form.b) {
             return {
               path: ["a"],
               message: "Email and confirmation must match!"
             }
           }
-        })))
+        }))))
         return { form }
       }
     })

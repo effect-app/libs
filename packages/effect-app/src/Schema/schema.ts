@@ -1,6 +1,5 @@
-import * as A from "effect/Arbitrary"
 import * as B from "effect/Brand"
-import * as P from "effect/ParseResult"
 import * as AST from "effect/SchemaAST"
+import * as P from "effect/SchemaParser"
 
-export { A, AST, B, P }
+export { AST, B, P }

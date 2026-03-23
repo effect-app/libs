@@ -102,25 +102,25 @@ const eHoc = (errorProps: {
 
         const errors = computed(() => {
           // Collect errors from fieldMeta (field-level errors for registered fields)
-          const fieldErrors = Array.filterMap(
-            Object
-              .entries(fieldMeta.value),
-            ([key, m]): Option.Option<OmegaError> => {
-              const fieldErrors = (m as any).errors ?? []
-              if (!fieldErrors.length) return Option.none()
-
-              const fieldInfo = fieldMap.value.get(key)
-              // Only show errors for fields that are currently mounted (registered in fieldMap)
-              if (!fieldInfo) return Option.none()
-
-              return Option.some({
-                label: fieldInfo.label,
-                inputId: fieldInfo.id,
-                // Only show the first error
-                errors: [fieldErrors[0]?.message].filter(Boolean)
-              })
+          const fieldErrors = Object.entries(fieldMeta.value).reduce<OmegaError[]>((acc, [key, m]) => {
+            const fieldErrors = (m as { errors?: Array<{ message?: string }> } | undefined)?.errors ?? []
+            if (!fieldErrors.length) {
+              return acc
             }
-          )
+
+            const fieldInfo = fieldMap.value.get(key)
+            if (!fieldInfo) {
+              return acc
+            }
+
+            acc.push({
+              label: fieldInfo.label,
+              inputId: fieldInfo.id,
+              errors: [fieldErrors[0]?.message].filter(Boolean) as string[]
+            })
+
+            return acc
+          }, [])
 
           // Collect errors from errorMap.onSubmit ONLY for fields that are NOT registered
           // (registered fields already have their errors in fieldMeta)
@@ -396,7 +396,7 @@ export interface OmegaFormReturn<
   // Pre-computed type aliases - computed ONCE for performance
   _paths: FieldPath<From>
   _keys: DeepKeys<From>
-  _schema: S.Schema<To, From, never>
+  _schema: S.Codec<To, From, never>
 
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
   Input: <Name extends OmegaFormReturn<From, To, TypeProps>["_paths"]>(
@@ -675,13 +675,13 @@ export const useOmegaForm = <
   To extends Record<PropertyKey, any>,
   TypeProps = DefaultTypeProps
 >(
-  schema: S.Schema<To, From, never>,
+  schema: S.Codec<To, From, never>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
-  const standardSchema = S.standardSchemaV1(schema)
-  const decode = S.decode(schema)
+  const standardSchema = S.toStandardSchemaV1(schema)
+  const decode = S.decodeUnknownEffect(schema)
 
   const { meta, unionMeta } = generateMetaFromSchema(schema)
 
@@ -796,18 +796,14 @@ export const useOmegaForm = <
             meta,
             value: parsedValue
           })
-          if (Fiber.isFiber(r) && Fiber.isRuntimeFiber(r)) {
+          if (Fiber.isFiber(r)) {
             return await runtimeFiberAsPromise(r)
           }
           if (Effect.isEffect(r)) {
-            return await Effect.runPromise(
-              r.pipe(
-                // meta?.currentSpan
-                //   ? Effect.withParentSpan(meta.currentSpan)
-                //   : (_) => _,
-                Effect.flatMap((_) => Fiber.join(_))
-              )
-            )
+            const effectResult = await Effect.runPromise(r)
+            return Fiber.isFiber(effectResult)
+              ? await runtimeFiberAsPromise(effectResult)
+              : effectResult
           }
           return r
         })
@@ -837,11 +833,12 @@ export const useOmegaForm = <
 
   const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
     if (!persistency) return
-    if (Array.isArray(persistency.keys)) {
-      return createNestedObjectFromPaths(persistency.keys)
+    const { banKeys, keys } = persistency
+    if (Array.isArray(keys)) {
+      return createNestedObjectFromPaths(keys as string[])
     }
-    if (Array.isArray(persistency.banKeys)) {
-      const subs = Object.keys(meta).filter((metakey) => persistency.banKeys?.includes(metakey as any))
+    if (Array.isArray(banKeys)) {
+      const subs = Object.keys(meta).filter((metakey) => banKeys.includes(metakey as any))
       return createNestedObjectFromPaths(subs)
     }
     return form.store.state.values
@@ -940,7 +937,7 @@ export const useOmegaForm = <
       ? handleSubmitEffect_(options?.meta).pipe(Effect.flatMap(Effect.fnUntraced(function*() {
         const errors = form.getAllErrors()
         if (Object.keys(errors.fields).length || errors.form.errors.length) {
-          return yield* new FormErrors({ form: errors.form, fields: errors.fields })
+          return yield* Effect.fail(new FormErrors({ form: errors.form, fields: errors.fields }))
         }
       })))
       : handleSubmitEffect_(options?.meta)

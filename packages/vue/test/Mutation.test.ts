@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
-import { type RuntimeFiber } from "effect/Fiber"
 import { CommandContext, DefaultIntl } from "../src/experimental/commander.js"
-import { Result } from "../src/lib.js"
+import { AsyncResult } from "../src/lib.js"
 import { useExperimental } from "./stubs.js"
 
-const unwrap = <A, E>(r: RuntimeFiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
+const unwrap = <A, E>(r: Fiber.Fiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
 
 // declare const mutation: {
 //   name: "myMutation"
@@ -72,9 +71,9 @@ describe("alt2", () => {
               expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
             })),
             Effect.tap(() =>
-              Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+              Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
             ),
-            Effect.tap(() => executed = true)
+            Effect.tap(() => Effect.sync(() => executed = true))
           )
         )
 
@@ -89,7 +88,7 @@ describe("alt2", () => {
         expect(r).toBe("test-value") // to confirm that the initial function has ran.
         expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-        expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+        expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
         expect(toasts.length).toBe(0)
 
@@ -126,9 +125,9 @@ it.live("works", () =>
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
         ),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
       expect(command.action).toBe("Test Action")
       expect(command.id).toBe("Test Action")
@@ -141,7 +140,7 @@ it.live("works", () =>
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-      expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+      expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
 
@@ -176,9 +175,9 @@ it.live("works non-gen", () =>
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
         ),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
       expect(command.action).toBe("Test Action")
 
@@ -188,7 +187,7 @@ it.live("works non-gen", () =>
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-      expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+      expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
     }))
@@ -211,7 +210,7 @@ it.live("has custom action name", () =>
           expect(yield* CommandContext).toMatchObject({ action: "Test Action Translated", id: "Test Action" })
           return "test-value"
         },
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
       expect(command.action).toBe("Test Action Translated")
       const r = yield* unwrap(command.handle())
@@ -235,7 +234,7 @@ it.live("can map the result", () =>
           return "test-value"
         },
         Effect.map((_) => _ + _),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
       const r = yield* unwrap(command.handle())
 
@@ -257,7 +256,7 @@ it.live("can receive and use input", () =>
 
           return { input1, input2 }
         },
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
       const r = yield* unwrap(command.handle(1))
 
@@ -285,8 +284,8 @@ it.live("can replace the result", () =>
 
           return "test-value"
         },
-        Effect.zipRight(Effect.succeed(42)),
-        Effect.tap(() => executed = true)
+        Effect.andThen(Effect.succeed(42)),
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
       const r = yield* unwrap(command.handle())
 
@@ -318,7 +317,7 @@ it.live("with toasts", () =>
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
         ),
         // WithToast.handle({
         //   onFailure: "failed",
@@ -326,7 +325,7 @@ it.live("with toasts", () =>
         //   onWaiting: null
         // }),
         Command.withDefaultToast(),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
 
       const r = yield* unwrap(command.handle())
@@ -352,16 +351,16 @@ it.live("interrupted", () =>
           return "test-value"
         },
         Command.withDefaultToast(),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
 
       const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we were interrupted after all :)
-      expect(Exit.isInterrupted(r)).toBe(true) // to confirm that the initial function has interrupted
+      expect(Exit.hasInterrupts(r)).toBe(true) // to confirm that the initial function has interrupted
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isInterrupted(Result.toExit(command.result))).toBe(true)
+      expect(Exit.hasInterrupts(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(0) // toast is removed on interruption. TODO: maybe a nicer user experience can be had?
     }))
 
@@ -378,16 +377,16 @@ it.live("fail", () =>
           return yield* Effect.fail({ message: "Boom!" })
         },
         Command.withDefaultToast(),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
 
       const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we failed after all :)
-      expect(Exit.isFailure(r) && Cause.isFailure(r.cause)).toBe(true) // to confirm that the initial function has failed
+      expect(Exit.isFailure(r) && Cause.hasFails(r.cause)).toBe(true) // to confirm that the initial function has failed
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
     }))
@@ -404,9 +403,9 @@ it.live("fail and recover", () =>
           expect(toasts.length).toBe(1)
           return yield* Effect.fail({ message: "Boom!" })
         },
-        Effect.catchAll(() => Effect.succeed("recovered")), // we recover from the error here, so the final result is success
+        Effect.orElseSucceed(() => "recovered"), // we recover from the error here, so the final result is success
         Command.withDefaultToast(),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
 
       const r = yield* unwrap(command.handle())
@@ -415,7 +414,7 @@ it.live("fail and recover", () =>
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
 
       expect(command.waiting).toBe(false)
-      expect(Result.toExit(command.result)).toEqual(Exit.succeed("recovered"))
+      expect(AsyncResult.toExit(command.result)).toEqual(Exit.succeed("recovered"))
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Success")
     }))
@@ -433,17 +432,17 @@ it.live("defect", () =>
           return yield* Effect.die({ message: "Boom!" })
         },
         Command.withDefaultToast(),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       )
 
       const r = yield* Fiber.join(command.handle())
       // TODO: confirm we reported error
 
       expect(executed).toBe(false) // we died after all :)
-      expect(Exit.isFailure(r) && Cause.isDie(r.cause)).toBe(true) // to confirm that the initial function has died
+      expect(Exit.isFailure(r) && Cause.hasDies(r.cause)).toBe(true) // to confirm that the initial function has died
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action unexpected error, please try again shortly.")
     }))
@@ -472,9 +471,9 @@ it.live("works with alt", () =>
             expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
           })),
           Effect.tap(() =>
-            Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+            Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
           ),
-          Effect.tap(() => executed = true)
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
       expect(command.action).toBe("Test Action")
@@ -485,7 +484,7 @@ it.live("works with alt", () =>
       expect(r).toBe("test-value") // to confirm that the initial function has ran.
       expect(executed).toBe(true) // to confirm that the combinators have ran.
 
-      expect(command.result.pipe(Result.value)).toEqual(Option.some("test-value"))
+      expect(command.result.pipe(AsyncResult.value)).toEqual(Option.some("test-value"))
 
       expect(toasts.length).toBe(0)
     }))
@@ -509,7 +508,7 @@ it.live("has custom action name with alt", () =>
             expect(yield* CommandContext).toMatchObject({ action: "Test Action Translated", id: "Test Action" })
             return "test-value"
           },
-          Effect.tap(() => executed = true)
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
       expect(command.action).toBe("Test Action Translated")
@@ -534,7 +533,7 @@ it.live("can map the result with alt", () =>
           return "test-value"
         },
         Effect.map((_) => _ + _),
-        Effect.tap(() => executed = true)
+        Effect.tap(() => Effect.sync(() => executed = true))
       ))
       const r = yield* unwrap(command.handle())
 
@@ -560,7 +559,7 @@ it.live("can receive and use input with alt", () =>
             }
           )
           .pipe(
-            Effect.tap(() => executed = true)
+            Effect.tap(() => Effect.sync(() => executed = true))
           )
       )
       const r = yield* unwrap(command.handle(1))
@@ -590,8 +589,8 @@ it.live("can replace the result with alt", () =>
 
             return "test-value"
           },
-          Effect.zipRight(Effect.succeed(42)),
-          Effect.tap(() => executed = true)
+          Effect.andThen(Effect.succeed(42)),
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
       const r = yield* unwrap(command.handle())
@@ -625,10 +624,10 @@ it.live("with toasts with alt", () =>
             expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
           })),
           Effect.tap(() =>
-            Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => expect(_).toBe("Test Action")))
+            Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
           ),
           Command.withDefaultToast(),
-          Effect.tap(() => executed = true)
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
 
@@ -657,17 +656,17 @@ it.live("interrupted with alt", () =>
             return "test-value"
           },
           Command.withDefaultToast(),
-          Effect.tap(() => executed = true)
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
 
       const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we were interrupted after all :)
-      expect(Exit.isInterrupted(r)).toBe(true) // to confirm that the initial function has interrupted
+      expect(Exit.hasInterrupts(r)).toBe(true) // to confirm that the initial function has interrupted
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isInterrupted(Result.toExit(command.result))).toBe(true)
+      expect(Exit.hasInterrupts(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(0) // toast is removed on interruption. TODO: maybe a nicer user experience can be had?
     }))
 
@@ -685,17 +684,17 @@ it.live("fail with alt", () =>
             return yield* Effect.fail({ message: "Boom!" })
           },
           Command.withDefaultToast(),
-          Effect.tap(() => executed = true)
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
 
       const r = yield* Fiber.join(command.handle())
 
       expect(executed).toBe(false) // we failed after all :)
-      expect(Exit.isFailure(r) && Cause.isFailure(r.cause)).toBe(true) // to confirm that the initial function has failed
+      expect(Exit.isFailure(r) && Cause.hasFails(r.cause)).toBe(true) // to confirm that the initial function has failed
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
     }))
@@ -713,9 +712,9 @@ it.live("fail and recover with alt", () =>
             expect(toasts.length).toBe(1)
             return yield* Effect.fail({ message: "Boom!" })
           },
-          Effect.catchAll(() => Effect.succeed("recovered")), // we recover from the error here, so the final result is success
+          Effect.orElseSucceed(() => "recovered"), // we recover from the error here, so the final result is success
           Command.withDefaultToast(),
-          Effect.tap(() => executed = true)
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
 
@@ -725,7 +724,7 @@ it.live("fail and recover with alt", () =>
       expect(r).toBe("recovered") // to confirm that the initial function has failed but we recovered
 
       expect(command.waiting).toBe(false)
-      expect(Result.toExit(command.result)).toEqual(Exit.succeed("recovered"))
+      expect(AsyncResult.toExit(command.result)).toEqual(Exit.succeed("recovered"))
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Success")
     }))
@@ -744,7 +743,7 @@ it.live("defect with alt", () =>
             return yield* Effect.die({ message: "Boom!" })
           },
           Command.withDefaultToast(),
-          Effect.tap(() => executed = true)
+          Effect.tap(() => Effect.sync(() => executed = true))
         )
       )
 
@@ -752,10 +751,10 @@ it.live("defect with alt", () =>
       // TODO: confirm we reported error
 
       expect(executed).toBe(false) // we died after all :)
-      expect(Exit.isFailure(r) && Cause.isDie(r.cause)).toBe(true) // to confirm that the initial function has died
+      expect(Exit.isFailure(r) && Cause.hasDies(r.cause)).toBe(true) // to confirm that the initial function has died
 
       expect(command.waiting).toBe(false)
-      expect(Exit.isFailure(Result.toExit(command.result))).toBe(true)
+      expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action unexpected error, please try again shortly.")
     }))

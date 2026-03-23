@@ -38,9 +38,9 @@ const exampleForm = useOmegaForm(
   S.Struct({
     aString: S.String,
     aStringMin2Max3Optional: S.UndefinedOr(
-      S.String.pipe(S.minLength(2)).pipe(S.maxLength(3))
+      S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))
     ),
-    aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.between(2, 4)))
+    aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.check(S.isBetween({ minimum: 2, maximum: 4 }))))
   }),
   {
     // we should really be setting default values to do all correctly

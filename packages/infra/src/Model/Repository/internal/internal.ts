@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {} from "effect/Equal"
 import type {} from "effect/Hash"
-import { Array, Chunk, Context, Effect, Either, Equivalence, flow, type NonEmptyReadonlyArray, Option, pipe, Pipeable, PubSub, S, Unify } from "effect-app"
+import { Array, Chunk, Effect, Equivalence, flow, type NonEmptyReadonlyArray, Option, pipe, Pipeable, PubSub, Result, S, SchemaAST, ServiceMap, Unify } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { NotFoundError } from "effect-app/client/errors"
 import { flatMapOption } from "effect-app/Effect"
-import { NonNegativeInt, type Schema } from "effect-app/Schema"
+import { type Codec, NonNegativeInt } from "effect-app/Schema"
 import { setupRequestContextFromCurrent } from "../../../api/setupRequest.js"
 import { type FilterArgs, type PersistenceModelType, type StoreConfig, StoreMaker } from "../../../Store.js"
 import { getContextMap } from "../../../Store/ContextMapContainer.js"
@@ -14,7 +14,7 @@ import * as Q from "../../query.js"
 import type { Repository } from "../service.js"
 import { ValidationError, ValidationResult } from "../validation.js"
 
-const dedupe = Array.dedupeWith(Equivalence.string)
+const dedupe = Array.dedupeWith(Equivalence.String)
 
 /**
  * A base implementation to create a repository.
@@ -30,7 +30,7 @@ export function makeRepoInternal<
     IdKey extends keyof T & keyof Encoded
   >(
     name: ItemType,
-    schema: S.Schema<T, Encoded, R>,
+    schema: S.Codec<T, Encoded, R>,
     mapFrom: (pm: Encoded) => Encoded,
     mapTo: (e: Encoded, etag: string | undefined) => PersistenceModelType<Encoded>,
     idKey: IdKey
@@ -55,14 +55,14 @@ export function makeRepoInternal<
 
     function make<RInitial = never, E = never, RPublish = never, RCtx = never>(
       args: [Evt] extends [never] ? {
-          schemaContext?: Context.Context<RCtx>
+          schemaContext?: ServiceMap.ServiceMap<RCtx>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
             partitionValue?: (e?: Encoded) => string
           }
         }
         : {
-          schemaContext?: Context.Context<RCtx>
+          schemaContext?: ServiceMap.ServiceMap<RCtx>
           publishEvents: (evt: NonEmptyReadonlyArray<Evt>) => Effect.Effect<void, never, RPublish>
           makeInitial?: Effect.Effect<readonly T[], E, RInitial> | undefined
           config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
@@ -72,21 +72,21 @@ export function makeRepoInternal<
     ) {
       return Effect
         .gen(function*() {
-          const rctx: Context.Context<RCtx> = args.schemaContext ?? Context.empty() as any
+          const rctx: ServiceMap.ServiceMap<RCtx> = args.schemaContext ?? ServiceMap.empty() as any
           const provideRctx = Effect.provide(rctx)
           const encodeMany = flow(
-            S.encode(S.Array(schema)),
+            S.encodeEffect(S.Array(schema)),
             provideRctx,
-            Effect.withSpan("encodeMany", { captureStackTrace: false })
+            Effect.withSpan("encodeMany", {}, { captureStackTrace: false })
           )
-          const decode = flow(S.decode(schema), provideRctx)
+          const decode = flow(S.decodeEffect(schema), provideRctx)
           const decodeMany = flow(
-            S.decode(S.Array(schema)),
+            S.decodeEffect(S.Array(schema)),
             provideRctx
           )
 
           const store = yield* mkStore(args.makeInitial, args.config)
-          const cms = Effect.andThen(getContextMap.pipe(Effect.orDie), (_) => ({
+          const cms = Effect.map(getContextMap.pipe(Effect.orDie), (_) => ({
             get: (id: string) => _.get(`${name}.${id}`),
             set: (id: string, etag: string | undefined) => _.set(`${name}.${id}`, etag)
           }))
@@ -113,20 +113,30 @@ export function makeRepoInternal<
               let ast = _.ast
               if (ast._tag === "Declaration") ast = ast.typeParameters[0]!
 
-              const s = S.make(ast) as unknown as Schema<T, Encoded, R>
+              // In v4, to get the encoded (from) side of a schema, use SchemaAST.toEncoded
+              const pickIdFromAst = (a: SchemaAST.AST) => {
+                const encoded = SchemaAST.toEncoded(a)
+                if (SchemaAST.isObjects(encoded)) {
+                  const field = encoded.propertySignatures.find((_) => _.name === idKey)
+                  if (field) {
+                    return S.Struct({ [idKey]: S.make(field.type) }) as unknown as Codec<T, Encoded>
+                  }
+                }
+                return S.make(a) as unknown as Codec<T, Encoded>
+              }
 
               return ast._tag === "Union"
-                // we need to get the TypeLiteral, incase of class it's behind a transform...
+                // we need to get the Objects (TypeLiteral), in case of class it has encoding chain...
                 ? S.Union(
-                  ...ast.types.map((_) =>
-                    (S.make(_._tag === "Transformation" ? _.from : _) as unknown as Schema<T, Encoded>)
-                      .pipe(S.pick(idKey as any))
-                  )
+                  ast.types.map((_) => pickIdFromAst(_))
                 )
-                : s.pipe(S.pick(idKey as any))
+                : pickIdFromAst(ast)
             })
-          const encodeId = flow(S.encode(i), provideRctx)
-          const encodeIdOnly = (id: string) => encodeId({ [idKey]: id } as any).pipe(Effect.map((_) => _[idKey]))
+          const encodeId = flow(S.encodeEffect(i), provideRctx)
+          const encodeIdOnly = (id: string) =>
+            encodeId({ [idKey]: id } as any).pipe(
+              Effect.map((_: Record<string, unknown>) => _[idKey as string] as Encoded[IdKey])
+            )
           const findEId = Effect.fnUntraced(function*(id: Encoded[IdKey]) {
             yield* Effect.annotateCurrentSpan({ itemId: id })
 
@@ -154,22 +164,21 @@ export function makeRepoInternal<
           const find = Effect.fn("find")(function*(id: T[IdKey]) {
             yield* Effect.annotateCurrentSpan({ itemId: id })
 
-            return yield* Effect.flatMapOption(findE(id), (_) => Effect.orDie(decode(_)))
+            return yield* flatMapOption(findE(id), (_) => Effect.orDie(decode(_)))
           })
 
           const saveAllE = (a: Iterable<Encoded>) =>
-            Effect
-              .flatMapOption(
-                Effect
-                  .sync(() => toNonEmptyArray([...a])),
-                (a) =>
-                  Effect.gen(function*() {
-                    const { get, set } = yield* cms
-                    const items = a.map((_) => mapToPersistenceModel(_, get))
-                    const ret = yield* store.batchSet(items)
-                    ret.forEach((_) => set(_[idKey], _._etag))
-                  })
-              )
+            flatMapOption(
+              Effect
+                .sync(() => toNonEmptyArray([...a])),
+              (a) =>
+                Effect.gen(function*() {
+                  const { get, set } = yield* cms
+                  const items = a.map((_) => mapToPersistenceModel(_, get))
+                  const ret = yield* store.batchSet(items)
+                  ret.forEach((_) => set(_[idKey], _._etag))
+                })
+            )
               .pipe(Effect.asVoid)
 
           const saveAll = (a: Iterable<T>) =>
@@ -187,8 +196,8 @@ export function makeRepoInternal<
               .pipe(
                 Effect.andThen(Effect.sync(() => toNonEmptyArray(evts))),
                 // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
-                (_) => Effect.flatMapOption(_, pub),
-                Effect.andThen(changeFeed.publish([Chunk.toArray(it), "save"])),
+                (_) => flatMapOption(_, pub),
+                Effect.andThen(PubSub.publish(changeFeed, [Chunk.toArray(it), "save"] as [T[], "save" | "remove"])),
                 Effect.asVoid
               )
           })
@@ -199,7 +208,7 @@ export function makeRepoInternal<
             const evts = [...events]
             yield* Effect.annotateCurrentSpan({ itemIds: it.map((_) => _[idKey]), eventCount: evts.length })
             const items = yield* encodeMany(it).pipe(Effect.orDie)
-            if (Array.isNonEmptyReadonlyArray(items)) {
+            if (Array.isReadonlyArrayNonEmpty(items)) {
               yield* store.batchRemove(
                 items.map((_) => (_[idKey])),
                 args.config?.partitionValue?.(items[0])
@@ -210,14 +219,14 @@ export function makeRepoInternal<
               yield* Effect
                 .sync(() => toNonEmptyArray(evts))
                 // TODO: for full consistency the events should be stored within the same database transaction, and then picked up.
-                .pipe((_) => Effect.flatMapOption(_, pub))
+                .pipe((_) => flatMapOption(_, pub))
 
-              yield* changeFeed.publish([it, "remove"])
+              yield* PubSub.publish(changeFeed, [it, "remove"] as [T[], "save" | "remove"])
             }
           })
 
           const removeById = Effect.fn("removeById")(function*(...ids: readonly T[IdKey][]) {
-            if (!Array.isNonEmptyReadonlyArray(ids)) {
+            if (!Array.isReadonlyArrayNonEmpty(ids)) {
               return
             }
             const { set } = yield* cms
@@ -227,25 +236,25 @@ export function makeRepoInternal<
             for (const id of eids) {
               set(id, undefined)
             }
-            yield* changeFeed.publish([[], "remove"])
+            yield* PubSub.publish(changeFeed, [[], "remove"] as [T[], "save" | "remove"])
           })
 
           const parseMany = (items: readonly PM[]) =>
             Effect
               .flatMap(cms, (cm) =>
                 decodeMany(items.map((_) => mapReverse(_, cm.set)))
-                  .pipe(Effect.orDie, Effect.withSpan("parseMany", { captureStackTrace: false })))
+                  .pipe(Effect.orDie, Effect.withSpan("parseMany", {}, { captureStackTrace: false })))
           const parseMany2 = <A, R>(
             items: readonly PM[],
-            schema: S.Schema<A, Encoded, R>
+            schema: S.Codec<A, Encoded, R>
           ) =>
             Effect
               .flatMap(cms, (cm) =>
                 S
-                  .decode(S.Array(schema))(
+                  .decodeEffect(S.Array(schema))(
                     items.map((_) => mapReverse(_, cm.set))
                   )
-                  .pipe(Effect.orDie, Effect.withSpan("parseMany2", { captureStackTrace: false })))
+                  .pipe(Effect.orDie, Effect.withSpan("parseMany2", {}, { captureStackTrace: false })))
           const filter = <U extends keyof Encoded = keyof Encoded>(args: FilterArgs<Encoded, U>) =>
             store
               .filter(
@@ -267,7 +276,7 @@ export function makeRepoInternal<
           const query: {
             <A, R, From extends FieldValues>(
               q: Q.QueryProjection<Encoded extends From ? From : never, A, R>
-            ): Effect.Effect<readonly A[], S.ParseResult.ParseError, R>
+            ): Effect.Effect<readonly A[], S.SchemaError, R>
             <A, R, EncodedRefined extends Encoded = Encoded>(
               q: Q.QAll<NoInfer<Encoded>, NoInfer<EncodedRefined>, A, R>
             ): Effect.Effect<readonly A[], never, R>
@@ -277,14 +286,14 @@ export function makeRepoInternal<
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
-                  Effect.andThen(flow(S.decode(S.Array(a.schema ?? schema)), provideRctx))
+                  Effect.andThen(flow(S.decodeEffect(S.Array(a.schema ?? schema)), provideRctx))
                 )
               : a.mode === "collect"
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
                   Effect.flatMap(flow(
-                    S.decode(S.Array(a.schema)),
+                    S.decodeEffect(S.Array(a.schema)),
                     Effect.map(Array.getSomes),
                     provideRctx
                   ))
@@ -301,25 +310,27 @@ export function makeRepoInternal<
               )
             return pipe(
               a.ttype === "one"
-                ? Effect.andThen(
+                ? Effect.flatMap(
                   eff,
                   flow(
                     Array.head,
-                    Effect.mapError(() => new NotFoundError({ id: "query", /* TODO */ type: name }))
+                    Option.match({
+                      onNone: () => Effect.fail(new NotFoundError({ id: "query", /* TODO */ type: name })),
+                      onSome: Effect.succeed
+                    })
                   )
                 )
                 : a.ttype === "count"
                 ? Effect
-                  .andThen(eff, (_) => NonNegativeInt(_.length))
-                  .pipe(Effect.catchTag("ParseError", (e) => Effect.die(e)))
+                  .map(eff, (_) => NonNegativeInt(_.length))
+                  .pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e)))
                 : eff,
               Effect.withSpan("Repository.query [effect-app/infra]", {
-                captureStackTrace: false,
                 attributes: {
                   "repository.model_name": name,
                   query: { ...a, schema: a.schema ? "__SCHEMA__" : a.schema, filter: a.filter }
                 }
-              })
+              }, { captureStackTrace: false })
             )
           }) as any
 
@@ -356,18 +367,18 @@ export function makeRepoInternal<
               const rawData = rawResult.value as Encoded
               const jitMResult = mapFrom(rawData) // apply jitM
 
-              const decodeResult = yield* S.decode(schema)(jitMResult).pipe(
-                Effect.either,
+              const decodeResult = yield* S.decodeEffect(schema)(jitMResult).pipe(
+                Effect.result,
                 provideRctx
               )
 
-              if (Either.isLeft(decodeResult)) {
+              if (Result.isFailure(decodeResult)) {
                 errors.push(
                   new ValidationError({
                     id,
                     rawData,
                     jitMResult,
-                    error: decodeResult.left
+                    error: decodeResult.failure
                   })
                 )
               }
@@ -381,7 +392,7 @@ export function makeRepoInternal<
             })
           })
 
-          const r: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<R, RCtx>, RPublish> = {
+          const r = {
             changeFeed,
             itemType: name,
             idKey,
@@ -391,8 +402,8 @@ export function makeRepoInternal<
             removeAndPublish,
             removeById,
             validateSample,
-            queryRaw(schema, q) {
-              const dec = S.decode(S.Array(schema))
+            queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {
+              const dec = S.decodeEffect(S.Array(schema))
               return store.queryRaw(q).pipe(Effect.flatMap(dec))
             },
             query(q: any) {
@@ -402,10 +413,10 @@ export function makeRepoInternal<
             /**
              * @internal
              */
-            mapped: <A, R>(schema: S.Schema<A, any, R>) => {
-              const dec = S.decode(schema)
-              const encMany = S.encode(S.Array(schema))
-              const decMany = S.decode(S.Array(schema))
+            mapped: <A, R>(schema: S.Codec<A, any, R>) => {
+              const dec = S.decodeEffect(schema)
+              const encMany = S.encodeEffect(S.Array(schema))
+              const decMany = S.decodeEffect(S.Array(schema))
               return {
                 all: allE.pipe(
                   Effect.flatMap(decMany),
@@ -430,12 +441,12 @@ export function makeRepoInternal<
                 // },
                 save: (...xes: any[]) =>
                   Effect.flatMap(encMany(xes), (_) => saveAllE(_)).pipe(
-                    Effect.withSpan("mapped.save", { captureStackTrace: false })
+                    Effect.withSpan("mapped.save", {}, { captureStackTrace: false })
                   )
               }
             }
           }
-          return r
+          return r as Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<R, RCtx>, RPublish>
         })
         .pipe(Effect
           // .withSpan("Repository.make [effect-app/infra]", { attributes: { "repository.model_name": name } })
@@ -465,7 +476,7 @@ export function makeStore<Encoded extends FieldValues>() {
     IdKey extends keyof Encoded
   >(
     name: ItemType,
-    schema: S.Schema<T, E, R>,
+    schema: S.Codec<T, E, R>,
     mapTo: (e: E, etag: string | undefined) => Encoded,
     idKey: IdKey
   ) => {
@@ -478,7 +489,7 @@ export function makeStore<Encoded extends FieldValues>() {
       function encodeToEncoded() {
         const getEtag = () => undefined
         return (t: T) =>
-          S.encode(schema)(t).pipe(
+          S.encodeEffect(schema)(t).pipe(
             Effect.orDie,
             Effect.map((_) => mapToPersistenceModel(_, getEtag))
           )

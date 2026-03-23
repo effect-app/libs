@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FetchHttpClient } from "@effect/platform"
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
 import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import { ref } from "vue"
 import { Commander } from "../src/experimental/commander.js"
 import { I18n } from "../src/experimental/intl.js"
@@ -15,45 +15,48 @@ import { LegacyMutation, makeClient } from "../src/makeClient.js"
 import { type MakeIntlReturn } from "../src/makeIntl.js"
 
 const fakeToastLayer = (toasts: any[] = []) =>
-  Toast.Toast.toLayer(Effect.sync(() => {
-    const dismiss = (id: Toast.ToastId) => {
-      const idx = toasts.findIndex((_) => _.id === id)
-      if (idx > -1) {
-        const toast = toasts[idx]
-        clearTimeout(toast.timeoutId)
-        toasts.splice(idx, 1)
+  Layer.effect(
+    Toast.Toast,
+    Effect.sync(() => {
+      const dismiss = (id: Toast.ToastId) => {
+        const idx = toasts.findIndex((_) => _.id === id)
+        if (idx > -1) {
+          const toast = toasts[idx]
+          clearTimeout(toast.timeoutId)
+          toasts.splice(idx, 1)
+        }
       }
-    }
-    const fakeToast = (message: string, options?: Toast.ToastOpts) => {
-      const id = options?.id ?? Math.random().toString(36).substring(2, 15)
-      console.log(`Toast [${id}]: ${message}`, options)
+      const fakeToast = (message: string, options?: Toast.ToastOpts) => {
+        const id = options?.id ?? Math.random().toString(36).substring(2, 15)
+        console.log(`Toast [${id}]: ${message}`, options)
 
-      options = { ...options, id }
-      const idx = toasts.findIndex((_) => _.id === id)
-      if (idx > -1) {
-        const toast = toasts[idx]
-        clearTimeout(toast.timeoutId)
-        Object.assign(toast, { message, options })
-        toast.timeoutId = setTimeout(() => {
-          toasts.splice(idx, 1)
-        }, options?.timeout ?? 3000)
-      } else {
-        const toast: any = { id, message, options }
-        toast.timeoutId = setTimeout(() => {
-          toasts.splice(idx, 1)
-        }, options?.timeout ?? 3000)
-        toasts.push(toast)
+        options = { ...options, id }
+        const idx = toasts.findIndex((_) => _.id === id)
+        if (idx > -1) {
+          const toast = toasts[idx]
+          clearTimeout(toast.timeoutId)
+          Object.assign(toast, { message, options })
+          toast.timeoutId = setTimeout(() => {
+            toasts.splice(idx, 1)
+          }, options?.timeout ?? 3000)
+        } else {
+          const toast: any = { id, message, options }
+          toast.timeoutId = setTimeout(() => {
+            toasts.splice(idx, 1)
+          }, options?.timeout ?? 3000)
+          toasts.push(toast)
+        }
+        return id
       }
-      return id
-    }
-    return Toast.wrap({
-      error: fakeToast,
-      warning: fakeToast,
-      success: fakeToast,
-      info: fakeToast,
-      dismiss
+      return Toast.Toast.of(Toast.wrap({
+        error: fakeToast,
+        warning: fakeToast,
+        success: fakeToast,
+        info: fakeToast,
+        dismiss
+      })) as any
     })
-  }))
+  )
 
 export const makeFakeIntl = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) => {
   const locale = ref("en" as const)
@@ -74,9 +77,7 @@ export const makeFakeIntl = (messages: Record<string, string> | Record<string, M
 }
 
 export const fakeIntlLayer = (messages: Record<string, string> | Record<string, MessageFormatElement[]> = {}) =>
-  I18n.toLayer(
-    Effect.sync(() => makeFakeIntl(messages))
-  )
+  Layer.effect(I18n, Effect.sync(() => I18n.of(makeFakeIntl(messages))))
 
 export const useExperimental = (
   options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }
@@ -99,8 +100,9 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
 export class GetSomething2WithDependencies extends Req<GetSomething2WithDependencies>()("GetSomething2", {
   id: S.String
 }, {
-  success: S.NumberFromString as S.Schema<number, string, "dep-a">,
-  failure: S.String as S.Schema<string, string, "dep-b">
+  // this is intentilally fake, to simulate a codec that requires a dependency
+  success: S.NumberFromString as S.Codec<number, string, "dep-a">,
+  error: S.String
 }) {}
 
 export const Something = { GetSomething2, GetSomething2WithDependencies, meta: { moduleName: "Something" as const } }

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Chunk, Duration, Effect, Layer, type NonEmptyReadonlyArray, Option, pipe, Redacted, Struct } from "effect-app"
+import { Array, Duration, Effect, Layer, type NonEmptyReadonlyArray, Option, pipe, Redacted, Struct } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { dropUndefinedT, mutable } from "effect-app/utils"
 import { CosmosClient, CosmosClientLayer } from "../adapters/cosmos-client.js"
@@ -70,12 +70,12 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     (x) =>
                       [
                         x,
-                        Option.match(Option.fromNullable(x._etag), {
+                        Option.match(Option.fromNullishOr(x._etag), {
                           onNone: () =>
                             dropUndefinedT({
                               operationType: "Create" as const,
                               resourceBody: {
-                                ...Struct.omit(x, "_etag", idKey),
+                                ...Struct.omit(x, ["_etag", idKey]),
                                 id: x[idKey],
                                 _partitionKey: config?.partitionValue(x)
                               }
@@ -87,7 +87,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                               operationType: "Replace" as const,
                               id: x[idKey],
                               resourceBody: {
-                                ...Struct.omit(x, "_etag", idKey),
+                                ...Struct.omit(x, ["_etag", idKey]),
                                 id: x[idKey],
                                 _partitionKey: config?.partitionValue(x)
                               },
@@ -98,7 +98,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                         })
                       ] as const
                   )
-                const batches = Chunk.toReadonlyArray(Array.chunk_(b, config?.maxBulkSize ?? 10))
+                const batches = Array.chunksOf(b, config?.maxBulkSize ?? 10)
 
                 const batchResult = yield* Effect.forEach(
                   batches
@@ -162,9 +162,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 return batchResult.flat() as unknown as NonEmptyReadonlyArray<Encoded>
               })
               .pipe(Effect.withSpan("Cosmos.bulkSet [effect-app/infra/Store]", {
-                captureStackTrace: false,
                 attributes: { "repository.container_id": containerId, "repository.model_name": name }
-              }))
+              }, { captureStackTrace: false }))
 
           const batchSet = (items: NonEmptyReadonlyArray<PM>) => {
             return Effect
@@ -173,11 +172,11 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   (x) =>
                     [
                       x,
-                      Option.match(Option.fromNullable(x._etag), {
+                      Option.match(Option.fromNullishOr(x._etag), {
                         onNone: () => ({
                           operationType: "Create" as const,
                           resourceBody: {
-                            ...Struct.omit(x, "_etag", idKey),
+                            ...Struct.omit(x, ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: config?.partitionValue(x)
                           }
@@ -188,7 +187,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                           operationType: "Replace" as const,
                           id: x[idKey],
                           resourceBody: {
-                            ...Struct.omit(x, "_etag", idKey),
+                            ...Struct.omit(x, ["_etag", idKey]),
                             id: x[idKey],
                             _partitionKey: config?.partitionValue(x)
                           },
@@ -228,9 +227,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
               })
               .pipe(Effect
                 .withSpan("Cosmos.batchSet [effect-app/infra/Store]", {
-                  captureStackTrace: false,
                   attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                }))
+                }, { captureStackTrace: false }))
           }
 
           const s: Store<IdKey, Encoded> = {
@@ -254,9 +252,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   ),
                   Effect
                     .withSpan("Cosmos.queryRaw [effect-app/infra/Store]", {
-                      captureStackTrace: false,
                       attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                    })
+                    }, { captureStackTrace: false })
                 ),
             batchRemove: (ids, partitionKey?: string) =>
               Effect.promise(() =>
@@ -294,9 +291,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 ),
                 Effect
                   .withSpan("Cosmos.all [effect-app/infra/Store]", {
-                    captureStackTrace: false,
                     attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                  })
+                  }, { captureStackTrace: false })
               ),
             /**
              * May return duplicate results for "join_find", when matching more than once.
@@ -332,15 +328,13 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                             .query<M>(q, { partitionKey: mainPartitionKey })
                             .fetchAll()
                             .then(({ resources }) =>
-                              resources.map((_) =>
-                                ({
-                                  ...pipe(
-                                    defaultValues,
-                                    Struct.pick(...f.select!.filter((_) => typeof _ === "string"))
-                                  ),
-                                  ...mapReverseId(_ as any)
-                                }) as any
-                              )
+                              resources.map((_) => ({
+                                ...pipe(
+                                  defaultValues,
+                                  Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])
+                                ),
+                                ...mapReverseId(_ as any)
+                              }))
                             )
                           : container
                             .items
@@ -354,9 +348,8 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 )
                 .pipe(
                   Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
-                    captureStackTrace: false,
                     attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                  })
+                  }, { captureStackTrace: false })
                 )
             },
             find: (id) =>
@@ -366,24 +359,23 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     .item(id, config?.partitionValue({ [idKey]: id } as Encoded))
                     .read<Encoded>()
                     .then(({ resource }) =>
-                      Option.fromNullable(resource).pipe(Option.map((_) => ({ ...defaultValues, ...mapReverseId(_) })))
+                      Option.fromNullishOr(resource).pipe(Option.map((_) => ({ ...defaultValues, ...mapReverseId(_) })))
                     )
                 )
                 .pipe(Effect
                   .withSpan("Cosmos.find [effect-app/infra/Store]", {
-                    captureStackTrace: false,
                     attributes: {
                       "repository.container_id": containerId,
                       "repository.model_name": name,
                       partitionValue: config?.partitionValue({ [idKey]: id } as Encoded),
                       id
                     }
-                  })),
+                  }, { captureStackTrace: false })),
             set: (e) =>
               Option
                 .match(
                   Option
-                    .fromNullable(e._etag),
+                    .fromNullishOr(e._etag),
                   {
                     onNone: () =>
                       Effect.promise(() =>
@@ -410,7 +402,9 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   Effect
                     .flatMap((x) => {
                       if (x.statusCode === 412 || x.statusCode === 404 || x.statusCode === 409) {
-                        return new OptimisticConcurrencyException({ type: name, id: e[idKey], code: x.statusCode })
+                        return Effect.fail(
+                          new OptimisticConcurrencyException({ type: name, id: e[idKey], code: x.statusCode })
+                        )
                       }
                       if (x.statusCode > 299 || x.statusCode < 200) {
                         return Effect.die(
@@ -426,13 +420,12 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     }),
                   Effect
                     .withSpan("Cosmos.set [effect-app/infra/Store]", {
-                      captureStackTrace: false,
                       attributes: {
                         "repository.container_id": containerId,
                         "repository.model_name": name,
                         id: e[idKey]
                       }
-                    })
+                    }, { captureStackTrace: false })
                 ),
             batchSet,
             bulkSet
@@ -443,7 +436,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
             container
               .item(importedMarkerId, importedMarkerId)
               .read<{ id: string }>()
-              .then(({ resource }) => Option.fromNullable(resource))
+              .then(({ resource }) => Option.fromNullishOr(resource))
           )
 
           if (!Option.isSome(marker)) {

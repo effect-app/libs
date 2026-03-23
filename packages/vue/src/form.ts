@@ -1,9 +1,6 @@
 import { createIntl, type IntlFormatters } from "@formatjs/intl"
-import * as JSONSchema from "effect/JSONSchema"
-import type { ParseError } from "effect/ParseResult"
 import type {} from "intl-messageformat"
-import { Either, Option, pipe, S } from "effect-app"
-import type { Schema } from "effect-app/Schema"
+import { Cause, Exit, Option, pipe, S } from "effect-app"
 import type { Unbranded } from "effect-app/Schema/brand"
 import type { IsUnion } from "effect-app/utils"
 import { capitalize, ref } from "vue"
@@ -11,23 +8,18 @@ import { capitalize, ref } from "vue"
 // type GetSchemaFromProp<T> = T extends Field<infer S, any, any, any> ? S
 //   : never
 
-function getTypeLiteralAST(ast: S.AST.AST): S.AST.TypeLiteral | null {
-  switch (ast._tag) {
-    case "TypeLiteral": {
-      return ast
-    }
-    case "Transformation": {
-      // this may be not correct for transformations from a type literal to something
-      // that is not a type literal nor a class because we would prefer the from AST
-      return getTypeLiteralAST(ast.to) ?? getTypeLiteralAST(ast.from)
-    }
-    case "Refinement": {
-      return getTypeLiteralAST(ast.from)
-    }
-    default: {
-      return null
-    }
+function getObjectsAST(ast: S.AST.AST): S.AST.Objects | null {
+  if (S.AST.isObjects(ast)) {
+    return ast
   }
+  if (S.AST.isDeclaration(ast)) {
+    for (const typeParam of ast.typeParameters) {
+      const result = getObjectsAST(typeParam)
+      if (result) return result
+    }
+    return null
+  }
+  return null
 }
 
 export function convertIn(v: string | null, type?: "text" | "float" | "int") {
@@ -114,29 +106,26 @@ function handlePropertySignature(
 {
   const schema = S.make(propertySignature.type)
 
-  switch (schema.ast._tag) {
-    case "Transformation": {
-      const tl = getTypeLiteralAST(schema.ast)
-
-      return tl
-        ? handlePropertySignature(
-          new S.AST.PropertySignature(
-            propertySignature.name,
-            tl,
-            propertySignature.isOptional,
-            propertySignature.isReadonly,
-            propertySignature.annotations
-          )
+  if (S.AST.isDeclaration(schema.ast)) {
+    const tl = getObjectsAST(schema.ast)
+    return tl
+      ? handlePropertySignature(
+        new S.AST.PropertySignature(
+          propertySignature.name,
+          tl
         )
-        : buildFieldInfo(propertySignature)
-    }
-    case "TypeLiteral": {
+      )
+      : buildFieldInfo(propertySignature)
+  }
+
+  switch (schema.ast._tag) {
+    case "Objects": {
       return buildFieldInfoFromFieldsRoot(
-        schema as S.Schema<Record<PropertyKey, any>, Record<PropertyKey, any>, never>
+        schema as S.Codec<Record<PropertyKey, any>>
       )
     }
     case "Union": {
-      const allTypeLiterals = schema.ast.types.every(getTypeLiteralAST)
+      const allTypeLiterals = schema.ast.types.every(getObjectsAST)
 
       if (allTypeLiterals) {
         const members = schema
@@ -146,15 +135,12 @@ function handlePropertySignature(
             // syntehtic property signature as if each union member were the only member
             new S.AST.PropertySignature(
               propertySignature.name,
-              elAst,
-              propertySignature.isOptional,
-              propertySignature.isReadonly,
-              propertySignature.annotations
+              elAst
             )
           )
           .flatMap((ps) => {
             // try to retrieve the _tag literal to set _infoTag later
-            const typeLiteral = getTypeLiteralAST(ps.type)
+            const typeLiteral = getObjectsAST(ps.type)
 
             const tagPropertySignature = typeLiteral?.propertySignatures.find((_) => _.name === "_tag")
             const tagLiteral = tagPropertySignature
@@ -207,7 +193,7 @@ export function buildFieldInfoFromFields<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>
 >(
-  schema: Schema<To, From, never> & { fields?: S.Struct.Fields }
+  schema: (S.Codec<To, From>) & { fields?: S.Struct.Fields }
 ) {
   return buildFieldInfoFromFieldsRoot(schema).fields
 }
@@ -217,9 +203,9 @@ export function buildFieldInfoFromFieldsRoot<
   To extends Record<PropertyKey, any>,
   R
 >(
-  schema: Schema<To, From, R> & { fields?: S.Struct.Fields }
+  schema: (S.Codec<To, From, R>) & { fields?: S.Struct.Fields }
 ): NestedFieldInfo<To> {
-  const ast = getTypeLiteralAST(schema.ast)
+  const ast = getObjectsAST(schema.ast)
 
   if (!ast) throw new Error("not a struct type")
   return ast.propertySignatures.reduce(
@@ -258,25 +244,25 @@ function buildFieldInfo(
   property: S.AST.PropertySignature
 ): FieldInfo<any> {
   const propertyKey = property.name
-  const schema = S.make<unknown, unknown, never>(property.type)
-  const metadata = getMetadataFromSchema(property.type) // TODO
-  const parse = S.decodeUnknownEither(schema)
+  const schema = S.make<S.Codec<unknown>>(property.type)
+  const metadata = getMetadataFromSchema(property.type)
+  const parse = S.decodeUnknownExit(schema as S.Codec<unknown> & { readonly DecodingServices: never })
 
   const nullableOrUndefined = S.AST.isUnion(property.type)
-    && (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "UndefinedKeyword"))
+    && (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "Undefined"))
   const realSelf = nullableOrUndefined && S.AST.isUnion(property.type)
-    ? property.type.types.filter((_) => _ !== S.Null.ast && _._tag !== "UndefinedKeyword")[0]!
+    ? property.type.types.filter((_) => _ !== S.Null.ast && _._tag !== "Undefined")[0]!
     : property.type
-  const id = S.AST.getIdentifierAnnotation(property.type)
-  const id2 = S.AST.getIdentifierAnnotation(realSelf)
+  const id = S.AST.resolveIdentifier(property.type)
+  const id2 = S.AST.resolveIdentifier(realSelf)
 
-  function renderError(e: ParseError, v: unknown) {
+  function renderError(e: S.SchemaError, v: unknown) {
     const err = e.toString()
 
     const custom = customSchemaErrors.value.get(property.type)
       ?? customSchemaErrors.value.get(realSelf)
-      ?? (Option.isSome(id) ? customSchemaErrors.value.get(id.value) : undefined)
-      ?? (Option.isSome(id2) ? customSchemaErrors.value.get(id2.value) : undefined)
+      ?? (id ? customSchemaErrors.value.get(id) : undefined)
+      ?? (id2 ? customSchemaErrors.value.get(id2) : undefined)
 
     if (custom) {
       return custom(err, e, v)
@@ -366,9 +352,12 @@ function buildFieldInfo(
   const parseRule = (v: unknown) =>
     pipe(
       parse(v),
-      Either.match({
-        onLeft: (_) => renderError(_, v),
-        onRight: () => true
+      Exit.match({
+        onFailure: (cause) => {
+          const err = Cause.findErrorOption(cause)
+          return Option.isSome(err) ? renderError(err.value, v) : "Unknown error"
+        },
+        onSuccess: () => true
       })
     )
 
@@ -429,14 +418,16 @@ export function getMetadataFromSchema(
 
   let jschema: any
   try {
-    jschema = JSONSchema.make(S.make(realSelf)) as any
-  } catch (err) {
+    const doc = S.toJsonSchemaDocument(S.make<S.Codec<unknown>>(realSelf))
+    jschema = doc.schema as any
+    const defs = doc.definitions as Record<string, any>
+    // resolve $ref against definitions
+    while (jschema["$ref"] && jschema["$ref"].startsWith("#/$defs/")) {
+      const { $ref: _, ...rest } = jschema
+      jschema = { ...defs[jschema["$ref"].replace("#/$defs/", "")], ...rest }
+    }
+  } catch (_err) {
     jschema = {}
-    // console.warn("error getting jsonschema from ", err, ast)
-  }
-  while (jschema["$ref"] && jschema["$ref"].startsWith("#/$defs/")) {
-    const { $ref: _, ...rest } = jschema
-    jschema = { ...jschema["$defs"][jschema["$ref"].replace("#/$defs/", "")], ...rest }
   }
   // or we need to add these info directly in the refinement like the minimum
   // or find a jsonschema parser whojoins all of them

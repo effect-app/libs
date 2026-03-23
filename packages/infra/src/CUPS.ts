@@ -1,6 +1,6 @@
 import { type FileOptions, tempFile } from "@effect-app/infra/fileUtil"
 import cp from "child_process"
-import { Config, Effect, Layer, Predicate, S } from "effect-app"
+import { Config, Effect, Layer, Option, Predicate, S, ServiceMap } from "effect-app"
 import { pretty } from "effect-app/utils"
 import fs from "fs"
 import os from "os"
@@ -79,7 +79,7 @@ function getAvailablePrinters(host?: string) {
     const { stdout } = yield* exec(["lpstat", ...buildListArgs({ host }), "-s"].join(" "))
     return [...stdout.matchAll(/device for (\w+):/g)]
       .map((_) => _[1])
-      .filter(Predicate.isNotNullable)
+      .filter(Predicate.isNotNullish)
       .map((_) => S.NonEmptyString255(_))
   })
 }
@@ -100,13 +100,14 @@ export const CUPSConfig = Config.all({
     )
 })
 
-export class CUPS extends Effect.Service<CUPS>()("effect-app/CUPS", {
-  effect: Effect.gen(function*() {
+export class CUPS extends ServiceMap.Service<CUPS>()("effect-app/CUPS", {
+  make: Effect.gen(function*() {
     const config = yield* CUPSConfig
+    const serverUrl = Option.getOrUndefined(config.server)
     function print(buffer: ArrayBuffer, printerId: PrinterId, ...options: string[]) {
       const _print = printBuffer({
         id: printerId,
-        url: config.server.value
+        url: serverUrl
       }, options)
       return _print(buffer)
     }
@@ -115,21 +116,21 @@ export class CUPS extends Effect.Service<CUPS>()("effect-app/CUPS", {
       printFile: (filePath: string, printerId: PrinterId, ...options: string[]) =>
         printFile({
           id: printerId,
-          url: config.server.value
+          url: serverUrl
         }, options)(filePath),
-      getAvailablePrinters: getAvailablePrinters(config.server.value?.host)
+      getAvailablePrinters: getAvailablePrinters(serverUrl?.host)
     }
   })
 }) {
   static readonly Fake = Layer.effect(
     this,
-    Effect.sync(() => {
-      return this.make({
-        print: (buffer, printerId, ...options) =>
+    Effect.sync(() =>
+      CUPS.of({
+        print: (buffer: ArrayBuffer, printerId: PrinterId, ...options: string[]) =>
           InfraLogger
             .logInfo("Printing to fake printer")
             .pipe(
-              Effect.zipRight(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
+              Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
               Effect
                 .annotateLogs({
                   printerId,
@@ -137,11 +138,11 @@ export class CUPS extends Effect.Service<CUPS>()("effect-app/CUPS", {
                   "bufferSize": buffer.byteLength.toString()
                 })
             ),
-        printFile: (filePath, printerId, ...options) =>
+        printFile: (filePath: string, printerId: PrinterId, ...options: string[]) =>
           InfraLogger
             .logInfo("Printing to fake printer")
             .pipe(
-              Effect.zipRight(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
+              Effect.andThen(Effect.sync(() => ({ stdout: "fake", stderr: "" }))),
               Effect
                 .annotateLogs({
                   printerId,
@@ -151,6 +152,6 @@ export class CUPS extends Effect.Service<CUPS>()("effect-app/CUPS", {
             ),
         getAvailablePrinters: Effect.sync(() => [])
       })
-    })
+    )
   )
 }

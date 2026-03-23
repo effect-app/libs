@@ -221,7 +221,7 @@ describe("OmegaAutoGen", () => {
 
           // Create a sorter that sorts by name alphabetically
           const sortByName = Order.mapInput(
-            Order.string,
+            Order.String,
             (item: { name: string }) => item.name
           )
 

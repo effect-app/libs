@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- 6282d4b: Update `Effect.allLower` to call `svc.asEffect()` when available, ensuring service entries are normalized before `Effect.all` evaluation.
+
 ## 4.0.0-beta.24
 
 ### Patch Changes

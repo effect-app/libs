@@ -14,15 +14,15 @@
     "query-string": "^9.3.1"
   },
   "peerDependencies": {
-    "@effect/atom-vue": "^4.0.0-beta.36",
-    "@effect/platform-browser": "^4.0.0-beta.36",
+    "@effect/atom-vue": "^4.0.0-beta.37",
+    "@effect/platform-browser": "^4.0.0-beta.37",
     "@sentry/browser": "^10.42.0",
-    "effect": "^4.0.0-beta.36",
+    "effect": "^4.0.0-beta.37",
     "vue": "^3.5.29"
   },
   "devDependencies": {
     "@effect-app/eslint-shared-config": "workspace:*",
-    "@effect/vitest": "^4.0.0-beta.36",
+    "@effect/vitest": "^4.0.0-beta.37",
     "@formatjs/icu-messageformat-parser": "^3.5.1",
     "@types/node": "25.3.3",
     "@vitejs/plugin-vue": "^6.0.4",

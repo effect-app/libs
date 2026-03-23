@@ -37,7 +37,9 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
   > = (identifier) => (fields, annotations) => {
     const cls = S.Class as any
     return class extends cls(identifier)(fields, annotations) {
-      constructor(a: any, b = true) {
+      // we disableValidation by default because we don't want class identifier validation (e.g if User over provides UserView, we want to be able to pass User), and most of our classes fields are already validated and branded..
+      // this however also disables additional filter/check rules...
+      constructor(a: any, b = { disableValidation: true }) {
         super(a, b)
       }
       // static readonly include = include(fields)
@@ -58,7 +60,9 @@ export const TaggedClass: <Self = never>(identifier?: string) => <Tag extends st
   > = (identifier) => (tag, fields, annotations) => {
     const cls = S.TaggedClass as any
     return class extends cls(identifier)(tag, fields, annotations) {
-      constructor(a: any, b = true) {
+      // we disableValidation by default because we don't want class identifier validation (e.g if User over provides UserView, we want to be able to pass User), and most of our classes fields are already validated and branded..
+      // this however also disables additional filter/check rules...
+      constructor(a: any, b = { disableValidation: true }) {
         super(a, b)
       }
       // static readonly include = include(fields)

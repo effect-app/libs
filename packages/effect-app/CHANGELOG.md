@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- a899d46: Replace `ForceVoid` in `makeClient` with a typed codec transformation instead of an unsafe cast.
+
 ## 4.0.0-beta.28
 
 ### Patch Changes

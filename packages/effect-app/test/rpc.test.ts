@@ -30,4 +30,5 @@ test("ForceVoid decodes and encodes as void", () => {
   expect(S.decodeUnknownSync(ForceVoid)("test")).toBe(undefined)
   expect(S.is(ForceVoid)("test")).toBe(true)
   expect(S.encodeUnknownSync(ForceVoid)("test")).toBe(undefined)
+  expect(S.encodeUnknownSync(S.toCodecJson(ForceVoid))("test")).toBe(null)
 })

@@ -1,4 +1,6 @@
-import { SchemaTransformation } from "effect"
+import { SchemaGetter, SchemaTransformation } from "effect"
+import { Link } from "effect/SchemaAST"
+import { Transformation } from "effect/SchemaTransformation"
 import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
@@ -6,12 +8,25 @@ import { AST } from "../Schema.js"
 const merge = (a: any, b: Array<any>) =>
   a !== undefined && b.length ? S.Union([a, ...b]) : a !== undefined ? a : b.length ? S.Union(b) : S.Never
 
+const undefinedToNull = new Link(
+  S.AST.null,
+  new Transformation(
+    SchemaGetter.transform(() => undefined),
+    SchemaGetter.transform(() => null)
+  )
+)
+
 /**
  * Whatever the input, we will only decode or encode to void
  */
-export const ForceVoid = S.Any.pipe(
-  S.decodeTo(S.Any, SchemaTransformation.transform({ decode: () => void 0 as void, encode: () => void 0 }))
-)
+export const ForceVoid = S
+  .Any
+  .pipe(
+    S.decodeTo(S.Any, SchemaTransformation.transform({ decode: () => void 0 as void, encode: () => void 0 }))
+  )
+  .annotate({
+    toCodecJson: () => undefinedToNull
+  })
 
 type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
 

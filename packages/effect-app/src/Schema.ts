@@ -65,17 +65,39 @@ export const PhoneNumber = PhoneNumberT
 
 export type PhoneNumber = PhoneNumberType
 
+// Copied from SchemaAST.collectSentinels (marked @internal in effect).
+// Returns all { key, literal } pairs that can discriminate a union member.
 const getTagFromAST = (schema: S.Top): string => {
-  let ast = schema.ast
-  if (SchemaAST.isSuspend(ast)) ast = ast.thunk()
-  if (SchemaAST.isObjects(ast)) {
-    for (const ps of ast.propertySignatures) {
-      if (ps.name === "_tag" && !SchemaAST.isOptional(ps.type) && SchemaAST.isLiteral(ps.type)) {
-        return ps.type.literal as string
-      }
-    }
-  }
+  const sentinels = collectSentinelsFromAST(schema.ast)
+  const sentinel = sentinels.find((s) => s.key === "_tag")
+  if (sentinel !== undefined && typeof sentinel.literal === "string") return sentinel.literal
   throw new Error("No _tag literal found on schema member")
+}
+
+function collectSentinelsFromAST(
+  ast: SchemaAST.AST
+): Array<{ key: PropertyKey; literal: SchemaAST.LiteralValue | symbol }> {
+  switch (ast._tag) {
+    case "Declaration": {
+      const s = ast.annotations?.["~sentinels"]
+      return Array.isArray(s) ? s : []
+    }
+    case "Objects":
+      return ast.propertySignatures.flatMap(
+        (ps): Array<{ key: PropertyKey; literal: SchemaAST.LiteralValue | symbol }> => {
+          const type = ps.type
+          if (!SchemaAST.isOptional(type)) {
+            if (SchemaAST.isLiteral(type)) return [{ key: ps.name, literal: type.literal }]
+            if (SchemaAST.isUniqueSymbol(type)) return [{ key: ps.name, literal: type.symbol }]
+          }
+          return []
+        }
+      )
+    case "Suspend":
+      return collectSentinelsFromAST(ast.thunk())
+    default:
+      return []
+  }
 }
 
 export const tags = <

@@ -117,11 +117,11 @@ export interface PureEnvEnv<W, S, S2> extends ServiceTagged<typeof PureEnvEnv> {
 }
 
 export function get<S>(): Pure<never, S, S, never, never, S> {
-  return (castTag<never, S, S>() as any).use((_: any) => _.env.state)
+  return (castTag<never, S, S>()).useSync((_) => _.env.state)
 }
 
 export function set<S>(s: S): Pure<never, S, S, never, never, void> {
-  return (castTag<never, S, S>() as any).use((_: any) => {
+  return (castTag<never, S, S>()).useSync((_) => {
     _.env.state = s
   })
 }
@@ -129,13 +129,13 @@ export function set<S>(s: S): Pure<never, S, S, never, never, void> {
 export type PureLogT<W> = Pure<W, unknown, never, never, never, void>
 
 export function log<W>(w: W): PureLogT<W> {
-  return (castTag<W, unknown, never>() as any).use((_: any) => {
+  return (castTag<W, unknown, never>()).useSync((_) => {
     _.env.log = Chunk.append(_.env.log, w)
   })
 }
 
 export function logMany<W>(w: Iterable<W>): PureLogT<W> {
-  return (castTag<W, unknown, never>() as any).use((_: any) => {
+  return (castTag<W, unknown, never>()).useSync((_) => {
     _.env.log = Chunk.appendAll(_.env.log, Chunk.fromIterable(w))
   })
 }
@@ -150,17 +150,16 @@ export function runAll<R, E, A, W3, S1, S3, S4 extends S1>(
 > {
   const a = Effect
     .flatMap(self, (x) =>
-      (castTag<W3, S1, S3>() as any)
-        .use(
-          ({ env: _ }: any) => Effect.sync(() => ({ log: _.log, state: _.state }))
+      (castTag<W3, S1, S3>())
+        .useSync(
+          ({ env: _ }) => ({ log: _.log, state: _.state })
         )
         .pipe(
-          Effect.flatMap((_: any) => Effect.succeed(_)),
           Effect.map(
-            ({ log, state }: any) => tuple(log, Result.succeed(tuple(state, x)))
+            ({ log, state }) => tuple(log, Result.succeed(tuple(state, x)))
           )
         ))
-    .pipe(Effect.catch((err: any) => (tagg as any).use((env: any) => tuple(env.env.log, Result.fail(err)))))
+    .pipe(Effect.catch((err: any) => tagg.useSync((env) => tuple(env.env.log, Result.fail(err)))))
   return Effect.provide(a, Layer.succeed(tagg, { env: makePureEnv<W3, S3, S4>(s) as any }) as any) as any
 }
 
@@ -198,11 +197,11 @@ export function runA<R, E, A, W3, S1, S3, S4 extends S1>(
 export function modify<S2, A, S3>(
   mod: (s: S2) => readonly [S3, A]
 ): Effect.Effect<A, never, { env: PureEnv<never, S2, S3> }> {
-  return (castTag<never, S3, S2>() as any).use((_: any) => {
+  return (castTag<never, S3, S2>()).useSync((_) => {
     const [s, a] = mod(_.env.state)
     _.env.state = s as any
     return a
-  })
+  }) as any
 }
 
 export function modifyM<W, R, E, A, S2, S3>(
@@ -210,7 +209,7 @@ export function modifyM<W, R, E, A, S2, S3>(
 ): Effect.Effect<A, E, FixEnv<R, W, S2, S3>> {
   // return serviceWithEffect(_ => Ref.modifyM_(_.state, mod))
   return Effect.flatMap(
-    (castTag<W, S3, S2>() as any).use((_: any) => _),
+    (castTag<W, S3, S2>()).useSync((_) => _),
     (_: any) =>
       Effect.map(mod(_.env.state), ([s, a]: any) => {
         _.env.state = s

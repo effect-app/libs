@@ -40,7 +40,7 @@ const exampleForm = useOmegaForm(
     aStringMin2Max3Optional: S.UndefinedOr(
       S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))
     ),
-    aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.check(S.isBetween({ minimum: 2, maximum: 4 }))))
+    aNumberMin2Max4Nullable: S.NullOr(S.Finite.pipe(S.check(S.isBetween({ minimum: 2, maximum: 4 }))))
   }),
   {
     // we should really be setting default values to do all correctly

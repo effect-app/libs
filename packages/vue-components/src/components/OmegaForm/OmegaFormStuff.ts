@@ -1006,7 +1006,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
             message: trans("validation.integer.expected", { actualValue: "NaN" })
           }))
       } else {
-        schema = S.Number.annotate({
+        schema = S.Finite.annotate({
           message: trans("validation.number.expected", { actualValue: "NaN" })
         })
 

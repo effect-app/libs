@@ -57,7 +57,7 @@ import { type OmegaAutoGenMeta, useOmegaForm } from "../../src"
 
 const schema = S.Struct({
   string: S.String,
-  number: S.Number,
+  number: S.Finite,
   boolean: S.Boolean,
   email: S.Email,
   url: S.Url,

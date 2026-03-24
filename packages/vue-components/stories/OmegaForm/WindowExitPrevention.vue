@@ -264,7 +264,7 @@ const isDirtyPersistent = persistentForm.useStore((_) => _.isDirty)
 const preventAndReset = useOmegaForm(
   S.Struct({
     comment: S.String,
-    rating: S.Number
+    rating: S.Finite
   }),
   {
     defaultValues: { comment: "", rating: 5 },

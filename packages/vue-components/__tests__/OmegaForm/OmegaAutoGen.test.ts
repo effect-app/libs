@@ -36,7 +36,7 @@ describe("OmegaAutoGen", () => {
           const form = useOmegaForm(
             S.Struct({
               string: S.String,
-              number: S.Number
+              number: S.Finite
             })
           )
           return { form }
@@ -84,7 +84,7 @@ describe("OmegaAutoGen", () => {
           const form = useOmegaForm(
             S.Struct({
               string: S.String,
-              number: S.Number,
+              number: S.Finite,
               boolean: S.Boolean
             })
           )
@@ -126,7 +126,7 @@ describe("OmegaAutoGen", () => {
           const form = useOmegaForm(
             S.Struct({
               string: S.String,
-              number: S.Number,
+              number: S.Finite,
               boolean: S.Boolean
             })
           )
@@ -168,7 +168,7 @@ describe("OmegaAutoGen", () => {
           const form = useOmegaForm(
             S.Struct({
               string: S.String,
-              number: S.Number,
+              number: S.Finite,
               boolean: S.Boolean
             })
           )
@@ -267,7 +267,7 @@ describe("OmegaAutoGen", () => {
           const form = useOmegaForm(
             S.Struct({
               string: S.String,
-              number: S.Number
+              number: S.Finite
             })
           )
           return { form }
@@ -311,7 +311,7 @@ describe("OmegaAutoGen", () => {
         const form = useOmegaForm(
           S.Struct({
             string: S.String,
-            number: S.Number
+            number: S.Finite
           })
         )
         return { form }

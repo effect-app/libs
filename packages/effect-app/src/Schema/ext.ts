@@ -50,9 +50,15 @@ export const Boolean = Object.assign(S.Boolean, {
 })
 
 /**
+ * You probably want to use `Finite` instead of this.
  * Like the default Schema `Number` but with `withDefault` => 0
  */
 export const Number = Object.assign(S.Number, { withDefault: S.Number.pipe(withDefaultConstructor(() => 0)) })
+
+/**
+ * Like the default Schema `Finite` but with `withDefault` => 0
+ */
+export const Finite = Object.assign(S.Finite, { withDefault: S.Finite.pipe(withDefaultConstructor(() => 0)) })
 
 /**
  * Like the default Schema `Literal` but with `withDefault` => literals[0]

@@ -13,7 +13,7 @@ describe("TaggedUnion required field handling", () => {
             common: S.String
           }),
           S.TaggedStruct("B", {
-            b: S.Number,
+            b: S.Finite,
             common: S.String
           })
         ])
@@ -46,7 +46,7 @@ describe("TaggedUnion required field handling", () => {
           a: S.NonEmptyString
         }),
         S.TaggedStruct("B", {
-          b: S.Number
+          b: S.Finite
         })
       ])
     })

@@ -88,10 +88,10 @@ const exampleForm = useOmegaForm(
     aStringMin2Max3Optional: S.UndefinedOr(
       S.String.pipe(S.check(S.isMinLength(2), S.isMaxLength(3)))
     ),
-    aNumber: S.Number,
-    aNumberMin2: S.Number.pipe(S.check(S.isGreaterThan(2))),
-    aNumberMin2Max: S.Number.pipe(S.check(S.isGreaterThan(2), S.isLessThan(4))),
-    aNumberMin2Max4Nullable: S.NullOr(S.Number.pipe(S.check(S.isBetween({ minimum: 2, maximum: 4 })))),
+    aNumber: S.Finite,
+    aNumberMin2: S.Finite.pipe(S.check(S.isGreaterThan(2))),
+    aNumberMin2Max: S.Finite.pipe(S.check(S.isGreaterThan(2), S.isLessThan(4))),
+    aNumberMin2Max4Nullable: S.NullOr(S.Finite.pipe(S.check(S.isBetween({ minimum: 2, maximum: 4 })))),
     aSelect: S.Union([S.Literal("a"), S.Literal("b"), S.Literal("c")]),
     aSingle: S.NonEmptyString,
     aMultiple: S.Array(S.String)

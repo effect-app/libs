@@ -31,7 +31,7 @@ describe("OmegaForm Defaults", () => {
         i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
       })
     ]),
-    j: S.Number.pipe(S.withDefaultConstructor(() => 0)),
+    j: S.Finite.pipe(S.withDefaultConstructor(() => 0)),
     k: S.Boolean.pipe(S.withDefaultConstructor(() => true)),
     l: S.NullOr(
       S.Union([
@@ -60,7 +60,7 @@ describe("OmegaForm Defaults", () => {
       }))
       .withDefault,
     s: S.NullOr(S.Struct({ z: S.String })).withDefault,
-    t: S.NumberFromString.pipe(S.withDefaultConstructor(() => 1000)),
+    t: S.FiniteFromString.pipe(S.withDefaultConstructor(() => 1000)),
     u: S.NullOr(S.NonEmptyString),
     v: S.UndefinedOr(S.NonEmptyString)
   }
@@ -427,12 +427,12 @@ describe("OmegaForm Defaults", () => {
           S.Struct({
             _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
             a: S.NonEmptyString,
-            s: S.NullOr(S.Number).withDefault
+            s: S.NullOr(S.Finite).withDefault
           }),
           S.Struct({
             _tag: S.Literal("tag2"),
             b: S.NonEmptyString,
-            t: S.Number
+            t: S.Finite
           })
         ]))
         return { form }

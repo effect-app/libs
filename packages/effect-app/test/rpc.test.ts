@@ -15,10 +15,10 @@ const { TaggedRequest } = makeRpcClient(RequestContextMap)
 export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
   allowedRoles: ["manager"],
   success: {
-    usersActive24Hours: S.Number,
-    usersActiveLastWeek: S.Number,
-    newUsersLast24Hours: S.Number,
-    newUsersLastWeek: S.Number
+    usersActive24Hours: S.Finite,
+    usersActiveLastWeek: S.Finite,
+    newUsersLast24Hours: S.Finite,
+    newUsersLastWeek: S.Finite
   }
 }) {}
 

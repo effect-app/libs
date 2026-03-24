@@ -81,7 +81,7 @@ const schema = S.Union([
   }),
   S.Struct({
     _tag: S.Literal("B"),
-    b: S.Number,
+    b: S.Finite,
     common: S.NullOr(S.String)
   })
 ])

@@ -89,9 +89,9 @@ const schema = S.Union([
     common: S.NonEmptyString255
   }),
   S.TaggedStruct("B", {
-    b: S.Number,
+    b: S.Finite,
     // this field is nullable but not with default, still it gets initialized to null
-    nullableB: S.NullOr(S.Number),
+    nullableB: S.NullOr(S.Finite),
     common: S.NullOr(S.String)
   })
 ])

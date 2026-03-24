@@ -32,7 +32,7 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
     <pre v-highlightjs>
 <code class="typescript">{{ `const schema = S.Struct({
   name: S.String,
-  age: S.Number,
+  age: S.Finite,
 })` }}</code></pre>
 
     <p>Then, create a form instance using the <code>useOmegaForm</code> hook:</p>
@@ -179,7 +179,7 @@ import { useForm } from "./composables/useForm"
 
 const schema = S.Struct({
   name: S.String,
-  age: S.Number
+  age: S.Finite
 })
 
 const form = useForm(schema, {
@@ -246,7 +246,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S.Struct({
   name: S.String,
-  age: S.Number
+  age: S.Finite
 })
 const form = useOmegaForm(schema)
 </script>

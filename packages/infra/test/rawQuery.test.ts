@@ -24,7 +24,7 @@ class Something extends S.Class<Something>("Something")({
   id: S.String,
   name: S.String,
   description: S.String,
-  items: S.Array(S.Struct({ id: S.String, value: S.Number, description: S.String }))
+  items: S.Array(S.Struct({ id: S.String, value: S.Finite, description: S.String }))
 }) {}
 
 const items = [
@@ -83,21 +83,23 @@ class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
     .layer
     .pipe(
       Layer.provide(
-        Effect.gen(function*() {
-          const url = yield* Config.redacted("STORAGE_URL").pipe(
-            Config.withDefault(
-              Redacted.make(
-                // the emulator doesn't implement array projections :/ so you need an actual cloud instance!
-                "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+        Effect
+          .gen(function*() {
+            const url = yield* Config.redacted("STORAGE_URL").pipe(
+              Config.withDefault(
+                Redacted.make(
+                  // the emulator doesn't implement array projections :/ so you need an actual cloud instance!
+                  "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+                )
               )
             )
-          )
-          return CosmosStoreLayer({
-            dbName: "test",
-            prefix: "",
-            url
+            return CosmosStoreLayer({
+              dbName: "test",
+              prefix: "",
+              url
+            })
           })
-        }).pipe(Layer.unwrap)
+          .pipe(Layer.unwrap)
       )
     )
 }
@@ -107,7 +109,7 @@ describe("select first-level array fields", () => {
     .gen(function*() {
       const repo = yield* SomethingRepo
 
-      const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Number })) })
+      const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Finite })) })
 
       // ok crazy lol, "value" is a reserved word in CosmosDB, so we have to use t["value"] as a field name instead of t.value
       const items = yield* repo.queryRaw(projected, {
@@ -159,7 +161,7 @@ describe("select first-level array fields", () => {
       .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
 })
 
-const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Number })) })
+const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Finite })) })
 
 const expected = [
   {

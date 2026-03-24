@@ -24,8 +24,8 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({
-  first: S.Number,
-  second: S.Number
+  first: S.Finite,
+  second: S.Finite
 })
 
 const addForm = useOmegaForm(AddSchema, {

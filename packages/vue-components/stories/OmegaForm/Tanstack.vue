@@ -154,7 +154,7 @@ import { useForm } from "@tanstack/vue-form"
 import { S } from "effect-app"
 
 const schema = S.Struct({
-  age: S.Number.pipe(S.check(S.isLessThan(2))),
+  age: S.Finite.pipe(S.check(S.isLessThan(2))),
   email: S.Email
 })
 

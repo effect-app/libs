@@ -27,7 +27,7 @@ test("literal default works", () => {
 test("tagged union derives tag map and tags from v4 literal ast", () => {
   const schema = S.TaggedUnion(
     S.TaggedStruct("A", { a: S.String }),
-    S.TaggedStruct("B", { b: S.Number }),
+    S.TaggedStruct("B", { b: S.Finite }),
     S.TaggedStruct("C", { c: S.Boolean })
   )
   const caseA = schema.cases["A"]
@@ -58,7 +58,7 @@ test("tagged union derives tag map and tags from v4 literal ast", () => {
 test("TaggedUnion tags returns a Literals schema with correct literal values", () => {
   const schema = S.TaggedUnion(
     S.TaggedStruct("X", { x: S.String }),
-    S.TaggedStruct("Y", { y: S.Number })
+    S.TaggedStruct("Y", { y: S.Finite })
   )
 
   expect(schema.tags.literals).toEqual(["X", "Y"])
@@ -68,7 +68,7 @@ test("TaggedUnion tags returns a Literals schema with correct literal values", (
 test("TaggedUnion tags.pick returns a subset of the tag literals", () => {
   const schema = S.TaggedUnion(
     S.TaggedStruct("A", { a: S.String }),
-    S.TaggedStruct("B", { b: S.Number }),
+    S.TaggedStruct("B", { b: S.Finite }),
     S.TaggedStruct("C", { c: S.Boolean })
   )
 
@@ -82,7 +82,7 @@ test("TaggedUnion tags.pick returns a subset of the tag literals", () => {
 test("tags standalone function extracts tags from member schemas", () => {
   const members = [
     S.TaggedStruct("Foo", { foo: S.String }),
-    S.TaggedStruct("Bar", { bar: S.Number })
+    S.TaggedStruct("Bar", { bar: S.Finite })
   ] as const
 
   const tagSchema = S.tags(members)
@@ -95,7 +95,7 @@ test("tags standalone function extracts tags from member schemas", () => {
 test("ExtendTaggedUnion adds tags to an existing Union", () => {
   const union = S.Union([
     S.TaggedStruct("P", { p: S.String }),
-    S.TaggedStruct("Q", { q: S.Number })
+    S.TaggedStruct("Q", { q: S.Finite })
   ])
   const extended = S.ExtendTaggedUnion(union)
 
@@ -111,7 +111,7 @@ test("ExtendTaggedUnion adds tags to an existing Union", () => {
 test("TaggedUnion match dispatches on _tag", () => {
   const schema = S.TaggedUnion(
     S.TaggedStruct("A", { a: S.String }),
-    S.TaggedStruct("B", { b: S.Number })
+    S.TaggedStruct("B", { b: S.Finite })
   )
   type T = S.Schema.Type<typeof schema>
 
@@ -137,7 +137,7 @@ test("TaggedUnion with single member", () => {
 test("TaggedUnion tags type is narrowed to the exact tag literals", () => {
   const schema = S.TaggedUnion(
     S.TaggedStruct("Alpha", { a: S.String }),
-    S.TaggedStruct("Beta", { b: S.Number }),
+    S.TaggedStruct("Beta", { b: S.Finite }),
     S.TaggedStruct("Gamma", { c: S.Boolean })
   )
 
@@ -149,7 +149,7 @@ test("TaggedUnion with encodeKeys renaming a non-tag key", () => {
   const MemberA = S.TaggedStruct("A", { firstName: S.String }).pipe(
     S.encodeKeys({ firstName: "first_name" })
   )
-  const MemberB = S.TaggedStruct("B", { lastName: S.Number }).pipe(
+  const MemberB = S.TaggedStruct("B", { lastName: S.Finite }).pipe(
     S.encodeKeys({ lastName: "last_name" })
   )
 
@@ -179,7 +179,7 @@ test("TaggedUnion with encodeKeys renaming a non-tag key", () => {
 
 test("TaggedUnion with TaggedClass members", () => {
   class Foo extends S.TaggedClass<Foo>()("Foo", { name: S.String }) {}
-  class Bar extends S.TaggedClass<Bar>()("Bar", { count: S.Number }) {}
+  class Bar extends S.TaggedClass<Bar>()("Bar", { count: S.Finite }) {}
 
   const schema = S.TaggedUnion(Foo, Bar)
 

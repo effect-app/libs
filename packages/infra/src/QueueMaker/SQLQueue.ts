@@ -9,7 +9,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { SQLModel } from "../adapters/SQL.js"
 import { InfraLogger } from "../logger.js"
 
-export const QueueId = S.Number.pipe(S.brand("QueueId"))
+export const QueueId = S.Finite.pipe(S.brand("QueueId"))
 export type QueueId = typeof QueueId.Type
 
 // TODO: let the model track and Auto Generate versionColumn on every update instead

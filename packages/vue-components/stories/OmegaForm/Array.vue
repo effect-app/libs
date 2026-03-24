@@ -76,7 +76,7 @@ const schema = S.Struct({
           S.Array(
             S.Struct({
               name: S.String,
-              age: S.NullOr(S.Number.pipe(S.check(S.isGreaterThan(18))))
+              age: S.NullOr(S.Finite.pipe(S.check(S.isGreaterThan(18))))
             })
           )
         )

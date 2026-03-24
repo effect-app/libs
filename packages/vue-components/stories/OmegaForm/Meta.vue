@@ -65,27 +65,27 @@ import { useOmegaForm } from "../../src"
 
 const form = useOmegaForm(S.Struct({
   a: S.NullOr(S.String),
-  b: S.UndefinedOr(S.Number),
-  c: S.NullishOr(S.Number),
+  b: S.UndefinedOr(S.Finite),
+  c: S.NullishOr(S.Finite),
   d: S.String,
-  e: S.Number,
-  f: S.Number,
+  e: S.Finite,
+  f: S.Finite,
   struct: S.Struct({
     a: S.NullOr(S.String),
-    b: S.UndefinedOr(S.Number),
-    c: S.NullishOr(S.Number),
+    b: S.UndefinedOr(S.Finite),
+    c: S.NullishOr(S.Finite),
     d: S.String,
-    e: S.Number,
-    f: S.Number
+    e: S.Finite,
+    f: S.Finite
   }),
   nullableStruct: S.NullOr(
     S.Struct({
       a: S.NullOr(S.String),
-      b: S.UndefinedOr(S.Number),
-      c: S.NullishOr(S.Number),
+      b: S.UndefinedOr(S.Finite),
+      c: S.NullishOr(S.Finite),
       d: S.String,
-      e: S.Number,
-      f: S.Number
+      e: S.Finite,
+      f: S.Finite
     })
   )
 }))

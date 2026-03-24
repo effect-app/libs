@@ -95,13 +95,13 @@ export class RequestContextMap extends RpcContextMap.makeMap({}) {}
 export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
 export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
   id: S.String
-}, { success: S.NumberFromString }) {}
+}, { success: S.FiniteFromString }) {}
 
 export class GetSomething2WithDependencies extends Req<GetSomething2WithDependencies>()("GetSomething2", {
   id: S.String
 }, {
   // this is intentilally fake, to simulate a codec that requires a dependency
-  success: S.NumberFromString as S.Codec<number, string, "dep-a">,
+  success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
   error: S.String
 }) {}
 

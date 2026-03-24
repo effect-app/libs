@@ -94,7 +94,7 @@ describe("generateMetaFromSchema", () => {
   describe("simple struct", () => {
     const schema = S.Struct({
       name: S.NonEmptyString255,
-      age: S.Number.pipe(S.check(S.isGreaterThanOrEqualTo(0))),
+      age: S.Finite.pipe(S.check(S.isGreaterThanOrEqualTo(0))),
       active: S.Boolean
     })
 
@@ -134,7 +134,7 @@ describe("generateMetaFromSchema", () => {
       outer: S.Struct({
         inner: S.NonEmptyString255,
         deep: S.Struct({
-          value: S.Number
+          value: S.Finite
         })
       })
     })
@@ -152,7 +152,7 @@ describe("generateMetaFromSchema", () => {
     const schema = S.Struct({
       union: S.Union([
         S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255 }),
-        S.Struct({ _tag: S.Literal("B"), b: S.Number })
+        S.Struct({ _tag: S.Literal("B"), b: S.Finite })
       ])
     })
 
@@ -182,7 +182,7 @@ describe("generateMetaFromSchema", () => {
       union: S.NullOr(
         S.Union([
           S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255, common: S.String }),
-          S.Struct({ _tag: S.Literal("B"), b: S.Number, common: S.String })
+          S.Struct({ _tag: S.Literal("B"), b: S.Finite, common: S.String })
         ])
       )
     })
@@ -198,7 +198,7 @@ describe("generateMetaFromSchema", () => {
   describe("root-level discriminated union (legacy Literal pattern)", () => {
     const schema = S.Union([
       S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255 }),
-      S.Struct({ _tag: S.Literal("B"), b: S.Number })
+      S.Struct({ _tag: S.Literal("B"), b: S.Finite })
     ])
 
     it("generates _tag select and per-member fields with unionMeta", () => {
@@ -215,7 +215,7 @@ describe("generateMetaFromSchema", () => {
   describe("root-level discriminated union (TaggedStruct pattern)", () => {
     const schema = S.Union([
       S.TaggedStruct("A", { a: S.NonEmptyString255 }),
-      S.TaggedStruct("B", { b: S.Number })
+      S.TaggedStruct("B", { b: S.Finite })
     ])
 
     it("generates _tag select and per-member fields with unionMeta", () => {
@@ -290,7 +290,7 @@ describe("defaultsValueFromSchema", () => {
     it("respects constructor defaults", () => {
       const schema = S.Struct({
         name: S.String.pipe(S.withDefaultConstructor(() => "hello")),
-        count: S.Number.pipe(S.withDefaultConstructor(() => 42))
+        count: S.Finite.pipe(S.withDefaultConstructor(() => 42))
       })
       const defaults = defaultsValueFromSchema(schema)
       expect(defaults.name).toBe("hello")
@@ -346,7 +346,7 @@ describe("withDecodingDefault decoding defaults", () => {
   it("withDecodingDefault fills value during decoding", () => {
     const schema = S.Struct({
       name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "defaultName")),
-      age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 0))
+      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 0))
     })
 
     const decoded = S.decodeUnknownSync(schema)({})
@@ -391,7 +391,7 @@ describe("withDecodingDefault decoding defaults", () => {
   it("withDecodingDefault can replace manual form default initialization", () => {
     const schema = S.Struct({
       name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-      age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 25)),
+      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
       active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(() => true))
     })
 
@@ -431,7 +431,7 @@ describe("Form defaults integration", () => {
       }),
       S.Struct({
         _tag: S.Literal("B"),
-        value: S.Number
+        value: S.Finite
       })
     ])
 
@@ -443,7 +443,7 @@ describe("Form defaults integration", () => {
   it("tanstack defaultValues override schema defaults", async () => {
     const schema = S.Struct({
       name: S.String.pipe(S.withDefaultConstructor(() => "fromSchema")),
-      age: S.Number.pipe(S.withDefaultConstructor(() => 0))
+      age: S.Finite.pipe(S.withDefaultConstructor(() => 0))
     })
 
     const values = await mountAndGetDefaults(schema, {
@@ -461,7 +461,7 @@ describe("Form defaults integration", () => {
 describe("number constraint metadata", () => {
   it("separate isGreaterThanOrEqualTo + isLessThanOrEqualTo extracts min and max", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(
+      value: S.Finite.pipe(
         S.check(S.isGreaterThanOrEqualTo(10)),
         S.check(S.isLessThanOrEqualTo(20))
       )
@@ -474,7 +474,7 @@ describe("number constraint metadata", () => {
 
   it("isBetween extracts min and max", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 })))
+      value: S.Finite.pipe(S.check(S.isBetween({ minimum: 10, maximum: 20 })))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.type).toBe("number")
@@ -484,7 +484,7 @@ describe("number constraint metadata", () => {
 
   it("isInt extracts refinement", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.check(S.isInt()))
+      value: S.Finite.pipe(S.check(S.isInt()))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.refinement).toBe("int")
@@ -492,7 +492,7 @@ describe("number constraint metadata", () => {
 
   it("isGreaterThan extracts exclusive minimum", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.check(S.isGreaterThan(5)))
+      value: S.Finite.pipe(S.check(S.isGreaterThan(5)))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.exclusiveMinimum).toBe(5)
@@ -500,7 +500,7 @@ describe("number constraint metadata", () => {
 
   it("isLessThan extracts exclusive maximum", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.check(S.isLessThan(100)))
+      value: S.Finite.pipe(S.check(S.isLessThan(100)))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.exclusiveMaximum).toBe(100)
@@ -550,7 +550,7 @@ describe("TaggedStruct API", () => {
     const taggedSchema = S.Struct({
       union: S.Union([
         S.TaggedStruct("A", { a: S.NonEmptyString255 }),
-        S.TaggedStruct("B", { b: S.Number })
+        S.TaggedStruct("B", { b: S.Finite })
       ])
     })
 
@@ -566,7 +566,7 @@ describe("TaggedStruct API", () => {
       union: S.NullOr(
         S.Union([
           S.TaggedStruct("A", { a: S.NonEmptyString255, common: S.String }),
-          S.TaggedStruct("B", { b: S.Number, common: S.String })
+          S.TaggedStruct("B", { b: S.Finite, common: S.String })
         ])
       )
     })
@@ -582,7 +582,7 @@ describe("TaggedStruct API", () => {
       S.TaggedStruct("A", {
         a: S.String.pipe(S.withDefaultConstructor(() => "defaultA"))
       }),
-      S.TaggedStruct("B", { b: S.Number })
+      S.TaggedStruct("B", { b: S.Finite })
     ])
 
     const defaults = defaultsValueFromSchema(schema)
@@ -592,7 +592,7 @@ describe("TaggedStruct API", () => {
   it("TaggedStruct decoding works correctly", () => {
     const schema = S.Union([
       S.TaggedStruct("A", { a: S.String }),
-      S.TaggedStruct("B", { b: S.Number })
+      S.TaggedStruct("B", { b: S.Finite })
     ])
 
     const decoded = S.decodeUnknownSync(schema)({ _tag: "A", a: "hello" })
@@ -620,7 +620,7 @@ describe("array metadata", () => {
     const schema = S.Struct({
       items: S.Array(S.Struct({
         name: S.NonEmptyString255,
-        value: S.Number
+        value: S.Finite
       }))
     })
     const { meta } = generateMetaFromSchema(schema)
@@ -638,7 +638,7 @@ describe("withDecodingDefault form integration", () => {
   it("withDecodingDefault defaults flow into form values", async () => {
     const schema = S.Struct({
       name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-      age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 25)),
+      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
       active: S.Boolean
     })
 
@@ -664,7 +664,7 @@ describe("withDecodingDefault form integration", () => {
   it("tanstack defaultValues override withDecodingDefault", async () => {
     const schema = S.Struct({
       name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "fromSchema")),
-      other: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 99))
+      other: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 99))
     })
 
     const values = await mountAndGetDefaults(schema, {
@@ -682,7 +682,7 @@ describe("withDecodingDefault form integration", () => {
 describe("regression guards", () => {
   it("isBetween extracts min and max metadata", () => {
     const schema = S.Struct({
-      value: S.Number.pipe(S.check(S.isBetween({ minimum: 5, maximum: 15 })))
+      value: S.Finite.pipe(S.check(S.isBetween({ minimum: 5, maximum: 15 })))
     })
     const { meta } = generateMetaFromSchema(schema)
     expect(meta.value?.minimum).toBe(5)

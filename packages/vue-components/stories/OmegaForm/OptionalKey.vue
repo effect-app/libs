@@ -64,7 +64,7 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 const basicCode = `const form = useOmegaForm(
   S.Struct({
     name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-    age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 25)),
+    age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
     active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(() => true)),
     required: S.NonEmptyString255
   })
@@ -93,7 +93,7 @@ const nestedCode = `const form = useOmegaForm(
 const basic = useOmegaForm(
   S.Struct({
     name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-    age: S.optionalKey(S.Number).pipe(S.withDecodingDefault(() => 25)),
+    age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
     active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(() => true)),
     required: S.NonEmptyString255
   })

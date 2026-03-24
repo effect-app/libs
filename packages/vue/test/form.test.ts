@@ -6,10 +6,10 @@ export class NestedSchema extends S.Class<NestedSchema>("NestedSchema")({
   nested: S.Struct({
     deep: S.NonEmptyString,
     nested: S.Struct({
-      deepest: S.Number
+      deepest: S.Finite
     })
   }),
-  age: S.Struct({ nfs: S.NumberFromString.pipe(S.decodeTo(S.PositiveInt)) })
+  age: S.Struct({ nfs: S.FiniteFromString.pipe(S.decodeTo(S.PositiveInt)) })
 }) {}
 
 export class SchemaContainsClass extends S.Class<SchemaContainsClass>("SchemaContainsClass")({
@@ -33,7 +33,7 @@ class Square extends S.TaggedClass<Square>()("Square", {
 
 class Triangle extends S.TaggedClass<Triangle>()("Triangle", {
   base: S.PositiveInt,
-  height: S.Number
+  height: S.Finite
 }) {}
 
 const CircleStruct = S.Struct({
@@ -49,7 +49,7 @@ const SquareStruct = S.Struct({
 const TriangleStruct = S.Struct({
   _tag: S.Literal("TriangleStruct"),
   base: S.PositiveInt,
-  height: S.Number
+  height: S.Finite
 })
 
 const ShapeWithStructs = S.Union([CircleStruct, SquareStruct, TriangleStruct])

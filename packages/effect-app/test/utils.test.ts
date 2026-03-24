@@ -111,7 +111,7 @@ test("works with schema class", () => {
     name: S.String,
     state: S.Union([
       S.Struct({ a: S.String, _tag: S.Literal("a") }),
-      S.Struct({ b: S.Number, _tag: S.Literal("b") })
+      S.Struct({ b: S.Finite, _tag: S.Literal("b") })
     ])
   }) {}
 

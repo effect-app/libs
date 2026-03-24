@@ -41,7 +41,7 @@ class A extends S.TaggedClass<A>()("A", {
   a: S.String
 }) {}
 class B extends S.TaggedClass<B>()("B", {
-  b: S.Number
+  b: S.Finite
 }) {}
 const schema = S
   .Struct({

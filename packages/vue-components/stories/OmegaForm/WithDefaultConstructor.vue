@@ -26,11 +26,11 @@ const AddSchema = S.Struct({
       addForm: S.NullOr(S.String).withDefault,
       b: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
       c: S.Struct({
-        d: S.Number.pipe(S.withDefaultConstructor(() => 10))
+        d: S.Finite.pipe(S.withDefaultConstructor(() => 10))
       })
     }),
   fifth: S.Email,
-  sixth: S.NumberFromString.pipe(S.withDefaultConstructor(() => 1000))
+  sixth: S.FiniteFromString.pipe(S.withDefaultConstructor(() => 1000))
 })
 
 const addForm = useOmegaForm(

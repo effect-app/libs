@@ -11,7 +11,7 @@ import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 import { SomeService } from "./fixtures.js"
 
 const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
-const num = S.Struct({ _tag: S.Literal("number"), value: S.Number })
+const num = S.Struct({ _tag: S.Literal("number"), value: S.Finite })
 const someUnion = S.Union([str, num])
 
 export class Something extends S.Class<Something>("Something")({
@@ -672,7 +672,7 @@ it("remove null from one constituent of a tagged union", () =>
 
       class BB extends S.Class<BB>("BB")({
         id: S.Literal("BB"),
-        b: S.NullOr(S.Number)
+        b: S.NullOr(S.Finite)
       }) {}
 
       type Union = AA | BB

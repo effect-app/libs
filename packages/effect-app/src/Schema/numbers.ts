@@ -42,7 +42,7 @@ export type Int = number & IntBrand
 
 export interface PositiveNumberBrand extends Simplify<B.Brand<"PositiveNumber"> & NonNegativeNumberBrand> {}
 export const PositiveNumber = extendM(
-  S.Number.pipe(
+  S.Finite.pipe(
     S.check(S.isGreaterThan(0)),
     fromBrand(nominal<PositiveNumber>(), {
       identifier: "PositiveNumber",
@@ -58,7 +58,7 @@ export type PositiveNumber = number & PositiveNumberBrand
 export interface NonNegativeNumberBrand extends Simplify<B.Brand<"NonNegativeNumber">> {}
 export const NonNegativeNumber = extendM(
   S
-    .Number
+    .Finite
     .pipe(
       S.check(S.isGreaterThanOrEqualTo(0)),
       fromBrand(nominal<NonNegativeNumber>(), {

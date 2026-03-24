@@ -233,7 +233,7 @@ export class GetSomething extends Req<GetSomething>()("GetSomething", {
 
 export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
   id: S.String
-}, { success: S.NumberFromString }) {}
+}, { success: S.FiniteFromString }) {}
 
 const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
 

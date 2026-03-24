@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- 4b95009: use Finite instead of Number
+
 ## 4.0.0-beta.32
 
 ### Patch Changes

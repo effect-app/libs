@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- 4b95009: use Finite instead of Number
+- 7328c76: add deprecation notices
+- Updated dependencies [4b95009]
+  - effect-app@4.0.0-beta.33
+
 ## 4.0.0-beta.32
 
 ### Patch Changes

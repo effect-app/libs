@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- 4b95009: use Finite instead of Number
+- Updated dependencies [4b95009]
+  - effect-app@4.0.0-beta.33
+
 ## 4.0.0-beta.32
 
 ### Patch Changes

@@ -22,6 +22,7 @@ function getObjectsAST(ast: S.AST.AST): S.AST.Objects | null {
   return null
 }
 
+/** @deprecated Use OmegaForm instead */
 export function convertIn(v: string | null, type?: "text" | "float" | "int") {
   return v === null ? "" : type === "text" ? v : `${v}`
 }
@@ -30,8 +31,10 @@ export function convertIn(v: string | null, type?: "text" | "float" | "int") {
  * Makes sure our international number format is converted to js int/float format.
  * Right now assumes . for thousands and , for decimal.
  */
+/** @deprecated Use OmegaForm instead */
 export const prepareNumberForLocale = (v: string) => v.replace(/\./g, "").replace(/,/g, ".")
 
+/** @deprecated Use OmegaForm instead */
 export function convertOutInt(v: string, type?: "text" | "float" | "int") {
   v = v == null ? v : v.trim()
   const c = v === ""
@@ -49,6 +52,7 @@ export function convertOutInt(v: string, type?: "text" | "float" | "int") {
   return c
 }
 
+/** @deprecated Use OmegaForm instead */
 export function convertOut(v: string, set: (v: {} | null) => void, type?: "text" | "float" | "int") {
   return set(convertOutInt(v, type))
 }
@@ -189,6 +193,7 @@ function handlePropertySignature(
   }
 }
 
+/** @deprecated Use OmegaForm instead */
 export function buildFieldInfoFromFields<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>
@@ -198,6 +203,7 @@ export function buildFieldInfoFromFields<
   return buildFieldInfoFromFieldsRoot(schema).fields
 }
 
+/** @deprecated Use OmegaForm instead */
 export function buildFieldInfoFromFieldsRoot<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
@@ -235,7 +241,9 @@ abstract class PhantomTypeParameter<
 
 const defaultIntl = createIntl({ locale: "en" })
 
+/** @deprecated Use OmegaForm instead */
 export const translate = ref<IntlFormatters["formatMessage"]>(defaultIntl.formatMessage)
+/** @deprecated Use OmegaForm instead */
 export const customSchemaErrors = ref<Map<S.AST.AST | string, (message: string, e: unknown, v: unknown) => string>>(
   new Map()
 )
@@ -398,6 +406,7 @@ function buildFieldInfo(
   return info as any
 }
 
+/** @deprecated Use OmegaForm instead */
 export function getMetadataFromSchema(
   ast: S.AST.AST
 ): {

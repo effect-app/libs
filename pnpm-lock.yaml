@@ -143,7 +143,7 @@ importers:
         specifier: ^4.21.0
         version: 4.21.0
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       unplugin-auto-import:
         specifier: ^21.0.0
@@ -186,7 +186,7 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vitest:
         specifier: ^4.0.18
@@ -244,7 +244,7 @@ importers:
         specifier: ^4.5.3
         version: 4.5.3
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vitest:
         specifier: ^4.0.18
@@ -302,7 +302,7 @@ importers:
         specifier: 8.0.0
         version: 8.0.0(typescript@6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
 
   packages/eslint-shared-config:
@@ -386,7 +386,7 @@ importers:
         specifier: 3.3.1
         version: 3.3.1
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       typescript-eslint:
         specifier: 8.56.1
@@ -489,7 +489,7 @@ importers:
         specifier: ^7.2.0
         version: 7.2.0
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vitest:
         specifier: ^4.0.18
@@ -556,7 +556,7 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vite:
         specifier: ^7.3.1
@@ -650,7 +650,7 @@ importers:
         specifier: ^10.2.15
         version: 10.2.15(@testing-library/dom@10.4.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       typescript:
-        specifier: ~6.0.0
+        specifier: ~6.0.2
         version: 6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vite:
         specifier: ^7.3.1

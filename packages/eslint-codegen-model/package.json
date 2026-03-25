@@ -31,7 +31,7 @@
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.24",
     "madge": "8.0.0",
-    "typescript": "~6.0.0",
+    "typescript": "~6.0.2",
     "effect-app": "workspace:*",
     "@effect-app/eslint-shared-config": "workspace:*"
   },

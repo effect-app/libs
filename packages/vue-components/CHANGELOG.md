@@ -5,6 +5,7 @@
 ### Patch Changes
 
 - 8c645d5: update to latest effect
+- Fixes Redacted Meta in Omega Form
 - Updated dependencies [8c645d5]
   - effect-app@4.0.0-beta.34
   - @effect-app/vue@4.0.0-beta.34

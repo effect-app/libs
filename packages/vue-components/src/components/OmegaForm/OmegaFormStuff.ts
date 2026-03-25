@@ -3,6 +3,7 @@ import { Effect, Option, type Record, S } from "effect-app"
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { isObject } from "@vueuse/core"
 import type { Fiber as EffectFiber } from "effect/Fiber"
+import type { Redacted } from "effect/Redacted"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
@@ -23,7 +24,7 @@ const isDevelopmentEnvironment = () => {
 
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
-  : T extends string | boolean | number | null | undefined | symbol | bigint ? ""
+  : T extends string | boolean | number | null | undefined | symbol | bigint | Redacted<any> ? ""
   // technically we cannot have array at the root
   : T extends ReadonlyArray<infer U> ? FieldPath_<U, `[${number}]`>
   : {
@@ -31,7 +32,7 @@ export type FieldPath<T> = unknown extends T ? string
   }[keyof T]
 
 export type FieldPath_<T, Path extends string> = unknown extends T ? string
-  : T extends string | boolean | number | null | undefined | symbol | bigint ? Path
+  : T extends string | boolean | number | null | undefined | symbol | bigint | Redacted<any> ? Path
   : T extends ReadonlyArray<infer U> ? FieldPath_<U, `${Path}[${number}]`> | Path
   : {
     [K in keyof T]: FieldPath_<T[K], `${Path}.${K & string}`>
@@ -236,7 +237,13 @@ export type PrefixFromDepth<
   _TDepth extends any[]
 > = K
 
-export type NestedKeyOf<T> = DeepKeys<T>
+// Recursively replace Redacted<A> with its inner type so DeepKeys treats it as a leaf
+type StripRedacted<T> = T extends Redacted<any> ? string
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<StripRedacted<U>>
+  : T extends Record<string, any> ? { [K in keyof T]: StripRedacted<T[K]> }
+  : T
+
+export type NestedKeyOf<T> = DeepKeys<StripRedacted<T>>
 
 export type FieldValidators<T> = {
   onChangeAsync?: FieldAsyncValidateOrFn<T, any, any>
@@ -730,7 +737,7 @@ export const createMeta = <T = any>(
               // an empty string is valid for a S.String field, so we should not mark it as required
               // TODO: handle this better via the createMeta minLength parsing
               required: isRequired
-                && (!S.AST.isString(typeToProcess) || !!getFieldMetadataFromAst(p.type).minLength),
+                && (!S.AST.isString(typeToProcess) || !!getFieldMetadataFromAst(typeToProcess).minLength),
               nullableOrUndefined
             }
           })
@@ -935,6 +942,72 @@ const metadataFromAst = <From, To>(
   }
 
   return { meta: newMeta, defaultValues, unionMeta }
+}
+
+/*
+ * Checks if an AST node is a S.Redacted Declaration without encoding.
+ * These need to be swapped to S.RedactedFromValue for form usage
+ * because S.Redacted expects Redacted objects, not plain strings.
+ */
+const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean =>
+  S.AST.isDeclaration(ast)
+  && (ast.annotations as any)?.typeConstructor?._tag === "effect/Redacted"
+  && !ast.encoding
+
+/*
+ * Creates a form-compatible schema by replacing S.Redacted(X) with
+ * S.RedactedFromValue(X). S.Redacted is a Declaration that expects
+ * Redacted<A> on both encoded and type sides, so form inputs (which
+ * produce plain strings) fail validation. S.RedactedFromValue accepts
+ * plain values on the encoded side and wraps them in Redacted on decode.
+ */
+export const toFormSchema = <From, To>(
+  schema: S.Codec<To, From, never>
+): S.Codec<To, From, never> => {
+  const ast = schema.ast
+  const objAst = S.AST.isObjects(ast)
+    ? ast
+    : S.AST.isDeclaration(ast)
+      ? S.AST.toEncoded(ast)
+      : null
+
+  if (!objAst || !("propertySignatures" in objAst)) return schema
+
+  let hasRedacted = false
+  const props: Record<string, S.Schema.Any> = {}
+
+  for (const p of objAst.propertySignatures) {
+    if (isRedactedWithoutEncoding(p.type)) {
+      hasRedacted = true
+      const innerSchema = S.make((p.type as S.AST.Declaration).typeParameters[0]!)
+      props[p.name as string] = p.isOptional
+        ? S.optional(S.RedactedFromValue(innerSchema))
+        : S.RedactedFromValue(innerSchema)
+    } else if (S.AST.isUnion(p.type)) {
+      const types = "types" in p.type ? (p.type as any).types as S.AST.AST[] : []
+      const redactedType = types.find(isRedactedWithoutEncoding)
+      if (redactedType) {
+        hasRedacted = true
+        const innerSchema = S.make((redactedType as S.AST.Declaration).typeParameters[0]!)
+        const hasNull = types.some((t) => t._tag === "Null")
+        const hasUndefined = types.some((t) => t._tag === "UndefinedKeyword")
+        const base = S.RedactedFromValue(innerSchema)
+        props[p.name as string] = hasNull && hasUndefined
+          ? S.NullishOr(base)
+          : hasNull
+            ? S.NullOr(base)
+            : hasUndefined
+              ? S.UndefinedOr(base)
+              : base
+      } else {
+        props[p.name as string] = S.make(p.type)
+      }
+    } else {
+      props[p.name as string] = S.make(p.type)
+    }
+  }
+
+  return hasRedacted ? S.Struct(props) as any : schema
 }
 
 export const duplicateSchema = <From, To>(

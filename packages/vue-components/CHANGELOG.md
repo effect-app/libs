@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Fixes Redacted casting
+  - effect-app@4.0.0-beta.35
+  - @effect-app/vue@4.0.0-beta.35
+
 ## 4.0.0-beta.34
 
 ### Patch Changes

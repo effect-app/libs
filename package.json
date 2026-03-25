@@ -7,7 +7,8 @@
       "typescript@6.0.2": "patches/typescript.patch",
       "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch",
       "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch",
-      "effect": "patches/effect.patch"
+      "effect": "patches/effect.patch",
+      "@sendgrid/mail": "patches/@sendgrid__mail.patch"
     }
   },
   "engines": {
@@ -38,7 +39,7 @@
     "testsuite-packages": "pnpm packages testsuite",
     "watch-packages": "pnpm packages build && pnpm packages watch",
     "build:tsc": "effect-app-cli packagejson-packages pnpm check",
-    "check": "tsc --build ./tsconfig.all.json",
+    "check": "tsgo --build ./tsconfig.all.json",
     "watch": "pnpm build:tsc --watch",
     "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",
@@ -71,6 +72,7 @@
     "@typescript-eslint/eslint-plugin": "8.56.1",
     "@typescript-eslint/parser": "8.56.1",
     "@typescript-eslint/scope-manager": "8.56.1",
+    "@typescript/native-preview": "7.0.0-dev.20260320.1",
     "@vue/eslint-config-typescript": "^14.7.0",
     "concurrently": "^9.2.1",
     "dprint": "^0.52.0",

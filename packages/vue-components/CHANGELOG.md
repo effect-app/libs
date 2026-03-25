@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- 297331a: bogus
+  - effect-app@4.0.0-beta.36
+  - @effect-app/vue@4.0.0-beta.36
+
 ## 4.0.0-beta.35
 
 ### Patch Changes

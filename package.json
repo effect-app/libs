@@ -4,6 +4,7 @@
     "patchedDependencies": {
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
+      "typescript@6.0.2": "patches/typescript.patch",
       "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch",
       "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch",
       "effect": "patches/effect.patch"

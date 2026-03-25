@@ -11,7 +11,7 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
+import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, toFormSchema } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
@@ -395,7 +395,7 @@ export interface OmegaFormReturn<
 > extends OF<From, To> {
   // Pre-computed type aliases - computed ONCE for performance
   _paths: FieldPath<From>
-  _keys: DeepKeys<From>
+  _keys: NestedKeyOf<From>
   _schema: S.Codec<To, From, never>
 
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
@@ -680,8 +680,9 @@ export const useOmegaForm = <
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
-  const standardSchema = S.toStandardSchemaV1(schema)
-  const decode = S.decodeUnknownEffect(schema)
+  const formCompatibleSchema = toFormSchema(schema)
+  const standardSchema = S.toStandardSchemaV1(formCompatibleSchema)
+  const decode = S.decodeUnknownEffect(formCompatibleSchema)
 
   const { meta, unionMeta } = generateMetaFromSchema(schema)
 

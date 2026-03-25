@@ -24,6 +24,7 @@ import NullComponent from "./OmegaForm/Null.vue"
 import OptionalKeyComponent from "./OmegaForm/OptionalKey.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
+import RedactedComponent from "./OmegaForm/Redacted.vue"
 import RootLevelTaggedUnionComponent from "./OmegaForm/RootLevelTaggedUnion.vue"
 import RootLevelTaggedUnionLegacyComponent from "./OmegaForm/RootLevelTaggedUnionLegacy.vue"
 import SetErrorOnSubmitComponent from "./OmegaForm/SetErrorOnSubmit.vue"
@@ -320,6 +321,13 @@ export const Defaults: Story = {
   render: () => ({
     components: { DefaultsComponent },
     template: "<DefaultsComponent />"
+  })
+}
+
+export const Redacted: Story = {
+  render: () => ({
+    components: { RedactedComponent },
+    template: "<RedactedComponent />"
   })
 }
 

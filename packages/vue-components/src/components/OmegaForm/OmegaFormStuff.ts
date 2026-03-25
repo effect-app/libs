@@ -968,37 +968,35 @@ export const toFormSchema = <From, To>(
   const objAst = S.AST.isObjects(ast)
     ? ast
     : S.AST.isDeclaration(ast)
-      ? S.AST.toEncoded(ast)
-      : null
+    ? S.AST.toEncoded(ast)
+    : null
 
   if (!objAst || !("propertySignatures" in objAst)) return schema
 
   let hasRedacted = false
-  const props: Record<string, S.Schema.Any> = {}
+  const props: Record<string, S.Struct.Fields[string]> = {}
 
   for (const p of objAst.propertySignatures) {
     if (isRedactedWithoutEncoding(p.type)) {
       hasRedacted = true
       const innerSchema = S.make((p.type as S.AST.Declaration).typeParameters[0]!)
-      props[p.name as string] = p.isOptional
-        ? S.optional(S.RedactedFromValue(innerSchema))
-        : S.RedactedFromValue(innerSchema)
+      props[p.name as string] = S.RedactedFromValue(innerSchema)
     } else if (S.AST.isUnion(p.type)) {
-      const types = "types" in p.type ? (p.type as any).types as S.AST.AST[] : []
+      const types = p.type.types
       const redactedType = types.find(isRedactedWithoutEncoding)
       if (redactedType) {
         hasRedacted = true
         const innerSchema = S.make((redactedType as S.AST.Declaration).typeParameters[0]!)
-        const hasNull = types.some((t) => t._tag === "Null")
-        const hasUndefined = types.some((t) => t._tag === "UndefinedKeyword")
+        const hasNull = types.some(S.AST.isNull)
+        const hasUndefined = types.some(S.AST.isUndefined)
         const base = S.RedactedFromValue(innerSchema)
         props[p.name as string] = hasNull && hasUndefined
           ? S.NullishOr(base)
           : hasNull
-            ? S.NullOr(base)
-            : hasUndefined
-              ? S.UndefinedOr(base)
-              : base
+          ? S.NullOr(base)
+          : hasUndefined
+          ? S.UndefinedOr(base)
+          : base
       } else {
         props[p.name as string] = S.make(p.type)
       }
@@ -1007,7 +1005,7 @@ export const toFormSchema = <From, To>(
     }
   }
 
-  return hasRedacted ? S.Struct(props) as any : schema
+  return hasRedacted ? S.Struct(props) as unknown as S.Codec<To, From, never> : schema
 }
 
 export const duplicateSchema = <From, To>(

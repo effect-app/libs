@@ -68,7 +68,7 @@ const struct = {
     .pipe(
       S.withDefaultConstructor(() => [{ e: S.NonEmptyString("default") }])
     ),
-  f: S.Union(
+  f: S.Union([
     S.Struct({
       _tag: S.Literal("taggo1").pipe(S.withDefaultConstructor(() => "taggo1")),
       g: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
@@ -79,11 +79,11 @@ const struct = {
       h: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
       i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
     })
-  ),
-  j: S.Number.pipe(S.withDefaultConstructor(() => 0)),
+  ]),
+  j: S.Finite.pipe(S.withDefaultConstructor(() => 0)),
   k: S.Boolean.pipe(S.withDefaultConstructor(() => true)),
   l: S.NullOr(
-    S.Union(
+    S.Union([
       S.Struct({
         a: S.NonEmptyString255,
         common: S.NonEmptyString255,
@@ -94,7 +94,7 @@ const struct = {
         common: S.NonEmptyString255,
         _tag: S.Literal("B")
       })
-    )
+    ])
   ),
   m: S.Struct({
     n: S.NullOr(S.Struct({ q: S.String })),
@@ -109,7 +109,7 @@ const struct = {
     }))
     .withDefault,
   s: S.NullOr(S.Struct({ z: S.String })).withDefault,
-  t: S.NumberFromString.pipe(S.withDefaultConstructor(() => 1000)),
+  t: S.FiniteFromString.pipe(S.withDefaultConstructor(() => 1000)),
   u: S.NullOr(S.NonEmptyString),
   v: S.UndefinedOr(S.NonEmptyString)
 }
@@ -117,7 +117,7 @@ const struct = {
 class ClassSchema extends S.ExtendedClass<ClassSchema, any>("ClassSchema")(struct) {}
 const schema = S.Struct(struct)
 
-const Union = S.Union(
+const Union = S.Union([
   S.Struct({
     _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
     a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
@@ -129,7 +129,7 @@ const Union = S.Union(
     b: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
     c: schema
   })
-)
+])
 const zero = useOmegaForm(ClassSchema)
 const one = useOmegaForm(schema)
 const two = useOmegaForm(Union)
@@ -164,39 +164,39 @@ const six = useOmegaForm(schema, {
   defaultValuesPriority: ["tanstack", "schema"]
 })
 
-const seven = useOmegaForm(S.Union(
+const seven = useOmegaForm(S.Union([
   S.Struct({
     _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
     a: S.NonEmptyString,
-    s: S.NullOr(S.Number).withDefault
+    s: S.NullOr(S.Finite).withDefault
   }),
   S.Struct({
     _tag: S.Literal("tag2"),
     b: S.NonEmptyString,
-    t: S.Number
+    t: S.Finite
   })
-))
+]))
 
 const eight = useOmegaForm(ClassSchema
   .pipe(
-    S.filter((form) => {
+    S.check(S.makeFilter((form) => {
       if (form.a !== form.b) {
         return {
           path: ["a"],
           message: "Email and confirmation must match!"
         }
       }
-    })
+    }))
   ))
 
-const nine = useOmegaForm(ClassSchema.pipe(S.filter((form) => {
+const nine = useOmegaForm(ClassSchema.pipe(S.check(S.makeFilter((form) => {
   if (form.a !== form.b) {
     return {
       path: ["a"],
       message: "Email and confirmation must match!"
     }
   }
-})))
+}))))
 </script>
 
 <style scoped>

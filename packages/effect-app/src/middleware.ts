@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Context } from "effect-app"
+import { ServiceMap } from "effect-app"
 import { RpcX } from "./rpc.js"
 
-export class DevMode extends Context.Reference<DevMode>()("DevMode", { defaultValue: () => false }) {}
+export class DevMode extends ServiceMap.Reference("DevMode", { defaultValue: () => false }) {}
 
 export class RequestCacheMiddleware
   extends RpcX.RpcMiddleware.Tag<RequestCacheMiddleware>()("RequestCacheMiddleware")

@@ -1,16 +1,15 @@
-import { Context, Effect, Fiber, FiberSet, Layer } from "effect-app"
+import { Effect, Fiber, FiberSet, Layer, ServiceMap } from "effect-app"
 import type {} from "effect/Scope"
-import type {} from "effect/Context"
 import { InfraLogger } from "./logger.js"
 import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.js"
 import { setRootParentSpan } from "./RequestFiberSet.js"
 
 const make = Effect.gen(function*() {
   const set = yield* FiberSet.make<unknown, never>()
-  const add = (...fibers: Fiber.RuntimeFiber<never, never>[]) =>
-    Effect.sync(() => fibers.forEach((_) => FiberSet.unsafeAdd(set, _)))
-  const addAll = (fibers: readonly Fiber.RuntimeFiber<never, never>[]) =>
-    Effect.sync(() => fibers.forEach((_) => FiberSet.unsafeAdd(set, _)))
+  const add = (...fibers: Fiber.Fiber<never, never>[]) =>
+    Effect.sync(() => fibers.forEach((_) => FiberSet.addUnsafe(set, _)))
+  const addAll = (fibers: readonly Fiber.Fiber<never, never>[]) =>
+    Effect.sync(() => fibers.forEach((_) => FiberSet.addUnsafe(set, _)))
   const join = FiberSet.size(set).pipe(
     Effect.andThen((count) => InfraLogger.logDebug(`Joining ${count} current fibers on the MainFiberSet`)),
     Effect.andThen(FiberSet.join(set))
@@ -42,7 +41,7 @@ const make = Effect.gen(function*() {
   function forkDaemonReport<A, E, R>(self: Effect.Effect<A, E, R>) {
     return self.pipe(
       Effect.asVoid,
-      Effect.catchAllCause(reportNonInterruptedFailureCause({})),
+      Effect.catchCause(reportNonInterruptedFailureCause({})),
       setRootParentSpan,
       Effect.uninterruptible,
       run
@@ -63,10 +62,15 @@ const make = Effect.gen(function*() {
  * you should register these long running fibers in a FiberSet, and join them at the end of your main program.
  * This way any errors will blow up the main program instead of fibers dying unknowingly.
  */
-export class MainFiberSet extends Context.TagMakeId("MainFiberSet", make)<MainFiberSet>() {
-  static readonly Live = this.toLayerScoped()
-  static readonly JoinLive = this.pipe(Effect.andThen((_) => _.join), Layer.effectDiscard, Layer.provide(this.Live))
-  static readonly run = <A, R>(self: Effect.Effect<A, never, R>) => this.use((_) => _.run(self))
+export class MainFiberSet extends ServiceMap.Service<MainFiberSet>()("MainFiberSet", { make }) {
+  static readonly Live = Layer.effect(this, this.make)
+  static readonly JoinLive = this.asEffect().pipe(
+    Effect.andThen((_) => _.join),
+    Layer.effectDiscard,
+    Layer.provide(this.Live)
+  )
+  static readonly run = <A, R>(self: Effect.Effect<A, never, R>) =>
+    this.asEffect().pipe(Effect.andThen((_) => _.run(self)))
   static readonly forkDaemonReport = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    this.use((_) => _.forkDaemonReport(self))
+    this.asEffect().pipe(Effect.andThen((_) => _.forkDaemonReport(self)))
 }

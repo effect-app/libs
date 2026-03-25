@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-import { Effect, Exit, Fiber, Option, Record, Runtime } from "effect"
-import * as Either from "effect/Either"
-import { type RuntimeFiber } from "effect/Fiber"
-import { dual, isFunction } from "effect/Function"
+import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
+import { dual } from "effect/Function"
+import { isFunction, isObject } from "effect/Predicate"
+import * as Result from "effect/Result"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"
@@ -139,12 +139,12 @@ export * from "./utils/logger.js"
 export * from "./utils/logLevel.js"
 // codegen:end
 
-export const unsafeRight = <E, A>(ei: Either.Either<A, E>) => {
-  if (Either.isLeft(ei)) {
-    console.error(ei.left)
-    throw ei.left
+export const unsafeRight = <E, A>(ei: Result.Result<A, E>) => {
+  if (Result.isFailure(ei)) {
+    console.error(ei.failure)
+    throw ei.failure
   }
-  return ei.right
+  return ei.success
 }
 
 export const unsafeSome = (makeErrorMessage: () => string) => <A>(o: Option.Option<A>) => {
@@ -907,7 +907,7 @@ export type ExcludeFromTuple<T extends readonly any[], E> = T extends [infer F, 
   : [F, ...ExcludeFromTuple<R, E>]
   : []
 
-export const addAbortToRuntimeFiber = <A, E>(fiber: RuntimeFiber<A, E>, signal: AbortSignal) => {
+export const addAbortToRuntimeFiber = <A, E>(fiber: Fiber.Fiber<A, E>, signal: AbortSignal) => {
   const abort = () => Effect.runSync(Fiber.interrupt(fiber))
   if (signal.aborted) {
     abort()
@@ -917,15 +917,15 @@ export const addAbortToRuntimeFiber = <A, E>(fiber: RuntimeFiber<A, E>, signal: 
   return fiber
 }
 
-export const runtimeFiberAsPromise = <A, E>(fiber: RuntimeFiber<A, E>, signal?: AbortSignal) => {
+export const runtimeFiberAsPromise = <A, E>(fiber: Fiber.Fiber<A, E>, signal?: AbortSignal) => {
   if (signal) addAbortToRuntimeFiber(fiber, signal)
   return new Promise((resolve, reject) =>
     fiber.addObserver((exit) => {
       if (Exit.isSuccess(exit)) {
         resolve(exit.value)
       } else {
-        // errors really should be of type Error, so we wrap in FiberFailure just as default Effect
-        reject(Runtime.makeFiberFailure(exit.cause))
+        // eslint-disable-next-line
+        reject(Cause.squash(exit.cause))
       }
     })
   )
@@ -950,3 +950,25 @@ export type UnionToTuples<T, U = T> = [T] extends [never] ? []
       | [T, ...UnionToTuples<Exclude<U, T>>]
       | UnionToTuples<Exclude<U, T>>
   : []
+
+const genConstructor = (function*() {}).constructor
+
+/**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * function* generatorFn() {
+ *   yield 1
+ *   yield 2
+ * }
+ *
+ * console.log(Utils.isGeneratorFunction(generatorFn)) // true
+ * console.log(Utils.isGeneratorFunction(() => {})) // false
+ * ```
+ *
+ * @category predicates
+ * @since 3.11.0
+ */
+export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any, any, any> =>
+  isObject(u) && u.constructor === genConstructor

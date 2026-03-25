@@ -1,6 +1,6 @@
 // ets_tracing: off
 
-import { Array, type Either, type Equivalence, Option, type Order } from "effect"
+import { Array, type Equivalence, Option, type Order, type Result } from "effect"
 import { not } from "effect/Predicate"
 import { identity, pipe, type Predicate, type Refinement, tuple } from "./Function.js"
 
@@ -19,7 +19,7 @@ export function findFirst_<A, B extends A>(
 ): Option.Option<B>
 export function findFirst_<A>(set: ReadonlySet<A>, predicate: Predicate<A>): Option.Option<A>
 export function findFirst_<A>(set: ReadonlySet<A>, predicate: Predicate<A>): Option.Option<A> {
-  return Option.fromNullable([...set].find(predicate))
+  return Option.fromNullishOr([...set].find(predicate))
 }
 
 export function findFirstMap_<A, B>(
@@ -337,9 +337,9 @@ export function elem<A>(E: Equivalence.Equivalence<A>): (a: A) => (set: Set<A>) 
 export function partitionMap<B, C>(
   EB: Equivalence.Equivalence<B>,
   EC: Equivalence.Equivalence<C>
-): <A>(f: (a: A) => Either.Either<C, B>) => (set: Set<A>) => readonly [Set<B>, Set<C>] {
+): <A>(f: (a: A) => Result.Result<C, B>) => (set: Set<A>) => readonly [Set<B>, Set<C>] {
   const pm = partitionMap_(EB, EC)
-  return <A>(f: (a: A) => Either.Either<C, B>) => (set: Set<A>) => pm(set, f)
+  return <A>(f: (a: A) => Result.Result<C, B>) => (set: Set<A>) => pm(set, f)
 }
 
 /**
@@ -348,8 +348,8 @@ export function partitionMap<B, C>(
 export function partitionMap_<B, C>(
   EB: Equivalence.Equivalence<B>,
   EC: Equivalence.Equivalence<C>
-): <A>(set: Set<A>, f: (a: A) => Either.Either<C, B>) => readonly [Set<B>, Set<C>] {
-  return <A>(set: Set<A>, f: (a: A) => Either.Either<C, B>) => {
+): <A>(set: Set<A>, f: (a: A) => Result.Result<C, B>) => readonly [Set<B>, Set<C>] {
+  return <A>(set: Set<A>, f: (a: A) => Result.Result<C, B>) => {
     const values = set.values()
     let e: Next<A>
     const left = new Set<B>()
@@ -359,14 +359,14 @@ export function partitionMap_<B, C>(
     while (!(e = values.next() as any).done) {
       const v = f(e.value)
       switch (v._tag) {
-        case "Left":
-          if (!hasB(left, v.left)) {
-            left.add(v.left)
+        case "Failure":
+          if (!hasB(left, v.failure)) {
+            left.add(v.failure)
           }
           break
-        case "Right":
-          if (!hasC(right, v.right)) {
-            right.add(v.right)
+        case "Success":
+          if (!hasC(right, v.success)) {
+            right.add(v.success)
           }
           break
       }
@@ -528,7 +528,7 @@ export function compact<A>(E: Equivalence.Equivalence<A>): (fa: Set<Option.Optio
 export function separate<E, A>(
   EE: Equivalence.Equivalence<E>,
   EA: Equivalence.Equivalence<A>
-): (fa: Set<Either.Either<A, E>>) => readonly [Set<E>, Set<A>] {
+): (fa: Set<Result.Result<A, E>>) => readonly [Set<E>, Set<A>] {
   return (fa) => {
     const elemEE = elem_(EE)
     const elemEA = elem_(EA)
@@ -536,14 +536,14 @@ export function separate<E, A>(
     const right: MutableSet<A> = new Set()
     fa.forEach((e) => {
       switch (e._tag) {
-        case "Left":
-          if (!elemEE(left, e.left)) {
-            left.add(e.left)
+        case "Failure":
+          if (!elemEE(left, e.failure)) {
+            left.add(e.failure)
           }
           break
-        case "Right":
-          if (!elemEA(right, e.right)) {
-            right.add(e.right)
+        case "Success":
+          if (!elemEA(right, e.success)) {
+            right.add(e.success)
           }
           break
       }

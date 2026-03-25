@@ -47,8 +47,8 @@ import { useOmegaForm } from "../src/components/OmegaForm"
 
 const testForm = useOmegaForm(
   S.Struct({
-    first: S.Number,
-    second: S.Number
+    first: S.Finite,
+    second: S.Finite
   })
 )
 

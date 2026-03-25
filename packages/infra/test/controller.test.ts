@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
-import { type RpcSerialization } from "@effect/rpc"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, Layer, S, Scope } from "effect-app"
+import { Effect, Layer, S, Scope, ServiceMap } from "effect-app"
 import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import * as RpcX from "effect-app/rpc"
 import { MiddlewareMaker } from "effect-app/rpc"
 import { TypeTestId } from "effect-app/TypeTest"
+import { type RpcSerialization } from "effect/unstable/rpc"
 import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/api/routing/middleware.js"
 import { sort } from "../src/api/routing/tsort.js"
 import { AllowAnonymous, AllowAnonymousLive, CustomError1, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
@@ -37,7 +37,7 @@ class MyContextProvider extends RpcX.RpcMiddleware.Tag<MyContextProvider, {
         // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
         // if (Math.random() > 0.5) return yield* new CustomError2()
 
-        return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+        return yield* Effect.provideService(effect, Some, Some.of({ a: 1 }))
       })
     }
   })
@@ -49,7 +49,7 @@ class MyContextProvider3 extends RpcX.RpcMiddleware.Tag<MyContextProvider3, {
   requires: SomeElse
 }>()("MyContextProvider3") {
   static Default = Layer.make(this, {
-    dependencies: [Layer.effect(SomeService, SomeService.make)],
+    dependencies: [SomeService.Default],
     *make() {
       yield* SomeService
       if (Math.random() > 0.5) return yield* new CustomError1()
@@ -69,7 +69,7 @@ class MyContextProvider3 extends RpcX.RpcMiddleware.Tag<MyContextProvider3, {
         // this is allowed here but mergeContextProviders/MergedContextProvider will trigger an error
         // if (Math.random() > 0.5) return yield* new CustomError2()
 
-        return yield* Effect.provideService(effect, Some, new Some({ a: 1 }))
+        return yield* Effect.provideService(effect, Some, Some.of({ a: 1 }))
       })
     }
   })
@@ -91,7 +91,7 @@ class MyContextProvider2
       return Effect.fnUntraced(function*(effect) {
         // we test without dependencies, so that we end up with an R of never.
 
-        return yield* Effect.provideService(effect, SomeElse, new SomeElse({ b: 2 }))
+        return yield* Effect.provideService(effect, SomeElse, SomeElse.of({ b: 2 }))
       })
     }
   })
@@ -99,7 +99,7 @@ class MyContextProvider2
 
 //
 
-const Str = Context.GenericTag<"str", "str">("str")
+class Str extends ServiceMap.Service<Str, "str">()("str") {}
 
 export class BogusMiddleware extends RpcX.RpcMiddleware.Tag<BogusMiddleware>()("BogusMiddleware") {
   static Default = Layer.make(this, {
@@ -147,7 +147,7 @@ class middleware extends MiddlewareMaker
   .middleware(MyContextProvider)
   .middleware(...genericMiddlewares)
 {
-  static Default = this.layer.pipe(Layer.provide(MiddlewaresLive))
+  static Default = this.layer.pipe(Layer.provide([...MiddlewaresLive]))
   // static override [Unify.unifySymbol]?: TagUnify<typeof middleware> // why we need this?
 }
 
@@ -205,7 +205,9 @@ export const middleware3 = MiddlewareMaker
 export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
 
 export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
-export class Gen extends Req<Gen>()("Gen", {}, { success: S.Void }) {}
+export class Gen extends Req<Gen>()("Gen", {}) {}
+
+expectTypeOf(Eff.error).toEqualTypeOf<typeof Gen.error>()
 
 export class DoSomething extends Req<DoSomething>()("DoSomething", {
   id: S.String
@@ -231,19 +233,25 @@ export class GetSomething extends Req<GetSomething>()("GetSomething", {
 
 export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
   id: S.String
-}, { success: S.NumberFromString }) {}
+}, { success: S.FiniteFromString }) {}
 
 const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
 
 // const client = ApiClientFactory.makeFor(Layer.empty)(Something)
 // client.pipe(Effect.map(c => c.DoSomething.name))
 
-export class SomethingService extends Effect.Service<SomethingService>()("SomethingService", {
-  dependencies: [],
-  effect: Effect.gen(function*() {
-    return {}
-  })
-}) {}
+export class SomethingService extends ServiceMap.Service<SomethingService>()(
+  "SomethingService",
+  {
+    make: Effect.gen(function*() {
+      return {
+        a: 1
+      }
+    })
+  }
+) {
+  static Default = Layer.effect(this, this.make)
+}
 
 declare const a: {
   (opt: { a: 1 }): void
@@ -252,28 +260,36 @@ declare const a: {
   (opt: { b: 3 }): void
 }
 
-export class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
-  dependencies: [SomethingService.Default],
-  effect: Effect.gen(function*() {
-    const smth = yield* SomethingService
-    console.log({ smth })
-    return {}
-  })
-}) {}
+export class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
+  "SomethingRepo",
+  {
+    make: Effect.gen(function*() {
+      const smth = yield* SomethingService
+      console.log({ smth })
+      return { b: 2 }
+    })
+  }
+) {
+  static Default = Layer.effect(this, this.make).pipe(Layer.provide(SomethingService.Default))
+}
 
-export class SomethingService2 extends Effect.Service<SomethingService2>()("SomethingService2", {
-  dependencies: [],
-  effect: Effect.gen(function*() {
-    return {}
-  })
-}) {}
+export class SomethingService2 extends ServiceMap.Service<SomethingService2>()(
+  "SomethingService2",
+  {
+    make: Effect.gen(function*() {
+      return { c: 3 }
+    })
+  }
+) {
+  static Default = Layer.effect(this, this.make)
+}
 
 export const { Router, matchAll } = makeRouter(
   middleware
 )
 
 export const r2 = makeRouter(
-  Object.assign(middleware2, { Default: middleware2.layer.pipe(Layer.provide(MiddlewaresLive)) })
+  Object.assign(middleware2, { Default: middleware2.layer.pipe(Layer.provide([...MiddlewaresLive])) })
 )
 
 const router = Router(Something)({
@@ -307,7 +323,7 @@ const router = Router(Something)({
         return yield* Effect.logInfo("Some", some)
       },
       *GetSomething(req) {
-        console.log(req.id)
+        console.log(req["id"])
 
         const _b = yield* Effect.succeed(false)
         if (_b) {
@@ -319,7 +335,7 @@ const router = Router(Something)({
           return yield* Effect.succeed("12")
         }
         if (!_b) {
-          return yield* new UnauthorizedError()
+          return yield* Effect.fail(new UnauthorizedError())
         } else {
           // expected an error here because a boolean is not a string
           // return _b
@@ -347,8 +363,8 @@ it("sorts based on requirements", () => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched = matchAll({ router })
-expectTypeOf({} as Layer.Layer.Context<typeof matched>).toEqualTypeOf<
-  RpcSerialization.RpcSerialization | SomeService | "str"
+expectTypeOf({} as Layer.Services<typeof matched>).toEqualTypeOf<
+  RpcSerialization.RpcSerialization | SomeService | Str
 >()
 
 type makeContext = MakeContext<typeof router[TypeTestId]>
@@ -372,7 +388,7 @@ const router2 = r2.Router(Something)({
         return yield* Effect.logInfo("Some", some)
       },
       *GetSomething(req) {
-        console.log(req.id)
+        console.log(req["id"])
 
         const _b = yield* Effect.succeed(false)
         if (_b) {
@@ -384,7 +400,7 @@ const router2 = r2.Router(Something)({
           return yield* Effect.succeed("12")
         }
         if (!_b) {
-          return yield* new UnauthorizedError()
+          return yield* Effect.fail(new UnauthorizedError())
         } else {
           // expected an error here because a boolean is not a string
           // return _b
@@ -405,8 +421,8 @@ const router2 = r2.Router(Something)({
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const matched2 = matchAll({ router: router2 })
-expectTypeOf({} as Layer.Layer.Context<typeof matched2>).toEqualTypeOf<
-  RpcSerialization.RpcSerialization | SomeService | "str"
+expectTypeOf({} as Layer.Services<typeof matched2>).toEqualTypeOf<
+  RpcSerialization.RpcSerialization | SomeService | Str
 >()
 
 type makeContext2 = MakeContext<typeof router2[TypeTestId]>

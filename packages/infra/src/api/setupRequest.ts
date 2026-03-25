@@ -7,8 +7,8 @@ import { storeId } from "../Store/Memory.js"
 export const getRequestContext = Effect
   .all({
     span: Effect.currentSpan.pipe(Effect.orDie),
-    locale: LocaleRef,
-    namespace: storeId
+    locale: LocaleRef.asEffect(),
+    namespace: storeId.asEffect()
   })
   .pipe(
     Effect.map(({ locale, namespace, span }) =>
@@ -22,8 +22,8 @@ export const getRequestContext = Effect
   )
 
 export const getRC = Effect.all({
-  locale: LocaleRef,
-  namespace: storeId
+  locale: LocaleRef.asEffect(),
+  namespace: storeId.asEffect()
 })
 
 const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(f: Effect.Effect<A, E, R>) =>
@@ -33,8 +33,9 @@ const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, 
       f.pipe(
         Effect.withSpan(name, {
           ...options,
-          attributes: { ...spanAttributes({ ...ctx, name: NonEmptyString255(name) }), ...options?.attributes },
-          captureStackTrace: false
+          attributes: { ...spanAttributes({ ...ctx, name: NonEmptyString255(name) }), ...options?.attributes }
+        }, {
+          captureStackTrace: options?.captureStackTrace ?? false
         }),
         // TODO: false
         // request context info is picked up directly in the logger for annotations.

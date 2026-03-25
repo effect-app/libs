@@ -3,8 +3,6 @@
  */
 import { Config, type Equal, type Redacted } from "effect"
 import type * as Chunk from "effect/Chunk"
-import * as Either from "effect/Either"
-import type { SecretTypeId } from "effect/Secret"
 import * as internal from "./internal/configSecretURL.js"
 
 // /**
@@ -23,7 +21,7 @@ import * as internal from "./internal/configSecretURL.js"
  * @since 1.0.0
  * @category models
  */
-export interface SecretURL extends Redacted.Redacted, SecretURL.Proto, Equal.Equal {
+export interface SecretURL extends Redacted.Redacted, Equal.Equal {
   /** @internal */
   readonly raw: Array<number>
 }
@@ -35,16 +33,7 @@ export const SecretURL: SecretURLOps = {}
 /**
  * @since 1.0.0
  */
-export declare namespace SecretURL {
-  /**
-   * @since 1.0.0
-   * @category models
-   * @deprecated
-   */
-  export interface Proto {
-    readonly [SecretTypeId]: SecretTypeId
-  }
-}
+export declare namespace SecretURL {}
 
 /**
  * @since 1.0.0
@@ -84,9 +73,5 @@ export const value: (self: SecretURL) => string = internal.value
 export const unsafeWipe: (self: SecretURL) => void = internal.unsafeWipe
 
 export const secretURL = (name?: string): Config.Config<SecretURL> => {
-  const config = Config.primitive(
-    "a secret property",
-    (text) => Either.right(fromString(text))
-  )
-  return name === undefined ? config : Config.nested(config, name)
+  return Config.map(Config.string(name), fromString)
 }

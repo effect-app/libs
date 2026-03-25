@@ -4,7 +4,7 @@ import { buildFieldInfoFromFieldsRoot, translate } from "../src/form.js"
 // test schema with integer field
 class TestSchema extends S.Class<TestSchema>("TestSchema")({
   integerField: S.Int,
-  numberField: S.Number,
+  numberField: S.Finite,
   stringField: S.String
 }) {}
 

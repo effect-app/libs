@@ -12,34 +12,18 @@ export function getQueryParam(search: ParsedQuery, param: string) {
   return v ?? null
 }
 
-export const getQueryParamO = flow(getQueryParam, Option.fromNullable)
+export const getQueryParamO = flow(getQueryParam, Option.fromNullishOr)
 
-export const parseOpt = <E, A>(t: S.Schema<A, E, never>) => {
-  const dec = flow(S.decodeUnknownEither(t), (x) =>
-    x._tag === "Right"
-      ? Option.some(x.right)
-      : Option.none())
-  return dec
-}
-
-export const parseOptUnknown = <E, A>(t: S.Schema<A, E, never>) => {
-  const dec = flow(S.decodeUnknownEither(t), (x) =>
-    x._tag === "Right"
-      ? Option.some(x.right)
-      : Option.none())
-  return dec
-}
-
-export function parseRouteParamsOption<NER extends Record<string, Schema<any, any, never>>>(
-  query: Record<string, any>,
-  t: NER // enforce non empty
+export function parseRouteParamsOption<NER extends Record<string, S.Codec<any, any>>>(query: Record<string, any>, t: NER // enforce non empty
 ): {
   [K in keyof NER]: Option.Option<Schema.Type<NER[K]>>
 } {
   return typedKeysOf(t).reduce(
     (prev, cur) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      prev[cur] = getQueryParamO(query, cur as string).pipe(Option.flatMap(parseOpt(t[cur]!)))
+      prev[cur] = getQueryParamO(query, cur as string).pipe(
+        Option.flatMap(S.decodeUnknownOption(t[cur]!))
+      )
 
       return prev
     },
@@ -49,7 +33,7 @@ export function parseRouteParamsOption<NER extends Record<string, Schema<any, an
   )
 }
 
-export function parseRouteParams<NER extends Record<string, Schema<any, any, never>>>(
+export function parseRouteParams<NER extends Record<string, S.Codec<any, any>>>(
   query: Record<string, any>,
   t: NER // enforce non empty
 ): {
@@ -58,7 +42,9 @@ export function parseRouteParams<NER extends Record<string, Schema<any, any, nev
   return typedKeysOf(t).reduce(
     (prev, cur) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      prev[cur] = S.decodeUnknownSync(t[cur]!)((query as any)[cur])
+      prev[cur] = S.decodeUnknownSync(t[cur]!)(
+        (query as any)[cur]
+      )
 
       return prev
     },

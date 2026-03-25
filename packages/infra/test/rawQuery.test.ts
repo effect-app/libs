@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Array, Config, Effect, flow, Layer, Logger, LogLevel, ManagedRuntime, Option, Redacted, S } from "effect-app"
+import { Array, Config, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S, ServiceMap } from "effect-app"
 import { LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, or, project, where, whereEvery, whereSome } from "../src/Model/query.js"
@@ -10,20 +10,21 @@ import { MemoryStoreLive } from "../src/Store/Memory.js"
 export const rt = ManagedRuntime.make(Layer.mergeAll(
   Layer.effect(
     LogLevels,
-    LogLevels.pipe(Effect.map((_) => {
-      const m = new Map(_)
+    Effect.gen(function*() {
+      const levels = yield* LogLevels
+      const m = new Map(levels)
       m.set("@effect-app/infra", "debug")
       return m
-    }))
+    })
   ),
-  Logger.minimumLogLevel(LogLevel.Debug)
+  Layer.succeed(References.MinimumLogLevel, "Debug")
 ))
 
 class Something extends S.Class<Something>("Something")({
   id: S.String,
   name: S.String,
   description: S.String,
-  items: S.Array(S.Struct({ id: S.String, value: S.Number, description: S.String }))
+  items: S.Array(S.Struct({ id: S.String, value: S.Finite, description: S.String }))
 }) {}
 
 const items = [
@@ -48,18 +49,21 @@ const items = [
 ]
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
-  effect: Effect.gen(function*() {
-    const partitionKey = "test-" + new Date().getTime()
-    return yield* makeRepo("Something", Something, { config: { partitionValue: () => partitionKey } })
-  })
-}) {
+class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
+  "SomethingRepo",
+  {
+    make: Effect.gen(function*() {
+      const partitionKey = "test-" + new Date().getTime()
+      return yield* makeRepo("Something", Something, { config: { partitionValue: () => partitionKey } })
+    })
+  }
+) {
   static readonly layer = Layer
     .effect(
       SomethingRepo,
       Effect.gen(function*() {
         const partitionKey = "test-" + new Date().getTime()
-        const repo = SomethingRepo.make(
+        const repo = SomethingRepo.of(
           yield* makeRepo("Something", Something, {
             config: { partitionValue: () => partitionKey }
           })
@@ -79,21 +83,23 @@ class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {
     .layer
     .pipe(
       Layer.provide(
-        Config.redacted("STORAGE_URL").pipe(
-          Config.withDefault(Redacted
-            .make(
-              // the emulator doesn't implement array projections :/ so you need an actual cloud instance!
-              "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
-            )),
-          Effect.map((url) =>
-            CosmosStoreLayer({
+        Effect
+          .gen(function*() {
+            const url = yield* Config.redacted("STORAGE_URL").pipe(
+              Config.withDefault(
+                Redacted.make(
+                  // the emulator doesn't implement array projections :/ so you need an actual cloud instance!
+                  "AccountEndpoint=http://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+                )
+              )
+            )
+            return CosmosStoreLayer({
               dbName: "test",
               prefix: "",
               url
             })
-          ),
-          Layer.unwrapEffect
-        )
+          })
+          .pipe(Layer.unwrap)
       )
     )
 }
@@ -103,7 +109,7 @@ describe("select first-level array fields", () => {
     .gen(function*() {
       const repo = yield* SomethingRepo
 
-      const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Number })) })
+      const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Finite })) })
 
       // ok crazy lol, "value" is a reserved word in CosmosDB, so we have to use t["value"] as a field name instead of t.value
       const items = yield* repo.queryRaw(projected, {
@@ -115,7 +121,7 @@ describe("select first-level array fields", () => {
           FROM Somethings f`,
           parameters: []
         }),
-        memory: (items) =>
+        memory: (items: readonly Something[]) =>
           items.map(({ items, name }) => ({
             name,
             items: items.map(({ id, value }) => ({ id, value }))
@@ -155,7 +161,7 @@ describe("select first-level array fields", () => {
       .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
 })
 
-const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Number })) })
+const projected = S.Struct({ name: S.String, items: S.Array(S.Struct({ id: S.String, value: S.Finite })) })
 
 const expected = [
   {
@@ -205,13 +211,13 @@ describe("filter first-level array fields as groups", () => {
           WHERE (items["value"] > @v1 AND CONTAINS(items["description"], @v2, true))`,
           parameters: [{ name: "@v1", value: 20 }, { name: "@v2", value: "d item" }]
         }),
-        memory: Array.filterMap(({ items, name }) =>
-          items.some((_) => _.value > 20 && _.description.includes("d item"))
-            ? Option.some({
-              name,
-              items: items.map(({ id, value }) => ({ id, value }))
+        memory: Array.filterMap((item: Something) =>
+          item.items.some((_) => _.value > 20 && _.description.includes("d item"))
+            ? Result.succeed({
+              name: item.name,
+              items: item.items.map(({ id, value }) => ({ id, value }))
             })
-            : Option.none()
+            : Result.fail(item)
         )
       })
 
@@ -226,13 +232,13 @@ describe("filter first-level array fields as groups", () => {
           WHERE EXISTS(SELECT VALUE item FROM item IN f.items WHERE item["value"] > @v1 AND CONTAINS(item.description, @v2, true))`,
           parameters: [{ name: "@v1", value: 20 }, { name: "@v2", value: "d item" }]
         }),
-        memory: Array.filterMap(({ items, name }) =>
-          items.some((_) => _.value > 20 && _.description.includes("d item"))
-            ? Option.some({
-              name,
-              items: items.map(({ id, value }) => ({ id, value }))
+        memory: Array.filterMap((item: Something) =>
+          item.items.some((_) => _.value > 20 && _.description.includes("d item"))
+            ? Result.succeed({
+              name: item.name,
+              items: item.items.map(({ id, value }) => ({ id, value }))
             })
-            : Option.none()
+            : Result.fail(item)
         )
       })
 

@@ -1,20 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Effect, Option } from "effect"
 import * as S from "effect-app/Schema"
 import { jwtDecode, type JwtDecodeOptions } from "jwt-decode"
 
-export const parseJwt = <R, I, A>(
-  schema: S.Schema<A, I, R>,
+export const parseJwt = <Sch extends S.Top>(
+  schema: Sch,
   options?: JwtDecodeOptions
-): S.Schema<A, string, R> =>
+) =>
   S
     .transformToOrFail(
       S.String,
       S.Unknown,
-      (s, __, ast) =>
-        S.ParseResult.try({
+      (s, _options) =>
+        Effect.try({
           try: () => jwtDecode(s, options),
-          catch: (e: any) => new S.ParseResult.Type(ast, s, e?.message)
+          catch: (e: any) => new S.SchemaIssue.InvalidValue(Option.some(s), { message: e?.message })
         })
     )
-    .pipe(S.compose(schema, { strict: false }))
+    .pipe(S.decodeTo(schema) as any)

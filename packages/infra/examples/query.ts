@@ -1,11 +1,11 @@
-import { Effect, Layer, ManagedRuntime, S, Schema } from "effect-app"
-import { makeRepo } from "../src/Model.js"
-import { and, make, one, or, order, page, project, QueryWhere, where } from "../src/Model/query.js"
-import { MemoryStoreLive } from "../src/Store/Memory.js"
 import { expectTypeOf } from "@effect/vitest"
+import { Effect, Layer, ManagedRuntime, S } from "effect-app"
+import { makeRepo } from "../src/Model.js"
+import { and, make, one, or, order, page, project, type QueryWhere, where } from "../src/Model/query.js"
+import { MemoryStoreLive } from "../src/Store/Memory.js"
 
 const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
-const num = S.Struct({ _tag: S.Literal("number"), value: S.Number })
+const num = S.Struct({ _tag: S.Literal("number"), value: S.Finite })
 const someUnion = S.Union(str, num)
 
 export class Something extends S.TaggedClass<Something>()("Something", {
@@ -100,31 +100,35 @@ const rt = ManagedRuntime.make(SomethingRepo.Test)
 rt.runFork(program)
 
 const test1 = make<Union.Encoded>().pipe(
-  where("union._tag", "string"),
+  where("union._tag", "string")
 )
 
-expectTypeOf(test1).toEqualTypeOf<QueryWhere<Union.Encoded, {
-    readonly _tag: "Something";
-    readonly id: string;
-    readonly displayName: string;
-    readonly n: string;
+expectTypeOf(test1).toEqualTypeOf<
+  QueryWhere<Union.Encoded, {
+    readonly _tag: "Something"
+    readonly id: string
+    readonly displayName: string
+    readonly n: string
     readonly union: {
-        readonly _tag: "string";
-        readonly value: string;
-    };
-}>>()
+      readonly _tag: "string"
+      readonly value: string
+    }
+  }>
+>()
 
 const testneq1 = make<Union.Encoded>().pipe(
-  where("union._tag", "neq", "string"),
+  where("union._tag", "neq", "string")
 )
 
-expectTypeOf(testneq1).toEqualTypeOf<QueryWhere<Union.Encoded, {
-    readonly _tag: "Something";
-    readonly id: string;
-    readonly displayName: string;
-    readonly n: string;
+expectTypeOf(testneq1).toEqualTypeOf<
+  QueryWhere<Union.Encoded, {
+    readonly _tag: "Something"
+    readonly id: string
+    readonly displayName: string
+    readonly n: string
     readonly union: {
-        readonly _tag: "number";
-        readonly value: number;
-    };
-}>>()
+      readonly _tag: "number"
+      readonly value: number
+    }
+  }>
+>()

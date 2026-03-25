@@ -3,12 +3,12 @@ import { Effect, Layer, Logger } from "effect-app"
 
 export function makeAppRuntime<A, E>(layer: Layer.Layer<A, E>) {
   return Effect.gen(function*() {
-    layer = layer.pipe(
-      Layer.provide(Logger.replace(Logger.defaultLogger, Logger.withSpanAnnotations(Logger.prettyLogger())))
-    )
-    const mrt = ManagedRuntime.make(layer)
-    yield* mrt.runtimeEffect
-    return Object.assign(mrt as ManagedRuntime.ManagedRuntime<A, never>, {
+    const l = layer.pipe(
+      Layer.provide(Logger.layer([Logger.consolePretty()]))
+    ) as Layer.Layer<A, never>
+    const mrt = ManagedRuntime.make(l)
+    yield* mrt.servicesEffect
+    return Object.assign(mrt, {
       [Symbol.dispose]() {
         return Effect.runSync(mrt.disposeEffect)
       },

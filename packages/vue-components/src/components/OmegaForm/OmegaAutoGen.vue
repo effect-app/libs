@@ -20,7 +20,7 @@
   Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { Array as A, Order, pipe } from "effect-app"
+import { Order } from "effect-app"
 import { computed } from "vue"
 import { type FieldMeta, type FieldPath, type OmegaAutoGenMeta, type OmegaInputProps } from "./OmegaFormStuff"
 
@@ -66,41 +66,37 @@ const namePosition = (name: DeepKeys<From>, order: DeepKeys<From>[]) => {
 }
 
 const orderBy: Order.Order<NewMeta> = Order.mapInput(
-  Order.number,
+  Order.Number,
   (x: NewMeta) => namePosition(x.name, props.order || [])
 )
 
-const children = computed<NewMeta[]>(() =>
-  pipe(
-    props.form.meta as Record<DeepKeys<From>, FieldMeta | undefined>,
-    // include / exclude
-    filterRecord((_, metaKey) =>
+const children = computed<NewMeta[]>(() => {
+  const included = filterRecord((value, metaKey) =>
+    Boolean(value)
+    && (
       props.pick
         ? props.pick.includes(metaKey) && !props.omit?.includes(metaKey)
         : !props.omit?.includes(metaKey)
-    ),
-    (x) => x,
-    // labelMap and adding name
-    mapObject((metaValue, metaKey) => ({
-      name: metaKey,
-      label: props.labelMap?.(metaKey) || metaKey,
-      ...metaValue
-    })),
-    // filterMap
-    props.filterMap
-      ? filterMapRecord((m) => {
-        const result = props.filterMap?.(m.name!, m as NewMeta)
-        return result === undefined || result === true ? m : result
-      })
-      : (x) => x,
-    // transform to array
-    (obj) => Object.values(obj) as NewMeta[],
-    // order
-    A.sort(orderBy),
-    // sort
-    props.sort ? A.sort(props.sort) : (x) => x
-  )
-)
+    )
+  )(props.form.meta as Record<DeepKeys<From>, FieldMeta | undefined>) as Record<DeepKeys<From>, FieldMeta>
+
+  const withLabels = mapObject((metaValue: FieldMeta, metaKey) => ({
+    name: metaKey,
+    label: props.labelMap?.(metaKey) || metaKey,
+    ...metaValue
+  }))(included) as unknown as Record<DeepKeys<From>, NewMeta>
+
+  const filtered = props.filterMap
+    ? filterMapRecord((m: NewMeta) => {
+      const result = props.filterMap?.(m.name, m)
+      return result === undefined || result === true ? m : result
+    })(withLabels) as Record<DeepKeys<From>, NewMeta>
+    : withLabels
+
+  const sorted = [...Object.values(filtered) as NewMeta[]].sort(orderBy)
+
+  return props.sort ? sorted.sort(props.sort) : sorted
+})
 
 defineSlots<{
   default(props: { child: NewMeta }): void

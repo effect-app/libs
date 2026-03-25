@@ -1,4 +1,4 @@
-import { Cause, Effect, type Option } from "effect-app"
+import { Cause, Effect, Layer, type Option, ServiceMap } from "effect-app"
 import { wrapEffect } from "effect-app/utils"
 import { CurrentToastId, Toast } from "./toast.js"
 
@@ -34,8 +34,8 @@ export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, S
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class WithToast extends Effect.Service<WithToast>()("WithToast", {
-  effect: Effect.gen(function*() {
+export class WithToast extends ServiceMap.Service<WithToast>()("WithToast", {
+  make: Effect.gen(function*() {
     const toast = yield* Toast
     return <A, E, Args extends Array<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
       options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
@@ -63,14 +63,14 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
             )
           })),
-          Effect.tapErrorCause(Effect.fnUntraced(function*(cause) {
+          Effect.tapCause(Effect.fnUntraced(function*(cause) {
             yield* Effect.logDebug(
               "WithToast - caught error cause: " + Cause.squash(cause),
-              Cause.isInterruptedOnly(cause),
+              Cause.hasInterruptsOnly(cause),
               cause
             )
 
-            if (Cause.isInterruptedOnly(cause)) {
+            if (Cause.hasInterruptsOnly(cause)) {
               if (toastId) yield* toast.dismiss(toastId)
               return
             }
@@ -82,7 +82,7 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
               )
               : ""
 
-            const t = yield* wrapEffect(options.onFailure)(Cause.failureOption(cause), ...args)
+            const t = yield* wrapEffect(options.onFailure)(Cause.findErrorOption(cause), ...args)
             const opts = { timeout: baseTimeout * 2 }
 
             if (typeof t === "object") {
@@ -98,6 +98,9 @@ export class WithToast extends Effect.Service<WithToast>()("WithToast", {
       })
   })
 }) {
+  static readonly DefaultWithoutDependencies = Layer.effect(this, this.make)
+  static readonly Default = this.DefaultWithoutDependencies
+
   static readonly handle = <A, E, Args extends Array<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
     options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
   ): (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, R | WaiR | SucR | ErrR | WithToast> =>

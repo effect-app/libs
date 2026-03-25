@@ -3,7 +3,7 @@
     <form.AutoGen
       :pick="['string', 'number', 'email']"
       :sort="Order.mapInput(
-        Order.string,
+        Order.String,
         (
           x: Meta
         ) => x.name
@@ -57,7 +57,7 @@ import { type OmegaAutoGenMeta, useOmegaForm } from "../../src"
 
 const schema = S.Struct({
   string: S.String,
-  number: S.Number,
+  number: S.Finite,
   boolean: S.Boolean,
   email: S.Email,
   url: S.Url,

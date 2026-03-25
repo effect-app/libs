@@ -52,7 +52,7 @@ describe("OmegaForm Intersection/Union", () => {
   })
 
   const MySchema = S.Struct({
-    myUnion: S.Union(AlphaSchema, BetaSchema)
+    myUnion: S.Union([AlphaSchema, BetaSchema])
   })
 
   const wrapper = mount({

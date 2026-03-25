@@ -12,11 +12,13 @@ export type Email = string & EmailBrand
 export const Email = S
   .String
   .pipe(
-    S.filter(isValidEmail as Refinement<string, Email>, {
+    S.refine(isValidEmail as Refinement<string, Email>, {
       identifier: "Email",
       title: "Email",
       description: "an email according to RFC 5322",
-      jsonSchema: { format: "email", minLength: 3, /* a@b */ maxLength: 998 },
-      arbitrary: () => (fc) => fc.emailAddress().map((_) => _ as Email)
+      jsonSchema: { format: "email", minLength: 3, /* a@b */ maxLength: 998 }
+    }),
+    S.annotate({
+      toArbitrary: () => (fc) => fc.emailAddress().map((_) => _ as Email)
     })
   )

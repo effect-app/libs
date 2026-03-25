@@ -3,7 +3,7 @@ import * as fu from "../fileUtil.js"
 
 import fs from "fs"
 
-import { Console, Effect, flow } from "effect-app"
+import { Console, Effect, flow, Semaphore } from "effect-app"
 import type { FieldValues } from "../Model/filter/types.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
 import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -30,26 +30,24 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
       get: fu
         .readTextFile(file)
         .pipe(
-          Effect.withSpan("Disk.read.readFile [effect-app/infra/Store]", { captureStackTrace: false }),
+          Effect.withSpan("Disk.read.readFile [effect-app/infra/Store]", {}, { captureStackTrace: false }),
           Effect.flatMap((x) =>
             Effect.sync(() => JSON.parse(x) as PM[]).pipe(
-              Effect.withSpan("Disk.read.parse [effect-app/infra/Store]", { captureStackTrace: false })
+              Effect.withSpan("Disk.read.parse [effect-app/infra/Store]", {}, { captureStackTrace: false })
             )
           ),
           Effect.orDie,
           Effect.withSpan("Disk.read [effect-app/infra/Store]", {
-            captureStackTrace: false,
             attributes: { "disk.file": file }
-          })
+          }, { captureStackTrace: false })
         ),
       setRaw: (v: Iterable<PM>) =>
         Effect
           .sync(() => JSON.stringify([...v], undefined, 2))
           .pipe(
             Effect.withSpan("Disk.stringify [effect-app/infra/Store]", {
-              captureStackTrace: false,
               attributes: { "disk.file": file }
-            }),
+            }, { captureStackTrace: false }),
             Effect
               .flatMap(
                 (json) =>
@@ -57,15 +55,13 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
                     .writeTextFile(file, json)
                     .pipe(Effect
                       .withSpan("Disk.write.writeFile [effect-app/infra/Store]", {
-                        captureStackTrace: false,
                         attributes: { "disk.file_size": json.length }
-                      }))
+                      }, { captureStackTrace: false }))
               ),
             Effect
               .withSpan("Disk.write [effect-app/infra/Store]", {
-                captureStackTrace: false,
                 attributes: { "disk.file": file }
-              })
+              }, { captureStackTrace: false })
           )
     }
 
@@ -95,14 +91,14 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
       })
     )
 
-    const sem = Effect.unsafeMakeSemaphore(1)
+    const sem = Semaphore.makeUnsafe(1)
     const withPermit = sem.withPermits(1)
     const flushToDisk = Effect.flatMap(store.all, fsStore.setRaw).pipe(withPermit)
     const flushToDiskInBackground = flushToDisk
       .pipe(
-        Effect.tapErrorCause(Console.error),
+        Effect.tapCause(Console.error),
         Effect.uninterruptible,
-        Effect.forkDaemon
+        Effect.forkDetach
       )
 
     return {
@@ -144,13 +140,13 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         config?: StoreConfig<Encoded>
       ) =>
         Effect.gen(function*() {
-          const storesSem = Effect.unsafeMakeSemaphore(1)
+          const storesSem = Semaphore.makeUnsafe(1)
           const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
           const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
-          const ctx = yield* Effect.context<R>()
+          const ctx = yield* Effect.services<R>()
           const getStore = !config?.allowNamespace
             ? Effect.succeed(primary)
-            : storeId.pipe(Effect.flatMap((namespace) => {
+            : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
               const store = stores.get(namespace)
               if (store) {
                 return Effect.succeed(store)

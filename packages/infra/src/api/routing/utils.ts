@@ -1,17 +1,18 @@
-import { S } from "effect-app"
-import type { AST, Schema } from "effect-app/Schema"
+import { S, SchemaAST } from "effect-app"
+import type { AST } from "effect-app/Schema"
 
 const get = ["Get", "Index", "List", "All", "Find", "Search"]
 const del = ["Delete", "Remove", "Destroy"]
 const patch = ["Patch", "Update", "Edit"]
 
 const astAssignableToString = (ast: AST.AST): boolean => {
-  if (ast._tag === "StringKeyword") return true
-  if (ast._tag === "Union" && ast.types.every(astAssignableToString)) {
+  // In v4, refined strings (e.g. NonEmptyString) are String nodes with checks — no Refinement wrapper.
+  // Transformations are stored as encoding on nodes — no Transformation wrapper.
+  // So we check the encoded form to see if the wire format is a string.
+  const encoded = SchemaAST.toEncoded(ast)
+  if (encoded._tag === "String") return true
+  if (encoded._tag === "Union" && encoded.types.every(astAssignableToString)) {
     return true
-  }
-  if (ast._tag === "Refinement" || ast._tag === "Transformation") {
-    return astAssignableToString(ast.from)
   }
 
   return false
@@ -19,16 +20,17 @@ const astAssignableToString = (ast: AST.AST): boolean => {
 
 const onlyStringsAst = (ast: AST.AST): boolean => {
   if (ast._tag === "Union") return ast.types.every(onlyStringsAst)
-  if (ast._tag !== "TypeLiteral") return false
+  // v4: TypeLiteral is now Objects
+  if (ast._tag !== "Objects") return false
   return ast.propertySignatures.every((_) => astAssignableToString(_.type))
 }
 
-const onlyStrings = (schema: Schema.Any & { fields?: S.Struct.Fields }): boolean => {
+const onlyStrings = (schema: S.Top & { fields?: S.Struct.Fields }): boolean => {
   if ("fields" in schema && schema.fields) return onlyStringsAst(S.Struct(schema.fields).ast) // only one level..
   return onlyStringsAst(schema.ast)
 }
 
-export const determineMethod = (fullName: string, schema: Schema.Any) => {
+export const determineMethod = (fullName: string, schema: S.Top) => {
   const bits = fullName.split(".")
   const actionName = bits[bits.length - 1]!
 

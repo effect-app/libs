@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Context, Effect, Either, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Struct } from "effect-app"
+import { Array, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, ServiceMap, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { get } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
-import { codeFilter } from "./codeFilter.js"
+import { codeFilter, codeFilter3_ } from "./codeFilter.js"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { makeUpdateETag } from "./utils.js"
 
@@ -18,20 +18,20 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       return r.map((i) => {
         const [keys, subKeys] = pipe(
           sel,
-          Array.partitionMap((r) =>
-            typeof r === "string" ? Either.left(String(r)) : Either.right(r as { key: string; subKeys: string[] })
+          Array.partition((r) =>
+            typeof r === "string" ? Result.fail(String(r)) : Result.succeed(r as { key: string; subKeys: string[] })
           )
         )
-        const n = Struct.pick(i, ...keys)
+        const n = Struct.pick(i, keys)
         subKeys.forEach((subKey) => {
-          n[subKey.key] = i[subKey.key]!.map(Struct.pick(...subKey.subKeys))
+          n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys as never[]))
         })
         return n as M
       }) as any
     }
     const skip = f?.skip
     const limit = f?.limit
-    const ords = Option.map(Option.fromNullable(f.order), (_) =>
+    const ords = Option.map(Option.fromNullishOr(f.order), (_) =>
       _.map((_) =>
         Order.make<T>((self, that) => {
           // TODO: inspect data types for the right comparison?
@@ -59,7 +59,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
         )
       )
     }
-    let r = f.filter ? Array.filterMap(c, codeFilter(f.filter)) : c
+    let r = f.filter ? Array.filter(c, (x) => codeFilter3_(f.filter!, x)) : c
     if (skip) {
       r = Array.drop(r, skip)
     }
@@ -71,10 +71,8 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
   })
 }
 
-const defaultNs = NonEmptyString255("primary")
-export class storeId
-  extends Context.Reference<storeId>()("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs })
-{}
+const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
+export class storeId extends ServiceMap.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
   return InfraLogger
@@ -107,8 +105,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
     const defaultValues = _defaultValues ?? {}
 
     const items = new Map([...items_].map((_) => [_[idKey], { _etag: undefined, ...defaultValues, ..._ }] as const))
-    const store = Ref.unsafeMake<ReadonlyMap<Encoded[IdKey], PM>>(items)
-    const sem = Effect.unsafeMakeSemaphore(1)
+    const store = Ref.makeUnsafe<ReadonlyMap<Encoded[IdKey], PM>>(items)
+    const sem = Semaphore.makeUnsafe(1)
     const withPermit = sem.withPermits(1)
     const values = Effect.map(Ref.get(store), (s) => s.values())
 
@@ -159,31 +157,28 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             // Effect.tap(() => logQuery(query, defaultValues)),
             Effect.map(query.memory),
             Effect.withSpan("Memory.queryRaw [effect-app/infra/Store]", {
-              captureStackTrace: false,
               attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-            })
+            }, { captureStackTrace: false })
           ),
 
       all: all.pipe(Effect.withSpan("Memory.all [effect-app/infra/Store]", {
-        captureStackTrace: false,
         attributes: {
           modelName,
           namespace
         }
-      })),
+      }, { captureStackTrace: false })),
       find: (id) =>
         Ref
           .get(store)
           .pipe(
-            Effect.map((_) => Option.fromNullable(_.get(id))),
+            Effect.map((_) => Option.fromNullishOr(_.get(id))),
             Effect
               .withSpan("Memory.find [effect-app/infra/Store]", {
-                captureStackTrace: false,
                 attributes: {
                   modelName,
                   namespace
                 }
-              })
+              }, { captureStackTrace: false })
           ),
       filter: (f) =>
         all
@@ -191,9 +186,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             Effect.tap(() => logQuery(f, defaultValues)),
             Effect.map(memFilter(f)),
             Effect.withSpan("Memory.filter [effect-app/infra/Store]", {
-              captureStackTrace: false,
               attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-            })
+            }, { captureStackTrace: false })
           ),
       set: (e) =>
         s
@@ -210,9 +204,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             withPermit,
             Effect
               .withSpan("Memory.set [effect-app/infra/Store]", {
-                captureStackTrace: false,
                 attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-              })
+              }, { captureStackTrace: false })
           ),
       batchRemove: (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
         pipe(
@@ -220,13 +213,13 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             .sync(() => items)
             // align with CosmosDB
             .pipe(
-              Effect.filterOrDieMessage((_) => _.length <= 100, "BatchRemove: a batch may not exceed 100 items"),
+              Effect.filterOrFail((_) => _.length <= 100, () => "BatchRemove: a batch may not exceed 100 items"),
+              Effect.orDie,
               Effect.andThen(batchRemove),
               Effect
                 .withSpan("Memory.batchRemove [effect-app/infra/Store]", {
-                  captureStackTrace: false,
                   attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-                })
+                }, { captureStackTrace: false })
             )
         ),
       batchSet: (items: readonly [PM, ...PM[]]) =>
@@ -235,22 +228,21 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             .sync(() => items)
             // align with CosmosDB
             .pipe(
-              Effect.filterOrDieMessage((_) => _.length <= 100, "BatchSet: a batch may not exceed 100 items"),
+              Effect.filterOrFail((_) => _.length <= 100, () => "BatchSet: a batch may not exceed 100 items"),
+              Effect.orDie,
               Effect.andThen(batchSet),
               Effect
                 .withSpan("Memory.batchSet [effect-app/infra/Store]", {
-                  captureStackTrace: false,
                   attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-                })
+                }, { captureStackTrace: false })
             )
         ),
       bulkSet: flow(
         batchSet,
         (_) =>
           _.pipe(Effect.withSpan("Memory.bulkSet [effect-app/infra/Store]", {
-            captureStackTrace: false,
             attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-          }))
+          }, { captureStackTrace: false }))
       )
     }
     return s
@@ -265,7 +257,7 @@ export const makeMemoryStore = () => ({
     config?: StoreConfig<Encoded>
   ) =>
     Effect.gen(function*() {
-      const storesSem = Effect.unsafeMakeSemaphore(1)
+      const storesSem = Semaphore.makeUnsafe(1)
       const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
         modelName,
         idKey,
@@ -273,11 +265,11 @@ export const makeMemoryStore = () => ({
         seed,
         config?.defaultValues
       )
-      const ctx = yield* Effect.context<R>()
+      const ctx = yield* Effect.services<R>()
       const stores = new Map([["primary", primary]])
       const getStore = !config?.allowNamespace
         ? Effect.succeed(primary)
-        : storeId.pipe(Effect.flatMap((namespace) => {
+        : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
           const store = stores.get(namespace)
           if (store) {
             return Effect.succeed(store)

@@ -1,4 +1,6 @@
+import { expect, test } from "vitest"
 import { makeRpcClient, NotLoggedInError, UnauthorizedError } from "../src/client.js"
+import { ForceVoid } from "../src/client/makeClient.js"
 import { S } from "../src/index.js"
 import { RpcContextMap } from "../src/rpc.js"
 
@@ -13,11 +15,20 @@ const { TaggedRequest } = makeRpcClient(RequestContextMap)
 export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
   allowedRoles: ["manager"],
   success: {
-    usersActive24Hours: S.Number,
-    usersActiveLastWeek: S.Number,
-    newUsersLast24Hours: S.Number,
-    newUsersLastWeek: S.Number
+    usersActive24Hours: S.Finite,
+    usersActiveLastWeek: S.Finite,
+    newUsersLast24Hours: S.Finite,
+    newUsersLastWeek: S.Finite
   }
 }) {}
 
 declare const _stats: typeof Stats.success.Type
+
+test("ForceVoid decodes and encodes as void", () => {
+  expect(S.decodeUnknownSync(ForceVoid)(undefined)).toBe(undefined)
+  expect(S.is(ForceVoid)(undefined)).toBe(true)
+  expect(S.decodeUnknownSync(ForceVoid)("test")).toBe(undefined)
+  expect(S.is(ForceVoid)("test")).toBe(true)
+  expect(S.encodeUnknownSync(ForceVoid)("test")).toBe(undefined)
+  expect(S.encodeUnknownSync(S.toCodecJson(ForceVoid))("test")).toBe(null)
+})

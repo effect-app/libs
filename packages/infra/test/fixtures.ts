@@ -1,9 +1,9 @@
-import { Context, Effect, Layer, S, Scope } from "effect-app"
+import { Effect, Layer, S, Scope, ServiceMap } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { RpcContextMap, RpcX } from "effect-app/rpc"
 import { TaggedError } from "effect-app/Schema"
 
-export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
+export class UserProfile extends ServiceMap.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({
     id: S.String,
     roles: S.Array(S.String)
@@ -11,10 +11,12 @@ export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("Us
 ) {
 }
 
-export class Some extends Context.TagMakeId("Some", Effect.succeed({ a: 1 }))<Some>() {}
-export class SomeElse extends Context.TagMakeId("SomeElse", Effect.succeed({ b: 2 }))<SomeElse>() {}
+export class Some extends ServiceMap.Opaque<Some>()("Some", { make: Effect.succeed({ a: 1 }) }) {}
+export class SomeElse extends ServiceMap.Opaque<SomeElse>()("SomeElse", { make: Effect.succeed({ b: 2 }) }) {}
 const MakeSomeService = Effect.succeed({ a: 1 })
-export class SomeService extends Context.TagMakeId("SomeService", MakeSomeService)<SomeService>() {}
+export class SomeService extends ServiceMap.Opaque<SomeService>()("SomeService", { make: MakeSomeService }) {
+  static readonly Default = this.toLayer(this.make)
+}
 
 // functionally equivalent to the one above
 export class SomeMiddleware extends RpcX.RpcMiddleware.Tag<SomeMiddleware, { provides: Some }>()("SomeMiddleware") {
@@ -24,7 +26,7 @@ export const SomeMiddlewareLive = Layer.effect(
   SomeMiddleware,
   Effect.gen(function*() {
     // yield* Effect.context<"test-dep">()
-    return (effect) => effect.pipe(Effect.provideService(Some, new Some({ a: 1 })))
+    return (effect) => effect.pipe(Effect.provideService(Some, Some.of({ a: 1 })))
   })
 )
 
@@ -39,7 +41,7 @@ export const SomeElseMiddlewareLive = Layer.effect(
     return (effect) =>
       Effect.gen(function*() {
         // yield* Effect.context<"test-dep2">()
-        return yield* effect.pipe(Effect.provideService(SomeElse, new SomeElse({ b: 2 })))
+        return yield* effect.pipe(Effect.provideService(SomeElse, SomeElse.of({ b: 2 })))
       })
   })
 )

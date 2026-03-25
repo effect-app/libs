@@ -7,21 +7,18 @@ describe("TaggedUnion required field handling", () => {
     const schema = S.Struct({
       aString: S.NonEmptyString,
       union: S.NullOr(
-        S.Union(
-          S.Struct({
+        S.Union([
+          S.TaggedStruct("A", {
             a: S.NonEmptyString255,
-            common: S.String,
-            _tag: S.Literal("A")
+            common: S.String
           }),
-          S.Struct({
-            b: S.Number,
-            common: S.String,
-            _tag: S.Literal("B")
+          S.TaggedStruct("B", {
+            b: S.Finite,
+            common: S.String
           })
-        )
+        ])
       )
     })
-
     const { meta } = generateMetaFromSchema(schema)
 
     // Top-level required field should be required
@@ -44,16 +41,14 @@ describe("TaggedUnion required field handling", () => {
 
   it("should mark all fields as required in non-nullable discriminated unions", () => {
     const schema = S.Struct({
-      union: S.Union(
-        S.Struct({
-          a: S.NonEmptyString,
-          _tag: S.Literal("A")
+      union: S.Union([
+        S.TaggedStruct("A", {
+          a: S.NonEmptyString
         }),
-        S.Struct({
-          b: S.Number,
-          _tag: S.Literal("B")
+        S.TaggedStruct("B", {
+          b: S.Finite
         })
-      )
+      ])
     })
 
     const { meta } = generateMetaFromSchema(schema)

@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as Result from "@effect-atom/atom/Result"
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, type Exit, Option } from "effect-app"
 import { type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, shallowRef } from "vue"
 import { makeQueryKey } from "./lib.js"
 
@@ -19,7 +19,7 @@ export const getQueryKey = (h: { id: string; options?: ClientForOptions }) => {
 }
 
 export function mutationResultToVue<A, E>(
-  mutationResult: Result.Result<A, E>
+  mutationResult: AsyncResult.AsyncResult<A, E>
 ): Res<A, E> {
   switch (mutationResult._tag) {
     case "Initial": {
@@ -49,20 +49,20 @@ export interface Res<A, E> {
 }
 
 export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
-  const result = shallowRef(Result.initial() as Result.Result<A, E>)
+  const result = shallowRef(AsyncResult.initial() as AsyncResult.AsyncResult<A, E>)
 
   const execute = Effect
     .sync(() => {
-      result.value = Result.waiting(result.value)
+      result.value = AsyncResult.waiting(result.value)
     })
     .pipe(
       Effect.andThen(self),
       Effect.exit,
-      Effect.andThen(Result.fromExit),
+      Effect.map(AsyncResult.fromExit),
       Effect.flatMap((r) => Effect.sync(() => result.value = r))
     )
 
-  const latestSuccess = computed(() => Option.getOrUndefined(Result.value(result.value)))
+  const latestSuccess = computed(() => Option.getOrUndefined(AsyncResult.value(result.value)))
 
   return tuple(result, latestSuccess, execute)
 }
@@ -103,38 +103,38 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> exte
 export const asResult: {
   <A, E, R>(
     handler: Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<Result.Result<A, E>>, Effect.Effect<Exit.Exit<A, E>, never, R>]
+  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Exit.Exit<A, E>, never, R>]
   <Args extends readonly any[], A, E, R>(
     handler: (...args: Args) => Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<Result.Result<A, E>>, (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>]
+  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>]
 } = <Args extends readonly any[], A, E, R>(
   handler: Effect.Effect<A, E, R> | ((...args: Args) => Effect.Effect<A, E, R>)
 ) => {
-  const state = shallowRef<Result.Result<A, E>>(Result.initial())
+  const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
 
   const act = Effect.isEffect(handler)
     ? Effect
       .sync(() => {
-        state.value = Result.initial(true)
+        state.value = AsyncResult.initial(true)
       })
       .pipe(
-        Effect.zipRight(Effect.suspend(() =>
+        Effect.andThen(Effect.suspend(() =>
           handler.pipe(
             Effect.exit,
-            Effect.tap((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
+            Effect.tap((exit) => Effect.sync(() => (state.value = AsyncResult.fromExit(exit))))
           )
         ))
       )
     : (...args: Args) =>
       Effect
         .sync(() => {
-          state.value = Result.initial(true)
+          state.value = AsyncResult.initial(true)
         })
         .pipe(
-          Effect.zipRight(Effect.suspend(() =>
+          Effect.andThen(Effect.suspend(() =>
             handler(...args).pipe(
               Effect.exit,
-              Effect.tap((exit) => Effect.sync(() => (state.value = Result.fromExit(exit))))
+              Effect.tap((exit) => Effect.sync(() => (state.value = AsyncResult.fromExit(exit))))
             )
           ))
         )
@@ -171,7 +171,7 @@ export const invalidateQueries = (
           Effect.annotateCurrentSpan({ queryKey, opts }),
           Effect.forEach(opts, (_) => invalidateQueries(_.filters, _.options), { concurrency: "inherit" })
         )
-        .pipe(Effect.withSpan("client.query.invalidation", { captureStackTrace: false }))
+        .pipe(Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false }))
     }
 
     if (!queryKey) return Effect.void
@@ -187,12 +187,11 @@ export const invalidateQueries = (
           // TODO: should we do this in general on any mutation, regardless of invalidation?
           Effect.sleep(0)
         ),
-        Effect.withSpan("client.query.invalidation", { captureStackTrace: false })
+        Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
       )
   })
 
-  const handle = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-    Effect.tapBoth(self, { onFailure: () => invalidateCache, onSuccess: () => invalidateCache })
+  const handle = <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.ensuring(self, invalidateCache)
 
   return handle
 }

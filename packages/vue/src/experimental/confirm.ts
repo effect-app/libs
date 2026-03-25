@@ -1,9 +1,9 @@
-import { Effect } from "effect-app"
+import { Effect, Layer, ServiceMap } from "effect-app"
 import { I18n } from "./intl.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class Confirm extends Effect.Service<Confirm>()("Confirm", {
-  effect: Effect.gen(function*() {
+export class Confirm extends ServiceMap.Service<Confirm>()("Confirm", {
+  make: Effect.gen(function*() {
     const { intl } = yield* I18n
 
     const getDefaultMessage = () => intl.formatMessage({ id: "confirm.default", defaultMessage: "Sind sie Sicher?" })
@@ -16,6 +16,21 @@ export class Confirm extends Effect.Service<Confirm>()("Confirm", {
       )
 
     return { confirm, confirmOrInterrupt }
-  }),
-  accessors: true
-}) {}
+  })
+}) {
+  static readonly DefaultWithoutDependencies = Layer.effect(this, this.make)
+  static readonly Default = this.DefaultWithoutDependencies
+
+  static confirm(message?: string) {
+    return Effect.gen(function*() {
+      const c = yield* Confirm
+      return yield* c.confirm(message)
+    })
+  }
+  static confirmOrInterrupt(message?: string) {
+    return Effect.gen(function*() {
+      const c = yield* Confirm
+      return yield* c.confirmOrInterrupt(message)
+    })
+  }
+}

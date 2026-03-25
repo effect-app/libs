@@ -1,4 +1,4 @@
-import { Context, Effect, type Queue } from "effect-app"
+import { Effect, type Queue, ServiceMap } from "effect-app"
 import * as Q from "effect/Queue"
 
 const make = Effect
@@ -16,6 +16,6 @@ const make = Effect
     }
   })
 
-export class MemQueue extends Context.TagMakeId("effect-app/MemQueue", make)<MemQueue>() {
-  static readonly Live = this.toLayer()
+export class MemQueue extends ServiceMap.Opaque<MemQueue>()("effect-app/MemQueue", { make }) {
+  static readonly Live = this.toLayer(this.make)
 }

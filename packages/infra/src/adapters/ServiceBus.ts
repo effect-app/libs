@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 import { type OperationOptionsBase, type ProcessErrorArgs, ServiceBusClient, type ServiceBusMessage, type ServiceBusMessageBatch, type ServiceBusReceivedMessage, type ServiceBusReceiver } from "@azure/service-bus"
-import { Cause, Context, Effect, Exit, FiberSet, Layer, type Scope } from "effect-app"
+import { Cause, Effect, Exit, FiberSet, Layer, type Scope, ServiceMap } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
 const withSpanAndLog = (name: string) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.logInfo(name).pipe(
-    Effect.zipRight(self),
+    Effect.andThen(self),
     Effect.tap(Effect.logInfo(name + " done")),
     Effect.withLogSpan(name),
     Effect.withSpan(name)
@@ -18,9 +18,10 @@ function makeClient(url: string) {
   )
 }
 
-export class ServiceBusClientTag extends Context.Tag("@services/Client")<ServiceBusClientTag, ServiceBusClient>() {
-  static readonly make = makeClient
-  static readonly layer = (url: string) => Layer.scoped(this, makeClient(url))
+export class ServiceBusClientTag
+  extends ServiceMap.Opaque<ServiceBusClientTag, ServiceBusClient>()("@services/Client", { make: makeClient })
+{
+  static readonly layer = (url: string) => this.toLayer(this.make(url))
 }
 
 function makeSender_(queueName: string) {
@@ -49,27 +50,23 @@ const makeSender = (name: string) =>
     return { name, sendMessages }
   })
 
-export class Sender extends Context.TagId("Sender")<Sender, {
+export class Sender extends ServiceMap.Opaque<Sender, {
   name: string
   sendMessages: (
     messages: ServiceBusMessage | ServiceBusMessage[] | ServiceBusMessageBatch,
     options?: Omit<OperationOptionsBase, "abortSignal">
   ) => Effect.Effect<void, never, never>
-}>() {
-  static readonly make = makeSender
-  static readonly layer = (name: string) => this.toLayerScoped(makeSender(name))
+}>()("Sender", { make: makeSender }) {
+  static readonly layer = (name: string) => this.toLayer(this.make(name))
 }
 
 export const SenderTag = <Id>() => <Key extends string>(queueName: Key) => {
-  const tag = Context.Tag(`ServiceBus.Sender.${queueName}`)<
-    Id,
-    Sender
-  >()
+  const tag = ServiceMap.Service<Id, Sender>(`ServiceBus.Sender.${queueName}`)
 
   return Object.assign(tag, {
-    layer: Layer.scoped(
+    layer: Layer.effect(
       tag,
-      makeSender(queueName).pipe(Effect.map((_) => Sender.of(_)))
+      Sender.make(queueName).pipe(Effect.map(Sender.of))
     )
   })
 }
@@ -133,7 +130,7 @@ const makeReceiver = (name: string) =>
                   resolve(exit.value)
                 } else {
                   // disable @typescript-eslint/prefer-promise-reject-errors
-                  reject(Cause.pretty(exit.cause, { renderErrorCause: true }))
+                  reject(Cause.pretty(exit.cause))
                 }
               })
           )
@@ -148,7 +145,7 @@ const makeReceiver = (name: string) =>
                       hndlr
                         .processError(err)
                         .pipe(
-                          Effect.catchAllCause((cause) => Effect.logError(`ServiceBus Error ${sessionId}`, cause))
+                          Effect.catchCause((cause) => Effect.logError(`ServiceBus Error ${sessionId}`, cause))
                         )
                     ),
                   processMessage: (msg) => runEffect(hndlr.processMessage(msg))
@@ -166,7 +163,7 @@ const makeReceiver = (name: string) =>
     }
   })
 
-export class Receiver extends Context.TagId("Receiver")<Receiver, {
+export class Receiver extends ServiceMap.Opaque<Receiver, {
   name: string
   make: (waitTillEmpty: Effect.Effect<void>) => Effect.Effect<ServiceBusReceiver, never, Scope.Scope>
   makeSession: (
@@ -177,18 +174,18 @@ export class Receiver extends Context.TagId("Receiver")<Receiver, {
     hndlr: MessageHandlers<RMsg, RErr>,
     sessionId?: string
   ): Effect.Effect<void, never, Scope.Scope | RMsg | RErr>
-}>() {
+}>()("Receiver") {
   static readonly make = makeReceiver
   static readonly layer = (name: string) => this.toLayer(makeReceiver(name))
 }
 
 export const ReceiverTag = <Id>() => <Key extends string>(queueName: Key) => {
-  const tag = Context.Tag(`ServiceBus.Receiver.${queueName}`)<Id, Receiver>()
+  const tag = ServiceMap.Service<Id, Receiver>(`ServiceBus.Receiver.${queueName}`)
 
   return Object.assign(tag, {
     layer: Layer.effect(
       tag,
-      makeReceiver(queueName).pipe(Effect.map((_) => Receiver.of(_)))
+      makeReceiver(queueName).pipe(Effect.map(Receiver.of))
     )
   })
 }

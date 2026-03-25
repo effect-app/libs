@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/cli",
-  "version": "1.29.2",
+  "version": "2.0.1-beta.4",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -9,17 +9,17 @@
     "effect-app-cli": "./bin.js"
   },
   "dependencies": {
-    "@effect/cli": "^0.73.0",
-    "@effect/platform-node": "^0.104.0",
+    "@effect/platform-node": "^4.0.0-beta.40",
+    "effect": "^4.0.0-beta.40",
     "js-yaml": "4.1.1",
     "node-watch": "^0.7.4"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "25.0.8",
+    "@types/node": "25.3.3",
     "json5": "^2.2.3",
-    "typescript": "~5.9.3",
-    "vitest": "^4.0.17",
+    "typescript": "~6.0.2",
+    "vitest": "^4.0.18",
     "effect-app": "workspace:*",
     "@effect-app/eslint-shared-config": "workspace:*"
   },
@@ -34,6 +34,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./argv-patch": {
+      "types": "./dist/argv-patch.d.ts",
+      "default": "./dist/argv-patch.js"
     },
     "./extract": {
       "types": "./dist/extract.d.ts",
@@ -54,7 +58,8 @@
   },
   "scripts": {
     "watch": "pnpm build:tsc -w",
-    "build:tsc": "pnpm clean-dist && tsc --build",
+    "build:tsc": "pnpm clean-dist && pnpm check",
+    "check": "tsc --build",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",
@@ -65,7 +70,7 @@
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit",
     "lint": "NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
     "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
-    "autofix": "pnpm lint --fix",
+    "lint-fix": "pnpm lint --fix",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

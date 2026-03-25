@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Array, Effect, Exit, type NonEmptyArray, type NonEmptyReadonlyArray, Option, Request, RequestResolver } from "effect-app"
+import { Array, Effect, Exit, type NonEmptyArray, Option, Request, RequestResolver } from "effect-app"
 import { type InvalidStateError, NotFoundError, type OptimisticConcurrencyException } from "effect-app/client/errors"
 import { type FixEnv, type PureEnv, runTerm } from "effect-app/Pure"
 import { AnyPureDSL } from "../dsl.js"
@@ -21,9 +21,11 @@ export const extendRepo = <
   repo: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>
 ) => {
   const get = (id: T[IdKey]) =>
-    Effect.flatMap(
-      repo.find(id),
-      (_) => Effect.mapError(_, () => new NotFoundError<ItemType>({ type: repo.itemType, id }))
+    repo.find(id).pipe(
+      Effect.flatMap(Option.match({
+        onNone: () => Effect.fail(new NotFoundError<ItemType>({ type: repo.itemType, id })),
+        onSome: Effect.succeed
+      }))
     )
   function saveManyWithPure_<
     R,
@@ -80,7 +82,7 @@ export const extendRepo = <
     batchSize = 100
   ) {
     return Effect.forEach(
-      Array.chunk_(items, batchSize),
+      Array.chunksOf(items, batchSize),
       (batch) =>
         saveAllWithEffectInt(
           runTerm(pure, batch)
@@ -176,7 +178,7 @@ export const extendRepo = <
   } = (items, pure, batch?: "batched" | number) =>
     batch
       ? Effect.forEach(
-        Array.chunk_(items, batch === "batched" ? 100 : batch),
+        Array.chunksOf(items, batch === "batched" ? 100 : batch),
         (batch) =>
           saveAllWithEffectInt(
             runTerm(pure, batch)
@@ -207,30 +209,30 @@ export const extendRepo = <
   const _request = Request.tagged<Req>(`Get${repo.itemType}`)
 
   const requestResolver = RequestResolver
-    .makeBatched((
-      requests: NonEmptyReadonlyArray<Req>
+    .make((
+      entries: NonEmptyArray<Request.Entry<Req>>,
+      _key: unknown
     ) =>
-      (repo.query(Q.where(repo.idKey as any, "in" as any, requests.map((_) => _.id)) as any) as Effect.Effect<
+      (repo.query(Q.where(repo.idKey as any, "in" as any, entries.map((_) => _.request.id)) as any) as Effect.Effect<
         readonly T[],
         never
       >)
         // TODO
         .pipe(
           Effect.andThen((items) =>
-            Effect.forEach(requests, (r) =>
+            Effect.forEach(entries, (entry) =>
               Request.complete(
-                r,
                 Array
-                  .findFirst(items, (_) => _[repo.idKey] === r.id)
+                  .findFirst(items, (_) => _[repo.idKey] === entry.request.id)
                   .pipe(Option.match({
-                    onNone: () => Exit.fail(new NotFoundError({ type: repo.itemType, id: r.id })),
+                    onNone: () => Exit.fail(new NotFoundError({ type: repo.itemType, id: entry.request.id })),
                     onSome: Exit.succeed
                   }))
-              ), { discard: true })
+              )(entry), { discard: true })
           ),
           Effect
-            .catchAllCause((cause) =>
-              Effect.forEach(requests, Request.complete(Exit.failCause(cause)), { discard: true })
+            .catchCause((cause) =>
+              Effect.forEach(entries, (entry) => Request.complete(Exit.failCause(cause))(entry), { discard: true })
             )
         )
     )

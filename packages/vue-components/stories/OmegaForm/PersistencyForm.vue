@@ -42,11 +42,11 @@ import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({
-  first: S.Number.pipe(S.withDefaultConstructor(() => 23)),
-  second: S.Number.pipe(S.greaterThan(3)),
+  first: S.Finite.pipe(S.withDefaultConstructor(() => 23)),
+  second: S.Finite.pipe(S.check(S.isGreaterThan(3))),
   third: S.Struct({
-    fourth: S.Number,
-    fifth: S.Number
+    fourth: S.Finite,
+    fifth: S.Finite
   })
 })
 

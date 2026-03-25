@@ -1,6 +1,7 @@
 import { type Preview, setup } from "@storybook/vue3"
 import { createVuetify } from "vuetify"
 import "vuetify/styles"
+import "../src/reset.css"
 import * as components from "vuetify/components"
 import * as directives from "vuetify/directives"
 

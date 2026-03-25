@@ -203,9 +203,9 @@ describe("validateSample", () => {
           count: -999
         })
 
-        // error should be a ParseError
+        // error should be a SchemaError
         expect(error.error).toBeDefined()
-        expect((error.error as any)._tag).toBe("ParseError")
+        expect((error.error as any)._tag).toBe("SchemaError")
       })
       .pipe(
         Effect.provide(MemoryStoreLive),

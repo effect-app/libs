@@ -8,7 +8,7 @@ const schema = S.Struct({
     c: S.Array(S.Struct({
       d: S.String
     })),
-    e: S.Array(S.Number)
+    e: S.Array(S.Finite)
   })),
   aMultiple: S.Array(S.String),
   aNullable: S.NullOr(S.Struct({
@@ -21,7 +21,7 @@ const schema = S.Struct({
           baz: S.String,
           items: S.NonEmptyArray(S.Struct({
             baz: S.String,
-            value: S.Number
+            value: S.Finite
           }))
         })))
       })

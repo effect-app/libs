@@ -58,18 +58,19 @@ export type Client<M extends RequestsAny, ModuleName extends string> = RequestHa
   ModuleName
 >
 
-export type ExtractResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.Type<T>
+export type ExtractResponse<T> = T extends S.Codec<any> ? S.Schema.Type<T>
   : T extends unknown ? void
   : never
 
-export type ExtractEResponse<T> = T extends S.Schema<any, any, any> ? S.Schema.Encoded<T>
+export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
   : T extends unknown ? void
   : never
 
 type IsEmpty<T> = keyof T extends never ? true
   : false
 
-type Cruft = "_tag" | Request.RequestTypeId | typeof S.symbolSerializable | typeof S.symbolWithResult
+// v4: Request.RequestTypeId, S.symbolSerializable, S.symbolWithResult removed — use keyof Request to filter internal props
+type Cruft = "_tag" | keyof Request.Request<any, any, any>
 
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
@@ -90,20 +91,22 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
 }
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
+type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
+
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
   [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
     ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
+      S.Schema.Type<M[K]["error"]> | E,
+      R | ReqDecodingServices<M[K]>,
       M[K],
       `${ModuleName}.${K & string}`
     >
     : RequestHandlerWithInput<
       Omit<S.Schema.Type<M[K]>, Cruft>,
       S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["failure"]> | E,
-      R | S.Schema.Context<M[K]["success"]> | S.Schema.Context<M[K]["failure"]>,
+      S.Schema.Type<M[K]["error"]> | E,
+      R | ReqDecodingServices<M[K]>,
       M[K],
       `${ModuleName}.${K & string}`
     >

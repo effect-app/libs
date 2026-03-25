@@ -1,5 +1,206 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- 4b95009: use Finite instead of Number
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 01d862a: again
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- 6b6d601: fix ForceVOid
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 5ec1f45: fix ForceVoid for real
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- a899d46: Replace `ForceVoid` in `makeClient` with a typed codec transformation instead of an unsafe cast.
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- 0099208: Refactor `Pure` helpers to use typed `useSync` calls instead of unsafe casts.
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 601a1ff: update effect to 4.0.0-beta.37 and drop the Schema Class disableValidation workaround now that the patched effect schema covers it
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- 4da28e2: Change `Schema.Class` and `Schema.TaggedClass` wrappers to default constructor options to `{ disableValidation: true }`.
+
+  This avoids strict class identifier validation by default when constructing wrapper classes (for example passing a compatible view class), while keeping existing behavior when explicit options are provided.
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- 6282d4b: Update `Effect.allLower` to call `svc.asEffect()` when available, ensuring service entries are normalized before `Effect.all` evaluation.
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- 32f71bf: Fix `Schema.TaggedUnion(...).tags` extraction for class-based members (for example `TaggedClass`) by using a local AST sentinel walker instead of relying on internal effect APIs.
+
+  Add tests covering:
+
+  - `TaggedUnion` with `encodeKeys`-wrapped members
+  - `TaggedUnion` with `TaggedClass` members
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- ea08a79: remove `fields` constraint from TaggedUnion/tags helpers, extract `_tag` via AST walk instead
+
+## 4.0.0-beta.22
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 0d349e7: Align effect-app tagged union helpers with Effect v4 by delegating to the native tagged union utilities, exposing v4-style `cases` and `guards`, and preserving the local `tags` helper.
+- 75c72ee: update effect to 4.0.0-beta.36, adapt to Option<A> revert from A | undefined
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- aa921db: Fix `TaggedRequest` no-config error type inference so requests without a third argument infer the same default error schema as requests with explicit success config.
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- ffc10a4: Migrate `Schema/ext` context helpers to Effect v4 by implementing `provide` and `contextFromServices` with proper service subtraction across decoding and encoding requirements.
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- e9dbbdd: Tighten schema helper generics in `Schema/ext.ts` so default-related helpers accept properly named schema type parameters instead of bare `S.Top` inputs.
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- c8a6a3f: fix TaggedUnion
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 56db2c4: fix: isA
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 20186b6: Migrate schema arbitrary annotations to Effect v4 `toArbitrary` and cover `StringId` generation with a fast-check test.
+
+## 4.0.0-beta.14
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 16de88c: remove hopefully obsolete Struct overrides
+- 1c3c541: Update Effect dependencies to 4.0.0-beta.31 across workspace packages.
+- de2359d: Update Effect dependencies to 4.0.0-beta.28 across workspace packages.
+- 0d72f34: Update Effect dependencies to 4.0.0-beta.29 across workspace packages.
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- 622d54a: Configure Changesets fixed versioning for public packages.
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 01c70d0: update all teh tings
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- 5727372: switch to NdJson
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 1f336bc: fix RequestName
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 62b4989: fix request attr
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- df75041: fix Req
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- 016c5a3: adapt isObject change
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 88b90c3: fix withDefault
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 3a7abae: fix bs
+
+## 4.0.0-beta.2
+
+### Major Changes
+
+- 3887256: Fix Schema->Codec
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 64786af: Beta25
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 880df28: Effect v4 beta
+
 ## 3.16.0
 
 ### Minor Changes

@@ -12,7 +12,7 @@ export interface CommanderResolved<RT, RTHooks>
 export const makeUseCommand = Effect.fnUntraced(
   function*<R = never, RTHooks = never>(rtHooks: Layer.Layer<RTHooks, never, R>) {
     const cmndr = yield* Commander
-    const runtime = yield* Effect.runtime<R>()
+    const runtime = yield* Effect.services<R>()
 
     const comm = cmndr(runtime, rtHooks)
 

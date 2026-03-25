@@ -240,7 +240,7 @@ const persistentForm = useOmegaForm(
   S.Struct({
     taskName: S.String,
     description: S.String,
-    priority: S.Union(S.Literal("low"), S.Literal("medium"), S.Literal("high"))
+    priority: S.Union([S.Literal("low"), S.Literal("medium"), S.Literal("high")])
   }),
   {
     defaultValues: { taskName: "", description: "", priority: "medium" as const },
@@ -264,7 +264,7 @@ const isDirtyPersistent = persistentForm.useStore((_) => _.isDirty)
 const preventAndReset = useOmegaForm(
   S.Struct({
     comment: S.String,
-    rating: S.Number
+    rating: S.Finite
   }),
   {
     defaultValues: { comment: "", rating: 5 },

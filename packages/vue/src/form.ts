@@ -147,10 +147,18 @@ function handlePropertySignature(
             const typeLiteral = getObjectsAST(ps.type)
 
             const tagPropertySignature = typeLiteral?.propertySignatures.find((_) => _.name === "_tag")
-            const tagLiteral = tagPropertySignature
-                && S.AST.isLiteral(tagPropertySignature.type)
-                && typeof tagPropertySignature.type.literal === "string"
-              ? tagPropertySignature.type.literal
+            // unwrap single-element Union to Literal (S.Struct({ _tag: S.Literal("x") }) wraps as Union([Literal("x")]))
+            const tagType = tagPropertySignature
+              ? S.AST.isUnion(tagPropertySignature.type)
+                  && tagPropertySignature.type.types.length === 1
+                  && S.AST.isLiteral(tagPropertySignature.type.types[0]!)
+                ? tagPropertySignature.type.types[0]!
+                : tagPropertySignature.type
+              : undefined
+            const tagLiteral = tagType
+                && S.AST.isLiteral(tagType)
+                && typeof tagType.literal === "string"
+              ? tagType.literal
               : void 0
 
             const toRet = handlePropertySignature(ps)
@@ -277,7 +285,7 @@ function buildFieldInfo(
     }
 
     // parse specific error types for better translation support
-    const integerMatch = err.match(/Expected.*integer.*actual\s+(.+)/i)
+    const integerMatch = err.match(/Expected.*integer.*(?:actual|got)\s+([^)]+)/i)
     if (integerMatch) {
       return translate.value(
         { defaultMessage: "Expected an integer, actual {actualValue}", id: "validation.integer.expected" },
@@ -285,7 +293,7 @@ function buildFieldInfo(
       )
     }
 
-    const numberMatch = err.match(/Expected.*number.*actual\s+(.+)/i)
+    const numberMatch = err.match(/Expected.*number.*(?:actual|got)\s+([^)]+)/i)
     if (numberMatch) {
       return translate.value(
         { defaultMessage: "Expected a number, actual {actualValue}", id: "validation.number.expected" },

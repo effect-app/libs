@@ -137,22 +137,26 @@ it("validates integer field with valid integer", () =>
     .pipe(Effect.runPromise))
 
 it("error message format matches regex pattern", () => {
-  // test the actual error message format from Effect Schema
-  const errorMessage = `Int
-└─ From side refinement failure
-   └─ Int
-      └─ Predicate refinement failure
-         └─ Expected an integer, actual 59.5`
+  // test the actual error message format from Effect Schema (both old "actual" and new "got" formats)
+  const errorMessageOld = `Expected an integer, actual 59.5`
+  const errorMessageNew = `SchemaError(Expected an integer, got 59.5)`
 
-  const integerMatch = errorMessage.match(/Expected.*integer.*actual\s+(.+)/i)
-  expect(integerMatch).toBeTruthy()
-  expect(integerMatch![1]).toBe("59.5")
+  const oldMatch = errorMessageOld.match(/Expected.*integer.*(?:actual|got)\s+([^)]+)/i)
+  expect(oldMatch).toBeTruthy()
+  expect(oldMatch![1]).toBe("59.5")
 
-  const numberErrorMessage = `Number
-└─ Type side transformation failure
-   └─ Expected a number, actual "not-a-number"`
+  const newMatch = errorMessageNew.match(/Expected.*integer.*(?:actual|got)\s+([^)]+)/i)
+  expect(newMatch).toBeTruthy()
+  expect(newMatch![1]).toBe("59.5")
 
-  const numberMatch = numberErrorMessage.match(/Expected.*number.*actual\s+(.+)/i)
-  expect(numberMatch).toBeTruthy()
-  expect(numberMatch![1]).toBe("\"not-a-number\"")
+  const numberErrorOld = `Expected a number, actual "not-a-number"`
+  const numberErrorNew = `SchemaError(Expected a finite number, got "not-a-number")`
+
+  const numOldMatch = numberErrorOld.match(/Expected.*number.*(?:actual|got)\s+([^)]+)/i)
+  expect(numOldMatch).toBeTruthy()
+  expect(numOldMatch![1]).toBe("\"not-a-number\"")
+
+  const numNewMatch = numberErrorNew.match(/Expected.*number.*(?:actual|got)\s+([^)]+)/i)
+  expect(numNewMatch).toBeTruthy()
+  expect(numNewMatch![1]).toBe("\"not-a-number\"")
 })

@@ -21,7 +21,6 @@
     "noImplicitThis": true,
     "resolveJsonModule": true,
     "moduleResolution": "Node16",
-    "downlevelIteration": true,
     "noErrorTruncation": true,
     "forceConsistentCasingInFileNames": true
   },

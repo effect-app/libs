@@ -18,7 +18,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "25.3.3",
     "json5": "^2.2.3",
-    "typescript": "~5.9.3",
+    "typescript": "~6.0.2",
     "vitest": "^4.0.18",
     "effect-app": "workspace:*",
     "@effect-app/eslint-shared-config": "workspace:*"

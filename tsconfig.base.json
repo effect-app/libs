@@ -25,7 +25,6 @@
     "outDir": "build/dist",
     "resolveJsonModule": true,
     "moduleResolution": "Node16",
-    "downlevelIteration": true,
     "noErrorTruncation": true,
     "forceConsistentCasingInFileNames": true,
     //"preserveSymlinks": true

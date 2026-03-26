@@ -180,8 +180,8 @@ export type WithDefaults<Self extends S.Top> = (
 // export type UnionToIntersection3<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I
 //   : never
 
-export const inputDate = extendM(
-  S.Union([DateValid, Date]),
+export const inputDate: Schema.Codec<Date, string | Date, never, never> = extendM(
+  S.Union([S.DateValid, Date]),
   (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => new globalThis.Date())) })
 )
 

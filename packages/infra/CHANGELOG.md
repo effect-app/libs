@@ -1,5 +1,11 @@
 # @effect-app/infra
 
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.41
+
 ## 4.0.0-beta.40
 
 ### Patch Changes

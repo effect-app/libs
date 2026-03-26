@@ -18,21 +18,22 @@ export const ForceVoid = S
 type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
 
 type TaggedRequestResult<
+  Self,
   Tag extends string,
   Payload extends S.Struct.Fields,
   Success extends S.Top,
   Error extends S.Top,
   Config = Record<string, never>
 > =
-  & S.TaggedStruct<Tag, Payload>
+  & S.EnhancedClass<Self, S.TaggedStruct<Tag, Payload>, {}>
   & {
-    new(...args: any[]): any
     readonly _tag: Tag
-    readonly fields: { readonly _tag: S.tag<Tag> } & Payload
     readonly success: Success
     readonly error: Error
     readonly config: Config
+    // TODO: these two are wrong. Anything using this request's success/error, should however derive the Decoding/Encoding services from them..
     readonly "~decodingServices": S.Codec.DecodingServices<Success> | S.Codec.DecodingServices<Error>
+    readonly "~encodingServices": S.Codec.EncodingServices<Success> | S.Codec.EncodingServices<Error>
   }
 
 export const makeRpcClient = <
@@ -52,31 +53,45 @@ export const makeRpcClient = <
     : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C>
     : MergeError<GetEffectError<RequestContextMap["config"], C>>
 
-  function TaggedRequest<_Self>(): {
+  function TaggedRequest<Self>(): {
     <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
-    ): TaggedRequestResult<Tag, Payload, SchemaOrFields<C["success"]>, ErrorResult<C>, Omit<C, "success" | "error">>
+    ): TaggedRequestResult<
+      Self,
+      Tag,
+      Payload,
+      SchemaOrFields<C["success"]>,
+      ErrorResult<C>,
+      Omit<C, "success" | "error">
+    >
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
-    ): TaggedRequestResult<Tag, Payload, SchemaOrFields<C["success"]>, ErrorResult<C>, Omit<C, "success" | "error">>
+    ): TaggedRequestResult<
+      Self,
+      Tag,
+      Payload,
+      SchemaOrFields<C["success"]>,
+      ErrorResult<C>,
+      Omit<C, "success" | "error">
+    >
     <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
       tag: Tag,
       fields: Payload,
       config: RequestConfig & C
-    ): TaggedRequestResult<Tag, Payload, typeof ForceVoid, ErrorResult<C>, Omit<C, "success" | "error">>
+    ): TaggedRequestResult<Self, Tag, Payload, typeof ForceVoid, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
       tag: Tag,
       fields: Payload,
       config: C & RequestConfig
-    ): TaggedRequestResult<Tag, Payload, typeof ForceVoid, ErrorResult<C>, Omit<C, "success" | "error">>
+    ): TaggedRequestResult<Self, Tag, Payload, typeof ForceVoid, ErrorResult<C>, Omit<C, "success" | "error">>
     <Tag extends string, Payload extends S.Struct.Fields>(
       tag: Tag,
       fields: Payload
-    ): TaggedRequestResult<Tag, Payload, typeof ForceVoid, ErrorResult<{}>, Record<string, never>>
+    ): TaggedRequestResult<Self, Tag, Payload, typeof ForceVoid, ErrorResult<{}>, Record<string, never>>
   } {
     // TODO: filter errors based on config + take care of inversion
     const errorSchemas = Object.values(rcs.config).map((_) => _.error)

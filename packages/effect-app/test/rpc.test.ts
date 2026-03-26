@@ -22,7 +22,9 @@ export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
   }
 }) {}
 
-declare const _stats: typeof Stats.success.Type
+declare const _stats: typeof Stats.Type
+declare const _statsSuccess: typeof Stats.success.Type
+declare const _statsError: typeof Stats.error.Type
 
 test("ForceVoid decodes and encodes as void", () => {
   expect(S.decodeUnknownSync(ForceVoid)(undefined)).toBe(undefined)
@@ -31,4 +33,12 @@ test("ForceVoid decodes and encodes as void", () => {
   expect(S.is(ForceVoid)("test")).toBe(true)
   expect(S.encodeUnknownSync(ForceVoid)("test")).toBe(undefined)
   expect(S.encodeUnknownSync(S.toCodecJson(ForceVoid))("test")).toBe(null)
+  expectTypeOf<typeof _stats>().toEqualTypeOf<Stats>()
+  expectTypeOf<typeof _statsSuccess>().toEqualTypeOf<{
+    readonly usersActive24Hours: number
+    readonly usersActiveLastWeek: number
+    readonly newUsersLast24Hours: number
+    readonly newUsersLastWeek: number
+  }>()
+  expectTypeOf<typeof _statsError>().toEqualTypeOf<NotLoggedInError | UnauthorizedError>()
 })

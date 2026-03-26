@@ -26,6 +26,8 @@ type HasFields<Fields extends Struct.Fields> = {
   readonly from: HasFields<Fields>
 }
 
+export type Class<Self, S extends S.Top & { readonly fields: Struct.Fields }, Inherited> = S.Class<Self, S, Inherited>
+
 export const Class: <Self = never>(identifier: string) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>

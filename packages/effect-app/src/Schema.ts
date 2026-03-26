@@ -15,7 +15,7 @@ export * from "./Schema/Class.js"
 export { Class, TaggedClass } from "./Schema/Class.js"
 
 export { fromBrand, nominal } from "./Schema/brand.js"
-export { Array, Boolean, Date, Finite, Literal, Map, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.js"
+export { Array, Boolean, Date, DateValid, Finite, Literal, Map, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.js"
 export { Int, NonNegativeInt } from "./Schema/numbers.js"
 
 export * from "./Schema/email.js"

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Effect, Option, pipe, Schema, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
 import * as S from "effect/Schema"
+import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
 import { extendM, typedKeysOf } from "../utils.js"
 import { type AST } from "./schema.js"
@@ -39,6 +40,13 @@ const DateFromString = Schema.Date.pipe(
  * Like the default Schema `Date` but from String with `withDefault` => now
  */
 export const Date = Object.assign(DateFromString, {
+  withDefault: DateFromString.pipe(withDefaultConstructor(() => new global.Date()))
+})
+
+/**
+ * Like the default Schema `DateValid` but from String with `withDefault` => now
+ */
+export const DateValid = Object.assign(Date.check(isDateValid()), {
   withDefault: DateFromString.pipe(withDefaultConstructor(() => new global.Date()))
 })
 
@@ -173,7 +181,7 @@ export type WithDefaults<Self extends S.Top> = (
 //   : never
 
 export const inputDate = extendM(
-  S.Union([S.DateValid, S.Date]),
+  S.Union([DateValid, Date]),
   (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => new globalThis.Date())) })
 )
 

@@ -3,7 +3,7 @@
 
 import * as api from "@opentelemetry/api"
 import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
+import { Array, Data, Effect, Fiber, Option, Order, S, ServiceMap } from "effect-app"
 import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
@@ -15,6 +15,8 @@ import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldP
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
+
+import { makeRunPromise } from "@effect-app/vue/runtime"
 
 type keysRule<T> =
   | {
@@ -668,6 +670,8 @@ export interface OmegaFormReturn<
   }
 }
 
+const runPromise = makeRunPromise(ServiceMap.empty())
+
 export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   From extends Record<PropertyKey, any>,
@@ -791,7 +795,7 @@ export const useOmegaForm = <
       ? ({ formApi, meta, value }) =>
         wrapWithSpan(meta?.currentSpan, async () => {
           // validators only validate, they don't actually transform, so we have to do that manually here.
-          const parsedValue = await Effect.runPromise(decode(value))
+          const parsedValue = await runPromise(decode(value))
           const r = tanstackFormOptions.onSubmit!({
             formApi: formApi as OmegaFormApi<From, To>,
             meta,
@@ -801,7 +805,7 @@ export const useOmegaForm = <
             return await runtimeFiberAsPromise(r)
           }
           if (Effect.isEffect(r)) {
-            const effectResult = await Effect.runPromise(r)
+            const effectResult = await runPromise(r)
             return Fiber.isFiber(effectResult)
               ? await runtimeFiberAsPromise(effectResult)
               : effectResult

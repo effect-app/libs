@@ -1,5 +1,7 @@
-import { ManagedRuntime } from "effect"
+import { Exit, flow, ManagedRuntime } from "effect"
 import { Effect, Layer, Logger } from "effect-app"
+import { type ServiceMap } from "effect-app/ServiceMap"
+import { KnownFiberFailure } from "./query.js"
 
 export function makeAppRuntime<A, E>(layer: Layer.Layer<A, E>) {
   return Effect.gen(function*() {
@@ -29,3 +31,13 @@ export function initializeAsync<A, E>(layer: Layer.Layer<A, E, never>) {
   return Effect
     .runPromise(makeAppRuntime(layer))
 }
+
+// we wrap into KnownFiberFailure because we want to keep the full cause of the failure.
+export const makeRunPromise = <T>(services: ServiceMap<T>) =>
+  flow(Effect.runPromiseExitWith(services), (_) =>
+    _.then(
+      Exit.match({
+        onFailure: (cause) => Promise.reject(new KnownFiberFailure(cause)),
+        onSuccess: (value) => Promise.resolve(value)
+      })
+    ))

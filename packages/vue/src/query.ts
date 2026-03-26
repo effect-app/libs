@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
-import { Array, Cause, Effect, Exit, flow, Option, S, type ServiceMap } from "effect-app"
+import { Array, Cause, Effect, Option, S, type ServiceMap } from "effect-app"
 import { type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
@@ -12,6 +12,7 @@ import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
 import { makeQueryKey, reportRuntimeError } from "./lib.js"
+import { makeRunPromise } from "./runtime.js"
 
 // we must use interface extends, or we get the dreaded typescript error of isn't portable blabla @tanstack/vue-query/build/modern/types.js
 // but because how they are dealing with some extends clause, we loose all properties except initialData
@@ -131,13 +132,7 @@ export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
     // TODO
   ) => {
     // we wrap into KnownFiberFailure because we want to keep the full cause of the failure.
-    const runPromise = flow(Effect.runPromiseExitWith(getRuntime()), (_) =>
-      _.then(
-        Exit.match({
-          onFailure: (cause) => Promise.reject(new KnownFiberFailure(cause)),
-          onSuccess: (value) => Promise.resolve(value)
-        })
-      ))
+    const runPromise = makeRunPromise(getRuntime())
     const arr = arg
     const req: { value: I } = !arg
       ? undefined

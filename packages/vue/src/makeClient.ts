@@ -20,6 +20,7 @@ import { buildFieldInfoFromFieldsRoot } from "./form.js"
 import { reportRuntimeError } from "./lib.js"
 import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res, useMakeMutation } from "./mutate.js"
 import { type CustomUndefinedInitialQueryOptions, makeQuery } from "./query.js"
+import { makeRunPromise } from "./runtime.js"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -1023,7 +1024,7 @@ export class LegacyMutationImpl<RT> {
     const isDirty = ref(false)
     const isValid = ref(true)
     const isLoading = ref(false)
-    const runPromise = Effect.runPromiseWith(this.getRuntime())
+    const runPromise = makeRunPromise(this.getRuntime())
 
     const submit1 =
       (onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, never>) =>
@@ -1163,7 +1164,7 @@ export class QueryImpl<R> {
   } = <Arg, E, A, Request extends Req, Name extends string>(
     self: RequestHandlerWithInput<Arg, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
   ) => {
-    const runPromise = Effect.runPromiseWith(this.getRuntime())
+    const runPromise = makeRunPromise(this.getRuntime())
     const q = this.useQuery(self as any) as any
     return (argOrOptions?: any, options?: any) => {
       const [resultRef, latestRef, fetch, uqrt] = q(argOrOptions, { ...options, suspense: true } // experimental_prefetchInRender: true }

@@ -41,3 +41,14 @@ export const makeRunPromise = <T>(services: ServiceMap<T>) =>
         onSuccess: (value) => Promise.resolve(value)
       })
     ))
+
+export const makeRunSync = <T>(services: ServiceMap<T>) =>
+  flow(
+    Effect.runSyncExitWith(services),
+    Exit.match({
+      onFailure: (cause) => {
+        throw new KnownFiberFailure(cause)
+      },
+      onSuccess: (value) => value
+    })
+  )

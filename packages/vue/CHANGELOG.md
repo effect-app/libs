@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- 04fc985: Fixes error handling
+- Updated dependencies [947fe20]
+  - effect-app@4.0.0-beta.37
+
 ## 4.0.0-beta.36
 
 ### Patch Changes

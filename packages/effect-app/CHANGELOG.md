@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- 947fe20: fix input date
+
 ## 4.0.0-beta.36
 
 ## 4.0.0-beta.35

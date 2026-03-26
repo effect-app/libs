@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- 04fc985: bump to release
+- Updated dependencies [947fe20]
+- Updated dependencies [04fc985]
+  - effect-app@4.0.0-beta.37
+  - @effect-app/vue@4.0.0-beta.37
+
 ## 4.0.0-beta.36
 
 ### Patch Changes

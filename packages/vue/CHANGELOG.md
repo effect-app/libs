@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 18fd1df: unify runPromise
+  - effect-app@4.0.0-beta.40
+
 ## 4.0.0-beta.39
 
 ### Patch Changes

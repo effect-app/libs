@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- 10e90d5: fix: TaggedRequest should be an Opaque Schema Class
+
 ## 4.0.0-beta.38
 
 ### Patch Changes

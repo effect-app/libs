@@ -152,7 +152,7 @@ function handlePropertySignature(
               ? S.AST.isUnion(tagPropertySignature.type)
                   && tagPropertySignature.type.types.length === 1
                   && S.AST.isLiteral(tagPropertySignature.type.types[0]!)
-                ? tagPropertySignature.type.types[0]!
+                ? tagPropertySignature.type.types[0]
                 : tagPropertySignature.type
               : undefined
             const tagLiteral = tagType
@@ -428,6 +428,27 @@ export function getMetadataFromSchema(
   required: boolean
   description?: string
 } {
+  const findJsonSchemaType = (
+    schema: any,
+    target: "number" | "integer"
+  ): boolean => {
+    if (!schema || typeof schema !== "object") {
+      return false
+    }
+
+    if (schema.type === target) {
+      return true
+    }
+
+    if (Array.isArray(schema.type) && schema.type.includes(target)) {
+      return true
+    }
+
+    return ["anyOf", "oneOf", "allOf"].some((key) =>
+      Array.isArray(schema[key]) && schema[key].some((member: any) => findJsonSchemaType(member, target))
+    )
+  }
+
   const nullable = S.AST.isUnion(ast) && ast.types.includes(S.Null.ast)
   const realSelf = nullable && S.AST.isUnion(ast)
     ? ast.types.filter((_) => _ !== S.Null.ast)[0]!
@@ -457,8 +478,8 @@ export function getMetadataFromSchema(
   //         "title": "Int"
   //     }
   // }
-  const isNumber = jschema.type === "number" || jschema.type === "integer"
-  const isInt = jschema.type === "integer"
+  const isInt = findJsonSchemaType(jschema, "integer")
+  const isNumber = isInt || findJsonSchemaType(jschema, "number")
   return {
     type: isInt ? "int" as const : isNumber ? "float" as const : "text" as const,
     minimum: jschema.minimum,

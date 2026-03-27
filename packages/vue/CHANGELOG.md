@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- d195003: Fix numeric field type detection in `getMetadataFromSchema` for Effect v4 JSON schema output. `S.Number` now emits `anyOf` instead of a top-level `type: "number"`, causing fields to fall back to `"text"`. Detection now recurses through `anyOf`/`oneOf`/`allOf` to find the underlying numeric type.
+  - effect-app@4.0.0-beta.42
+
 ## 4.0.0-beta.41
 
 ### Patch Changes

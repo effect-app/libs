@@ -66,11 +66,10 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
     }
 
     // lock file for cross-process coordination during initialization
-    const lockFile = file + ".lock"
 
     // wrap initialization in file lock to prevent race conditions in multi-worker setups
     const store = yield* fu.withFileLock(
-      lockFile,
+      file,
       Effect.gen(function*() {
         const shouldSeed = !(fs.existsSync(file))
 

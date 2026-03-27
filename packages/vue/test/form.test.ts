@@ -1,5 +1,5 @@
 import { Effect, S } from "effect-app"
-import { buildFieldInfoFromFieldsRoot, type DiscriminatedUnionFieldInfo, type FieldInfo, type NestedFieldInfo, type UnionFieldInfo } from "../src/form.js"
+import { buildFieldInfoFromFieldsRoot, type DiscriminatedUnionFieldInfo, type FieldInfo, getMetadataFromSchema, type NestedFieldInfo, type UnionFieldInfo } from "../src/form.js"
 
 export class NestedSchema extends S.Class<NestedSchema>("NestedSchema")({
   shallow: S.String,
@@ -159,6 +159,15 @@ function testDiscriminatedUnionFieldInfo<T extends Record<PropertyKey, any>>(duf
     }
   )
 }
+
+it("getMetadataFromSchema handles composed numeric schemas", () => {
+  expect(getMetadataFromSchema(S.Number.ast).type).toBe("float")
+  expect(getMetadataFromSchema(S.Finite.ast).type).toBe("float")
+  expect(getMetadataFromSchema(S.PositiveNumber.ast).type).toBe("float")
+  expect(getMetadataFromSchema(S.Int.ast).type).toBe("int")
+  expect(getMetadataFromSchema(S.PositiveInt.ast).type).toBe("int")
+  expect(getMetadataFromSchema(S.NullOr(S.Number).ast).type).toBe("float")
+})
 
 it("buildFieldInfo", () =>
   Effect

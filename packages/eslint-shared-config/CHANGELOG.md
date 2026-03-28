@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.5.7-beta.3
+
+### Patch Changes
+
+- c9caa37: pin dprint/formatter
+  - @effect-app/eslint-codegen-model@2.0.0-beta.2
+
 ## 0.5.7-beta.2
 
 ### Patch Changes

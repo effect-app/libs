@@ -1,0 +1,23 @@
+diff --git a/src/mail.d.ts b/src/mail.d.ts
+index fa827498d2b41d64cfb43b9bf75081deb03042cb..624533b02b78ff51ee57750511e49e7e020cf2d1 100644
+--- a/src/mail.d.ts
++++ b/src/mail.d.ts
+@@ -40,9 +40,15 @@ declare class MailService {
+   sendMultiple(data: MailDataRequired, cb?: (error: Error | ResponseError, result: [ClientResponse, {}]) => void): Promise<[ClientResponse, {}]>;
+ }
+ 
+-declare const mail: MailService;
+-// @ts-ignore
+-export = mail;
++// declare const mail: MailService;
++// // @ts-ignore
++// export = mail;
++
++// workaround for tsgold not supporting export = with namespaces
++export const send: MailService["send"];
++export const sendMultiple: MailService["sendMultiple"];
++export const setApiKey: MailService["setApiKey"];
++
+ 
+ export {MailService};
+ export {MailDataRequired};

@@ -1188,6 +1188,7 @@ export const CommanderStatic = {
        */
       stableToastId?: undefined | true | string | ((id: string, ...args: Args) => true | string | undefined)
       errorRenderer?: ErrorRenderer<E, Args>
+      showSpanInfo?: false
       onWaiting?: null | undefined | string | ((id: string, ...args: Args) => string | null | undefined)
       onSuccess?: null | undefined | string | ((a: A, action: string, ...args: Args) => string | null | undefined)
     }
@@ -1245,7 +1246,8 @@ export const CommanderStatic = {
               hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
               options?.errorRenderer
             ),
-            stableToastId
+            stableToastId,
+            ...options?.showSpanInfo === false ? { showSpanInfo: options.showSpanInfo } : {}
           })(_, ...args)
       )
     }),

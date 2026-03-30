@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/eslint-shared-config",
-  "version": "0.5.7-beta.5",
+  "version": "0.5.7-beta.4",
   "description": "Shared flat ESLint base & vue configs for effect-app monorepo",
   "license": "MIT",
   "private": false,
@@ -31,13 +31,13 @@
     "eslint-plugin-codegen": "0.17.0",
     "eslint-plugin-sort-destructure-keys": "3.0.0",
     "eslint-plugin-unused-imports": "4.4.1",
-    "@ben_12/eslint-plugin-dprint": "1.16.0",
+    "@ben_12/eslint-plugin-dprint": "1.17.0",
     "eslint-plugin-formatjs": "6.4.4",
     "@vue/eslint-config-typescript": "14.7.0",
     "typescript-eslint": "8.57.2",
     "eslint-plugin-vue": "10.8.0",
     "dprint-plugin-malva": "0.15.2",
-    "dprint-plugin-markup": "0.26.0",
+    "dprint-plugin-markup": "0.27.0",
     "dprint-plugin-yaml": "0.6.0",
     "@dprint/typescript": "0.95.15",
     "@eslint/compat": "2.0.3",
@@ -46,7 +46,7 @@
     "eslint-watch": "^8.0.0",
     "@typescript-eslint/eslint-plugin": "8.57.2",
     "@typescript-eslint/parser": "8.57.2",
-    "@dprint/formatter": "~0.5.1",
+    "@dprint/formatter": "~0.4.1",
     "jsonc-parser": "3.3.1"
   },
   "bundledDependencies": [

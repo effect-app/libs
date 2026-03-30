@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.7
+
+### Patch Changes
+
+- 10b55ff: update packages
+
 ## 2.0.1-beta.6
 
 ### Patch Changes

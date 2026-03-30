@@ -25,7 +25,7 @@
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "effect": "^4.0.0-beta.40"
+    "effect": "^4.0.0-beta.43"
   },
   "typesVersions": {
     "*": {
@@ -98,6 +98,18 @@
     "./Schema/Methods": {
       "types": "./dist/Schema/Methods.d.ts",
       "default": "./dist/Schema/Methods.js"
+    },
+    "./Schema/SpecialClass": {
+      "types": "./dist/Schema/SpecialClass.d.ts",
+      "default": "./dist/Schema/SpecialClass.js"
+    },
+    "./Schema/SpecialJsonSchema": {
+      "types": "./dist/Schema/SpecialJsonSchema.d.ts",
+      "default": "./dist/Schema/SpecialJsonSchema.js"
+    },
+    "./Schema/SpecialOpenApi": {
+      "types": "./dist/Schema/SpecialOpenApi.d.ts",
+      "default": "./dist/Schema/SpecialOpenApi.js"
     },
     "./Schema/brand": {
       "types": "./dist/Schema/brand.d.ts",

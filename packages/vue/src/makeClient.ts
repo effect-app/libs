@@ -1404,7 +1404,10 @@ export const makeClient = <RT_, RTHooks>(
         [Key in keyof typeof client]:
           & typeof client[Key]
           & RequestWithExtensions<RT | RTHooks, typeof client[Key]>
-          & { mutate: MutationWithExtensions<RT | RTHooks, typeof client[Key]> }
+          & {
+            mutate: MutationWithExtensions<RT | RTHooks, typeof client[Key]>
+            Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never
+          }
           & Queries<RT, typeof client[Key]>
       }
     )

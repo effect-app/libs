@@ -44,10 +44,6 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./errorReporter": {
-      "types": "./dist/errorReporter.d.ts",
-      "default": "./dist/errorReporter.js"
-    },
     "./commander": {
       "types": "./dist/commander.d.ts",
       "default": "./dist/commander.js"
@@ -56,25 +52,17 @@
       "types": "./dist/confirm.d.ts",
       "default": "./dist/confirm.js"
     },
-    "./intl": {
-      "types": "./dist/intl.d.ts",
-      "default": "./dist/intl.js"
-    },
-    "./makeUseCommand": {
-      "types": "./dist/makeUseCommand.d.ts",
-      "default": "./dist/makeUseCommand.js"
-    },
-    "./toast": {
-      "types": "./dist/toast.d.ts",
-      "default": "./dist/toast.js"
-    },
-    "./withToast": {
-      "types": "./dist/withToast.d.ts",
-      "default": "./dist/withToast.js"
+    "./errorReporter": {
+      "types": "./dist/errorReporter.d.ts",
+      "default": "./dist/errorReporter.js"
     },
     "./form": {
       "types": "./dist/form.d.ts",
       "default": "./dist/form.js"
+    },
+    "./intl": {
+      "types": "./dist/intl.d.ts",
+      "default": "./dist/intl.js"
     },
     "./lib": {
       "types": "./dist/lib.d.ts",
@@ -92,6 +80,10 @@
       "types": "./dist/makeIntl.d.ts",
       "default": "./dist/makeIntl.js"
     },
+    "./makeUseCommand": {
+      "types": "./dist/makeUseCommand.d.ts",
+      "default": "./dist/makeUseCommand.js"
+    },
     "./mutate": {
       "types": "./dist/mutate.d.ts",
       "default": "./dist/mutate.js"
@@ -107,6 +99,14 @@
     "./runtime": {
       "types": "./dist/runtime.d.ts",
       "default": "./dist/runtime.js"
+    },
+    "./toast": {
+      "types": "./dist/toast.d.ts",
+      "default": "./dist/toast.js"
+    },
+    "./withToast": {
+      "types": "./dist/withToast.d.ts",
+      "default": "./dist/withToast.js"
     }
   },
   "scripts": {

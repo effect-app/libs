@@ -6,7 +6,7 @@
   "dependencies": {
     "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.1.0",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.7",
     "path-parser": "^6.1.0",
     "query-string": "^9.3.1",
     "ts-pattern": "^5.9.0",
@@ -16,13 +16,13 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "25.3.3",
+    "@types/node": "25.5.0",
     "@types/uuid": "^11.0.0",
     "@types/validator": "^13.15.10",
     "@effect-app/eslint-shared-config": "workspace:*",
-    "fast-check": "~4.5.3",
+    "fast-check": "~4.6.0",
     "typescript": "~6.0.2",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.2"
   },
   "peerDependencies": {
     "effect": "^4.0.0-beta.43"

@@ -1,13 +1,13 @@
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import * as S from "effect/Schema"
-import { SpecialClass, SpecialTaggedClass } from "effect-app/Schema/SpecialClass"
+import { Class, TaggedClass } from "effect-app/Schema/Class"
 import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import { describe, expect, it } from "vitest"
 
-describe("SpecialClass", () => {
+describe("Class", () => {
   it("encoding accepts plain objects matching the struct (Fields argument)", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String }) {}
+    class A extends Class<A>("A")({ a: S.String }) {}
 
     // Encoding a class instance still works
     expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
@@ -20,7 +20,7 @@ describe("SpecialClass", () => {
   })
 
   it("encoding accepts plain objects matching the struct (Struct argument)", () => {
-    class A extends SpecialClass<A>("A")(S.Struct({ a: S.String })) {}
+    class A extends Class<A>("A")(S.Struct({ a: S.String })) {}
 
     expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
     expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
@@ -28,7 +28,7 @@ describe("SpecialClass", () => {
   })
 
   it("decoding still works normally", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String }) {}
+    class A extends Class<A>("A")({ a: S.String }) {}
 
     const decoded = S.decodeUnknownSync(A)({ a: "hello" })
     expect(decoded).toBeInstanceOf(A)
@@ -39,14 +39,14 @@ describe("SpecialClass", () => {
   })
 
   it("rejects values that don't match the struct", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String }) {}
+    class A extends Class<A>("A")({ a: S.String }) {}
 
     expect(() => S.encodeUnknownSync(A)({ a: 123 })).toThrow()
     expect(() => S.encodeUnknownSync(A)("not an object")).toThrow()
   })
 
   it("returns a class constructor — new and instanceof work", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String }) {}
+    class A extends Class<A>("A")({ a: S.String }) {}
 
     const instance = new A({ a: "hello" })
     expect(instance).toBeInstanceOf(A)
@@ -54,16 +54,16 @@ describe("SpecialClass", () => {
   })
 
   it("preserves fields and identifier", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String, b: S.Number }) {}
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
 
     expect(A.identifier).toBe("A")
     expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
   })
 })
 
-describe("SpecialClass constructor", () => {
+describe("Class constructor", () => {
   it("works as a base class — new, instanceof, encoding plain objects", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String }) {}
+    class A extends Class<A>("A")({ a: S.String }) {}
 
     // Construction
     const instance = new A({ a: "hello" })
@@ -82,7 +82,7 @@ describe("SpecialClass constructor", () => {
   })
 
   it("decoding works normally", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String }) {}
+    class A extends Class<A>("A")({ a: S.String }) {}
 
     const decoded = S.decodeUnknownSync(A)({ a: "hello" })
     expect(decoded).toBeInstanceOf(A)
@@ -92,7 +92,7 @@ describe("SpecialClass constructor", () => {
   })
 
   it("exposes fields, identifier, pick, omit", () => {
-    class A extends SpecialClass<A>("A")({ a: S.String, b: S.Number }) {}
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
 
     expect(A.identifier).toBe("A")
     expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
@@ -101,9 +101,9 @@ describe("SpecialClass constructor", () => {
   })
 })
 
-describe("SpecialTaggedClass constructor", () => {
+describe("TaggedClass constructor", () => {
   it("works as a base class with _tag — new, instanceof, encoding plain objects", () => {
-    class Circle extends SpecialTaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
 
     // Construction
     const instance = new Circle({ radius: 5 })
@@ -123,7 +123,7 @@ describe("SpecialTaggedClass constructor", () => {
   })
 
   it("decoding works normally", () => {
-    class Circle extends SpecialTaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
 
     const decoded = S.decodeUnknownSync(Circle)({ _tag: "Circle", radius: 5 })
     expect(decoded).toBeInstanceOf(Circle)
@@ -132,7 +132,7 @@ describe("SpecialTaggedClass constructor", () => {
   })
 
   it("exposes fields, identifier, pick, omit", () => {
-    class Circle extends SpecialTaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
 
     expect(Circle.identifier).toBe("Circle")
     expect(Object.keys(Circle.fields)).toContain("_tag")

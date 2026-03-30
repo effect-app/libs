@@ -97,7 +97,7 @@ function deduplicateReferences(
   const newRefs: Record<string, SchemaRepresentation.Representation> = {}
   for (const key of refKeys) {
     if (!remapping.has(key)) {
-      newRefs[key] = refs[key]
+      newRefs[key] = refs[key]!
     }
   }
 
@@ -118,7 +118,7 @@ function deduplicateReferences(
  */
 function getBaseIdentifier(key: string): string {
   const match = key.match(/^(.+?)(\d+)$/)
-  return match ? match[1] : key
+  return match ? match[1]! : key
 }
 
 /**

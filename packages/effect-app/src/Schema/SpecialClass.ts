@@ -1,3 +1,4 @@
+/* eslint-disable prefer-rest-params */
 /**
  * SpecialClass — Schema.Class variants where encoding accepts any value
  * matching the underlying struct schema, not just class instances or objects
@@ -129,7 +130,9 @@ export const SpecialClass: <Self = never>(identifier: string) => <Fields extends
  * Schema.encodeUnknownSync(Circle)({ _tag: "Circle", radius: 5 })
  * ```
  */
-export const SpecialTaggedClass: <Self = never>(identifier?: string) => <Tag extends string, Fields extends S.Struct.Fields>(
+export const SpecialTaggedClass: <Self = never>(
+  identifier?: string
+) => <Tag extends string, Fields extends S.Struct.Fields>(
   tag: Tag,
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>
@@ -229,10 +232,12 @@ type AnyClass = new(...args: any[]) => any
  * Schema.encodeUnknownSync(SpecialA)({ a: "hello" })
  * ```
  */
-export function specialClass<C extends AnyClass & { readonly ast: SchemaAST.Declaration; readonly fields: Schema.Struct.Fields }>(
+export function specialClass<
+  C extends AnyClass & { readonly ast: SchemaAST.Declaration; readonly fields: Schema.Struct.Fields }
+>(
   cls: C
 ): C {
-  const structSchema = Schema.Struct(cls.fields as Schema.Struct.Fields)
+  const structSchema = Schema.Struct(cls.fields)
   const isStruct = Schema.is(structSchema)
 
   let memoAst: SchemaAST.Declaration | undefined
@@ -282,19 +287,49 @@ export function specialClass<C extends AnyClass & { readonly ast: SchemaAST.Decl
   }
 
   Sub.annotate = function(annotations: any) {
-    return Sub.rebuild(SchemaAST.annotate(Sub.ast, annotations))
+    const ast = Sub.ast
+    return Sub.rebuild(
+      new SchemaAST.Declaration(
+        ast.typeParameters,
+        ast.run,
+        { ...ast.annotations, ...annotations },
+        ast.checks,
+        ast.encoding,
+        ast.context
+      )
+    )
   }
   Sub.annotateKey = function(annotations: any) {
-    return Sub.rebuild(SchemaAST.annotateKey(Sub.ast, annotations))
+    const ast = Sub.ast
+    return Sub.rebuild(
+      new SchemaAST.Declaration(
+        ast.typeParameters,
+        ast.run,
+        { ...ast.annotations, "~effect/Schema/keyAnnotations": annotations },
+        ast.checks,
+        ast.encoding,
+        ast.context
+      )
+    )
   }
   Sub.check = function(...checks: any[]) {
-    return Sub.rebuild(SchemaAST.appendChecks(Sub.ast, checks))
+    const ast = Sub.ast
+    return Sub.rebuild(
+      new SchemaAST.Declaration(
+        ast.typeParameters,
+        ast.run,
+        ast.annotations,
+        ast.checks ? [...ast.checks, ...checks] as any : checks as any,
+        ast.encoding,
+        ast.context
+      )
+    )
   }
   Sub.makeUnsafe = function(input: any, options?: any) {
     return new Sub(input, options)
   }
   Sub.makeOption = function(input: any, options?: any) {
-    return SchemaParser.makeOption(Sub as any)(input, options)
+    return SchemaParser.makeOption(Sub)(input, options)
   }
   Sub.pipe = function() {
     return Pipeable.pipeArguments(Sub, arguments)
@@ -310,13 +345,43 @@ const schemaProto = {
   pipe() {
     return Pipeable.pipeArguments(this, arguments)
   },
-  annotate(this: Schema.Top, annotations: any) {
-    return this.rebuild(SchemaAST.annotate(this.ast, annotations))
+  annotate(this: any, annotations: any) {
+    const ast = this.ast
+    return this.rebuild(
+      new SchemaAST.Declaration(
+        ast.typeParameters,
+        ast.run,
+        { ...ast.annotations, ...annotations },
+        ast.checks,
+        ast.encoding,
+        ast.context
+      )
+    )
   },
-  annotateKey(this: Schema.Top, annotations: any) {
-    return this.rebuild(SchemaAST.annotateKey(this.ast, annotations))
+  annotateKey(this: any, annotations: any) {
+    const ast = this.ast
+    return this.rebuild(
+      new SchemaAST.Declaration(
+        ast.typeParameters,
+        ast.run,
+        { ...ast.annotations, "~effect/Schema/keyAnnotations": annotations },
+        ast.checks,
+        ast.encoding,
+        ast.context
+      )
+    )
   },
-  check(this: Schema.Top, ...checks: any[]) {
-    return this.rebuild(SchemaAST.appendChecks(this.ast, checks as any))
+  check(this: any, ...checks: any[]) {
+    const ast = this.ast
+    return this.rebuild(
+      new SchemaAST.Declaration(
+        ast.typeParameters,
+        ast.run,
+        ast.annotations,
+        (ast.checks ? [...ast.checks, ...checks] : checks) as any,
+        ast.encoding,
+        ast.context
+      )
+    )
   }
 }

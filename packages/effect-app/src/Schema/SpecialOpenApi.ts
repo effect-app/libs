@@ -30,9 +30,9 @@
 export function deduplicateOpenApiSchemas(
   spec: Record<string, any>
 ): Record<string, any> {
-  const components = spec.components as Record<string, any> | undefined
+  const components = spec["components"] as Record<string, any> | undefined
   if (!components) return spec
-  const schemas = components.schemas as Record<string, any> | undefined
+  const schemas = components["schemas"] as Record<string, any> | undefined
   if (!schemas) return spec
 
   const keys = Object.keys(schemas)
@@ -78,7 +78,7 @@ export function deduplicateOpenApiSchemas(
 
   // Deep clone the spec, replace schemas, and rewrite all $ref pointers
   const newSpec = structuredClone(spec)
-  newSpec.components.schemas = newSchemas
+  newSpec["components"]["schemas"] = newSchemas
   rewriteRefs(newSpec, remapping)
 
   return newSpec
@@ -91,7 +91,7 @@ export function deduplicateOpenApiSchemas(
  */
 function getBaseIdentifier(key: string): string {
   const match = key.match(/^(.+?)(\d+)$/)
-  return match ? match[1] : key
+  return match ? match[1]! : key
 }
 
 /**

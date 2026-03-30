@@ -182,12 +182,12 @@ describe("SpecialJsonSchema", () => {
     const fromNullOr = nullableDecodedUndefinedEncoded(Schema.NullOr(Schema.String))
     const structFromNullOr = Schema.Struct({ status: fromNullOr })
 
-    const encode = Schema.encodeUnknownSync(structFromNullOr)
-    const encodedNull = encode({ status: null })
+    const encode = Schema.encodeUnknownSync(structFromNullOr as any)
+    const encodedNull = encode({ status: null }) as any
     expect("status" in encodedNull).toBe(false)
     expect(encode({ status: "test" })).toStrictEqual({ status: "test" })
 
-    const decode = Schema.decodeUnknownSync(structFromNullOr)
+    const decode = Schema.decodeUnknownSync(structFromNullOr as any)
     expect(decode({})).toStrictEqual({ status: null })
     expect(decode({ status: "test" })).toStrictEqual({ status: "test" })
 
@@ -364,7 +364,7 @@ describe("SpecialOpenApi", () => {
       }
     }
 
-    const result = deduplicateOpenApiSchemas(spec)
+    const result = deduplicateOpenApiSchemas(spec) as any
 
     // X1 should be removed, and $ref to X1 rewritten to X
     expect(result.components.schemas).toStrictEqual({
@@ -388,7 +388,7 @@ describe("SpecialOpenApi", () => {
       }
     }
 
-    const result = deduplicateOpenApiSchemas(spec)
+    const result = deduplicateOpenApiSchemas(spec) as any
 
     // Both should remain since they have different representations
     expect(result.components.schemas).toStrictEqual({
@@ -444,7 +444,7 @@ describe("SpecialOpenApi", () => {
       }
     }
 
-    const result = deduplicateOpenApiSchemas(spec)
+    const result = deduplicateOpenApiSchemas(spec) as any
 
     expect(result.components.schemas).toStrictEqual({
       Y: { type: "object", properties: { name: { type: "string" } } }
@@ -473,7 +473,7 @@ describe("SpecialOpenApi", () => {
       }
     }
 
-    const result = deduplicateOpenApiSchemas(spec)
+    const result = deduplicateOpenApiSchemas(spec) as any
 
     expect(Object.keys(result.components.schemas)).toStrictEqual(["Inner", "Outer"])
     expect(result.components.schemas.Outer.properties.field).toStrictEqual({

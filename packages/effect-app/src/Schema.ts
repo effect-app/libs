@@ -24,6 +24,8 @@ export * from "./Schema/moreStrings.js"
 export * from "./Schema/numbers.js"
 export * from "./Schema/phoneNumber.js"
 export * from "./Schema/schema.js"
+export * from "./Schema/SpecialJsonSchema.js"
+export * from "./Schema/SpecialOpenApi.js"
 export * from "./Schema/strings.js"
 export { NonEmptyString } from "./Schema/strings.js"
 

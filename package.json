@@ -6,8 +6,7 @@
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
       "typescript@6.0.2": "patches/typescript.patch",
       "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch",
-      "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch",
-      "effect": "patches/effect.patch"
+      "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch"
     }
   },
   "engines": {
@@ -63,8 +62,8 @@
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.77.0",
-    "@effect/platform-node": "^4.0.0-beta.40",
-    "@effect/vitest": "^4.0.0-beta.40",
+    "@effect/platform-node": "^4.0.0-beta.43",
+    "@effect/vitest": "^4.0.0-beta.43",
     "@tsconfig/strictest": "^2.0.8",
     "@types/lodash": "^4.17.24",
     "@types/node": "25.3.3",
@@ -74,7 +73,7 @@
     "@vue/eslint-config-typescript": "^14.7.0",
     "concurrently": "^9.2.1",
     "dprint": "^0.52.0",
-    "effect": "^4.0.0-beta.40",
+    "effect": "^4.0.0-beta.43",
     "effect-app": "workspace:*",
     "enhanced-resolve": "^5.20.0",
     "eslint": "^10.0.2",

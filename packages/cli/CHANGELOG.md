@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.6
+
+### Patch Changes
+
+- a37aa38: Update to effect beta 43
+
 ## 2.0.1-beta.5
 
 ### Patch Changes

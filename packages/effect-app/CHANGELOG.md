@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- a37aa38: Update to effect beta 43
+
 ## 4.0.0-beta.43
 
 ## 4.0.0-beta.42

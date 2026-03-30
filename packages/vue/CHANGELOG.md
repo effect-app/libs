@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 28a0b29: expose Input
+- 0c42d67: move out Commander and friends from experimental
+  - effect-app@4.0.0-beta.46
+
 ## 4.0.0-beta.45
 
 ### Patch Changes

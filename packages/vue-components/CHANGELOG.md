@@ -1,5 +1,15 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 0c42d67: move out Commander and friends from experimental
+- Updated dependencies [28a0b29]
+- Updated dependencies [0c42d67]
+  - @effect-app/vue@4.0.0-beta.46
+  - effect-app@4.0.0-beta.46
+
 ## 4.0.0-beta.45
 
 ### Patch Changes

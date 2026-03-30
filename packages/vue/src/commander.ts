@@ -1685,7 +1685,7 @@ export class CommanderImpl<RT, RTHooks> {
       }
     )
 
-  /** @experimental @deprecated */
+  /** @deprecated */
   alt2: <
     const Id extends string,
     MutArg,
@@ -1737,7 +1737,6 @@ export class CommanderImpl<RT, RTHooks> {
         )), baseInfo) as any
     }
 
-  /** @experimental */
   alt = this.makeCommand as unknown as <
     const Id extends string,
     const I18nKey extends string = Id,

@@ -35,4 +35,4 @@ Each Command has a reactive `action` property, which is a formatted message base
 The `action` property can be used as button labels or titles, and will be used by the `Command.withDefaultToast()` implementation unless overriden.
 Each Toast stage can be further customised by adding messages with namespaced i18n keys for: `waiting`, `failure` and `success`
 e.g: `action.HelloWorld.SetState.waiting`.
-Various default copy lives in [DefaultIntl](../../../packages/vue/src/experimental/commander.ts)
+Various default copy lives in [DefaultIntl](../../../packages/vue/src/commander.ts)

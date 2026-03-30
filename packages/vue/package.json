@@ -48,29 +48,29 @@
       "types": "./dist/errorReporter.d.ts",
       "default": "./dist/errorReporter.js"
     },
-    "./experimental/commander": {
-      "types": "./dist/experimental/commander.d.ts",
-      "default": "./dist/experimental/commander.js"
+    "./commander": {
+      "types": "./dist/commander.d.ts",
+      "default": "./dist/commander.js"
     },
-    "./experimental/confirm": {
-      "types": "./dist/experimental/confirm.d.ts",
-      "default": "./dist/experimental/confirm.js"
+    "./confirm": {
+      "types": "./dist/confirm.d.ts",
+      "default": "./dist/confirm.js"
     },
-    "./experimental/intl": {
-      "types": "./dist/experimental/intl.d.ts",
-      "default": "./dist/experimental/intl.js"
+    "./intl": {
+      "types": "./dist/intl.d.ts",
+      "default": "./dist/intl.js"
     },
-    "./experimental/makeUseCommand": {
-      "types": "./dist/experimental/makeUseCommand.d.ts",
-      "default": "./dist/experimental/makeUseCommand.js"
+    "./makeUseCommand": {
+      "types": "./dist/makeUseCommand.d.ts",
+      "default": "./dist/makeUseCommand.js"
     },
-    "./experimental/toast": {
-      "types": "./dist/experimental/toast.d.ts",
-      "default": "./dist/experimental/toast.js"
+    "./toast": {
+      "types": "./dist/toast.d.ts",
+      "default": "./dist/toast.js"
     },
-    "./experimental/withToast": {
-      "types": "./dist/experimental/withToast.d.ts",
-      "default": "./dist/experimental/withToast.js"
+    "./withToast": {
+      "types": "./dist/withToast.d.ts",
+      "default": "./dist/withToast.js"
     },
     "./form": {
       "types": "./dist/form.d.ts",

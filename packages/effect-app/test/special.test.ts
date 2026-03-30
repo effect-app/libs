@@ -1,78 +1,63 @@
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import * as S from "effect/Schema"
-import { specialClass, SpecialClass, SpecialTaggedClass } from "effect-app/Schema/SpecialClass"
+import { SpecialClass, SpecialTaggedClass } from "effect-app/Schema/SpecialClass"
 import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import { describe, expect, it } from "vitest"
 
 describe("SpecialClass", () => {
   it("encoding accepts plain objects matching the struct (Fields argument)", () => {
-    class A extends S.Class<A>("A")({ a: S.String }) {}
-    const SpecialA = specialClass(A)
+    class A extends SpecialClass<A>("A")({ a: S.String }) {}
 
     // Encoding a class instance still works
-    expect(S.encodeUnknownSync(SpecialA)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
+    expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
 
     // Encoding a plain object matching the struct now succeeds
-    expect(S.encodeUnknownSync(SpecialA)({ a: "world" })).toStrictEqual({ a: "world" })
+    expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
 
     // Encoding null still fails
-    expect(() => S.encodeUnknownSync(SpecialA)(null)).toThrow()
+    expect(() => S.encodeUnknownSync(A)(null)).toThrow()
   })
 
   it("encoding accepts plain objects matching the struct (Struct argument)", () => {
-    class A extends S.Class<A>("A")(S.Struct({ a: S.String })) {}
-    const SpecialA = specialClass(A)
+    class A extends SpecialClass<A>("A")(S.Struct({ a: S.String })) {}
 
-    expect(S.encodeUnknownSync(SpecialA)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
-    expect(S.encodeUnknownSync(SpecialA)({ a: "world" })).toStrictEqual({ a: "world" })
-    expect(() => S.encodeUnknownSync(SpecialA)(null)).toThrow()
+    expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
+    expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
+    expect(() => S.encodeUnknownSync(A)(null)).toThrow()
   })
 
   it("decoding still works normally", () => {
-    class A extends S.Class<A>("A")({ a: S.String }) {}
-    const SpecialA = specialClass(A)
+    class A extends SpecialClass<A>("A")({ a: S.String }) {}
 
-    const decoded = S.decodeUnknownSync(SpecialA)({ a: "hello" })
+    const decoded = S.decodeUnknownSync(A)({ a: "hello" })
     expect(decoded).toBeInstanceOf(A)
     expect((decoded as A).a).toBe("hello")
 
-    expect(() => S.decodeUnknownSync(SpecialA)(null)).toThrow()
-    expect(() => S.decodeUnknownSync(SpecialA)({ a: 1 })).toThrow()
+    expect(() => S.decodeUnknownSync(A)(null)).toThrow()
+    expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
   })
 
   it("rejects values that don't match the struct", () => {
-    class A extends S.Class<A>("A")({ a: S.String }) {}
-    const SpecialA = specialClass(A)
+    class A extends SpecialClass<A>("A")({ a: S.String }) {}
 
-    expect(() => S.encodeUnknownSync(SpecialA)({ a: 123 })).toThrow()
-    expect(() => S.encodeUnknownSync(SpecialA)("not an object")).toThrow()
+    expect(() => S.encodeUnknownSync(A)({ a: 123 })).toThrow()
+    expect(() => S.encodeUnknownSync(A)("not an object")).toThrow()
   })
 
   it("returns a class constructor — new and instanceof work", () => {
-    class A extends S.Class<A>("A")({ a: S.String }) {}
-    const SpecialA = specialClass(A)
+    class A extends SpecialClass<A>("A")({ a: S.String }) {}
 
-    const instance = new SpecialA({ a: "hello" })
-    expect(instance).toBeInstanceOf(SpecialA)
+    const instance = new A({ a: "hello" })
     expect(instance).toBeInstanceOf(A)
     expect(instance.a).toBe("hello")
   })
 
   it("preserves fields and identifier", () => {
-    class A extends S.Class<A>("A")({ a: S.String, b: S.Number }) {}
-    const SpecialA = specialClass(A)
+    class A extends SpecialClass<A>("A")({ a: S.String, b: S.Number }) {}
 
-    expect(SpecialA.identifier).toBe("A")
-    expect(SpecialA.fields).toStrictEqual(A.fields)
-  })
-
-  it("encoding SpecialA instance also works", () => {
-    class A extends S.Class<A>("A")({ a: S.String }) {}
-    const SpecialA = specialClass(A)
-
-    const instance = new SpecialA({ a: "test" })
-    expect(S.encodeUnknownSync(SpecialA)(instance)).toStrictEqual({ a: "test" })
+    expect(A.identifier).toBe("A")
+    expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
   })
 })
 

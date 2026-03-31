@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 3365758: workaround effect error messages
+
 ## 4.0.0-beta.46
 
 ## 4.0.0-beta.45

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- e585c9c: fix config nested
+
 ## 4.0.0-beta.48
 
 ### Patch Changes

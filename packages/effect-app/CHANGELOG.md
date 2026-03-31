@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 0c88f78: Remove `TaggedError` compatibility re-export, use `TaggedErrorClass` directly
+
 ## 4.0.0-beta.47
 
 ### Patch Changes

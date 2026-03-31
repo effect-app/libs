@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 16fa809: Fix defaultsValueFromSchema for transformed struct schemas (e.g. decodeTo) in unions. Walk the AST properly instead of relying on schema-level .fields/.from chains.
+- Updated dependencies [0c88f78]
+  - effect-app@4.0.0-beta.48
+  - @effect-app/vue@4.0.0-beta.48
+
 ## 4.0.0-beta.47
 
 ### Patch Changes

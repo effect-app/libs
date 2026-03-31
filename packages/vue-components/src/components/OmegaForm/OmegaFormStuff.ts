@@ -1207,18 +1207,8 @@ export function deepMerge(target: any, source: any) {
   return result
 }
 
-// Type definitions for schemas with fields and members
-type SchemaWithFields = {
-  fields: Record<string, S.Schema<any>>
-}
-
 type SchemaWithMembers = {
   members: readonly S.Schema<any>[]
-}
-
-// Type guards to check schema types
-function hasFields(schema: any): schema is SchemaWithFields {
-  return schema && "fields" in schema && typeof schema.fields === "object"
 }
 
 function hasMembers(schema: any): schema is SchemaWithMembers {
@@ -1244,23 +1234,31 @@ export const defaultsValueFromSchema = (
     return undefined
   }
 
-  // Check if schema has fields directly
-  if (hasFields(schema)) {
-    // Process fields and extract default values
+  // Handle structs via AST (covers plain structs, transformed schemas like decodeTo, ExtendedClass, etc.)
+  const objectsAst = S.AST.isObjects(ast)
+    ? ast
+    : S.AST.isDeclaration(ast)
+    ? unwrapDeclaration(ast)
+    : undefined
+  if (objectsAst && S.AST.isObjects(objectsAst)) {
     const result: Record<string, any> = {}
 
-    for (const [key, fieldSchema] of Object.entries(schema.fields)) {
-      const fieldDefault = getDefaultFromAst((fieldSchema as any)?.ast)
-      if (fieldDefault !== undefined) {
-        result[key] = fieldDefault
+    for (const prop of objectsAst.propertySignatures) {
+      const key = prop.name.toString()
+      const propType = prop.type
+
+      const propDefault = getDefaultFromAst(propType)
+      if (propDefault !== undefined) {
+        result[key] = propDefault
         continue
       }
 
-      // Recursively process the field
-      const fieldValue = defaultsValueFromSchema(fieldSchema as any, record[key] || {})
-      if (fieldValue !== undefined) {
-        result[key] = fieldValue
-      } else if (isNullableOrUndefined((fieldSchema as any).ast) === "undefined") {
+      const propSchema = S.make(propType)
+      const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
+
+      if (propValue !== undefined) {
+        result[key] = propValue
+      } else if (isNullableOrUndefined(propType) === "undefined") {
         result[key] = undefined
       }
     }
@@ -1268,74 +1266,41 @@ export const defaultsValueFromSchema = (
     return { ...result, ...record }
   }
 
-  // Check if schema has fields in from (for ExtendedClass and similar transformations)
-  if ((schema as any)?.from && hasFields((schema as any).from)) {
-    return defaultsValueFromSchema((schema as any).from, record)
-  }
+  // Handle unions via AST or schema-level .members
+  const unionTypes = S.AST.isUnion(ast)
+    ? ast.types
+    : hasMembers(schema)
+    ? schema.members.map((m) => m.ast)
+    : undefined
+  if (unionTypes) {
+    const mergedFields: Record<string, { ast: S.AST.AST }> = {}
 
-  if (hasMembers(schema)) {
-    // Merge all member fields, giving precedence to fields with default values
-    const mergedMembers = schema.members.reduce((acc, member) => {
-      if (hasFields(member)) {
-        // Check each field and give precedence to ones with default values
-        Object.entries(member.fields).forEach(([key, fieldSchema]) => {
-          const fieldDefault = getDefaultFromAst(fieldSchema.ast)
-          const existingDefault = acc[key] ? getDefaultFromAst(acc[key].ast) : undefined
+    for (const memberAstRaw of unionTypes) {
+      const memberAst = unwrapDeclaration(memberAstRaw)
+      if (!S.AST.isObjects(memberAst)) continue
 
-          // If field doesn't exist yet, or new field has default and existing doesn't, use new field
-          if (!acc[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
-            acc[key] = fieldSchema
-          }
-          // If both have defaults or neither have defaults, keep the first one (existing)
-        })
-        return acc
+      for (const prop of memberAst.propertySignatures) {
+        const key = prop.name.toString()
+        const fieldDefault = getDefaultFromAst(prop.type)
+        const existingDefault = mergedFields[key] ? getDefaultFromAst(mergedFields[key]!.ast) : undefined
+
+        if (!mergedFields[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
+          mergedFields[key] = { ast: prop.type }
+        }
       }
-      return acc
-    }, {} as Record<string, any>)
+    }
 
-    if (Object.keys(mergedMembers).length === 0) {
+    if (Object.keys(mergedFields).length === 0) {
       return Object.keys(record).length > 0 ? record : undefined
     }
 
-    // Use reduce to properly accumulate the merged fields
-    return Object.entries(mergedMembers).reduce((acc, [key, value]) => {
-      acc[key] = defaultsValueFromSchema(value, record[key] || {})
+    return Object.entries(mergedFields).reduce((acc, [key, { ast: propAst }]) => {
+      acc[key] = defaultsValueFromSchema(S.make(propAst), record[key] || {})
       return acc
     }, record)
   }
 
   if (Object.keys(record).length === 0) {
-    if (S.AST.isObjects(ast)) {
-      // Process TypeLiteral fields directly to build the result object
-      const result: Record<string, any> = { ...record }
-
-      for (const prop of ast.propertySignatures) {
-        const key = prop.name.toString()
-        const propType = prop.type
-
-        const propDefault = getDefaultFromAst(propType)
-        if (propDefault !== undefined) {
-          result[key] = propDefault
-          continue
-        }
-
-        // Create a schema from the property type and get its defaults
-        const propSchema = S.make(propType)
-
-        // Recursively process the property - don't pas for prop processing
-        // to allow proper unwrapping of nested structures
-        const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
-
-        if (propValue !== undefined) {
-          result[key] = propValue
-        } else if (isNullableOrUndefined(propType) === "undefined") {
-          result[key] = undefined
-        }
-      }
-
-      return result
-    }
-
     if (S.AST.isString(ast)) {
       return ""
     }

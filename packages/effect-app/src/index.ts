@@ -6,6 +6,8 @@ export * as Fnc from "./Function.js"
 export * as Utils from "./utils.js"
 
 export * as Array from "./Array.js"
+export * as Config from "./Config.js"
+export * as ConfigProvider from "./ConfigProvider.js"
 export * as Effect from "./Effect.js"
 export * as Layer from "./Layer.js"
 export * as NonEmptySet from "./NonEmptySet.js"

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as Config from "effect/Config"
 import { flow } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
@@ -7,6 +6,7 @@ import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 import * as Struct from "effect/Struct"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
+import * as Config from "../Config.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
 import * as Option from "../Option.js"

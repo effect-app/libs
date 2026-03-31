@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- 92b52d0: Bump
+  - effect-app@4.0.0-beta.51
+  - @effect-app/vue@4.0.0-beta.51
+
 ## 4.0.0-beta.50
 
 ### Patch Changes

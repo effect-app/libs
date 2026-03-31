@@ -47,9 +47,17 @@
       "types": "./dist/Chunk.d.ts",
       "default": "./dist/Chunk.js"
     },
+    "./Config": {
+      "types": "./dist/Config.d.ts",
+      "default": "./dist/Config.js"
+    },
     "./Config/SecretURL": {
       "types": "./dist/Config/SecretURL.d.ts",
       "default": "./dist/Config/SecretURL.js"
+    },
+    "./ConfigProvider": {
+      "types": "./dist/ConfigProvider.d.ts",
+      "default": "./dist/ConfigProvider.js"
     },
     "./Effect": {
       "types": "./dist/Effect.d.ts",

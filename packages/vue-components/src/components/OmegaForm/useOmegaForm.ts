@@ -979,6 +979,24 @@ export const useOmegaForm = <
     }
   })
 
+  // Clear all field onSubmit errors when any value changes after a failed submission.
+  // Form-level onSubmit validation (e.g. union schemas) distributes errors to individual fields.
+  // TanStack only clears the changed field's onSubmit error, leaving sibling fields with stale
+  // errors that keep isFieldsValid=false and block re-submission.
+  const lastSubmitAttempts = ref(0)
+  const submissionAttempts = form.useStore((s) => s.submissionAttempts)
+  const formValues = form.useStore((s) => s.values)
+  watch(formValues, () => {
+    if (lastSubmitAttempts.value === submissionAttempts.value) return
+    lastSubmitAttempts.value = submissionAttempts.value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const info of Object.values(form.fieldInfo) as any[]) {
+      if (info?.instance?.state.meta.errorMap?.onSubmit) {
+        info.instance.setMeta((prev: any) => ({ ...prev, errorMap: { ...prev.errorMap, onSubmit: undefined } }))
+      }
+    }
+  }, { deep: true })
+
   const errorContext = { form: formWithExtras, fieldMap }
 
   return Object.assign(formWithExtras, {

@@ -1,8 +1,9 @@
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
-import * as S from "effect/Schema"
+import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import { Class, TaggedClass } from "effect-app/Schema/Class"
 import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
+import * as S from "effect/Schema"
 import { describe, expect, it } from "vitest"
 
 describe("Class", () => {
@@ -138,6 +139,55 @@ describe("TaggedClass constructor", () => {
     expect(Object.keys(Circle.fields)).toContain("_tag")
     expect(Object.keys(Circle.fields)).toContain("radius")
     expect(Circle.pick("radius")).toStrictEqual({ radius: Circle.fields.radius })
+  })
+})
+
+describe("TaggedError", () => {
+  it("InvalidStateError toString includes the message", () => {
+    const error = new InvalidStateError("something went wrong")
+    expect(error.toString()).toContain("something went wrong")
+  })
+
+  it("NotFoundError toString includes the message", () => {
+    const error = new NotFoundError({ type: "User", id: "123" })
+    expect(error.toString()).toContain("Didn't find User")
+    expect(error.toString()).toContain("123")
+  })
+
+  it("ServiceUnavailableError toString includes the message", () => {
+    const error = new ServiceUnavailableError("service down")
+    expect(error.toString()).toContain("service down")
+  })
+
+  it("ValidationError toString includes the message", () => {
+    const error = new ValidationError({ errors: ["field required"] })
+    expect(error.toString()).toContain("Validation failed")
+    expect(error.toString()).toContain("field required")
+  })
+
+  it("NotLoggedInError toString includes the message", () => {
+    const error = new NotLoggedInError("not logged in")
+    expect(error.toString()).toContain("not logged in")
+  })
+
+  it("LoginError toString includes the message", () => {
+    const error = new LoginError("login failed")
+    expect(error.toString()).toContain("login failed")
+  })
+
+  it("UnauthorizedError toString includes the message", () => {
+    const error = new UnauthorizedError("forbidden")
+    expect(error.toString()).toContain("forbidden")
+  })
+
+  it("OptimisticConcurrencyException toString includes the message", () => {
+    const error = new OptimisticConcurrencyException({ message: "conflict" })
+    expect(error.toString()).toContain("conflict")
+  })
+
+  it("OptimisticConcurrencyException from details toString includes the message", () => {
+    const error = new OptimisticConcurrencyException({ type: "User", id: "123", code: 409 })
+    expect(error.toString()).toContain("Existing User 123 record changed")
   })
 })
 
@@ -357,7 +407,8 @@ describe("SpecialOpenApi", () => {
     })
     expect(
       result.paths["/bar"].get.responses[200].content["application/json"].schema
-    ).toStrictEqual({ $ref: "#/components/schemas/X" })
+    )
+      .toStrictEqual({ $ref: "#/components/schemas/X" })
   })
 
   it("does not deduplicate entries with different representations", () => {
@@ -436,7 +487,8 @@ describe("SpecialOpenApi", () => {
     })
     expect(
       result.paths["/baz"].post.requestBody.content["application/json"].schema.anyOf[0]
-    ).toStrictEqual({ $ref: "#/components/schemas/Y" })
+    )
+      .toStrictEqual({ $ref: "#/components/schemas/Y" })
   })
 
   it("rewrites $ref pointers inside definitions themselves", () => {

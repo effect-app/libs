@@ -34,6 +34,9 @@ export class NotFoundError<ItemType = string> extends TaggedError<NotFoundError<
   override get message() {
     return `Didn't find ${(this as any).type}#${JSON.stringify((this as any).id)}`
   }
+  override toString() {
+    return `NotFoundError: ${this.message}`
+  }
 }
 
 const messageFallback = (messageOrObject?: string | { message: string }) =>
@@ -48,6 +51,9 @@ export class InvalidStateError extends TaggedError<InvalidStateError>()("Invalid
       disableValidation as any
     )
   }
+  override toString() {
+    return `InvalidStateError: ${this.message}`
+  }
 }
 
 export class ServiceUnavailableError extends TaggedError<ServiceUnavailableError>()("ServiceUnavailableError", {
@@ -58,6 +64,9 @@ export class ServiceUnavailableError extends TaggedError<ServiceUnavailableError
       typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any,
       disableValidation as any
     )
+  }
+  override toString() {
+    return `ServiceUnavailableError: ${this.message}`
   }
 }
 
@@ -73,6 +82,9 @@ export class ValidationError extends TaggedError<ValidationError>()("ValidationE
   override get message() {
     return `Validation failed: ${(this as any).errors.map((e: any) => JSON.stringify(e, undefined, 2)).join(",\n")}`
   }
+  override toString() {
+    return `ValidationError: ${this.message}`
+  }
 }
 
 export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
@@ -80,6 +92,9 @@ export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLogged
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(messageFallback(messageOrObject) as any, disableValidation as any)
+  }
+  override toString() {
+    return `NotLoggedInError: ${this.message}`
   }
 }
 
@@ -92,6 +107,9 @@ export class LoginError extends TaggedError<LoginError>()("NotLoggedInError", {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(messageFallback(messageOrObject) as any, disableValidation as any)
   }
+  override toString() {
+    return `LoginError: ${this.message}`
+  }
 }
 
 export class UnauthorizedError extends TaggedError<UnauthorizedError>()("UnauthorizedError", {
@@ -99,6 +117,9 @@ export class UnauthorizedError extends TaggedError<UnauthorizedError>()("Unautho
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(messageFallback(messageOrObject) as any, disableValidation as any)
+  }
+  override toString() {
+    return `UnauthorizedError: ${this.message}`
   }
 }
 
@@ -129,6 +150,9 @@ export class OptimisticConcurrencyException extends TaggedError<OptimisticConcur
     if (!("message" in args)) {
       this.details = args
     }
+  }
+  override toString() {
+    return `OptimisticConcurrencyException: ${this.message}`
   }
 }
 

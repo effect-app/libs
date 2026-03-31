@@ -8,8 +8,6 @@ import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from
 import { extendM } from "./utils.js"
 
 export * from "effect/Schema"
-// v4: TaggedError renamed to TaggedErrorClass
-export { TaggedErrorClass as TaggedError } from "effect/Schema"
 
 export * from "./Schema/Class.js"
 export { Class, TaggedClass } from "./Schema/Class.js"

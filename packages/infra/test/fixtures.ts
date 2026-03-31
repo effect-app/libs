@@ -1,7 +1,7 @@
 import { Effect, Layer, S, Scope, ServiceMap } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { RpcContextMap, RpcX } from "effect-app/rpc"
-import { TaggedError } from "effect-app/Schema"
+import { TaggedErrorClass } from "effect-app/Schema"
 
 export class UserProfile extends ServiceMap.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({
@@ -128,5 +128,5 @@ export const TestLive = Layer.effect(
   })
 )
 
-export class CustomError1 extends TaggedError<CustomError1>()("CustomError1", {}) {}
-export class CustomError2 extends TaggedError<CustomError2>()("CustomError2", {}) {}
+export class CustomError1 extends TaggedErrorClass<CustomError1>()("CustomError1", {}) {}
+export class CustomError2 extends TaggedErrorClass<CustomError2>()("CustomError2", {}) {}

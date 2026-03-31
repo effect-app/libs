@@ -1,5 +1,5 @@
 /** @effect-diagnostics overriddenSchemaConstructor:skip-file */
-import { TaggedError } from "effect-app/Schema"
+import { TaggedErrorClass } from "effect-app/Schema"
 import * as Cause from "effect/Cause"
 import * as S from "../Schema.js"
 
@@ -21,7 +21,7 @@ export const tryToJson = (error: { toJSON(): unknown; toString(): string }) => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 // @ts-expect-error type not used
-export class NotFoundError<ItemType = string> extends TaggedError<NotFoundError<ItemType>>()("NotFoundError", {
+export class NotFoundError<ItemType = string> extends TaggedErrorClass<NotFoundError<ItemType>>()("NotFoundError", {
   type: S.String,
   id: S.Unknown
 }) {
@@ -42,7 +42,7 @@ export class NotFoundError<ItemType = string> extends TaggedError<NotFoundError<
 const messageFallback = (messageOrObject?: string | { message: string }) =>
   typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject ?? "" }
 
-export class InvalidStateError extends TaggedError<InvalidStateError>()("InvalidStateError", {
+export class InvalidStateError extends TaggedErrorClass<InvalidStateError>()("InvalidStateError", {
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
@@ -56,7 +56,7 @@ export class InvalidStateError extends TaggedError<InvalidStateError>()("Invalid
   }
 }
 
-export class ServiceUnavailableError extends TaggedError<ServiceUnavailableError>()("ServiceUnavailableError", {
+export class ServiceUnavailableError extends TaggedErrorClass<ServiceUnavailableError>()("ServiceUnavailableError", {
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
@@ -70,7 +70,7 @@ export class ServiceUnavailableError extends TaggedError<ServiceUnavailableError
   }
 }
 
-export class ValidationError extends TaggedError<ValidationError>()("ValidationError", {
+export class ValidationError extends TaggedErrorClass<ValidationError>()("ValidationError", {
   errors: S.Array(S.Unknown)
 }) {
   constructor(
@@ -87,7 +87,7 @@ export class ValidationError extends TaggedError<ValidationError>()("ValidationE
   }
 }
 
-export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
+export class NotLoggedInError extends TaggedErrorClass<NotLoggedInError>()("NotLoggedInError", {
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
@@ -101,7 +101,7 @@ export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLogged
 /**
  * The user carries a valid Userprofile, but there is a problem with the login none the less.
  */
-export class LoginError extends TaggedError<LoginError>()("NotLoggedInError", {
+export class LoginError extends TaggedErrorClass<LoginError>()("NotLoggedInError", {
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
@@ -112,7 +112,7 @@ export class LoginError extends TaggedError<LoginError>()("NotLoggedInError", {
   }
 }
 
-export class UnauthorizedError extends TaggedError<UnauthorizedError>()("UnauthorizedError", {
+export class UnauthorizedError extends TaggedErrorClass<UnauthorizedError>()("UnauthorizedError", {
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
@@ -131,7 +131,7 @@ type OptimisticConcurrencyDetails = {
   readonly found?: string | undefined
 }
 
-export class OptimisticConcurrencyException extends TaggedError<OptimisticConcurrencyException>()(
+export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticConcurrencyException>()(
   "OptimisticConcurrencyException",
   { message: S.String }
 ) {

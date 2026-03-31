@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- 6ffa729: Fixes useOmegaFormErrorStale stale errorMap
+  - effect-app@4.0.0-beta.50
+  - @effect-app/vue@4.0.0-beta.50
+
 ## 4.0.0-beta.49
 
 ### Patch Changes

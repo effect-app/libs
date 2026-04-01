@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- ee9694e: fix type issue?
+
 ## 4.0.0-beta.52
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, Schema, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
+import { Effect, Option, pipe, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -29,12 +29,107 @@ export const withDefaultConstructor = <A>(
 }
 
 // TODO: v4 migration - Date is no longer by default encoded to string.
-const DateFromString = Schema.Date.pipe(
-  Schema.encodeTo(Schema.String, {
-    decode: SchemaGetter.Date(),
-    encode: SchemaGetter.transform((_) => _.toISOString())
-  })
+/*
+  in v4, there's the notion of `toCodecJson`, as a declaration and as a schema transformer.
+  this means that Date, Map/Set, etc, remain the same type Encoded as Decoded, but when transformed to and from JSON, will go through
+  the toCodecJson transformation, which for e.g Date will be the dateFromString transformation.
+
+  While this is a cool feature, our stack (especially the Store/Repository api) is based on having an Encoded shape representing the JSON shape, so we revert back to that for now.
+*/
+
+/**
+ * Formats a `Date` as an ISO 8601 string, returning `"Invalid Date"` for
+ * invalid dates instead of throwing.
+ *
+ * When to use:
+ * - You want a safe `toISOString()` that never throws.
+ *
+ * Behavior:
+ * - Returns `date.toISOString()` on success.
+ * - Returns `"Invalid Date"` if `toISOString()` throws (e.g. for
+ *   `new Date(NaN)`).
+ * - Pure function; does not mutate input.
+ *
+ * **Example** (Safe date formatting)
+ *
+ * ```ts
+ * import { Formatter } from "effect"
+ *
+ * console.log(Formatter.formatDate(new Date("2024-01-15T10:30:00Z")))
+ * // 2024-01-15T10:30:00.000Z
+ *
+ * console.log(Formatter.formatDate(new Date("invalid")))
+ * // Invalid Date
+ * ```
+ *
+ * See also: {@link format}
+ *
+ * @internal
+ */
+export function formatDate(date: Date): string {
+  try {
+    return date.toISOString()
+  } catch {
+    return "Invalid Date"
+  }
+}
+
+/**
+ * Decodes a `string` into a `Date` and encodes a `Date` back to a `string`.
+ *
+ * When to use this:
+ * - Parsing ISO 8601 date strings from APIs or user input.
+ *
+ * Behavior:
+ * - Decode: creates a `Date` from the string (like `new Date(s)`).
+ * - Encode: converts the `Date` to an ISO string (like `date.toISOString()`),
+ *   returning `"Invalid Date"` for invalid dates.
+ *
+ * **Example** (Date from string)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Date, SchemaTransformation.dateFromString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link numberFromString}
+ * - {@link dateTimeUtcFromString}
+ *
+ * @category Coercions
+ * @since 4.0.0
+ */
+export const dateFromString: SchemaTransformation.Transformation<globalThis.Date, string> = new SchemaTransformation
+  .Transformation(
+  SchemaGetter.Date(),
+  SchemaGetter.transform(formatDate)
 )
+
+const DateString = S.String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
+
+/**
+ * Schema type for {@link DateFromString}.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export interface DateFromString extends S.decodeTo<S.Date, S.String> {}
+
+/**
+ * A transformation schema that parses an ISO 8601 string into a `Date`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `Date`.
+ *
+ * Encoding:
+ * - A `Date` is encoded as a `string`.
+ *
+ * @since 4.0.0
+ */
+export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, dateFromString))
 
 /**
  * Like the default Schema `Date` but from String with `withDefault` => now
@@ -98,36 +193,76 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 }
 
 /**
- * Like the default Schema `Map` but with `withDefault` => []
+ * An annotated `S.Array` of unique items that decodes to a `ReadonlySet`.
  */
-function Map_<KeySchema extends S.Top, ValueSchema extends S.Top>(input: { key: KeySchema; value: ValueSchema }) {
-  return pipe(
-    S.ReadonlyMap(input.key, input.value),
-    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new global.Map())) })
+export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
+  const from = S
+    .Array(value)
+    .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
+  const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
+  const schema = from.pipe(
+    S.decodeTo(
+      to,
+      SchemaTransformation.transform({
+        decode: (arr: globalThis.Array<S.Schema.Type<ValueSchema>>) => new Set<S.Schema.Type<ValueSchema>>(arr),
+        encode: (set: Set<S.Schema.Type<ValueSchema>>) => [...set] as globalThis.Array<S.Schema.Type<ValueSchema>>
+      }) as any
+    )
   )
+  return S.revealCodec(schema)
 }
 
-export { Map_ as Map }
+/**
+ * An annotated `S.Array` of key-value tuples that decodes to a `ReadonlyMap`.
+ */
+export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
+  readonly key: KeySchema
+  readonly value: ValueSchema
+}) => {
+  const from = S
+    .Array(S.Tuple([pair.key, pair.value]))
+    .annotate({ expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
+  const to = S.instanceOf(Map) as S.instanceOf<
+    ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
+  >
+  const schema = from.pipe(
+    S.decodeTo(
+      to,
+      SchemaTransformation.transform({
+        decode: (
+          arr: globalThis.Array<readonly [S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>]>
+        ) => new Map<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>(arr),
+        encode: (
+          map: Map<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
+        ) =>
+          [...map.entries()] as globalThis.Array<
+            readonly [S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>]
+          >
+      }) as any
+    )
+  )
+  return S.revealCodec(schema)
+}
 
 /**
- * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()
+ * Like the default Schema `ReadonlySet` but from Array with `withDefault` => new Set()
  */
 export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
   pipe(
-    S.ReadonlySet(value),
+    ReadonlySetFromArray(value),
     (s) =>
       Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Set<S.Schema.Type<ValueSchema>>())) })
   )
 
 /**
- * Like the default Schema `ReadonlyMap` but with `withDefault` => new Map()
+ * Like the default Schema `ReadonlyMap` but from Array with `withDefault` => new Map()
  */
 export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
   readonly key: KeySchema
   readonly value: ValueSchema
 }) =>
   pipe(
-    S.ReadonlyMap(pair.key, pair.value),
+    ReadonlyMapFromArray(pair),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Map())) })
   )
 
@@ -232,7 +367,7 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
               { message: "One way schema transformation, encoding is not allowed" }
             )
           )
-      }) as any
+      })
     )
   )
 
@@ -249,7 +384,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
     S.decodeTo(
       to,
       SchemaTransformation.transformOrFail({
-        decode: decode as any,
+        decode,
         encode: (i: any) =>
           Effect.fail(
             new SchemaIssue.Forbidden(
@@ -257,7 +392,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
               { message: "One way schema transformation, encoding is not allowed" }
             )
           )
-      }) as any
+      })
     )
   )
 

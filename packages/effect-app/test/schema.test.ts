@@ -1,6 +1,6 @@
 // import { generateFromArbitrary } from "@effect-app/infra/test"
 import { Array, S } from "effect-app"
-import { expect, expectTypeOf, test } from "vitest"
+import { describe, expect, expectTypeOf, test } from "vitest"
 
 const A = S.Struct({ a: S.NonEmptyString255, email: S.NullOr(S.Email) })
 test("works", () => {
@@ -199,4 +199,118 @@ test("TaggedUnion with TaggedClass members", () => {
   expect(schema.guards.Foo(new Foo({ name: "Alice" }))).toBe(true)
   expect(schema.guards.Foo(new Bar({ count: 3 }))).toBe(false)
   expect(schema.guards.Bar(new Bar({ count: 3 }))).toBe(true)
+})
+
+describe("ReadonlySetFromArray", () => {
+  test("decodes an array of strings to a Set", () => {
+    const schema = S.ReadonlySetFromArray(S.String)
+    const decoded = S.decodeUnknownSync(schema)(["a", "b", "c"])
+    expect(decoded).toEqual(new Set(["a", "b", "c"]))
+  })
+
+  test("encodes a Set back to an array", () => {
+    const schema = S.ReadonlySetFromArray(S.String)
+    const encoded = S.encodeSync(schema)(new Set(["a", "b"]))
+    expect(encoded).toEqual(["a", "b"])
+  })
+
+  test("decodes with NumberFromString as value", () => {
+    const schema = S.ReadonlySetFromArray(S.NumberFromString)
+    const decoded = S.decodeUnknownSync(schema)(["1", "2", "3"])
+    expect(decoded).toEqual(new Set([1, 2, 3]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlySet<number>>()
+  })
+
+  test("encodes with NumberFromString as value", () => {
+    const schema = S.ReadonlySetFromArray(S.NumberFromString)
+    const encoded = S.encodeSync(schema)(new Set([1, 2, 3]))
+    expect(encoded).toEqual(["1", "2", "3"])
+  })
+
+  test("rejects invalid input", () => {
+    const schema = S.ReadonlySetFromArray(S.NumberFromString)
+    expect(() => S.decodeUnknownSync(schema)([1, 2])).toThrow()
+  })
+})
+
+describe("ReadonlyMapFromArray", () => {
+  test("decodes an array of tuples to a Map", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.Finite })
+    const decoded = S.decodeUnknownSync(schema)([["a", 1], ["b", 2]])
+    expect(decoded).toEqual(new Map([["a", 1], ["b", 2]]))
+  })
+
+  test("encodes a Map back to an array of tuples", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.Finite })
+    const encoded = S.encodeSync(schema)(new Map([["a", 1], ["b", 2]]))
+    expect(encoded).toEqual([["a", 1], ["b", 2]])
+  })
+
+  test("decodes with NumberFromString as key", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
+    const decoded = S.decodeUnknownSync(schema)([["1", "one"], ["2", "two"]])
+    expect(decoded).toEqual(new Map([[1, "one"], [2, "two"]]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<number, string>>()
+  })
+
+  test("encodes with NumberFromString as key", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
+    const encoded = S.encodeSync(schema)(new Map([[1, "one"], [2, "two"]]))
+    expect(encoded).toEqual([["1", "one"], ["2", "two"]])
+  })
+
+  test("decodes with NumberFromString as value", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.NumberFromString })
+    const decoded = S.decodeUnknownSync(schema)([["a", "10"], ["b", "20"]])
+    expect(decoded).toEqual(new Map([["a", 10], ["b", 20]]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<string, number>>()
+  })
+
+  test("encodes with NumberFromString as value", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.NumberFromString })
+    const encoded = S.encodeSync(schema)(new Map([["a", 10], ["b", 20]]))
+    expect(encoded).toEqual([["a", "10"], ["b", "20"]])
+  })
+
+  test("decodes with NumberFromString as both key and value", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.NumberFromString })
+    const decoded = S.decodeUnknownSync(schema)([["1", "10"], ["2", "20"]])
+    expect(decoded).toEqual(new Map([[1, 10], [2, 20]]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<number, number>>()
+  })
+
+  test("rejects invalid input", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
+    expect(() => S.decodeUnknownSync(schema)([[1, "val"]])).toThrow()
+  })
+})
+
+describe("ReadonlySet (with withDefault)", () => {
+  test("makeUnsafe provides withDefault", () => {
+    const schema = S.ReadonlySet(S.NumberFromString)
+    const struct = S.Struct({ items: schema.withDefault })
+    const made = struct.makeUnsafe({})
+    expect(made.items).toEqual(new Set())
+  })
+
+  test("decodes array with NumberFromString values", () => {
+    const schema = S.ReadonlySet(S.NumberFromString)
+    const decoded = S.decodeUnknownSync(schema)(["1", "2"])
+    expect(decoded).toEqual(new Set([1, 2]))
+  })
+})
+
+describe("ReadonlyMap (with withDefault)", () => {
+  test("makeUnsafe provides withDefault", () => {
+    const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
+    const struct = S.Struct({ items: schema.withDefault })
+    const made = struct.makeUnsafe({})
+    expect(made.items).toEqual(new Map())
+  })
+
+  test("decodes array of tuples with NumberFromString keys", () => {
+    const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
+    const decoded = S.decodeUnknownSync(schema)([["1", "one"]])
+    expect(decoded).toEqual(new Map([[1, "one"]]))
+  })
 })

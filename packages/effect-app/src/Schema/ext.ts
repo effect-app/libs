@@ -29,6 +29,13 @@ export const withDefaultConstructor = <A>(
 }
 
 // TODO: v4 migration - Date is no longer by default encoded to string.
+/*
+  in v4, there's the notion of `toCodecJson`, as a declaration and as a schema transformer.
+  this means that Date, Map/Set, etc, remain the same type Encoded as Decoded, but when transformed to and from JSON, will go through
+  the toCodecJson transformation, which for e.g Date will be the dateFromString transformation.
+
+  While this is a cool feature, our stack (especially the Store/Repository api) is based on having an Encoded shape representing the JSON shape, so we revert back to that for now.
+*/
 
 /**
  * Formats a `Date` as an ISO 8601 string, returning `"Invalid Date"` for
@@ -186,24 +193,76 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 }
 
 /**
- * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()
+ * An annotated `S.Array` of unique items that decodes to a `ReadonlySet`.
+ */
+export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
+  const from = S
+    .Array(value)
+    .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
+  const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
+  const schema = from.pipe(
+    S.decodeTo(
+      to,
+      SchemaTransformation.transform({
+        decode: (arr: globalThis.Array<S.Schema.Type<ValueSchema>>) => new Set<S.Schema.Type<ValueSchema>>(arr),
+        encode: (set: Set<S.Schema.Type<ValueSchema>>) => [...set] as globalThis.Array<S.Schema.Type<ValueSchema>>
+      }) as any
+    )
+  )
+  return S.revealCodec(schema)
+}
+
+/**
+ * An annotated `S.Array` of key-value tuples that decodes to a `ReadonlyMap`.
+ */
+export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
+  readonly key: KeySchema
+  readonly value: ValueSchema
+}) => {
+  const from = S
+    .Array(S.Tuple([pair.key, pair.value]))
+    .annotate({ expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
+  const to = S.instanceOf(Map) as S.instanceOf<
+    ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
+  >
+  const schema = from.pipe(
+    S.decodeTo(
+      to,
+      SchemaTransformation.transform({
+        decode: (
+          arr: globalThis.Array<readonly [S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>]>
+        ) => new Map<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>(arr),
+        encode: (
+          map: Map<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
+        ) =>
+          [...map.entries()] as globalThis.Array<
+            readonly [S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>]
+          >
+      }) as any
+    )
+  )
+  return S.revealCodec(schema)
+}
+
+/**
+ * Like the default Schema `ReadonlySet` but from Array with `withDefault` => new Set()
  */
 export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
   pipe(
-    S.ReadonlySet(value),
+    ReadonlySetFromArray(value),
     (s) =>
       Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Set<S.Schema.Type<ValueSchema>>())) })
   )
 
 /**
- * Like the default Schema `ReadonlyMap` but with `withDefault` => new Map()
+ * Like the default Schema `ReadonlyMap` but from Array with `withDefault` => new Map()
  */
 export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
   readonly key: KeySchema
   readonly value: ValueSchema
 }) =>
   pipe(
-    S.ReadonlyMap(pair.key, pair.value),
+    ReadonlyMapFromArray(pair),
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Map())) })
   )
 
@@ -308,7 +367,7 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
               { message: "One way schema transformation, encoding is not allowed" }
             )
           )
-      }) as any
+      })
     )
   )
 
@@ -325,7 +384,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
     S.decodeTo(
       to,
       SchemaTransformation.transformOrFail({
-        decode: decode as any,
+        decode,
         encode: (i: any) =>
           Effect.fail(
             new SchemaIssue.Forbidden(
@@ -333,7 +392,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
               { message: "One way schema transformation, encoding is not allowed" }
             )
           )
-      }) as any
+      })
     )
   )
 

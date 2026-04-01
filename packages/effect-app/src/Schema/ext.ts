@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, Schema, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
+import { Effect, Option, pipe, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -29,12 +29,100 @@ export const withDefaultConstructor = <A>(
 }
 
 // TODO: v4 migration - Date is no longer by default encoded to string.
-const DateFromString = Schema.Date.pipe(
-  Schema.encodeTo(Schema.String, {
-    decode: SchemaGetter.Date(),
-    encode: SchemaGetter.transform((_) => _.toISOString())
-  })
+
+/**
+ * Formats a `Date` as an ISO 8601 string, returning `"Invalid Date"` for
+ * invalid dates instead of throwing.
+ *
+ * When to use:
+ * - You want a safe `toISOString()` that never throws.
+ *
+ * Behavior:
+ * - Returns `date.toISOString()` on success.
+ * - Returns `"Invalid Date"` if `toISOString()` throws (e.g. for
+ *   `new Date(NaN)`).
+ * - Pure function; does not mutate input.
+ *
+ * **Example** (Safe date formatting)
+ *
+ * ```ts
+ * import { Formatter } from "effect"
+ *
+ * console.log(Formatter.formatDate(new Date("2024-01-15T10:30:00Z")))
+ * // 2024-01-15T10:30:00.000Z
+ *
+ * console.log(Formatter.formatDate(new Date("invalid")))
+ * // Invalid Date
+ * ```
+ *
+ * See also: {@link format}
+ *
+ * @internal
+ */
+export function formatDate(date: Date): string {
+  try {
+    return date.toISOString()
+  } catch {
+    return "Invalid Date"
+  }
+}
+
+/**
+ * Decodes a `string` into a `Date` and encodes a `Date` back to a `string`.
+ *
+ * When to use this:
+ * - Parsing ISO 8601 date strings from APIs or user input.
+ *
+ * Behavior:
+ * - Decode: creates a `Date` from the string (like `new Date(s)`).
+ * - Encode: converts the `Date` to an ISO string (like `date.toISOString()`),
+ *   returning `"Invalid Date"` for invalid dates.
+ *
+ * **Example** (Date from string)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Date, SchemaTransformation.dateFromString)
+ * )
+ * ```
+ *
+ * See also:
+ * - {@link numberFromString}
+ * - {@link dateTimeUtcFromString}
+ *
+ * @category Coercions
+ * @since 4.0.0
+ */
+export const dateFromString: SchemaTransformation.Transformation<globalThis.Date, string> = new SchemaTransformation
+  .Transformation(
+  SchemaGetter.Date(),
+  SchemaGetter.transform(formatDate)
 )
+
+const DateString = S.String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
+
+/**
+ * Schema type for {@link DateFromString}.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export interface DateFromString extends S.decodeTo<S.Date, S.String> {}
+
+/**
+ * A transformation schema that parses an ISO 8601 string into a `Date`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `Date`.
+ *
+ * Encoding:
+ * - A `Date` is encoded as a `string`.
+ *
+ * @since 4.0.0
+ */
+export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, dateFromString))
 
 /**
  * Like the default Schema `Date` but from String with `withDefault` => now
@@ -96,18 +184,6 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
     (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => [])) })
   )
 }
-
-/**
- * Like the default Schema `Map` but with `withDefault` => []
- */
-function Map_<KeySchema extends S.Top, ValueSchema extends S.Top>(input: { key: KeySchema; value: ValueSchema }) {
-  return pipe(
-    S.ReadonlyMap(input.key, input.value),
-    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new global.Map())) })
-  )
-}
-
-export { Map_ as Map }
 
 /**
  * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()

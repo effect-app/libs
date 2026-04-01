@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.52
+
+### Minor Changes
+
+- 6252808: Add `ReadonlySetFromArray` and `ReadonlyMapFromArray` schema transformations that decode from annotated arrays to Set/Map. Update `ReadonlySet` and `ReadonlyMap` to use these internally.
+
 ## 4.0.0-beta.51
 
 ## 4.0.0-beta.50

@@ -235,7 +235,7 @@ describe("ReadonlySetFromArray", () => {
 
 describe("ReadonlyMapFromArray", () => {
   test("decodes an array of tuples to a Map", () => {
-    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.Finite })
+    const schema = S.ReadonlyMap({ key: S.String, value: S.Finite })
     const decoded = S.decodeUnknownSync(schema)([["a", 1], ["b", 2]])
     expect(decoded).toEqual(new Map([["a", 1], ["b", 2]]))
   })

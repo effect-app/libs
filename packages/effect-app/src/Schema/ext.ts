@@ -195,7 +195,12 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 /**
  * An annotated `S.Array` of unique items that decodes to a `ReadonlySet`.
  */
-export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
+export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema): S.Codec<
+  ReadonlySet<ValueSchema["Type"]>,
+  readonly ValueSchema["Encoded"][],
+  ValueSchema["DecodingServices"],
+  ValueSchema["EncodingServices"]
+> => {
   const from = S
     .Array(value)
     .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
@@ -204,9 +209,9 @@ export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSche
     S.decodeTo(
       to,
       SchemaTransformation.transform({
-        decode: (arr: globalThis.Array<S.Schema.Type<ValueSchema>>) => new Set<S.Schema.Type<ValueSchema>>(arr),
-        encode: (set: Set<S.Schema.Type<ValueSchema>>) => [...set] as globalThis.Array<S.Schema.Type<ValueSchema>>
-      }) as any
+        decode: (arr) => new Set(arr) as ReadonlySet<S.Schema.Type<ValueSchema>>,
+        encode: (set) => [...set]
+      })
     )
   )
   return S.revealCodec(schema)
@@ -218,7 +223,12 @@ export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSche
 export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
   readonly key: KeySchema
   readonly value: ValueSchema
-}) => {
+}): S.Codec<
+  ReadonlyMap<KeySchema["Type"], S.Schema.Type<ValueSchema>>,
+  readonly (readonly [KeySchema["Encoded"], ValueSchema["Encoded"]])[],
+  KeySchema["DecodingServices"] | ValueSchema["DecodingServices"],
+  KeySchema["EncodingServices"] | ValueSchema["EncodingServices"]
+> => {
   const from = S
     .Array(S.Tuple([pair.key, pair.value]))
     .annotate({ expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
@@ -230,15 +240,12 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
       to,
       SchemaTransformation.transform({
         decode: (
-          arr: globalThis.Array<readonly [S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>]>
-        ) => new Map<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>(arr),
+          arr
+        ) => new Map(arr) as ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>,
         encode: (
-          map: Map<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
-        ) =>
-          [...map.entries()] as globalThis.Array<
-            readonly [S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>]
-          >
-      }) as any
+          map
+        ) => [...map.entries()] as any // fu
+      })
     )
   )
   return S.revealCodec(schema)

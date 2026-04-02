@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- eceb3a3: align CauseException
+  - effect-app@4.0.0-beta.55
+
 ## 4.0.0-beta.54
 
 ### Patch Changes

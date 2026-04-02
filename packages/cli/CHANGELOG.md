@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.8
+
+### Patch Changes
+
+- d867272: the return of `Context`
+
 ## 2.0.1-beta.7
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- d867272: the return of `Context`
+- Updated dependencies [d867272]
+  - effect-app@4.0.0-beta.54
+  - @effect-app/vue@4.0.0-beta.54
+
 ## 4.0.0-beta.53
 
 ### Patch Changes

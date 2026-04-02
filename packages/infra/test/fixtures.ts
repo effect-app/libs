@@ -1,4 +1,4 @@
-import { Effect, Layer, S, Scope, Context } from "effect-app"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { RpcContextMap, RpcX } from "effect-app/rpc"
 import { TaggedErrorClass } from "effect-app/Schema"
@@ -127,6 +127,8 @@ export const TestLive = Layer.effect(
     })
   })
 )
+
+export class Counter extends Context.Opaque<Counter>()("Counter", { make: Effect.succeed({ a: 0 }) }) {}
 
 export class CustomError1 extends TaggedErrorClass<CustomError1>()("CustomError1", {}) {}
 export class CustomError2 extends TaggedErrorClass<CustomError2>()("CustomError2", {}) {}

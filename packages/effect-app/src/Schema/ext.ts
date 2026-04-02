@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
+import { Effect, Option, pipe, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
+import * as Context from "../Context.js"
 import { extendM, typedKeysOf } from "../utils.js"
 import { type AST } from "./schema.js"
 
@@ -405,7 +406,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
 
 export const provide = <Self extends S.Top, R>(
   self: Self,
-  context: ServiceMap.ServiceMap<R>
+  context: Context.Context<R>
 ): ProvidedCodec<Self, R> => {
   const prov = Effect.provide(context)
   return self.pipe(
@@ -415,18 +416,18 @@ export const provide = <Self extends S.Top, R>(
 }
 export const contextFromServices = <
   Self extends S.Top,
-  Tags extends ReadonlyArray<ServiceMap.Key<any, any>>
+  Tags extends ReadonlyArray<Context.Key<any, any>>
 >(
   self: Self,
   ...services: Tags
 ): Effect.Effect<
-  ProvidedCodec<Self, ServiceMap.Service.Identifier<Tags[number]>>,
+  ProvidedCodec<Self, Context.Service.Identifier<Tags[number]>>,
   never,
-  ServiceMap.Service.Identifier<Tags[number]>
+  Context.Service.Identifier<Tags[number]>
 > =>
   Effect.gen(function*() {
-    const context: ServiceMap.ServiceMap<ServiceMap.Service.Identifier<Tags[number]>> = ServiceMap.pick(...services)(
-      yield* Effect.services<ServiceMap.Service.Identifier<Tags[number]>>()
+    const context: Context.Context<Context.Service.Identifier<Tags[number]>> = Context.pick(...services)(
+      yield* Effect.services<Context.Service.Identifier<Tags[number]>>()
     )
     return provide(self, context)
   })

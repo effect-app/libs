@@ -1,8 +1,8 @@
-import { Effect, Layer, ServiceMap } from "effect-app"
+import { Context, Effect, Layer } from "effect-app"
 import { I18n } from "./intl.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class Confirm extends ServiceMap.Service<Confirm>()("Confirm", {
+export class Confirm extends Context.Service<Confirm>()("Confirm", {
   make: Effect.gen(function*() {
     const { intl } = yield* I18n
 

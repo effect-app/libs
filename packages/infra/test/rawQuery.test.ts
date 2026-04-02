@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Array, Config, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S, ServiceMap } from "effect-app"
+import { Array, Config, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S, Context } from "effect-app"
 import { LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, or, project, where, whereEvery, whereSome } from "../src/Model/query.js"
@@ -49,7 +49,7 @@ const items = [
 ]
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
+class SomethingRepo extends Context.Service<SomethingRepo>()(
   "SomethingRepo",
   {
     make: Effect.gen(function*() {

@@ -3,7 +3,7 @@
 
 import * as api from "@opentelemetry/api"
 import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Array, Data, Effect, Fiber, Option, Order, S, ServiceMap } from "effect-app"
+import { Array, Context, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
@@ -670,7 +670,7 @@ export interface OmegaFormReturn<
   }
 }
 
-const runPromise = makeRunPromise(ServiceMap.empty())
+const runPromise = makeRunPromise(Context.empty())
 
 export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

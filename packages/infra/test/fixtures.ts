@@ -1,9 +1,9 @@
-import { Effect, Layer, S, Scope, ServiceMap } from "effect-app"
+import { Effect, Layer, S, Scope, Context } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { RpcContextMap, RpcX } from "effect-app/rpc"
 import { TaggedErrorClass } from "effect-app/Schema"
 
-export class UserProfile extends ServiceMap.assignTag<UserProfile, UserProfile>("UserProfile")(
+export class UserProfile extends Context.assignTag<UserProfile, UserProfile>("UserProfile")(
   S.Class<UserProfile>("UserProfile")({
     id: S.String,
     roles: S.Array(S.String)
@@ -11,10 +11,10 @@ export class UserProfile extends ServiceMap.assignTag<UserProfile, UserProfile>(
 ) {
 }
 
-export class Some extends ServiceMap.Opaque<Some>()("Some", { make: Effect.succeed({ a: 1 }) }) {}
-export class SomeElse extends ServiceMap.Opaque<SomeElse>()("SomeElse", { make: Effect.succeed({ b: 2 }) }) {}
+export class Some extends Context.Opaque<Some>()("Some", { make: Effect.succeed({ a: 1 }) }) {}
+export class SomeElse extends Context.Opaque<SomeElse>()("SomeElse", { make: Effect.succeed({ b: 2 }) }) {}
 const MakeSomeService = Effect.succeed({ a: 1 })
-export class SomeService extends ServiceMap.Opaque<SomeService>()("SomeService", { make: MakeSomeService }) {
+export class SomeService extends Context.Opaque<SomeService>()("SomeService", { make: MakeSomeService }) {
   static readonly Default = this.toLayer(this.make)
 }
 

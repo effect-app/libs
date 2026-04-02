@@ -1,7 +1,7 @@
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, flow, Layer, Option, pipe, S, ServiceMap, Struct } from "effect-app"
+import { Effect, flow, Layer, Option, pipe, S, Context, Struct } from "effect-app"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
@@ -99,7 +99,7 @@ it("works", () => {
 })
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class SomethingRepo extends ServiceMap.Service<SomethingRepo>()("SomethingRepo", {
+class SomethingRepo extends Context.Service<SomethingRepo>()("SomethingRepo", {
   make: Effect.gen(function*() {
     return yield* makeRepo("Something", Something, {})
   })

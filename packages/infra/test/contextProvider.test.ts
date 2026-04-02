@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, Scope, ServiceMap } from "effect-app"
+import { Effect, Layer, Scope, Context } from "effect-app"
 import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/ContextProvider.js"
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends ServiceMap.Service<MyContextProvider>()(
+class MyContextProvider extends Context.Service<MyContextProvider>()(
   "MyContextProvider",
   {
     make: Effect.gen(function*() {
@@ -28,7 +28,7 @@ class MyContextProvider extends ServiceMap.Service<MyContextProvider>()(
   static readonly Default = Layer.effect(this, this.make)
 }
 
-class MyContextProvider2 extends ServiceMap.Service<MyContextProvider2>()(
+class MyContextProvider2 extends Context.Service<MyContextProvider2>()(
   "MyContextProvider2",
   {
     make: Effect.gen(function*() {
@@ -45,7 +45,7 @@ class MyContextProvider2 extends ServiceMap.Service<MyContextProvider2>()(
   static readonly Default = Layer.effect(this, this.make)
 }
 
-class MyContextProvider2Gen extends ServiceMap.Service<MyContextProvider2Gen>()(
+class MyContextProvider2Gen extends Context.Service<MyContextProvider2Gen>()(
   "MyContextProvider2Gen",
   {
     make: Effect.gen(function*() {
@@ -63,7 +63,7 @@ class MyContextProvider2Gen extends ServiceMap.Service<MyContextProvider2Gen>()(
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProviderGen extends ServiceMap.Service<MyContextProviderGen>()(
+class MyContextProviderGen extends Context.Service<MyContextProviderGen>()(
   "MyContextProviderGen",
   {
     make: Effect.gen(function*() {

@@ -1,7 +1,7 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
-import { Array, Config, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, ServiceMap, SynchronizedRef } from "effect"
+import { Array, Config, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, ServiceMap as Context, SynchronizedRef } from "effect"
 
 import * as yaml from "js-yaml"
 import path from "path"
@@ -167,7 +167,7 @@ class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
 // Services
 //
 
-class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService", {
+class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
   make: Effect.gen(function*() {
     const CACHE_GIST_DESCRIPTION = "GIST_CACHE_DO_NOT_EDIT_effa_cli_internal"
     const { runGetExitCode, runGetString } = yield* RunCommandService
@@ -597,7 +597,7 @@ class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService",
   )
 }
 
-export class GistHandler extends ServiceMap.Service<GistHandler>()("GistHandler", {
+export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
   make: Effect.gen(function*() {
     const GH = yield* GHGistService
 

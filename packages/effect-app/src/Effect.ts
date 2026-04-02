@@ -2,11 +2,12 @@
 /* eslint-disable prefer-destructuring */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-import { Effect, Option, Ref, type ServiceMap } from "effect"
+import { Effect, Option, Ref } from "effect"
 import * as Def from "effect/Deferred"
 import * as Fiber from "effect/Fiber"
 import type { Scope } from "effect/Scope"
 import type { Semaphore } from "effect/Semaphore"
+import type * as Context from "./Context.js"
 import { curry } from "./Function.js"
 import { typedKeysOf } from "./utils.js"
 
@@ -116,10 +117,10 @@ export function joinAll<E, A>(fibers: Iterable<Fiber.Fiber<A, E>>): Effect.Effec
 }
 
 type ServiceA<T> = T extends Effect.Effect<infer S, any, any> ? S
-  : T extends ServiceMap.Service<any, infer S> ? S
+  : T extends Context.Service<any, infer S> ? S
   : never
 type ServiceR<T> = T extends Effect.Effect<any, any, infer R> ? R
-  : T extends ServiceMap.Service<infer I, any> ? I
+  : T extends Context.Service<infer I, any> ? I
   : never
 type ServiceE<T> = T extends Effect.Effect<any, infer E, any> ? E : never
 // type Values<T> = T extends { [s: string]: infer S } ? ServiceA<S> : never
@@ -144,11 +145,11 @@ export interface EffectUnunified<R, E, A> extends Effect.Effect<R, E, A> {}
 
 export type LowerFirst<S extends PropertyKey> = S extends `${infer First}${infer Rest}` ? `${Lowercase<First>}${Rest}`
   : S
-export type LowerServices<T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>> = {
+export type LowerServices<T extends Record<string, Context.Service<any, any> | Effect.Effect<any, any, any>>> = {
   [key in keyof T as LowerFirst<key>]: ServiceA<T[key]>
 }
 
-export function allLower<T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>>(
+export function allLower<T extends Record<string, Context.Service<any, any> | Effect.Effect<any, any, any>>>(
   services: T
 ) {
   return Effect.all(
@@ -162,7 +163,7 @@ export function allLower<T extends Record<string, ServiceMap.Service<any, any> |
   ) as any as Effect.Effect<LowerServices<T>, ValuesE<T>, ValuesR<T>>
 }
 
-export function allLowerWith<T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>, A>(
+export function allLowerWith<T extends Record<string, Context.Service<any, any> | Effect.Effect<any, any, any>>, A>(
   services: T,
   fn: (services: LowerServices<T>) => A
 ) {
@@ -170,7 +171,7 @@ export function allLowerWith<T extends Record<string, ServiceMap.Service<any, an
 }
 
 export function allLowerWithEffect<
-  T extends Record<string, ServiceMap.Service<any, any> | Effect.Effect<any, any, any>>,
+  T extends Record<string, Context.Service<any, any> | Effect.Effect<any, any, any>>,
   R,
   E,
   A

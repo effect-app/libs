@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Fiber, FiberSet, Layer, Option, ServiceMap, type Tracer } from "effect-app"
+import { Context, Effect, Fiber, FiberSet, Layer, Option, type Tracer } from "effect-app"
 import { reportRequestError, reportUnknownRequestError } from "./api/reportError.js"
 import { InfraLogger } from "./logger.js"
 
@@ -92,7 +92,7 @@ const make = Effect.gen(function*() {
  * Whenever you fork a fiber for a Request, and you want to prevent dependent services to close prematurely on interruption,
  * like the ServiceBus Sender, you should register these fibers in this FiberSet.
  */
-export class RequestFiberSet extends ServiceMap.Service<RequestFiberSet>()("RequestFiberSet", { make }) {
+export class RequestFiberSet extends Context.Service<RequestFiberSet>()("RequestFiberSet", { make }) {
   static readonly Live = Layer.effect(this, this.make)
   static readonly register = <A, E, R>(self: Effect.Effect<A, E, R>) =>
     this.asEffect().pipe(Effect.andThen((_) => _.register(self)))

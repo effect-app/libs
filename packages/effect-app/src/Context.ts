@@ -1,21 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/**
- * We're doing the long way around here with assignTag, TagBase & TagBaseTagged,
- * because there's a typescript compiler issue where it will complain about Equal.symbol, and Hash.symbol not being accessible.
- * https://github.com/microsoft/TypeScript/issues/52644
- */
 
 import { type Effect, Layer, type Scope, type Types } from "effect"
-import * as ServiceMap from "effect/ServiceMap"
+import * as SM from "effect/ServiceMap"
 import { type Yieldable } from "./Effect.js"
 
 export * from "effect/ServiceMap"
 
+export { type ServiceMap as Context } from "effect/ServiceMap"
+export { isServiceMap as isContext } from "effect/ServiceMap"
+
 export interface Opaque<Self extends object, in out Shape extends object>
-  extends ServiceMap.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
+  extends SM.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
 {
   of(this: void, self: Shape): Self
-  serviceMap(self: Shape): ServiceMap.ServiceMap<Self>
+  serviceMap(self: Shape): SM.ServiceMap<Self>
   // a version that leverages the Shape -> Self conversion
   toLayer: <E, R>(
     eff: Effect.Effect<Shape, E, R>
@@ -25,11 +23,11 @@ export interface Opaque<Self extends object, in out Shape extends object>
 }
 
 // export interface OpaqueMake<Self extends object, in out Shape extends object, E, R>
-//   extends ServiceMap.Service<Self, Self>
+//   extends SM.Service<Self, Self>
 // {
 //   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
 //   of(self: Shape): Self
-//   serviceMap2(self: Shape): ServiceMap.ServiceMap<Self>
+//   serviceMap2(self: Shape): SM.ServiceMap<Self>
 //   // a version that leverages the Shape -> Self conversion
 //   toLayer: {
 //     <E, R>(
@@ -44,7 +42,7 @@ export function assignTag<Identifier extends object, Shape extends object = Iden
   creationError?: Error
 ) {
   return <S extends object>(cls: S): S & Opaque<Identifier, Shape> => {
-    const tag = ServiceMap.Service<Identifier, Shape>(key)
+    const tag = SM.Service<Identifier, Shape>(key)
     let fields = tag
     if (Reflect.ownKeys(cls).includes("key")) {
       const { key, ...rest } = tag
@@ -179,7 +177,7 @@ export const Opaque: {
     >
     & { readonly make: Make }
 } = () => (id: string, options: any) => {
-  const svc = ServiceMap.Service()(id, options) as any
+  const svc = SM.Service()(id, options) as any
   return Object.assign(svc, {
     toLayer: (eff: Effect.Effect<any, any, any>) => {
       return Layer.effect(svc, eff)

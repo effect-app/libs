@@ -1,6 +1,6 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
-import { Effect, Layer, ServiceMap } from "effect"
+import { Effect, Layer, ServiceMap as Context } from "effect"
 import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 
@@ -9,7 +9,7 @@ import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner
  * Provides methods to run shell commands with different output handling strategies.
  * All commands are executed through the system shell (/bin/sh) for proper command parsing.
  */
-export class RunCommandService extends ServiceMap.Service<RunCommandService>()("RunCommandService", {
+export class RunCommandService extends Context.Service<RunCommandService>()("RunCommandService", {
   make: Effect.gen(function*() {
     // will be provided by the main CLI pipeline setup
     const spawner = yield* ChildProcessSpawner

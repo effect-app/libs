@@ -59,6 +59,10 @@
       "types": "./dist/ConfigProvider.d.ts",
       "default": "./dist/ConfigProvider.js"
     },
+    "./Context": {
+      "types": "./dist/Context.d.ts",
+      "default": "./dist/Context.js"
+    },
     "./Effect": {
       "types": "./dist/Effect.d.ts",
       "default": "./dist/Effect.js"
@@ -146,10 +150,6 @@
     "./Schema/strings": {
       "types": "./dist/Schema/strings.d.ts",
       "default": "./dist/Schema/strings.js"
-    },
-    "./ServiceMap": {
-      "types": "./dist/ServiceMap.d.ts",
-      "default": "./dist/ServiceMap.js"
     },
     "./Set": {
       "types": "./dist/Set.d.ts",

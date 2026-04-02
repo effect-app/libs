@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
-import { Cause, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S, ServiceMap } from "effect-app"
+import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
@@ -66,7 +66,7 @@ export const DefaultIntl = {
   }
 }
 
-export class CommandContext extends ServiceMap.Service<CommandContext, {
+export class CommandContext extends Context.Service<CommandContext, {
   id: string
   i18nKey: string
   action: string
@@ -96,7 +96,7 @@ export declare namespace Commander {
     & NonGen<RT, Id, I18nKey, State>
     & CommandContextLocal<Id, I18nKey>
     & {
-      state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>
+      state: Context.Service<`Commander.Command.${Id}.state`, State>
     }
 
   export type CommanderFn<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> =
@@ -116,7 +116,7 @@ export declare namespace Commander {
     & GenWrap<RT, Id, I18nCustomKey, I, A, E, R, State>
     & NonGenWrap<RT, Id, I18nCustomKey, I, A, E, R, State>
     & {
-      state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>
+      state: Context.Service<`Commander.Command.${Id}.state`, State>
     }
 
   export interface CommandContextLocal<Id extends string, I18nKey extends string> {
@@ -1323,7 +1323,7 @@ const getStateValues = <const Id extends string, const I18nKey extends string, S
 // class preserves JSDoc throughout..
 export class CommanderImpl<RT, RTHooks> {
   constructor(
-    private readonly rt: ServiceMap.ServiceMap<RT>,
+    private readonly rt: Context.Context<RT>,
     private readonly intl: I18n,
     private readonly hooks: Layer.Layer<RTHooks, never, RT>
   ) {
@@ -1385,7 +1385,7 @@ export class CommanderImpl<RT, RTHooks> {
         }
 
         const key = `Commander.Command.${id}.state` as const
-        const stateTag = ServiceMap.Service<typeof key, State>(key)
+        const stateTag = Context.Service<typeof key, State>(key)
 
         const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
         const initialContext = makeContext_()
@@ -1654,7 +1654,7 @@ export class CommanderImpl<RT, RTHooks> {
     id: Id | { id: Id },
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> & Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
-    state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>
+    state: Context.Service<`Commander.Command.${Id}.state`, State>
   } =>
     Object.assign(
       (
@@ -1679,7 +1679,7 @@ export class CommanderImpl<RT, RTHooks> {
       },
       makeBaseInfo(typeof id === "string" ? id : id.id, options),
       {
-        state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>(
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(
           `Commander.Command.${typeof id === "string" ? id : id.id}.state`
         )
       }
@@ -1814,7 +1814,7 @@ export class CommanderImpl<RT, RTHooks> {
       },
       makeBaseInfo(mutation.id, options),
       {
-        state: ServiceMap.Service<`Commander.Command.${Id}.state`, State>(
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(
           `Commander.Command.${mutation.id}.state`
         )
       }
@@ -1822,10 +1822,10 @@ export class CommanderImpl<RT, RTHooks> {
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class Commander extends ServiceMap.Service<Commander>()("Commander", {
+export class Commander extends Context.Service<Commander>()("Commander", {
   make: Effect.gen(function*() {
     const i18n = yield* I18n
-    return <RT, RTHooks>(rt: ServiceMap.ServiceMap<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) =>
+    return <RT, RTHooks>(rt: Context.Context<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) =>
       new CommanderImpl(rt, i18n, rtHooks)
   })
 }) {

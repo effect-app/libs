@@ -2,14 +2,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type Schema as S, ServiceMap } from "effect"
+import { type Schema as S } from "effect"
 import { type AnyWithProps } from "effect/unstable/rpc/Rpc"
+import * as Context from "../Context.js"
 import { type RpcDynamic } from "./RpcMiddleware.js"
 
 type Values<T extends Record<any, any>> = T[keyof T]
 
 /**
- * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect ServiceMap.
+ * Middleware is inactivate by default, the Key is optional in route context, and the service is optionally provided as Effect Context.
  * Unless explicitly configured as `true`.
  */
 export type RpcContextMap<Service, E> = {
@@ -22,7 +23,7 @@ export type RpcContextMap<Service, E> = {
 
 export declare namespace RpcContextMap {
   /**
-   * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect ServiceMap.
+   * Middleware is active by default, and provides the Service at Key in route context, and the Service is provided as Effect Context.
    * Unless explicitly omitted.
    */
   export type Inverted<Service, E> = {
@@ -97,7 +98,7 @@ export type GetEffectError<RequestContextMap extends Record<string, RpcContextMa
   }
 >
 
-const tag = ServiceMap.Service("RequestContextConfig")
+const tag = Context.Service("RequestContextConfig")
 
 export const makeMap = <const Config extends Record<string, RpcContextMap.Any>>(config: Config) => {
   const cls = class {
@@ -109,7 +110,7 @@ export const makeMap = <const Config extends Record<string, RpcContextMap.Any>>(
   return Object.assign(cls, {
     config, /** Retrieves RequestContextConfig out of the Rpc annotations */
     getConfig: (rpc: AnyWithProps): GetContextConfig<Config> => {
-      return ServiceMap.getOrElse(rpc.annotations, tag as any, () => ({}))
+      return Context.getOrElse(rpc.annotations, tag as any, () => ({}))
     },
     /** Adapter used when setting the dynamic prop on a middleware implementation */
     get: <

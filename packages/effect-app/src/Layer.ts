@@ -1,6 +1,7 @@
-import { type Array, Effect, Layer, type Scope, type ServiceMap, type Types } from "effect"
+import { type Array, Effect, Layer, type Scope, type Types } from "effect"
 import { type Yieldable } from "effect/Effect"
 import { dual } from "effect/Function"
+import type * as Context from "./Context.js"
 import { type EffectGenUtils } from "./utils/gen.js"
 
 export * from "effect/Layer"
@@ -17,7 +18,7 @@ type MakeGenNo<S> = {
   readonly make: () => Generator<unknown, S>
 }
 type MakeErr<Opts> = Opts extends { make: () => any } ? EffectGenUtils.Error<Opts["make"]> : never
-type MakeContext<Opts> = Opts extends { make: () => any } ? EffectGenUtils.ServiceMap<Opts["make"]> : never
+type MakeContext<Opts> = Opts extends { make: () => any } ? EffectGenUtils.Context<Opts["make"]> : never
 
 type DependenciesOpt = { dependencies?: Array.NonEmptyReadonlyArray<Layer.Any> }
 type Dependencies = { dependencies: Array.NonEmptyReadonlyArray<Layer.Any> }
@@ -41,12 +42,12 @@ type PackedOrUnpackedLayer<I, Opts> = Opts extends Dependencies ? PackedLayers<I
 
 export const make: {
   <I, S>(
-    tag: ServiceMap.Service<I, S>
+    tag: Context.Service<I, S>
   ): <Opts extends Make<Types.NoInfer<S>, any, any>>(
     options: Opts
   ) => PackedOrUnpackedLayer<I, Opts>
   <I, S, Opts extends Make<Types.NoInfer<S>, any, any>>(
-    tag: ServiceMap.Service<I, S>,
+    tag: Context.Service<I, S>,
     options: Opts
   ): PackedOrUnpackedLayer<I, Opts>
 } = dual(2, (tag, options) => {

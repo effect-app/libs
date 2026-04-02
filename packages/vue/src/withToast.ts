@@ -1,4 +1,4 @@
-import { Cause, Effect, Layer, type Option, ServiceMap } from "effect-app"
+import { Cause, Context, Effect, Layer, type Option } from "effect-app"
 import { wrapEffect } from "effect-app/utils"
 import { CurrentToastId, Toast } from "./toast.js"
 
@@ -33,7 +33,7 @@ export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, S
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class WithToast extends ServiceMap.Service<WithToast>()("WithToast", {
+export class WithToast extends Context.Service<WithToast>()("WithToast", {
   make: Effect.gen(function*() {
     const toast = yield* Toast
     return <A, E, Args extends Array<unknown>, R, WaiR = never, SucR = never, ErrR = never>(

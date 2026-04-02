@@ -1,6 +1,6 @@
 import { type FileOptions, tempFile } from "@effect-app/infra/fileUtil"
 import cp from "child_process"
-import { Config, Effect, Layer, Option, Predicate, S, ServiceMap } from "effect-app"
+import { Config, Context, Effect, Layer, Option, Predicate, S } from "effect-app"
 import { pretty } from "effect-app/utils"
 import fs from "fs"
 import os from "os"
@@ -100,7 +100,7 @@ export const CUPSConfig = Config.all({
     )
 })
 
-export class CUPS extends ServiceMap.Service<CUPS>()("effect-app/CUPS", {
+export class CUPS extends Context.Service<CUPS>()("effect-app/CUPS", {
   make: Effect.gen(function*() {
     const config = yield* CUPSConfig
     const serverUrl = Option.getOrUndefined(config.server)

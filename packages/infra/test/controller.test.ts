@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, S, Scope, ServiceMap } from "effect-app"
+import { Effect, Layer, S, Scope, Context } from "effect-app"
 import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import * as RpcX from "effect-app/rpc"
@@ -99,7 +99,7 @@ class MyContextProvider2
 
 //
 
-class Str extends ServiceMap.Service<Str, "str">()("str") {}
+class Str extends Context.Service<Str, "str">()("str") {}
 
 export class BogusMiddleware extends RpcX.RpcMiddleware.Tag<BogusMiddleware>()("BogusMiddleware") {
   static Default = Layer.make(this, {
@@ -240,7 +240,7 @@ const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { 
 // const client = ApiClientFactory.makeFor(Layer.empty)(Something)
 // client.pipe(Effect.map(c => c.DoSomething.name))
 
-export class SomethingService extends ServiceMap.Service<SomethingService>()(
+export class SomethingService extends Context.Service<SomethingService>()(
   "SomethingService",
   {
     make: Effect.gen(function*() {
@@ -260,7 +260,7 @@ declare const a: {
   (opt: { b: 3 }): void
 }
 
-export class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
+export class SomethingRepo extends Context.Service<SomethingRepo>()(
   "SomethingRepo",
   {
     make: Effect.gen(function*() {
@@ -273,7 +273,7 @@ export class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
   static Default = Layer.effect(this, this.make).pipe(Layer.provide(SomethingService.Default))
 }
 
-export class SomethingService2 extends ServiceMap.Service<SomethingService2>()(
+export class SomethingService2 extends Context.Service<SomethingService2>()(
   "SomethingService2",
   {
     make: Effect.gen(function*() {

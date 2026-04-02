@@ -1,5 +1,5 @@
-import { Effect, Option, ServiceMap } from "effect-app"
-import { proxify } from "effect-app/ServiceMap"
+import { Context, Effect, Option } from "effect-app"
+import { proxify } from "effect-app/Context"
 
 export type ToastId = string | number
 export type ToastOpts = { id?: ToastId; timeout?: number }
@@ -13,7 +13,7 @@ export type UseToast = () => {
   dismiss: (this: void, id: ToastId) => void
 }
 
-export class CurrentToastId extends ServiceMap.Opaque<CurrentToastId, { toastId: ToastId }>()("CurrentToastId") {}
+export class CurrentToastId extends Context.Opaque<CurrentToastId, { toastId: ToastId }>()("CurrentToastId") {}
 
 /** fallback to CurrentToastId when available unless id is explicitly set to a value or null */
 export const wrap = (toast: ReturnType<UseToast>) => {
@@ -42,7 +42,7 @@ export const wrap = (toast: ReturnType<UseToast>) => {
 }
 
 export class Toast
-  extends proxify(ServiceMap.Opaque<Toast, ReturnType<typeof wrap>>()("Toast"))<Toast, ReturnType<typeof wrap>>()
+  extends proxify(Context.Opaque<Toast, ReturnType<typeof wrap>>()("Toast"))<Toast, ReturnType<typeof wrap>>()
 {
 }
 

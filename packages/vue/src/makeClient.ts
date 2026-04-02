@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
-import { Cause, Data, Effect, Exit, Layer, type ManagedRuntime, Match, Option, S, ServiceMap, Struct } from "effect-app"
+import { Cause, Context, Data, Effect, Exit, Layer, type ManagedRuntime, Match, Option, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests } from "effect-app/client/clientFor"
 import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
@@ -392,7 +392,7 @@ export const useMutationInt = (): typeof _useMutation => {
 
 export class LegacyMutationImpl<RT> {
   constructor(
-    private readonly getRuntime: () => ServiceMap.ServiceMap<RT>,
+    private readonly getRuntime: () => Context.Context<RT>,
     private readonly toast: Toast,
     private readonly intl: I18n
   ) {}
@@ -1070,12 +1070,12 @@ export class LegacyMutationImpl<RT> {
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class LegacyMutation extends ServiceMap.Service<LegacyMutation>()("LegacyMutation", {
+export class LegacyMutation extends Context.Service<LegacyMutation>()("LegacyMutation", {
   make: Effect.gen(function*() {
     const intl = yield* I18n
     const toast = yield* Toast
 
-    return <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => new LegacyMutationImpl(getRuntime, toast, intl)
+    return <R>(getRuntime: () => Context.Context<R>) => new LegacyMutationImpl(getRuntime, toast, intl)
   })
 }) {
   static readonly DefaultWithoutDependencies = Layer.effect(this, this.make)
@@ -1085,7 +1085,7 @@ export class LegacyMutation extends ServiceMap.Service<LegacyMutation>()("Legacy
 export type ClientFrom<M extends Requests> = RequestHandlers<never, never, M, M["meta"]["moduleName"]>
 
 export class QueryImpl<R> {
-  constructor(readonly getRuntime: () => ServiceMap.ServiceMap<R>) {
+  constructor(readonly getRuntime: () => Context.Context<R>) {
     this.useQuery = makeQuery(this.getRuntime)
   }
   /**

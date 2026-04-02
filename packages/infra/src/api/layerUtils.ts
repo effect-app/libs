@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, type Layer, type NonEmptyReadonlyArray, Option, ServiceMap } from "effect-app"
+import { Context, Effect, type Layer, type NonEmptyReadonlyArray, Option } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
 // TODO: These LayerUtils are flaky, like in dependencies as a readonly array, it breaks when there are two entries
@@ -27,7 +27,7 @@ export namespace LayerUtils {
 }
 
 export type ContextTagWithDefault<Id, A, LayerE, LayerR> =
-  & ServiceMap.Service<Id, A>
+  & Context.Service<Id, A>
   & {
     Default: Layer.Layer<Id, LayerE, LayerR>
   }
@@ -36,29 +36,29 @@ export namespace ContextTagWithDefault {
   export type Base<A> = ContextTagWithDefault<any, A, any, any>
 }
 
-export type GetContext<T> = T extends ServiceMap.ServiceMap<infer Y> ? Y : never
+export type GetContext<T> = T extends Context.Context<infer Y> ? Y : never
 
 export const mergeContexts = Effect.fnUntraced(
   function*<
     T extends readonly {
       maker: any
-      handle: Effect.Effect<ServiceMap.ServiceMap<any> | Option.Option<ServiceMap.ServiceMap<any>>>
+      handle: Effect.Effect<Context.Context<any> | Option.Option<Context.Context<any>>>
     }[]
   >(
     makers: T
   ) {
-    let context = ServiceMap.empty()
+    let context = Context.empty()
     for (const mw of makers) {
       const ctx = yield* mw.handle.pipe(Effect.provide(context))
-      const moreContext = ServiceMap.isServiceMap(ctx) ? Option.some(ctx) : ctx
+      const moreContext = Context.isContext(ctx) ? Option.some(ctx) : ctx
       yield* InfraLogger.logDebug(
         "Built dynamic context for middleware" + (mw.maker.key ?? mw.maker),
         Option.map(moreContext, (c) => (c as any).toJSON().services)
       )
       if (moreContext.value) {
-        context = ServiceMap.merge(context, moreContext.value)
+        context = Context.merge(context, moreContext.value)
       }
     }
-    return context as ServiceMap.ServiceMap<Effect.Success<T[number]["handle"]>>
+    return context as Context.Context<Effect.Success<T[number]["handle"]>>
   }
 )

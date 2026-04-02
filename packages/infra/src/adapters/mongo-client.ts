@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from "effect-app"
+import { Context, Effect, Layer } from "effect-app"
 import { MongoClient as MongoClient_ } from "mongodb"
 
 // TODO: we should probably share a single client...
@@ -15,7 +15,7 @@ const withClient = (url: string) =>
 
 const makeMongoClient = (url: string, dbName?: string) => Effect.map(withClient(url), (x) => ({ db: x.db(dbName) }))
 
-export class MongoClient extends ServiceMap.Service<MongoClient, {
+export class MongoClient extends Context.Service<MongoClient, {
   readonly db: ReturnType<InstanceType<typeof MongoClient_>["db"]>
 }>()("@services/MongoClient") {}
 

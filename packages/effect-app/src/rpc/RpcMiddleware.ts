@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect, type Schema, type Schema as S, type Scope, type ServiceMap, type Stream } from "effect"
+import { type Effect, type Schema, type Schema as S, type Scope, type Stream } from "effect"
 import { type NonEmptyReadonlyArray } from "effect/Array"
 import { type Rpc, RpcMiddleware } from "effect/unstable/rpc"
 import { type TypeId } from "effect/unstable/rpc/RpcMiddleware"
+import type * as Context from "../Context.js"
 import { type GetEffectContext, type RpcContextMap } from "./RpcContextMap.js"
 
 export type RpcMiddlewareV4<Provides, E, Requires> = RpcMiddleware.RpcMiddleware<Provides, E, Requires>
@@ -102,8 +103,8 @@ export declare namespace TagClass {
       requires?: any
       provides?: any
     }
-  > extends ServiceMap.Service<Self, Service> {
-    new(_: never): ServiceMap.ServiceClass.Shape<Name, Service>
+  > extends Context.Service<Self, Service> {
+    new(_: never): Context.ServiceClass.Shape<Name, Service>
     readonly [TypeId]: TypeId
     readonly optional: Optional<Options>
     readonly error: FailureSchema<Options>
@@ -226,7 +227,7 @@ export type ExtractProvides<R extends Rpc.Any, Tag extends string> = R extends
   Rpc.Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware, infer _Requires> ? _Middleware extends {
     readonly provides: infer _P
   } ? [_P] extends [never] ? never
-    : _P /*_P extends ServiceMap.Service<infer _I, infer _S> ? _I
+    : _P /*_P extends Context.Service<infer _I, infer _S> ? _I
     : never */
   : never
   : never

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
-import { Array, Cause, Effect, Option, S, type ServiceMap } from "effect-app"
+import { Array, Cause, type Context, Effect, Option, S } from "effect-app"
 import { type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { ServiceUnavailableError } from "effect-app/client/errors"
@@ -83,7 +83,7 @@ export class KnownFiberFailure<E> extends Error {
   }
 }
 
-export const makeQuery = <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => {
+export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
   const useQuery_: {
     <I, A, E, Request extends Req, Name extends string>(
       q:

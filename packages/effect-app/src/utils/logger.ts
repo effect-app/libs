@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Effect, type LogLevel } from "effect"
-import * as ServiceMap from "../ServiceMap.js"
+import * as Context from "../Context.js"
 
 type Levels = "info" | "debug" | "warn" | "error"
 
-export class LogLevels extends ServiceMap.Reference("LogLevels", {
+export class LogLevels extends Context.Reference("LogLevels", {
   defaultValue: () => new Map<string, Levels>()
 }) {}
 

@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Layer, type ServiceMap } from "effect-app"
+import { type Context, type Layer } from "effect-app"
 import { type GetContextConfig, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type RpcMiddlewareV4 } from "effect-app/rpc/RpcMiddleware"
 // module:
 //
 
-// v4: middleware tags are ServiceMap.Service (not Effect) — they carry the RpcMiddlewareV4 as their service Shape
+// v4: middleware tags are Context.Service (not Effect) — they carry the RpcMiddlewareV4 as their service Shape
 export type RouterMiddleware<
   Self,
   RequestContextMap extends Record<string, RpcContextMap.Any>, // what services will the middlware provide dynamically to the next, or raise errors.
@@ -18,9 +18,9 @@ export type RouterMiddleware<
   _ContextProviderR, // what the context provider requires
   RequestContextId
 > =
-  & ServiceMap.Service<Self, RpcMiddlewareV4<ContextProviderA, ContextProviderE, never>>
+  & Context.Service<Self, RpcMiddlewareV4<ContextProviderA, ContextProviderE, never>>
   & {
     readonly Default: Layer.Layer<Self, MakeMiddlewareE, MakeMiddlewareR>
-    readonly requestContext: ServiceMap.Service<RequestContextId, GetContextConfig<RequestContextMap>>
+    readonly requestContext: Context.Service<RequestContextId, GetContextConfig<RequestContextMap>>
     readonly requestContextMap: RequestContextMap
   }

@@ -40,7 +40,7 @@ export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Top = never
 >(rcs: RequestContextMap, generalErrors?: GeneralErrors) => {
-  // Long way around ServiceMap/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
+  // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type ServiceMap = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     error: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields

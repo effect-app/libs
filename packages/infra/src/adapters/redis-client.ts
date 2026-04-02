@@ -1,4 +1,4 @@
-import { Data, Effect, Layer, Option, ServiceMap } from "effect-app"
+import { Context, Data, Effect, Layer, Option } from "effect-app"
 import type { RedisClient as Client } from "redis"
 import Redlock from "redlock"
 
@@ -90,7 +90,7 @@ export const makeRedisClient = (makeClient: () => Client) =>
         .pipe(Effect.uninterruptible, Effect.orDie)
   )
 
-export class RedisClient extends ServiceMap.Service<RedisClient, {
+export class RedisClient extends Context.Service<RedisClient, {
   readonly client: Client
   readonly lock: Redlock
   readonly get: (key: string) => Effect.Effect<Option.Option<string>, ConnectionException>

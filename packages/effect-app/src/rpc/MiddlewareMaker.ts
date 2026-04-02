@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Layer, type Schema, Schema as S, type Scope, ServiceMap } from "effect"
+import { Effect, Layer, type Schema, Schema as S, type Scope } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
 import { type Simplify } from "effect/Types"
 import { Rpc, type RpcGroup, type RpcSchema } from "effect/unstable/rpc"
 import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
 import { type RequestId } from "effect/unstable/rpc/RpcMessage"
+import * as Context from "../Context.js"
 import { type HttpHeaders } from "../http.js"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
@@ -61,13 +62,13 @@ export interface MiddlewareMaker<
     }
   >
 {
-  readonly layer: Layer.Layer<Self, never, ServiceMap.Service.Identifier<MiddlewareProviders[number]>>
+  readonly layer: Layer.Layer<Self, never, Context.Service.Identifier<MiddlewareProviders[number]>>
   readonly requestContext: RequestContextTag<RequestContextMap>
   readonly requestContextMap: RequestContextMap
 }
 
 export interface RequestContextTag<RequestContextMap extends Record<string, RpcContextMap.Any>>
-  extends ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+  extends Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>
 {}
 
 export namespace MiddlewareMaker {
@@ -295,7 +296,7 @@ const middlewareMaker = <
       // inspired from Effect/RpcMiddleware
       for (const tag of middlewares) {
         // use the tag to get the middleware from context
-        const middleware = ServiceMap.getUnsafe(context, tag)
+        const middleware = Context.getUnsafe(context, tag)
 
         // wrap the current handler, allowing the middleware to run before and after it
         handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
@@ -367,7 +368,7 @@ const makeMiddlewareBasic = <Self>() =>
   return Object.assign(MiddlewareMaker, {
     layer,
     // tag to be used to retrieve the RequestContextConfig from Rpc annotations
-    requestContext: ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
+    requestContext: Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
       "RequestContextConfig"
     ),
     requestContextMap: rcm
@@ -380,7 +381,7 @@ export const Tag = <Self>() =>
   RequestContextMap extends RequestContextMapTagAny
 >(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap["config"]> => {
   let allMiddleware: MiddlewareMaker.Any[] = []
-  const requestContext = ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
+  const requestContext = Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
     "RequestContextConfig"
   )
   const it = {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, ServiceMap, Struct } from "effect-app"
+import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { get } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
@@ -72,7 +72,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
 }
 
 const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
-export class storeId extends ServiceMap.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
+export class storeId extends Context.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
   return InfraLogger

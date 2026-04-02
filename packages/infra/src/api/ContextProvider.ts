@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope, ServiceMap } from "effect-app"
+import { Context, Effect, Layer, type NonEmptyReadonlyArray, pipe, type Scope } from "effect-app"
 
 import { type HttpRouter } from "effect-app/http"
 import { type EffectGenUtils } from "effect-app/utils/gen"
@@ -23,7 +23,7 @@ type TDepsArr<TDeps extends ReadonlyArray<any>> = {
   // E = never => the context provided cannot trigger errors
   // TODO: remove HttpLayerRouter.Provided - it's not even relevant outside of Http context, while ContextProviders are for anywhere. Only support Scope.Scope?
   //  _R extends HttpLayerRouter.Provided => the context provided can only have what HttpLayerRouter.Provided provides as requirements
-  ContextTagWithDefault.Base<Effect.Effect<ServiceMap.ServiceMap<infer _1>, never, infer _R>> // & { _tag: infer _2 }>
+  ContextTagWithDefault.Base<Effect.Effect<Context.Context<infer _1>, never, infer _R>> // & { _tag: infer _2 }>
     ? [_R] extends [HttpRouter.Provided] ? TDeps[K]
     : `HttpLayerRouter.Provided is the only requirement ${TDeps[K]["Service"][
       "_tag"
@@ -58,9 +58,9 @@ export const mergeContextProviders = <
     Effect.Effect<
       // we need to merge all contexts into one
       // v4: Service.Shape extracts the service value type (v3's Tag.Identifier)
-      ServiceMap.ServiceMap<GetContext<EffectGenUtils.Success<ServiceMap.Service.Shape<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Context.Service.Shape<TDeps[number]>>>>,
       never,
-      EffectGenUtils.ServiceMap<ServiceMap.Service.Shape<TDeps[number]>>
+      EffectGenUtils.Context<Context.Service.Shape<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
@@ -78,14 +78,14 @@ export const mergeContextProviders = <
             handle: handle[Symbol.toStringTag] === "GeneratorFunction" ? Effect.fnUntraced(handle)() : handle
           }
         ))
-        // services are effects which return some ServiceMap.ServiceMap<...>
+        // services are effects which return some Context.Context<...>
         const context = yield* mergeContexts(services as any)
         return context
       })
   }) as any
 })
 
-// Effect Rpc Middleware: for single tag providing, we could use Provides, for providing ServiceMap or Layer (bad boy) we could use Wrap..
+// Effect Rpc Middleware: for single tag providing, we could use Provides, for providing Context or Layer (bad boy) we could use Wrap..
 export const ContextProvider = <
   ContextProviderA,
   MakeContextProviderE,
@@ -107,7 +107,7 @@ export const ContextProvider = <
     dependencies?: Dependencies
   }
 ) => {
-  const ctx = ServiceMap.Service<
+  const ctx = Context.Service<
     ContextProviderId,
     Effect.Effect<ContextProviderA, never, ContextProviderR>
   >(
@@ -146,17 +146,17 @@ export const MergedContextProvider = <
     Effect.Effect<
       // we need to merge all contexts into one
       // v4: Service.Shape extracts the service value type (v3's Tag.Identifier)
-      ServiceMap.ServiceMap<GetContext<EffectGenUtils.Success<ServiceMap.Service.Shape<TDeps[number]>>>>,
+      Context.Context<GetContext<EffectGenUtils.Success<Context.Service.Shape<TDeps[number]>>>>,
       never,
-      EffectGenUtils.ServiceMap<ServiceMap.Service.Shape<TDeps[number]>>
+      EffectGenUtils.Context<Context.Service.Shape<TDeps[number]>>
     >,
     LayerUtils.GetLayersError<{ [K in keyof TDeps]: TDeps[K]["Default"] }>,
     // v4: Identifier here is correct — it's the nominal service identity for layer provide/exclude
     | Exclude<
-      ServiceMap.Service.Identifier<TDeps[number]>,
+      Context.Service.Identifier<TDeps[number]>,
       LayerUtils.GetLayersSuccess<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
     >
     | LayerUtils.GetLayersContext<{ [K in keyof TDeps]: TDeps[K]["Default"] }>
   >
 
-export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(ServiceMap.empty())) })
+export const EmptyContextProvider = ContextProvider({ effect: Effect.succeed(Effect.succeed(Context.empty())) })

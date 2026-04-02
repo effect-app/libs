@@ -6,7 +6,7 @@ import { type DefaultError, type Enabled, type InitialDataFunction, type NonUnde
 import { Array, Cause, type Context, Effect, Option, S } from "effect-app"
 import { type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
-import { ServiceUnavailableError } from "effect-app/client/errors"
+import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -75,14 +75,6 @@ export interface CustomDefinedPlaceholderQueryOptions<
     | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
 }
 
-export class KnownFiberFailure<E> extends Error {
-  readonly error: unknown
-  constructor(public effectCause: Cause.Cause<E>) {
-    super("Query failed with cause: " + Cause.squash(effectCause))
-    this.error = Cause.squash(effectCause)
-  }
-}
-
 export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
   const useQuery_: {
     <I, A, E, Request extends Req, Name extends string>(
@@ -96,8 +88,8 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData | undefined>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
-        UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
 
       <TData = A>(
@@ -106,8 +98,8 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
-        UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
 
       <TData = A>(
@@ -116,8 +108,8 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
-        UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
     }
   } = <I, A, E, Request extends Req, Name extends string>(
@@ -131,7 +123,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     options?: any
     // TODO
   ) => {
-    // we wrap into KnownFiberFailure because we want to keep the full cause of the failure.
+    // we wrap into CauseException because we want to keep the full cause of the failure.
     const runPromise = makeRunPromise(getRuntime())
     const arr = arg
     const req: { value: I } = !arg
@@ -156,14 +148,14 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       throwOnError: false
     }
 
-    const r = useTanstackQuery<A, KnownFiberFailure<E>, TData>(
+    const r = useTanstackQuery<A, CauseException<E>, TData>(
       Effect.isEffect(handler)
         ? {
           ...defaultOptions,
           ...options,
           retry: (retryCount, error) => {
-            if (error instanceof KnownFiberFailure) {
-              if (!isHttpClientError(error.error) && !S.is(ServiceUnavailableError)(error.error)) {
+            if (error instanceof CauseException) {
+              if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
                 return false
               }
             }
@@ -186,8 +178,8 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
           ...defaultOptions,
           ...options,
           retry: (retryCount, error) => {
-            if (error instanceof KnownFiberFailure) {
-              if (!isHttpClientError(error.error) && !S.is(ServiceUnavailableError)(error.error)) {
+            if (error instanceof CauseException) {
+              if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
                 return false
               }
             }
@@ -235,13 +227,13 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
   }
 
   function swrToQuery<E, A>(r: {
-    error: KnownFiberFailure<E> | undefined
+    error: CauseException<E> | undefined
     data: A | undefined
     isValidating: boolean
   }): AsyncResult.AsyncResult<A, E> {
     if (r.error !== undefined) {
       return AsyncResult.failureWithPrevious(
-        r.error.effectCause,
+        r.error.originalCause,
         {
           previous: r.data === undefined ? Option.none() : Option.some(AsyncResult.success(r.data)),
           waiting: r.isValidating
@@ -268,11 +260,11 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
        * Effect results are passed to the caller, including errors.
        */
       <TData = A>(
-        options: CustomDefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
+        options: CustomDefinedInitialQueryOptions<A, CauseException<E>, TData>
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryReturnType<any, any>
       ]
       <TData = A>(
@@ -280,17 +272,17 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>, never, never>,
-        UseQueryDefinedReturnType<TData, KnownFiberFailure<E>>
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
       // optional options, optional A
       /**
        * Effect results are passed to the caller, including errors.
        */
-      <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>): readonly [
+      <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>): readonly [
         ComputedRef<AsyncResult.AsyncResult<A, E>>,
         ComputedRef<A | undefined>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryReturnType<any, any>
       ]
     }
@@ -307,11 +299,11 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
        */
       <TData = A>(
         arg: Arg | WatchSource<Arg>,
-        options: CustomDefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
+        options: CustomDefinedInitialQueryOptions<A, CauseException<E>, TData>
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryReturnType<any, any>
       ]
       // required options, with placeholderData
@@ -320,11 +312,11 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
        */
       <TData = A>(
         arg: Arg | WatchSource<Arg>,
-        options: CustomDefinedPlaceholderQueryOptions<A, KnownFiberFailure<E>, TData>
+        options: CustomDefinedPlaceholderQueryOptions<A, CauseException<E>, TData>
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryReturnType<any, any>
       ]
       // optional options, optional A
@@ -333,11 +325,11 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
        */
       <TData = A>(
         arg: Arg | WatchSource<Arg>,
-        options?: CustomUndefinedInitialQueryOptions<A, KnownFiberFailure<E>, TData>
+        options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData | undefined>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, KnownFiberFailure<E>>>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryReturnType<any, any>
       ]
     }

@@ -207,6 +207,7 @@ export class CauseException<E> extends Error {
     Error.stackTraceLimit = 0
     super()
     Error.stackTraceLimit = limit
+    this.cause = Cause.squash(originalCause)
     // v4: makeFiberFailure removed — use Cause.prettyErrors instead
     const errors = Cause.prettyErrors(originalCause)
     const first = errors[0]

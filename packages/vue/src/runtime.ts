@@ -1,7 +1,7 @@
 import { Exit, flow, ManagedRuntime } from "effect"
 import { Effect, Layer, Logger } from "effect-app"
+import { CauseException } from "effect-app/client/errors"
 import { type Context } from "effect-app/Context"
-import { KnownFiberFailure } from "./query.js"
 
 export function makeAppRuntime<A, E>(layer: Layer.Layer<A, E>) {
   return Effect.gen(function*() {
@@ -32,12 +32,12 @@ export function initializeAsync<A, E>(layer: Layer.Layer<A, E, never>) {
     .runPromise(makeAppRuntime(layer))
 }
 
-// we wrap into KnownFiberFailure because we want to keep the full cause of the failure.
+// we wrap into CauseException because we want to keep the full cause of the failure.
 export const makeRunPromise = <T>(services: Context<T>) =>
   flow(Effect.runPromiseExitWith(services), (_) =>
     _.then(
       Exit.match({
-        onFailure: (cause) => Promise.reject(new KnownFiberFailure(cause)),
+        onFailure: (cause) => Promise.reject(new CauseException(cause, "runPromise")),
         onSuccess: (value) => Promise.resolve(value)
       })
     ))
@@ -47,7 +47,7 @@ export const makeRunSync = <T>(services: Context<T>) =>
     Effect.runSyncExitWith(services),
     Exit.match({
       onFailure: (cause) => {
-        throw new KnownFiberFailure(cause)
+        throw new CauseException(cause, "runSync")
       },
       onSuccess: (value) => value
     })

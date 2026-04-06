@@ -521,6 +521,7 @@ export const createMeta = <T = any>(
 
       // Determine if this field should be required:
       // - For nullable discriminated unions, only _tag should be non-required
+      // - optionalKey fields are not required
       // - All other fields should calculate their required status normally
       let isRequired: boolean
       if (meta._isNullableDiscriminatedUnion && p.name.toString() === "_tag") {
@@ -528,6 +529,8 @@ export const createMeta = <T = any>(
         isRequired = false
       } else if (meta.required === false) {
         // Explicitly set to non-required (legacy behavior for backwards compatibility)
+        isRequired = false
+      } else if ((p.type as any).context?.isOptional) {
         isRequired = false
       } else {
         // Calculate from the property itself

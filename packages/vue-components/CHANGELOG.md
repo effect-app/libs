@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- 79074cf: Fixes optionalKey in OmegaForm handling
+  - effect-app@4.0.0-beta.56
+  - @effect-app/vue@4.0.0-beta.56
+
 ## 4.0.0-beta.55
 
 ### Patch Changes

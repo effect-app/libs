@@ -66,7 +66,7 @@ export default {
       :label="command.label"
       :title="title ?? command.action"
     >
-      <span>{{ command.label }}</span>
+      {{ command.label }}
     </slot>
   </v-btn>
   <v-btn

@@ -6,8 +6,8 @@
   "homepage": "https://github.com/effect-ts-app/libs/tree/main/packages/vue",
   "dependencies": {
     "@formatjs/intl": "^4.1.5",
-    "@tanstack/query-core": "5.83.1",
-    "@tanstack/vue-query": "5.83.1",
+    "@tanstack/query-core": "5.96.2",
+    "@tanstack/vue-query": "5.96.2",
     "@vueuse/core": "^14.2.1",
     "change-case": "^5.4.4",
     "effect-app": "workspace:*",

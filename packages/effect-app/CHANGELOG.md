@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- cec026d: update packages
+
 ## 4.0.0-beta.58
 
 ## 4.0.0-beta.57

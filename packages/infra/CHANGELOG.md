@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- cec026d: update packages
+- Updated dependencies [cec026d]
+  - effect-app@4.0.0-beta.59
+
 ## 4.0.0-beta.58
 
 ### Patch Changes

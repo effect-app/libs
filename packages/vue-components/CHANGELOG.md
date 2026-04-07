@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- c1e71a6: remove unnecessary span?
+  - effect-app@4.0.0-beta.61
+  - @effect-app/vue@4.0.0-beta.61
+
 ## 4.0.0-beta.60
 
 ### Patch Changes

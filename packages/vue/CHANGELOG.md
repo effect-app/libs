@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- 7fd35e4: update tanstack/query
+  - effect-app@4.0.0-beta.58
+
 ## 4.0.0-beta.57
 
 ### Patch Changes

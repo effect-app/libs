@@ -114,10 +114,13 @@ export function makeRepoInternal<
               if (ast._tag === "Declaration") ast = ast.typeParameters[0]!
 
               const pickIdFromAst = (a: SchemaAST.AST) => {
+                // Unwrap Declaration (e.g. TaggedClass) to get the underlying Objects AST
+                let inner = a
+                if (inner._tag === "Declaration") inner = inner.typeParameters[0]!
                 // Pick from the original AST to preserve the full encoding chain (e.g. decodeTo transformations).
                 // Using toEncoded would lose transformation info needed to encode Type -> Encoded.
-                if (SchemaAST.isObjects(a)) {
-                  const field = a.propertySignatures.find((_) => _.name === idKey)
+                if (SchemaAST.isObjects(inner)) {
+                  const field = inner.propertySignatures.find((_) => _.name === idKey)
                   if (field) {
                     return S.Struct({ [idKey]: S.make(field.type) }) as unknown as Codec<T, Encoded>
                   }

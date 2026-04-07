@@ -1039,6 +1039,97 @@ it("find with transformed id", () =>
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
+it("find with transformed id in tagged union", () =>
+  Effect
+    .gen(function*() {
+      const ConfiguratorId = S.NonEmptyString255
+
+      class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
+        configuratorId: ConfiguratorId,
+        label: S.NonEmptyString50
+      }) {}
+
+      const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
+        S.decodeTo(
+          S.toType(PreconfigurationId),
+          SchemaTransformation.transformOrFail({
+            decode: Effect.fnUntraced(function*(value) {
+              const values = value.split("_")
+              const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              return new PreconfigurationId({ configuratorId, label })
+            }),
+            encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
+          })
+        ),
+        S.revealCodec
+      )
+
+      class Draft extends S.TaggedClass<Draft>()("Draft", {
+        id: PreconfigurationIdFromString,
+        name: S.String
+      }) {}
+
+      class Published extends S.TaggedClass<Published>()("Published", {
+        id: PreconfigurationIdFromString,
+        name: S.String,
+        publishedAt: S.String
+      }) {}
+
+      class Archived extends S.TaggedClass<Archived>()("Archived", {
+        id: PreconfigurationIdFromString,
+        name: S.String,
+        archivedAt: S.String
+      }) {}
+
+      const Preconfiguration = S.Union([Draft, Published, Archived])
+
+      const repo = yield* makeRepo("Preconfiguration", Preconfiguration, {})
+
+      const id1 = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("conf1"),
+        label: S.NonEmptyString50("draft1")
+      })
+      const id2 = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("conf2"),
+        label: S.NonEmptyString50("pub1")
+      })
+      const id3 = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("conf3"),
+        label: S.NonEmptyString50("arch1")
+      })
+
+      const draft = new Draft({ id: id1, name: "my draft" })
+      const published = new Published({ id: id2, name: "my published", publishedAt: "2024-01-01" })
+      const archived = new Archived({ id: id3, name: "my archived", archivedAt: "2024-06-01" })
+
+      yield* repo.saveAndPublish([draft, published, archived])
+
+      // find each by their PreconfigurationId instance
+      const foundDraft = yield* repo.find(id1)
+      expect(Option.isSome(foundDraft)).toBe(true)
+      expect(Option.getOrThrow(foundDraft)._tag).toBe("Draft")
+      expect(Option.getOrThrow(foundDraft).name).toBe("my draft")
+
+      const foundPublished = yield* repo.find(id2)
+      expect(Option.isSome(foundPublished)).toBe(true)
+      expect(Option.getOrThrow(foundPublished)._tag).toBe("Published")
+
+      const foundArchived = yield* repo.find(id3)
+      expect(Option.isSome(foundArchived)).toBe(true)
+      expect(Option.getOrThrow(foundArchived)._tag).toBe("Archived")
+
+      // not found
+      const notFound = yield* repo.find(
+        new PreconfigurationId({
+          configuratorId: S.NonEmptyString255("nope"),
+          label: S.NonEmptyString50("nope")
+        })
+      )
+      expect(Option.isNone(notFound)).toBe(true)
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
 it("refine union with nested union", () =>
   Effect
     .gen(function*() {

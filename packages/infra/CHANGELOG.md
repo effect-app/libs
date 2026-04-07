@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- fbf47b8: Fix repository `find` with transformed id fields (e.g. composite ids using `decodeTo`)
+  - effect-app@4.0.0-beta.57
+
 ## 4.0.0-beta.56
 
 ### Patch Changes

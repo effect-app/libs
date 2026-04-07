@@ -113,11 +113,11 @@ export function makeRepoInternal<
               let ast = _.ast
               if (ast._tag === "Declaration") ast = ast.typeParameters[0]!
 
-              // In v4, to get the encoded (from) side of a schema, use SchemaAST.toEncoded
               const pickIdFromAst = (a: SchemaAST.AST) => {
-                const encoded = SchemaAST.toEncoded(a)
-                if (SchemaAST.isObjects(encoded)) {
-                  const field = encoded.propertySignatures.find((_) => _.name === idKey)
+                // Pick from the original AST to preserve the full encoding chain (e.g. decodeTo transformations).
+                // Using toEncoded would lose transformation info needed to encode Type -> Encoded.
+                if (SchemaAST.isObjects(a)) {
+                  const field = a.propertySignatures.find((_) => _.name === idKey)
                   if (field) {
                     return S.Struct({ [idKey]: S.make(field.type) }) as unknown as Codec<T, Encoded>
                   }

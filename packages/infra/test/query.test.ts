@@ -1,7 +1,8 @@
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, flow, Layer, Option, pipe, S, Context, Struct } from "effect-app"
+import { SchemaTransformation } from "effect"
+import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-app"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
@@ -979,6 +980,62 @@ it("refine nested union", () =>
           readonly nested: Person | Animal
         }[]
       >()
+    })
+    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("find with transformed id", () =>
+  Effect
+    .gen(function*() {
+      const ConfiguratorId = S.NonEmptyString255
+
+      class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
+        configuratorId: ConfiguratorId,
+        label: S.NonEmptyString50
+      }) {}
+
+      const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
+        S.decodeTo(
+          S.toType(PreconfigurationId),
+          SchemaTransformation.transformOrFail({
+            decode: Effect.fnUntraced(function*(value) {
+              const values = value.split("_")
+              const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              return new PreconfigurationId({ configuratorId, label })
+            }),
+            encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
+          })
+        ),
+        S.revealCodec
+      )
+
+      const Preconfiguration = S.Struct({
+        id: PreconfigurationIdFromString,
+        name: S.String
+      })
+
+      const repo = yield* makeRepo("Preconfiguration", Preconfiguration, { idKey: "id" as const })
+
+      const id = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("myConfigurator"),
+        label: S.NonEmptyString50("myLabel")
+      })
+      const item = { id, name: "test preconfig" }
+
+      yield* repo.saveAndPublish([item])
+
+      const found = yield* repo.find(id)
+      expect(Option.isSome(found)).toBe(true)
+      expect(Option.getOrThrow(found).name).toBe("test preconfig")
+      expect(Option.getOrThrow(found).id).toEqual(id)
+
+      const notFound = yield* repo.find(
+        new PreconfigurationId({
+          configuratorId: S.NonEmptyString255("other"),
+          label: S.NonEmptyString50("nope")
+        })
+      )
+      expect(Option.isNone(notFound)).toBe(true)
     })
     .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 

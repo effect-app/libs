@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- 0b21a02: fix: flatten simple allOf constraints in JSON Schema output for better codegen compatibility
+
 ## 4.0.0-beta.61
 
 ## 4.0.0-beta.60

@@ -29,6 +29,7 @@
   </v-table>
 </template>
 <script setup lang="ts">
+import { I18n } from "@effect-app/vue/intl"
 import { Effect } from "effect"
 import { ref } from "vue"
 import { CommandButton } from "./components"
@@ -36,7 +37,8 @@ import { makeFamily, useCommand } from "./helpers"
 
 const Command = useCommand({
   "action.update_thing": "Update {field}{_isLabel, select, true {} other { {item}}}",
-  "action.remove_thing": "Remove {_isLabel, select, true {} other { {item}}}"
+  "action.remove_thing": "Remove {_isLabel, select, true {} other { {item}}}",
+  "confirm.remove_item": "Are you sure you want to remove {item}?"
 })
 
 const items = [
@@ -54,6 +56,7 @@ const updateMutation = Object.assign(
 )
 const removeMutation = Object.assign(
   Effect.fn(function*(item: string) {
+    yield* Command.confirmOrInterrupt(yield* I18n.formatMessage({ id: "confirm.remove_item" }, { item }))
     yield* Effect.sleep(1000)
   }),
   { id: "remove_thing" }

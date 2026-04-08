@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.66
+
+### Patch Changes
+
+- edc52e4: update
+
 ## 4.0.0-beta.65
 
 ### Minor Changes

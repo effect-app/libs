@@ -56,7 +56,6 @@ const updateMutation = Object.assign(
 )
 const removeMutation = Object.assign(
   Effect.fn(function*(item: string) {
-    yield* Command.confirmOrInterrupt(yield* I18n.formatMessage({ id: "confirm.remove_item" }, { item }))
     yield* Effect.sleep(1000)
   }),
   { id: "remove_thing" }
@@ -109,6 +108,7 @@ const remove = makeFamily((item: string) =>
     allowed: () => role.value === "admin"
   })(
     function*() {
+      yield* Command.confirmOrInterrupt(yield* I18n.formatMessage({ id: "confirm.remove_item" }, { item }))
       yield* removeMutation(item)
     },
     Command.withDefaultToast({ stableToastId: (id) => `${id}.${item}` })

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type Effect, Layer, type Scope, type Types } from "effect"
+import { Effect, Layer, type Scope, type Types } from "effect"
 import * as SM from "effect/ServiceMap"
 import { type Yieldable } from "./Effect.js"
 
@@ -94,14 +94,31 @@ export const proxify = <T extends object>(Tag: T) =>
         // @ts-expect-error abc
         return (body) => (Tag as any).use(body)
       }
+      if (prop === "useSync") {
+        // @ts-expect-error abc
+        return (body) => (Tag as any).useSync(body)
+      }
       if (prop in Tag) {
         return (Tag as any)[prop]
       }
       if (cache.has(prop)) {
         return cache.get(prop)
       }
-      const fn = (...args: Array<any>) => (Tag as any).use((s: any) => s[prop](...args))
-      const cn = (Tag as any).use((s: any) => s[prop])
+      const fn = (...args: Array<any>) =>
+        (Tag as any).use((s: any) => {
+          const f = s[prop](...args)
+          if (Effect.isEffect(f)) {
+            return f
+          }
+          return Effect.succeed(f)
+        })
+      const cn = (Tag as any).use((s: any) => {
+        const f = s[prop]
+        if (Effect.isEffect(f)) {
+          return f
+        }
+        return Effect.succeed(f)
+      })
       // @effect-diagnostics effect/floatingEffect:off
       Object.assign(fn, cn)
       Object.setPrototypeOf(fn, Object.getPrototypeOf(cn))

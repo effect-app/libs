@@ -1,5 +1,15 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.65
+
+### Minor Changes
+
+- 1f103b2: Replace `proxify` with explicit service accessor helpers: `accessFn`, `accessEffectFn`, `accessCn`, `accessEffectCn`.
+
+### Patch Changes
+
+- 31739d7: Fix JSON schema output for Email, Date, PhoneNumber, and Url schemas. The `jsonSchema` annotation key is not recognized by Effect v4's JSON schema generator — use proper v4 annotations (`format`, `description`) and built-in checks (`isMinLength`, `isMaxLength`) instead.
+
 ## 4.0.0-beta.64
 
 ### Patch Changes

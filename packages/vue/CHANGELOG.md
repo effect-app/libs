@@ -1,5 +1,17 @@
 # @effect-app/vue
 
+## 4.0.0-beta.65
+
+### Minor Changes
+
+- 1f103b2: Replace `proxify` with explicit service accessor helpers: `accessFn`, `accessEffectFn`, `accessCn`, `accessEffectCn`.
+
+### Patch Changes
+
+- Updated dependencies [31739d7]
+- Updated dependencies [1f103b2]
+  - effect-app@4.0.0-beta.65
+
 ## 4.0.0-beta.64
 
 ### Patch Changes

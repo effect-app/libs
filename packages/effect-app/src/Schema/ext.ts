@@ -109,7 +109,10 @@ export const dateFromString: SchemaTransformation.Transformation<globalThis.Date
   SchemaGetter.transform(formatDate)
 )
 
-const DateString = S.String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
+const DateString = S.String.annotate({
+  description: "a string in ISO 8601 format that will be decoded as a Date",
+  format: "date-time"
+})
 
 /**
  * Schema type for {@link DateFromString}.

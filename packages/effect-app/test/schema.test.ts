@@ -1,5 +1,6 @@
 // import { generateFromArbitrary } from "@effect-app/infra/test"
 import { Array, S } from "effect-app"
+import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { describe, expect, expectTypeOf, test } from "vitest"
 
 const A = S.Struct({ a: S.NonEmptyString255, email: S.NullOr(S.Email) })
@@ -312,5 +313,102 @@ describe("ReadonlyMap (with withDefault)", () => {
     const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
     const decoded = S.decodeUnknownSync(schema)([["1", "one"]])
     expect(decoded).toEqual(new Map([[1, "one"]]))
+  })
+})
+
+describe("JSON Schema", () => {
+  test("Email has format, minLength, maxLength", () => {
+    const doc = S.toJsonSchemaDocument(S.Email)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Email" },
+      definitions: {
+        Email: {
+          type: "string",
+          title: "Email",
+          description: "an email according to RFC 5322",
+          format: "email",
+          allOf: [
+            { minLength: 3 },
+            { maxLength: 998 }
+          ]
+        }
+      }
+    })
+  })
+
+  test("Email specialJsonSchemaDocument flattens allOf", () => {
+    const doc = specialJsonSchemaDocument(S.Email)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Email" },
+      definitions: {
+        Email: {
+          type: "string",
+          title: "Email",
+          description: "an email according to RFC 5322",
+          format: "email",
+          minLength: 3,
+          maxLength: 998
+        }
+      }
+    })
+  })
+
+  test("Date has format date-time and description", () => {
+    const doc = S.toJsonSchemaDocument(S.Date)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: {
+        type: "string",
+        description: "a string in ISO 8601 format that will be decoded as a Date",
+        format: "date-time"
+      },
+      definitions: {}
+    })
+  })
+
+  test("DateValid has format date-time", () => {
+    const doc = S.toJsonSchemaDocument(S.DateValid)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: {
+        type: "string",
+        description: "a string in ISO 8601 format that will be decoded as a Date",
+        format: "date-time"
+      },
+      definitions: {}
+    })
+  })
+
+  test("PhoneNumber has format phone", () => {
+    const doc = specialJsonSchemaDocument(S.PhoneNumber)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/PhoneNumber" },
+      definitions: {
+        PhoneNumber: {
+          type: "string",
+          title: "PhoneNumber",
+          description: "a phone number with at least 7 digits",
+          format: "phone"
+        }
+      }
+    })
+  })
+
+  test("Url has format uri", () => {
+    const doc = specialJsonSchemaDocument(S.Url)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Url" },
+      definitions: {
+        Url: {
+          type: "string",
+          title: "Url",
+          format: "uri"
+        }
+      }
+    })
   })
 })

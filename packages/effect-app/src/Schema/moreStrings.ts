@@ -247,6 +247,10 @@ const isUrl: Refinement<string, Url> = (s: string): s is Url => {
 export const Url = S
   .String
   .pipe(
+    S.annotate({
+      title: "Url",
+      format: "uri"
+    }),
     S.refine(isUrl, {
       identifier: "Url",
       title: "Url",

@@ -13,6 +13,11 @@ export type PhoneNumber = string & PhoneNumberBrand
 export const PhoneNumber = S
   .String
   .pipe(
+    S.annotate({
+      title: "PhoneNumber",
+      description: "a phone number with at least 7 digits",
+      format: "phone"
+    }),
     S.refine(isValidPhone as Refinement<string, PhoneNumber>, {
       identifier: "PhoneNumber",
       title: "PhoneNumber",

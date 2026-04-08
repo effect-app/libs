@@ -2,7 +2,7 @@ import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import * as AppSchema from "effect-app/Schema"
 import { Class, TaggedClass } from "effect-app/Schema/Class"
-import { flattenSimpleAllOf, removeNullFromAnyOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import { flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as S from "effect/Schema"
 import { describe, expect, it } from "vitest"
@@ -270,7 +270,12 @@ describe("SpecialJsonSchema", () => {
         "properties": {
           "a": { "$ref": "#/$defs/X" },
           "b": { "$ref": "#/$defs/X" },
-          "c": { "$ref": "#/$defs/X" },
+          "c": {
+            "anyOf": [
+              { "$ref": "#/$defs/X" },
+              { "type": "null" }
+            ]
+          },
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
@@ -332,7 +337,12 @@ describe("SpecialJsonSchema", () => {
         "properties": {
           "a": { "$ref": "#/$defs/X" },
           "b": { "$ref": "#/$defs/X" },
-          "c": { "$ref": "#/$defs/X" },
+          "c": {
+            "anyOf": [
+              { "$ref": "#/$defs/X" },
+              { "type": "null" }
+            ]
+          },
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
@@ -441,7 +451,7 @@ describe("SpecialOpenApi", () => {
     expect(result).toStrictEqual(spec)
   })
 
-  it("rewrites nested $ref pointers in allOf/anyOf/oneOf and removes null from anyOf", () => {
+  it("rewrites nested $ref pointers in allOf/anyOf/oneOf", () => {
     const spec = {
       openapi: "3.1.0",
       info: { title: "Test", version: "1.0" },
@@ -476,9 +486,8 @@ describe("SpecialOpenApi", () => {
     expect(result.components.schemas).toStrictEqual({
       Y: { type: "object", properties: { name: { type: "string" } } }
     })
-    // null variant removed, single $ref unwrapped from anyOf
     expect(
-      result.paths["/baz"].post.requestBody.content["application/json"].schema
+      result.paths["/baz"].post.requestBody.content["application/json"].schema.anyOf[0]
     )
       .toStrictEqual({ $ref: "#/components/schemas/Y" })
   })
@@ -588,43 +597,6 @@ describe("SpecialOpenApi", () => {
   })
 })
 
-describe("removeNullFromAnyOf", () => {
-  it("removes null variant and unwraps single remaining entry", () => {
-    const input = {
-      anyOf: [
-        { $ref: "#/components/schemas/NonEmptyString64k" },
-        { type: "null" }
-      ]
-    }
-    expect(removeNullFromAnyOf(input)).toStrictEqual({
-      $ref: "#/components/schemas/NonEmptyString64k"
-    })
-  })
-
-  it("removes null variant but keeps anyOf with multiple remaining entries", () => {
-    const input = {
-      anyOf: [
-        { type: "string" },
-        { type: "integer" },
-        { type: "null" }
-      ]
-    }
-    expect(removeNullFromAnyOf(input)).toStrictEqual({
-      anyOf: [{ type: "string" }, { type: "integer" }]
-    })
-  })
-
-  it("preserves non-null unions unchanged", () => {
-    const input = {
-      anyOf: [
-        { $ref: "#/components/schemas/A" },
-        { $ref: "#/components/schemas/B" }
-      ]
-    }
-    expect(removeNullFromAnyOf(input)).toStrictEqual(input)
-  })
-})
-
 describe("flattenSimpleAllOf", () => {
   it("flattens constraint-only allOf into parent with type", () => {
     const input = {
@@ -704,15 +676,20 @@ describe("Post-processing integration — real Effect Schema types", () => {
     })
   })
 
-  it("NullOr(NonEmptyString64k) — null variant removed from anyOf, allOf flattened in definition", () => {
+  it("NullOr(NonEmptyString64k) — null preserved in anyOf, allOf flattened in definition", () => {
     const schema = S.Struct({ note: S.NullOr(AppSchema.NonEmptyString64k) })
     const doc = specialJsonSchemaDocument(schema)
 
-    // null variant stripped, single $ref unwrapped
+    // null variant preserved (correct JSON Schema for NullOr)
     expect(doc.schema).toStrictEqual({
       type: "object",
       properties: {
-        note: { $ref: "#/$defs/NonEmptyString64k" }
+        note: {
+          anyOf: [
+            { $ref: "#/$defs/NonEmptyString64k" },
+            { type: "null" }
+          ]
+        }
       },
       required: ["note"],
       additionalProperties: false
@@ -736,7 +713,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     })
   })
 
-  it("non-null anyOf preserved — NullOr with multiple non-null members keeps anyOf", () => {
+  it("NullOr union preserves null and non-null members in anyOf", () => {
     const A = S.String.annotate({ identifier: "A", title: "A" })
     const B = S.Boolean.annotate({ identifier: "B", title: "B" })
     const schema = S.Struct({
@@ -745,11 +722,10 @@ describe("Post-processing integration — real Effect Schema types", () => {
     const doc = specialJsonSchemaDocument(schema)
     const valueProp = (doc.schema as Record<string, any>)["properties"]["value"]
 
-    // null removed, but two non-null members remain in anyOf
     expect(valueProp).toStrictEqual({
       anyOf: [
-        { $ref: "#/$defs/A" },
-        { $ref: "#/$defs/B" }
+        { anyOf: [{ $ref: "#/$defs/A" }, { $ref: "#/$defs/B" }] },
+        { type: "null" }
       ]
     })
   })

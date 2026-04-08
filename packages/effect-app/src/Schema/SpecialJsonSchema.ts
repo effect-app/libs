@@ -195,45 +195,6 @@ function rewriteRefs(
 }
 
 /**
- * Recursively removes `{ "type": "null" }` entries from `anyOf` arrays.
- * If only one member remains after removal, the `anyOf` wrapper is unwrapped
- * and its properties merged into the parent object.
- */
-export function removeNullFromAnyOf(obj: unknown): unknown {
-  if (obj === null || typeof obj !== "object") return obj
-
-  if (globalThis.Array.isArray(obj)) {
-    return obj.map(removeNullFromAnyOf)
-  }
-
-  const record = obj as Record<string, unknown>
-  const result: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(record)) {
-    result[key] = removeNullFromAnyOf(value)
-  }
-
-  if (globalThis.Array.isArray(result["anyOf"])) {
-    const anyOf = result["anyOf"] as Array<Record<string, unknown>>
-    const filtered = anyOf.filter((entry) =>
-      !(typeof entry === "object"
-        && entry !== null
-        && "type" in entry
-        && entry["type"] === "null"
-        && Object.keys(entry).length === 1)
-    )
-    if (filtered.length !== anyOf.length) {
-      if (filtered.length === 1) {
-        const { anyOf: _, ...rest } = result
-        return { ...rest, ...filtered[0] }
-      }
-      result["anyOf"] = filtered
-    }
-  }
-
-  return result
-}
-
-/**
  * Flattens `allOf` entries into the parent when the parent already has a
  * `type` and every `allOf` entry is a plain constraint object (no `$ref`,
  * no `type`). Merged properties from `allOf` entries win on conflict.
@@ -270,11 +231,10 @@ export function flattenSimpleAllOf(obj: unknown): unknown {
 }
 
 /**
- * Applies all JSON Schema post-processing: removes null from anyOf,
- * flattens simple allOf.
+ * Applies JSON Schema post-processing: flattens simple allOf.
  */
 export function postProcessJsonSchema(obj: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  return flattenSimpleAllOf(removeNullFromAnyOf(obj)) as JsonSchema.JsonSchema
+  return flattenSimpleAllOf(obj) as JsonSchema.JsonSchema
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

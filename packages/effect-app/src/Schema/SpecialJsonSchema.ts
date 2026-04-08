@@ -44,14 +44,14 @@ export function specialJsonSchemaDocument(
   const doc = SchemaRepresentation.fromAST(schema.ast)
   const deduped = deduplicateReferences(doc)
   const jd = SchemaRepresentation.toJsonSchemaDocument(deduped, options)
-  const processedDefs: Record<string, object> = {}
+  const processedDefs: JsonSchema.Definitions = {}
   for (const [key, def] of Object.entries(jd.definitions)) {
-    processedDefs[key] = postProcessJsonSchema(def) as object
+    processedDefs[key] = postProcessJsonSchema(def)
   }
   return {
     dialect: "draft-2020-12",
-    schema: postProcessJsonSchema(jd.schema) as typeof jd.schema,
-    definitions: processedDefs as typeof jd.definitions
+    schema: postProcessJsonSchema(jd.schema),
+    definitions: processedDefs
   }
 }
 
@@ -273,8 +273,8 @@ export function flattenSimpleAllOf(obj: unknown): unknown {
  * Applies all JSON Schema post-processing: removes null from anyOf,
  * flattens simple allOf.
  */
-export function postProcessJsonSchema(obj: unknown): unknown {
-  return flattenSimpleAllOf(removeNullFromAnyOf(obj))
+export function postProcessJsonSchema(obj: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
+  return flattenSimpleAllOf(removeNullFromAnyOf(obj)) as JsonSchema.JsonSchema
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

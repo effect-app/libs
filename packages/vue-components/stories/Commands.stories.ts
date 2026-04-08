@@ -1,5 +1,6 @@
 import { type makeIntl } from "@effect-app/vue"
 import { type Meta, type StoryObj } from "@storybook/vue3"
+import { vueRouter } from "storybook-vue3-router"
 import { ref } from "vue"
 import { provideIntl } from "../src"
 import One from "./Commands/One.vue"
@@ -34,6 +35,10 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const OneStory: Story = {
+  decorators: [
+    /* this is the basic setup with no params passed to the decorator */
+    vueRouter()
+  ],
   render: () => ({
     components: { One },
     template: "<One />"

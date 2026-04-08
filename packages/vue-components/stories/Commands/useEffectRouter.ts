@@ -7,6 +7,7 @@ import { type RouteLocationAsPath, type RouteLocationAsRelative, type RouteLocat
  */
 export const useEffectRouter = () => {
   const r = useRouter()
+  if (!r) throw new Error("useEffectRouter must be used within a RouterProvider")
   const effectified = {
     current: useRoute(),
     replace: (to: RouteLocationRaw) => Effect.promise(() => r.replace(to)),

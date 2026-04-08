@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- 1f9d7da: fix missing toCodecJson usages
+  - effect-app@4.0.0-beta.63
+
 ## 4.0.0-beta.62
 
 ### Patch Changes

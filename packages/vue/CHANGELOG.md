@@ -1,5 +1,15 @@
 # @effect-app/vue
 
+## 4.0.0-beta.63
+
+### Minor Changes
+
+- b3ed68a: Remove `legacy` from `makeClient` return and clean up `LegacyMutation`, `LegacyMutationImpl`, and related types.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.63
+
 ## 4.0.0-beta.62
 
 ### Patch Changes

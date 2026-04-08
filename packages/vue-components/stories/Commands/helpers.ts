@@ -1,4 +1,4 @@
-import { LegacyMutation, makeClient, makeIntl } from "@effect-app/vue"
+import { makeClient, makeIntl } from "@effect-app/vue"
 import { Commander, DefaultIntl } from "@effect-app/vue/commander"
 import { Confirm } from "@effect-app/vue/confirm"
 import { I18n } from "@effect-app/vue/intl"
@@ -45,7 +45,6 @@ export const useCommand = (messages: {}) => {
   const viewLayers = Layer.mergeAll(Router.Default, intlLayer, toastLayer)
   const provideLayers = Layer
     .mergeAll(
-      LegacyMutation.Default.pipe(Layer.provide([toastLayer, intlLayer])),
       commanderLayer,
       viewLayers,
       WithToast.Default.pipe(Layer.provide(toastLayer)),
@@ -55,7 +54,7 @@ export const useCommand = (messages: {}) => {
 
   const mrt = ManagedRuntime.make(provideLayers)
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
-  const { Command } = makeClient(() => mrt, clientFor_)
+  const { Command } = makeClient(() => mrt, clientFor_, Layer.empty)
   return Command
 }
 

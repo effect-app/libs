@@ -8,11 +8,11 @@ import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import { ref } from "vue"
 import { Commander } from "../src/commander.js"
 import { I18n } from "../src/intl.js"
+import { makeClient } from "../src/makeClient.js"
+import { type MakeIntlReturn } from "../src/makeIntl.js"
 import { makeUseCommand } from "../src/makeUseCommand.js"
 import * as Toast from "../src/toast.js"
 import { WithToast } from "../src/withToast.js"
-import { LegacyMutation, makeClient } from "../src/makeClient.js"
-import { type MakeIntlReturn } from "../src/makeIntl.js"
 
 const fakeToastLayer = (toasts: any[] = []) =>
   Layer.effect(
@@ -117,8 +117,7 @@ export const useClient = (
   const api = ApiClientFactory.layer({ url: "bogus", headers: Option.none() }).pipe(
     Layer.provide(FetchHttpClient.layer)
   )
-  const lm = LegacyMutation.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
-  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api, lm)
+  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api)
 
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
   return makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)

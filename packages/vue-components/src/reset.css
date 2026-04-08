@@ -31,6 +31,14 @@ p {
   margin: 0;
 }
 
+button,
+input,
+optgroup,
+select,
+textarea {
+  font: inherit;
+}
+
 input,
 textarea,
 select {
@@ -41,6 +49,53 @@ select {
 a {
   text-decoration: none;
   color: inherit;
+}
+
+a:active,
+a:hover {
+  outline-width: 0;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: monospace;
+}
+
+small {
+  font-size: 80%;
+}
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+textarea {
+  resize: vertical;
+}
+
+select {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+}
+
+legend {
+  display: table;
+  max-width: 100%;
+  white-space: normal;
 }
 
 figure,

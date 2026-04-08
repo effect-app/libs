@@ -26,9 +26,9 @@
       ]
     },
     {
-      "label": "Run Storybook OmegaForm",
+      "label": "Run Storybook",
       "type": "shell",
-      "command": "pnpm storybook",
+      "command": "source ~/.nvm/nvm.sh && nvm use && pnpm storybook",
       "options": {
         "cwd": "${workspaceRoot}/packages/vue-components"
       },

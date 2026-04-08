@@ -1,7 +1,8 @@
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
+import * as AppSchema from "effect-app/Schema"
 import { Class, TaggedClass } from "effect-app/Schema/Class"
-import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import { flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as S from "effect/Schema"
 import { describe, expect, it } from "vitest"
@@ -447,7 +448,7 @@ describe("SpecialOpenApi", () => {
     }
 
     const result = deduplicateOpenApiSchemas(spec)
-    expect(result).toBe(spec) // same reference, no cloning needed
+    expect(result).toStrictEqual(spec)
   })
 
   it("rewrites nested $ref pointers in allOf/anyOf/oneOf", () => {
@@ -520,6 +521,212 @@ describe("SpecialOpenApi", () => {
 
   it("handles spec without components gracefully", () => {
     const spec = { openapi: "3.1.0", info: { title: "Test", version: "1.0" }, paths: {} }
-    expect(deduplicateOpenApiSchemas(spec)).toBe(spec)
+    const result = deduplicateOpenApiSchemas(spec)
+    expect(result).toStrictEqual(spec)
+  })
+
+  it("flattens allOf in components.schemas", () => {
+    const spec = {
+      openapi: "3.1.0",
+      info: { title: "Test", version: "1.0" },
+      paths: {},
+      components: {
+        schemas: {
+          PositiveInt: {
+            type: "integer",
+            allOf: [{ exclusiveMinimum: 0, title: "PositiveInt" }]
+          }
+        }
+      }
+    }
+
+    const result = deduplicateOpenApiSchemas(spec) as any
+
+    expect(result.components.schemas.PositiveInt).toStrictEqual({
+      type: "integer",
+      exclusiveMinimum: 0,
+      title: "PositiveInt"
+    })
+  })
+
+  it("does not flatten allOf containing $ref entries", () => {
+    const spec = {
+      openapi: "3.1.0",
+      info: { title: "Test", version: "1.0" },
+      paths: {},
+      components: {
+        schemas: {
+          Composed: {
+            type: "object",
+            allOf: [{ $ref: "#/components/schemas/Base" }]
+          },
+          Base: { type: "object", properties: { id: { type: "string" } } }
+        }
+      }
+    }
+
+    const result = deduplicateOpenApiSchemas(spec) as any
+
+    expect(result.components.schemas.Composed).toStrictEqual({
+      type: "object",
+      allOf: [{ $ref: "#/components/schemas/Base" }]
+    })
+  })
+
+  it("does not flatten allOf entries that define their own type", () => {
+    const spec = {
+      openapi: "3.1.0",
+      info: { title: "Test", version: "1.0" },
+      paths: {},
+      components: {
+        schemas: {
+          Mixed: {
+            type: "object",
+            allOf: [{ type: "string", minLength: 1 }]
+          }
+        }
+      }
+    }
+
+    const result = deduplicateOpenApiSchemas(spec) as any
+
+    expect(result.components.schemas.Mixed).toStrictEqual({
+      type: "object",
+      allOf: [{ type: "string", minLength: 1 }]
+    })
+  })
+})
+
+describe("flattenSimpleAllOf", () => {
+  it("flattens constraint-only allOf into parent with type", () => {
+    const input = {
+      type: "integer",
+      allOf: [{ exclusiveMinimum: 0, title: "PositiveInt" }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual({
+      type: "integer",
+      exclusiveMinimum: 0,
+      title: "PositiveInt"
+    })
+  })
+
+  it("flattens string type with multiple constraints", () => {
+    const input = {
+      type: "string",
+      allOf: [
+        { minLength: 1, maxLength: 255 },
+        { title: "NonEmptyString255" }
+      ]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual({
+      type: "string",
+      minLength: 1,
+      maxLength: 255,
+      title: "NonEmptyString255"
+    })
+  })
+
+  it("does not flatten allOf with $ref", () => {
+    const input = {
+      type: "object",
+      allOf: [{ $ref: "#/components/schemas/Base" }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual(input)
+  })
+
+  it("does not flatten allOf entries with their own type", () => {
+    const input = {
+      type: "object",
+      allOf: [{ type: "string", minLength: 1 }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual(input)
+  })
+
+  it("allOf entry wins on property conflict", () => {
+    const input = {
+      type: "integer",
+      title: "OldTitle",
+      allOf: [{ title: "NewTitle", minimum: 0 }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual({
+      type: "integer",
+      title: "NewTitle",
+      minimum: 0
+    })
+  })
+})
+
+describe("Post-processing integration — real Effect Schema types", () => {
+  it("PositiveInt — allOf flattened, no wrapping", () => {
+    const doc = specialJsonSchemaDocument(AppSchema.PositiveInt)
+    expect(doc.definitions["PositiveInt"]).toStrictEqual({
+      type: "integer",
+      exclusiveMinimum: 0,
+      title: "PositiveInt"
+    })
+  })
+
+  it("NonEmptyString255 — multiple allOf constraints merged", () => {
+    const doc = specialJsonSchemaDocument(AppSchema.NonEmptyString255)
+    expect(doc.definitions["NonEmptyString255"]).toStrictEqual({
+      type: "string",
+      minLength: 1,
+      maxLength: 255,
+      title: "NonEmptyString255"
+    })
+  })
+
+  it("NullOr(NonEmptyString64k) — null preserved in anyOf, allOf flattened in definition", () => {
+    const schema = S.Struct({ note: S.NullOr(AppSchema.NonEmptyString64k) })
+    const doc = specialJsonSchemaDocument(schema)
+
+    // null variant preserved (correct JSON Schema for NullOr)
+    expect(doc.schema).toStrictEqual({
+      type: "object",
+      properties: {
+        note: {
+          anyOf: [
+            { $ref: "#/$defs/NonEmptyString64k" },
+            { type: "null" }
+          ]
+        }
+      },
+      required: ["note"],
+      additionalProperties: false
+    })
+
+    // allOf flattened in the referenced definition
+    expect(doc.definitions["NonEmptyString64k"]).toStrictEqual({
+      type: "string",
+      minLength: 1,
+      maxLength: 65536,
+      title: "NonEmptyString64k"
+    })
+  })
+
+  it("NonNegativeInt — allOf flattened", () => {
+    const doc = specialJsonSchemaDocument(AppSchema.NonNegativeInt)
+    expect(doc.definitions["NonNegativeInt"]).toStrictEqual({
+      type: "integer",
+      minimum: 0,
+      title: "NonNegativeInt"
+    })
+  })
+
+  it("NullOr union preserves null and non-null members in anyOf", () => {
+    const A = S.String.annotate({ identifier: "A", title: "A" })
+    const B = S.Boolean.annotate({ identifier: "B", title: "B" })
+    const schema = S.Struct({
+      value: S.NullOr(S.Union([A, B]))
+    })
+    const doc = specialJsonSchemaDocument(schema)
+    const valueProp = (doc.schema as Record<string, any>)["properties"]["value"]
+
+    expect(valueProp).toStrictEqual({
+      anyOf: [
+        { anyOf: [{ $ref: "#/$defs/A" }, { $ref: "#/$defs/B" }] },
+        { type: "null" }
+      ]
+    })
   })
 })

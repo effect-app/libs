@@ -110,6 +110,7 @@ export const dateFromString: SchemaTransformation.Transformation<globalThis.Date
 )
 
 const DateString = S.String.annotate({
+  identifier: "Date",
   description: "a string in ISO 8601 format that will be decoded as a Date",
   format: "date-time"
 })

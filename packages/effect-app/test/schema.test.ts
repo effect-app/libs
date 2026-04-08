@@ -359,12 +359,14 @@ describe("JSON Schema", () => {
     const doc = S.toJsonSchemaDocument(S.Date)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: {
-        type: "string",
-        description: "a string in ISO 8601 format that will be decoded as a Date",
-        format: "date-time"
-      },
-      definitions: {}
+      schema: { "$ref": "#/$defs/Date" },
+      definitions: {
+        Date: {
+          type: "string",
+          description: "a string in ISO 8601 format that will be decoded as a Date",
+          format: "date-time"
+        }
+      }
     })
   })
 
@@ -372,12 +374,14 @@ describe("JSON Schema", () => {
     const doc = S.toJsonSchemaDocument(S.DateValid)
     expect(doc).toStrictEqual({
       dialect: "draft-2020-12",
-      schema: {
-        type: "string",
-        description: "a string in ISO 8601 format that will be decoded as a Date",
-        format: "date-time"
-      },
-      definitions: {}
+      schema: { "$ref": "#/$defs/Date" },
+      definitions: {
+        Date: {
+          type: "string",
+          description: "a string in ISO 8601 format that will be decoded as a Date",
+          format: "date-time"
+        }
+      }
     })
   })
 

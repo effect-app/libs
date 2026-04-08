@@ -1,7 +1,7 @@
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import { Class, TaggedClass } from "effect-app/Schema/Class"
-import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import { flattenSimpleAllOf, removeNullFromAnyOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as S from "effect/Schema"
 import { describe, expect, it } from "vitest"
@@ -269,12 +269,7 @@ describe("SpecialJsonSchema", () => {
         "properties": {
           "a": { "$ref": "#/$defs/X" },
           "b": { "$ref": "#/$defs/X" },
-          "c": {
-            "anyOf": [
-              { "$ref": "#/$defs/X" },
-              { "type": "null" }
-            ]
-          },
+          "c": { "$ref": "#/$defs/X" },
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
@@ -336,12 +331,7 @@ describe("SpecialJsonSchema", () => {
         "properties": {
           "a": { "$ref": "#/$defs/X" },
           "b": { "$ref": "#/$defs/X" },
-          "c": {
-            "anyOf": [
-              { "$ref": "#/$defs/X" },
-              { "type": "null" }
-            ]
-          },
+          "c": { "$ref": "#/$defs/X" },
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
@@ -447,10 +437,10 @@ describe("SpecialOpenApi", () => {
     }
 
     const result = deduplicateOpenApiSchemas(spec)
-    expect(result).toBe(spec) // same reference, no cloning needed
+    expect(result).toStrictEqual(spec)
   })
 
-  it("rewrites nested $ref pointers in allOf/anyOf/oneOf", () => {
+  it("rewrites nested $ref pointers in allOf/anyOf/oneOf and removes null from anyOf", () => {
     const spec = {
       openapi: "3.1.0",
       info: { title: "Test", version: "1.0" },
@@ -485,8 +475,9 @@ describe("SpecialOpenApi", () => {
     expect(result.components.schemas).toStrictEqual({
       Y: { type: "object", properties: { name: { type: "string" } } }
     })
+    // null variant removed, single $ref unwrapped from anyOf
     expect(
-      result.paths["/baz"].post.requestBody.content["application/json"].schema.anyOf[0]
+      result.paths["/baz"].post.requestBody.content["application/json"].schema
     )
       .toStrictEqual({ $ref: "#/components/schemas/Y" })
   })
@@ -520,6 +511,174 @@ describe("SpecialOpenApi", () => {
 
   it("handles spec without components gracefully", () => {
     const spec = { openapi: "3.1.0", info: { title: "Test", version: "1.0" }, paths: {} }
-    expect(deduplicateOpenApiSchemas(spec)).toBe(spec)
+    const result = deduplicateOpenApiSchemas(spec)
+    expect(result).toStrictEqual(spec)
+  })
+
+  it("flattens allOf in components.schemas", () => {
+    const spec = {
+      openapi: "3.1.0",
+      info: { title: "Test", version: "1.0" },
+      paths: {},
+      components: {
+        schemas: {
+          PositiveInt: {
+            type: "integer",
+            allOf: [{ exclusiveMinimum: 0, title: "PositiveInt" }]
+          }
+        }
+      }
+    }
+
+    const result = deduplicateOpenApiSchemas(spec) as any
+
+    expect(result.components.schemas.PositiveInt).toStrictEqual({
+      type: "integer",
+      exclusiveMinimum: 0,
+      title: "PositiveInt"
+    })
+  })
+
+  it("does not flatten allOf containing $ref entries", () => {
+    const spec = {
+      openapi: "3.1.0",
+      info: { title: "Test", version: "1.0" },
+      paths: {},
+      components: {
+        schemas: {
+          Composed: {
+            type: "object",
+            allOf: [{ $ref: "#/components/schemas/Base" }]
+          },
+          Base: { type: "object", properties: { id: { type: "string" } } }
+        }
+      }
+    }
+
+    const result = deduplicateOpenApiSchemas(spec) as any
+
+    expect(result.components.schemas.Composed).toStrictEqual({
+      type: "object",
+      allOf: [{ $ref: "#/components/schemas/Base" }]
+    })
+  })
+
+  it("does not flatten allOf entries that define their own type", () => {
+    const spec = {
+      openapi: "3.1.0",
+      info: { title: "Test", version: "1.0" },
+      paths: {},
+      components: {
+        schemas: {
+          Mixed: {
+            type: "object",
+            allOf: [{ type: "string", minLength: 1 }]
+          }
+        }
+      }
+    }
+
+    const result = deduplicateOpenApiSchemas(spec) as any
+
+    expect(result.components.schemas.Mixed).toStrictEqual({
+      type: "object",
+      allOf: [{ type: "string", minLength: 1 }]
+    })
+  })
+})
+
+describe("removeNullFromAnyOf", () => {
+  it("removes null variant and unwraps single remaining entry", () => {
+    const input = {
+      anyOf: [
+        { $ref: "#/components/schemas/NonEmptyString64k" },
+        { type: "null" }
+      ]
+    }
+    expect(removeNullFromAnyOf(input)).toStrictEqual({
+      $ref: "#/components/schemas/NonEmptyString64k"
+    })
+  })
+
+  it("removes null variant but keeps anyOf with multiple remaining entries", () => {
+    const input = {
+      anyOf: [
+        { type: "string" },
+        { type: "integer" },
+        { type: "null" }
+      ]
+    }
+    expect(removeNullFromAnyOf(input)).toStrictEqual({
+      anyOf: [{ type: "string" }, { type: "integer" }]
+    })
+  })
+
+  it("preserves non-null unions unchanged", () => {
+    const input = {
+      anyOf: [
+        { $ref: "#/components/schemas/A" },
+        { $ref: "#/components/schemas/B" }
+      ]
+    }
+    expect(removeNullFromAnyOf(input)).toStrictEqual(input)
+  })
+})
+
+describe("flattenSimpleAllOf", () => {
+  it("flattens constraint-only allOf into parent with type", () => {
+    const input = {
+      type: "integer",
+      allOf: [{ exclusiveMinimum: 0, title: "PositiveInt" }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual({
+      type: "integer",
+      exclusiveMinimum: 0,
+      title: "PositiveInt"
+    })
+  })
+
+  it("flattens string type with multiple constraints", () => {
+    const input = {
+      type: "string",
+      allOf: [
+        { minLength: 1, maxLength: 255 },
+        { title: "NonEmptyString255" }
+      ]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual({
+      type: "string",
+      minLength: 1,
+      maxLength: 255,
+      title: "NonEmptyString255"
+    })
+  })
+
+  it("does not flatten allOf with $ref", () => {
+    const input = {
+      type: "object",
+      allOf: [{ $ref: "#/components/schemas/Base" }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual(input)
+  })
+
+  it("does not flatten allOf entries with their own type", () => {
+    const input = {
+      type: "object",
+      allOf: [{ type: "string", minLength: 1 }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual(input)
+  })
+
+  it("allOf entry wins on property conflict", () => {
+    const input = {
+      type: "integer",
+      title: "OldTitle",
+      allOf: [{ title: "NewTitle", minimum: 0 }]
+    }
+    expect(flattenSimpleAllOf(input)).toStrictEqual({
+      type: "integer",
+      title: "NewTitle",
+      minimum: 0
+    })
   })
 })

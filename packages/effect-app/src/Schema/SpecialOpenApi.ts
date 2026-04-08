@@ -1,10 +1,12 @@
 /**
- * SpecialOpenApi — Deduplicates `components/schemas` entries in an OpenAPI spec.
+ * SpecialOpenApi — Deduplicates `components/schemas` entries in an OpenAPI spec
+ * and applies JSON Schema post-processing (null removal, allOf flattening).
  *
  * When `OpenApi.fromApi` generates the spec, different AST nodes sharing the
  * same identifier can produce duplicate entries (e.g. "X" and "X1") in
  * `components.schemas`. This module provides a transform function that
- * collapses those duplicates and rewrites all `$ref` pointers accordingly.
+ * collapses those duplicates, rewrites all `$ref` pointers accordingly,
+ * and post-processes schemas for better codegen compatibility.
  *
  * Usage with the OpenApi `Transform` annotation:
  *
@@ -16,6 +18,8 @@
  *   .pipe(HttpApi.annotateContext(OpenApi.annotations({ transform: deduplicateOpenApiSchemas })))
  * ```
  */
+
+import { postProcessJsonSchema } from "./SpecialJsonSchema.js"
 
 /**
  * Deduplicates `components.schemas` entries in an OpenAPI spec.
@@ -66,7 +70,7 @@ export function deduplicateOpenApiSchemas(
     }
   }
 
-  if (remapping.size === 0) return spec
+  if (remapping.size === 0) return postProcessJsonSchema(spec) as Record<string, any>
 
   // Build new schemas object without duplicates
   const newSchemas: Record<string, any> = {}
@@ -81,7 +85,7 @@ export function deduplicateOpenApiSchemas(
   newSpec["components"]["schemas"] = newSchemas
   rewriteRefs(newSpec, remapping)
 
-  return newSpec
+  return postProcessJsonSchema(newSpec) as Record<string, any>
 }
 
 /**

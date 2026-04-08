@@ -44,10 +44,14 @@ export function specialJsonSchemaDocument(
   const doc = SchemaRepresentation.fromAST(schema.ast)
   const deduped = deduplicateReferences(doc)
   const jd = SchemaRepresentation.toJsonSchemaDocument(deduped, options)
+  const processedDefs: Record<string, object> = {}
+  for (const [key, def] of Object.entries(jd.definitions)) {
+    processedDefs[key] = postProcessJsonSchema(def) as object
+  }
   return {
     dialect: "draft-2020-12",
-    schema: jd.schema,
-    definitions: jd.definitions
+    schema: postProcessJsonSchema(jd.schema) as typeof jd.schema,
+    definitions: processedDefs as typeof jd.definitions
   }
 }
 
@@ -188,6 +192,89 @@ function rewriteRefs(
       // Symbol, Number, BigInt, Literal, UniqueSymbol, ObjectKeyword, Enum
       return rep
   }
+}
+
+/**
+ * Recursively removes `{ "type": "null" }` entries from `anyOf` arrays.
+ * If only one member remains after removal, the `anyOf` wrapper is unwrapped
+ * and its properties merged into the parent object.
+ */
+export function removeNullFromAnyOf(obj: unknown): unknown {
+  if (obj === null || typeof obj !== "object") return obj
+
+  if (globalThis.Array.isArray(obj)) {
+    return obj.map(removeNullFromAnyOf)
+  }
+
+  const record = obj as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    result[key] = removeNullFromAnyOf(value)
+  }
+
+  if (globalThis.Array.isArray(result["anyOf"])) {
+    const anyOf = result["anyOf"] as Array<Record<string, unknown>>
+    const filtered = anyOf.filter((entry) =>
+      !(typeof entry === "object"
+        && entry !== null
+        && "type" in entry
+        && entry["type"] === "null"
+        && Object.keys(entry).length === 1)
+    )
+    if (filtered.length !== anyOf.length) {
+      if (filtered.length === 1) {
+        const { anyOf: _, ...rest } = result
+        return { ...rest, ...filtered[0] }
+      }
+      result["anyOf"] = filtered
+    }
+  }
+
+  return result
+}
+
+/**
+ * Flattens `allOf` entries into the parent when the parent already has a
+ * `type` and every `allOf` entry is a plain constraint object (no `$ref`,
+ * no `type`). Merged properties from `allOf` entries win on conflict.
+ */
+export function flattenSimpleAllOf(obj: unknown): unknown {
+  if (obj === null || typeof obj !== "object") return obj
+
+  if (globalThis.Array.isArray(obj)) {
+    return obj.map(flattenSimpleAllOf)
+  }
+
+  const record = obj as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    result[key] = flattenSimpleAllOf(value)
+  }
+
+  if (result["type"] && globalThis.Array.isArray(result["allOf"])) {
+    const allOf = result["allOf"] as Array<Record<string, unknown>>
+    const canFlatten = allOf.every((entry) =>
+      typeof entry === "object" && entry !== null && !("$ref" in entry) && !("type" in entry)
+    )
+    if (canFlatten) {
+      const { allOf: _, ...rest } = result
+      let merged: Record<string, unknown> = { ...rest }
+      for (const entry of allOf) {
+        merged = { ...merged, ...entry }
+      }
+      return merged
+    }
+  }
+
+  return result
+}
+
+/**
+ * Applies all JSON Schema post-processing: removes null from anyOf,
+ * flattens simple allOf.
+ */
+export function postProcessJsonSchema(obj: unknown): unknown {
+  return flattenSimpleAllOf(removeNullFromAnyOf(obj))
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

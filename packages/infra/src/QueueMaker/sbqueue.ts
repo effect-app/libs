@@ -21,10 +21,10 @@ export function makeServiceBusQueue<
     body: schema,
     meta: QueueMeta
   })
-  const wireSchemaJson = S.fromJsonString(wireSchema)
+  const wireSchemaJson = S.fromJsonString(S.toCodecJson(wireSchema))
   const encodePublish = S.encodeEffect(wireSchemaJson)
   const drainW = S.Struct({ body: drainSchema, meta: QueueMeta })
-  const drainWJson = S.fromJsonString(drainW)
+  const drainWJson = S.fromJsonString(S.toCodecJson(drainW))
   const parseDrain = flow(S.decodeUnknownEffect(drainWJson), Effect.orDie)
 
   return Effect.gen(function*() {

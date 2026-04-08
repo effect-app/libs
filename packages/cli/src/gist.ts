@@ -256,7 +256,7 @@ class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
 
             const entries = yield* pipe(
               cacheContent,
-              Schema.decodeUnknownEffect(Schema.fromJsonString(GistCacheEntries)),
+              Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
               Effect.orDie
             )
 
@@ -301,7 +301,7 @@ class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
       function*(cache: GistCache) {
         const cacheJson = yield* pipe(
           cache.entries,
-          Schema.encodeUnknownEffect(Schema.fromJsonString(GistCacheEntries)),
+          Schema.encodeUnknownEffect(Schema.fromJsonString(S.toCodecJson(GistCacheEntries))),
           // cannot recover from parse errors in any case, better to die here instead of cluttering the signature
           Effect.orDie
         )

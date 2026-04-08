@@ -28,7 +28,7 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
 
             const enc = new TextEncoder()
 
-            const encode = S.encodeEffect(S.fromJsonString(schema))
+            const encode = S.encodeEffect(S.fromJsonString(S.toCodecJson(schema)))
 
             const eventStream = Stream.mapEffect(
               events,

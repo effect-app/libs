@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- c1a6fdc: fix proxify
+
 ## 4.0.0-beta.63
 
 ## 4.0.0-beta.62

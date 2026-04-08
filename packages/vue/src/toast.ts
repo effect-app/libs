@@ -1,5 +1,5 @@
 import { Context, Effect, Option } from "effect-app"
-import { proxify } from "effect-app/Context"
+import { accessEffectFn } from "effect-app/Context"
 
 export type ToastId = string | number
 export type ToastOpts = { id?: ToastId; timeout?: number }
@@ -41,26 +41,12 @@ export const wrap = (toast: ReturnType<UseToast>) => {
   }
 }
 
-export class Toast
-  extends proxify(Context.Opaque<Toast, ReturnType<typeof wrap>>()("Toast"))<Toast, ReturnType<typeof wrap>>()
-{
+type ToastShape = ReturnType<typeof wrap>
+
+export class Toast extends Context.Opaque<Toast, ToastShape>()("Toast") {
+  static readonly error = accessEffectFn(this, "error")
+  static readonly info = accessEffectFn(this, "info")
+  static readonly success = accessEffectFn(this, "success")
+  static readonly warning = accessEffectFn(this, "warning")
+  static readonly dismiss = accessEffectFn(this, "dismiss")
 }
-
-// const a = Layer.effect(Toast, Effect.sync(() => Toast.of(null as any)))
-
-// const A = Toast.of({
-//   error: () => Effect.succeed(null as any),
-//   info: () => Effect.succeed(null as any),
-//   success: () => Effect.succeed(null as any),
-//   warning: () => Effect.succeed(null as any),
-//   dismiss: () => Effect.succeed(null as any)
-// })
-
-// const b = Toast.info("test")
-
-// const a2 = Toast.use((_) => _.error("test"))
-
-// const b2 = Effect.gen(function*() {
-//   const toast = yield* Toast
-//   toast.error("test")
-// })

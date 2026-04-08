@@ -1,9 +1,12 @@
 import { Context } from "effect-app"
-import { proxify } from "effect-app/Context"
+import { accessCn, accessFn } from "effect-app/Context"
 import { type MakeIntlReturn } from "./makeIntl.js"
 
-export class I18n extends proxify(Context.Opaque<I18n, ReturnType<MakeIntlReturn<string>["useIntl"]>>()("I18n"))<
-  I18n,
-  ReturnType<MakeIntlReturn<string>["useIntl"]>
->() {
+type I18nShape = ReturnType<MakeIntlReturn<string>["useIntl"]>
+
+export class I18n extends Context.Opaque<I18n, I18nShape>()("I18n") {
+  static readonly locale = accessCn(this, "locale")
+  static readonly trans = accessFn(this, "trans")
+  static readonly formatMessage = accessFn(this, "formatMessage")
+  static readonly intl = accessCn(this, "intl")
 }

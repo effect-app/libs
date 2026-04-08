@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Effect, Layer, type Scope, type Types } from "effect"
+import { type Effect, Layer, type Scope, type Types } from "effect"
 import * as SM from "effect/ServiceMap"
 import { type Yieldable } from "./Effect.js"
 
@@ -65,69 +65,49 @@ export function assignTag<Identifier extends object, Shape extends object = Iden
   }
 }
 
-export type ServiceAcessorShape<Self, Type> = Type extends Record<PropertyKey, any> ? {
-    [
-      k in keyof Type as Type[k] extends ((...args: [...infer Args]) => infer Ret)
-        ? ((...args: Readonly<Args>) => Ret) extends Type[k] ? k : never
-        : k
-    ]: Type[k] extends (...args: [...infer Args]) => Effect.Effect<infer A, infer E, infer R>
-      ? (...args: Readonly<Args>) => Effect.Effect<A, E, Self | R>
-      : Type[k] extends (...args: [...infer Args]) => infer A
-        ? (...args: Readonly<Args>) => Effect.Effect<A, never, Self>
-      : Type[k] extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, Self | R>
-      : Effect.Effect<Type[k], never, Self>
-  }
-  : {}
+/** Accessor for a service method that returns a plain value. Wraps via `useSync`. */
+export const accessFn = <
+  Self extends object,
+  Shape extends Record<PropertyKey, any>,
+  K extends keyof Shape
+>(
+  Tag: Opaque<Self, Shape>,
+  key: K
+): Shape[K] extends (...args: [...infer Args]) => infer A ? (...args: Readonly<Args>) => Effect.Effect<A, never, Self>
+  : never => ((...args: Array<any>) => Tag.useSync((s: any) => s[key](...args))) as any
 
-/**
- * Only use this in very specific cases where using dependencies directly is prefered, like inside command handlers.
- */
-export const proxify = <T extends object>(Tag: T) =>
-<Self, Shape>():
-  & T
-  & ServiceAcessorShape<Self, Shape> =>
-{
-  const cache = new Map()
-  const done = new Proxy(Tag, {
-    get(_target: any, prop: any, _receiver) {
-      if (prop === "use") {
-        // @ts-expect-error abc
-        return (body) => (Tag as any).use(body)
-      }
-      if (prop === "useSync") {
-        // @ts-expect-error abc
-        return (body) => (Tag as any).useSync(body)
-      }
-      if (prop in Tag) {
-        return (Tag as any)[prop]
-      }
-      if (cache.has(prop)) {
-        return cache.get(prop)
-      }
-      const fn = (...args: Array<any>) =>
-        (Tag as any).use((s: any) => {
-          const f = s[prop](...args)
-          if (Effect.isEffect(f)) {
-            return f
-          }
-          return Effect.succeed(f)
-        })
-      const cn = (Tag as any).use((s: any) => {
-        const f = s[prop]
-        if (Effect.isEffect(f)) {
-          return f
-        }
-        return Effect.succeed(f)
-      })
-      // @effect-diagnostics effect/floatingEffect:off
-      Object.assign(fn, cn)
-      Object.setPrototypeOf(fn, Object.getPrototypeOf(cn))
-      cache.set(prop, fn)
-      return fn
-    }
-  })
-  return done
-}
+/** Accessor for a service method that returns an Effect. Delegates via `use`. */
+export const accessEffectFn = <
+  Self extends object,
+  Shape extends Record<PropertyKey, any>,
+  K extends keyof Shape
+>(
+  Tag: Opaque<Self, Shape>,
+  key: K
+): Shape[K] extends (...args: [...infer Args]) => Effect.Effect<infer A, infer E, infer R>
+  ? (...args: Readonly<Args>) => Effect.Effect<A, E, Self | R>
+  : never => ((...args: Array<any>) => Tag.use((s: any) => s[key](...args))) as any
+
+/** Accessor for a service property (constant). Wraps via `useSync`. */
+export const accessCn = <
+  Self extends object,
+  Shape extends Record<PropertyKey, any>,
+  K extends keyof Shape
+>(
+  Tag: Opaque<Self, Shape>,
+  key: K
+): Effect.Effect<Shape[K], never, Self> => Tag.useSync((s) => s[key]) as any
+
+/** Accessor for a service property that is an Effect. Delegates via `use`. */
+export const accessEffectCn = <
+  Self extends object,
+  Shape extends Record<PropertyKey, any>,
+  K extends keyof Shape
+>(
+  Tag: Opaque<Self, Shape>,
+  key: K
+): Shape[K] extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, Self | R>
+  : never => Tag.use((s: any) => s[key]) as any
 
 export const TypeId = "~ServiceMap.Opaque"
 

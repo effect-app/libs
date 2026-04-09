@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- 22e979c: wrap vuetify reset
+  - effect-app@4.0.0-beta.67
+  - @effect-app/vue@4.0.0-beta.67
+
 ## 4.0.0-beta.66
 
 ### Patch Changes

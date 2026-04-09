@@ -4,48 +4,49 @@
  * Import this file to restore equivalent behavior:
  *   import '@effect-app/vue-components/reset.css'
  */
+@layer vuetify-reset {
+  body {
+    margin: 0;
+  }
 
-body {
-  margin: 0;
-}
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
 
-ul,
-ol {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+  }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0;
-  font-size: inherit;
-  font-weight: inherit;
-}
+  p {
+    margin: 0;
+  }
 
-p {
-  margin: 0;
-}
+  input,
+  textarea,
+  select {
+    border: 0;
+    background: transparent;
+  }
 
-input,
-textarea,
-select {
-  border: 0;
-  background: transparent;
-}
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
 
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-figure,
-details,
-summary {
-  margin: 0;
-  padding: 0;
+  figure,
+  details,
+  summary {
+    margin: 0;
+    padding: 0;
+  }
 }

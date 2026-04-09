@@ -73,5 +73,5 @@ export const value: (self: SecretURL) => string = internal.value
 export const unsafeWipe: (self: SecretURL) => void = internal.unsafeWipe
 
 export const secretURL = (name?: string): Config.Config<SecretURL> => {
-  return Config.map(Config.string(name), fromString)
+  return Config.map(Config.nonEmptyString(name), fromString)
 }

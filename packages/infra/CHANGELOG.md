@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- dc465e3: update to latest effect beta
+- Updated dependencies [dc465e3]
+  - effect-app@4.0.0-beta.69
+
 ## 4.0.0-beta.68
 
 ### Patch Changes

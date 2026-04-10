@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- dc465e3: update to latest effect beta
+
 ## 4.0.0-beta.68
 
 ### Patch Changes

@@ -15,7 +15,7 @@ test("works", () => {
 })
 
 test("literal default works", () => {
-  const l = S.Literal("a", "b")
+  const l = S.Literals(["a", "b"])
   expect(l.Default).toBe("a")
   const s = S.Struct({ l: l.withDefault })
   expect(s.make({}).l).toBe("a")

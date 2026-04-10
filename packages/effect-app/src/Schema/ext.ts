@@ -81,9 +81,9 @@ export const Finite = Object.assign(S.Finite, {
 })
 
 /**
- * Like the default Schema `Literal` but with `withDefault` => literals[0]
+ * Like the default Schema `Literals` but with `withDefault` => literals[0]
  */
-export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(...literals: Literals) =>
+export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(literals: Literals) =>
   pipe(
     S.Literals(literals),
     (s) =>

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- b53c59e: fix signature
+  - effect-app@4.0.0-beta.73
+
 ## 4.0.0-beta.72
 
 ### Patch Changes

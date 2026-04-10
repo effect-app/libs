@@ -1,7 +1,7 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
-import { Array, Config, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, ServiceMap as Context, SynchronizedRef } from "effect"
+import { Array, Config, Context, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, SynchronizedRef } from "effect"
 
 import * as yaml from "js-yaml"
 import path from "path"

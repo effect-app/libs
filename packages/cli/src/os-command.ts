@@ -1,6 +1,6 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
-import { Effect, Layer, ServiceMap as Context } from "effect"
+import { Context, Effect, Layer } from "effect"
 import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- fdb9cb3: cleanup
+  - effect-app@4.0.0-beta.70
+
 ## 4.0.0-beta.69
 
 ### Patch Changes

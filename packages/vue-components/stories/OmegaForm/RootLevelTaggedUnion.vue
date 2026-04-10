@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { useOmegaForm } from "../../src"
 
 // Root-level union schema - the entire form is a union
@@ -85,7 +85,7 @@ import { useOmegaForm } from "../../src"
 // Without unionMeta, the required state won't switch when toggling branches.
 const schema = S.Union([
   S.TaggedStruct("A", {
-    a: S.NonEmptyString255.pipe(S.withDefaultConstructor(() => S.NonEmptyString255("aaaa"))),
+    a: S.NonEmptyString255.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))),
     common: S.NonEmptyString255
   }),
   S.TaggedStruct("B", {

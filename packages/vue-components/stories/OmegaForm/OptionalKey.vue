@@ -23,7 +23,7 @@
       </template>
     </basic.Form>
 
-    <h3>Mixed withDefaultConstructor and optionalKey</h3>
+    <h3>Mixed withConstructorDefault and optionalKey</h3>
     <pre v-highlightjs>
 <code class="typescript">{{ mixedCode }}</code></pre>
 
@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const basicCode = `const form = useOmegaForm(
@@ -73,7 +73,7 @@ const basicCode = `const form = useOmegaForm(
 const mixedCode = `const form = useOmegaForm(
   S.Struct({
     fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decodingValue")),
-    fromConstructor: S.String.pipe(S.withDefaultConstructor(() => "constructorValue")),
+    fromConstructor: S.String.pipe(S.withConstructorDefault(Effect.succeed("constructorValue"))),
     plain: S.Boolean
   })
 )`
@@ -102,7 +102,7 @@ const basic = useOmegaForm(
 const mixed = useOmegaForm(
   S.Struct({
     fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decodingValue")),
-    fromConstructor: S.String.pipe(S.withDefaultConstructor(() => "constructorValue")),
+    fromConstructor: S.String.pipe(S.withConstructorDefault(Effect.succeed("constructorValue"))),
     plain: S.Boolean
   })
 )

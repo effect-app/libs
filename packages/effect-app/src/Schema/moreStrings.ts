@@ -1,4 +1,4 @@
-import { pipe } from "effect"
+import { Effect, pipe } from "effect"
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
 import * as S from "effect/Schema"
@@ -6,7 +6,7 @@ import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
 import { fromBrand, nominal } from "./brand.js"
-import { withDefaultConstructor, withDefaultMake, type WithDefaults } from "./ext.js"
+import { withDefaultMake, type WithDefaults } from "./ext.js"
 import { type B } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
@@ -160,7 +160,7 @@ export const StringId = extendM(
   ),
   (s) => ({
     make: makeStringId,
-    withDefault: s.pipe(withDefaultConstructor(makeStringId))
+    withDefault: s.pipe(S.withConstructorDefault(Effect.sync(makeStringId)))
   })
 )
   .pipe(withDefaultMake)
@@ -208,7 +208,9 @@ export function prefixedStringId<Brand extends StringId>() {
          */
         prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
         prefix,
-        withDefault: schema.pipe(withDefaultConstructor(make))
+        withDefault: S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>(
+          Effect.sync(make)
+        )(schema as S.Codec<Brand, string> & S.WithoutConstructorDefault)
       })
     )
   }

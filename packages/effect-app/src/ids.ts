@@ -1,3 +1,4 @@
+import { Effect } from "effect"
 import { brandedStringId, type Codec, NonEmptyString255, StringId, type StringIdBrand, withDefaultMake } from "effect-app/Schema"
 import type { B } from "effect-app/Schema/schema"
 import type { Simplify } from "effect/Types"
@@ -17,7 +18,7 @@ export const RequestId = extendM(
     const make = StringId.make as () => NonEmptyString255
     return ({
       make,
-      withDefault: s.pipe(S.withDefaultConstructor(make))
+      withDefault: S.withConstructorDefault(Effect.sync(make))(s as typeof s & S.WithoutConstructorDefault)
     })
   }
 )

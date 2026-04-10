@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils"
-import { S } from "effect-app"
 import { SchemaGetter } from "effect"
+import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
@@ -79,7 +79,7 @@ describe("OmegaForm TransformedStruct", () => {
 
   it("should work with a double-transformed struct inside a union", async () => {
     const memberSchema = S.Struct({
-      _tag: S.Literal("option1").pipe(S.withDefaultConstructor(() => "option1")),
+      _tag: S.Literal("option1").pipe(S.withConstructorDefault(Effect.succeed("option1"))),
       data: S.NonEmptyString
     })
     const doubleTransformedMember = memberSchema
@@ -126,19 +126,21 @@ describe("OmegaForm TransformedStruct", () => {
 
   it("should work with a transformed struct inside a union", async () => {
     const unionSchema = S.Union([
-      S.Struct({
-        _tag: S.Literal("option1").pipe(S.withDefaultConstructor(() => "option1")),
-        data: S.NonEmptyString
-      }).pipe(S.decodeTo(
-        S.Struct({
-          _tag: S.Literal("option1").pipe(S.withDefaultConstructor(() => "option1")),
+      S
+        .Struct({
+          _tag: S.Literal("option1").pipe(S.withConstructorDefault(Effect.succeed("option1"))),
           data: S.NonEmptyString
-        }),
-        {
-          decode: SchemaGetter.passthrough({ strict: false }),
-          encode: SchemaGetter.passthrough({ strict: false })
-        }
-      )),
+        })
+        .pipe(S.decodeTo(
+          S.Struct({
+            _tag: S.Literal("option1").pipe(S.withConstructorDefault(Effect.succeed("option1"))),
+            data: S.NonEmptyString
+          }),
+          {
+            decode: SchemaGetter.passthrough({ strict: false }),
+            encode: SchemaGetter.passthrough({ strict: false })
+          }
+        )),
       S.Struct({
         _tag: S.Literal("option2"),
         value: S.Finite

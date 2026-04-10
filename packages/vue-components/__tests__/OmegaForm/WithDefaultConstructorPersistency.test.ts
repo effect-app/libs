@@ -1,30 +1,30 @@
 import { mount } from "@vue/test-utils"
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
-describe("OmegaForm withDefaultConstructor with persistency", () => {
+describe("OmegaForm withConstructorDefault with persistency", () => {
   beforeEach(() => {
     // Mock window.history.replaceState to avoid DOMException in tests
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {})
   })
 
-  it("should apply withDefaultConstructor defaults and override with query string persistency", async () => {
+  it("should apply withConstructorDefault defaults and override with query string persistency", async () => {
     const AddSchema = S.Struct({
-      first: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
-      second: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+      first: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
+      second: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
       third: S.NullOr(S.String).withDefault,
       fourth: S
         .Struct({
           addForm: S.NullOr(S.String).withDefault,
-          b: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+          b: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
           c: S.Struct({
-            d: S.Finite.pipe(S.withDefaultConstructor(() => 10))
+            d: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(10)))
           })
         }),
       fifth: S.Email,
-      sixth: S.FiniteFromString.pipe(S.withDefaultConstructor(() => 1000))
+      sixth: S.FiniteFromString.pipe(S.withConstructorDefault(Effect.succeed(1000)))
     })
 
     // Simulate query string parameters
@@ -90,13 +90,13 @@ describe("OmegaForm withDefaultConstructor with persistency", () => {
 
     expect(values).toEqual({
       first: 1234, // Overridden by query string
-      second: 100, // Default from withDefaultConstructor
+      second: 100, // Default from withConstructorDefault
       third: null, // Default from NullOr withDefault
       fourth: {
         addForm: null,
-        b: 100, // Default from withDefaultConstructor
+        b: 100, // Default from withConstructorDefault
         c: {
-          d: 10 // Default from withDefaultConstructor
+          d: 10 // Default from withConstructorDefault
         }
       },
       fifth: "",

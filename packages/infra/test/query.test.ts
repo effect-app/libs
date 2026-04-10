@@ -20,7 +20,7 @@ export class Something extends S.Class<Something>("Something")({
   displayName: S.NonEmptyString255,
   name: S.NullOr(S.NonEmptyString255).withDefault,
   n: S.Date.withDefault,
-  union: someUnion.pipe(S.withDefaultConstructor(() => ({ _tag: "string" as const, value: "hi" })))
+  union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
 }) {}
 export declare namespace Something {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type

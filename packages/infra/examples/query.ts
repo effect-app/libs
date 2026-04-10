@@ -12,7 +12,7 @@ export class Something extends S.TaggedClass<Something>()("Something", {
   id: S.StringId.withDefault,
   displayName: S.NonEmptyString255,
   n: S.Date.withDefault,
-  union: someUnion.pipe(S.withDefaultConstructor(() => ({ _tag: "string" as const, value: "hi" })))
+  union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
 }) {}
 
 export class SomethingElse extends S.TaggedClass<SomethingElse>()("SomethingElse", {

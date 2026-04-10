@@ -1,8 +1,9 @@
+import { Effect } from "effect"
 import { extendM } from "effect-app/utils"
 import * as S from "effect/Schema"
 import type { Simplify } from "effect/Types"
 import { fromBrand, nominal } from "./brand.js"
-import { withDefaultConstructor, withDefaultMake } from "./ext.js"
+import { withDefaultMake } from "./ext.js"
 import { type B } from "./schema.js"
 
 export interface PositiveIntBrand
@@ -14,7 +15,7 @@ export const PositiveInt = extendM(
     fromBrand(nominal<PositiveInt>(), { identifier: "PositiveInt", title: "PositiveInt", jsonSchema: {} }),
     withDefaultMake
   ),
-  (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => s(1))) })
+  (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(1)))) })
 )
 export type PositiveInt = number & PositiveIntBrand
 
@@ -29,14 +30,14 @@ export const NonNegativeInt = extendM(
     }),
     withDefaultMake
   ),
-  (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => s(0))) })
+  (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0)))) })
 )
 export type NonNegativeInt = number & NonNegativeIntBrand
 
 export interface IntBrand extends Simplify<B.Brand<"Int">> {}
 export const Int = extendM(
   S.Int.pipe(fromBrand(nominal<Int>(), { identifier: "Int", title: "Int", jsonSchema: {} }), withDefaultMake),
-  (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => s(0))) })
+  (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0)))) })
 )
 export type Int = number & IntBrand
 
@@ -51,7 +52,7 @@ export const PositiveNumber = extendM(
     }),
     withDefaultMake
   ),
-  (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => s(1))) })
+  (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(1)))) })
 )
 export type PositiveNumber = number & PositiveNumberBrand
 
@@ -68,7 +69,7 @@ export const NonNegativeNumber = extendM(
       }),
       withDefaultMake
     ),
-  (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => s(0))) })
+  (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0)))) })
 )
 export type NonNegativeNumber = number & NonNegativeNumberBrand
 

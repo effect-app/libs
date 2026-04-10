@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 // TODO: remove the story after manual _tag deprecation
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { useOmegaForm } from "../../src"
 
 // Legacy pattern: S.Struct with _tag: S.Literal instead of S.TaggedStruct.
@@ -76,7 +76,7 @@ import { useOmegaForm } from "../../src"
 const schema = S.Union([
   S.Struct({
     _tag: S.Literal("A"),
-    a: S.NonEmptyString255.pipe(S.withDefaultConstructor(() => S.NonEmptyString255("aaaa"))),
+    a: S.NonEmptyString255.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString255("aaaa")))),
     common: S.NonEmptyString255
   }),
   S.Struct({

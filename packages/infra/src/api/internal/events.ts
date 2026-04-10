@@ -9,8 +9,8 @@ const keepAlive = Stream.fromEffectSchedule(Effect.succeed(":keep-alive"), Sched
 
 let connId = BigInt(0)
 
-export const makeSSE = <A extends { id: any }, SI, SR>(
-  schema: S.Codec<A, SI, SR>
+export const makeSSE = <A extends { id: any }, SI, SRD, SRE>(
+  schema: S.Codec<A, SI, SRD, SRE>
 ) =>
 <E, R>(events: Stream.Stream<{ evt: A; namespace: string }, E, R>) =>
   Effect

@@ -72,6 +72,7 @@
     "real-lilies-design",
     "remove-legacy-from-make-client",
     "remove-tagged-error-compat",
+    "remove-withDefaultConstructor",
     "replace-proxify-with-accessors",
     "salty-weeks-walk",
     "schema-json-collections",

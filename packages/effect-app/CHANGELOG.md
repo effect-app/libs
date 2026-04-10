@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.71
+
+### Minor Changes
+
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+
 ## 4.0.0-beta.70
 
 ## 4.0.0-beta.69

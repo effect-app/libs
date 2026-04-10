@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.71
+
+### Patch Changes
+
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+- Updated dependencies [beae3a0]
+  - effect-app@4.0.0-beta.71
+  - @effect-app/vue@4.0.0-beta.71
+
 ## 4.0.0-beta.70
 
 ### Patch Changes

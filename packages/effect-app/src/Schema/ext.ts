@@ -112,12 +112,7 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 /**
  * An annotated `S.Array` of unique items that decodes to a `ReadonlySet`.
  */
-export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema): S.Codec<
-  ReadonlySet<ValueSchema["Type"]>,
-  readonly ValueSchema["Encoded"][],
-  ValueSchema["DecodingServices"],
-  ValueSchema["EncodingServices"]
-> => {
+export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
   const from = S
     .Array(value)
     .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
@@ -131,7 +126,7 @@ export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSche
       })
     )
   )
-  return S.revealCodec(schema)
+  return schema
 }
 
 /**
@@ -140,12 +135,7 @@ export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSche
 export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
   readonly key: KeySchema
   readonly value: ValueSchema
-}): S.Codec<
-  ReadonlyMap<KeySchema["Type"], S.Schema.Type<ValueSchema>>,
-  readonly (readonly [KeySchema["Encoded"], ValueSchema["Encoded"]])[],
-  KeySchema["DecodingServices"] | ValueSchema["DecodingServices"],
-  KeySchema["EncodingServices"] | ValueSchema["EncodingServices"]
-> => {
+}) => {
   const from = S
     .Array(S.Tuple([pair.key, pair.value]))
     .annotate({ expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
@@ -165,7 +155,7 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
       })
     )
   )
-  return S.revealCodec(schema)
+  return schema
 }
 
 /**
@@ -177,7 +167,7 @@ export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
     (s) =>
       Object.assign(s, {
         withDefault: S.withConstructorDefault(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))(
-          s as typeof s & S.WithoutConstructorDefault
+          s
         )
       })
   )
@@ -194,7 +184,7 @@ export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(
     (s) =>
       Object.assign(s, {
         withDefault: S.withConstructorDefault(Effect.sync(() => new Map()))(
-          s as typeof s & S.WithoutConstructorDefault
+          s
         )
       })
   )
@@ -257,12 +247,8 @@ export type WithDefaults<Self extends S.Top> = (
 //   : never
 
 export const inputDate = extendM(
-  S.Union([S.DateValid, Date]).pipe(S.revealCodec),
-  (s) => ({
-    withDefault: S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))(
-      s as typeof s & S.WithoutConstructorDefault
-    )
-  })
+  S.Union([S.DateValid, Date]),
+  (s) => ({ withDefault: S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))(s) })
 )
 
 export interface UnionBrand {}

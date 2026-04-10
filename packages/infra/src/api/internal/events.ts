@@ -16,7 +16,7 @@ export const makeSSE = <A extends { id: any }, SI, SRD, SRE>(
   Effect
     .gen(function*() {
       const id = connId++
-      const ctx = yield* Effect.context<R | SR>()
+      const ctx = yield* Effect.context<R | SRD | SRE>()
       const res = HttpServerResponse.stream(
         // workaround for different scoped behaviour for streams in Bun
         // https://discord.com/channels/795981131316985866/1098177242598756412/1389646879675125861

@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, Result, S, Context } from "effect-app"
+import { Context, Effect, Layer, Result, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import * as RpcX from "effect-app/rpc"
@@ -63,6 +63,7 @@ const testSuite = (_mw: typeof middleware3) =>
       "works",
       Effect.fn(function*() {
         const defaultOpts = {
+          client: null as any, // TODO?
           headers: HttpHeaders.fromRecordUnsafe({}),
           payload: { _tag: "Test" },
           clientId: 0,

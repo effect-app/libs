@@ -18,11 +18,11 @@ test("literal default works", () => {
   const l = S.Literal("a", "b")
   expect(l.Default).toBe("a")
   const s = S.Struct({ l: l.withDefault })
-  expect(s.makeUnsafe({}).l).toBe("a")
+  expect(s.make({}).l).toBe("a")
 
   const l2 = l.changeDefault("b")
   const s2 = S.Struct({ l: l2.withDefault })
-  expect(s2.makeUnsafe({}).l).toBe("b")
+  expect(s2.make({}).l).toBe("b")
 })
 
 test("tagged union derives tag map and tags from v4 literal ast", () => {
@@ -287,10 +287,10 @@ describe("ReadonlyMapFromArray", () => {
 })
 
 describe("ReadonlySet (with withDefault)", () => {
-  test("makeUnsafe provides withDefault", () => {
+  test("make provides withDefault", () => {
     const schema = S.ReadonlySet(S.NumberFromString)
     const struct = S.Struct({ items: schema.withDefault })
-    const made = struct.makeUnsafe({})
+    const made = struct.make({})
     expect(made.items).toEqual(new Set())
   })
 
@@ -302,10 +302,10 @@ describe("ReadonlySet (with withDefault)", () => {
 })
 
 describe("ReadonlyMap (with withDefault)", () => {
-  test("makeUnsafe provides withDefault", () => {
+  test("make provides withDefault", () => {
     const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
     const struct = S.Struct({ items: schema.withDefault })
-    const made = struct.makeUnsafe({})
+    const made = struct.make({})
     expect(made.items).toEqual(new Map())
   })
 

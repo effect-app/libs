@@ -1,19 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type Effect, Layer, type Scope, type Types } from "effect"
-import * as SM from "effect/ServiceMap"
+import * as CTX from "effect/Context"
 import { type Yieldable } from "./Effect.js"
 
-export * from "effect/ServiceMap"
-
-export { type ServiceMap as Context } from "effect/ServiceMap"
-export { isServiceMap as isContext } from "effect/ServiceMap"
+export * from "effect/Context"
 
 export interface Opaque<Self extends object, in out Shape extends object>
-  extends SM.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
+  extends CTX.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
 {
   of(this: void, self: Shape): Self
-  serviceMap(self: Shape): SM.ServiceMap<Self>
+  serviceMap(self: Shape): CTX.Context<Self>
   // a version that leverages the Shape -> Self conversion
   toLayer: <E, R>(
     eff: Effect.Effect<Shape, E, R>
@@ -23,11 +20,11 @@ export interface Opaque<Self extends object, in out Shape extends object>
 }
 
 // export interface OpaqueMake<Self extends object, in out Shape extends object, E, R>
-//   extends SM.Service<Self, Self>
+//   extends CTX.Service<Self, Self>
 // {
 //   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
 //   of(self: Shape): Self
-//   serviceMap2(self: Shape): SM.ServiceMap<Self>
+//   serviceMap2(self: Shape): CTX.Context<Self>
 //   // a version that leverages the Shape -> Self conversion
 //   toLayer: {
 //     <E, R>(
@@ -42,7 +39,7 @@ export function assignTag<Identifier extends object, Shape extends object = Iden
   creationError?: Error
 ) {
   return <S extends object>(cls: S): S & Opaque<Identifier, Shape> => {
-    const tag = SM.Service<Identifier, Shape>(key)
+    const tag = CTX.Service<Identifier, Shape>(key)
     let fields = tag
     if (Reflect.ownKeys(cls).includes("key")) {
       const { key, ...rest } = tag
@@ -109,7 +106,7 @@ export const accessEffectCn = <
 ): Shape[K] extends Effect.Effect<infer A, infer E, infer R> ? Effect.Effect<A, E, Self | R>
   : never => Tag.use((s: any) => s[key]) as any
 
-export const TypeId = "~ServiceMap.Opaque"
+export const TypeId = "~Context.Opaque"
 
 // export function Opaque<const Key extends string>(key: Key) {
 //   return <Identifier extends object, Shape extends object>() => {
@@ -174,7 +171,7 @@ export const Opaque: {
     >
     & { readonly make: Make }
 } = () => (id: string, options: any) => {
-  const svc = SM.Service()(id, options) as any
+  const svc = CTX.Service()(id, options) as any
   return Object.assign(svc, {
     toLayer: (eff: Effect.Effect<any, any, any>) => {
       return Layer.effect(svc, eff)

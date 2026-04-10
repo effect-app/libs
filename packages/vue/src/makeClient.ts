@@ -357,7 +357,7 @@ export class QueryImpl<R> {
 }
 
 // somehow mrt.runtimeEffect doesnt work sync, but this workaround works fine? not sure why though as the layers are generally only sync
-const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.services<A>())
+const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.context<A>())
 
 type Base = I18n | Toast
 type Mix = ApiClientFactory | Commander | Base

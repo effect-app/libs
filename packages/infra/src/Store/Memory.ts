@@ -265,7 +265,7 @@ export const makeMemoryStore = () => ({
         seed,
         config?.defaultValues
       )
-      const ctx = yield* Effect.services<R>()
+      const ctx = yield* Effect.context<R>()
       const stores = new Map([["primary", primary]])
       const getStore = !config?.allowNamespace
         ? Effect.succeed(primary)

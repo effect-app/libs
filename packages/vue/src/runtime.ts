@@ -9,7 +9,7 @@ export function makeAppRuntime<A, E>(layer: Layer.Layer<A, E>) {
       Layer.provide(Logger.layer([Logger.consolePretty()]))
     ) as Layer.Layer<A, never>
     const mrt = ManagedRuntime.make(l)
-    yield* mrt.servicesEffect
+    yield* mrt.contextEffect
     return Object.assign(mrt, {
       [Symbol.dispose]() {
         return Effect.runSync(mrt.disposeEffect)

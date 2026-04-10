@@ -1479,7 +1479,7 @@ export class CommanderImpl<RT, RTHooks> {
         const computeAllowed = options?.allowed
         const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
 
-        const rt = Effect.services<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
+        const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
         const runFork = Effect.runForkWith(rt)
 
         const handle = Object.assign((arg: Arg) => {

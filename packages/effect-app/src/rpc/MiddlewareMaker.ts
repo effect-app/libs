@@ -276,7 +276,7 @@ const middlewareMaker = <
   middlewares = middlewares.toReversed() as any
 
   return Effect.gen(function*() {
-    const context = yield* Effect.services()
+    const context = yield* Effect.context()
 
     // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
     // v4: wrap middleware takes (effect, options) as two params instead of a single options bag

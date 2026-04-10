@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation } from "effect"
+import { Effect, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -25,89 +25,11 @@ export const withDefaultConstructor = <A>(
 <Self extends S.Top>(self: Self): S.withConstructorDefault<Self & S.WithoutConstructorDefault> => {
   type Narrowed = Self & S.WithoutConstructorDefault
   return S.withConstructorDefault<Narrowed>(
-    () => Option.some(makeDefault() as Narrowed["~type.make.in"])
+    Effect.sync(() => makeDefault() as Narrowed["~type.make.in"])
   )(self as Narrowed)
 }
 
 // TODO: v4 migration - Date is no longer by default encoded to string.
-/*
-  in v4, there's the notion of `toCodecJson`, as a declaration and as a schema transformer.
-  this means that Date, Map/Set, etc, remain the same type Encoded as Decoded, but when transformed to and from JSON, will go through
-  the toCodecJson transformation, which for e.g Date will be the dateFromString transformation.
-
-  While this is a cool feature, our stack (especially the Store/Repository api) is based on having an Encoded shape representing the JSON shape, so we revert back to that for now.
-*/
-
-/**
- * Formats a `Date` as an ISO 8601 string, returning `"Invalid Date"` for
- * invalid dates instead of throwing.
- *
- * When to use:
- * - You want a safe `toISOString()` that never throws.
- *
- * Behavior:
- * - Returns `date.toISOString()` on success.
- * - Returns `"Invalid Date"` if `toISOString()` throws (e.g. for
- *   `new Date(NaN)`).
- * - Pure function; does not mutate input.
- *
- * **Example** (Safe date formatting)
- *
- * ```ts
- * import { Formatter } from "effect"
- *
- * console.log(Formatter.formatDate(new Date("2024-01-15T10:30:00Z")))
- * // 2024-01-15T10:30:00.000Z
- *
- * console.log(Formatter.formatDate(new Date("invalid")))
- * // Invalid Date
- * ```
- *
- * See also: {@link format}
- *
- * @internal
- */
-export function formatDate(date: Date): string {
-  try {
-    return date.toISOString()
-  } catch {
-    return "Invalid Date"
-  }
-}
-
-/**
- * Decodes a `string` into a `Date` and encodes a `Date` back to a `string`.
- *
- * When to use this:
- * - Parsing ISO 8601 date strings from APIs or user input.
- *
- * Behavior:
- * - Decode: creates a `Date` from the string (like `new Date(s)`).
- * - Encode: converts the `Date` to an ISO string (like `date.toISOString()`),
- *   returning `"Invalid Date"` for invalid dates.
- *
- * **Example** (Date from string)
- *
- * ```ts
- * import { Schema, SchemaTransformation } from "effect"
- *
- * const schema = Schema.String.pipe(
- *   Schema.decodeTo(Schema.Date, SchemaTransformation.dateFromString)
- * )
- * ```
- *
- * See also:
- * - {@link numberFromString}
- * - {@link dateTimeUtcFromString}
- *
- * @category Coercions
- * @since 4.0.0
- */
-export const dateFromString: SchemaTransformation.Transformation<globalThis.Date, string> = new SchemaTransformation
-  .Transformation(
-  SchemaGetter.Date(),
-  SchemaGetter.transform(formatDate)
-)
 
 const DateString = S.String.annotate({
   identifier: "Date",
@@ -134,7 +56,7 @@ export interface DateFromString extends S.decodeTo<S.Date, S.String> {}
  *
  * @since 4.0.0
  */
-export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, dateFromString))
+export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, SchemaTransformation.dateFromString))
 
 /**
  * Like the default Schema `Date` but from String with `withDefault` => now
@@ -431,7 +353,7 @@ export const contextFromServices = <
 > =>
   Effect.gen(function*() {
     const context: Context.Context<Context.Service.Identifier<Tags[number]>> = Context.pick(...services)(
-      yield* Effect.services<Context.Service.Identifier<Tags[number]>>()
+      yield* Effect.context<Context.Service.Identifier<Tags[number]>>()
     )
     return provide(self, context)
   })

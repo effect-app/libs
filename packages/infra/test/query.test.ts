@@ -520,8 +520,8 @@ it(
         const schema = S.Struct({
           id: S.String,
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(() => new Date().toISOString()),
-            S.withConstructorDefault(() => Option.some(new Date()))
+            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
         const repo = yield* makeRepo(
@@ -533,8 +533,8 @@ it(
         const outputSchema = S.Struct({
           id: S.Literal("123"),
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(() => new Date().toISOString()),
-            S.withConstructorDefault(() => Option.some(new Date()))
+            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
 

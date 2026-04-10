@@ -142,7 +142,7 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
           const storesSem = Semaphore.makeUnsafe(1)
           const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
           const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
-          const ctx = yield* Effect.services<R>()
+          const ctx = yield* Effect.context<R>()
           const getStore = !config?.allowNamespace
             ? Effect.succeed(primary)
             : storeId.asEffect().pipe(Effect.flatMap((namespace) => {

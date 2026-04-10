@@ -1,7 +1,5 @@
 import "./builtin.js"
 
-import * as Context from "./Context.js"
-
 export * as Fnc from "./Function.js"
 export * as Utils from "./utils.js"
 
@@ -13,9 +11,6 @@ export * as Effect from "./Effect.js"
 export * as Layer from "./Layer.js"
 export * as NonEmptySet from "./NonEmptySet.js"
 export * as Set from "./Set.js"
-
-/** @deprecated Use `Context` instead */
-export { Context as ServiceMap }
 
 export { type NonEmptyArray, type NonEmptyReadonlyArray } from "./Array.js"
 

@@ -153,7 +153,7 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
 
 const makeApiClientFactory = Effect
   .gen(function*() {
-    const ctx = yield* Effect.services<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
+    const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
     const makeClientFor = <M extends Requests>(
       resource: M,
       requestLevelLayers = Layer.empty,
@@ -176,7 +176,7 @@ const makeApiClientFactory = Effect
                 url: "" // why not here set meta.moduleName as root?
               })
               .pipe(
-                Layer.provideMerge(Layer.succeedServices(ctx))
+                Layer.provideMerge(Layer.succeedContext(ctx))
               )
           )
         )
@@ -212,7 +212,7 @@ const makeApiClientFactory = Effect
               // @ts-expect-error doc
               prev[cur] = Object.keys(fields).length === 0
                 ? {
-                  handler: mr.servicesEffect.pipe(
+                  handler: mr.contextEffect.pipe(
                     Effect.flatMap((svcs) =>
                       TheClient
                         .use((client) => (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>)
@@ -226,7 +226,7 @@ const makeApiClientFactory = Effect
                 }
                 : {
                   handler: (req: any) =>
-                    mr.servicesEffect.pipe(
+                    mr.contextEffect.pipe(
                       Effect.flatMap((svcs) =>
                         TheClient
                           .use((client) =>

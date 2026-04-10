@@ -3,8 +3,9 @@ import { reportNonInterruptedFailure } from "@effect-app/infra/QueueMaker/errors
 import { type QueueBase, QueueMeta } from "@effect-app/infra/QueueMaker/service"
 import { subMinutes } from "date-fns"
 import { Effect, Fiber, type NonEmptyReadonlyArray, Option, S, Tracer } from "effect-app"
-import type { NonEmptyString255 } from "effect-app/Schema"
+import { DateTimeUtcFromDate, type NonEmptyString255 } from "effect-app/Schema"
 import { pretty } from "effect-app/utils"
+import { Override } from "effect/unstable/schema/Model"
 import { SqlClient } from "effect/unstable/sql"
 import { SQLModel } from "../adapters/SQL.js"
 import { InfraLogger } from "../logger.js"
@@ -78,31 +79,38 @@ export function makeSQLQueue<
 
     const q = {
       offer: Effect.fnUntraced(function*(body: Evt, meta: typeof QueueMeta.Type) {
+        const now = S.decodeSync(DateTimeUtcFromDate)(new Date())
         yield* queueRepo.insertVoid({
           body,
           meta,
           name: queueName,
           processingAt: Option.none(),
           finishedAt: Option.none(),
-          etag: crypto.randomUUID()
+          etag: crypto.randomUUID(),
+          createdAt: Override(now),
+          updatedAt: Override(now)
         })
       }),
       take: Effect.gen(function*() {
         while (true) {
+          const now = S.decodeSync(DateTimeUtcFromDate)(new Date())
           const [first] = yield* drain.pipe(Effect.withTracerEnabled(false)) // disable sql tracer otherwise we spam it..
           if (first) {
             const dec = yield* decodeDrain(first)
-            const { createdAt, updatedAt, ...rest } = dec
+            const { updatedAt, ...rest } = dec
             return yield* drainRepo.update(
-              { ...rest, processingAt: Option.some(new Date()) } // auto in lib , etag: crypto.randomUUID()
+              { ...rest, updatedAt: Override(now), processingAt: Option.some(new Date()) } // auto in lib , etag: crypto.randomUUID()
             )
           }
           if (first) return first
           yield* Effect.sleep(250)
         }
       }),
-      finish: ({ createdAt, updatedAt, ...q }: Drain) =>
-        drainRepo.updateVoid({ ...q, finishedAt: Option.some(new Date()) }) // auto in lib , etag: crypto.randomUUID()
+      finish: Effect.fn(function*({ updatedAt, ...q }: Drain) {
+        const now = S.decodeSync(DateTimeUtcFromDate)(new Date())
+
+        return yield* drainRepo.updateVoid({ ...q, updatedAt: Override(now), finishedAt: Option.some(new Date()) }) // auto in lib , etag: crypto.randomUUID()
+      })
     }
     const queue = {
       publish: (...messages: NonEmptyReadonlyArray<Evt>) =>

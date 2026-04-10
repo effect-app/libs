@@ -182,7 +182,7 @@ export function prefixedStringId<Brand extends StringId>() {
         (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s: S.Codec<string & Brand, string> = StringId
+    const s = StringId
       .pipe(
         S.refine((x: string): x is string & Brand => x.startsWith(pref), {
           identifier: name,
@@ -191,7 +191,7 @@ export function prefixedStringId<Brand extends StringId>() {
         S.annotate({
           toArbitrary: () => (fc) => arb()(fc)
         })
-      ) as S.Codec<string & Brand, string>
+      )
     const schema = s.pipe(withDefaultMake)
     const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Brand
 
@@ -208,9 +208,9 @@ export function prefixedStringId<Brand extends StringId>() {
          */
         prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
         prefix,
-        withDefault: S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>(
+        withDefault: schema.pipe(S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>(
           Effect.sync(make)
-        )(schema as S.Codec<Brand, string> & S.WithoutConstructorDefault)
+        ))
       })
     )
   }

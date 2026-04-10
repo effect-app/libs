@@ -166,9 +166,7 @@ export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
     ReadonlySetFromArray(value),
     (s) =>
       Object.assign(s, {
-        withDefault: S.withConstructorDefault(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))(
-          s
-        )
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>())))
       })
   )
 
@@ -183,9 +181,7 @@ export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(
     ReadonlyMapFromArray(pair),
     (s) =>
       Object.assign(s, {
-        withDefault: S.withConstructorDefault(Effect.sync(() => new Map()))(
-          s
-        )
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Map())))
       })
   )
 
@@ -248,7 +244,7 @@ export type WithDefaults<Self extends S.Top> = (
 
 export const inputDate = extendM(
   S.Union([S.DateValid, Date]),
-  (s) => ({ withDefault: S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))(s) })
+  (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))) })
 )
 
 export interface UnionBrand {}

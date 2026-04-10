@@ -59,8 +59,8 @@ importers:
         specifier: workspace:*
         version: link:packages/infra
       '@effect/language-service':
-        specifier: 0.84.3
-        version: 0.84.3
+        specifier: 0.85.0
+        version: 0.85.0
       '@effect/platform-node':
         specifier: ^4.0.0-beta.46
         version: 4.0.0-beta.46(effect@4.0.0-beta.46)(ioredis@5.9.3)
@@ -1149,8 +1149,8 @@ packages:
       effect: ^4.0.0-beta.46
       vue: ^3.5.32
 
-  '@effect/language-service@0.84.3':
-    resolution: {integrity: sha512-zpxi6rLCwst/cBQd7ElwDvt36Y6Jvz8v6bCLnNiOL6OXvdLmqjOFWyzWZdMh92vvBQA/aVKhfIAAOP3o4wKt0A==}
+  '@effect/language-service@0.85.0':
+    resolution: {integrity: sha512-crQwaeLmpmUfKaH2K42STNFMD5cywR6kBGKZI0FkvCbDyG3xM7CikJKucMIXOBvnUviO8loq0afT1ZSCtZiaaw==}
     hasBin: true
 
   '@effect/platform-browser@4.0.0-beta.46':
@@ -7709,7 +7709,7 @@ snapshots:
       effect: 4.0.0-beta.46
       vue: 3.5.32(typescript@6.0.2(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
-  '@effect/language-service@0.84.3': {}
+  '@effect/language-service@0.85.0': {}
 
   '@effect/platform-browser@4.0.0-beta.46(effect@4.0.0-beta.46)':
     dependencies:

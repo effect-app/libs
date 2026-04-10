@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.68
+
+### Patch Changes
+
+- e6f2341: Add SecretURL tests and switch secretURL config to use Config.nonEmptyString
+
 ## 4.0.0-beta.67
 
 ## 4.0.0-beta.66

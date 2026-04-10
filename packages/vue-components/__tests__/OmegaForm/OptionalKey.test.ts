@@ -1,4 +1,4 @@
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
 import { generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
 
@@ -20,7 +20,7 @@ describe("optionalKey required handling", () => {
 
   it("should mark optionalKey with decodingDefault as not required", () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "defaultName")),
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("defaultName"))),
       age: S.NonEmptyString255
     })
 

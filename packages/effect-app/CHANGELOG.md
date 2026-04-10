@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- 24f0a5a: rename Literal to Literals, no longer hiding Schema's singular Literal.
+
 ## 4.0.0-beta.74
 
 ### Patch Changes

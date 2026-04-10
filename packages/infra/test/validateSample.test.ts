@@ -138,7 +138,7 @@ describe("validateSample", () => {
         // schema that expects a 'status' field
         class ItemWithStatus extends S.Class<ItemWithStatus>("ItemWithStatus")({
           id: S.String,
-          status: S.Literal("active", "inactive")
+          status: S.Literals(["active", "inactive"])
         }) {}
 
         // jitM that adds default status for items

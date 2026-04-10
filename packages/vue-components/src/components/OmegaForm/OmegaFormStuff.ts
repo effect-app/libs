@@ -814,6 +814,14 @@ export const createMeta = <T = any>(
       } as FieldMeta
     }
 
+    if (S.AST.isLiteral(property)) {
+      return {
+        ...meta,
+        type: "select",
+        members: [property.literal]
+      } as FieldMeta
+    }
+
     meta = { ...getJsonSchemaAnnotation(property), ...getFieldMetadataFromAst(property), ...meta }
 
     return meta as FieldMeta

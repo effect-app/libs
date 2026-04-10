@@ -2,7 +2,7 @@ import { Context, S } from "effect-app"
 import { UserProfileId } from "effect-app/ids"
 import { NonEmptyString255 } from "effect-app/Schema"
 
-export const Locale = S.Literal("en", "de")
+export const Locale = S.Literals(["en", "de"])
 export type Locale = typeof Locale.Type
 
 export class LocaleRef extends Context.Reference("Locale", { defaultValue: (): Locale => "en" }) {}

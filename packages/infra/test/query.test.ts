@@ -92,7 +92,7 @@ it("works", () => {
   const processed = memFilter(interpreted)(items.map((_) =>
     S.encodeUnknownSync(S.Struct({
       ...Something.omit("displayName"),
-      displayName: S.Literal("Verona", "Riley")
+      displayName: S.Literals(["Verona", "Riley"])
     }))(_)
   ))
 
@@ -552,7 +552,7 @@ it(
       .gen(function*() {
         const schema = S.Struct({
           id: S.String,
-          literals: S.Literal("a", "b", "c")
+          literals: S.Literals(["a", "b", "c"])
         })
 
         type Schema = typeof schema.Type
@@ -582,7 +582,7 @@ it(
       .gen(function*() {
         const schema = S.Struct({
           id: S.String,
-          literals: S.Union([S.Literal("a", "b", "c"), S.Null])
+          literals: S.Union([S.Literals(["a", "b", "c"]), S.Null])
         })
 
         type Schema = typeof schema.Type

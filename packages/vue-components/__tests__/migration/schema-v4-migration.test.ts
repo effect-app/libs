@@ -151,8 +151,8 @@ describe("generateMetaFromSchema", () => {
   describe("discriminated union (nested in struct)", () => {
     const schema = S.Struct({
       union: S.Union([
-        S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255 }),
-        S.Struct({ _tag: S.Literal("B"), b: S.Finite })
+        S.Struct({ _tag: S.tag("A"), a: S.NonEmptyString255 }),
+        S.Struct({ _tag: S.tag("B"), b: S.Finite })
       ])
     })
 

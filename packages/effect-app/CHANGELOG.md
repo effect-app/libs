@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- 0541f0d: fix withDefault types
+
 ## 4.0.0-beta.71
 
 ### Minor Changes

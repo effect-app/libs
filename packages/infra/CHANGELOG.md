@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- fac725d: update effect to latest beta
+- Updated dependencies [a5248a9]
+- Updated dependencies [fac725d]
+  - effect-app@4.0.0-beta.76
+
 ## 4.0.0-beta.75
 
 ### Patch Changes

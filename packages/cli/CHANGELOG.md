@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.0.1-beta.12
+
+### Patch Changes
+
+- fac725d: update effect to latest beta
+
 ## 2.0.1-beta.11
 
 ### Patch Changes

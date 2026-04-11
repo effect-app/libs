@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- a5248a9: use new schema features
+- fac725d: update effect to latest beta
+
 ## 4.0.0-beta.75
 
 ### Patch Changes

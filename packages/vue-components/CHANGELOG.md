@@ -1,5 +1,16 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- fac725d: update effect to latest beta
+- Updated dependencies [08d30af]
+- Updated dependencies [a5248a9]
+- Updated dependencies [fac725d]
+  - @effect-app/vue@4.0.0-beta.76
+  - effect-app@4.0.0-beta.76
+
 ## 4.0.0-beta.75
 
 ### Patch Changes

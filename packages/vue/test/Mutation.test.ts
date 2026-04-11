@@ -71,7 +71,10 @@ describe("alt2", () => {
               expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
             })),
             Effect.tap(() =>
-              Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
+              Effect.currentSpan.pipe(
+                Effect.map((_) => _.name),
+                Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action")))
+              )
             ),
             Effect.tap(() => Effect.sync(() => executed = true))
           )
@@ -125,7 +128,10 @@ it.live("works", () =>
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
+          Effect.currentSpan.pipe(
+            Effect.map((_) => _.name),
+            Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action")))
+          )
         ),
         Effect.tap(() => Effect.sync(() => executed = true))
       )
@@ -175,7 +181,10 @@ it.live("works non-gen", () =>
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
+          Effect.currentSpan.pipe(
+            Effect.map((_) => _.name),
+            Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action")))
+          )
         ),
         Effect.tap(() => Effect.sync(() => executed = true))
       )
@@ -317,7 +326,10 @@ it.live("with toasts", () =>
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
         })),
         Effect.tap(() =>
-          Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
+          Effect.currentSpan.pipe(
+            Effect.map((_) => _.name),
+            Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action")))
+          )
         ),
         // WithToast.handle({
         //   onFailure: "failed",
@@ -471,7 +483,10 @@ it.live("works with alt", () =>
             expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
           })),
           Effect.tap(() =>
-            Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
+            Effect.currentSpan.pipe(
+              Effect.map((_) => _.name),
+              Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action")))
+            )
           ),
           Effect.tap(() => Effect.sync(() => executed = true))
         )
@@ -624,7 +639,10 @@ it.live("with toasts with alt", () =>
             expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
           })),
           Effect.tap(() =>
-            Effect.currentSpan.pipe(Effect.map((_) => _.name), Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action"))))
+            Effect.currentSpan.pipe(
+              Effect.map((_) => _.name),
+              Effect.tap((_) => Effect.sync(() => expect(_).toBe("Test Action")))
+            )
           ),
           Command.withDefaultToast(),
           Effect.tap(() => Effect.sync(() => executed = true))
@@ -758,3 +776,55 @@ it.live("defect with alt", () =>
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action unexpected error, please try again shortly.")
     }))
+
+describe("state-in-toast", () => {
+  it("works", () => {
+    const toasts: any[] = []
+    const removeMutation = Object.assign(
+      Effect.fn(function*(_item: string) {
+        yield* Effect.sleep(1000)
+      }),
+      { id: "remove_thing" }
+    )
+
+    const item = "x"
+
+    const Command = useExperimental({ toasts, messages: DefaultIntl.en })
+
+    Command.fn(removeMutation, {
+      state: () => ({ item }),
+      waitKey: (id) => `${id}.${item}`,
+      blockKey: () => `modify_thing.${item}`
+      //  allowed: () => role.value === "admin"
+    })(
+      function*() {
+        //        yield* Command.confirmOrInterrupt(yield* I18n.formatMessage({ id: "confirm.remove_item" }, { item }))
+        yield* removeMutation(item)
+      },
+      Command.withDefaultToast({
+        onSuccess: (a, b, c, d) => {
+          console.log("Success", { a, b, c, d })
+          expectTypeOf(d.state).toEqualTypeOf<{ readonly item: "x" }>()
+        }
+      })
+    )
+
+    Command.fn(removeMutation, {
+      state: () => ({ item }),
+      waitKey: (id) => `${id}.${item}`,
+      blockKey: () => `modify_thing.${item}`
+      //  allowed: () => role.value === "admin"
+    })(
+      function*() {
+        //        yield* Command.confirmOrInterrupt(yield* I18n.formatMessage({ id: "confirm.remove_item" }, { item }))
+        yield* removeMutation(item)
+      },
+      Command.withDefaultToast({
+        onSuccess: (a, b, c) => {
+          console.log("Success", { a, b, c })
+          expectTypeOf(c).toEqualTypeOf<undefined>()
+        }
+      })
+    )
+  })
+})

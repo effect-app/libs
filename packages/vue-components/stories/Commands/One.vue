@@ -111,7 +111,12 @@ const remove = makeFamily((item: string) =>
       yield* Command.confirmOrInterrupt(yield* I18n.formatMessage({ id: "confirm.remove_item" }, { item }))
       yield* removeMutation(item)
     },
-    Command.withDefaultToast({ stableToastId: (id) => `${id}.${item}` })
+    Command.withDefaultToast({
+      onSuccess: (a, b, c, d) => {
+        console.log("Success", { a, b, c, d })
+      },
+      stableToastId: (id) => `${id}.${item}`
+    })
   )
 )
 </script>

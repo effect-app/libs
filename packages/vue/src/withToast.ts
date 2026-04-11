@@ -36,7 +36,7 @@ export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, S
 export class WithToast extends Context.Service<WithToast>()("WithToast", {
   make: Effect.gen(function*() {
     const toast = yield* Toast
-    return <A, E, Args extends Array<unknown>, R, WaiR = never, SucR = never, ErrR = never>(
+    return <A, E, Args extends readonly unknown[], R, WaiR = never, SucR = never, ErrR = never>(
       options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>
     ) =>
       Effect.fnUntraced(function*(self: Effect.Effect<A, E, R>, ...args: Args) {

@@ -48,21 +48,24 @@ export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date,
  * Like the default Schema `Date` but from String with `withDefault` => now
  */
 export const Date = Object.assign(DateFromString, {
-  withDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date())))
+  withDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  withDecodingDefaultType: DateFromString.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
 })
 
 /**
  * Like the default Schema `DateValid` but from String with `withDefault` => now
  */
 export const DateValid = Object.assign(Date.check(isDateValid()), {
-  withDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date())))
+  withDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  withDecodingDefaultType: DateFromString.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
 })
 
 /**
  * Like the default Schema `Boolean` but with `withDefault` => false
  */
 export const Boolean = Object.assign(S.Boolean, {
-  withDefault: S.Boolean.pipe(S.withConstructorDefault(Effect.succeed(false)))
+  withDefault: S.Boolean.pipe(S.withConstructorDefault(Effect.succeed(false))),
+  withDecodingDefaultType: S.Boolean.pipe(S.withDecodingDefaultType(Effect.succeed(false)))
 })
 
 /**
@@ -70,14 +73,16 @@ export const Boolean = Object.assign(S.Boolean, {
  * Like the default Schema `Number` but with `withDefault` => 0
  */
 export const Number = Object.assign(S.Number, {
-  withDefault: S.Number.pipe(S.withConstructorDefault(Effect.succeed(0)))
+  withDefault: S.Number.pipe(S.withConstructorDefault(Effect.succeed(0))),
+  withDecodingDefaultType: S.Number.pipe(S.withDecodingDefaultType(Effect.succeed(0)))
 })
 
 /**
  * Like the default Schema `Finite` but with `withDefault` => 0
  */
 export const Finite = Object.assign(S.Finite, {
-  withDefault: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(0)))
+  withDefault: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(0))),
+  withDecodingDefaultType: S.Finite.pipe(S.withDecodingDefaultType(Effect.succeed(0)))
 })
 
 /**
@@ -91,11 +96,13 @@ export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.Litera
         changeDefault: <A extends Literals[number]>(a: A) => {
           return Object.assign(S.Literals(literals), {
             Default: a,
-            withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(a)))
+            withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(a))),
+            withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(a)))
           }) // todo: copy annotations from original?
         },
         Default: literals[0] as typeof literals[0],
-        withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(literals[0])))
+        withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(literals[0]))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(literals[0])))
       })
   )
 
@@ -105,7 +112,11 @@ export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.Litera
 export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
   return pipe(
     S.Array(value),
-    (s) => Object.assign(s, { withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))) })
+    (s) =>
+      Object.assign(s, {
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => [])))
+      })
   )
 }
 
@@ -166,7 +177,10 @@ export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
     ReadonlySetFromArray(value),
     (s) =>
       Object.assign(s, {
-        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>())))
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))),
+        withDecodingDefaultType: s.pipe(
+          S.withDecodingDefaultType(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))
+        )
       })
   )
 
@@ -181,7 +195,8 @@ export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(
     ReadonlyMapFromArray(pair),
     (s) =>
       Object.assign(s, {
-        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Map())))
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Map()))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new Map())))
       })
   )
 
@@ -193,7 +208,8 @@ export const NullOr = <Schema extends S.Top>(self: Schema) =>
     S.NullOr(self),
     (s) =>
       Object.assign(s, {
-        withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(null)))
+        withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(null))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(null)))
       })
   )
 
@@ -244,7 +260,10 @@ export type WithDefaults<Self extends S.Top> = (
 
 export const inputDate = extendM(
   S.Union([S.DateValid, Date]),
-  (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))) })
+  (s) => ({
+    withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))),
+    withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new globalThis.Date())))
+  })
 )
 
 export interface UnionBrand {}

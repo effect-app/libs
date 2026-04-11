@@ -39,7 +39,7 @@ export const fromBrand = <C extends B.Brand<any>>(
   constructor: Constructor<C>,
   options?: BrandAnnotations<C>
 ) =>
-<Self extends S.Top>(self: Self): S.brand<Self["~rebuild.out"], B.Brand.Keys<C>> => {
+<Self extends S.Top>(self: Self): S.brand<Self["Rebuild"], B.Brand.Keys<C>> => {
   const branded = S.fromBrand(options?.identifier ?? "Brand", constructor as any)(self as any)
   return options ? (branded as any).pipe(S.annotate(options)) : branded as any
 }

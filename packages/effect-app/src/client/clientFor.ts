@@ -48,15 +48,13 @@ export function makePathWithBody(
   return path.build(pars, { ignoreSearch: true, ignoreConstraints: true })
 }
 
-export type Requests<ModuleName extends string = string> =
-  | ({ meta: { moduleName: ModuleName } } & RequestsAny)
-  | RequestsAny
+export type Requests = RequestsAny
 export type RequestsAny = Record<string, any>
 
-export type ExtractModuleName<M extends RequestsAny> = M extends { meta: { moduleName: infer N extends string } } ? N
-  : { [K in keyof M]: M[K] extends { moduleName: infer N extends string } ? N : never }[keyof M] extends
+export type ExtractModuleName<M extends RequestsAny> =
+  { [K in keyof M]: M[K] extends { moduleName: infer N extends string } ? N : never }[keyof M] extends
     infer R extends string ? R
-  : string
+    : string
 
 export type Client<M extends RequestsAny, ModuleName extends string> = RequestHandlers<
   never,

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, S, Scope, Context } from "effect-app"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import * as RpcX from "effect-app/rpc"
@@ -202,7 +202,8 @@ export const middleware3 = MiddlewareMaker
   .middleware(Test)
   .middleware(BogusMiddleware)
 
-export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
+export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const Req = TaggedRequestFor("Something")
 
 export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
 export class Gen extends Req<Gen>()("Gen", {}) {}
@@ -235,7 +236,7 @@ export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
-const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
+const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2 }
 
 // const client = ApiClientFactory.makeFor(Layer.empty)(Something)
 // client.pipe(Effect.map(c => c.DoSomething.name))

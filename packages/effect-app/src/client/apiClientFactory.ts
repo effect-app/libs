@@ -13,7 +13,7 @@ import { HttpClient, HttpClientRequest } from "../http.js"
 import * as Option from "../Option.js"
 import type * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
-import type { Client, ClientForOptions, ExtractModuleName, Requests, RequestsAny } from "./clientFor.js"
+import type { Client, ClientForOptions, ExtractModuleName, RequestsAny } from "./clientFor.js"
 
 export interface ApiConfig {
   url: string
@@ -37,8 +37,8 @@ export type Req = S.Top & {
   success: S.Top
   error: S.Top
   config?: Record<string, any>
-  readonly id?: string
-  readonly moduleName?: string
+  readonly id: string
+  readonly moduleName: string
   readonly "~decodingServices"?: unknown
 }
 
@@ -105,11 +105,9 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
 }
 
 export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: ExtractModuleName<M> } => {
-  const meta = (resource as any).meta as { moduleName: string } | undefined
-  if (meta) return meta as any
   const first = typedValuesOf(getFiltered(resource))[0]
   if (first && "moduleName" in first) return { moduleName: first.moduleName } as any
-  throw new Error("No meta defined in Resource and no moduleName on requests!")
+  throw new Error("No moduleName on requests!")
 }
 
 export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, const ModuleName extends string>(
@@ -129,13 +127,6 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
     >
   return rpcs
 }
-
-export const makeRpcGroup = <
-  M extends Requests,
-  const ModuleName extends string
->(
-  resource: M & { meta: { moduleName: ModuleName } }
-) => makeRpcGroupFromRequestsAndModuleName(resource, resource.meta.moduleName)
 
 const makeRpcTag = <M extends RequestsAny>(resource: M) => {
   const meta = getMeta(resource)

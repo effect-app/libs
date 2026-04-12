@@ -3,7 +3,7 @@ import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, 
 import { camelCase } from "change-case"
 import { type Context, Effect, Exit, type Layer, type ManagedRuntime, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
-import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests } from "effect-app/client/clientFor"
+import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestsAny } from "effect-app/client/clientFor"
 import { extendM } from "effect-app/utils"
 import { type Fiber } from "effect/Fiber"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -224,7 +224,7 @@ export const useMutationInt = (): typeof _useMutation => {
     )
 }
 
-export type ClientFrom<M extends Requests> = RequestHandlers<never, never, M, M["meta"]["moduleName"]>
+export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
 
 export class QueryImpl<R> {
   constructor(readonly getRuntime: () => Context.Context<R>) {
@@ -380,7 +380,7 @@ export const makeClient = <RT_, RTHooks>(
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
 
-  const mapQuery = <M extends Requests>(
+  const mapQuery = <M extends RequestsAny>(
     client: ClientFrom<M>
   ) => {
     const queries = Struct.keys(client).reduce(
@@ -410,7 +410,7 @@ export const makeClient = <RT_, RTHooks>(
     return queries
   }
 
-  const mapRequest = <M extends Requests>(
+  const mapRequest = <M extends RequestsAny>(
     client: ClientFrom<M>
   ) => {
     const Command = useCommand()
@@ -436,7 +436,7 @@ export const makeClient = <RT_, RTHooks>(
     return mutations
   }
 
-  const mapMutation = <M extends Requests>(
+  const mapMutation = <M extends RequestsAny>(
     client: ClientFrom<M>
   ) => {
     const Command = useCommand()
@@ -465,7 +465,7 @@ export const makeClient = <RT_, RTHooks>(
 
   // make available .query, .suspense and .mutate for each operation
   // and a .helpers with all mutations and queries
-  const mapClient = <M extends Requests>(
+  const mapClient = <M extends RequestsAny>(
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) =>
   (
@@ -527,7 +527,7 @@ export const makeClient = <RT_, RTHooks>(
 
   // TODO: Clean up this delay initialisation messs
   // TODO; invalidateQueries should perhaps be configured in the Request impl themselves?
-  const clientFor__ = <M extends Requests>(
+  const clientFor__ = <M extends RequestsAny>(
     m: M,
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation))))
@@ -535,7 +535,7 @@ export const makeClient = <RT_, RTHooks>(
   // delay client creation until first access
   // the idea is that we don't need the useNuxtApp().$runtime (only available at later initialisation stage)
   // until we are at a place where it is available..
-  const clientFor = <M extends Requests>(
+  const clientFor = <M extends RequestsAny>(
     m: M,
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) => {

@@ -92,7 +92,7 @@ export const useExperimental = (
 }
 
 export class RequestContextMap extends RpcContextMap.makeMap({}) {}
-export const { TaggedRequest: Req, TaggedRequestFor } = makeRpcClient(RequestContextMap)
+export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 
 export const SomethingReq = TaggedRequestFor("Something")
 

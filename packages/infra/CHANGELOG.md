@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- eaf0115: enforce local
+  - effect-app@4.0.0-beta.80
+
 ## 4.0.0-beta.79
 
 ### Patch Changes

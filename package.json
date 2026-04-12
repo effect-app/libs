@@ -1,6 +1,7 @@
 {
   "private": true,
   "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"],
     "patchedDependencies": {
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",

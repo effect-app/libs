@@ -18,13 +18,16 @@
   "devDependencies": {
     "@azure/cosmos": "^4.9.2",
     "@azure/service-bus": "^7.9.5",
+    "@effect-app/eslint-shared-config": "workspace:*",
     "@sentry/node": "10.47.0",
     "@sentry/opentelemetry": "10.47.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/node": "25.5.2",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.8",
+    "better-sqlite3": "^12.9.0",
     "express": "^5.2.1",
     "jwks-rsa": "2.1.4",
     "jwt-decode": "^4.0.0",
@@ -33,8 +36,7 @@
     "redlock": "^4.2.0",
     "strip-ansi": "^7.2.0",
     "typescript": "~6.0.2",
-    "vitest": "^4.1.3",
-    "@effect-app/eslint-shared-config": "workspace:*"
+    "vitest": "^4.1.3"
   },
   "peerDependencies": {
     "@azure/cosmos": "^4.9.2",
@@ -44,11 +46,11 @@
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "10.47.0",
     "@sentry/opentelemetry": "10.47.0",
+    "effect": "^4.0.0-beta.47",
+    "express": "^5.2.1",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
-    "redlock": "^4.2.0",
-    "effect": "^4.0.0-beta.47",
-    "express": "^5.2.1"
+    "redlock": "^4.2.0"
   },
   "typesVersions": {
     "*": {
@@ -225,6 +227,18 @@
     "./Store/Memory": {
       "types": "./dist/Store/Memory.d.ts",
       "default": "./dist/Store/Memory.js"
+    },
+    "./Store/SQL": {
+      "types": "./dist/Store/SQL.d.ts",
+      "default": "./dist/Store/SQL.js"
+    },
+    "./Store/SQL/query": {
+      "types": "./dist/Store/SQL/query.d.ts",
+      "default": "./dist/Store/SQL/query.js"
+    },
+    "./Store/SQL/Pg": {
+      "types": "./dist/Store/SQL/Pg.d.ts",
+      "default": "./dist/Store/SQL/Pg.js"
     },
     "./Store/codeFilter": {
       "types": "./dist/Store/codeFilter.d.ts",

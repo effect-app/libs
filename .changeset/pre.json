@@ -76,6 +76,7 @@
     "real-lilies-design",
     "remove-legacy-from-make-client",
     "remove-tagged-error-compat",
+    "remove-tagged-request",
     "remove-withDefaultConstructor",
     "replace-proxify-with-accessors",
     "router-no-meta",

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.79
+
+### Minor Changes
+
+- d16845e: Remove `TaggedRequest` from `makeRpcClient`, now only `TaggedRequestFor` is returned. Remove all legacy `meta.moduleName` support — `id` and `moduleName` are now required on `Req` type. Remove `makeRpcGroup` (use `makeRpcGroupFromRequestsAndModuleName` instead).
+
 ## 4.0.0-beta.78
 
 ## 4.0.0-beta.77

@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- d16845e: Remove `TaggedRequest` from `makeRpcClient`, now only `TaggedRequestFor` is returned. Remove all legacy `meta.moduleName` support — `id` and `moduleName` are now required on `Req` type. Remove `makeRpcGroup` (use `makeRpcGroupFromRequestsAndModuleName` instead).
+- Updated dependencies [d16845e]
+  - effect-app@4.0.0-beta.79
+
 ## 4.0.0-beta.78
 
 ### Minor Changes

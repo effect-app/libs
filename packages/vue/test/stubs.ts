@@ -94,8 +94,7 @@ export const useExperimental = (
 export class RequestContextMap extends RpcContextMap.makeMap({}) {}
 export const { TaggedRequest: Req, TaggedRequestFor } = makeRpcClient(RequestContextMap)
 
-const somethingMeta = { moduleName: "Something" as const }
-const SomethingReq = TaggedRequestFor(somethingMeta.moduleName)
+export const SomethingReq = TaggedRequestFor("Something")
 
 class SomethingGetSomething2 extends SomethingReq<SomethingGetSomething2>()("GetSomething2", {
   id: S.String
@@ -113,12 +112,10 @@ class SomethingGetSomething2WithDependencies
 
 export const Something = {
   GetSomething2: SomethingGetSomething2,
-  GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
-  meta: somethingMeta
+  GetSomething2WithDependencies: SomethingGetSomething2WithDependencies
 }
 
-const somethingElseMeta = { moduleName: "SomethingElse" as const }
-const SomethingElseReq = TaggedRequestFor(somethingElseMeta.moduleName)
+export const SomethingElseReq = TaggedRequestFor("SomethingElse")
 
 class SomethingElseGetSomething2 extends SomethingElseReq<SomethingElseGetSomething2>()("GetSomething2", {
   id: S.String
@@ -135,8 +132,7 @@ class SomethingElseGetSomething2WithDependencies
 
 export const SomethingElse = {
   GetSomething2: SomethingElseGetSomething2,
-  GetSomething2WithDependencies: SomethingElseGetSomething2WithDependencies,
-  meta: somethingElseMeta
+  GetSomething2WithDependencies: SomethingElseGetSomething2WithDependencies
 }
 
 export const useClient = (

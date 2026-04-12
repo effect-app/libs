@@ -15,8 +15,7 @@ export const meta: Preset<{ sourcePrefix?: string }> = ({ meta, options }) => {
   )
     .filter((_) => _ !== "resources")
     .join("/")
-  const expectedContent = `export const meta = { moduleName: "${moduleName}" } as const
-export const Req = TaggedRequestFor(meta.moduleName)`
+  const expectedContent = `export const Req = TaggedRequestFor("${moduleName}")`
 
   try {
     if (expectedContent === meta.existingContent) {

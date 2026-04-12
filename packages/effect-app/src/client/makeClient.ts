@@ -216,7 +216,7 @@ export const makeRpcClient = <
         return cls
       }) as any
     }
-    return TaggedRequestWithMeta
+    return Object.assign(TaggedRequestWithMeta, { moduleName } as const)
   }
 
   return {

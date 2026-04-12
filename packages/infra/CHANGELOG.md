@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 4.0.0-beta.81
+
+### Minor Changes
+
+- fd67f0b: Add `withRequestResolverCache` to scope RequestResolver cache to the ContextMap (request-scoped). Add `getOrCreateStore` to ContextMap for generic scoped storage.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.81
+
 ## 4.0.0-beta.80
 
 ### Patch Changes

@@ -36,6 +36,21 @@ type TaggedRequestResult<
     readonly "~encodingServices": S.Codec.EncodingServices<Success> | S.Codec.EncodingServices<Error>
   }
 
+type TaggedRequestForResult<
+  Self,
+  Tag extends string,
+  Payload extends S.Struct.Fields,
+  Success extends S.Top,
+  Error extends S.Top,
+  Config,
+  ModuleName extends string
+> =
+  & TaggedRequestResult<Self, Tag, Payload, Success, Error, Config>
+  & {
+    readonly id: `${ModuleName}.${Tag}`
+    readonly moduleName: ModuleName
+  }
+
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Top = never
@@ -124,7 +139,88 @@ export const makeRpcClient = <
     }) as any
   }
 
+  function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
+    function TaggedRequestWithMeta<Self>(): {
+      <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
+        tag: Tag,
+        fields: Payload,
+        config: RequestConfig & C
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        SchemaOrFields<C["success"]>,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName
+      >
+      <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
+        tag: Tag,
+        fields: Payload,
+        config: RequestConfig & C
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        SchemaOrFields<C["success"]>,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName
+      >
+      <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
+        tag: Tag,
+        fields: Payload,
+        config: RequestConfig & C
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName
+      >
+      <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
+        tag: Tag,
+        fields: Payload,
+        config: C & RequestConfig
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName
+      >
+      <Tag extends string, Payload extends S.Struct.Fields>(
+        tag: Tag,
+        fields: Payload
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<{}>,
+        Record<string, never>,
+        ModuleName
+      >
+    } {
+      return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
+        tag: Tag,
+        fields: Fields,
+        config?: C
+      ) => {
+        const cls = TaggedRequest<Self>()(tag as any, fields, config as any)
+        Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName })
+        return cls
+      }) as any
+    }
+    return TaggedRequestWithMeta
+  }
+
   return {
-    TaggedRequest
+    TaggedRequest,
+    TaggedRequestFor
   }
 }

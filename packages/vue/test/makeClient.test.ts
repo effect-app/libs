@@ -5,14 +5,13 @@ import { Something, SomethingElse, useClient, useExperimental } from "./stubs.js
 
 it.skip("query type tests", () => {
   const { clientFor } = useClient()
-  const clientA = clientFor(SomethingElse)
   const client = clientFor(Something, () => ({
     GetSomething2WithDependencies: (queryKey) => [
       { filters: { queryKey } },
       {
         filters: {
           queryKey: makeQueryKey(
-            clientA
+            SomethingElse
               .GetSomething2
           )
         }

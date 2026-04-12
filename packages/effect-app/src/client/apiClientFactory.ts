@@ -37,6 +37,8 @@ export type Req = S.Top & {
   success: S.Top
   error: S.Top
   config?: Record<string, any>
+  readonly id?: string
+  readonly moduleName?: string
   readonly "~decodingServices"?: unknown
 }
 

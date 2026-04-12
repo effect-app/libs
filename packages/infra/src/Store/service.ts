@@ -161,10 +161,19 @@ export const makeContextMap = () => {
   //   }
   // }
 
+  const store = new Map<symbol, unknown>()
+
   return {
     get: getEtag,
-    set: setEtag
-    // parserEnv
+    set: setEtag,
+    getOrCreateStore: <T>(key: symbol, make: () => T): T => {
+      let value = store.get(key) as T | undefined
+      if (value === undefined) {
+        value = make()
+        store.set(key, value)
+      }
+      return value
+    }
   }
 }
 

@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [3613e87]
+  - effect-app@4.0.0-beta.77
+  - @effect-app/vue@4.0.0-beta.77
+
 ## 4.0.0-beta.76
 
 ### Patch Changes

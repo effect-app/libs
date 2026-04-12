@@ -105,7 +105,17 @@ export class GetSomething2WithDependencies extends Req<GetSomething2WithDependen
   error: S.String
 }) {}
 
-export const Something = { GetSomething2, GetSomething2WithDependencies, meta: { moduleName: "Something" as const } }
+const meta = { moduleName: "Something" as const }
+
+export const Something = { GetSomething2, GetSomething2WithDependencies, meta }
+
+const metaElse = { moduleName: "SomethingElse" as const }
+
+export const SomethingElse = {
+  GetSomething2,
+  GetSomething2WithDependencies,
+  meta: metaElse
+}
 
 export const useClient = (
   options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }

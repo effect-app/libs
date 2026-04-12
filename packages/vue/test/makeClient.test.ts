@@ -1,10 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Effect } from "effect-app"
-import { Something, useClient, useExperimental } from "./stubs.js"
+import { makeQueryKey } from "../src/lib.js"
+import { Something, SomethingElse, useClient, useExperimental } from "./stubs.js"
 
 it.skip("query type tests", () => {
   const { clientFor } = useClient()
-  const client = clientFor(Something)
+  const clientA = clientFor(SomethingElse)
+  const client = clientFor(Something, () => ({
+    GetSomething2WithDependencies: (queryKey) => [
+      { filters: { queryKey } },
+      {
+        filters: {
+          queryKey: makeQueryKey(
+            clientA
+              .GetSomething2
+          )
+        }
+      }
+    ]
+  }))
 
   const q = client.GetSomething2.query
 

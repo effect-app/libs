@@ -48,7 +48,7 @@ export const setupRequestContextFromCurrent =
     self
       .pipe(
         withRequestSpan(name, options),
-        Effect.provide(ContextMapContainer.layer)
+        Effect.provide(ContextMapContainer.layer, { local: true })
       )
 
 // TODO: consider integrating Effect.withParentSpan
@@ -61,7 +61,7 @@ export function setupRequestContext<R, E, A>(self: Effect.Effect<A, E, R>, reque
   return self
     .pipe(
       withRequestSpan(requestContext.name),
-      Effect.provide(layer)
+      Effect.provide(layer, { local: true })
     )
 }
 
@@ -79,6 +79,6 @@ export function setupRequestContextWithCustomSpan<R, E, A>(
   return self
     .pipe(
       withRequestSpan(name, options),
-      Effect.provide(layer)
+      Effect.provide(layer, { local: true })
     )
 }

@@ -78,6 +78,7 @@
     "remove-tagged-error-compat",
     "remove-withDefaultConstructor",
     "replace-proxify-with-accessors",
+    "router-no-meta",
     "salty-weeks-walk",
     "schema-json-collections",
     "secret-url-tests",

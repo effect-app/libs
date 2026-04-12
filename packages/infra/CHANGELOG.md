@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 4.0.0-beta.78
+
+### Minor Changes
+
+- 818e047: Router `matchFor` no longer requires `meta` property on resource when requests carry `moduleName` from `TaggedRequestFor`
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.78
+
 ## 4.0.0-beta.77
 
 ### Patch Changes

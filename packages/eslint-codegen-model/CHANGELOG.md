@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 3b27909: Don't export `Req` in meta codegen preset
+
 ## 2.0.0-beta.5
 
 ### Minor Changes

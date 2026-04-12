@@ -13,7 +13,7 @@ import { HttpClient, HttpClientRequest } from "../http.js"
 import * as Option from "../Option.js"
 import type * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
-import type { Client, ClientForOptions, Requests, RequestsAny } from "./clientFor.js"
+import type { Client, ClientForOptions, ExtractModuleName, Requests, RequestsAny } from "./clientFor.js"
 
 export interface ApiConfig {
   url: string
@@ -37,6 +37,8 @@ export type Req = S.Top & {
   success: S.Top
   error: S.Top
   config?: Record<string, any>
+  readonly id?: string
+  readonly moduleName?: string
   readonly "~decodingServices"?: unknown
 }
 
@@ -84,7 +86,7 @@ type RpcHandlers<M extends RequestsAny> = {
   [K in keyof M]: Rpc.Rpc<M[K]["_tag"], M[K], M[K]["success"], M[K]["error"]>
 }
 
-const getFiltered = <M extends Requests>(resource: M) => {
+const getFiltered = <M extends RequestsAny>(resource: M) => {
   type Filtered = {
     [K in keyof M as M[K] extends Req ? K : never]: M[K] extends Req ? M[K] : never
   }
@@ -102,13 +104,15 @@ const getFiltered = <M extends Requests>(resource: M) => {
   return filtered as unknown as Filtered
 }
 
-export const getMeta = <M extends Requests>(resource: M) => {
-  const meta = (resource as any).meta as { moduleName: string }
-  if (!meta) throw new Error("No meta defined in Resource!")
-  return meta as M["meta"]
+export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: ExtractModuleName<M> } => {
+  const meta = (resource as any).meta as { moduleName: string } | undefined
+  if (meta) return meta as any
+  const first = typedValuesOf(getFiltered(resource))[0]
+  if (first && "moduleName" in first) return { moduleName: first.moduleName } as any
+  throw new Error("No meta defined in Resource and no moduleName on requests!")
 }
 
-export const makeRpcGroupFromRequestsAndModuleName = <M extends Requests, const ModuleName extends string>(
+export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, const ModuleName extends string>(
   resource: M,
   moduleName: ModuleName
 ) => {
@@ -133,7 +137,7 @@ export const makeRpcGroup = <
   resource: M & { meta: { moduleName: ModuleName } }
 ) => makeRpcGroupFromRequestsAndModuleName(resource, resource.meta.moduleName)
 
-const makeRpcTag = <M extends Requests>(resource: M) => {
+const makeRpcTag = <M extends RequestsAny>(resource: M) => {
   const meta = getMeta(resource)
   const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName)
 
@@ -154,7 +158,7 @@ const makeRpcTag = <M extends Requests>(resource: M) => {
 const makeApiClientFactory = Effect
   .gen(function*() {
     const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
-    const makeClientFor = <M extends Requests>(
+    const makeClientFor = <M extends RequestsAny>(
       resource: M,
       requestLevelLayers = Layer.empty,
       options?: ClientForOptions
@@ -243,7 +247,7 @@ const makeApiClientFactory = Effect
                 }
 
               return prev
-            }, {} as Client<M, M["meta"]["moduleName"]>)
+            }, {} as Client<M, ExtractModuleName<M>>)
         }
       })
 
@@ -259,9 +263,9 @@ const makeApiClientFactory = Effect
         cacheL.set(requestLevelLayers, cache)
       }
 
-      return <M extends Requests>(
+      return <M extends RequestsAny>(
         models: M
-      ): Effect.Effect<Client<M, M["meta"]["moduleName"]>> =>
+      ): Effect.Effect<Client<M, ExtractModuleName<M>>> =>
         Effect.gen(function*() {
           const found = cache.get(models)
           if (found) {
@@ -294,7 +298,7 @@ export class ApiClientFactory
 
   static readonly makeFor =
     (requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) =>
-    <M extends Requests>(
+    <M extends RequestsAny>(
       resource: M
     ) =>
       ApiClientFactory.use((apiClientFactory) => {

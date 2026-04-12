@@ -92,20 +92,48 @@ export const useExperimental = (
 }
 
 export class RequestContextMap extends RpcContextMap.makeMap({}) {}
-export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
-export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
+export const { TaggedRequest: Req, TaggedRequestFor } = makeRpcClient(RequestContextMap)
+
+export const SomethingReq = TaggedRequestFor("Something")
+
+class SomethingGetSomething2 extends SomethingReq<SomethingGetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
-export class GetSomething2WithDependencies extends Req<GetSomething2WithDependencies>()("GetSomething2", {
-  id: S.String
-}, {
-  // this is intentilally fake, to simulate a codec that requires a dependency
-  success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
-  error: S.String
-}) {}
+class SomethingGetSomething2WithDependencies
+  extends SomethingReq<SomethingGetSomething2WithDependencies>()("GetSomething2", {
+    id: S.String
+  }, {
+    // this is intentilally fake, to simulate a codec that requires a dependency
+    success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
+    error: S.String
+  })
+{}
 
-export const Something = { GetSomething2, GetSomething2WithDependencies, meta: { moduleName: "Something" as const } }
+export const Something = {
+  GetSomething2: SomethingGetSomething2,
+  GetSomething2WithDependencies: SomethingGetSomething2WithDependencies
+}
+
+export const SomethingElseReq = TaggedRequestFor("SomethingElse")
+
+class SomethingElseGetSomething2 extends SomethingElseReq<SomethingElseGetSomething2>()("GetSomething2", {
+  id: S.String
+}, { success: S.FiniteFromString }) {}
+
+class SomethingElseGetSomething2WithDependencies
+  extends SomethingElseReq<SomethingElseGetSomething2WithDependencies>()("GetSomething2", {
+    id: S.String
+  }, {
+    success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
+    error: S.String
+  })
+{}
+
+export const SomethingElse = {
+  GetSomething2: SomethingElseGetSomething2,
+  GetSomething2WithDependencies: SomethingElseGetSomething2WithDependencies
+}
 
 export const useClient = (
   options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }

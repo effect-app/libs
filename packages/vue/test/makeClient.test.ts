@@ -1,10 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Effect } from "effect-app"
-import { Something, useClient, useExperimental } from "./stubs.js"
+import { makeQueryKey } from "../src/lib.js"
+import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
+
+it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
+  expectTypeOf(SomethingReq.moduleName).toEqualTypeOf<"Something">()
+  expectTypeOf(SomethingElseReq.moduleName).toEqualTypeOf<"SomethingElse">()
+
+  expectTypeOf(Something.GetSomething2.moduleName).toEqualTypeOf<"Something">()
+  expectTypeOf(Something.GetSomething2.id).toEqualTypeOf<"Something.GetSomething2">()
+
+  expectTypeOf(SomethingElse.GetSomething2.moduleName).toEqualTypeOf<"SomethingElse">()
+  expectTypeOf(SomethingElse.GetSomething2.id).toEqualTypeOf<"SomethingElse.GetSomething2">()
+})
 
 it.skip("query type tests", () => {
   const { clientFor } = useClient()
-  const client = clientFor(Something)
+  const client = clientFor(Something, () => ({
+    GetSomething2WithDependencies: (queryKey) => [
+      { filters: { queryKey } },
+      {
+        filters: {
+          queryKey: makeQueryKey(
+            SomethingElse
+              .GetSomething2
+          )
+        }
+      }
+    ]
+  }))
 
   const q = client.GetSomething2.query
 

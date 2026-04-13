@@ -3,6 +3,8 @@ import type Sqlite from "better-sqlite3"
 import BetterSqlite from "better-sqlite3"
 import { describe, expect, it } from "vitest"
 import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/query.js"
+import { parseRow } from "../src/Store/SQL.js"
+import { makeETag } from "../src/Store/utils.js"
 
 const query = (db: Sqlite.Database, sql: string, params: unknown[] = []) =>
   db.prepare(sql).all(...params as any[]) as any[]
@@ -309,7 +311,8 @@ describe("SQL Store (SQLite integration)", () => {
       db.exec(
         `CREATE TABLE IF NOT EXISTS "test_items" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
       )
-      db.prepare(`INSERT INTO "test_items" (id, _etag, data) VALUES (?, ?, ?)`)
+      db
+        .prepare(`INSERT INTO "test_items" (id, _etag, data) VALUES (?, ?, ?)`)
         .run("1", "etag1", JSON.stringify({ name: "Alice", age: 30 }))
 
       const rows = db.prepare(`SELECT * FROM "test_items"`).all()
@@ -324,7 +327,8 @@ describe("SQL Store (SQLite integration)", () => {
       )
       // Simulate what toRow now produces: data without id or _etag
       const data = { name: "Alice", age: 30, tags: ["admin"] }
-      db.prepare(`INSERT INTO "test_clean" (id, _etag, data) VALUES (?, ?, ?)`)
+      db
+        .prepare(`INSERT INTO "test_clean" (id, _etag, data) VALUES (?, ?, ?)`)
         .run("1", "etag1", JSON.stringify(data))
 
       const row = db.prepare(`SELECT * FROM "test_clean" WHERE id = ?`).get("1") as any
@@ -345,26 +349,32 @@ describe("SQL Store (SQLite integration)", () => {
         `CREATE TABLE IF NOT EXISTS "test_compat" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
       )
       // Old format: id and _etag inside data
-      db.prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`)
+      db
+        .prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`)
         .run("1", "etag1", JSON.stringify({ id: "1", _etag: "old_etag", name: "Alice", age: 30 }))
       // New format: id and _etag stripped from data
-      db.prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`)
+      db
+        .prepare(`INSERT INTO "test_compat" (id, _etag, data) VALUES (?, ?, ?)`)
         .run("2", "etag2", JSON.stringify({ name: "Bob", age: 25 }))
 
       // Both should be queryable by name
       const q1 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "name", op: "eq", value: "Alice" }],
-        "test_compat", {}
+        "test_compat",
+        {}
       )
       const r1 = query(db, q1.sql, q1.params)
       expect(r1.length).toBe(1)
       expect((r1[0] as any).id).toBe("1")
 
       const q2 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "name", op: "eq", value: "Bob" }],
-        "test_compat", {}
+        "test_compat",
+        {}
       )
       const r2 = query(db, q2.sql, q2.params)
       expect(r2.length).toBe(1)
@@ -372,9 +382,11 @@ describe("SQL Store (SQLite integration)", () => {
 
       // Both queryable by id column
       const q3 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "id", op: "in", value: ["1", "2"] as any }],
-        "test_compat", {}
+        "test_compat",
+        {}
       )
       expect(query(db, q3.sql, q3.params).length).toBe(2)
     }))
@@ -396,17 +408,21 @@ describe("SQL Store (SQLite integration)", () => {
 
       // Filter by field in data
       const q1 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "age", op: "gt", value: 28 as any }],
-        "test_noid", {}
+        "test_noid",
+        {}
       )
       expect(query(db, q1.sql, q1.params).length).toBe(2) // Alice(30), Charlie(35)
 
       // Filter by id column
       const q2 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "id", op: "eq", value: "2" }],
-        "test_noid", {}
+        "test_noid",
+        {}
       )
       const r2 = query(db, q2.sql, q2.params)
       expect(r2.length).toBe(1)
@@ -415,10 +431,15 @@ describe("SQL Store (SQLite integration)", () => {
 
       // Order + limit still works
       const q3 = buildWhereSQLQuery(
-        sqliteDialect, "id", [], "test_noid", {},
+        sqliteDialect,
+        "id",
+        [],
+        "test_noid",
+        {},
         undefined,
         [{ key: "age", direction: "ASC" }] as any,
-        undefined, 2
+        undefined,
+        2
       )
       const r3 = query(db, q3.sql, q3.params)
       expect(r3.length).toBe(2)
@@ -448,40 +469,48 @@ describe("SQL Store (SQLite integration)", () => {
 
       // Test eq
       const q1 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "name", op: "eq", value: "Alice" }],
-        "test_people", {}
+        "test_people",
+        {}
       )
       expect(query(db, q1.sql, q1.params).length).toBe(1)
       expect((JSON.parse((query(db, q1.sql, q1.params)[0] as any).data) as any).name).toBe("Alice")
 
       // Test gt
       const q2 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "age", op: "gt", value: 28 as any }],
-        "test_people", {}
+        "test_people",
+        {}
       )
       expect(query(db, q2.sql, q2.params).length).toBe(2)
 
       // Test OR
       const q3 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [
           { t: "where", path: "name", op: "eq", value: "Alice" },
           { t: "or", path: "name", op: "eq", value: "Bob" }
         ],
-        "test_people", {}
+        "test_people",
+        {}
       )
       expect(query(db, q3.sql, q3.params).length).toBe(2)
 
       // Test AND
       const q4 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [
           { t: "where", path: "name", op: "eq", value: "Alice" },
           { t: "and", path: "age", op: "gt", value: 25 as any }
         ],
-        "test_people", {}
+        "test_people",
+        {}
       )
       const r4 = query(db, q4.sql, q4.params)
       expect(r4.length).toBe(1)
@@ -489,25 +518,31 @@ describe("SQL Store (SQLite integration)", () => {
 
       // Test IN
       const q5 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "id", op: "in", value: ["1", "3"] as any }],
-        "test_people", {}
+        "test_people",
+        {}
       )
       expect(query(db, q5.sql, q5.params).length).toBe(2)
 
       // Test contains (string)
       const q6 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "name", op: "contains", value: "li" }],
-        "test_people", {}
+        "test_people",
+        {}
       )
       expect(query(db, q6.sql, q6.params).length).toBe(2) // Alice, Charlie
 
       // Test startsWith
       const q7 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "name", op: "startsWith", value: "Al" }],
-        "test_people", {}
+        "test_people",
+        {}
       )
       const r7 = query(db, q7.sql, q7.params)
       expect(r7.length).toBe(1)
@@ -515,15 +550,18 @@ describe("SQL Store (SQLite integration)", () => {
 
       // Test includes (array)
       const q8 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [{ t: "where", path: "tags", op: "includes", value: "admin" }],
-        "test_people", {}
+        "test_people",
+        {}
       )
       expect(query(db, q8.sql, q8.params).length).toBe(2) // Alice, Charlie
 
       // Test nested scope: where name = Alice OR (age > 30 AND name contains 'ar')
       const q9 = buildWhereSQLQuery(
-        sqliteDialect, "id",
+        sqliteDialect,
+        "id",
         [
           { t: "where", path: "name", op: "eq", value: "Alice" },
           {
@@ -535,16 +573,22 @@ describe("SQL Store (SQLite integration)", () => {
             relation: "some"
           }
         ],
-        "test_people", {}
+        "test_people",
+        {}
       )
       expect(query(db, q9.sql, q9.params).length).toBe(2) // Alice + Charlie
 
       // Test order + limit
       const q10 = buildWhereSQLQuery(
-        sqliteDialect, "id", [], "test_people", {},
+        sqliteDialect,
+        "id",
+        [],
+        "test_people",
+        {},
         undefined,
         [{ key: "age", direction: "DESC" }] as any,
-        undefined, 2
+        undefined,
+        2
       )
       const r10 = query(db, q10.sql, q10.params)
       expect(r10.length).toBe(2)

@@ -11,7 +11,8 @@ import { type FilterArgs, type PersistenceModelType, type StorageConfig, type St
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.js"
 import { makeETag } from "./utils.js"
 
-const parseRow = <Encoded extends FieldValues>(
+/** @internal */
+export const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: string },
   idKey: PropertyKey,
   defaultValues: Partial<Encoded>

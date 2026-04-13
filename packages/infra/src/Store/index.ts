@@ -21,7 +21,7 @@ export function StoreMakerLayer(cfg: StorageConfig) {
         console.log("Using disk store at " + dir)
         return DiskStoreLayer(cfg, dir)
       }
-      if (storageUrl.startsWith("sql://")) {
+      if (storageUrl.startsWith("sqlite://")) {
         console.log("Using SQLite store")
         return SQLiteStoreLayer(cfg)
       }

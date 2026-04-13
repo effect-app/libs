@@ -19,6 +19,8 @@ export interface SQLDialect {
   readonly caseInsensitiveNotLike: (expr: string, valPlaceholder: string) => string
   readonly jsonColumnType: "JSON" | "JSONB"
   readonly arrayLength: (path: string) => string
+  readonly jsonEachFrom: (arrPath: string, alias: string) => string
+  readonly jsonExtractElement: (alias: string, subPath: string) => string
 }
 
 export const sqliteDialect: SQLDialect = {
@@ -41,7 +43,9 @@ export const sqliteDialect: SQLDialect = {
   caseInsensitiveLike: (expr, val) => `LOWER(${expr}) LIKE LOWER(${val})`,
   caseInsensitiveNotLike: (expr, val) => `LOWER(${expr}) NOT LIKE LOWER(${val})`,
   jsonColumnType: "JSON",
-  arrayLength: (path) => `json_array_length(data, '$.${path}')`
+  arrayLength: (path) => `json_array_length(data, '$.${path}')`,
+  jsonEachFrom: (arrPath, alias) => `json_each(data, '$.${arrPath}') AS ${alias}`,
+  jsonExtractElement: (alias, subPath) => `json_extract(${alias}.value, '$.${subPath}')`
 }
 
 export const pgDialect: SQLDialect = {
@@ -102,7 +106,20 @@ export const pgDialect: SQLDialect = {
   caseInsensitiveLike: (expr, val) => `${expr} ILIKE ${val}`,
   caseInsensitiveNotLike: (expr, val) => `${expr} NOT ILIKE ${val}`,
   jsonColumnType: "JSONB",
-  arrayLength: (path) => `jsonb_array_length(data->'${path}')`
+  arrayLength: (path) => `jsonb_array_length(data->'${path}')`,
+  jsonEachFrom: (arrPath, alias) => {
+    const parts = arrPath.split(".")
+    const jsonPath = parts.length === 1
+      ? `data->'${parts[0]}'`
+      : `data${parts.map((p) => `->'${p}'`).join("")}`
+    return `jsonb_array_elements(${jsonPath}) AS ${alias}`
+  },
+  jsonExtractElement: (alias, subPath) => {
+    const parts = subPath.split(".")
+    if (parts.length === 1) return `${alias}->>'${parts[0]}'`
+    const last = parts.pop()!
+    return `${alias}${parts.map((p) => `->'${p}'`).join("")}->>'${last}'`
+  }
 }
 
 export function logQuery(q: { sql: string; params: unknown[] }) {
@@ -139,8 +156,16 @@ export function buildWhereSQLQuery(
     return dialect.placeholder(paramIndex++)
   }
 
-  const fieldExpr = (path: string): string => {
+  const fieldExpr = (path: string, relation?: string): string => {
     if (path === idKey || path === "id") return "id"
+    if (relation && path.includes(".-1.")) {
+      const subPath = path.split(".-1.")[1]!
+      if (subPath.endsWith(".length")) {
+        // TODO: array length inside relation element
+        return dialect.jsonExtractElement(`_${relation}`, subPath.slice(0, -".length".length))
+      }
+      return dialect.jsonExtractElement(`_${relation}`, subPath)
+    }
     if (path.endsWith(".length")) {
       const arrPath = dottedToJsonPath(path.slice(0, -".length".length))
       return dialect.arrayLength(arrPath)
@@ -154,9 +179,9 @@ export function buildWhereSQLQuery(
     return expr
   }
 
-  const statement = (x: FilterR): string => {
+  const statement = (x: FilterR, relation?: string): string => {
     const resolvedPath = x.path === idKey ? "id" : x.path
-    const k = fieldExpr(resolvedPath)
+    const k = fieldExpr(resolvedPath, relation)
 
     switch (x.op) {
       case "in": {
@@ -313,24 +338,33 @@ export function buildWhereSQLQuery(
         : _
       : _
 
+  const wrapRelation = (rel: string, inner: string, every: boolean): string => {
+    const from = dialect.jsonEachFrom(rel, `_${rel}`)
+    return every
+      ? `NOT EXISTS(SELECT 1 FROM ${from} WHERE NOT (${inner}))`
+      : `EXISTS(SELECT 1 FROM ${from} WHERE ${inner})`
+  }
+
   const print = (state: readonly FilterResult[], isRelation: string | null, every: boolean): string => {
     let s = ""
     for (const e of state) {
       switch (e.t) {
         case "where":
-          s += statement(e)
+          s += statement(e, isRelation ?? undefined)
           break
         case "or":
-          s += ` OR ${statement(e)}`
+          s += ` OR ${statement(e, isRelation ?? undefined)}`
           break
         case "and":
-          s += ` AND ${statement(e)}`
+          s += ` AND ${statement(e, isRelation ?? undefined)}`
           break
         case "or-scope": {
           if (!every) every = e.relation === "every"
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
-            s += ` OR (${print(e.result.map(flip(every)), rel, every)})`
+            s += isRelation
+              ? ` OR (${print(e.result.map(flip(every)), rel, every)})`
+              : ` OR ${wrapRelation(rel, print(e.result.map(flip(every)), rel, every), every)}`
           } else {
             s += ` OR (${print(e.result, null, every)})`
           }
@@ -340,7 +374,9 @@ export function buildWhereSQLQuery(
           if (!every) every = e.relation === "every"
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
-            s += ` AND (${print(e.result.map(flip(every)), rel, every)})`
+            s += isRelation
+              ? ` AND (${print(e.result.map(flip(every)), rel, every)})`
+              : ` AND ${wrapRelation(rel, print(e.result.map(flip(every)), rel, every), every)}`
           } else {
             s += ` AND (${print(e.result, null, every)})`
           }
@@ -350,7 +386,9 @@ export function buildWhereSQLQuery(
           if (!every) every = e.relation === "every"
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
-            s += `(${print(e.result.map(flip(every)), rel, every)})`
+            s += isRelation
+              ? `(${print(e.result.map(flip(every)), rel, every)})`
+              : wrapRelation(rel, print(e.result.map(flip(every)), rel, every), every)
           } else {
             s += `(${print(e.result, null, every)})`
           }

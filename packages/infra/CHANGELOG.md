@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- 5a709d1: Fix SQLite select query type coercion using `json_quote` and apply defaultValues in SQL WHERE clauses via `COALESCE`.
+  - effect-app@4.0.0-beta.87
+
 ## 4.0.0-beta.86
 
 ### Patch Changes

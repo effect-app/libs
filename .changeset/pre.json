@@ -43,6 +43,7 @@
     "fix-repo-transformed-id",
     "fix-seed-marker-and-circular-dep",
     "fix-sql-namespace-params",
+    "fix-sql-select-types-and-defaults",
     "fix-transformed-struct-defaults",
     "fix-vue-form-numeric-type-detection",
     "frank-ends-switch",

@@ -41,6 +41,7 @@
     "fix-jsonschema-postprocess",
     "fix-repo-transformed-id-union",
     "fix-repo-transformed-id",
+    "fix-sql-namespace-params",
     "fix-transformed-struct-defaults",
     "fix-vue-form-numeric-type-detection",
     "frank-ends-switch",

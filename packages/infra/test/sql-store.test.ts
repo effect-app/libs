@@ -2,8 +2,8 @@
 import type Sqlite from "better-sqlite3"
 import BetterSqlite from "better-sqlite3"
 import { describe, expect, it } from "vitest"
-import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/query.js"
 import { parseRow } from "../src/Store/SQL.js"
+import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/query.js"
 import { makeETag } from "../src/Store/utils.js"
 
 const query = (db: Sqlite.Database, sql: string, params: unknown[] = []) =>
@@ -594,4 +594,148 @@ describe("SQL Store (SQLite integration)", () => {
       expect(r10.length).toBe(2)
       expect((JSON.parse((r10[0] as any).data) as any).name).toBe("Charlie") // oldest first
     }))
+})
+
+// --- toRow stripping and parseRow reconstruction tests ---
+
+describe("toRow strips _etag and id from data", () => {
+  // Replicate the toRow logic from SQL.ts to test in isolation
+  const toRow = <IdKey extends PropertyKey>(e: any, idKey: IdKey) => {
+    const newE = makeETag(e)
+    const id = newE[idKey] as string
+    const { _etag, [idKey]: _id, ...rest } = newE as any
+    const data = JSON.stringify(rest)
+    return { id, _etag: newE._etag!, data, item: newE }
+  }
+
+  it("data JSON does not contain _etag", () => {
+    const row = toRow({ id: "1", _etag: undefined, name: "Alice", age: 30 }, "id")
+    const parsed = JSON.parse(row.data) as any
+    expect(parsed).not.toHaveProperty("_etag")
+    expect(parsed.name).toBe("Alice")
+    expect(parsed.age).toBe(30)
+  })
+
+  it("data JSON does not contain id field", () => {
+    const row = toRow({ id: "1", _etag: undefined, name: "Alice" }, "id")
+    const parsed = JSON.parse(row.data) as any
+    expect(parsed).not.toHaveProperty("id")
+    expect(parsed.name).toBe("Alice")
+  })
+
+  it("data JSON does not contain custom idKey field", () => {
+    const row = toRow({ myId: "abc", _etag: undefined, name: "Bob" }, "myId")
+    const parsed = JSON.parse(row.data) as any
+    expect(parsed).not.toHaveProperty("myId")
+    expect(parsed.name).toBe("Bob")
+    expect(row.id).toBe("abc")
+  })
+
+  it("id and _etag are returned as separate fields", () => {
+    const row = toRow({ id: "1", _etag: undefined, name: "Alice" }, "id")
+    expect(row.id).toBe("1")
+    expect(typeof row._etag).toBe("string")
+    expect(row._etag.length).toBeGreaterThan(0)
+  })
+
+  it("item still contains all fields including _etag and id", () => {
+    const row = toRow({ id: "1", _etag: undefined, name: "Alice" }, "id")
+    expect(row.item.id).toBe("1")
+    expect(row.item._etag).toBe(row._etag)
+    expect(row.item.name).toBe("Alice")
+  })
+
+  it("preserves nested objects in data", () => {
+    const row = toRow({ id: "1", _etag: undefined, address: { city: "NYC", zip: "10001" } }, "id")
+    const parsed = JSON.parse(row.data) as any
+    expect(parsed.address).toEqual({ city: "NYC", zip: "10001" })
+    expect(parsed).not.toHaveProperty("id")
+    expect(parsed).not.toHaveProperty("_etag")
+  })
+})
+
+describe("parseRow reconstructs full object from row", () => {
+  it("re-injects id from row column using idKey", () => {
+    const result: any = parseRow(
+      { id: "42", _etag: "etag1", data: JSON.stringify({ name: "Alice", age: 30 }) },
+      "id",
+      {}
+    )
+    expect(result.id).toBe("42")
+    expect(result.name).toBe("Alice")
+    expect(result.age).toBe(30)
+    expect(result._etag).toBe("etag1")
+  })
+
+  it("re-injects custom idKey from row column", () => {
+    const result: any = parseRow(
+      { id: "abc", _etag: "etag2", data: JSON.stringify({ name: "Bob" }) },
+      "myId",
+      {}
+    )
+    expect(result.myId).toBe("abc")
+    expect(result.name).toBe("Bob")
+    expect(result._etag).toBe("etag2")
+  })
+
+  it("uses _etag from row column, not from data", () => {
+    const result: any = parseRow(
+      { id: "1", _etag: "column_etag", data: JSON.stringify({ _etag: "stale_data_etag", name: "Alice" }) },
+      "id",
+      {}
+    )
+    expect(result._etag).toBe("column_etag")
+  })
+
+  it("uses id from row column, not from data", () => {
+    const result: any = parseRow(
+      { id: "correct_id", _etag: "e1", data: JSON.stringify({ id: "wrong_id", name: "Alice" }) },
+      "id",
+      {}
+    )
+    expect(result.id).toBe("correct_id")
+  })
+
+  it("applies defaultValues for missing fields", () => {
+    const result: any = parseRow(
+      { id: "1", _etag: "e1", data: JSON.stringify({ name: "Alice" }) },
+      "id",
+      { status: "active", role: "user" }
+    )
+    expect(result.name).toBe("Alice")
+    expect(result.status).toBe("active")
+    expect(result.role).toBe("user")
+  })
+
+  it("data fields override defaultValues", () => {
+    const result: any = parseRow(
+      { id: "1", _etag: "e1", data: JSON.stringify({ name: "Alice", status: "inactive" }) },
+      "id",
+      { status: "active" }
+    )
+    expect(result.status).toBe("inactive")
+  })
+
+  it("handles null _etag from row", () => {
+    const result: any = parseRow(
+      { id: "1", _etag: null, data: JSON.stringify({ name: "Alice" }) },
+      "id",
+      {}
+    )
+    expect(result._etag).toBeUndefined()
+  })
+
+  it("round-trip: toRow then parseRow reconstructs the original", () => {
+    const original = { id: "1", _etag: undefined as string | undefined, name: "Alice", age: 30, tags: ["admin"] }
+    const newE = makeETag(original)
+    const { _etag, id: _id, ...rest } = newE as any
+    const row = { id: newE.id, _etag: newE._etag!, data: JSON.stringify(rest) }
+
+    const reconstructed: any = parseRow(row, "id", {})
+    expect(reconstructed.id).toBe("1")
+    expect(reconstructed.name).toBe("Alice")
+    expect(reconstructed.age).toBe(30)
+    expect(reconstructed.tags).toEqual(["admin"])
+    expect(reconstructed._etag).toBe(newE._etag)
+  })
 })

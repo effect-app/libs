@@ -23,7 +23,7 @@ export interface SQLDialect {
 
 export const sqliteDialect: SQLDialect = {
   jsonExtract: (path) => `json_extract(data, '$.${path}')`,
-  jsonExtractJson: (path) => `json_extract(data, '$.${path}')`,
+  jsonExtractJson: (path) => `json_quote(json_extract(data, '$.${path}'))`,
   placeholder: (_index) => "?",
   jsonArrayContains: (arrPath, val) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${val})`,
   jsonArrayNotContains: (arrPath, val) =>
@@ -125,7 +125,7 @@ export function buildWhereSQLQuery(
   idKey: PropertyKey,
   filter: readonly FilterResult[],
   tableName: string,
-  _defaultValues: Record<string, unknown>,
+  defaultValues: Record<string, unknown>,
   select?: NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
@@ -146,7 +146,12 @@ export function buildWhereSQLQuery(
       return dialect.arrayLength(arrPath)
     }
     const jsonPath = dottedToJsonPath(path)
-    return dialect.jsonExtract(jsonPath)
+    const expr = dialect.jsonExtract(jsonPath)
+    const topKey = path.split(".")[0]!
+    if (topKey in defaultValues) {
+      return `COALESCE(${expr}, ${addParam(defaultValues[topKey])})`
+    }
+    return expr
   }
 
   const statement = (x: FilterR): string => {
@@ -347,7 +352,7 @@ export function buildWhereSQLQuery(
     const fields = select.map((s) => {
       if (typeof s === "string") {
         if (s === idKey || s === "id") return `id`
-        return `${dialect.jsonExtract(s)} AS "${s}"`
+        return `${dialect.jsonExtractJson(s)} AS "${s}"`
       }
       return `${dialect.jsonExtractJson(s.key)} AS "${s.key}"`
     })

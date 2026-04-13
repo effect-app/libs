@@ -21,12 +21,11 @@ export const parseRow = <Encoded extends FieldValues>(
   return { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
 }
 
-const parseSelectRow = <Encoded extends FieldValues>(
+const parseSelectRow = (
   row: Record<string, unknown>,
-  idKey: PropertyKey,
-  defaultValues: Partial<Encoded>
+  idKey: PropertyKey
 ): any => {
-  const result: Record<string, unknown> = { ...defaultValues }
+  const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {
     if (key === "id") {
       result[idKey as string] = value
@@ -268,7 +267,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                               Effect.map((rows) => {
                                 if (f.select) {
                                   return (rows as any[]).map((r) => {
-                                    const selected = parseSelectRow(r, idKey, {})
+                                    const selected = parseSelectRow(r, idKey)
                                     return {
                                       ...Struct.pick(
                                         defaultValues as any,

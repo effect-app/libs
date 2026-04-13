@@ -366,6 +366,7 @@ export function buildWhereSQLQuery(
     const fields = select.map((s) => {
       if (typeof s === "string") {
         if (s === idKey || s === "id") return `id`
+        if (s === "_etag") return `_etag`
         return `${dialect.jsonExtractJson(s)} AS "${s}"`
       }
       return `${dialect.jsonExtractJson(s.key)} AS "${s.key}"`

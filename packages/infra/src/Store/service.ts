@@ -11,7 +11,7 @@ export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
   /**
    * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database.
-   * Memory/Disk use separate store instances per namespace. CosmosDB uses namespace-prefixed partition keys.
+   * Memory/Disk use separate store instances per namespace. CosmosDB uses namespace-prefixed partition keys. SQL uses a `_namespace` column.
    */
   allowNamespace?: (namespace: string) => boolean
   /**

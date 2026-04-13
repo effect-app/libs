@@ -6,6 +6,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import { storeId } from "./Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.js"
 import { makeETag } from "./utils.js"
@@ -57,9 +58,18 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
             const tableName = `${prefix}${name}`
             const defaultValues = config?.defaultValues ?? {}
 
+            const resolveNamespace = !config?.allowNamespace
+              ? Effect.succeed("primary")
+              : storeId.asEffect().pipe(Effect.map((namespace) => {
+                if (namespace !== "primary" && !config.allowNamespace!(namespace)) {
+                  throw new Error(`Namespace ${namespace} not allowed!`)
+                }
+                return namespace
+              }))
+
             yield* sql
               .unsafe(
-                `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT PRIMARY KEY, _etag TEXT, data ${jsonColumnType} NOT NULL)`
+                `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data ${jsonColumnType} NOT NULL, PRIMARY KEY (id, _namespace))`
               )
               .pipe(Effect.orDie)
 
@@ -74,119 +84,153 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               sql.unsafe(query, params as any).pipe(Effect.orDie)
 
             const s: Store<IdKey, Encoded> = {
-              all: exec(`SELECT id, _etag, data FROM "${tableName}"`)
-                .pipe(
-                  Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, defaultValues))),
-                  Effect.withSpan("SQL.all [effect-app/infra/Store]", {
-                    attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                  }, { captureStackTrace: false })
-                ),
+              all: resolveNamespace.pipe(Effect.flatMap((ns) =>
+                exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`, [ns])
+                  .pipe(
+                    Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, defaultValues))),
+                    Effect.withSpan("SQL.all [effect-app/infra/Store]", {
+                      attributes: {
+                        "repository.table_name": tableName,
+                        "repository.model_name": name,
+                        "repository.namespace": ns
+                      }
+                    }, { captureStackTrace: false })
+                  )
+              )),
 
               find: (id) =>
-                exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = ?`, [id])
-                  .pipe(
-                    Effect.map((rows) => {
-                      const row = (rows as any[])[0]
-                      return row
-                        ? Option.some(parseRow<Encoded>(row, defaultValues))
-                        : Option.none()
-                    }),
-                    Effect.withSpan("SQL.find [effect-app/infra/Store]", {
-                      attributes: { "repository.table_name": tableName, "repository.model_name": name, id }
-                    }, { captureStackTrace: false })
-                  ),
+                resolveNamespace.pipe(Effect.flatMap((ns) =>
+                  exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = ? AND _namespace = ?`, [id, ns])
+                    .pipe(
+                      Effect.map((rows) => {
+                        const row = (rows as any[])[0]
+                        return row
+                          ? Option.some(parseRow<Encoded>(row, defaultValues))
+                          : Option.none()
+                      }),
+                      Effect.withSpan("SQL.find [effect-app/infra/Store]", {
+                        attributes: { "repository.table_name": tableName, "repository.model_name": name, id }
+                      }, { captureStackTrace: false })
+                    )
+                )),
 
               filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
-                const filter = f.filter
-                type M = U extends undefined ? Encoded : Pick<Encoded, U>
-                return Effect
-                  .sync(() =>
-                    buildWhereSQLQuery(
-                      dialect,
-                      idKey,
-                      filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
-                      tableName,
-                      defaultValues,
-                      f.select as
-                        | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
-                        | undefined,
-                      f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
-                      f.skip,
-                      f.limit
-                    )
-                  )
-                  .pipe(
-                    Effect.tap((q) => logQuery(q)),
-                    Effect.flatMap((q) =>
-                      exec(q.sql, q.params).pipe(
-                        Effect.map((rows) => {
-                          if (f.select) {
-                            return (rows as any[]).map((r) => {
-                              const selected = parseSelectRow(r, idKey, {})
-                              return {
-                                ...Struct.pick(
-                                  defaultValues as any,
-                                  f.select!.filter((_) => typeof _ === "string") as never[]
-                                ),
-                                ...selected
-                              } as M
-                            })
-                          }
-                          return (rows as any[]).map((r) => parseRow<Encoded>(r, defaultValues) as any as M)
+                const filter = f
+                  .filter
+                type M = U extends undefined ? Encoded
+                  : Pick<Encoded, U>
+                return resolveNamespace
+                  .pipe(Effect
+                    .flatMap((ns) =>
+                      Effect
+                        .sync(() => {
+                          const q = buildWhereSQLQuery(
+                            dialect,
+                            idKey,
+                            filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
+                            tableName,
+                            defaultValues,
+                            f
+                              .select as
+                                | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
+                                | undefined,
+                            f
+                              .order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
+                            f
+                              .skip,
+                            f
+                              .limit
+                          )
+                          const nsPlaceholder = dialect
+                            .placeholder(
+                              q
+                                .params
+                                .length + 1
+                            )
+                          const hasWhere = q.sql.includes("WHERE")
+                          const nsSql = hasWhere
+                            ? q.sql.replace("WHERE", `WHERE _namespace = ${nsPlaceholder} AND`)
+                            : q.sql.replace(
+                              `FROM "${tableName}"`,
+                              `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`
+                            )
+                          return { sql: nsSql, params: [...q.params, ns] }
                         })
-                      )
-                    ),
-                    Effect.withSpan("SQL.filter [effect-app/infra/Store]", {
-                      attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                    }, { captureStackTrace: false })
-                  )
+                        .pipe(
+                          Effect.tap((q) => logQuery(q)),
+                          Effect.flatMap((q) =>
+                            exec(q.sql, q.params).pipe(
+                              Effect.map((rows) => {
+                                if (f.select) {
+                                  return (rows as any[]).map((r) => {
+                                    const selected = parseSelectRow(r, idKey, {})
+                                    return {
+                                      ...Struct.pick(
+                                        defaultValues as any,
+                                        f.select!.filter((_) => typeof _ === "string") as never[]
+                                      ),
+                                      ...selected
+                                    } as M
+                                  })
+                                }
+                                return (rows as any[]).map((r) => parseRow<Encoded>(r, defaultValues) as any as M)
+                              })
+                            )
+                          ),
+                          Effect.withSpan("SQL.filter [effect-app/infra/Store]", {
+                            attributes: { "repository.table_name": tableName, "repository.model_name": name }
+                          }, { captureStackTrace: false })
+                        )
+                    ))
               },
 
               set: (e) =>
-                Effect
-                  .gen(function*() {
-                    const row = toRow(e)
-                    if (e._etag) {
-                      yield* exec(
-                        `UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ?`,
-                        [row._etag, row.data, row.id, e._etag]
-                      )
-                      const existing = yield* exec(
-                        `SELECT _etag FROM "${tableName}" WHERE id = ?`,
-                        [row.id]
-                      )
-                      const current = (existing as any[])[0]
-                      if (!current || current._etag !== row._etag) {
-                        if (current) {
+                resolveNamespace.pipe(Effect.flatMap((ns) =>
+                  Effect
+                    .gen(function*() {
+                      const row = toRow(e)
+                      if (e._etag) {
+                        yield* exec(
+                          `UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ? AND _namespace = ?`,
+                          [row._etag, row.data, row.id, e._etag, ns]
+                        )
+                        const existing = yield* exec(
+                          `SELECT _etag FROM "${tableName}" WHERE id = ? AND _namespace = ?`,
+                          [row.id, ns]
+                        )
+                        const current = (existing as any[])[0]
+                        if (!current || current._etag !== row._etag) {
+                          if (current) {
+                            return yield* new OptimisticConcurrencyException({
+                              type: name,
+                              id: row.id,
+                              current: current._etag,
+                              found: e._etag,
+                              code: 412
+                            })
+                          }
                           return yield* new OptimisticConcurrencyException({
                             type: name,
                             id: row.id,
-                            current: current._etag,
+                            current: "",
                             found: e._etag,
-                            code: 412
+                            code: 404
                           })
                         }
-                        return yield* new OptimisticConcurrencyException({
-                          type: name,
-                          id: row.id,
-                          current: "",
-                          found: e._etag,
-                          code: 404
-                        })
+                      } else {
+                        yield* exec(
+                          `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
+                          [row.id, ns, row._etag, row.data]
+                        )
                       }
-                    } else {
-                      yield* exec(
-                        `INSERT INTO "${tableName}" (id, _etag, data) VALUES (?, ?, ?)`,
-                        [row.id, row._etag, row.data]
-                      )
-                    }
-                    return row.item
-                  })
-                  .pipe(
-                    Effect.withSpan("SQL.set [effect-app/infra/Store]", {
-                      attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
-                    }, { captureStackTrace: false })
-                  ),
+                      return row.item
+                    })
+                    .pipe(
+                      Effect.withSpan("SQL.set [effect-app/infra/Store]", {
+                        attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
+                      }, { captureStackTrace: false })
+                    )
+                )),
 
               batchSet: (items) =>
                 sql
@@ -216,16 +260,18 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
 
               batchRemove: (ids) => {
                 const placeholders = ids.map(() => "?").join(", ")
-                return exec(
-                  `DELETE FROM "${tableName}" WHERE id IN (${placeholders})`,
-                  [...ids]
-                )
-                  .pipe(
-                    Effect.asVoid,
-                    Effect.withSpan("SQL.batchRemove [effect-app/infra/Store]", {
-                      attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                    }, { captureStackTrace: false })
+                return resolveNamespace.pipe(Effect.flatMap((ns) =>
+                  exec(
+                    `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ?`,
+                    [...ids, ns]
                   )
+                    .pipe(
+                      Effect.asVoid,
+                      Effect.withSpan("SQL.batchRemove [effect-app/infra/Store]", {
+                        attributes: { "repository.table_name": tableName, "repository.model_name": name }
+                      }, { captureStackTrace: false })
+                    )
+                ))
               },
 
               queryRaw: (query) =>
@@ -238,7 +284,10 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
             }
 
             if (seed) {
-              const existing = yield* exec(`SELECT COUNT(*) as cnt FROM "${tableName}"`)
+              const existing = yield* exec(
+                `SELECT COUNT(*) as cnt FROM "${tableName}" WHERE _namespace = ?`,
+                ["primary"]
+              )
               const count = (existing as any[])[0]?.cnt ?? 0
               if (count === 0) {
                 yield* InfraLogger.logInfo("Seeding data for " + name)

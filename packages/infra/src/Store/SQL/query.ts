@@ -172,7 +172,7 @@ export function buildWhereSQLQuery(
     }
     const jsonPath = dottedToJsonPath(path)
     const expr = dialect.jsonExtract(jsonPath)
-    const topKey = path.split(".")[0]!
+    const topKey = path.split(".")[0]
     if (topKey in defaultValues) {
       return `COALESCE(${expr}, ${addParam(defaultValues[topKey])})`
     }

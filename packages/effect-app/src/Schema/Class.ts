@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Effect, Option, pipe, Schema, SchemaAST, SchemaIssue, Struct as Struct2 } from "effect"
-import type { Struct } from "effect/Schema"
 import * as S from "effect/Schema"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
 
-export interface EnhancedClass<Self, SchemaS extends S.Top & { readonly fields: Struct.Fields }, Inherited>
+export interface EnhancedClass<Self, SchemaS extends S.Top & { readonly fields: S.Struct.Fields }, Inherited>
   extends S.Class<Self, SchemaS, Inherited>, /* Reason for enhancement */ PropsExtensions<SchemaS["fields"]>
 {
 }
@@ -17,13 +16,13 @@ export interface PropsExtensions<Fields> {
   omit: <P extends keyof Fields>(...keys: readonly P[]) => Omit<Fields, P>
 }
 
-type HasFields<Fields extends Struct.Fields> = {
+type HasFields<Fields extends S.Struct.Fields> = {
   readonly fields: Fields
 } | {
   readonly from: HasFields<Fields>
 }
 
-export type Class<Self, S extends S.Top & { readonly fields: Struct.Fields }, Inherited> = S.Class<Self, S, Inherited>
+export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, Inherited> = S.Class<Self, S, Inherited>
 
 /**
  * Build a modified Declaration that accepts struct-matching values during
@@ -161,6 +160,57 @@ export const TaggedClass: <Self = never>(
 // ExtendedClass — like Class but with extra type parameter for hierarchies
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Struct — like Schema.Struct but with pick/omit
+// ---------------------------------------------------------------------------
+
+type EnhancedStruct<Fields extends S.Struct.Fields> = S.Struct<Fields> & PropsExtensions<Fields>
+
+export const Struct: <Fields extends S.Struct.Fields>(fields: Fields) => EnhancedStruct<Fields> = (fields) => {
+  const base = S.Struct(fields)
+  return Object.assign(base, {
+    pick: (...selection: any[]) => pipe(base.fields, Struct2.pick(selection)),
+    omit: (...selection: any[]) => pipe(base.fields, Struct2.omit(selection))
+  }) as any
+}
+export type Struct<Fields extends S.Struct.Fields = S.Struct.Fields> = S.Struct<Fields>
+export declare namespace Struct {
+  export type Fields = S.Struct.Fields
+  export type Type<Fields extends S.Struct.Fields> = S.Struct.Type<Fields>
+  export type Encoded<Fields extends S.Struct.Fields> = S.Struct.Encoded<Fields>
+  export type DecodingServices<Fields extends S.Struct.Fields> = S.Struct.DecodingServices<Fields>
+  export type EncodingServices<Fields extends S.Struct.Fields> = S.Struct.EncodingServices<Fields>
+  export type MakeIn<Fields extends S.Struct.Fields> = S.Struct.MakeIn<Fields>
+  export type Iso<Fields extends S.Struct.Fields> = S.Struct.Iso<Fields>
+}
+
+// ---------------------------------------------------------------------------
+// TaggedStruct — like Schema.TaggedStruct but with pick/omit
+// ---------------------------------------------------------------------------
+
+type EnhancedTaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> =
+  & S.TaggedStruct<Tag, Fields>
+  & PropsExtensions<{ readonly _tag: S.tag<Tag> } & Fields>
+
+export const TaggedStruct: <Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields>(
+  value: Tag,
+  fields: Fields
+) => EnhancedTaggedStruct<Tag, Fields> = (value, fields) => {
+  const base = S.TaggedStruct(value, fields)
+  return Object.assign(base, {
+    pick: (...selection: any[]) => pipe(base.fields, Struct2.pick(selection)),
+    omit: (...selection: any[]) => pipe(base.fields, Struct2.omit(selection))
+  }) as any
+}
+export type TaggedStruct<
+  Tag extends SchemaAST.LiteralValue = SchemaAST.LiteralValue,
+  Fields extends S.Struct.Fields = S.Struct.Fields
+> = S.TaggedStruct<Tag, Fields>
+
+// ---------------------------------------------------------------------------
+// ExtendedClass — like Class but with extra type parameter for hierarchies
+// ---------------------------------------------------------------------------
+
 export const ExtendedClass: <Self, _SelfFrom>(identifier: string) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>
@@ -174,7 +224,7 @@ export const ExtendedClass: <Self, _SelfFrom>(identifier: string) => <Fields ext
 // ExtendedTaggedClass — like TaggedClass but with extra type parameter for hierarchies
 // ---------------------------------------------------------------------------
 
-export interface EnhancedTaggedClass<Self, Tag extends string, Fields extends Struct.Fields, SelfFrom>
+export interface EnhancedTaggedClass<Self, Tag extends string, Fields extends S.Struct.Fields, SelfFrom>
   extends
     EnhancedClass<
       Self,

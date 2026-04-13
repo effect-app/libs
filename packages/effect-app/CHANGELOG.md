@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.91
+
+### Minor Changes
+
+- 738b482: Add pick/omit to Struct and TaggedStruct
+
 ## 4.0.0-beta.90
 
 ## 4.0.0-beta.89

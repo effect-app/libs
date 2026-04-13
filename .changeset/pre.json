@@ -111,6 +111,7 @@
     "sql-transaction-middleware",
     "stale-emus-see",
     "strong-dots-sin",
+    "struct-pick-omit",
     "sweet-humans-ring",
     "tagged-request-for",
     "tagged-union-drop-fields-constraint",

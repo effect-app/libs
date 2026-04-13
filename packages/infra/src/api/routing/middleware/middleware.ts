@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Config, Effect, Layer, Schema } from "effect"
 import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
-import { RpcContextMap } from "effect-app/rpc"
+import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
+import { type Rpc } from "effect/unstable/rpc"
 import { SqlClient } from "effect/unstable/sql"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
@@ -131,7 +132,7 @@ export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
 
 /**
  * Config entry for `RequestContextMap` that controls per-RPC transaction wrapping.
- * Defaults to `true` (transaction applied). Set `requiresTransaction: false` on a route to skip.
+ * Defaults to `false` (no transaction). Set `requiresTransaction: true` on a route to enable.
  *
  * @example
  * ```ts
@@ -141,12 +142,12 @@ export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
  * }) {}
  * ```
  */
-export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never, true as boolean)
+export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never, false as boolean)
 
 /**
  * Creates the middleware Effect for SQL transaction wrapping.
  * Requires `SqlClient` directly (not via serviceOption).
- * Reads `requiresTransaction` from the RPC config; defaults to `true`.
+ * Reads `requiresTransaction` from the RPC config; defaults to `false`.
  *
  * @example
  * ```ts
@@ -157,13 +158,14 @@ export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never
  * ```
  */
 export const makeSqlTransactionMiddleware = (
-  rcm: { getConfig: (rpc: any) => Record<string, any> }
+  rcm: { getConfig: (rpc: Rpc.AnyWithProps) => { readonly requiresTransaction?: boolean } }
 ) =>
   Effect.gen(function*() {
     const sql = yield* SqlClient.SqlClient
-    return (effect: Effect.Effect<any, any, any>, { rpc }: { rpc: any }) => {
-      const config = rcm.getConfig(rpc)
-      if (config["requiresTransaction"] === false) return effect
+    const mw: RpcMiddleware.RpcMiddlewareV4<never, never, never> = (effect, { rpc }) => {
+      const { requiresTransaction } = rcm.getConfig(rpc)
+      if (requiresTransaction !== true) return effect
       return sql.withTransaction(effect).pipe(Effect.orDie)
     }
+    return mw
   })

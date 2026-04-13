@@ -10,8 +10,8 @@ import { type RawQuery } from "../Model/query.js"
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
   /**
-   * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database
-   * currently only supported in disk/memory. CosmosDB is TODO.
+   * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database.
+   * Memory/Disk use separate store instances per namespace. CosmosDB uses namespace-prefixed partition keys. SQL uses a `_namespace` column.
    */
   allowNamespace?: (namespace: string) => boolean
   /**

@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Config, Effect, Layer, Schema } from "effect"
 import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
+import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
+import { type Rpc } from "effect/unstable/rpc"
+import { SqlClient } from "effect/unstable/sql"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { determineMethod, isCommand } from "../utils.js"
@@ -126,3 +129,43 @@ export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
   LoggerMiddlewareLive,
   DevModeMiddlewareLive
 )
+
+/**
+ * Config entry for `RequestContextMap` that controls per-RPC transaction wrapping.
+ * Defaults to `false` (no transaction). Set `requiresTransaction: true` on a route to enable.
+ *
+ * @example
+ * ```ts
+ * class RequestContextMap extends RpcContextMap.makeMap({
+ *   requiresTransaction: requiresTransactionConfig,
+ *   // ...
+ * }) {}
+ * ```
+ */
+export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never, false as boolean)
+
+/**
+ * Creates the middleware Effect for SQL transaction wrapping.
+ * Requires `SqlClient` directly (not via serviceOption).
+ * Reads `requiresTransaction` from the RPC config; defaults to `false`.
+ *
+ * @example
+ * ```ts
+ * const SqlTransactionMiddlewareLive = Layer.effect(
+ *   SqlTransactionMiddleware,
+ *   makeSqlTransactionMiddleware(RequestContextMap)
+ * )
+ * ```
+ */
+export const makeSqlTransactionMiddleware = (
+  rcm: { getConfig: (rpc: Rpc.AnyWithProps) => { readonly requiresTransaction?: boolean } }
+) =>
+  Effect.gen(function*() {
+    const sql = yield* SqlClient.SqlClient
+    const mw: RpcMiddleware.RpcMiddlewareV4<never, never, never> = (effect, { rpc }) => {
+      const { requiresTransaction } = rcm.getConfig(rpc)
+      if (requiresTransaction !== true) return effect
+      return sql.withTransaction(effect).pipe(Effect.orDie)
+    }
+    return mw
+  })

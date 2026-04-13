@@ -594,6 +594,41 @@ describe("SQL Store (SQLite integration)", () => {
       expect(r10.length).toBe(2)
       expect((JSON.parse((r10[0] as any).data) as any).name).toBe("Charlie") // oldest first
     }))
+
+  it("namespace param is in correct position for SQLite positional placeholders", () =>
+    withDb((db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS "test_ns" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data JSON NOT NULL, PRIMARY KEY (id, _namespace))`
+      )
+      const insert = db.prepare(
+        `INSERT INTO "test_ns" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`
+      )
+      insert.run("1", "primary", "e1", JSON.stringify({ name: "Alice", role: "admin" }))
+      insert.run("2", "primary", "e2", JSON.stringify({ name: "Bob", role: "user" }))
+      insert.run("3", "other", "e3", JSON.stringify({ name: "Charlie", role: "admin" }))
+
+      // Build a filter query: role != 'deleted'
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "role", op: "neq", value: "deleted" }],
+        "test_ns",
+        {}
+      )
+
+      // Simulate what SQL.ts does: prepend _namespace = ? and put ns FIRST in params
+      const hasWhere = q.sql.includes("WHERE")
+      const nsSql = hasWhere
+        ? q.sql.replace("WHERE", `WHERE _namespace = ? AND`)
+        : q.sql.replace(`FROM "test_ns"`, `FROM "test_ns" WHERE _namespace = ?`)
+      const params = ["primary", ...q.params]
+
+      const results = query(db, nsSql, params)
+      // Should only get Alice and Bob (primary namespace), not Charlie (other namespace)
+      expect(results.length).toBe(2)
+      const names = results.map((r) => (JSON.parse((r as any).data) as any).name).sort()
+      expect(names).toEqual(["Alice", "Bob"])
+    }))
 })
 
 // --- toRow stripping and parseRow reconstruction tests ---

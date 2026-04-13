@@ -144,31 +144,25 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                             f
                               .limit
                           )
-                          const nsPlaceholder = dialect
-                            .placeholder(
-                              q
-                                .params
-                                .length + 1
-                            )
                           const hasWhere = q
                             .sql
                             .includes("WHERE")
                           const nsSql = hasWhere
                             ? q
                               .sql
-                              .replace("WHERE", `WHERE _namespace = ${nsPlaceholder} AND`)
+                              .replace("WHERE", `WHERE _namespace = ? AND`)
                             : q
                               .sql
                               .replace(
                                 `FROM "${tableName}"`,
-                                `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`
+                                `FROM "${tableName}" WHERE _namespace = ?`
                               )
                           return {
                             sql: nsSql,
                             params: [
+                              ns,
                               ...q
-                                .params,
-                              ns
+                                .params
                             ]
                           }
                         })

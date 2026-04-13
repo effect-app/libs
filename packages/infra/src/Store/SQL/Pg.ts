@@ -78,8 +78,47 @@ function makePgStore({ prefix }: StorageConfig) {
           const exec = (query: string, params?: readonly unknown[]) =>
             sql.unsafe(query, params as any).pipe(Effect.orDie)
 
+          const ctx = yield* Effect.context<R>()
+          const seedCache = new Map<string, Effect.Effect<void>>()
+          const makeSeedEffect = (ns: string) =>
+            exec(
+              `SELECT COUNT(*) as cnt FROM "${tableName}" WHERE _namespace = $1`,
+              [ns]
+            )
+              .pipe(
+                Effect.flatMap((existing) => {
+                  const count = Number((existing as any[])[0]?.cnt ?? 0)
+                  if (count === 0) {
+                    return InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`).pipe(
+                      Effect.andThen(seed!),
+                      Effect.flatMap((items) =>
+                        Effect.flatMapOption(
+                          Effect.succeed(toNonEmptyArray([...items])),
+                          (a) => s.bulkSet(a).pipe(Effect.orDie)
+                        )
+                      ),
+                      Effect.provide(ctx),
+                      Effect.orDie
+                    )
+                  }
+                  return Effect.void
+                })
+              )
+          const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
+            if (!seed) return
+            let cached = seedCache.get(ns)
+            if (!cached) {
+              cached = yield* Effect.cached(makeSeedEffect(ns))
+              seedCache.set(ns, cached)
+            }
+            yield* cached
+          })
+          const resolveAndSeed = resolveNamespace.pipe(
+            Effect.tap((ns) => seedNamespace(ns))
+          )
+
           const s: Store<IdKey, Encoded> = {
-            all: resolveNamespace.pipe(Effect.flatMap((ns) =>
+            all: resolveAndSeed.pipe(Effect.flatMap((ns) =>
               exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`, [ns])
                 .pipe(
                   Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
@@ -94,7 +133,7 @@ function makePgStore({ prefix }: StorageConfig) {
             )),
 
             find: (id) =>
-              resolveNamespace.pipe(Effect
+              resolveAndSeed.pipe(Effect
                 .flatMap((ns) =>
                   exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`, [id, ns])
                     .pipe(
@@ -114,7 +153,7 @@ function makePgStore({ prefix }: StorageConfig) {
               const filter = f
                 .filter
               type M = U extends undefined ? Encoded : Pick<Encoded, U>
-              return resolveNamespace.pipe(Effect.flatMap((ns) =>
+              return resolveAndSeed.pipe(Effect.flatMap((ns) =>
                 Effect
                   .sync(() => {
                     const q = buildWhereSQLQuery(
@@ -169,7 +208,7 @@ function makePgStore({ prefix }: StorageConfig) {
             },
 
             set: (e) =>
-              resolveNamespace.pipe(Effect.flatMap((ns) =>
+              resolveAndSeed.pipe(Effect.flatMap((ns) =>
                 Effect
                   .gen(function*() {
                     const row = toRow(e)
@@ -245,7 +284,7 @@ function makePgStore({ prefix }: StorageConfig) {
             batchRemove: (ids) => {
               const placeholders = ids.map((_, i) => `$${i + 1}`).join(", ")
               const nsPlaceholder = `$${ids.length + 1}`
-              return resolveNamespace.pipe(Effect.flatMap((ns) =>
+              return resolveAndSeed.pipe(Effect.flatMap((ns) =>
                 exec(
                   `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`,
                   [...ids, ns]
@@ -268,21 +307,8 @@ function makePgStore({ prefix }: StorageConfig) {
               )
           }
 
-          if (seed) {
-            const existing = yield* exec(
-              `SELECT COUNT(*) as cnt FROM "${tableName}" WHERE _namespace = $1`,
-              ["primary"]
-            )
-            const count = Number((existing as any[])[0]?.cnt ?? 0)
-            if (count === 0) {
-              yield* InfraLogger.logInfo("Seeding data for " + name)
-              const items = yield* seed
-              yield* Effect.flatMapOption(
-                Effect.succeed(toNonEmptyArray([...items])),
-                (a) => s.bulkSet(a).pipe(Effect.orDie)
-              )
-            }
-          }
+          // Eagerly seed primary namespace on initialization
+          yield* seedNamespace("primary")
 
           return s
         })

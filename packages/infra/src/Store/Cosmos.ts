@@ -75,10 +75,65 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           // then need to clean up the actual data.. perhaps first do with a config toggle to prescribe to it.
           const importedMarkerId = containerId
 
+          const ctx = yield* Effect.context<R>()
+          const seedCache = new Map<string, Effect.Effect<void>>()
+          const makeSeedEffect = (ns: string) => {
+            const markerId = ns === "primary" ? importedMarkerId : `${importedMarkerId}::${ns}`
+            return Effect
+              .promise(() =>
+                container
+                  .item(markerId, markerId)
+                  .read<{ id: string }>()
+                  .then(({ resource }) => Option.fromNullishOr(resource))
+              )
+              .pipe(
+                Effect.flatMap((marker) => {
+                  if (Option.isSome(marker)) return Effect.void
+                  return InfraLogger.logInfo(`Creating mock data for ${name} (namespace: ${ns})`).pipe(
+                    Effect.andThen(seed!),
+                    Effect.flatMap((m) =>
+                      Effect.flatMapOption(
+                        Effect.succeed(toNonEmptyArray([...m])),
+                        (a) =>
+                          s.bulkSet(a).pipe(
+                            Effect.orDie,
+                            Effect.delay(Duration.millis(1100))
+                          )
+                      )
+                    ),
+                    Effect.andThen(
+                      Effect.promise(() =>
+                        container.items.create({
+                          _partitionKey: markerId,
+                          id: markerId,
+                          ttl: -1
+                        })
+                      )
+                    ),
+                    Effect.provide(ctx),
+                    Effect.orDie
+                  )
+                })
+              )
+          }
+          const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
+            if (!seed) return
+            let cached = seedCache.get(ns)
+            if (!cached) {
+              cached = yield* Effect.cached(makeSeedEffect(ns))
+              seedCache.set(ns, cached)
+            }
+            yield* cached
+          })
+          const resolveAndSeed = resolveNamespace.pipe(
+            Effect.tap((ns) => seedNamespace(ns))
+          )
+          const resolvePartitionKeyAndSeed = Effect.map(resolveAndSeed, (ns) => `${nsPrefix(ns)}${basePartitionKey}`)
+
           const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
             Effect
               .gen(function*() {
-                const ns = yield* resolveNamespace
+                const ns = yield* resolveAndSeed
                 // TODO: disable batching if need atomicity
                 // we delay and batch to keep low amount of RUs
                 const b = [...items]
@@ -182,7 +237,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
               }, { captureStackTrace: false }))
 
           const batchSet = (items: NonEmptyReadonlyArray<PM>) => {
-            return resolveNamespace
+            return resolveAndSeed
               .pipe(Effect.flatMap((ns) =>
                 Effect
                   .suspend(() => {
@@ -253,7 +308,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           const s: Store<IdKey, Encoded> = {
             queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
               Effect
-                .all({ q: Effect.sync(() => query.cosmos({ name })), pk: resolvePartitionKey })
+                .all({ q: Effect.sync(() => query.cosmos({ name })), pk: resolvePartitionKeyAndSeed })
                 .pipe(
                   Effect.tap(({ q }) => logQuery(q)),
                   Effect.flatMap(({ pk, q }) =>
@@ -275,7 +330,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     }, { captureStackTrace: false })
                 ),
             batchRemove: (ids, partitionKey?: string) =>
-              resolvePartitionKey.pipe(Effect.flatMap((pk) =>
+              resolvePartitionKeyAndSeed.pipe(Effect.flatMap((pk) =>
                 Effect.promise(() =>
                   execBatch(
                     mutable(ids.map((id) =>
@@ -296,7 +351,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   query: `SELECT * FROM ${name}`,
                   parameters: []
                 })),
-                pk: resolvePartitionKey
+                pk: resolvePartitionKeyAndSeed
               })
               .pipe(
                 Effect.tap(({ q }) => logQuery(q)),
@@ -382,7 +437,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 )
             },
             find: (id) =>
-              resolveNamespace.pipe(Effect.flatMap((ns) =>
+              resolveAndSeed.pipe(Effect.flatMap((ns) =>
                 Effect
                   .promise(() =>
                     container
@@ -405,7 +460,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     }, { captureStackTrace: false }))
               )),
             set: (e) =>
-              resolveNamespace.pipe(Effect.flatMap((ns) =>
+              resolveAndSeed.pipe(Effect.flatMap((ns) =>
                 Option
                   .match(
                     Option
@@ -466,38 +521,9 @@ function makeCosmosStore({ prefix }: StorageConfig) {
             bulkSet
           }
 
-          // handle mock data
-          const marker = yield* Effect.promise(() =>
-            container
-              .item(importedMarkerId, importedMarkerId)
-              .read<{ id: string }>()
-              .then(({ resource }) => Option.fromNullishOr(resource))
-          )
+          // Eagerly seed primary namespace on initialization
+          yield* seedNamespace("primary")
 
-          if (!Option.isSome(marker)) {
-            yield* InfraLogger.logInfo("Creating mock data for " + name)
-            if (seed) {
-              const m = yield* seed
-              yield* Effect.flatMapOption(
-                Effect.succeed(toNonEmptyArray([...m])),
-                (a) =>
-                  s.bulkSet(a).pipe(
-                    Effect.orDie,
-                    Effect
-                      // we delay extra here, so that initial creation between Companies/POs also have an interval between them.
-                      .delay(Duration.millis(1100))
-                  )
-              )
-            }
-            // Mark as imported
-            yield* Effect.promise(() =>
-              container.items.create({
-                _partitionKey: importedMarkerId,
-                id: importedMarkerId,
-                ttl: -1
-              })
-            )
-          }
           return s
         })
     }

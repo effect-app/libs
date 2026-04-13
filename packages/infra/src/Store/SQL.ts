@@ -191,7 +191,9 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                                     } as M
                                   })
                                 }
-                                return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
+                                return (rows as any[]).map((r) =>
+                                  parseRow<Encoded>(r, idKey, defaultValues) as any as M
+                                )
                               })
                             )
                           ),

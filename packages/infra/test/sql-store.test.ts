@@ -328,7 +328,7 @@ describe("SQL Store (SQLite integration)", () => {
         .run("1", "etag1", JSON.stringify(data))
 
       const row = db.prepare(`SELECT * FROM "test_clean" WHERE id = ?`).get("1") as any
-      const parsed = JSON.parse(row.data)
+      const parsed = JSON.parse(row.data) as any
       expect(parsed).not.toHaveProperty("id")
       expect(parsed).not.toHaveProperty("_etag")
       expect(parsed.name).toBe("Alice")

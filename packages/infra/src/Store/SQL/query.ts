@@ -161,13 +161,27 @@ export function buildWhereSQLQuery(
     switch (x.op) {
       case "in": {
         const vals = x.value as unknown as readonly unknown[]
-        const placeholders = vals.map((v) => addParam(v))
-        return `${k} IN (${placeholders.join(", ")})`
+        const hasNull = vals.some((v) => v == null)
+        const nonNullVals = vals.filter((v) => v != null)
+        const parts: string[] = []
+        if (nonNullVals.length > 0) {
+          const placeholders = nonNullVals.map((v) => addParam(v))
+          parts.push(`${k} IN (${placeholders.join(", ")})`)
+        }
+        if (hasNull) parts.push(`${k} IS NULL`)
+        return parts.length > 1 ? `(${parts.join(" OR ")})` : parts[0] ?? "1=0"
       }
       case "notIn": {
         const vals = x.value as unknown as readonly unknown[]
-        const placeholders = vals.map((v) => addParam(v))
-        return `${k} NOT IN (${placeholders.join(", ")})`
+        const hasNull = vals.some((v) => v == null)
+        const nonNullVals = vals.filter((v) => v != null)
+        const parts: string[] = []
+        if (nonNullVals.length > 0) {
+          const placeholders = nonNullVals.map((v) => addParam(v))
+          parts.push(`${k} NOT IN (${placeholders.join(", ")})`)
+        }
+        if (hasNull) parts.push(`${k} IS NOT NULL`)
+        return parts.length > 1 ? `(${parts.join(" AND ")})` : parts[0] ?? "1=1"
       }
 
       case "includes": {

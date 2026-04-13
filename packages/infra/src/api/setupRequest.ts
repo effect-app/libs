@@ -52,17 +52,25 @@ const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, 
       )
   )
 
+export interface SetupRequestOptions {
+  readonly withTransaction?: boolean
+}
+
 export const setupRequestContextFromCurrent =
-  (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
+  (name = "request", options?: Tracer.SpanOptions & SetupRequestOptions) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
     self
       .pipe(
-        withSqlTransaction,
+        options?.withTransaction !== false ? withSqlTransaction : (_) => _,
         withRequestSpan(name, options),
         Effect.provide(ContextMapContainer.layer, { local: true })
       )
 
 // TODO: consider integrating Effect.withParentSpan
-export function setupRequestContext<R, E, A>(self: Effect.Effect<A, E, R>, requestContext: RequestContext) {
+export function setupRequestContext<R, E, A>(
+  self: Effect.Effect<A, E, R>,
+  requestContext: RequestContext,
+  options?: SetupRequestOptions
+) {
   const layer = Layer.mergeAll(
     ContextMapContainer.layer,
     Layer.succeed(LocaleRef, requestContext.locale),
@@ -70,7 +78,7 @@ export function setupRequestContext<R, E, A>(self: Effect.Effect<A, E, R>, reque
   )
   return self
     .pipe(
-      withSqlTransaction,
+      options?.withTransaction !== false ? withSqlTransaction : (_) => _,
       withRequestSpan(requestContext.name),
       Effect.provide(layer, { local: true })
     )
@@ -80,7 +88,7 @@ export function setupRequestContextWithCustomSpan<R, E, A>(
   self: Effect.Effect<A, E, R>,
   requestContext: RequestContext,
   name: string,
-  options?: Tracer.SpanOptions
+  options?: Tracer.SpanOptions & SetupRequestOptions
 ) {
   const layer = Layer.mergeAll(
     ContextMapContainer.layer,
@@ -89,7 +97,7 @@ export function setupRequestContextWithCustomSpan<R, E, A>(
   )
   return self
     .pipe(
-      withSqlTransaction,
+      options?.withTransaction !== false ? withSqlTransaction : (_) => _,
       withRequestSpan(name, options),
       Effect.provide(layer, { local: true })
     )

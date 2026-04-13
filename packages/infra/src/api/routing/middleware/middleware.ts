@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Config, Effect, Layer, Schema } from "effect"
 import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
+import { RpcContextMap } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
+import { SqlClient } from "effect/unstable/sql"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { determineMethod, isCommand } from "../utils.js"
@@ -126,3 +128,42 @@ export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
   LoggerMiddlewareLive,
   DevModeMiddlewareLive
 )
+
+/**
+ * Config entry for `RequestContextMap` that controls per-RPC transaction wrapping.
+ * Defaults to `true` (transaction applied). Set `requiresTransaction: false` on a route to skip.
+ *
+ * @example
+ * ```ts
+ * class RequestContextMap extends RpcContextMap.makeMap({
+ *   requiresTransaction: requiresTransactionConfig,
+ *   // ...
+ * }) {}
+ * ```
+ */
+export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never, true as boolean)
+
+/**
+ * Creates the middleware Effect for SQL transaction wrapping.
+ * Requires `SqlClient` directly (not via serviceOption).
+ * Reads `requiresTransaction` from the RPC config; defaults to `true`.
+ *
+ * @example
+ * ```ts
+ * const SqlTransactionMiddlewareLive = Layer.effect(
+ *   SqlTransactionMiddleware,
+ *   makeSqlTransactionMiddleware(RequestContextMap)
+ * )
+ * ```
+ */
+export const makeSqlTransactionMiddleware = (
+  rcm: { getConfig: (rpc: any) => Record<string, any> }
+) =>
+  Effect.gen(function*() {
+    const sql = yield* SqlClient.SqlClient
+    return (effect: Effect.Effect<any, any, any>, { rpc }: { rpc: any }) => {
+      const config = rcm.getConfig(rpc)
+      if (config["requiresTransaction"] === false) return effect
+      return sql.withTransaction(effect).pipe(Effect.orDie)
+    }
+  })

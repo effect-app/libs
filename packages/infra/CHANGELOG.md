@@ -1,5 +1,18 @@
 # @effect-app/infra
 
+## 4.0.0-beta.82
+
+### Minor Changes
+
+- 48f1457: Add storage namespace support to CosmosDB adapter via partition key prefixing. When `allowNamespace` is configured, the namespace from `storeId` is prepended to partition key values (e.g., `test-ns::primary`), isolating data per namespace within the same container.
+- 48f1457: Add storage namespace support to SQL adapters (SQLite and Postgres) via a `_namespace` column. When `allowNamespace` is configured, a `_namespace` column with composite primary key `(id, _namespace)` isolates data per namespace within the same table. New tables get the schema automatically; existing tables require manual migration.
+- 48f1457: Add SQL Store adapter for Effect SQL (SQLite + PostgreSQL). Table-per-repo with id/etag/data JSON columns, query DSL translation to SQL WHERE clauses, optimistic concurrency via etag.
+- 48f1457: Make `withSqlTransaction` in `setupRequest` configurable via `withTransaction` option (defaults to `false`). Add `requiresTransactionConfig` and `makeSqlTransactionMiddleware` for per-RPC transaction control as a dynamic middleware that requires `SqlClient` directly. Transactions are disabled by default; opt in with `withTransaction: true` or `requiresTransaction: true`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.82
+
 ## 4.0.0-beta.81
 
 ### Minor Changes

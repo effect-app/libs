@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- 9a9e46c: Fix SQL select queries to read `_etag` from column instead of JSON data, preventing INSERT on update.
+  - effect-app@4.0.0-beta.89
+
 ## 4.0.0-beta.88
 
 ### Patch Changes

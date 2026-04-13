@@ -42,6 +42,7 @@
     "fix-repo-transformed-id-union",
     "fix-repo-transformed-id",
     "fix-seed-marker-and-circular-dep",
+    "fix-sql-array-relation-queries",
     "fix-sql-in-null-handling",
     "fix-sql-namespace-params",
     "fix-sql-select-etag-column",

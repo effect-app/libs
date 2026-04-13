@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- d786b91: Fix SQL `whereSome`/`whereEvery` array relation queries using `EXISTS` with `json_each` (SQLite) / `jsonb_array_elements` (Pg).
+  - effect-app@4.0.0-beta.90
+
 ## 4.0.0-beta.89
 
 ### Patch Changes

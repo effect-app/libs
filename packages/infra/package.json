@@ -232,13 +232,13 @@
       "types": "./dist/Store/SQL.d.ts",
       "default": "./dist/Store/SQL.js"
     },
-    "./Store/SQL/query": {
-      "types": "./dist/Store/SQL/query.d.ts",
-      "default": "./dist/Store/SQL/query.js"
-    },
     "./Store/SQL/Pg": {
       "types": "./dist/Store/SQL/Pg.d.ts",
       "default": "./dist/Store/SQL/Pg.js"
+    },
+    "./Store/SQL/query": {
+      "types": "./dist/Store/SQL/query.d.ts",
+      "default": "./dist/Store/SQL/query.js"
     },
     "./Store/codeFilter": {
       "types": "./dist/Store/codeFilter.d.ts",

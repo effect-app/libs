@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.86
+
+### Patch Changes
+
+- 70f1f27: Fix store seeding: break circular dependency where bulkSet re-entered seedNamespace, and add explicit seed markers to SQL/Pg stores using a dedicated `__seed__` namespace.
+  - effect-app@4.0.0-beta.86
+
 ## 4.0.0-beta.85
 
 ### Patch Changes

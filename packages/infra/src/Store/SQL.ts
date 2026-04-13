@@ -86,30 +86,83 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
             const exec = (query: string, params?: readonly unknown[]) =>
               sql.unsafe(query, params as any).pipe(Effect.orDie)
 
+            const seedMarkerId = `__seed_marker__`
+
+            const setInternal = (e: PM, ns: string) =>
+              Effect.gen(function*() {
+                const row = toRow(e)
+                if (e._etag) {
+                  yield* exec(
+                    `UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ? AND _namespace = ?`,
+                    [row._etag, row.data, row.id, e._etag, ns]
+                  )
+                  const existing = yield* exec(
+                    `SELECT _etag FROM "${tableName}" WHERE id = ? AND _namespace = ?`,
+                    [row.id, ns]
+                  )
+                  const current = (existing as any[])[0]
+                  if (!current || current._etag !== row._etag) {
+                    if (current) {
+                      return yield* new OptimisticConcurrencyException({
+                        type: name,
+                        id: row.id,
+                        current: current._etag,
+                        found: e._etag,
+                        code: 412
+                      })
+                    }
+                    return yield* new OptimisticConcurrencyException({
+                      type: name,
+                      id: row.id,
+                      current: "",
+                      found: e._etag,
+                      code: 404
+                    })
+                  }
+                } else {
+                  yield* exec(
+                    `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
+                    [row.id, ns, row._etag, row.data]
+                  )
+                }
+                return row.item
+              })
+
+            const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
+              sql
+                .withTransaction(Effect.forEach(items, (e) => setInternal(e, ns)))
+                .pipe(
+                  Effect.orDie,
+                  Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>)
+                )
+
             const ctx = yield* Effect.context<R>()
             const seedCache = new Map<string, Effect.Effect<void>>()
             const makeSeedEffect = (ns: string) =>
               exec(
-                `SELECT COUNT(*) as cnt FROM "${tableName}" WHERE _namespace = ?`,
-                [ns]
+                `SELECT id FROM "${tableName}" WHERE id = ? AND _namespace = ?`,
+                [seedMarkerId, `__seed__::${ns}`]
               )
                 .pipe(
                   Effect.flatMap((existing) => {
-                    const count = (existing as any[])[0]?.cnt ?? 0
-                    if (count === 0) {
-                      return InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`).pipe(
-                        Effect.andThen(seed!),
-                        Effect.flatMap((items) =>
-                          Effect.flatMapOption(
-                            Effect.succeed(toNonEmptyArray([...items])),
-                            (a) => s.bulkSet(a).pipe(Effect.orDie)
-                          )
-                        ),
-                        Effect.provide(ctx),
-                        Effect.orDie
-                      )
-                    }
-                    return Effect.void
+                    if ((existing as any[]).length > 0) return Effect.void
+                    return InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`).pipe(
+                      Effect.andThen(seed!),
+                      Effect.flatMap((items) =>
+                        Effect.flatMapOption(
+                          Effect.succeed(toNonEmptyArray([...items])),
+                          (a) => bulkSetInternal(a, ns)
+                        )
+                      ),
+                      Effect.andThen(
+                        exec(
+                          `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
+                          [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
+                        )
+                      ),
+                      Effect.provide(ctx),
+                      Effect.orDie
+                    )
                   })
                 )
             const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
@@ -240,77 +293,30 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
 
               set: (e) =>
                 resolveAndSeed.pipe(Effect.flatMap((ns) =>
-                  Effect
-                    .gen(function*() {
-                      const row = toRow(e)
-                      if (e._etag) {
-                        yield* exec(
-                          `UPDATE "${tableName}" SET _etag = ?, data = ? WHERE id = ? AND _etag = ? AND _namespace = ?`,
-                          [row._etag, row.data, row.id, e._etag, ns]
-                        )
-                        const existing = yield* exec(
-                          `SELECT _etag FROM "${tableName}" WHERE id = ? AND _namespace = ?`,
-                          [row.id, ns]
-                        )
-                        const current = (existing as any[])[0]
-                        if (!current || current._etag !== row._etag) {
-                          if (current) {
-                            return yield* new OptimisticConcurrencyException({
-                              type: name,
-                              id: row.id,
-                              current: current._etag,
-                              found: e._etag,
-                              code: 412
-                            })
-                          }
-                          return yield* new OptimisticConcurrencyException({
-                            type: name,
-                            id: row.id,
-                            current: "",
-                            found: e._etag,
-                            code: 404
-                          })
-                        }
-                      } else {
-                        yield* exec(
-                          `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
-                          [row.id, ns, row._etag, row.data]
-                        )
-                      }
-                      return row.item
-                    })
-                    .pipe(
-                      Effect.withSpan("SQL.set [effect-app/infra/Store]", {
-                        attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
-                      }, { captureStackTrace: false })
-                    )
+                  setInternal(e, ns).pipe(
+                    Effect.withSpan("SQL.set [effect-app/infra/Store]", {
+                      attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
+                    }, { captureStackTrace: false })
+                  )
                 )),
 
               batchSet: (items) =>
-                sql
-                  .withTransaction(
-                    Effect.forEach(items, (e) => s.set(e))
-                  )
-                  .pipe(
-                    Effect.orDie,
-                    Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>),
+                resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                  bulkSetInternal(items, ns).pipe(
                     Effect.withSpan("SQL.batchSet [effect-app/infra/Store]", {
                       attributes: { "repository.table_name": tableName, "repository.model_name": name }
                     }, { captureStackTrace: false })
-                  ),
+                  )
+                )),
 
               bulkSet: (items) =>
-                sql
-                  .withTransaction(
-                    Effect.forEach(items, (e) => s.set(e))
-                  )
-                  .pipe(
-                    Effect.orDie,
-                    Effect.map((_) => _ as unknown as NonEmptyReadonlyArray<PM>),
+                resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                  bulkSetInternal(items, ns).pipe(
                     Effect.withSpan("SQL.bulkSet [effect-app/infra/Store]", {
                       attributes: { "repository.table_name": tableName, "repository.model_name": name }
                     }, { captureStackTrace: false })
-                  ),
+                  )
+                )),
 
               batchRemove: (ids) => {
                 const placeholders = ids.map(() => "?").join(", ")

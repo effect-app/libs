@@ -95,7 +95,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       Effect.flatMapOption(
                         Effect.succeed(toNonEmptyArray([...m])),
                         (a) =>
-                          s.bulkSet(a).pipe(
+                          bulkSetInternal(a, ns).pipe(
                             Effect.orDie,
                             Effect.delay(Duration.millis(1100))
                           )
@@ -130,10 +130,9 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           )
           const resolvePartitionKeyAndSeed = Effect.map(resolveAndSeed, (ns) => `${nsPrefix(ns)}${basePartitionKey}`)
 
-          const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
+          const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
             Effect
               .gen(function*() {
-                const ns = yield* resolveAndSeed
                 // TODO: disable batching if need atomicity
                 // we delay and batch to keep low amount of RUs
                 const b = [...items]
@@ -232,9 +231,15 @@ function makeCosmosStore({ prefix }: StorageConfig) {
 
                 return batchResult.flat() as unknown as NonEmptyReadonlyArray<Encoded>
               })
-              .pipe(Effect.withSpan("Cosmos.bulkSet [effect-app/infra/Store]", {
-                attributes: { "repository.container_id": containerId, "repository.model_name": name }
-              }, { captureStackTrace: false }))
+
+          const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
+            resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              bulkSetInternal(items, ns).pipe(
+                Effect.withSpan("Cosmos.bulkSet [effect-app/infra/Store]", {
+                  attributes: { "repository.container_id": containerId, "repository.model_name": name }
+                }, { captureStackTrace: false })
+              )
+            ))
 
           const batchSet = (items: NonEmptyReadonlyArray<PM>) => {
             return resolveAndSeed

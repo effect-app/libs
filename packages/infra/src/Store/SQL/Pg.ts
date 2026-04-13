@@ -13,10 +13,11 @@ import { buildWhereSQLQuery, logQuery, pgDialect } from "./query.js"
 
 const parseRow = <Encoded extends FieldValues>(
   row: { id: string; _etag: string | null; data: unknown },
+  idKey: PropertyKey,
   defaultValues: Partial<Encoded>
 ): PersistenceModelType<Encoded> => {
   const data = (typeof row.data === "string" ? JSON.parse(row.data) : row.data) as object
-  return { ...defaultValues, ...data, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
+  return { ...defaultValues, ...data, [idKey]: row.id, _etag: row._etag ?? undefined } as PersistenceModelType<Encoded>
 }
 
 const parseSelectRow = (
@@ -69,7 +70,8 @@ function makePgStore({ prefix }: StorageConfig) {
           const toRow = (e: PM) => {
             const newE = makeETag(e)
             const id = newE[idKey] as string
-            const data = JSON.stringify(newE)
+            const { _etag, [idKey]: _id, ...rest } = newE as any
+            const data = JSON.stringify(rest)
             return { id, _etag: newE._etag!, data, item: newE }
           }
 
@@ -80,7 +82,7 @@ function makePgStore({ prefix }: StorageConfig) {
             all: resolveNamespace.pipe(Effect.flatMap((ns) =>
               exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`, [ns])
                 .pipe(
-                  Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, defaultValues))),
+                  Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
                   Effect.withSpan("PgSQL.all [effect-app/infra/Store]", {
                     attributes: {
                       "repository.table_name": tableName,
@@ -99,7 +101,7 @@ function makePgStore({ prefix }: StorageConfig) {
                       Effect.map((rows) => {
                         const row = (rows as any[])[0]
                         return row
-                          ? Option.some(parseRow<Encoded>(row, defaultValues))
+                          ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
                           : Option.none()
                       }),
                       Effect.withSpan("PgSQL.find [effect-app/infra/Store]", {
@@ -155,7 +157,7 @@ function makePgStore({ prefix }: StorageConfig) {
                               } as M
                             })
                           }
-                          return (rows as any[]).map((r) => parseRow<Encoded>(r, defaultValues) as any as M)
+                          return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
                         })
                       )
                     ),

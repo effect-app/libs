@@ -147,17 +147,33 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                                 .params
                                 .length + 1
                             )
-                          const hasWhere = q.sql.includes("WHERE")
+                          const hasWhere = q
+                            .sql
+                            .includes("WHERE")
                           const nsSql = hasWhere
-                            ? q.sql.replace("WHERE", `WHERE _namespace = ${nsPlaceholder} AND`)
-                            : q.sql.replace(
-                              `FROM "${tableName}"`,
-                              `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`
-                            )
-                          return { sql: nsSql, params: [...q.params, ns] }
+                            ? q
+                              .sql
+                              .replace("WHERE", `WHERE _namespace = ${nsPlaceholder} AND`)
+                            : q
+                              .sql
+                              .replace(
+                                `FROM "${tableName}"`,
+                                `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`
+                              )
+                          return {
+                            sql: nsSql,
+                            params: [
+                              ...q
+                                .params,
+                              ns
+                            ]
+                          }
                         })
                         .pipe(
-                          Effect.tap((q) => logQuery(q)),
+                          Effect
+                            .tap((q) =>
+                              logQuery(q)
+                            ),
                           Effect.flatMap((q) =>
                             exec(q.sql, q.params).pipe(
                               Effect.map((rows) => {

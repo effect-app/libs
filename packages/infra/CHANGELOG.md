@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- dfd5562: Fix SQL `IN`/`NOT IN` with null values to use `IS NULL`/`IS NOT NULL` instead of `IN (NULL, ...)`.
+  - effect-app@4.0.0-beta.88
+
 ## 4.0.0-beta.87
 
 ### Patch Changes

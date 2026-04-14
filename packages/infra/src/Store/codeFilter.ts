@@ -7,52 +7,55 @@ import type { FieldValues } from "../Model/filter/types.js"
 import type { Filter } from "./service.js"
 import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive } from "./utils.js"
 
-const vAsArr = (v: string) => v as unknown as any[]
+const vAsArr = (v: any) => v as any[]
+
+const normalizeValue = (v: unknown) => v instanceof globalThis.Date ? v.toISOString() : v
 
 const filterStatement = (x: any, p: FilterR) => {
-  const k = get(x, p.path)
+  const k = normalizeValue(get(x, p.path)) as any
+  const v = normalizeValue(p.value) as any
   switch (p.op) {
     case "in":
-      return p.value.includes(k)
+      return (v as any[]).includes(k)
     case "notIn":
-      return !p.value.includes(k)
+      return !(v as any[]).includes(k)
     case "lt":
-      return lowerThan(k, p.value)
+      return lowerThan(k, v)
     case "lte":
-      return lowerThanExclusive(k, p.value)
+      return lowerThanExclusive(k, v)
     case "gt":
-      return greaterThan(k, p.value)
+      return greaterThan(k, v)
     case "gte":
-      return greaterThanExclusive(k, p.value)
+      return greaterThanExclusive(k, v)
     case "includes":
-      return (k as Array<string>).includes(p.value)
+      return (k as Array<string>).includes(v as string)
     case "notIncludes":
-      return !(k as Array<string>).includes(p.value)
+      return !(k as Array<string>).includes(v as string)
     case "includes-any":
-      return (vAsArr(p.value)).some((_) => (k as Array<string>)?.includes(_))
+      return (vAsArr(v as string)).some((_) => (k as Array<string>)?.includes(_))
     case "notIncludes-any":
-      return !(vAsArr(p.value)).some((_) => (k as Array<string>)?.includes(_))
+      return !(vAsArr(v as string)).some((_) => (k as Array<string>)?.includes(_))
     case "includes-all":
-      return (vAsArr(p.value)).every((_) => (k as Array<string>)?.includes(_))
+      return (vAsArr(v as string)).every((_) => (k as Array<string>)?.includes(_))
     case "notIncludes-all":
-      return !(vAsArr(p.value)).every((_) => (k as Array<string>)?.includes(_))
+      return !(vAsArr(v as string)).every((_) => (k as Array<string>)?.includes(_))
     case "contains":
-      return (k as string).toLowerCase().includes(p.value.toLowerCase())
+      return (k as string).toLowerCase().includes((v as string).toLowerCase())
     case "endsWith":
-      return (k as string).toLowerCase().endsWith(p.value.toLowerCase())
+      return (k as string).toLowerCase().endsWith((v as string).toLowerCase())
     case "startsWith":
-      return (k as string).toLowerCase().startsWith(p.value.toLowerCase())
+      return (k as string).toLowerCase().startsWith((v as string).toLowerCase())
     case "notContains":
-      return !(k as string).toLowerCase().includes(p.value.toLowerCase())
+      return !(k as string).toLowerCase().includes((v as string).toLowerCase())
     case "notEndsWith":
-      return !(k as string).toLowerCase().endsWith(p.value.toLowerCase())
+      return !(k as string).toLowerCase().endsWith((v as string).toLowerCase())
     case "notStartsWith":
-      return !(k as string).toLowerCase().startsWith(p.value.toLowerCase())
+      return !(k as string).toLowerCase().startsWith((v as string).toLowerCase())
     case "neq":
-      return !compare(k, p.value)
+      return !compare(k, v)
     case "eq":
     case undefined:
-      return compare(k, p.value)
+      return compare(k, v)
     default: {
       return assertUnreachable(p.op)
     }

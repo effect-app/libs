@@ -151,8 +151,10 @@ export function buildWhereSQLQuery(
   const params: unknown[] = []
   let paramIndex = 1
 
+  const normalizeValue = (value: unknown): unknown => value instanceof globalThis.Date ? value.toISOString() : value
+
   const addParam = (value: unknown): string => {
-    params.push(value)
+    params.push(normalizeValue(value))
     return dialect.placeholder(paramIndex++)
   }
 

@@ -256,6 +256,14 @@ export type FieldValidators<T> = {
 export type BaseFieldMeta = {
   required: boolean
   nullableOrUndefined?: false | "undefined" | "null"
+  /**
+   * True when the schema property is `S.optionalKey` (AST
+   * `context.isOptional`) — i.e. the key should be ABSENT from the submitted
+   * object when empty, not present with `undefined`. Distinct from
+   * `required: false`, which may also mean "empty string is valid" for
+   * unconstrained `S.String` fields.
+   */
+  isOptionalKey?: boolean
 }
 
 export type StringFieldMeta = BaseFieldMeta & {
@@ -519,6 +527,8 @@ export const createMeta = <T = any>(
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
 
+      const isOptionalKey = (p.type as any).context?.isOptional === true
+
       // Determine if this field should be required:
       // - For nullable discriminated unions, only _tag should be non-required
       // - optionalKey fields are not required
@@ -530,7 +540,7 @@ export const createMeta = <T = any>(
       } else if (meta.required === false) {
         // Explicitly set to non-required (legacy behavior for backwards compatibility)
         isRequired = false
-      } else if ((p.type as any).context?.isOptional) {
+      } else if (isOptionalKey) {
         isRequired = false
       } else {
         // Calculate from the property itself
@@ -741,7 +751,8 @@ export const createMeta = <T = any>(
               // TODO: handle this better via the createMeta minLength parsing
               required: isRequired
                 && (!S.AST.isString(typeToProcess) || !!getFieldMetadataFromAst(typeToProcess).minLength),
-              nullableOrUndefined
+              nullableOrUndefined,
+              ...(isOptionalKey ? { isOptionalKey: true } : {})
             }
           })
 

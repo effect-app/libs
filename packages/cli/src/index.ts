@@ -10,6 +10,7 @@ import { GistHandler } from "./gist.js"
 import { RunCommandService } from "./os-command.js"
 import { packages } from "./shared.js"
 
+import { syncEffectSubtree } from "./sync-effect-subtree.js"
 import { patchArgvForWrapCommands } from "./argv-patch.js"
 
 patchArgvForWrapCommands(process.argv)
@@ -693,6 +694,46 @@ NodeRuntime.runMain(
         )
         .pipe(Command.withDescription("Nuclear cleanup command: removes all generated files and cleans the workspace"))
 
+      const syncEffect = Command
+        .make(
+          "sync-effect",
+          {
+            manifests: Flag.string("manifests").pipe(
+              Flag.withAlias("m"),
+              Flag.optional,
+              Flag.withDescription(
+                "Comma-separated list of package.json paths to scan (default: package.json)"
+              )
+            ),
+            prefix: Flag.string("prefix").pipe(
+              Flag.optional,
+              Flag.withDescription("Subtree prefix (default: repos/effect)")
+            ),
+            remote: Flag.string("remote").pipe(
+              Flag.optional,
+              Flag.withDescription("Git remote name (default: effect-smol)")
+            ),
+            remoteUrl: Flag.string("remote-url").pipe(
+              Flag.optional,
+              Flag.withDescription(
+                "Git remote URL (default: https://github.com/Effect-TS/effect-smol.git)"
+              )
+            )
+          },
+          Effect.fn("effa-cli.sync-effect")(function*({ manifests, prefix, remote, remoteUrl }) {
+            yield* syncEffectSubtree({
+              manifestPaths: Option.match(manifests, {
+                onNone: () => ["package.json"],
+                onSome: (m) => m.split(",").map((p) => p.trim())
+              }),
+              subtreePrefix: Option.getOrElse(prefix, () => "repos/effect"),
+              remoteName: Option.getOrElse(remote, () => "effect-smol"),
+              remoteUrl: Option.getOrElse(remoteUrl, () => "https://github.com/Effect-TS/effect-smol.git")
+            })
+          })
+        )
+        .pipe(Command.withDescription("Sync the Effect subtree to the version pinned in package.json"))
+
       // configure CLI
       return yield* Command.run(
         Command
@@ -706,7 +747,8 @@ NodeRuntime.runMain(
             packagejson,
             packagejsonPackages,
             gist,
-            nuke
+            nuke,
+            syncEffect
           ])),
         {
           version: "v1.0.0"

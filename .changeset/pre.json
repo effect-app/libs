@@ -11,6 +11,7 @@
     "@effect-app/vue-components": "3.2.0"
   },
   "changesets": [
+    "bold-berries-change",
     "brave-bushes-fold",
     "brave-laws-add",
     "brave-oranges-try",

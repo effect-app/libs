@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- 3eb66e9: Fix CosmosDB store `filter` to trigger namespace seeding on first access. Previously, if `filter` was the first operation called on a namespace, seed data was never created.
+  - effect-app@4.0.0-beta.97
+
 ## 4.0.0-beta.96
 
 ### Patch Changes

@@ -2,7 +2,7 @@
 import { Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
-import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
+import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
 import { isRelationCheck } from "../codeFilter.js"
 
 export interface SQLDialect {
@@ -303,43 +303,12 @@ export function buildWhereSQLQuery(
     }
   }
 
-  const flipOps = {
-    gt: "lt",
-    lt: "gt",
-    gte: "lte",
-    lte: "gte",
-    contains: "notContains",
-    notContains: "contains",
-    startsWith: "notStartsWith",
-    notStartsWith: "startsWith",
-    endsWith: "notEndsWith",
-    notEndsWith: "endsWith",
-    eq: "neq",
-    neq: "eq",
-    includes: "notIncludes",
-    notIncludes: "includes",
-    "includes-any": "notIncludes-any",
-    "notIncludes-any": "includes-any",
-    "includes-all": "notIncludes-all",
-    "notIncludes-all": "includes-all",
-    in: "notIn",
-    notIn: "in"
-  } satisfies Record<Ops, Ops>
-
-  const flippies = {
-    and: "or",
-    or: "and"
-  } satisfies Record<"and" | "or", "and" | "or">
-
-  const flip = (every: boolean) => (_: FilterResult): FilterResult =>
-    every
-      ? _.t === "where" || _.t === "or" || _.t === "and"
-        ? { ..._, t: _.t === "where" ? _.t : flippies[_.t], op: flipOps[_.op] }
-        : _
-      : _
-
   const wrapRelation = (rel: string, inner: string, every: boolean): string => {
+    // Optimize tautological/contradictory conditions
+    if (every && inner === "1=1") return "1=1"
+    if (!every && inner === "1=0") return "1=0"
     const from = dialect.jsonEachFrom(rel, `_${rel}`)
+    // ∀x.P(x) ≡ ¬∃x.¬P(x), i.e. NOT EXISTS(... WHERE NOT P)
     return every
       ? `NOT EXISTS(SELECT 1 FROM ${from} WHERE NOT (${inner}))`
       : `EXISTS(SELECT 1 FROM ${from} WHERE ${inner})`
@@ -363,8 +332,8 @@ export function buildWhereSQLQuery(
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
             s += isRelation
-              ? ` OR (${print(e.result.map(flip(every)), rel, every)})`
-              : ` OR ${wrapRelation(rel, print(e.result.map(flip(every)), rel, every), every)}`
+              ? ` OR (${print(e.result, rel, every)})`
+              : ` OR ${wrapRelation(rel, print(e.result, rel, every), every)}`
           } else {
             s += ` OR (${print(e.result, null, every)})`
           }
@@ -375,8 +344,8 @@ export function buildWhereSQLQuery(
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
             s += isRelation
-              ? ` AND (${print(e.result.map(flip(every)), rel, every)})`
-              : ` AND ${wrapRelation(rel, print(e.result.map(flip(every)), rel, every), every)}`
+              ? ` AND (${print(e.result, rel, every)})`
+              : ` AND ${wrapRelation(rel, print(e.result, rel, every), every)}`
           } else {
             s += ` AND (${print(e.result, null, every)})`
           }
@@ -387,8 +356,8 @@ export function buildWhereSQLQuery(
           const rel = isRelationCheck(e.result, isRelation)
           if (rel) {
             s += isRelation
-              ? `(${print(e.result.map(flip(every)), rel, every)})`
-              : wrapRelation(rel, print(e.result.map(flip(every)), rel, every), every)
+              ? `(${print(e.result, rel, every)})`
+              : wrapRelation(rel, print(e.result, rel, every), every)
           } else {
             s += `(${print(e.result, null, every)})`
           }

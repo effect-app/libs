@@ -98,7 +98,8 @@ export const syncEffectSubtree = Effect.fnUntraced(function*(config: SyncEffectC
   for (const candidate of candidateRefs) {
     const tagResult = yield* runGetString(
       `git ls-remote --exit-code --tags ${config.remoteName} refs/tags/${candidate}`
-    ).pipe(Effect.option)
+    )
+      .pipe(Effect.option)
 
     if (Option.isSome(tagResult)) {
       ref = candidate

@@ -10,8 +10,8 @@ import { GistHandler } from "./gist.js"
 import { RunCommandService } from "./os-command.js"
 import { packages } from "./shared.js"
 
-import { syncEffectSubtree } from "./sync-effect-subtree.js"
 import { patchArgvForWrapCommands } from "./argv-patch.js"
+import { syncEffectSubtree } from "./sync-effect-subtree.js"
 
 patchArgvForWrapCommands(process.argv)
 

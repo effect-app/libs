@@ -54,6 +54,10 @@
     "./shared": {
       "types": "./dist/shared.d.ts",
       "default": "./dist/shared.js"
+    },
+    "./sync-effect-subtree": {
+      "types": "./dist/sync-effect-subtree.d.ts",
+      "default": "./dist/sync-effect-subtree.js"
     }
   },
   "scripts": {

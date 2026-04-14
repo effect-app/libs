@@ -1,5 +1,7 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.94
+
 ## 4.0.0-beta.93
 
 ## 4.0.0-beta.92

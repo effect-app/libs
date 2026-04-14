@@ -129,10 +129,12 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           : null as any
       )
-    } else if (props.meta?.required === false) {
-      // `optionalKey` (non-required, non-nullable) expects the key to be
-      // absent from the submitted object, not present-with-undefined.
-      // Remove it from form state rather than setting it to `undefined`.
+    } else if (props.meta?.isOptionalKey) {
+      // `S.optionalKey` expects the key to be ABSENT from the submitted
+      // object, not present-with-undefined. Remove it from form state
+      // rather than setting it to `undefined`. Note: this is distinct
+      // from `required: false`, which may also just mean "empty string
+      // is valid" for unconstrained `S.String` fields.
       props.field.form.deleteField(props.field.name)
       fieldDeleted = true
     } else {

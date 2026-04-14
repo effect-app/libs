@@ -27,10 +27,6 @@
         label="c.e (NullOr Struct.e)"
         name="c.e"
       />
-      <form.Input
-        label="c.d (NullOr Struct.d)"
-        name="c.d"
-      />
       <form.Field name="c.d">
         <template #default="{ state, field }">
           <div>

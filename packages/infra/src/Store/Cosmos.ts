@@ -65,7 +65,6 @@ function makeCosmosStore({ prefix }: StorageConfig) {
               }
               return namespace
             }))
-          const resolvePartitionKey = Effect.map(resolveNamespace, (ns) => `${nsPrefix(ns)}${basePartitionKey}`)
 
           const defaultValues = config?.defaultValues ?? {}
           const container = db.container(containerId)
@@ -404,7 +403,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       limit
                     )
                   ),
-                  pk: resolvePartitionKey
+                  pk: resolvePartitionKeyAndSeed
                 })
                 .pipe(
                   Effect.tap(({ q }) => logQuery(q)),

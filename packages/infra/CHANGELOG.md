@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.93
+
+### Patch Changes
+
+- 2d85646: fix SQL includes-any/all double-quoting values for SQLite (JSON.stringify only needed for Postgres jsonb)
+  - effect-app@4.0.0-beta.93
+
 ## 4.0.0-beta.92
 
 ### Patch Changes

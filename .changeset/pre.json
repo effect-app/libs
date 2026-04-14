@@ -44,6 +44,7 @@
     "fix-seed-marker-and-circular-dep",
     "fix-sql-array-relation-queries",
     "fix-sql-in-null-handling",
+    "fix-sql-includes-serialize",
     "fix-sql-namespace-params",
     "fix-sql-select-etag-column",
     "fix-sql-select-types-and-defaults",

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- 88838fb: Remove pick/omit customizations from Class/TaggedClass/Struct/TaggedStruct. Use `Struct.pick(X.fields, [...])` from `effect-app` instead.
+
 ## 4.0.0-beta.94
 
 ## 4.0.0-beta.93

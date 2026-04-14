@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- 88838fb: Remove pick/omit customizations from Class/TaggedClass/Struct/TaggedStruct. Use `Struct.pick(X.fields, [...])` from `effect-app` instead.
+- Updated dependencies [88838fb]
+  - effect-app@4.0.0-beta.95
+
 ## 4.0.0-beta.94
 
 ### Patch Changes

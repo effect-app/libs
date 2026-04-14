@@ -21,6 +21,7 @@ export interface SQLDialect {
   readonly arrayLength: (path: string) => string
   readonly jsonEachFrom: (arrPath: string, alias: string) => string
   readonly jsonExtractElement: (alias: string, subPath: string) => string
+  readonly serializeJsonValue: (v: unknown) => unknown
 }
 
 export const sqliteDialect: SQLDialect = {
@@ -45,7 +46,8 @@ export const sqliteDialect: SQLDialect = {
   jsonColumnType: "JSON",
   arrayLength: (path) => `json_array_length(data, '$.${path}')`,
   jsonEachFrom: (arrPath, alias) => `json_each(data, '$.${arrPath}') AS ${alias}`,
-  jsonExtractElement: (alias, subPath) => `json_extract(${alias}.value, '$.${subPath}')`
+  jsonExtractElement: (alias, subPath) => `json_extract(${alias}.value, '$.${subPath}')`,
+  serializeJsonValue: (v) => v
 }
 
 export const pgDialect: SQLDialect = {
@@ -119,7 +121,8 @@ export const pgDialect: SQLDialect = {
     if (parts.length === 1) return `${alias}->>'${parts[0]}'`
     const last = parts.pop()!
     return `${alias}${parts.map((p) => `->'${p}'`).join("")}->>'${last}'`
-  }
+  },
+  serializeJsonValue: (v) => JSON.stringify(v)
 }
 
 export function logQuery(q: { sql: string; params: unknown[] }) {
@@ -223,26 +226,26 @@ export function buildWhereSQLQuery(
       case "includes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
-        const placeholders = vals.map((v) => addParam(JSON.stringify(v)))
+        const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayContainsAny(arrPath, placeholders)
       }
       case "notIncludes-any": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
-        const placeholders = vals.map((v) => addParam(JSON.stringify(v)))
+        const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayNotContainsAny(arrPath, placeholders)
       }
 
       case "includes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
-        const placeholders = vals.map((v) => addParam(JSON.stringify(v)))
+        const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayContainsAll(arrPath, placeholders)
       }
       case "notIncludes-all": {
         const arrPath = dottedToJsonPath(resolvedPath)
         const vals = x.value as unknown as readonly unknown[]
-        const placeholders = vals.map((v) => addParam(JSON.stringify(v)))
+        const placeholders = vals.map((v) => addParam(dialect.serializeJsonValue(v)))
         return dialect.jsonArrayNotContainsAll(arrPath, placeholders)
       }
 

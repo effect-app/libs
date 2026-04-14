@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.13
+
+### Minor Changes
+
+- 97207c0: Add `sync-effect` CLI command to sync the Effect git subtree to the version pinned in package.json manifests.
+
 ## 2.0.1-beta.12
 
 ### Patch Changes

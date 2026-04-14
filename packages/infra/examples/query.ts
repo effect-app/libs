@@ -1,5 +1,5 @@
 import { expectTypeOf } from "@effect/vitest"
-import { Effect, Layer, ManagedRuntime, S } from "effect-app"
+import { Effect, Layer, ManagedRuntime, S, Struct } from "effect-app"
 import { makeRepo } from "../src/Model.js"
 import { and, make, one, or, order, page, project, type QueryWhere, where } from "../src/Model/query.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
@@ -78,7 +78,7 @@ const program = Effect.gen(function*() {
     order("displayName"),
     page({ take: 1 }),
     one,
-    project(S.Struct(Something.pick("id", "displayName")))
+    project(Something.mapFields(Struct.pick(["id", "displayName"])))
   )
 
   const r2 = yield* somethingRepo.query(

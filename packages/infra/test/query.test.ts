@@ -91,7 +91,7 @@ it("works", () => {
 
   const processed = memFilter(interpreted)(items.map((_) =>
     S.encodeUnknownSync(S.Struct({
-      ...Something.omit("displayName"),
+      ...Struct.omit(Something.fields, ["displayName"]),
       displayName: S.Literals(["Verona", "Riley"])
     }))(_)
   ))
@@ -809,7 +809,7 @@ it("refine inner without imposing a projection", () =>
         where("union._tag", "AA"),
         // But if I wanna the whole Data as output ignoring the inner refinement
         // I wanna be able to do so
-        project(S.Struct(Data.pick("union")))
+        project(Data.mapFields(Struct.pick(["union"])))
       )
 
       expectTypeOf(query2).toEqualTypeOf<

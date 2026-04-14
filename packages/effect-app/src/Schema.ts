@@ -10,7 +10,7 @@ import { extendM } from "./utils.js"
 export * from "effect/Schema"
 
 export * from "./Schema/Class.js"
-export { Class, Struct, TaggedClass, TaggedStruct } from "./Schema/Class.js"
+export { Class, TaggedClass } from "./Schema/Class.js"
 
 export { fromBrand, nominal } from "./Schema/brand.js"
 export { Array, Boolean, Date, DateFromString, DateValid, Finite, Literals, NullOr, Number, ReadonlyMap, ReadonlySet } from "./Schema/ext.js"

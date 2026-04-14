@@ -93,13 +93,11 @@ describe("Class constructor", () => {
     expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
   })
 
-  it("exposes fields, identifier, pick, omit", () => {
+  it("exposes fields, identifier", () => {
     class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
 
     expect(A.identifier).toBe("A")
     expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
-    expect(A.pick("a")).toStrictEqual({ a: A.fields.a })
-    expect(A.omit("b")).toStrictEqual({ a: A.fields.a })
   })
 })
 
@@ -133,13 +131,12 @@ describe("TaggedClass constructor", () => {
     expect((decoded as Circle)._tag).toBe("Circle")
   })
 
-  it("exposes fields, identifier, pick, omit", () => {
+  it("exposes fields, identifier", () => {
     class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
 
     expect(Circle.identifier).toBe("Circle")
     expect(Object.keys(Circle.fields)).toContain("_tag")
     expect(Object.keys(Circle.fields)).toContain("radius")
-    expect(Circle.pick("radius")).toStrictEqual({ radius: Circle.fields.radius })
   })
 })
 

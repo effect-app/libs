@@ -21,6 +21,7 @@ import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerma
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
+import NullableComponent from "./OmegaForm/Nullable.vue"
 import OptionalKeyComponent from "./OmegaForm/OptionalKey.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
@@ -122,6 +123,13 @@ export const SimpleForm: Story = {
   render: () => ({
     components: { SimpleFormComponent },
     template: "<SimpleFormComponent />"
+  })
+}
+
+export const Nullable: Story = {
+  render: () => ({
+    components: { NullableComponent },
+    template: "<NullableComponent />"
   })
 }
 

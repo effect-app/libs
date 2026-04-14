@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- b4ffee0: fix SQL whereEvery double-negation bug causing wrong query when operators like notIn are used (especially with empty arrays)
+  - effect-app@4.0.0-beta.92
+
 ## 4.0.0-beta.91
 
 ### Patch Changes

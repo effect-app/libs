@@ -47,6 +47,7 @@
     "fix-sql-namespace-params",
     "fix-sql-select-etag-column",
     "fix-sql-select-types-and-defaults",
+    "fix-sql-whereevery-flip",
     "fix-transformed-struct-defaults",
     "fix-vue-form-numeric-type-detection",
     "frank-ends-switch",

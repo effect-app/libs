@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- 6a0e008: remove artificial Cosmos bulkSet delays
+  - effect-app@4.0.0-beta.99
+
 ## 4.0.0-beta.98
 
 ### Patch Changes

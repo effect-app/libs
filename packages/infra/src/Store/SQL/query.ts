@@ -22,11 +22,13 @@ export interface SQLDialect {
   readonly jsonEachFrom: (arrPath: string, alias: string) => string
   readonly jsonExtractElement: (alias: string, subPath: string) => string
   readonly serializeJsonValue: (v: unknown) => unknown
+  readonly serializeScalar: (v: unknown) => unknown
 }
 
 export const sqliteDialect: SQLDialect = {
   jsonExtract: (path) => `json_extract(data, '$.${path}')`,
-  jsonExtractJson: (path) => `json_quote(json_extract(data, '$.${path}'))`,
+  jsonExtractJson: (path) =>
+    `CASE json_type(data, '$.${path}') WHEN 'true' THEN 'true' WHEN 'false' THEN 'false' ELSE json_quote(json_extract(data, '$.${path}')) END`,
   placeholder: (_index) => "?",
   jsonArrayContains: (arrPath, val) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${val})`,
   jsonArrayNotContains: (arrPath, val) =>
@@ -47,7 +49,10 @@ export const sqliteDialect: SQLDialect = {
   arrayLength: (path) => `json_array_length(data, '$.${path}')`,
   jsonEachFrom: (arrPath, alias) => `json_each(data, '$.${arrPath}') AS ${alias}`,
   jsonExtractElement: (alias, subPath) => `json_extract(${alias}.value, '$.${subPath}')`,
-  serializeJsonValue: (v) => v
+  serializeJsonValue: (v) => v,
+  // SQLite stores JSON booleans as integers (0/1) and better-sqlite3 refuses
+  // to bind JS booleans, so coerce them to integers for WHERE params.
+  serializeScalar: (v) => typeof v === "boolean" ? (v ? 1 : 0) : v
 }
 
 export const pgDialect: SQLDialect = {
@@ -122,7 +127,9 @@ export const pgDialect: SQLDialect = {
     const last = parts.pop()!
     return `${alias}${parts.map((p) => `->'${p}'`).join("")}->>'${last}'`
   },
-  serializeJsonValue: (v) => JSON.stringify(v)
+  serializeJsonValue: (v) => JSON.stringify(v),
+  // PG's ->> operator yields text, so compare booleans as 'true'/'false' text.
+  serializeScalar: (v) => typeof v === "boolean" ? (v ? "true" : "false") : v
 }
 
 export function logQuery(q: { sql: string; params: unknown[] }) {
@@ -155,7 +162,7 @@ export function buildWhereSQLQuery(
   let paramIndex = 1
 
   const addParam = (value: unknown): string => {
-    params.push(value)
+    params.push(dialect.serializeScalar(value))
     return dialect.placeholder(paramIndex++)
   }
 

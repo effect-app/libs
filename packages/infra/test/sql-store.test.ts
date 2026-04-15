@@ -631,6 +631,294 @@ describe("SQL Store (SQLite integration)", () => {
     }))
 })
 
+// --- boolean WHERE clause tests (regression: where("x", true) must work per dialect) ---
+
+describe("boolean WHERE clauses — query builder", () => {
+  it("sqlite: eq true serializes bool → 1 integer", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "eq", value: true as any }],
+      "t",
+      {}
+    )
+    expect(result.sql).toContain("json_extract(data, '$.flag') = ?")
+    expect(result.params).toEqual([1])
+  })
+
+  it("sqlite: eq false serializes bool → 0 integer", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "eq", value: false as any }],
+      "t",
+      {}
+    )
+    expect(result.params).toEqual([0])
+  })
+
+  it("sqlite: neq/in also serialize booleans", () => {
+    const r1 = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "neq", value: true as any }],
+      "t",
+      {}
+    )
+    expect(r1.params).toEqual([1])
+
+    const r2 = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "in", value: [true, false] as any }],
+      "t",
+      {}
+    )
+    expect(r2.params).toEqual([1, 0])
+  })
+
+  it("pg: eq true serializes bool → 'true' text (matches ->> output)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "eq", value: true as any }],
+      "t",
+      {}
+    )
+    expect(result.sql).toContain("data->>'flag' = $1")
+    expect(result.params).toEqual(["true"])
+  })
+
+  it("pg: eq false serializes bool → 'false' text", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "eq", value: false as any }],
+      "t",
+      {}
+    )
+    expect(result.params).toEqual(["false"])
+  })
+
+  it("pg: in with booleans serializes as text list", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "flag", op: "in", value: [true, false] as any }],
+      "t",
+      {}
+    )
+    expect(result.params).toEqual(["true", "false"])
+  })
+
+  it("non-boolean scalars pass through unchanged (sqlite)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [{ t: "where", path: "name", op: "eq", value: "Alice" }],
+      "t",
+      {}
+    )
+    expect(result.params).toEqual(["Alice"])
+  })
+
+  it("non-boolean scalars pass through unchanged (pg)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [{ t: "where", path: "age", op: "gt", value: 18 as any }],
+      "t",
+      {}
+    )
+    expect(result.params).toEqual([18])
+  })
+})
+
+describe("boolean WHERE clauses — SQLite integration (end-to-end)", () => {
+  const withDb = (fn: (db: Sqlite.Database) => void) => {
+    const db = new BetterSqlite(":memory:")
+    try {
+      fn(db)
+    } finally {
+      db.close()
+    }
+  }
+
+  it("where flag = true matches only true rows", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("1", "e", JSON.stringify({ flag: true, name: "Alice" }))
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("2", "e", JSON.stringify({ flag: false, name: "Bob" }))
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "flag", op: "eq", value: true as any }],
+        "t",
+        {}
+      )
+      const rows = query(db, q.sql, q.params)
+      expect(rows.length).toBe(1)
+      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Alice")
+    }))
+
+  it("where flag = false matches only false rows", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("1", "e", JSON.stringify({ flag: true, name: "Alice" }))
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("2", "e", JSON.stringify({ flag: false, name: "Bob" }))
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "flag", op: "eq", value: false as any }],
+        "t",
+        {}
+      )
+      const rows = query(db, q.sql, q.params)
+      expect(rows.length).toBe(1)
+      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Bob")
+    }))
+
+  it("where nested boolean path works", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("1", "e", JSON.stringify({ meta: { active: true }, name: "Alice" }))
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("2", "e", JSON.stringify({ meta: { active: false }, name: "Bob" }))
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "meta.active", op: "eq", value: true as any }],
+        "t",
+        {}
+      )
+      const rows = query(db, q.sql, q.params)
+      expect(rows.length).toBe(1)
+      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Alice")
+    }))
+
+  it("where neq boolean works", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (id TEXT PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`)
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("1", "e", JSON.stringify({ flag: true, name: "Alice" }))
+      db
+        .prepare(`INSERT INTO "t" (id, _etag, data) VALUES (?, ?, ?)`)
+        .run("2", "e", JSON.stringify({ flag: false, name: "Bob" }))
+
+      const q = buildWhereSQLQuery(
+        sqliteDialect,
+        "id",
+        [{ t: "where", path: "flag", op: "neq", value: true as any }],
+        "t",
+        {}
+      )
+      const rows = query(db, q.sql, q.params)
+      expect(rows.length).toBe(1)
+      expect((JSON.parse((rows[0] as any).data) as any).name).toBe("Bob")
+    }))
+})
+
+// --- jsonExtractJson dialect tests (regression: booleans must survive round-trip) ---
+
+describe("sqliteDialect.jsonExtractJson boolean round-trip", () => {
+  const withDb = (fn: (db: Sqlite.Database) => void) => {
+    const db = new BetterSqlite(":memory:")
+    try {
+      fn(db)
+    } finally {
+      db.close()
+    }
+  }
+
+  it("SQL uses json_type CASE to preserve booleans", () => {
+    const sql = sqliteDialect.jsonExtractJson("flag")
+    expect(sql).toContain("json_type(data, '$.flag')")
+    expect(sql).toContain("'true'")
+    expect(sql).toContain("'false'")
+    expect(sql).toContain("json_quote(json_extract(data, '$.flag'))")
+  })
+
+  it("boolean false round-trips as false (not 0)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ flag: false }))
+
+      const row = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("flag")} AS v FROM "t"`).get() as any
+      const parsed = JSON.parse(row.v)
+      expect(parsed).toBe(false)
+      expect(typeof parsed).toBe("boolean")
+    }))
+
+  it("boolean true round-trips as true (not 1)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ flag: true }))
+
+      const row = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("flag")} AS v FROM "t"`).get() as any
+      const parsed = JSON.parse(row.v)
+      expect(parsed).toBe(true)
+      expect(typeof parsed).toBe("boolean")
+    }))
+
+  it("nested boolean round-trips correctly", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(
+        JSON.stringify({ nested: { flag: false } })
+      )
+
+      const row = db
+        .prepare(`SELECT ${sqliteDialect.jsonExtractJson("nested.flag")} AS v FROM "t"`)
+        .get() as any
+      const parsed = JSON.parse(row.v)
+      expect(parsed).toBe(false)
+      expect(typeof parsed).toBe("boolean")
+    }))
+
+  it("numbers 0 and 1 still parse as numbers (not booleans)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ zero: 0, one: 1 }))
+
+      const zRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("zero")} AS v FROM "t"`).get() as any
+      const oRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("one")} AS v FROM "t"`).get() as any
+      expect(JSON.parse(zRow.v)).toBe(0)
+      expect(typeof JSON.parse(zRow.v)).toBe("number")
+      expect(JSON.parse(oRow.v)).toBe(1)
+      expect(typeof JSON.parse(oRow.v)).toBe("number")
+    }))
+
+  it("strings, arrays, and null still round-trip correctly", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(
+        JSON.stringify({ s: "hello", arr: [1, 2, 3], nil: null })
+      )
+
+      const sRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("s")} AS v FROM "t"`).get() as any
+      const aRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("arr")} AS v FROM "t"`).get() as any
+      const nRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("nil")} AS v FROM "t"`).get() as any
+      expect(JSON.parse(sRow.v)).toBe("hello")
+      expect(JSON.parse(aRow.v)).toEqual([1, 2, 3])
+      expect(JSON.parse(nRow.v)).toBe(null)
+    }))
+})
+
 // --- toRow stripping and parseRow reconstruction tests ---
 
 describe("toRow strips _etag and id from data", () => {

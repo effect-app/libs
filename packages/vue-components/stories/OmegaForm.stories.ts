@@ -12,6 +12,7 @@ import CreateUseFormWithCustomInputComponent from "./OmegaForm/createUseFormWIth
 import CustomInputClassNameComponent from "./OmegaForm/CustomInputClassName.vue"
 import CustomLabelSlotComponent from "./OmegaForm/CustomLabelSlot.vue"
 import DateComponent from "./OmegaForm/Date.vue"
+import DecodeTransformFallbackComponent from "./OmegaForm/DecodeTransformFallback.vue"
 import DefaultsComponent from "./OmegaForm/Defaults.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
@@ -337,6 +338,21 @@ export const Redacted: Story = {
     components: { RedactedComponent },
     template: "<RedactedComponent />"
   })
+}
+
+export const DecodeTransformFallback: Story = {
+  render: () => ({
+    components: { DecodeTransformFallbackComponent },
+    template: "<DecodeTransformFallbackComponent />"
+  }),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Outer schema NonNegativeInt should allow 0 as input; decode fallback rewrites { amount: 0 } to { amount: 666 } so it satisfies the inner PositiveInt target. Any positive value passes through unchanged."
+      }
+    }
+  }
 }
 
 export const IntegerValidationGerman: Story = {

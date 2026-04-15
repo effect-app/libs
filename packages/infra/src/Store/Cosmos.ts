@@ -57,6 +57,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
             const base = config?.partitionValue(e) ?? "primary"
             return `${nsPrefix(ns)}${base}`
           }
+          const nsBasePartitionKey = (ns: string) => `${nsPrefix(ns)}${basePartitionKey}`
           const resolveNamespace = !config?.allowNamespace
             ? Effect.succeed("primary")
             : storeId.asEffect().pipe(Effect.map((namespace) => {
@@ -112,7 +113,9 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     Effect.provide(ctx),
                     Effect.orDie
                   )
-                })
+                }),
+                Effect.withLogSpan(`Cosmos.seedCheck ${name} in ${ns} [effect-app/infra/Store]`),
+                Effect.withSpan("Cosmos.seed [effect-app/infra/Store]", { attributes: { name, namespace: ns } })
               )
           }
           const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
@@ -127,7 +130,6 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           const resolveAndSeed = resolveNamespace.pipe(
             Effect.tap((ns) => seedNamespace(ns))
           )
-          const resolvePartitionKeyAndSeed = Effect.map(resolveAndSeed, (ns) => `${nsPrefix(ns)}${basePartitionKey}`)
 
           const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
             Effect
@@ -230,15 +232,14 @@ function makeCosmosStore({ prefix }: StorageConfig) {
 
                 return batchResult.flat() as unknown as NonEmptyReadonlyArray<Encoded>
               })
-
-          const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
-            resolveAndSeed.pipe(Effect.flatMap((ns) =>
-              bulkSetInternal(items, ns).pipe(
+              .pipe(
                 Effect.withSpan("Cosmos.bulkSet [effect-app/infra/Store]", {
-                  attributes: { "repository.container_id": containerId, "repository.model_name": name }
+                  attributes: { "repository.container_id": containerId, "repository.model_name": name, namespace: ns }
                 }, { captureStackTrace: false })
               )
-            ))
+
+          const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
+            resolveAndSeed.pipe(Effect.flatMap((ns) => bulkSetInternal(items, ns)))
 
           const batchSet = (items: NonEmptyReadonlyArray<PM>) => {
             return resolveAndSeed
@@ -302,52 +303,72 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                         })) as unknown as NonEmptyReadonlyArray<Encoded>
                       })))
                   })
+                  .pipe(Effect
+                    .withSpan("Cosmos.batchSet [effect-app/infra/Store]", {
+                      attributes: {
+                        "repository.container_id": containerId,
+                        "repository.model_name": name,
+                        namespace: ns
+                      }
+                    }, { captureStackTrace: false }))
               ))
-              .pipe(Effect
-                .withSpan("Cosmos.batchSet [effect-app/infra/Store]", {
-                  attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                }, { captureStackTrace: false }))
           }
 
           const s: Store<IdKey, Encoded> = {
             queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
               Effect
-                .all({ q: Effect.sync(() => query.cosmos({ name })), pk: resolvePartitionKeyAndSeed })
+                .all({ q: Effect.sync(() => query.cosmos({ name })), ns: resolveAndSeed })
                 .pipe(
                   Effect.tap(({ q }) => logQuery(q)),
-                  Effect.flatMap(({ pk, q }) =>
-                    Effect.promise(() =>
-                      container
-                        .items
-                        .query<Out>(q, { partitionKey: pk })
-                        .fetchAll()
-                        .then(({ resources }) =>
-                          resources.map(
-                            (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
+                  Effect.flatMap(({ ns, q }) =>
+                    Effect
+                      .promise(() =>
+                        container
+                          .items
+                          .query<Out>(q, { partitionKey: nsBasePartitionKey(ns) })
+                          .fetchAll()
+                          .then(({ resources }) =>
+                            resources.map(
+                              (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
+                            )
                           )
-                        )
-                    )
-                  ),
-                  Effect
-                    .withSpan("Cosmos.queryRaw [effect-app/infra/Store]", {
-                      attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                    }, { captureStackTrace: false })
+                      )
+                      .pipe(
+                        Effect.withSpan("Cosmos.queryRaw [effect-app/infra/Store]", {
+                          attributes: {
+                            "repository.container_id": containerId,
+                            "repository.model_name": name,
+                            namespace: ns
+                          }
+                        }, { captureStackTrace: false })
+                      )
+                  )
                 ),
             batchRemove: (ids, partitionKey?: string) =>
-              resolvePartitionKeyAndSeed.pipe(Effect.flatMap((pk) =>
-                Effect.promise(() =>
-                  execBatch(
-                    mutable(ids.map((id) =>
-                      dropUndefinedT({
-                        operationType: "Delete" as const,
-                        id
-                        // don't use this or we get an error that the request and some item partition key dont match - makese no sense
-                        // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
-                      })
-                    )),
-                    partitionKey ?? pk
+              resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                Effect
+                  .promise(() =>
+                    execBatch(
+                      mutable(ids.map((id) =>
+                        dropUndefinedT({
+                          operationType: "Delete" as const,
+                          id
+                          // don't use this or we get an error that the request and some item partition key dont match - makese no sense
+                          // partitionKey: config?.partitionValue({ [idKey]: id } as Encoded)
+                        })
+                      )),
+                      partitionKey ?? nsBasePartitionKey(ns)
+                    )
                   )
-                )
+                  .pipe(
+                    Effect.withSpan("Cosmos.batchRemove [effect-app/infra/Store]", {
+                      attributes: {
+                        "repository.container_id": containerId,
+                        "repository.model_name": name,
+                        namespace: ns
+                      }
+                    }, { captureStackTrace: false })
+                  )
               )),
             all: Effect
               .all({
@@ -355,27 +376,33 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   query: `SELECT * FROM ${name}`,
                   parameters: []
                 })),
-                pk: resolvePartitionKeyAndSeed
+                ns: resolveAndSeed
               })
               .pipe(
                 Effect.tap(({ q }) => logQuery(q)),
-                Effect.flatMap(({ pk, q }) =>
-                  Effect.promise(() =>
-                    container
-                      .items
-                      .query<PMCosmos>(q, { partitionKey: pk })
-                      .fetchAll()
-                      .then(({ resources }) =>
-                        resources.map(
-                          (_) => ({ ...defaultValues, ...mapReverseId(_) })
+                Effect.flatMap(({ ns, q }) =>
+                  Effect
+                    .promise(() =>
+                      container
+                        .items
+                        .query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) })
+                        .fetchAll()
+                        .then(({ resources }) =>
+                          resources.map(
+                            (_) => ({ ...defaultValues, ...mapReverseId(_) })
+                          )
                         )
-                      )
-                  )
-                ),
-                Effect
-                  .withSpan("Cosmos.all [effect-app/infra/Store]", {
-                    attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                  }, { captureStackTrace: false })
+                    )
+                    .pipe(
+                      Effect.withSpan("Cosmos.all [effect-app/infra/Store]", {
+                        attributes: {
+                          "repository.container_id": containerId,
+                          "repository.model_name": name,
+                          namespace: ns
+                        }
+                      }, { captureStackTrace: false })
+                    )
+                )
               ),
             /**
              * May return duplicate results for "join_find", when matching more than once.
@@ -403,41 +430,46 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       limit
                     )
                   ),
-                  pk: resolvePartitionKeyAndSeed
+                  ns: resolveAndSeed
                 })
                 .pipe(
                   Effect.tap(({ q }) => logQuery(q)),
                   Effect
-                    .flatMap(({ pk, q }) =>
-                      Effect.promise(() =>
-                        f.select
-                          ? container
-                            .items
-                            .query<M>(q, { partitionKey: pk })
-                            .fetchAll()
-                            .then(({ resources }) =>
-                              resources.map((_) => ({
-                                ...pipe(
-                                  defaultValues,
-                                  Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])
-                                ),
-                                ...mapReverseId(_ as any)
-                              }))
-                            )
-                          : container
-                            .items
-                            .query<{ f: M }>(q, { partitionKey: pk })
-                            .fetchAll()
-                            .then(({ resources }) =>
-                              resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)
-                            )
-                      )
+                    .flatMap(({ ns, q }) =>
+                      Effect
+                        .promise(() =>
+                          f.select
+                            ? container
+                              .items
+                              .query<M>(q, { partitionKey: nsBasePartitionKey(ns) })
+                              .fetchAll()
+                              .then(({ resources }) =>
+                                resources.map((_) => ({
+                                  ...pipe(
+                                    defaultValues,
+                                    Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])
+                                  ),
+                                  ...mapReverseId(_ as any)
+                                }))
+                              )
+                            : container
+                              .items
+                              .query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) })
+                              .fetchAll()
+                              .then(({ resources }) =>
+                                resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)
+                              )
+                        )
+                        .pipe(
+                          Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
+                            attributes: {
+                              "repository.container_id": containerId,
+                              "repository.model_name": name,
+                              namespace: ns
+                            }
+                          }, { captureStackTrace: false })
+                        )
                     )
-                )
-                .pipe(
-                  Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
-                    attributes: { "repository.container_id": containerId, "repository.model_name": name }
-                  }, { captureStackTrace: false })
                 )
             },
             find: (id) =>
@@ -459,6 +491,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                         "repository.container_id": containerId,
                         "repository.model_name": name,
                         partitionValue: nsPartitionValue(ns, { [idKey]: id } as Encoded),
+                        namespace: ns,
                         id
                       }
                     }, { captureStackTrace: false }))
@@ -516,6 +549,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                         attributes: {
                           "repository.container_id": containerId,
                           "repository.model_name": name,
+                          namespace: ns,
                           id: e[idKey]
                         }
                       }, { captureStackTrace: false })

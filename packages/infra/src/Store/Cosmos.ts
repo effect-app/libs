@@ -94,11 +94,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     Effect.flatMap((m) =>
                       Effect.flatMapOption(
                         Effect.succeed(toNonEmptyArray([...m])),
-                        (a) =>
-                          bulkSetInternal(a, ns).pipe(
-                            Effect.orDie,
-                            Effect.delay(Duration.millis(1100))
-                          )
+                        (a) => bulkSetInternal(a, ns).pipe(Effect.orDie)
                       )
                     ),
                     Effect.andThen(
@@ -179,7 +175,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       .promise(() => bulk(batch.map(([, op]) => op)))
                       .pipe(
                         Effect
-                          .delay(Duration.millis(i === 0 ? 0 : 1100)),
+                          .delay(Duration.millis(i === 0 ? 0 : 150)),
                         Effect
                           .flatMap((responses) =>
                             Effect.gen(function*() {

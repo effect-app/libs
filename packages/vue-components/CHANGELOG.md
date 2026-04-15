@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.101
+
+### Patch Changes
+
+- ff432eb: OmegaForm: meta extraction now walks the encoded (source) side of struct-level `decodeTo` transformations, so the outer schema drives field-level validation. Example: `S.Struct({ amount: S.NonNegativeInt }).pipe(S.decodeTo(S.Struct({ amount: S.PositiveInt }), ...))` now lets users enter `0` without a field error and the decode fallback can rewrite it before submit.
+  - effect-app@4.0.0-beta.101
+  - @effect-app/vue@4.0.0-beta.101
+
 ## 4.0.0-beta.100
 
 ### Patch Changes

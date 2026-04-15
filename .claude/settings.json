@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git commit -m ':*)",
       "Bash(pnpm -r check)",
-      "Bash(pnpm lint-fix:*)"
+      "Bash(pnpm lint-fix:*)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

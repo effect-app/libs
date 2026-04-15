@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- 43611c7: enable cosmosdb large partition key hashes
+  - effect-app@4.0.0-beta.100
+
 ## 4.0.0-beta.99
 
 ### Patch Changes

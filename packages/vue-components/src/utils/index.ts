@@ -1,5 +1,5 @@
 import { type makeIntl } from "@effect-app/vue"
-import { S } from "effect-app"
+import type { S } from "effect-app"
 import { inject, type InjectionKey, provide } from "vue"
 
 export const useIntlKey = Symbol() as InjectionKey<
@@ -17,12 +17,15 @@ export const provideIntl = (
 ) => provide(useIntlKey, intl)
 
 /**
- * Recursively extracts the source AST from a transformation chain.
- * If the provided AST is a transformation, it follows the chain to find the original source AST.
- *
- * @param ast - The AST node to extract the transformation source from
- * @returns The source AST at the end of the transformation chain
+ * Walks the encoding chain of the given AST node to its source (encoded)
+ * side. Shallow — does not recurse into children, so inner prop-level
+ * transformations (e.g. `FiniteFromString`) keep their decoded shape
+ * while struct-level `decodeTo` transformations are unwrapped to their
+ * input side (e.g. `NonNegativeInt` rather than the decoded `PositiveInt`).
  */
 export function getTransformationFrom(ast: S.AST.AST) {
-  return S.AST.toType(ast)
+  while (ast.encoding) {
+    ast = ast.encoding[0].to
+  }
+  return ast
 }

@@ -47,7 +47,11 @@ function makeCosmosStore({ prefix }: StorageConfig) {
               id: containerId,
               uniqueKeyPolicy: config?.uniqueKeys
                 ? { uniqueKeys: config.uniqueKeys }
-                : undefined
+                : undefined,
+              partitionKey: {
+                paths: ["/_partitionKey"],
+                version: 2 // support large partitionkeys so that the hash is not based on just the first 100 bytes!
+              }
             }))
           )
 

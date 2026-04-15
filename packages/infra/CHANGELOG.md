@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.102
+
+### Patch Changes
+
+- 62627e9: Fix boolean handling in SQL SELECT and WHERE
+  - effect-app@4.0.0-beta.102
+
 ## 4.0.0-beta.101
 
 ### Patch Changes

@@ -26,7 +26,8 @@ export interface SQLDialect {
 
 export const sqliteDialect: SQLDialect = {
   jsonExtract: (path) => `json_extract(data, '$.${path}')`,
-  jsonExtractJson: (path) => `json_quote(json_extract(data, '$.${path}'))`,
+  jsonExtractJson: (path) =>
+    `CASE json_type(data, '$.${path}') WHEN 'true' THEN 'true' WHEN 'false' THEN 'false' ELSE json_quote(json_extract(data, '$.${path}')) END`,
   placeholder: (_index) => "?",
   jsonArrayContains: (arrPath, val) => `EXISTS(SELECT 1 FROM json_each(data, '$.${arrPath}') WHERE value = ${val})`,
   jsonArrayNotContains: (arrPath, val) =>

@@ -631,6 +631,92 @@ describe("SQL Store (SQLite integration)", () => {
     }))
 })
 
+// --- jsonExtractJson dialect tests (regression: booleans must survive round-trip) ---
+
+describe("sqliteDialect.jsonExtractJson boolean round-trip", () => {
+  const withDb = (fn: (db: Sqlite.Database) => void) => {
+    const db = new BetterSqlite(":memory:")
+    try {
+      fn(db)
+    } finally {
+      db.close()
+    }
+  }
+
+  it("SQL uses json_type CASE to preserve booleans", () => {
+    const sql = sqliteDialect.jsonExtractJson("flag")
+    expect(sql).toContain("json_type(data, '$.flag')")
+    expect(sql).toContain("'true'")
+    expect(sql).toContain("'false'")
+    expect(sql).toContain("json_quote(json_extract(data, '$.flag'))")
+  })
+
+  it("boolean false round-trips as false (not 0)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ flag: false }))
+
+      const row = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("flag")} AS v FROM "t"`).get() as any
+      const parsed = JSON.parse(row.v)
+      expect(parsed).toBe(false)
+      expect(typeof parsed).toBe("boolean")
+    }))
+
+  it("boolean true round-trips as true (not 1)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ flag: true }))
+
+      const row = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("flag")} AS v FROM "t"`).get() as any
+      const parsed = JSON.parse(row.v)
+      expect(parsed).toBe(true)
+      expect(typeof parsed).toBe("boolean")
+    }))
+
+  it("nested boolean round-trips correctly", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(
+        JSON.stringify({ nested: { flag: false } })
+      )
+
+      const row = db
+        .prepare(`SELECT ${sqliteDialect.jsonExtractJson("nested.flag")} AS v FROM "t"`)
+        .get() as any
+      const parsed = JSON.parse(row.v)
+      expect(parsed).toBe(false)
+      expect(typeof parsed).toBe("boolean")
+    }))
+
+  it("numbers 0 and 1 still parse as numbers (not booleans)", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(JSON.stringify({ zero: 0, one: 1 }))
+
+      const zRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("zero")} AS v FROM "t"`).get() as any
+      const oRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("one")} AS v FROM "t"`).get() as any
+      expect(JSON.parse(zRow.v)).toBe(0)
+      expect(typeof JSON.parse(zRow.v)).toBe("number")
+      expect(JSON.parse(oRow.v)).toBe(1)
+      expect(typeof JSON.parse(oRow.v)).toBe("number")
+    }))
+
+  it("strings, arrays, and null still round-trip correctly", () =>
+    withDb((db) => {
+      db.exec(`CREATE TABLE "t" (data JSON NOT NULL)`)
+      db.prepare(`INSERT INTO "t" (data) VALUES (?)`).run(
+        JSON.stringify({ s: "hello", arr: [1, 2, 3], nil: null })
+      )
+
+      const sRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("s")} AS v FROM "t"`).get() as any
+      const aRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("arr")} AS v FROM "t"`).get() as any
+      const nRow = db.prepare(`SELECT ${sqliteDialect.jsonExtractJson("nil")} AS v FROM "t"`).get() as any
+      expect(JSON.parse(sRow.v)).toBe("hello")
+      expect(JSON.parse(aRow.v)).toEqual([1, 2, 3])
+      expect(JSON.parse(nRow.v)).toBe(null)
+    }))
+})
+
 // --- toRow stripping and parseRow reconstruction tests ---
 
 describe("toRow strips _etag and id from data", () => {

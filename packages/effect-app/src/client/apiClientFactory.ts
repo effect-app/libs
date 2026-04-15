@@ -149,98 +149,97 @@ const makeRpcTag = <M extends RequestsAny>(resource: M) => {
 const makeApiClientFactory = Effect
   .gen(function*() {
     const ctx = yield* Effect.context<RpcSerialization.RpcSerialization | HttpClient.HttpClient>()
-    const makeClientFor = <M extends RequestsAny>(
+    const makeClientFor = Effect.fnUntraced(function*<M extends RequestsAny>(
       resource: M,
       requestLevelLayers = Layer.empty,
       options?: ClientForOptions
-    ) =>
-      Effect.gen(function*() {
-        const TheClient = makeRpcTag(resource)
+    ) {
+      const TheClient = makeRpcTag(resource)
 
-        const meta = getMeta(resource)
+      const meta = getMeta(resource)
 
-        // TODO: somehow we need a protocol per REQUEST kind of it seems ...
-        // otherwise it locks up on the client, navigation remains empty...
-        const clientLayer = TheClient.layer.pipe(
-          // add ApiClientFactory for nested schemas
-          // eslint-disable-next-line @typescript-eslint/no-use-before-define
-          Layer.provide(Layer.succeed(ApiClientFactory, makeClientForCached as any)),
-          Layer.provide(
-            RpcClient
-              .layerProtocolHttp({
-                url: "" // why not here set meta.moduleName as root?
-              })
-              .pipe(
-                Layer.provideMerge(Layer.succeedContext(ctx))
-              )
-          )
+      // TODO: somehow we need a protocol per REQUEST kind of it seems ...
+      // otherwise it locks up on the client, navigation remains empty...
+      const clientLayer = TheClient.layer.pipe(
+        // add ApiClientFactory for nested schemas
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        Layer.provide(Layer.succeed(ApiClientFactory, makeClientForCached as any)),
+        Layer.provide(
+          RpcClient
+            .layerProtocolHttp({
+              url: "" // why not here set meta.moduleName as root?
+            })
+            .pipe(
+              Layer.provideMerge(Layer.succeedContext(ctx))
+            )
         )
-        const mr = ManagedRuntime.make(clientLayer)
+      )
+      const mr = ManagedRuntime.make(clientLayer)
 
-        const filtered = getFiltered(resource)
-        return {
-          mr,
-          client: typedKeysOf(filtered)
-            .reduce((prev, cur) => {
-              const h = filtered[cur]!
+      const filtered = getFiltered(resource)
+      return {
+        mr,
+        client: typedKeysOf(filtered)
+          .reduce((prev, cur) => {
+            const h = filtered[cur]!
 
-              const Request = h
+            const Request = h
 
-              const id = `${meta.moduleName}.${cur as string}`
-                .replaceAll(".js", "")
+            const id = `${meta.moduleName}.${cur as string}`
+              .replaceAll(".js", "")
 
-              const requestMeta = {
-                Request,
-                id,
-                options
+            const requestMeta = {
+              Request,
+              id,
+              options
+            }
+
+            const requestNameLayer = Layer.succeed(RequestName, {
+              requestName: cur as string,
+              moduleName: meta.moduleName
+            })
+
+            const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
+
+            const fields = Struct.omit(Request.fields, ["_tag"] as const)
+            const requestAttr = `${meta.moduleName}.${h._tag}`
+            // @ts-expect-error doc
+            prev[cur] = Object.keys(fields).length === 0
+              ? {
+                handler: mr.contextEffect.pipe(
+                  Effect.flatMap((svcs) =>
+                    TheClient
+                      .use((client) => (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>)
+                      .pipe(
+                        Effect.provide(layers),
+                        Effect.provide(svcs)
+                      )
+                  )
+                ),
+                ...requestMeta
               }
-
-              const requestNameLayer = Layer.succeed(RequestName, {
-                requestName: cur as string,
-                moduleName: meta.moduleName
-              })
-
-              const layers = requestLevelLayers.pipe(Layer.provideMerge(requestNameLayer))
-
-              const fields = Struct.omit(Request.fields, ["_tag"] as const)
-              const requestAttr = `${meta.moduleName}.${h._tag}`
-              // @ts-expect-error doc
-              prev[cur] = Object.keys(fields).length === 0
-                ? {
-                  handler: mr.contextEffect.pipe(
+              : {
+                handler: (req: any) =>
+                  mr.contextEffect.pipe(
                     Effect.flatMap((svcs) =>
                       TheClient
-                        .use((client) => (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>)
+                        .use((client) =>
+                          (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
+                        )
                         .pipe(
                           Effect.provide(layers),
                           Effect.provide(svcs)
                         )
                     )
                   ),
-                  ...requestMeta
-                }
-                : {
-                  handler: (req: any) =>
-                    mr.contextEffect.pipe(
-                      Effect.flatMap((svcs) =>
-                        TheClient
-                          .use((client) =>
-                            (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
-                          )
-                          .pipe(
-                            Effect.provide(layers),
-                            Effect.provide(svcs)
-                          )
-                      )
-                    ),
 
-                  ...requestMeta
-                }
+                ...requestMeta
+              }
 
-              return prev
-            }, {} as Client<M, ExtractModuleName<M>>)
-        }
-      })
+            return prev
+          }, {} as Client<M, ExtractModuleName<M>>)
+      }
+    })
 
     const register: ManagedRuntime.ManagedRuntime<any, any>[] = []
     yield* Effect.addFinalizer(() => Effect.forEach(register, (mr) => mr.disposeEffect))
@@ -254,19 +253,16 @@ const makeApiClientFactory = Effect
         cacheL.set(requestLevelLayers, cache)
       }
 
-      return <M extends RequestsAny>(
-        models: M
-      ): Effect.Effect<Client<M, ExtractModuleName<M>>> =>
-        Effect.gen(function*() {
-          const found = cache.get(models)
-          if (found) {
-            return found
-          }
-          const m = yield* makeClientFor(models, requestLevelLayers, options)
-          cache.set(models, m.client)
-          register.push(m.mr)
-          return m.client
-        })
+      return Effect.fnUntraced(function*<M extends RequestsAny>(models: M) {
+        const found = cache.get(models)
+        if (found) {
+          return found
+        }
+        const m = yield* makeClientFor(models, requestLevelLayers, options)
+        cache.set(models, m.client)
+        register.push(m.mr)
+        return m.client
+      })
     }
 
     return makeClientForCached

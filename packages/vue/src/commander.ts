@@ -1818,11 +1818,10 @@ export const CommanderStatic = {
         | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
     }
   ) =>
-  (
-    self: Effect.Effect<A, E, R>,
-    ...args: Args
-  ) =>
-    Effect.gen(function*() {
+    Effect.fnUntraced(function*(
+      self: Effect.Effect<A, E, R>,
+      ...args: Args
+    ) {
       const cc = yield* CommandContext
       const { intl } = yield* I18n
       const withToast = yield* WithToast

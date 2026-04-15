@@ -91,15 +91,15 @@ function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
     }))
 }
 
-export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
-  modelName: string,
-  idKey: IdKey,
-  namespace: string,
-  seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-  _defaultValues?: Partial<Encoded>
-) {
-  type PM = PersistenceModelType<Encoded>
-  return Effect.gen(function*() {
+export const makeMemoryStoreInt = Effect.fnUntraced(
+  function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
+    modelName: string,
+    idKey: IdKey,
+    namespace: string,
+    seed?: Effect.Effect<Iterable<Encoded>, E, R>,
+    _defaultValues?: Partial<Encoded>
+  ) {
+    type PM = PersistenceModelType<Encoded>
     const updateETag = makeUpdateETag(modelName)
     const items_ = yield* seed ?? Effect.sync(() => [])
     const defaultValues = _defaultValues ?? {}
@@ -246,60 +246,59 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
       )
     }
     return s
-  })
-}
+  }
+)
 
 export const makeMemoryStore = () => ({
-  make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
+  make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
     modelName: string,
     idKey: IdKey,
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
-  ) =>
-    Effect.gen(function*() {
-      const storesSem = Semaphore.makeUnsafe(1)
-      const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
-        modelName,
-        idKey,
-        "primary",
-        seed,
-        config?.defaultValues
-      )
-      const ctx = yield* Effect.context<R>()
-      const stores = new Map([["primary", primary]])
-      const getStore = !config?.allowNamespace
-        ? Effect.succeed(primary)
-        : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
+  ) {
+    const storesSem = Semaphore.makeUnsafe(1)
+    const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
+      modelName,
+      idKey,
+      "primary",
+      seed,
+      config?.defaultValues
+    )
+    const ctx = yield* Effect.context<R>()
+    const stores = new Map([["primary", primary]])
+    const getStore = !config?.allowNamespace
+      ? Effect.succeed(primary)
+      : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
+        const store = stores.get(namespace)
+        if (store) {
+          return Effect.succeed(store)
+        }
+        if (!config.allowNamespace!(namespace)) {
+          throw new Error(`Namespace ${namespace} not allowed!`)
+        }
+        return storesSem.withPermits(1)(Effect.suspend(() => {
           const store = stores.get(namespace)
-          if (store) {
-            return Effect.succeed(store)
-          }
-          if (!config.allowNamespace!(namespace)) {
-            throw new Error(`Namespace ${namespace} not allowed!`)
-          }
-          return storesSem.withPermits(1)(Effect.suspend(() => {
-            const store = stores.get(namespace)
-            if (store) return Effect.sync(() => store)
-            return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
-              .pipe(
-                Effect.orDie,
-                Effect.provide(ctx),
-                Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-              )
-          }))
+          if (store) return Effect.sync(() => store)
+          return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
+            .pipe(
+              Effect.orDie,
+              Effect.provide(ctx),
+              Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
+            )
         }))
-      const s: Store<IdKey, Encoded> = {
-        all: Effect.flatMap(getStore, (_) => _.all),
-        queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args)),
-        find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
-        filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),
-        set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
-        batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
-        bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
-        batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args))
-      }
-      return s
-    })
+      }))
+    const s: Store<IdKey, Encoded> = {
+      all: Effect.flatMap(getStore, (_) => _.all),
+      queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args)),
+      find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
+      filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),
+      set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
+      batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
+      bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
+      batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args))
+    }
+    return s
+  })
 })
 
 export const MemoryStoreLive = StoreMaker.toLayer(Effect.sync(() => makeMemoryStore()))

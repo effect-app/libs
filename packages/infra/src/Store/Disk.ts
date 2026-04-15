@@ -8,17 +8,17 @@ import type { FieldValues } from "../Model/filter/types.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
 import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 
-function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
-  prefix: string,
-  idKey: IdKey,
-  namespace: string,
-  dir: string,
-  name: string,
-  seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-  defaultValues?: Partial<Encoded>
-) {
-  type PM = PersistenceModelType<Encoded>
-  return Effect.gen(function*() {
+const makeDiskStoreInt = Effect.fnUntraced(
+  function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
+    prefix: string,
+    idKey: IdKey,
+    namespace: string,
+    dir: string,
+    name: string,
+    seed?: Effect.Effect<Iterable<Encoded>, E, R>,
+    defaultValues?: Partial<Encoded>
+  ) {
+    type PM = PersistenceModelType<Encoded>
     if (namespace !== "primary") {
       dir = dir + "/" + namespace
       if (!fs.existsSync(dir)) {
@@ -119,8 +119,8 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
         Effect.tap(flushToDiskInBackground)
       )
     } satisfies Store<IdKey, Encoded>
-  })
-}
+  }
+)
 
 /**
  * The Disk-backed store, flushes writes in background, but keeps the data in memory
@@ -132,61 +132,60 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
       fs.mkdirSync(dir)
     }
     return {
-      make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
+      make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
         name: string,
         idKey: IdKey,
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
-      ) =>
-        Effect.gen(function*() {
-          const storesSem = Semaphore.makeUnsafe(1)
-          const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
-          const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
-          const ctx = yield* Effect.context<R>()
-          const getStore = !config?.allowNamespace
-            ? Effect.succeed(primary)
-            : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
-              const store = stores.get(namespace)
-              if (store) {
-                return Effect.succeed(store)
-              }
-              if (!config.allowNamespace!(namespace)) {
-                throw new Error(`Namespace ${namespace} not allowed!`)
-              }
-              return storesSem.withPermits(1)(
-                Effect.suspend(() => {
-                  const existing = stores.get(namespace)
-                  if (existing) return Effect.sync(() => existing)
-                  return makeDiskStoreInt<IdKey, Encoded, R, E>(
-                    prefix,
-                    idKey,
-                    namespace,
-                    dir,
-                    name,
-                    seed,
-                    config?.defaultValues
+      ) {
+        const storesSem = Semaphore.makeUnsafe(1)
+        const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
+        const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
+        const ctx = yield* Effect.context<R>()
+        const getStore = !config?.allowNamespace
+          ? Effect.succeed(primary)
+          : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
+            const store = stores.get(namespace)
+            if (store) {
+              return Effect.succeed(store)
+            }
+            if (!config.allowNamespace!(namespace)) {
+              throw new Error(`Namespace ${namespace} not allowed!`)
+            }
+            return storesSem.withPermits(1)(
+              Effect.suspend(() => {
+                const existing = stores.get(namespace)
+                if (existing) return Effect.sync(() => existing)
+                return makeDiskStoreInt<IdKey, Encoded, R, E>(
+                  prefix,
+                  idKey,
+                  namespace,
+                  dir,
+                  name,
+                  seed,
+                  config?.defaultValues
+                )
+                  .pipe(
+                    Effect.orDie,
+                    Effect.provide(ctx),
+                    Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
                   )
-                    .pipe(
-                      Effect.orDie,
-                      Effect.provide(ctx),
-                      Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-                    )
-                })
-              )
-            }))
+              })
+            )
+          }))
 
-          const s: Store<IdKey, Encoded> = {
-            all: Effect.flatMap(getStore, (_) => _.all),
-            find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
-            filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),
-            set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
-            batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
-            bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
-            batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args)),
-            queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args))
-          }
-          return s
-        })
+        const s: Store<IdKey, Encoded> = {
+          all: Effect.flatMap(getStore, (_) => _.all),
+          find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
+          filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),
+          set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
+          batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
+          bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
+          batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args)),
+          queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args))
+        }
+        return s
+      })
     }
   })
 }

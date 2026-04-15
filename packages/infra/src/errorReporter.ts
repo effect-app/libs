@@ -97,14 +97,12 @@ export function logError<E>(
       )
 }
 
-export function reportMessage(message: string, extras?: Record<string, unknown>) {
-  return Effect.gen(function*() {
-    const context = yield* getRC
-    const scope = new Sentry.Scope()
-    if (context) scope.setContext("context", { ...context })
-    if (extras) scope.setContext("extras", extras)
-    Sentry.captureMessage(message, scope)
+export const reportMessage = Effect.fnUntraced(function*(message: string, extras?: Record<string, unknown>) {
+  const context = yield* getRC
+  const scope = new Sentry.Scope()
+  if (context) scope.setContext("context", { ...context })
+  if (extras) scope.setContext("extras", extras)
+  Sentry.captureMessage(message, scope)
 
-    console.warn(message, extras)
-  })
-}
+  console.warn(message, extras)
+})

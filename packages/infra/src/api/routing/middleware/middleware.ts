@@ -157,15 +157,14 @@ export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never
  * )
  * ```
  */
-export const makeSqlTransactionMiddleware = (
+export const makeSqlTransactionMiddleware = Effect.fnUntraced(function*(
   rcm: { getConfig: (rpc: Rpc.AnyWithProps) => { readonly requiresTransaction?: boolean } }
-) =>
-  Effect.gen(function*() {
-    const sql = yield* SqlClient.SqlClient
-    const mw: RpcMiddleware.RpcMiddlewareV4<never, never, never> = (effect, { rpc }) => {
-      const { requiresTransaction } = rcm.getConfig(rpc)
-      if (requiresTransaction !== true) return effect
-      return sql.withTransaction(effect).pipe(Effect.orDie)
-    }
-    return mw
-  })
+) {
+  const sql = yield* SqlClient.SqlClient
+  const mw: RpcMiddleware.RpcMiddlewareV4<never, never, never> = (effect, { rpc }) => {
+    const { requiresTransaction } = rcm.getConfig(rpc)
+    if (requiresTransaction !== true) return effect
+    return sql.withTransaction(effect).pipe(Effect.orDie)
+  }
+  return mw
+})

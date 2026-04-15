@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- 5aed2e3: Add span to Cosmos `batchRemove` and include `namespace` attribute on all Cosmos store spans.
+  - effect-app@4.0.0-beta.98
+
 ## 4.0.0-beta.97
 
 ### Patch Changes

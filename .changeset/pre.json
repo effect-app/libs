@@ -26,6 +26,7 @@
     "commander-state-toast-types",
     "context-map-resolver-cache",
     "cosmos-filter-seed",
+    "cosmos-namespace-spans",
     "cosmos-namespace-support",
     "crisp-seals-care",
     "crisp-trees-smash",

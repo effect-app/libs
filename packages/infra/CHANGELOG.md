@@ -1,5 +1,17 @@
 # @effect-app/infra
 
+## 4.0.0-beta.105
+
+### Minor Changes
+
+- 3d732b1: Rewrite `withRequestResolverCache` to use official `RequestResolver.withCache`, creating a cached resolver per ContextMap via `getOrCreateStoreEffect` with semaphore-guarded initialization.
+
+### Patch Changes
+
+- 47e53f5: Fix `withRequestResolverCache` causing "RequestResolver did not complete request" errors by using the `preCheck` hook instead of handling cache in `runAll`. Cache hits for in-flight or completed requests are now handled before entries enter the batch, preventing uncompleted entries.
+- 5773159: Add `itemType` annotation to all repository spans
+  - effect-app@4.0.0-beta.105
+
 ## 4.0.0-beta.104
 
 ### Patch Changes

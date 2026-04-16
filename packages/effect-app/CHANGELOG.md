@@ -1,5 +1,7 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.105
+
 ## 4.0.0-beta.104
 
 ### Minor Changes

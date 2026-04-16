@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- 3e46e7b: allow excess props in openapi schemas
+
 ## 4.0.0-beta.107
 
 ## 4.0.0-beta.106

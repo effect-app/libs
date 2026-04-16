@@ -122,6 +122,7 @@
     "sql-store-adapter",
     "sql-transaction-middleware",
     "stale-emus-see",
+    "store-effect-cached",
     "strong-dots-sin",
     "struct-pick-omit",
     "sweet-humans-ring",

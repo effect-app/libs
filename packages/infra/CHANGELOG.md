@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- f22a026: Use `Effect.cached` in `getOrCreateStoreEffect` for proper memoization of the resolver effect.
+  - effect-app@4.0.0-beta.106
+
 ## 4.0.0-beta.105
 
 ### Minor Changes

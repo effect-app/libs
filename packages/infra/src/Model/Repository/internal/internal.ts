@@ -142,26 +142,15 @@ export function makeRepoInternal<
             )
           const findEId = Effect.fnUntraced(function*(id: Encoded[IdKey]) {
             yield* Effect.annotateCurrentSpan({ itemId: id })
-
-            return yield* Effect.flatMap(
-              store.find(id),
-              (item) =>
-                Effect.gen(function*() {
-                  const { set } = yield* cms
-                  return item.pipe(Option.map((_) => mapReverse(_, set)))
-                })
-            )
+            const item = yield* store.find(id)
+            const { set } = yield* cms
+            return item.pipe(Option.map((_) => mapReverse(_, set)))
           })
           // TODO: select the particular field, instead of as struct
           const findE = Effect.fnUntraced(function*(id: T[IdKey]) {
             yield* Effect.annotateCurrentSpan({ itemId: id })
-
-            return yield* pipe(
-              encodeId({ [idKey]: id } as any),
-              Effect.orDie,
-              Effect.map((_) => (_ as any)[idKey]),
-              Effect.flatMap(findEId)
-            )
+            const encoded = yield* encodeId({ [idKey]: id } as any).pipe(Effect.orDie)
+            return yield* findEId((encoded as any)[idKey])
           })
 
           const find = Effect.fn("find")(function*(id: T[IdKey]) {
@@ -170,26 +159,23 @@ export function makeRepoInternal<
             return yield* flatMapOption(findE(id), (_) => Effect.orDie(decode(_)))
           })
 
-          const saveAllE = (a: Iterable<Encoded>) =>
-            flatMapOption(
-              Effect
-                .sync(() => toNonEmptyArray([...a])),
-              (a) =>
-                Effect.gen(function*() {
-                  const { get, set } = yield* cms
-                  const items = a.map((_) => mapToPersistenceModel(_, get))
-                  const ret = yield* store.batchSet(items)
-                  ret.forEach((_) => set(_[idKey], _._etag))
-                })
-            )
-              .pipe(Effect.asVoid)
+          const saveAllNonEmpty = Effect.fnUntraced(function*(a: NonEmptyReadonlyArray<Encoded>) {
+            const { get, set } = yield* cms
+            const items = a.map((_) => mapToPersistenceModel(_, get))
+            const ret = yield* store.batchSet(items)
+            ret.forEach((_) => set(_[idKey], _._etag))
+          })
 
-          const saveAll = (a: Iterable<T>) =>
-            encodeMany(Array.fromIterable(a))
-              .pipe(
-                Effect.orDie,
-                Effect.andThen(saveAllE)
-              )
+          const saveAllE = (a: Iterable<Encoded>) =>
+            Effect.asVoid(flatMapOption(
+              Effect.sync(() => toNonEmptyArray([...a])),
+              saveAllNonEmpty
+            ))
+
+          const saveAll = Effect.fnUntraced(function*(a: Iterable<T>) {
+            const encoded = yield* encodeMany(Array.fromIterable(a)).pipe(Effect.orDie)
+            yield* saveAllE(encoded)
+          })
 
           const saveAndPublish = Effect.fn("saveAndPublish")(function*(items: Iterable<T>, events: Iterable<Evt> = []) {
             const it = Chunk.fromIterable(items)
@@ -242,22 +228,16 @@ export function makeRepoInternal<
             yield* PubSub.publish(changeFeed, [[], "remove"] as [T[], "save" | "remove"])
           })
 
-          const parseMany = (items: readonly PM[]) =>
-            Effect
-              .flatMap(cms, (cm) =>
-                decodeMany(items.map((_) => mapReverse(_, cm.set)))
-                  .pipe(Effect.orDie, Effect.withSpan("parseMany", {}, { captureStackTrace: false })))
-          const parseMany2 = <A, R>(
-            items: readonly PM[],
-            schema: S.Codec<A, Encoded, R>
-          ) =>
-            Effect
-              .flatMap(cms, (cm) =>
-                S
-                  .decodeEffect(S.Array(schema))(
-                    items.map((_) => mapReverse(_, cm.set))
-                  )
-                  .pipe(Effect.orDie, Effect.withSpan("parseMany2", {}, { captureStackTrace: false })))
+          const parseMany = Effect.fn("parseMany")(function*(items: readonly PM[]) {
+            const cm = yield* cms
+            return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+          })
+          const parseMany2 = Effect.fn("parseMany2")(
+            function*<A, R>(items: readonly PM[], schema: S.Codec<A, Encoded, R>) {
+              const cm = yield* cms
+              return yield* S.decodeEffect(S.Array(schema))(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+            }
+          )
           const filter = <U extends keyof Encoded = keyof Encoded>(args: FilterArgs<Encoded, U>) =>
             store
               .filter(

@@ -63,17 +63,13 @@ export const makeSQLQueue = Effect.fnUntraced(function*<
 
   const decodeDrain = S.decodeEffect(Drain)
 
-  const drain = Effect
-    .sync(() => subMinutes(new Date(), 15))
-    .pipe(
-      Effect
-        .andThen((limit) =>
-          sql<typeof Drain.Encoded>`SELECT *
+  const drain = Effect.gen(function*() {
+    const limit = subMinutes(new Date(), 15)
+    return yield* sql<typeof Drain.Encoded>`SELECT *
     FROM queue
     WHERE name = ${queueDrainName} AND finishedAt IS NULL AND (processingAt IS NULL OR processingAt < ${limit.getTime()})
     LIMIT 1`
-        )
-    )
+  })
 
   const q = {
     offer: Effect.fnUntraced(function*(body: Evt, meta: typeof QueueMeta.Type) {
@@ -105,83 +101,58 @@ export const makeSQLQueue = Effect.fnUntraced(function*<
     })
   }
   const queue = {
-    publish: (...messages: NonEmptyReadonlyArray<Evt>) =>
-      getRequestContext
-        .pipe(
-          Effect.flatMap((requestContext) =>
-            Effect
-              .forEach(
-                messages,
-                (m) => q.offer(m, requestContext),
-                {
-                  discard: true
-                }
-              )
-          ),
-          Effect.withSpan("queue.publish: " + queueName, {
-            kind: "producer",
-            attributes: { "message_tags": messages.map((_) => _._tag) }
-          }, { captureStackTrace: false })
-        ),
+    publish: Effect.fn("queue.publish: " + queueName, { kind: "producer" })(function*(
+      ...messages: NonEmptyReadonlyArray<Evt>
+    ) {
+      yield* Effect.annotateCurrentSpan({ "message_tags": messages.map((_) => _._tag) })
+      const requestContext = yield* getRequestContext
+      yield* Effect.forEach(messages, (m) => q.offer(m, requestContext), { discard: true })
+    }),
     drain: <DrainE, DrainR>(
       handleEvent: (ks: DrainEvt) => Effect.Effect<void, DrainE, DrainR>,
       sessionId?: string
     ) => {
       const silenceAndReportError = reportNonInterruptedFailure({ name: "MemQueue.drain." + queueDrainName })
-      const processMessage = (msg: Drain) =>
-        Effect
-          .succeed(msg)
-          .pipe(Effect
-            .flatMap(({ body, meta }) => {
-              let effect = InfraLogger
-                .logDebug(`[${queueDrainName}] Processing incoming message`)
-                .pipe(
-                  Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
-                  Effect.andThen(handleEvent(body)),
-                  silenceAndReportError,
-                  (_) =>
-                    setupRequestContextWithCustomSpan(
-                      _,
-                      meta,
-                      `queue.drain: ${queueDrainName}.${body._tag}`,
-                      {
-                        captureStackTrace: false,
-                        kind: "consumer",
-                        attributes: {
-                          "queue.name": queueDrainName,
-                          "queue.sessionId": sessionId,
-                          "queue.input": body
-                        }
-                      }
-                    )
-                )
-              if (meta.span) {
-                effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
-              }
-              return effect
-            }))
+      const processMessage = Effect.fnUntraced(function*({ body, meta }: Drain) {
+        let effect = InfraLogger
+          .logDebug(`[${queueDrainName}] Processing incoming message`)
+          .pipe(
+            Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
+            Effect.andThen(handleEvent(body)),
+            silenceAndReportError,
+            (_) =>
+              setupRequestContextWithCustomSpan(
+                _,
+                meta,
+                `queue.drain: ${queueDrainName}.${body._tag}`,
+                {
+                  captureStackTrace: false,
+                  kind: "consumer",
+                  attributes: {
+                    "queue.name": queueDrainName,
+                    "queue.sessionId": sessionId,
+                    "queue.input": body
+                  }
+                }
+              )
+          )
+        if (meta.span) {
+          effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
+        }
+        return yield* effect
+      })
 
-      return q
-        .take
-        .pipe(
-          Effect.flatMap((x) =>
-            processMessage(x).pipe(
-              Effect.uninterruptible,
-              Effect.forkChild,
-              Effect.flatMap(Fiber.join),
-              Effect.tap(q.finish(x))
-            )
-          ),
-          silenceAndReportError,
-          Effect.withSpan(`queue.drain: ${queueDrainName}`, {
-            attributes: {
-              "queue.type": "sql",
-              "queue.name": queueDrainName,
-              "queue.sessionId": sessionId
-            }
-          }),
-          Effect.forever
+      return Effect.fn(`queue.drain: ${queueDrainName}`, {
+        attributes: { "queue.type": "sql", "queue.name": queueDrainName, "queue.sessionId": sessionId }
+      })(function*() {
+        const x = yield* q.take
+        yield* processMessage(x).pipe(
+          Effect.uninterruptible,
+          Effect.forkChild,
+          Effect.flatMap(Fiber.join),
+          Effect.tap(q.finish(x))
         )
+      }, (effect) => effect.pipe(silenceAndReportError, Effect.forever))()
     }
   }
   return queue as QueueBase<Evt, DrainEvt>

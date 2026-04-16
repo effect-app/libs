@@ -126,6 +126,7 @@
     "tagged-request-for",
     "tagged-union-drop-fields-constraint",
     "tagged-union-generate-guards",
+    "tagged-union-generate-guards2",
     "tasty-fans-accept",
     "ten-crews-like",
     "tender-bars-ring",

@@ -1,5 +1,16 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.104
+
+### Minor Changes
+
+- e944bca: Add `generateGuards` and `generateGuardsFor` to `TaggedUnion` / `ExtendTaggedUnion` for property-scoped type guards.
+
+  - `generateGuards("key")` — generic per-guard, no need to specify the container type
+  - `generateGuardsFor<A>()("key")` — curried, fixes `A` for concrete guard signatures
+
+  Both return `{ is{Tag}, isAnyOf }` guards that narrow the container type by its tagged union property.
+
 ## 4.0.0-beta.103
 
 ### Minor Changes

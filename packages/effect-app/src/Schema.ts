@@ -178,7 +178,9 @@ const extendTaggedUnionWithTags = <Members extends TaggedUnionMembers>(
   extendM(schema.pipe(S.toTaggedUnion("_tag")), (tagged) => {
     const makeGuards = (property: string) => {
       const result: any = {}
-      for (const [tag, guard] of Object.entries(tagged.guards)) {
+      const guards: Record<string, (u: unknown) => boolean> = tagged.guards
+      for (const tag of Object.keys(guards)) {
+        const guard = guards[tag]!
         result[`is${tag}`] = (target: any) => guard(target[property])
       }
       result.isAnyOf = (memberTags: Array<string>) => {

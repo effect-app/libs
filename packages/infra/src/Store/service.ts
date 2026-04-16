@@ -178,11 +178,11 @@ export const makeContextMap = () => {
     },
     getOrCreateStoreEffect: <T, E, R>(key: symbol, make: Effect.Effect<T, E, R>): Effect.Effect<T, E, R> =>
       sem.withPermits(1)(Effect.gen(function*() {
-        const value = store.get(key) as Effect.Effect<T, E, R> | undefined
-        if (value !== undefined) return yield* value
-        const v = yield* make.pipe(Effect.cached)
+        const value = store.get(key) as T | undefined
+        if (value !== undefined) return value
+        const v = yield* make
         store.set(key, v)
-        return yield* v
+        return v
       }))
   }
 }

@@ -271,11 +271,10 @@ const middlewareMaker = <
     > extends never ? never
       : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
   >
-> => {
-  // we want to run them in reverse order because latter middlewares will provide context to former ones
-  middlewares = middlewares.toReversed() as any
-
-  return Effect.gen(function*() {
+> =>
+  Effect.gen(function*() {
+    // we want to run them in reverse order because latter middlewares will provide context to former ones
+    const reversed = middlewares.toReversed()
     const context = yield* Effect.context()
 
     // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
@@ -294,7 +293,7 @@ const middlewareMaker = <
       let handler = next
 
       // inspired from Effect/RpcMiddleware
-      for (const tag of middlewares) {
+      for (const tag of reversed) {
         // use the tag to get the middleware from context
         const middleware = Context.getUnsafe(context, tag)
 
@@ -306,7 +305,6 @@ const middlewareMaker = <
       return handler
     }
   }) as any
-}
 
 const makeMiddlewareBasic = <Self>() =>
 // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys

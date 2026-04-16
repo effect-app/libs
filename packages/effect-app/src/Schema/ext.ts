@@ -352,20 +352,22 @@ export const provide = <Self extends S.Top, R>(
     S.middlewareEncoding((effect) => prov(effect))
   ) as ProvidedCodec<Self, R>
 }
-export const contextFromServices = <
+export const contextFromServices = Effect.fnUntraced(function*<
+  Self extends S.Top,
+  Tags extends ReadonlyArray<Context.Key<any, any>>
+>(self: Self, ...services: Tags) {
+  const context: Context.Context<Context.Service.Identifier<Tags[number]>> = Context.pick(...services)(
+    yield* Effect.context<Context.Service.Identifier<Tags[number]>>()
+  )
+  return provide(self, context)
+}) as <
   Self extends S.Top,
   Tags extends ReadonlyArray<Context.Key<any, any>>
 >(
   self: Self,
   ...services: Tags
-): Effect.Effect<
+) => Effect.Effect<
   ProvidedCodec<Self, Context.Service.Identifier<Tags[number]>>,
   never,
   Context.Service.Identifier<Tags[number]>
-> =>
-  Effect.gen(function*() {
-    const context: Context.Context<Context.Service.Identifier<Tags[number]>> = Context.pick(...services)(
-      yield* Effect.context<Context.Service.Identifier<Tags[number]>>()
-    )
-    return provide(self, context)
-  })
+>

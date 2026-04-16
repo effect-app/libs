@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { UniqueKey } from "@azure/cosmos"
 import { Context, Effect, type NonEmptyReadonlyArray, type Option, type Redacted } from "effect-app"
+import * as Semaphore from "effect/Semaphore"
 import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
@@ -162,6 +163,7 @@ export const makeContextMap = () => {
   // }
 
   const store = new Map<symbol, unknown>()
+  const sem = Semaphore.makeUnsafe(1)
 
   return {
     get: getEtag,
@@ -173,7 +175,16 @@ export const makeContextMap = () => {
         store.set(key, value)
       }
       return value
-    }
+    },
+    getOrCreateStoreEffect: <T, E, R>(key: symbol, make: Effect.Effect<T, E, R>): Effect.Effect<T, E, R> =>
+      sem.withPermits(1)(Effect.suspend(() => {
+        const value = store.get(key) as T | undefined
+        if (value !== undefined) return Effect.succeed(value) as Effect.Effect<T, E, R>
+        return Effect.flatMap(make, (v) => {
+          store.set(key, v)
+          return Effect.succeed(v)
+        })
+      }))
   }
 }
 

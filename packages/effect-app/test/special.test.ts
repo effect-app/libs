@@ -231,8 +231,7 @@ describe("SpecialJsonSchema", () => {
         "type": "object",
         "properties": {
           "status": { "type": "string" }
-        },
-        "additionalProperties": false
+        }
       },
       definitions: {}
     })
@@ -276,8 +275,7 @@ describe("SpecialJsonSchema", () => {
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
-        "required": ["c", "d"],
-        "additionalProperties": false
+        "required": ["c", "d"]
       },
       definitions: {
         X: {
@@ -343,8 +341,7 @@ describe("SpecialJsonSchema", () => {
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
-        "required": ["c", "d"],
-        "additionalProperties": false
+        "required": ["c", "d"]
       },
       definitions: {
         X: {
@@ -688,8 +685,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
           ]
         }
       },
-      required: ["note"],
-      additionalProperties: false
+      required: ["note"]
     })
 
     // allOf flattened in the referenced definition

@@ -62,8 +62,30 @@ export function flattenSimpleAllOf(obj: unknown): unknown {
 }
 
 /**
- * Applies JSON Schema post-processing: flattens simple allOf.
+ * Recursively removes `additionalProperties: false` from JSON Schema objects.
+ * Only removes when the value is exactly `false` -- other values are left intact.
+ */
+export function removeAdditionalPropertiesFalse(obj: unknown): unknown {
+  if (obj === null || typeof obj !== "object") return obj
+
+  if (globalThis.Array.isArray(obj)) {
+    return obj.map(removeAdditionalPropertiesFalse)
+  }
+
+  const record = obj as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    if (key === "additionalProperties" && value === false) continue
+    result[key] = removeAdditionalPropertiesFalse(value)
+  }
+
+  return result
+}
+
+/**
+ * Applies JSON Schema post-processing: flattens simple allOf,
+ * then strips additionalProperties: false.
  */
 export function postProcessJsonSchema(obj: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  return flattenSimpleAllOf(obj) as JsonSchema.JsonSchema
+  return removeAdditionalPropertiesFalse(flattenSimpleAllOf(obj)) as JsonSchema.JsonSchema
 }

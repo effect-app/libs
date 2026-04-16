@@ -125,13 +125,52 @@ type TaggedUnionTags<Members extends TaggedUnionMembers> = S.Literals<
   }
 >
 
+type TaggedPropertyKeys<A, Members extends TaggedUnionMembers> = {
+  [K in keyof A & string]: A[K] extends Members[number]["Type"] ? K : never
+}[keyof A & string]
+
+type PropertyGuards<
+  Members extends TaggedUnionMembers,
+  K extends string,
+  A
+> =
+  & {
+    readonly [M in Members[number] as `is${M["Type"]["_tag"]}`]: (
+      target: A
+    ) => target is A & { readonly [P in K]: M["Type"] }
+  }
+  & {
+    readonly isAnyOf: <const Tags extends ReadonlyArray<Members[number]["Type"]["_tag"]>>(
+      tags: Tags
+    ) => (
+      target: A
+    ) => target is A & { readonly [P in K]: Extract<Members[number]["Type"], { readonly _tag: Tags[number] }> }
+  }
+
 type TaggedUnionWithTags<Members extends TaggedUnionMembers> = S.toTaggedUnion<"_tag", Members> & {
   readonly tags: TaggedUnionTags<Members>
+  readonly generateGuards: <A>() => <K extends TaggedPropertyKeys<A, Members>>(
+    property: K
+  ) => PropertyGuards<Members, K, A>
 }
 
 const extendTaggedUnionWithTags = <Members extends TaggedUnionMembers>(
   schema: S.Union<Members>
-): TaggedUnionWithTags<Members> => extendM(schema.pipe(S.toTaggedUnion("_tag")), () => ({ tags: tags(schema.members) }))
+): TaggedUnionWithTags<Members> =>
+  extendM(schema.pipe(S.toTaggedUnion("_tag")), (tagged) => ({
+    tags: tags(schema.members),
+    generateGuards: () => (property: string) => {
+      const result: any = {}
+      for (const [tag, guard] of Object.entries(tagged.guards) as Array<[string, (u: unknown) => boolean]>) {
+        result[`is${tag}`] = (target: any) => guard(target[property])
+      }
+      result.isAnyOf = (memberTags: Array<string>) => {
+        const check = tagged.isAnyOf(memberTags)
+        return (target: any) => check(target[property])
+      }
+      return result
+    }
+  }))
 
 export const ExtendTaggedUnion = <Members extends TaggedUnionMembers>(
   schema: S.Union<Members>

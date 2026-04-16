@@ -125,6 +125,7 @@
     "sync-effect-subtree",
     "tagged-request-for",
     "tagged-union-drop-fields-constraint",
+    "tagged-union-generate-guards",
     "tasty-fans-accept",
     "ten-crews-like",
     "tender-bars-ring",

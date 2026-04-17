@@ -125,6 +125,7 @@
     "sql-namespace-support",
     "sql-store-adapter",
     "sql-transaction-middleware",
+    "sqlite-per-namespace-layermap",
     "stale-emus-see",
     "store-effect-cached",
     "strong-dots-sin",

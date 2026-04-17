@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 4.0.0-beta.110
+
+### Minor Changes
+
+- c313c07: Add per-namespace in-memory SQLite adapter via LayerMap. When `makeSqlClientLayer` option is provided to `SQLiteStoreLayer`, each namespace gets its own SQLite database instance managed by a `LayerMap`. Introduces `WithNsTransaction` service for namespace-aware SQL transactions, used by `makeSqlTransactionMiddleware`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.110
+
 ## 4.0.0-beta.109
 
 ### Patch Changes

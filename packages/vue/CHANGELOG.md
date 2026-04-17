@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [ca94edf]
+  - effect-app@4.0.0-beta.111
+
 ## 4.0.0-beta.110
 
 ### Patch Changes

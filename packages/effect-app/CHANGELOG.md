@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- ca94edf: fix typo
+
 ## 4.0.0-beta.110
 
 ## 4.0.0-beta.109

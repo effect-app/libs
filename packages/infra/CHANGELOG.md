@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- ca94edf: fix typo
+- Updated dependencies [ca94edf]
+  - effect-app@4.0.0-beta.111
+
 ## 4.0.0-beta.110
 
 ### Minor Changes

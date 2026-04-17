@@ -16,6 +16,7 @@ import unusedImports from "eslint-plugin-unused-imports"
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import dprint from "@ben_12/eslint-plugin-dprint";
+import effectAppPlugin from "./plugin-effect-app.mjs";
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -88,7 +89,8 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
         import: _import,
         "sort-destructure-keys": sortDestructureKeys,
         "unused-imports": unusedImports,
-        codegen
+        codegen,
+        "@effect-app": effectAppPlugin
       },
       rules: {
         "no-unexpected-multiline": "off",
@@ -142,6 +144,7 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
         "object-shorthand": "error",
         ...(enableTS
           && {
+            "@effect-app/no-await-effect": "error",
             "@typescript-eslint/restrict-template-expressions": "warn",
             "@typescript-eslint/restrict-plus-operands": "off",
             "@typescript-eslint/no-unsafe-assignment": "warn",

@@ -1,5 +1,15 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.10
+
+### Minor Changes
+
+- af43f2f: Add `no-await-effect` lint rule that errors when awaiting Effect, Option, Result, or Fiber values from the effect library. Enabled when type-checked linting is active (`ESLINT_TS=1`).
+
+### Patch Changes
+
+- @effect-app/eslint-codegen-model@2.0.0-beta.6
+
 ## 0.5.7-beta.9
 
 ### Patch Changes

@@ -10,7 +10,7 @@ export interface Opaque<Self extends object, in out Shape extends object>
   extends CTX.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
 {
   of(this: void, self: Shape): Self
-  contextMap(self: Shape): CTX.Context<Self>
+  context(self: Shape): CTX.Context<Self>
   // a version that leverages the Shape -> Self conversion
   toLayer: <E, R>(
     eff: Effect.Effect<Shape, E, R>

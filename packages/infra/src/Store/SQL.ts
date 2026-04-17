@@ -675,7 +675,7 @@ export function SQLiteStoreLayer(
             Effect.flatMap((ns) => withNsSql(ns, (sql) => sql.withTransaction(effect).pipe(Effect.orDie)))
           ) as any
 
-        return StoreMaker.contextMap(storeMaker).pipe(
+        return StoreMaker.context(storeMaker).pipe(
           Context.add(WithNsTransaction, withTransaction)
         )
       })

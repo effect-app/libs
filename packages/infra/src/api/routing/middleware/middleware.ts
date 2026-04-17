@@ -4,9 +4,9 @@ import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, Logger
 import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
 import { type Rpc } from "effect/unstable/rpc"
-import { SqlClient } from "effect/unstable/sql"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
+import { WithNsTransaction } from "../../../Store/SQL.js"
 import { determineMethod, isCommand } from "../utils.js"
 
 const logRequestError = logError("Request")
@@ -146,7 +146,7 @@ export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never
 
 /**
  * Creates the middleware Effect for SQL transaction wrapping.
- * Requires `SqlClient` directly (not via serviceOption).
+ * Requires `WithNsTransaction` service.
  * Reads `requiresTransaction` from the RPC config; defaults to `false`.
  *
  * @example
@@ -161,11 +161,11 @@ export const makeSqlTransactionMiddleware = (
   rcm: { getConfig: (rpc: Rpc.AnyWithProps) => { readonly requiresTransaction?: boolean } }
 ) =>
   Effect.gen(function*() {
-    const sql = yield* SqlClient.SqlClient
+    const withTx = yield* WithNsTransaction
     const mw: RpcMiddleware.RpcMiddlewareV4<never, never, never> = (effect, { rpc }) => {
       const { requiresTransaction } = rcm.getConfig(rpc)
       if (requiresTransaction !== true) return effect
-      return sql.withTransaction(effect).pipe(Effect.orDie)
+      return withTx(effect)
     }
     return mw
   })

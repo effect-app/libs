@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.114
+
+### Patch Changes
+
+- 1ab3cf7: SQLite per-namespace adapter: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+  - effect-app@4.0.0-beta.114
+
 ## 4.0.0-beta.113
 
 ### Minor Changes

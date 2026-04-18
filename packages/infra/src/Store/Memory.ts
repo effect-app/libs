@@ -151,6 +151,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           withPermit
         )
     const s: Store<IdKey, Encoded> = {
+      seedNamespace: () => Effect.void,
+
       queryRaw: (query) =>
         all
           .pipe(
@@ -257,7 +259,6 @@ export const makeMemoryStore = () => ({
     config?: StoreConfig<Encoded>
   ) =>
     Effect.gen(function*() {
-      const storesSem = Semaphore.makeUnsafe(1)
       const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
         modelName,
         idKey,
@@ -267,28 +268,34 @@ export const makeMemoryStore = () => ({
       )
       const ctx = yield* Effect.context<R>()
       const stores = new Map([["primary", primary]])
-      const getStore = !config?.allowNamespace
-        ? Effect.succeed(primary)
-        : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
+      const semaphores = new Map<string, Semaphore.Semaphore>()
+      const getSem = (ns: string) => {
+        let sem = semaphores.get(ns)
+        if (!sem) {
+          sem = Semaphore.makeUnsafe(1)
+          semaphores.set(ns, sem)
+        }
+        return sem
+      }
+      const ensureStore = (namespace: string) =>
+        getSem(namespace).withPermits(1)(Effect.suspend(() => {
           const store = stores.get(namespace)
-          if (store) {
-            return Effect.succeed(store)
-          }
-          if (!config.allowNamespace!(namespace)) {
+          if (store) return Effect.succeed(store)
+          if (config?.allowNamespace && !config.allowNamespace(namespace)) {
             throw new Error(`Namespace ${namespace} not allowed!`)
           }
-          return storesSem.withPermits(1)(Effect.suspend(() => {
-            const store = stores.get(namespace)
-            if (store) return Effect.sync(() => store)
-            return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
-              .pipe(
-                Effect.orDie,
-                Effect.provide(ctx),
-                Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-              )
-          }))
+          return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
+            .pipe(
+              Effect.orDie,
+              Effect.provide(ctx),
+              Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
+            )
         }))
+      const getStore = !config?.allowNamespace
+        ? Effect.succeed(primary)
+        : storeId.asEffect().pipe(Effect.flatMap((namespace) => ensureStore(namespace)))
       const s: Store<IdKey, Encoded> = {
+        seedNamespace: (namespace) => ensureStore(namespace).pipe(Effect.asVoid),
         all: Effect.flatMap(getStore, (_) => _.all),
         queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args)),
         find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),

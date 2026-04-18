@@ -1,8 +1,11 @@
-import { Effect, S } from "effect-app"
+import { Effect, Layer, S } from "effect-app"
 import { describe, expect, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { makeRepo, ValidationError, ValidationResult } from "../src/Model/Repository.js"
+import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
+
+const TestStoreLive = Layer.merge(MemoryStoreLive, RepositoryRegistryLive)
 
 // simple schema for valid items
 class SimpleItem extends S.Class<SimpleItem>("SimpleItem")({
@@ -32,7 +35,7 @@ describe("validateSample", () => {
         expect(result.errors).toHaveLength(0)
       })
       .pipe(
-        Effect.provide(MemoryStoreLive),
+        Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
         Effect.runPromise
       ))
@@ -80,7 +83,7 @@ describe("validateSample", () => {
         expect(failingIds).toContain("3")
       })
       .pipe(
-        Effect.provide(MemoryStoreLive),
+        Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
         Effect.runPromise
       ))
@@ -98,7 +101,7 @@ describe("validateSample", () => {
         expect(result.errors).toHaveLength(0)
       })
       .pipe(
-        Effect.provide(MemoryStoreLive),
+        Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
         Effect.runPromise
       ))
@@ -127,7 +130,7 @@ describe("validateSample", () => {
         expect(result.errors).toHaveLength(0)
       })
       .pipe(
-        Effect.provide(MemoryStoreLive),
+        Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
         Effect.runPromise
       ))
@@ -161,7 +164,7 @@ describe("validateSample", () => {
         expect(result.errors).toHaveLength(0)
       })
       .pipe(
-        Effect.provide(MemoryStoreLive),
+        Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
         Effect.runPromise
       ))
@@ -208,7 +211,7 @@ describe("validateSample", () => {
         expect((error.error as any)._tag).toBe("SchemaError")
       })
       .pipe(
-        Effect.provide(MemoryStoreLive),
+        Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
         Effect.runPromise
       ))
@@ -230,7 +233,7 @@ describe("validateSample", () => {
         expect(result.errors).toHaveLength(0)
       })
       .pipe(
-        Effect.provide(MemoryStoreLive),
+        Effect.provide(TestStoreLive),
         setupRequestContextFromCurrent(),
         Effect.runPromise
       ))

@@ -139,43 +139,48 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         config?: StoreConfig<Encoded>
       ) =>
         Effect.gen(function*() {
-          const storesSem = Semaphore.makeUnsafe(1)
           const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
           const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
           const ctx = yield* Effect.context<R>()
+          const semaphores = new Map<string, Semaphore.Semaphore>()
+          const getSem = (ns: string) => {
+            let sem = semaphores.get(ns)
+            if (!sem) {
+              sem = Semaphore.makeUnsafe(1)
+              semaphores.set(ns, sem)
+            }
+            return sem
+          }
+          const ensureStore = (namespace: string) =>
+            getSem(namespace).withPermits(1)(
+              Effect.suspend(() => {
+                const existing = stores.get(namespace)
+                if (existing) return Effect.succeed(existing)
+                if (config?.allowNamespace && !config.allowNamespace(namespace)) {
+                  throw new Error(`Namespace ${namespace} not allowed!`)
+                }
+                return makeDiskStoreInt<IdKey, Encoded, R, E>(
+                  prefix,
+                  idKey,
+                  namespace,
+                  dir,
+                  name,
+                  seed,
+                  config?.defaultValues
+                )
+                  .pipe(
+                    Effect.orDie,
+                    Effect.provide(ctx),
+                    Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
+                  )
+              })
+            )
           const getStore = !config?.allowNamespace
             ? Effect.succeed(primary)
-            : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
-              const store = stores.get(namespace)
-              if (store) {
-                return Effect.succeed(store)
-              }
-              if (!config.allowNamespace!(namespace)) {
-                throw new Error(`Namespace ${namespace} not allowed!`)
-              }
-              return storesSem.withPermits(1)(
-                Effect.suspend(() => {
-                  const existing = stores.get(namespace)
-                  if (existing) return Effect.sync(() => existing)
-                  return makeDiskStoreInt<IdKey, Encoded, R, E>(
-                    prefix,
-                    idKey,
-                    namespace,
-                    dir,
-                    name,
-                    seed,
-                    config?.defaultValues
-                  )
-                    .pipe(
-                      Effect.orDie,
-                      Effect.provide(ctx),
-                      Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-                    )
-                })
-              )
-            }))
+            : storeId.asEffect().pipe(Effect.flatMap((namespace) => ensureStore(namespace)))
 
           const s: Store<IdKey, Encoded> = {
+            seedNamespace: (namespace) => ensureStore(namespace).pipe(Effect.asVoid),
             all: Effect.flatMap(getStore, (_) => _.all),
             find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
             filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),

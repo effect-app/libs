@@ -5,6 +5,7 @@ import { CosmosStoreLayer } from "./Cosmos.js"
 import { DiskStoreLayer } from "./Disk.js"
 import { MemoryStoreLive } from "./Memory.js"
 // import { RedisStoreLayer } from "./Redis.js"
+import { RepositoryRegistryLive } from "../Model.js"
 import type { StorageConfig } from "./service.js"
 import { SQLiteStoreLayer } from "./SQL.js"
 import { PgStoreLayer } from "./SQL/Pg.js"
@@ -41,7 +42,7 @@ export function StoreMakerLayer(
       console.log("Using Cosmos DB store")
       return CosmosStoreLayer(cfg)
     })
-    .pipe(Layer.unwrap)
+    .pipe(Layer.unwrap, Layer.merge(RepositoryRegistryLive))
 }
 
 export * from "./service.js"

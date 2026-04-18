@@ -417,6 +417,7 @@ export function makeRepoInternal<
             saveAndPublish,
             removeAndPublish,
             removeById,
+            seedNamespace: (namespace: string) => store.seedNamespace(namespace),
             validateSample,
             queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {
               const dec = S.decodeEffect(S.Array(schema))

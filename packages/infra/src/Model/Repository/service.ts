@@ -37,6 +37,12 @@ export interface Repository<
     raw: RawQuery<Encoded, Out>
   ) => Effect.Effect<readonly T[], S.SchemaError, R>
 
+  /**
+   * Explicitly seed a namespace. Primary is seeded eagerly on initialization.
+   * Non-primary namespaces must be seeded explicitly before use.
+   */
+  readonly seedNamespace: (namespace: string) => Effect.Effect<void>
+
   readonly query: {
     // ending with projection
     <

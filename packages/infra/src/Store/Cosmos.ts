@@ -127,10 +127,6 @@ function makeCosmosStore({ prefix }: StorageConfig) {
             }
             yield* cached
           })
-          const resolveAndSeed = resolveNamespace.pipe(
-            Effect.tap((ns) => seedNamespace(ns))
-          )
-
           const bulkSetInternal = (items: NonEmptyReadonlyArray<PM>, ns: string) =>
             Effect
               .gen(function*() {
@@ -239,10 +235,10 @@ function makeCosmosStore({ prefix }: StorageConfig) {
               )
 
           const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
-            resolveAndSeed.pipe(Effect.flatMap((ns) => bulkSetInternal(items, ns)))
+            resolveNamespace.pipe(Effect.flatMap((ns) => bulkSetInternal(items, ns)))
 
           const batchSet = (items: NonEmptyReadonlyArray<PM>) => {
-            return resolveAndSeed
+            return resolveNamespace
               .pipe(Effect.flatMap((ns) =>
                 Effect
                   .suspend(() => {
@@ -315,9 +311,11 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           }
 
           const s: Store<IdKey, Encoded> = {
+            seedNamespace: (ns) => seedNamespace(ns),
+
             queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
               Effect
-                .all({ q: Effect.sync(() => query.cosmos({ name })), ns: resolveAndSeed })
+                .all({ q: Effect.sync(() => query.cosmos({ name })), ns: resolveNamespace })
                 .pipe(
                   Effect.tap(({ q }) => logQuery(q)),
                   Effect.flatMap(({ ns, q }) =>
@@ -345,7 +343,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   )
                 ),
             batchRemove: (ids, partitionKey?: string) =>
-              resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              resolveNamespace.pipe(Effect.flatMap((ns) =>
                 Effect
                   .promise(() =>
                     execBatch(
@@ -376,7 +374,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                   query: `SELECT * FROM ${name}`,
                   parameters: []
                 })),
-                ns: resolveAndSeed
+                ns: resolveNamespace
               })
               .pipe(
                 Effect.tap(({ q }) => logQuery(q)),
@@ -430,7 +428,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                       limit
                     )
                   ),
-                  ns: resolveAndSeed
+                  ns: resolveNamespace
                 })
                 .pipe(
                   Effect.tap(({ q }) => logQuery(q)),
@@ -473,7 +471,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                 )
             },
             find: (id) =>
-              resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              resolveNamespace.pipe(Effect.flatMap((ns) =>
                 Effect
                   .promise(() =>
                     container
@@ -497,7 +495,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
                     }, { captureStackTrace: false }))
               )),
             set: (e) =>
-              resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              resolveNamespace.pipe(Effect.flatMap((ns) =>
                 Option
                   .match(
                     Option

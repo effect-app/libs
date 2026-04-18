@@ -75,11 +75,11 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                 return namespace
               }))
 
-            yield* sql
+            const ensureTable = sql
               .unsafe(
                 `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data ${jsonColumnType} NOT NULL, PRIMARY KEY (id, _namespace))`
               )
-              .pipe(Effect.orDie)
+              .pipe(Effect.orDie, Effect.asVoid)
 
             const toRow = (e: PM) => {
               const newE = makeETag(e)
@@ -144,48 +144,35 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
 
             const ctx = yield* Effect.context<R>()
             const seedCache = new Map<string, Effect.Effect<void>>()
-            const makeSeedEffect = (ns: string) =>
-              exec(
+            const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
+              yield* ensureTable
+              if (!seed) return
+              const existing = yield* exec(
                 `SELECT id FROM "${tableName}" WHERE id = ? AND _namespace = ?`,
                 [seedMarkerId, `__seed__::${ns}`]
               )
-                .pipe(
-                  Effect.flatMap((existing) => {
-                    if ((existing as any[]).length > 0) return Effect.void
-                    return InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`).pipe(
-                      Effect.andThen(seed!),
-                      Effect.flatMap((items) =>
-                        Effect.flatMapOption(
-                          Effect.succeed(toNonEmptyArray([...items])),
-                          (a) => bulkSetInternal(a, ns)
-                        )
-                      ),
-                      Effect.andThen(
-                        exec(
-                          `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
-                          [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
-                        )
-                      ),
-                      Effect.provide(ctx),
-                      Effect.orDie
-                    )
-                  })
-                )
-            const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
-              if (!seed) return
+              if ((existing as any[]).length > 0) return
+              yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
+              const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
+              const ne = toNonEmptyArray([...items])
+              if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
+              yield* exec(
+                `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
+                [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
+              )
+            })
+            const seedNamespace = (ns: string) => {
               let cached = seedCache.get(ns)
               if (!cached) {
-                cached = yield* Effect.cached(makeSeedEffect(ns))
+                cached = Effect.cached(makeSeedEffect(ns)).pipe(Effect.runSync)
                 seedCache.set(ns, cached)
               }
-              yield* cached
-            })
-            const resolveAndSeed = resolveNamespace.pipe(
-              Effect.tap((ns) => seedNamespace(ns))
-            )
-
+              return cached
+            }
             const s: Store<IdKey, Encoded> = {
-              all: resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              seedNamespace: (ns) => seedNamespace(ns),
+
+              all: resolveNamespace.pipe(Effect.flatMap((ns) =>
                 exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`, [ns])
                   .pipe(
                     Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
@@ -200,7 +187,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               )),
 
               find: (id) =>
-                resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                resolveNamespace.pipe(Effect.flatMap((ns) =>
                   exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = ? AND _namespace = ?`, [id, ns])
                     .pipe(
                       Effect.map((rows) => {
@@ -220,7 +207,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                   .filter
                 type M = U extends undefined ? Encoded
                   : Pick<Encoded, U>
-                return resolveAndSeed
+                return resolveNamespace
                   .pipe(Effect
                     .flatMap((ns) =>
                       Effect
@@ -298,7 +285,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               },
 
               set: (e) =>
-                resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                resolveNamespace.pipe(Effect.flatMap((ns) =>
                   setInternal(e, ns).pipe(
                     Effect.withSpan("SQL.set [effect-app/infra/Store]", {
                       attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
@@ -307,7 +294,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                 )),
 
               batchSet: (items) =>
-                resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                resolveNamespace.pipe(Effect.flatMap((ns) =>
                   bulkSetInternal(items, ns).pipe(
                     Effect.withSpan("SQL.batchSet [effect-app/infra/Store]", {
                       attributes: { "repository.table_name": tableName, "repository.model_name": name }
@@ -316,7 +303,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                 )),
 
               bulkSet: (items) =>
-                resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                resolveNamespace.pipe(Effect.flatMap((ns) =>
                   bulkSetInternal(items, ns).pipe(
                     Effect.withSpan("SQL.bulkSet [effect-app/infra/Store]", {
                       attributes: { "repository.table_name": tableName, "repository.model_name": name }
@@ -326,7 +313,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
 
               batchRemove: (ids) => {
                 const placeholders = ids.map(() => "?").join(", ")
-                return resolveAndSeed.pipe(Effect.flatMap((ns) =>
+                return resolveNamespace.pipe(Effect.flatMap((ns) =>
                   exec(
                     `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ?`,
                     [...ids, ns]
@@ -404,6 +391,7 @@ function makeSQLiteStorePerNs(
             ns,
             `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
           )
+            .pipe(Effect.asVoid)
 
         const seedMarkerId = `__seed_marker__`
 
@@ -461,51 +449,38 @@ function makeSQLiteStorePerNs(
 
         const ctx = yield* Effect.context<R>()
         const seedCache = new Map<string, Effect.Effect<void>>()
-        const makeSeedEffect = (ns: string) =>
-          exec(
+        const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
+          yield* ensureTable(ns)
+          if (!seed) return
+          const existing = yield* exec(
             ns,
             `SELECT id FROM "${tableName}" WHERE id = ?`,
             [seedMarkerId]
           )
-            .pipe(
-              Effect.flatMap((existing) => {
-                if ((existing as any[]).length > 0) return Effect.void
-                return InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`).pipe(
-                  Effect.andThen(seed!),
-                  Effect.flatMap((items) =>
-                    Effect.flatMapOption(
-                      Effect.succeed(toNonEmptyArray([...items])),
-                      (a) => bulkSetInternal(a, ns)
-                    )
-                  ),
-                  Effect.andThen(
-                    exec(
-                      ns,
-                      `INSERT INTO "${tableName}" (id, _etag, data) VALUES (?, ?, ?)`,
-                      [seedMarkerId, null, JSON.stringify({ _marker: true })]
-                    )
-                  ),
-                  Effect.provide(ctx),
-                  Effect.orDie
-                )
-              })
-            )
-        const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
-          yield* ensureTable(ns)
-          if (!seed) return
+          if ((existing as any[]).length > 0) return
+          yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
+          const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
+          const ne = toNonEmptyArray([...items])
+          if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
+          yield* exec(
+            ns,
+            `INSERT INTO "${tableName}" (id, _etag, data) VALUES (?, ?, ?)`,
+            [seedMarkerId, null, JSON.stringify({ _marker: true })]
+          )
+        })
+        const seedNamespace = (ns: string) => {
           let cached = seedCache.get(ns)
           if (!cached) {
-            cached = yield* Effect.cached(makeSeedEffect(ns))
+            cached = Effect.cached(makeSeedEffect(ns)).pipe(Effect.runSync)
             seedCache.set(ns, cached)
           }
-          yield* cached
-        })
-        const resolveAndSeed = resolveNamespace.pipe(
-          Effect.tap((ns) => seedNamespace(ns))
-        )
+          return cached
+        }
 
         const s: Store<IdKey, Encoded> = {
-          all: resolveAndSeed.pipe(Effect.flatMap((ns) =>
+          seedNamespace: (ns) => seedNamespace(ns),
+
+          all: resolveNamespace.pipe(Effect.flatMap((ns) =>
             exec(ns, `SELECT id, _etag, data FROM "${tableName}"`)
               .pipe(
                 Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
@@ -520,7 +495,7 @@ function makeSQLiteStorePerNs(
           )),
 
           find: (id) =>
-            resolveAndSeed.pipe(Effect.flatMap((ns) =>
+            resolveNamespace.pipe(Effect.flatMap((ns) =>
               exec(ns, `SELECT id, _etag, data FROM "${tableName}" WHERE id = ?`, [id])
                 .pipe(
                   Effect.map((rows) => {
@@ -540,7 +515,7 @@ function makeSQLiteStorePerNs(
               .filter
             type M = U extends undefined ? Encoded
               : Pick<Encoded, U>
-            return resolveAndSeed
+            return resolveNamespace
               .pipe(Effect
                 .flatMap((ns) =>
                   Effect
@@ -595,7 +570,7 @@ function makeSQLiteStorePerNs(
           },
 
           set: (e) =>
-            resolveAndSeed.pipe(Effect.flatMap((ns) =>
+            resolveNamespace.pipe(Effect.flatMap((ns) =>
               setInternal(e, ns).pipe(
                 Effect.withSpan("SQLite.set [effect-app/infra/Store]", {
                   attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
@@ -604,7 +579,7 @@ function makeSQLiteStorePerNs(
             )),
 
           batchSet: (items) =>
-            resolveAndSeed.pipe(Effect.flatMap((ns) =>
+            resolveNamespace.pipe(Effect.flatMap((ns) =>
               bulkSetInternal(items, ns).pipe(
                 Effect.withSpan("SQLite.batchSet [effect-app/infra/Store]", {
                   attributes: { "repository.table_name": tableName, "repository.model_name": name }
@@ -613,7 +588,7 @@ function makeSQLiteStorePerNs(
             )),
 
           bulkSet: (items) =>
-            resolveAndSeed.pipe(Effect.flatMap((ns) =>
+            resolveNamespace.pipe(Effect.flatMap((ns) =>
               bulkSetInternal(items, ns).pipe(
                 Effect.withSpan("SQLite.bulkSet [effect-app/infra/Store]", {
                   attributes: { "repository.table_name": tableName, "repository.model_name": name }
@@ -623,7 +598,7 @@ function makeSQLiteStorePerNs(
 
           batchRemove: (ids) => {
             const placeholders = ids.map(() => "?").join(", ")
-            return resolveAndSeed.pipe(Effect.flatMap((ns) =>
+            return resolveNamespace.pipe(Effect.flatMap((ns) =>
               exec(
                 ns,
                 `DELETE FROM "${tableName}" WHERE id IN (${placeholders})`,

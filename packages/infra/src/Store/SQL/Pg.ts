@@ -61,11 +61,11 @@ function makePgStore({ prefix }: StorageConfig) {
               return namespace
             }))
 
-          yield* sql
+          const ensureTable = sql
             .unsafe(
               `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data JSONB NOT NULL, PRIMARY KEY (id, _namespace))`
             )
-            .pipe(Effect.orDie)
+            .pipe(Effect.orDie, Effect.asVoid)
 
           const toRow = (e: PM) => {
             const newE = makeETag(e)
@@ -130,48 +130,35 @@ function makePgStore({ prefix }: StorageConfig) {
 
           const ctx = yield* Effect.context<R>()
           const seedCache = new Map<string, Effect.Effect<void>>()
-          const makeSeedEffect = (ns: string) =>
-            exec(
+          const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
+            yield* ensureTable
+            if (!seed) return
+            const existing = yield* exec(
               `SELECT id FROM "${tableName}" WHERE id = $1 AND _namespace = $2`,
               [seedMarkerId, `__seed__::${ns}`]
             )
-              .pipe(
-                Effect.flatMap((existing) => {
-                  if ((existing as any[]).length > 0) return Effect.void
-                  return InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`).pipe(
-                    Effect.andThen(seed!),
-                    Effect.flatMap((items) =>
-                      Effect.flatMapOption(
-                        Effect.succeed(toNonEmptyArray([...items])),
-                        (a) => bulkSetInternal(a, ns)
-                      )
-                    ),
-                    Effect.andThen(
-                      exec(
-                        `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES ($1, $2, $3, $4)`,
-                        [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
-                      )
-                    ),
-                    Effect.provide(ctx),
-                    Effect.orDie
-                  )
-                })
-              )
-          const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
-            if (!seed) return
+            if ((existing as any[]).length > 0) return
+            yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
+            const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
+            const ne = toNonEmptyArray([...items])
+            if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
+            yield* exec(
+              `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES ($1, $2, $3, $4)`,
+              [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
+            )
+          })
+          const seedNamespace = (ns: string) => {
             let cached = seedCache.get(ns)
             if (!cached) {
-              cached = yield* Effect.cached(makeSeedEffect(ns))
+              cached = Effect.cached(makeSeedEffect(ns)).pipe(Effect.runSync)
               seedCache.set(ns, cached)
             }
-            yield* cached
-          })
-          const resolveAndSeed = resolveNamespace.pipe(
-            Effect.tap((ns) => seedNamespace(ns))
-          )
-
+            return cached
+          }
           const s: Store<IdKey, Encoded> = {
-            all: resolveAndSeed.pipe(Effect.flatMap((ns) =>
+            seedNamespace: (ns) => seedNamespace(ns),
+
+            all: resolveNamespace.pipe(Effect.flatMap((ns) =>
               exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`, [ns])
                 .pipe(
                   Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
@@ -186,7 +173,7 @@ function makePgStore({ prefix }: StorageConfig) {
             )),
 
             find: (id) =>
-              resolveAndSeed.pipe(Effect
+              resolveNamespace.pipe(Effect
                 .flatMap((ns) =>
                   exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`, [id, ns])
                     .pipe(
@@ -206,7 +193,7 @@ function makePgStore({ prefix }: StorageConfig) {
               const filter = f
                 .filter
               type M = U extends undefined ? Encoded : Pick<Encoded, U>
-              return resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              return resolveNamespace.pipe(Effect.flatMap((ns) =>
                 Effect
                   .sync(() => {
                     const q = buildWhereSQLQuery(
@@ -261,7 +248,7 @@ function makePgStore({ prefix }: StorageConfig) {
             },
 
             set: (e) =>
-              resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              resolveNamespace.pipe(Effect.flatMap((ns) =>
                 setInternal(e, ns).pipe(
                   Effect.withSpan("PgSQL.set [effect-app/infra/Store]", {
                     attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
@@ -270,7 +257,7 @@ function makePgStore({ prefix }: StorageConfig) {
               )),
 
             batchSet: (items) =>
-              resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              resolveNamespace.pipe(Effect.flatMap((ns) =>
                 bulkSetInternal(items, ns).pipe(
                   Effect.withSpan("PgSQL.batchSet [effect-app/infra/Store]", {
                     attributes: { "repository.table_name": tableName, "repository.model_name": name }
@@ -279,7 +266,7 @@ function makePgStore({ prefix }: StorageConfig) {
               )),
 
             bulkSet: (items) =>
-              resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              resolveNamespace.pipe(Effect.flatMap((ns) =>
                 bulkSetInternal(items, ns).pipe(
                   Effect.withSpan("PgSQL.bulkSet [effect-app/infra/Store]", {
                     attributes: { "repository.table_name": tableName, "repository.model_name": name }
@@ -290,7 +277,7 @@ function makePgStore({ prefix }: StorageConfig) {
             batchRemove: (ids) => {
               const placeholders = ids.map((_, i) => `$${i + 1}`).join(", ")
               const nsPlaceholder = `$${ids.length + 1}`
-              return resolveAndSeed.pipe(Effect.flatMap((ns) =>
+              return resolveNamespace.pipe(Effect.flatMap((ns) =>
                 exec(
                   `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`,
                   [...ids, ns]

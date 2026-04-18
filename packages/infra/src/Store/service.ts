@@ -88,6 +88,11 @@ export interface Store<
   ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
   batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void>
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
+  /**
+   * Explicitly seed a namespace. Primary is seeded eagerly on initialization.
+   * Non-primary namespaces must be seeded explicitly before use.
+   */
+  seedNamespace: (namespace: string) => Effect.Effect<void>
 }
 
 export class StoreMaker extends Context.Opaque<StoreMaker, {

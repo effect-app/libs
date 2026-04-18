@@ -1,9 +1,10 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Array, Config, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S, Context } from "effect-app"
+import { Array, Config, Context, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S } from "effect-app"
 import { LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, or, project, where, whereEvery, whereSome } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
+import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
@@ -76,7 +77,7 @@ class SomethingRepo extends Context.Service<SomethingRepo>()(
   static readonly Test = this
     .layer
     .pipe(
-      Layer.provide(MemoryStoreLive)
+      Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive))
     )
 
   static readonly TestCosmos = this
@@ -98,6 +99,7 @@ class SomethingRepo extends Context.Service<SomethingRepo>()(
               prefix: "",
               url
             })
+              .pipe(Layer.merge(RepositoryRegistryLive))
           })
           .pipe(Layer.unwrap)
       )

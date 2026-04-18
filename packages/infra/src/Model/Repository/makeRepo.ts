@@ -12,6 +12,7 @@ import type { StoreConfig, StoreMaker } from "../../Store.js"
 import type { FieldValues } from "../filter/types.js"
 import { type ExtendedRepository, extendRepo } from "./ext.js"
 import { makeRepoInternal } from "./internal/internal.js"
+import { RepositoryRegistry } from "./Registry.js"
 import type { Repository } from "./service.js"
 
 export interface RepositoryOptions<
@@ -85,7 +86,7 @@ export const makeRepo: {
   ): Effect.Effect<
     ExtendedRepository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>,
     E,
-    RInitial | StoreMaker
+    RInitial | StoreMaker | RepositoryRegistry
   >
   <
     ItemType extends string,
@@ -104,7 +105,7 @@ export const makeRepo: {
   ): Effect.Effect<
     ExtendedRepository<T, Encoded, Evt, ItemType, "id", Exclude<RSchema, RCtx>, RPublish>,
     E,
-    RInitial | StoreMaker
+    RInitial | StoreMaker | RepositoryRegistry
   >
 } = <
   ItemType extends string,
@@ -135,5 +136,7 @@ export const makeRepo: {
     let r = yield* mkRepo.make<RInitial, E, RPublish, RCtx>(options as any)
     if (options.overrides) r = options.overrides(r)
     const repo = extendRepo(r)
+    const registry = yield* RepositoryRegistry
+    registry.register(itemType, repo)
     return repo
   })

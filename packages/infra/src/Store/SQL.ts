@@ -387,13 +387,21 @@ function makeSQLiteStorePerNs(
           withNsSql(ns, (sql) => sql.unsafe(query, params as any).pipe(Effect.orDie))
 
         const ensureTable = (ns: string) =>
-          exec(
-            ns,
-            `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
+          withNsSql(ns, (sql) =>
+            sql
+              .unsafe(
+                `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL PRIMARY KEY, _etag TEXT, data JSON NOT NULL)`
+              )
+              .pipe(
+                Effect.andThen(
+                  sql.unsafe(
+                    `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
+                  )
+                ),
+                Effect.orDie,
+                Effect.asVoid
+              )
           )
-            .pipe(Effect.asVoid)
-
-        const seedMarkerId = `__seed_marker__`
 
         const setInternal = (e: PM, ns: string) =>
           Effect.gen(function*() {
@@ -454,8 +462,8 @@ function makeSQLiteStorePerNs(
           if (!seed) return
           const existing = yield* exec(
             ns,
-            `SELECT id FROM "${tableName}" WHERE id = ?`,
-            [seedMarkerId]
+            `SELECT id FROM "_migrations" WHERE id = ? AND version = ?`,
+            [tableName, tableName]
           )
           if ((existing as any[]).length > 0) return
           yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
@@ -464,8 +472,8 @@ function makeSQLiteStorePerNs(
           if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
           yield* exec(
             ns,
-            `INSERT INTO "${tableName}" (id, _etag, data) VALUES (?, ?, ?)`,
-            [seedMarkerId, null, JSON.stringify({ _marker: true })]
+            `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`,
+            [tableName, tableName]
           )
         })
         const seedNamespace = (ns: string) => {

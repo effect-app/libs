@@ -400,8 +400,7 @@ function makeSQLiteStorePerNs(
                 ),
                 Effect.orDie,
                 Effect.asVoid
-              )
-          )
+              ))
 
         const setInternal = (e: PM, ns: string) =>
           Effect.gen(function*() {

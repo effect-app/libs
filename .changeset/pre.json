@@ -51,6 +51,7 @@
     "fix-sql-in-null-handling",
     "fix-sql-includes-serialize",
     "fix-sql-namespace-params",
+    "fix-sql-pg-seed-migrations-table",
     "fix-sql-select-etag-column",
     "fix-sql-select-types-and-defaults",
     "fix-sql-whereevery-flip",

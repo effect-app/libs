@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.115
+
+### Patch Changes
+
+- fe2caba: SQL and Pg stores: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+  - effect-app@4.0.0-beta.115
+
 ## 4.0.0-beta.114
 
 ### Patch Changes

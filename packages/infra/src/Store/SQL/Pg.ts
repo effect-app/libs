@@ -141,7 +141,7 @@ function makePgStore({ prefix }: StorageConfig) {
             if (!seed) return
             const existing = yield* exec(
               `SELECT id FROM "_migrations" WHERE id = $1 AND version = $2`,
-              [tableName, tableName]
+              [`${tableName}::${ns}`, tableName]
             )
             if ((existing as any[]).length > 0) return
             yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
@@ -150,7 +150,7 @@ function makePgStore({ prefix }: StorageConfig) {
             if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
             yield* exec(
               `INSERT INTO "_migrations" (id, version) VALUES ($1, $2)`,
-              [tableName, tableName]
+              [`${tableName}::${ns}`, tableName]
             )
           })
           const seedNamespace = (ns: string) => {

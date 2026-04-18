@@ -155,7 +155,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               if (!seed) return
               const existing = yield* exec(
                 `SELECT id FROM "_migrations" WHERE id = ? AND version = ?`,
-                [tableName, tableName]
+                [`${tableName}::${ns}`, tableName]
               )
               if ((existing as any[]).length > 0) return
               yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
@@ -164,7 +164,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
               yield* exec(
                 `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`,
-                [tableName, tableName]
+                [`${tableName}::${ns}`, tableName]
               )
             })
             const seedNamespace = (ns: string) => {

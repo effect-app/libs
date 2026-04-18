@@ -105,6 +105,7 @@
     "remove-withDefaultConstructor",
     "replace-proxify-with-accessors",
     "repo-spans-itemtype",
+    "repository-registry",
     "resolver-cache-use-official",
     "router-no-meta",
     "salty-weeks-walk",

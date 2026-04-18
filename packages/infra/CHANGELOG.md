@@ -1,5 +1,19 @@
 # @effect-app/infra
 
+## 4.0.0-beta.113
+
+### Minor Changes
+
+- ddc5492: Add RepositoryRegistry service that tracks all repositories by modelName, with `seedNamespace` to seed all registered repos in parallel and `entries` to inspect the registry.
+
+  Make non-primary namespace seeding explicit: Store and Repository now expose `seedNamespace` instead of auto-seeding on access. Primary namespace is still seeded eagerly on initialization.
+
+  SQL stores: table creation (`CREATE TABLE IF NOT EXISTS`) is now part of `seedNamespace` instead of running eagerly at store construction, ensuring tables for non-primary namespaces are only created when explicitly seeded.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.113
+
 ## 4.0.0-beta.112
 
 ### Patch Changes

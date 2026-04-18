@@ -79,7 +79,15 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               .unsafe(
                 `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data ${jsonColumnType} NOT NULL, PRIMARY KEY (id, _namespace))`
               )
-              .pipe(Effect.orDie, Effect.asVoid)
+              .pipe(
+                Effect.andThen(
+                  sql.unsafe(
+                    `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
+                  )
+                ),
+                Effect.orDie,
+                Effect.asVoid
+              )
 
             const toRow = (e: PM) => {
               const newE = makeETag(e)
@@ -91,8 +99,6 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
 
             const exec = (query: string, params?: readonly unknown[]) =>
               sql.unsafe(query, params as any).pipe(Effect.orDie)
-
-            const seedMarkerId = `__seed_marker__`
 
             const setInternal = (e: PM, ns: string) =>
               Effect.gen(function*() {
@@ -148,8 +154,8 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               yield* ensureTable
               if (!seed) return
               const existing = yield* exec(
-                `SELECT id FROM "${tableName}" WHERE id = ? AND _namespace = ?`,
-                [seedMarkerId, `__seed__::${ns}`]
+                `SELECT id FROM "_migrations" WHERE id = ? AND version = ?`,
+                [tableName, tableName]
               )
               if ((existing as any[]).length > 0) return
               yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
@@ -157,8 +163,8 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
               const ne = toNonEmptyArray([...items])
               if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
               yield* exec(
-                `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES (?, ?, ?, ?)`,
-                [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
+                `INSERT INTO "_migrations" (id, version) VALUES (?, ?)`,
+                [tableName, tableName]
               )
             })
             const seedNamespace = (ns: string) => {

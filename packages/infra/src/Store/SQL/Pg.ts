@@ -65,7 +65,15 @@ function makePgStore({ prefix }: StorageConfig) {
             .unsafe(
               `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data JSONB NOT NULL, PRIMARY KEY (id, _namespace))`
             )
-            .pipe(Effect.orDie, Effect.asVoid)
+            .pipe(
+              Effect.andThen(
+                sql.unsafe(
+                  `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
+                )
+              ),
+              Effect.orDie,
+              Effect.asVoid
+            )
 
           const toRow = (e: PM) => {
             const newE = makeETag(e)
@@ -77,8 +85,6 @@ function makePgStore({ prefix }: StorageConfig) {
 
           const exec = (query: string, params?: readonly unknown[]) =>
             sql.unsafe(query, params as any).pipe(Effect.orDie)
-
-          const seedMarkerId = `__seed_marker__`
 
           const setInternal = (e: PM, ns: string) =>
             Effect.gen(function*() {
@@ -134,8 +140,8 @@ function makePgStore({ prefix }: StorageConfig) {
             yield* ensureTable
             if (!seed) return
             const existing = yield* exec(
-              `SELECT id FROM "${tableName}" WHERE id = $1 AND _namespace = $2`,
-              [seedMarkerId, `__seed__::${ns}`]
+              `SELECT id FROM "_migrations" WHERE id = $1 AND version = $2`,
+              [tableName, tableName]
             )
             if ((existing as any[]).length > 0) return
             yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
@@ -143,8 +149,8 @@ function makePgStore({ prefix }: StorageConfig) {
             const ne = toNonEmptyArray([...items])
             if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
             yield* exec(
-              `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES ($1, $2, $3, $4)`,
-              [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
+              `INSERT INTO "_migrations" (id, version) VALUES ($1, $2)`,
+              [tableName, tableName]
             )
           })
           const seedNamespace = (ns: string) => {

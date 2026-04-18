@@ -54,6 +54,7 @@
     "fix-sql-select-etag-column",
     "fix-sql-select-types-and-defaults",
     "fix-sql-whereevery-flip",
+    "fix-sqlite-per-ns-seed-migrations-table",
     "fix-transformed-struct-defaults",
     "fix-vue-form-numeric-type-detection",
     "frank-ends-switch",

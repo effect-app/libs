@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.116
+
+### Patch Changes
+
+- 7d5cefc: SQL and Pg stores now scope seed migration records by namespace and table name in shared databases to avoid cross-namespace seed collisions.
+  - effect-app@4.0.0-beta.116
+
 ## 4.0.0-beta.115
 
 ### Patch Changes

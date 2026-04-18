@@ -96,6 +96,10 @@
       "types": "./dist/Model/Repository.d.ts",
       "default": "./dist/Model/Repository.js"
     },
+    "./Model/Repository/Registry": {
+      "types": "./dist/Model/Repository/Registry.d.ts",
+      "default": "./dist/Model/Repository/Registry.js"
+    },
     "./Model/Repository/ext": {
       "types": "./dist/Model/Repository/ext.d.ts",
       "default": "./dist/Model/Repository/ext.js"

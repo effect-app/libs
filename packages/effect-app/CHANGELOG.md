@@ -1,5 +1,16 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.118
+
+### Minor Changes
+
+- 08d2e70: Add `concurrency: "unbounded"` parseOptions annotation to Schema constructors (Struct, Array, NonEmptyArray, Record, TaggedStruct, ReadonlySet, ReadonlyMap, Class, TaggedClass) so all encode/decode operations automatically run with unbounded concurrency. Also override `mapFields` on Struct and Class/TaggedClass to preserve the annotation.
+
+### Patch Changes
+
+- bd26832: Add nested anyOf flattening to JSON Schema post-processing
+- Update effect packages to 4.0.0-beta.52
+
 ## 4.0.0-beta.117
 
 ## 4.0.0-beta.116

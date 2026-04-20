@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- Update effect packages to 4.0.0-beta.52
+
 ## 2.1.0-beta.13
 
 ### Minor Changes

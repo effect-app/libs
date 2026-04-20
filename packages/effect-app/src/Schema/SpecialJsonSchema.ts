@@ -83,9 +83,55 @@ export function removeAdditionalPropertiesFalse(obj: unknown): unknown {
 }
 
 /**
+ * Flattens nested `anyOf` entries: if an anyOf entry is itself just `{ anyOf: [...] }`
+ * with no other keys, its children are inlined. If only one item remains, the anyOf
+ * wrapper is removed entirely.
+ */
+export function flattenNestedAnyOf(obj: unknown): unknown {
+  if (obj === null || typeof obj !== "object") return obj
+  if (globalThis.Array.isArray(obj)) return obj.map(flattenNestedAnyOf)
+
+  const record = obj as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    result[key] = flattenNestedAnyOf(value)
+  }
+
+  if (globalThis.Array.isArray(result["anyOf"])) {
+    const anyOf = result["anyOf"] as Array<unknown>
+    const flattened: Array<unknown> = []
+    for (const entry of anyOf) {
+      if (
+        typeof entry === "object"
+        && entry !== null
+        && !globalThis.Array.isArray(entry)
+        && "anyOf" in entry
+        && Object.keys(entry).length === 1
+        && globalThis.Array.isArray((entry as Record<string, unknown>)["anyOf"])
+      ) {
+        flattened.push(...(entry as Record<string, unknown>)["anyOf"] as Array<unknown>)
+      } else {
+        flattened.push(entry)
+      }
+    }
+    if (flattened.length === 1) {
+      const { anyOf: _, ...rest } = result
+      const single = flattened[0]
+      if (typeof single === "object" && single !== null && !globalThis.Array.isArray(single)) {
+        return { ...rest, ...single }
+      }
+      return single
+    }
+    result["anyOf"] = flattened
+  }
+
+  return result
+}
+
+/**
  * Applies JSON Schema post-processing: flattens simple allOf,
- * then strips additionalProperties: false.
+ * flattens nested anyOf, then strips additionalProperties: false.
  */
 export function postProcessJsonSchema(obj: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  return removeAdditionalPropertiesFalse(flattenSimpleAllOf(obj)) as JsonSchema.JsonSchema
+  return removeAdditionalPropertiesFalse(flattenNestedAnyOf(flattenSimpleAllOf(obj))) as JsonSchema.JsonSchema
 }

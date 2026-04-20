@@ -2,7 +2,7 @@ import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import * as AppSchema from "effect-app/Schema"
 import { Class, TaggedClass } from "effect-app/Schema/Class"
-import { flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import { flattenNestedAnyOf, flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as S from "effect/Schema"
 import { describe, expect, it } from "vitest"
@@ -706,7 +706,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     })
   })
 
-  it("NullOr union preserves null and non-null members in anyOf", () => {
+  it("NullOr union flattens nested anyOf members", () => {
     const A = S.String.annotate({ identifier: "A", title: "A" })
     const B = S.Boolean.annotate({ identifier: "B", title: "B" })
     const schema = S.Struct({
@@ -717,9 +717,95 @@ describe("Post-processing integration — real Effect Schema types", () => {
 
     expect(valueProp).toStrictEqual({
       anyOf: [
-        { anyOf: [{ $ref: "#/$defs/A" }, { $ref: "#/$defs/B" }] },
+        { $ref: "#/$defs/A" },
+        { $ref: "#/$defs/B" },
         { type: "null" }
       ]
     })
+  })
+})
+
+describe("flattenNestedAnyOf", () => {
+  it("flattens nested anyOf with no sibling keys", () => {
+    const input = {
+      anyOf: [
+        { anyOf: [{ type: "string" }, { type: "number" }] },
+        { type: "null" }
+      ]
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      anyOf: [
+        { type: "string" },
+        { type: "number" },
+        { type: "null" }
+      ]
+    })
+  })
+
+  it("does not flatten anyOf entry with sibling keys", () => {
+    const input = {
+      anyOf: [
+        { anyOf: [{ type: "string" }], title: "X" },
+        { type: "null" }
+      ]
+    }
+    // The inner anyOf is not flattened into the outer (sibling "title" prevents it),
+    // but the single-element inner anyOf is unwrapped within the entry itself
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      anyOf: [
+        { type: "string", title: "X" },
+        { type: "null" }
+      ]
+    })
+  })
+
+  it("unwraps anyOf with single item after flattening", () => {
+    const input = {
+      anyOf: [
+        { anyOf: [{ type: "string" }] }
+      ]
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({ type: "string" })
+  })
+
+  it("unwraps anyOf with single item, merging sibling properties", () => {
+    const input = {
+      title: "MyField",
+      anyOf: [{ type: "string" }]
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      title: "MyField",
+      type: "string"
+    })
+  })
+
+  it("recurses into nested objects", () => {
+    const input = {
+      properties: {
+        field: {
+          anyOf: [
+            { anyOf: [{ $ref: "#/defs/A" }, { $ref: "#/defs/B" }] },
+            { type: "null" }
+          ]
+        }
+      }
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      properties: {
+        field: {
+          anyOf: [
+            { $ref: "#/defs/A" },
+            { $ref: "#/defs/B" },
+            { type: "null" }
+          ]
+        }
+      }
+    })
+  })
+
+  it("passes through non-objects unchanged", () => {
+    expect(flattenNestedAnyOf(null)).toBe(null)
+    expect(flattenNestedAnyOf(42)).toBe(42)
+    expect(flattenNestedAnyOf("hello")).toBe("hello")
   })
 })

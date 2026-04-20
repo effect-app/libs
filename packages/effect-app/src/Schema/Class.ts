@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
 import * as S from "effect/Schema"
+import { concurrencyUnbounded } from "./ext.js"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
 
@@ -30,6 +31,11 @@ function makeRelaxedDeclaration(
 ): SchemaAST.Declaration {
   const structSchema = Schema.Struct(fields)
   const isStructValue = Schema.is(structSchema)
+  const existingParseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
+  const annotations = {
+    ...ast.annotations,
+    parseOptions: { ...existingParseOptions, concurrency: "unbounded" as const }
+  }
   return new SchemaAST.Declaration(
     ast.typeParameters,
     () => (input: unknown, self: SchemaAST.Declaration) => {
@@ -38,7 +44,7 @@ function makeRelaxedDeclaration(
       }
       return Effect.fail(new SchemaIssue.InvalidType(self, Option.some(input)))
     },
-    ast.annotations,
+    annotations,
     ast.checks,
     ast.encoding,
     ast.context
@@ -96,6 +102,9 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
         astCache.set(this, cached)
         return cached
       }
+      static mapFields(f: any, options?: any) {
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
+      }
     } as any
   }
 
@@ -143,6 +152,9 @@ export const TaggedClass: <Self = never>(
         cached = makeRelaxedDeclaration(originalAst, Base.fields, this)
         astCache.set(this, cached)
         return cached
+      }
+      static mapFields(f: any, options?: any) {
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
       }
     } as any
   }

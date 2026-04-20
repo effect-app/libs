@@ -109,9 +109,12 @@ export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.Litera
 /**
  * Like the default Schema `Array` but with `withDefault` => []
  */
+const co = { parseOptions: { concurrency: "unbounded" as const } }
+export { co as concurrencyUnbounded }
+
 export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
   return pipe(
-    S.Array(value),
+    S.Array(value).annotate(co),
     (s) =>
       Object.assign(s, {
         withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
@@ -126,7 +129,7 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
   const from = S
     .Array(value)
-    .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
+    .annotate({ ...co, expected: "an array of unique items that will be decoded as a ReadonlySet" })
   const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
   const schema = from.pipe(
     S.decodeTo(
@@ -149,7 +152,7 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
 }) => {
   const from = S
     .Array(S.Tuple([pair.key, pair.value]))
-    .annotate({ expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
+    .annotate({ ...co, expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
   const to = S.instanceOf(Map) as S.instanceOf<
     ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
   >

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.117
+
+### Patch Changes
+
+- 1d85785: Wrap store seed effects with `Effect.uninterruptible` to prevent interruption during seeding
+  - effect-app@4.0.0-beta.117
+
 ## 4.0.0-beta.116
 
 ### Patch Changes

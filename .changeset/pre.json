@@ -134,6 +134,7 @@
     "sqlite-per-namespace-layermap",
     "stale-emus-see",
     "store-effect-cached",
+    "store-seed-uninterruptible",
     "strong-dots-sin",
     "struct-pick-omit",
     "sweet-humans-ring",

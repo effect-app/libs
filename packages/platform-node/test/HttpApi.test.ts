@@ -102,7 +102,7 @@ describe("HttpApi", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
         error: Schema.String
           .pipe(
-            HttpApiSchema.status(405),
+            HttpApiSchema.status("MethodNotAllowed"),
             HttpApiSchema.asText()
           )
       }) {}
@@ -998,7 +998,7 @@ describe("HttpApi", () => {
           HttpApiGroup.make("group")
             .add(
               HttpApiEndpoint.get("a", "/a", {
-                error: Schema.Void.pipe(HttpApiSchema.status(403))
+                error: Schema.Void.pipe(HttpApiSchema.status("Forbidden"))
               }),
               HttpApiEndpoint.get("b", "/b", {
                 error: HttpApiSchema.NoContent,
@@ -1007,7 +1007,7 @@ describe("HttpApi", () => {
               HttpApiEndpoint.get("c", "/c", {
                 error: Schema.String.pipe(
                   HttpApiSchema.asNoContent({ decode: () => "c" }),
-                  HttpApiSchema.status(403)
+                  HttpApiSchema.status("Forbidden")
                 )
               }),
               HttpApiEndpoint.get("d", "/d", {
@@ -1227,7 +1227,8 @@ describe("HttpApi", () => {
           const error = yield* client.users.upload({ params: {}, payload: new FormData() }).pipe(
             Effect.flip
           )
-          assert.deepStrictEqual(error, new HttpApiError.BadRequest({}))
+          assert(error._tag === "HttpClientError" && error.reason._tag === "DecodeError")
+          assert.strictEqual(error.reason.response.status, 400)
         }).pipe(Effect.provide(HttpLive)))
     })
 
@@ -1432,7 +1433,7 @@ describe("HttpApi", () => {
             decode: (message) => new RateLimitError({ message })
           })
         ),
-        HttpApiSchema.status(429),
+        HttpApiSchema.status("TooManyRequests"),
         HttpApiSchema.asText()
       )
 

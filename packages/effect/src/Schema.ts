@@ -103,7 +103,7 @@ import * as Equivalence from "./Equivalence.ts"
 import * as Exit_ from "./Exit.ts"
 import type { Formatter } from "./Formatter.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
-import { identity } from "./Function.ts"
+import { identity, memoize } from "./Function.ts"
 import * as HashMap_ from "./HashMap.ts"
 import * as HashSet_ from "./HashSet.ts"
 import * as core from "./internal/core.ts"
@@ -113,7 +113,6 @@ import * as InternalEquivalence from "./internal/schema/equivalence.ts"
 import * as InternalStandard from "./internal/schema/representation.ts"
 import * as InternalSchema from "./internal/schema/schema.ts"
 import { SchemaError } from "./internal/schema/schema.ts"
-import * as InternalToCodec from "./internal/schema/to-codec.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
@@ -4930,9 +4929,8 @@ export function instanceOf<C extends abstract new(...args: any) => any, Iso = In
  * Used when building low-level AST transformations that bridge two schema types.
  *
  * @since 4.0.0
- * @experimental
  */
-export function link<T>() { // TODO: better name
+export function link<T>() {
   return <To extends Top>(
     encodeTo: To,
     transformation: {
@@ -4951,31 +4949,105 @@ export function link<T>() { // TODO: better name
 /**
  * Creates a custom filter check from a predicate function. The predicate
  * receives the input value, the schema's AST, and parse options, and returns
- * `true`/`undefined` on success or a failure description on error.
+ * a value of type {@link FilterOutput}.
  *
- * **Example** (Custom filter check)
+ * **Example** (Failure at a nested path)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
- * // Check that a number is even
- * const isEven = Schema.makeFilter(
- *   (n: number) => n % 2 === 0 || "expected an even number"
+ * const schema = Schema.Struct({ password: Schema.String, confirmPassword: Schema.String }).check(
+ *   Schema.makeFilter((o) =>
+ *     o.password === o.confirmPassword
+ *       ? undefined
+ *       : { path: ["password"], issue: "password and confirmPassword must match" }
+ *   )
  * )
  *
- * const EvenNumber = Schema.Number.check(isEven)
+ * console.log(String(Schema.decodeUnknownExit(schema)({ password: "123456", confirmPassword: "1234567" })))
+ * // Failure(Cause([Fail(SchemaError: password and confirmPassword must match
+ * //   at ["password"])]))
+ * ```
+ *
+ * **Example** (Reporting multiple failures at once)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.Struct({ a: Schema.Finite, b: Schema.Finite, c: Schema.Finite }).check(
+ *   Schema.makeFilter((o) => {
+ *     const issues: Array<Schema.FilterIssue> = []
+ *     if (o.a > 0) {
+ *       if (o.b <= 0) issues.push({ path: ["b"], issue: "b must be greater than 0" })
+ *       if (o.c <= 0) issues.push({ path: ["c"], issue: "c must be greater than 0" })
+ *     }
+ *     return issues
+ *   })
+ * )
+ *
+ * console.log(String(Schema.decodeUnknownExit(schema)({ a: 1, b: 0, c: 0 })))
+ * // Failure(Cause([Fail(SchemaError: b must be greater than 0
+ * //   at ["b"]
+ * // c must be greater than 0
+ * //   at ["c"])]))
  * ```
  *
  * @category Checks Constructors
  * @since 4.0.0
  */
 export const makeFilter: <T>(
-  filter: (input: T, ast: AST.AST, options: AST.ParseOptions) => undefined | boolean | string | Issue.Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  },
+  filter: (input: T, ast: AST.AST, options: AST.ParseOptions) => FilterOutput,
   annotations?: Annotations.Filter | undefined,
   abort?: boolean
 ) => AST.Filter<T> = AST.makeFilter
+
+/**
+ * A single failure reported by a filter predicate. Used as the element type
+ * of the array arm of {@link FilterOutput}, and also accepted on its own.
+ *
+ * - `string`: failure with that string as the message. Produces an
+ *   {@link Issue.InvalidValue} wrapping the input, with the string used as
+ *   the issue's `message` annotation.
+ * - {@link Issue.Issue}: a fully-formed issue, returned as-is.
+ * - `{ path, issue }`: failure attached to a nested path. `issue` is either
+ *   a `string` (wrapped in an {@link Issue.InvalidValue}) or a full
+ *   {@link Issue.Issue}; the result is wrapped in an {@link Issue.Pointer}
+ *   at the given `path`.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export type FilterIssue = string | Issue.Issue | {
+  readonly path: ReadonlyArray<PropertyKey>
+  readonly issue: string | Issue.Issue
+}
+
+/**
+ * The value a filter predicate (see {@link makeFilter}) may return.
+ *
+ * Each shape is normalized into an {@link Issue.Issue} (or `undefined` for
+ * success) before being attached to the parse result:
+ *
+ * - `undefined`: success. The input satisfies the filter.
+ * - `true`: success. Equivalent to `undefined`, useful when the predicate is
+ *   a plain boolean expression.
+ * - `false`: generic failure. Produces an {@link Issue.InvalidValue} wrapping
+ *   the input, with no custom message.
+ * - {@link FilterIssue}: a single failure. See {@link FilterIssue} for the
+ *   shapes (`string`, {@link Issue.Issue}, or `{ path, issue }`).
+ * - `ReadonlyArray<FilterIssue>`: several failures reported together. An
+ *   empty array is treated as success; a single-element array is equivalent
+ *   to returning that element directly; otherwise the entries are grouped
+ *   into an {@link Issue.Composite}.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export type FilterOutput =
+  | undefined
+  | boolean
+  | FilterIssue
+  | ReadonlyArray<FilterIssue>
 
 /**
  * Groups multiple checks into a single {@link AST.FilterGroup}, applying
@@ -8794,6 +8866,8 @@ export interface DurationFromNanos extends decodeTo<Duration, BigInt> {
   readonly "Rebuild": DurationFromNanos
 }
 
+const bigint0 = globalThis.BigInt(0)
+
 /**
  * A transformation schema that decodes a non-negative `bigint` into a
  * `Duration`, treating the `bigint` value as the duration in nanoseconds.
@@ -8807,7 +8881,7 @@ export interface DurationFromNanos extends decodeTo<Duration, BigInt> {
  * @category Duration
  * @since 4.0.0
  */
-export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOrEqualToBigInt(0n)).pipe(
+export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOrEqualToBigInt(bigint0)).pipe(
   decodeTo(Duration, Transformation.durationFromNanos)
 )
 
@@ -11084,7 +11158,66 @@ export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions)
  * @since 4.0.0
  */
 export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, Json, RD, RE> {
-  return make(InternalToCodec.toCodecJson(schema.ast))
+  return make(toCodecJsonTop(schema.ast))
+}
+
+const toCodecJsonTop = AST.toCodec((ast) => {
+  const out = toCodecJsonBase(ast, toCodecJsonTop)
+  return out !== ast && AST.isOptional(ast) ? AST.optionalKeyLastLink(out) : out
+})
+
+function toCodecJsonBase(ast: AST.AST, recur: (ast: AST.AST) => AST.AST): AST.AST {
+  switch (ast._tag) {
+    case "Declaration": {
+      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
+      if (Predicate.isFunction(getLink)) {
+        const tps = AST.isDeclaration(ast)
+          ? ast.typeParameters.map((tp) => InternalSchema.make(AST.toEncoded(tp)))
+          : []
+        const link = getLink(tps)
+        const to = recur(link.to)
+        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+      }
+      return AST.replaceEncoding(ast, [AST.unknownToNull])
+    }
+    case "Unknown":
+    case "ObjectKeyword":
+      return AST.replaceEncoding(ast, [AST.unknownToJson])
+    case "Undefined":
+    case "Void":
+    case "Literal":
+    case "Number":
+      return ast.toCodecJson()
+    case "UniqueSymbol":
+    case "Symbol":
+    case "BigInt":
+      return ast.toCodecStringTree()
+    case "Objects": {
+      if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
+        throw new globalThis.Error("Objects property names must be strings", { cause: ast })
+      }
+      return ast.recur(recur)
+    }
+    case "Union": {
+      const sortedTypes = InternalSchema.jsonReorder(ast.types)
+      if (sortedTypes !== ast.types) {
+        return new AST.Union(
+          sortedTypes,
+          ast.mode,
+          ast.annotations,
+          ast.checks,
+          ast.encoding,
+          ast.context
+        ).recur(recur)
+      }
+      return ast.recur(recur)
+    }
+    case "Arrays":
+    case "Suspend":
+      return ast.recur(recur)
+  }
+  // `Schema.Any` is used as an escape hatch
+  return ast
 }
 
 /**
@@ -11095,7 +11228,32 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @since 4.0.0
  */
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(InternalToCodec.toCodecIso(AST.toType(schema.ast)))
+  return make(toCodecIsoTop(AST.toType(schema.ast)))
+}
+
+const toCodecIsoTop = memoize((ast: AST.AST): AST.AST => {
+  const out = toCodecIsoBase(ast, toCodecIsoTop)
+  return out !== ast && AST.isOptional(ast) ? AST.optionalKeyLastLink(out) : out
+})
+
+function toCodecIsoBase(ast: AST.AST, recur: (ast: AST.AST) => AST.AST): AST.AST {
+  switch (ast._tag) {
+    case "Declaration": {
+      const getLink = ast.annotations?.toCodecIso ?? ast.annotations?.toCodec
+      if (Predicate.isFunction(getLink)) {
+        const link = getLink(ast.typeParameters.map((tp) => InternalSchema.make(tp)))
+        const to = recur(link.to)
+        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+      }
+      return ast
+    }
+    case "Arrays":
+    case "Objects":
+    case "Union":
+    case "Suspend":
+      return ast.recur(recur)
+  }
+  return ast
 }
 
 /**
@@ -11134,11 +11292,13 @@ export function toCodecStringTree<T, E, RD, RE>(
   schema: Codec<T, E, RD, RE>,
   options?: { readonly keepDeclarations?: boolean | undefined }
 ): Codec<T, unknown, RD, RE> {
-  if (options?.keepDeclarations === true) {
-    return make(toCodecEnsureArray(serializerStringTreeKeepDeclarations(schema.ast)))
-  } else {
-    return make(toCodecEnsureArray(serializerStringTree(schema.ast)))
-  }
+  return make(
+    toCodecEnsureArray(
+      options?.keepDeclarations === true
+        ? serializerStringTreeKeepDeclarations(schema.ast)
+        : serializerStringTree(schema.ast)
+    )
+  )
 }
 
 type XmlEncoderOptions = {
@@ -11271,7 +11431,7 @@ function getStringTreePriority(ast: AST.AST): number {
   }
 }
 
-const treeReorder = InternalToCodec.makeReorder(getStringTreePriority)
+const treeReorder = InternalSchema.makeReorder(getStringTreePriority)
 
 function serializerTree(
   ast: AST.AST,

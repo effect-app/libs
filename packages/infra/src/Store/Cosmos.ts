@@ -122,7 +122,7 @@ function makeCosmosStore({ prefix }: StorageConfig) {
             if (!seed) return
             let cached = seedCache.get(ns)
             if (!cached) {
-              cached = yield* Effect.cached(makeSeedEffect(ns))
+              cached = yield* Effect.cached(Effect.uninterruptible(makeSeedEffect(ns)))
               seedCache.set(ns, cached)
             }
             yield* cached

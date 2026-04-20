@@ -156,7 +156,7 @@ function makePgStore({ prefix }: StorageConfig) {
           const seedNamespace = (ns: string) => {
             let cached = seedCache.get(ns)
             if (!cached) {
-              cached = Effect.cached(makeSeedEffect(ns)).pipe(Effect.runSync)
+              cached = Effect.cached(Effect.uninterruptible(makeSeedEffect(ns))).pipe(Effect.runSync)
               seedCache.set(ns, cached)
             }
             return cached

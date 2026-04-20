@@ -545,9 +545,15 @@ export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({
  */
 export interface JsonFromString<S extends Schema.Top> extends
   VariantSchema.Field<{
-    readonly select: Schema.fromJsonString<S>
-    readonly insert: Schema.fromJsonString<S>
-    readonly update: Schema.fromJsonString<S>
+    readonly select: Schema.fromJsonString<
+      Schema.Codec<S["Type"], Schema.Json, S["DecodingServices"], S["EncodingServices"]>
+    >
+    readonly insert: Schema.fromJsonString<
+      Schema.Codec<S["Type"], Schema.Json, S["DecodingServices"], S["EncodingServices"]>
+    >
+    readonly update: Schema.fromJsonString<
+      Schema.Codec<S["Type"], Schema.Json, S["DecodingServices"], S["EncodingServices"]>
+    >
     readonly json: S
     readonly jsonCreate: S
     readonly jsonUpdate: S
@@ -565,7 +571,7 @@ export interface JsonFromString<S extends Schema.Top> extends
 export const JsonFromString = <S extends Schema.Top>(
   schema: S
 ): JsonFromString<S> => {
-  const parsed = Schema.fromJsonString(schema)
+  const parsed = Schema.fromJsonString(Schema.toCodecJson(schema))
   return Field({
     select: parsed,
     insert: parsed,

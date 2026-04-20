@@ -11,7 +11,7 @@ import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
 import { typedValuesOf } from "../utils.js"
 import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "./RpcContextMap.js"
-import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
+import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
 
 // adapter for effect/rpc v3 middleware provides. (in effect-smol (v4), it's just a Service Identifier, no tags.)
@@ -259,52 +259,43 @@ export type MiddlewaresBuilder<
     : { new(_: never): {} }
     : { new(_: never): {} })
 
-const middlewareMaker = <
+const middlewareMaker = Effect.fnUntraced(function*<
   MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
->(middlewares: MiddlewareProviders): Effect.Effect<
-  RpcMiddlewareV4<
-    MiddlewareMaker.ManyProvided<MiddlewareProviders>,
-    MiddlewareMaker.ManyErrors<MiddlewareProviders>,
-    Exclude<
-      MiddlewareMaker.ManyRequired<MiddlewareProviders>,
-      MiddlewareMaker.ManyProvided<MiddlewareProviders>
-    > extends never ? never
-      : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
-  >
-> =>
-  Effect.gen(function*() {
-    // we want to run them in reverse order because latter middlewares will provide context to former ones
-    const reversed = middlewares.toReversed()
-    const context = yield* Effect.context()
+>(
+  middlewares: MiddlewareProviders
+) {
+  // we want to run them in reverse order because latter middlewares will provide context to former ones
+  const reversed = middlewares.toReversed()
+  const context = yield* Effect.context()
 
-    // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
-    // v4: wrap middleware takes (effect, options) as two params instead of a single options bag
-    return (
-      next: Effect.Effect<any, any, any>,
-      options: {
-        readonly clientId: number
-        readonly requestId: RequestId
-        readonly rpc: Rpc.AnyWithProps
-        readonly payload: unknown
-        readonly headers: HttpHeaders.Headers
-      }
-    ) => {
-      // we start with the actual handler
-      let handler = next
-
-      // inspired from Effect/RpcMiddleware
-      for (const tag of reversed) {
-        // use the tag to get the middleware from context
-        const middleware = Context.getUnsafe(context, tag)
-
-        // wrap the current handler, allowing the middleware to run before and after it
-        handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
-          Effect.andThen(middleware(handler, options))
-        ) as any
-      }
-      return handler
+  // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
+  // v4: wrap middleware takes (effect, options) as two params instead of a single options bag
+  return (
+    next: Effect.Effect<any, any, any>,
+    options: {
+      readonly clientId: number
+      readonly requestId: RequestId
+      readonly rpc: Rpc.AnyWithProps
+      readonly payload: unknown
+      readonly headers: HttpHeaders.Headers
     }
-  }) as any
+  ) => {
+    // we start with the actual handler
+    let handler = next
+
+    // inspired from Effect/RpcMiddleware
+    for (const tag of reversed) {
+      // use the tag to get the middleware from context
+      const middleware = Context.getUnsafe(context, tag)
+
+      // wrap the current handler, allowing the middleware to run before and after it
+      handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+        Effect.andThen(middleware(handler, options))
+      ) as any
+    }
+    return handler
+  }
+}) as any
 
 const makeMiddlewareBasic = <Self>() =>
 // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys

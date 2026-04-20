@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Duration, Effect, Layer, type NonEmptyReadonlyArray, Option, pipe, Redacted, Struct } from "effect-app"
+import { Array, Cause, Duration, Effect, Layer, type NonEmptyReadonlyArray, Option, pipe, Redacted, Schedule, Struct } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { dropUndefinedT, mutable } from "effect-app/utils"
 import { CosmosClient, CosmosClientLayer } from "../adapters/cosmos-client.js"
@@ -24,7 +24,33 @@ const makeReverseMapId =
 
 class CosmosDbOperationError {
   constructor(readonly message: string, readonly raw?: unknown) {}
-} // TODO: Retry operation when running into RU limit.
+}
+
+class Cosmos429Error {
+  readonly _tag = "Cosmos429Error"
+  constructor(readonly raw: unknown) {}
+}
+
+const is429 = (e: unknown): e is Cosmos429Error =>
+  e instanceof Cosmos429Error
+
+const is429Defect = (e: unknown): boolean =>
+  e != null
+  && typeof e === "object"
+  && (("code" in e && (e as Record<string, unknown>).code === 429)
+    || ("statusCode" in e && (e as Record<string, unknown>).statusCode === 429))
+
+const cosmos429RetrySchedule = Schedule.intersect(
+  Schedule.exponential(Duration.millis(1000), 2),
+  Schedule.recurs(5)
+).pipe(Schedule.jittered)
+
+const withCosmos429Retry = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  effect.pipe(
+    Effect.catchDefect((defect) => is429Defect(defect) ? Effect.fail(new Cosmos429Error(defect)) : Effect.die(defect)),
+    Effect.retry({ schedule: cosmos429RetrySchedule, while: is429 }),
+    Effect.catchIf(is429, (e) => Effect.die(e.raw))
+  ) as Effect.Effect<A, E, R>
 
 function makeCosmosStore({ prefix }: StorageConfig) {
   return Effect.gen(function*() {
@@ -42,17 +68,19 @@ function makeCosmosStore({ prefix }: StorageConfig) {
           type PM = PersistenceModelType<Encoded>
           type PMCosmos = PersistenceModelType<Omit<Encoded, IdKey> & { id: string }>
           const containerId = `${prefix}${name}`
-          yield* Effect.promise(() =>
-            db.containers.createIfNotExists(dropUndefinedT({
-              id: containerId,
-              uniqueKeyPolicy: config?.uniqueKeys
-                ? { uniqueKeys: config.uniqueKeys }
-                : undefined,
-              partitionKey: {
-                paths: ["/_partitionKey"],
-                version: 2 // support large partitionkeys so that the hash is not based on just the first 100 bytes!
-              }
-            }))
+          yield* withCosmos429Retry(
+            Effect.promise(() =>
+              db.containers.createIfNotExists(dropUndefinedT({
+                id: containerId,
+                uniqueKeyPolicy: config?.uniqueKeys
+                  ? { uniqueKeys: config.uniqueKeys }
+                  : undefined,
+                partitionKey: {
+                  paths: ["/_partitionKey"],
+                  version: 2 // support large partitionkeys so that the hash is not based on just the first 100 bytes!
+                }
+              }))
+            )
           )
 
           const basePartitionKey = config?.partitionValue() ?? "primary"

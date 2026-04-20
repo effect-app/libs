@@ -134,6 +134,7 @@
     "sql-store-adapter",
     "sql-transaction-middleware",
     "sqlite-per-namespace-layermap",
+    "sse-filter-namespace-by-storeid",
     "stale-emus-see",
     "store-effect-cached",
     "store-seed-uninterruptible",

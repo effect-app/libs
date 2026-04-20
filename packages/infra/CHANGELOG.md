@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- db7ba34: Filter SSE events stream by storeId namespace
+  - effect-app@4.0.0-beta.119
+
 ## 4.0.0-beta.118
 
 ### Patch Changes

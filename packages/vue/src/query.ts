@@ -133,7 +133,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
         get value() {
           return (arr as any)()
         }
-      } as any)
+      })
       : ref(arg)
     const queryKey = makeQueryKey(q)
     const handler = q.handler

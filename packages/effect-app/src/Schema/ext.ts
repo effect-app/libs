@@ -100,7 +100,7 @@ export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.Litera
             withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(a)))
           }) // todo: copy annotations from original?
         },
-        Default: literals[0] as Literals[0],
+        Default: literals[0],
         withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(literals[0]))),
         withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(literals[0])))
       })

@@ -16,11 +16,11 @@ export const makeUseCommand = Effect.fnUntraced(
 
     const comm = cmndr(runtime, rtHooks)
 
-    const command = {
+    const command: CommanderResolved<R, RTHooks> = {
       ...comm,
       ...CommanderStatic
     }
 
-    return command as CommanderResolved<R, RTHooks>
+    return command
   }
 )

@@ -4,7 +4,6 @@
 
 import { Effect, Option, Ref } from "effect"
 import * as Def from "effect/Deferred"
-import * as Fiber from "effect/Fiber"
 import type { Scope } from "effect/Scope"
 import type { Semaphore } from "effect/Semaphore"
 import type * as Context from "./Context.js"
@@ -110,10 +109,6 @@ export function modifyWithPermitWithEffect<A>(ref: Ref.Ref<A>, semaphore: Semaph
           Effect.map(([_]) => _)
         )
     )
-}
-
-export function joinAll<E, A>(fibers: Iterable<Fiber.Fiber<A, E>>): Effect.Effect<readonly A[], E> {
-  return Fiber.joinAll(fibers) as any
 }
 
 type ServiceA<T> = T extends Effect.Effect<infer S, any, any> ? S

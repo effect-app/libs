@@ -229,7 +229,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                             | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
                             | undefined,
                         f
-                          .order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
+                          .order,
                         f
                           .skip,
                         f
@@ -655,7 +655,7 @@ export function SQLiteStoreLayer(
         const withTransaction: WithNsTransactionFn = (effect) =>
           storeId.asEffect().pipe(
             Effect.flatMap((ns) => withNsSql(ns, (sql) => sql.withTransaction(effect).pipe(Effect.orDie)))
-          ) as any
+          )
 
         return StoreMaker.context(storeMaker).pipe(
           Context.add(WithNsTransaction, withTransaction)

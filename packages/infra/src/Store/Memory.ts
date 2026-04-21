@@ -27,7 +27,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
           n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys as never[]))
         })
         return n as M
-      }) as any
+      })
     }
     const skip = f?.skip
     const limit = f?.limit

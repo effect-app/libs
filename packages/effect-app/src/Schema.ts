@@ -65,7 +65,7 @@ export function TaggedStruct<const Tag extends SchemaAST.LiteralValue, const Fie
   value: Tag,
   fields: Fields
 ): S.TaggedStruct<Tag, Fields> {
-  return Struct({ _tag: S.tag(value), ...fields }) as any
+  return Struct({ _tag: S.tag(value), ...fields })
 }
 export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> = S.TaggedStruct<
   Tag,

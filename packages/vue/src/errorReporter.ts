@@ -40,7 +40,7 @@ export function reportError(name: string) {
           Effect.catchCause(() => Effect.logFatal("Failed to log error cause"))
         )
 
-      return error as unknown
+      return error
     },
     (effect) =>
       Effect.tapCause(effect, (cause) =>

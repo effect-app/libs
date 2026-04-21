@@ -262,7 +262,7 @@ function buildFieldInfo(
   const propertyKey = property.name
   const schema = S.make<S.Codec<unknown>>(property.type)
   const metadata = getMetadataFromSchema(property.type)
-  const parse = S.decodeUnknownExit(schema as S.Codec<unknown> & { readonly DecodingServices: never })
+  const parse = S.decodeUnknownExit(schema)
 
   const nullableOrUndefined = S.AST.isUnion(property.type)
     && (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "Undefined"))
@@ -384,7 +384,7 @@ function buildFieldInfo(
       : metadata.type === "float" || metadata.type === "int"
       ? numberRules
       : []) as UnknownRule[],
-    parseRule as UnknownRule
+    parseRule
   ]
 
   const info = {
@@ -458,7 +458,7 @@ export function getMetadataFromSchema(
   try {
     const doc = S.toJsonSchemaDocument(S.make<S.Codec<unknown>>(realSelf))
     jschema = doc.schema as any
-    const defs = doc.definitions as Record<string, any>
+    const defs = doc.definitions
     // resolve $ref against definitions
     while (jschema["$ref"] && jschema["$ref"].startsWith("#/$defs/")) {
       const { $ref: _, ...rest } = jschema

@@ -142,7 +142,7 @@ export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
  * }) {}
  * ```
  */
-export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never, false as boolean)
+export const requiresTransactionConfig = RpcContextMap.makeCustom()(Schema.Never, false)
 
 /**
  * Creates the middleware Effect for SQL transaction wrapping.

@@ -106,7 +106,7 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
 
 export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: ExtractModuleName<M> } => {
   const first = typedValuesOf(getFiltered(resource))[0]
-  if (first && "moduleName" in first) return { moduleName: first.moduleName } as any
+  if (first && "moduleName" in first) return { moduleName: first.moduleName }
   throw new Error("No moduleName on requests!")
 }
 
@@ -261,7 +261,7 @@ const makeApiClientFactory = Effect
         const m = yield* makeClientFor(models, requestLevelLayers, options)
         cache.set(models, m.client)
         register.push(m.mr)
-        return m.client as Client<M, ExtractModuleName<M>>
+        return m.client
       })
     }
 

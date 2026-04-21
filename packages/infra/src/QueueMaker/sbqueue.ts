@@ -6,7 +6,7 @@ import { Receiver, Sender } from "../adapters/ServiceBus.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
-import { type QueueBase, QueueMeta } from "./service.js"
+import { QueueMeta } from "./service.js"
 
 export function makeServiceBusQueue<
   Evt extends { id: StringId; _tag: string },
@@ -102,6 +102,6 @@ export function makeServiceBusQueue<
         yield* sender.sendMessages(msgs)
       })
     }
-    return queue as QueueBase<Evt, DrainEvt>
+    return queue
   })
 }

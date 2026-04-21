@@ -70,7 +70,7 @@ export function deduplicateOpenApiSchemas(
     }
   }
 
-  if (remapping.size === 0) return postProcessJsonSchema(spec) as Record<string, any>
+  if (remapping.size === 0) return postProcessJsonSchema(spec)
 
   // Build new schemas object without duplicates
   const newSchemas: Record<string, any> = {}
@@ -85,7 +85,7 @@ export function deduplicateOpenApiSchemas(
   newSpec["components"]["schemas"] = newSchemas
   rewriteRefs(newSpec, remapping)
 
-  return postProcessJsonSchema(newSpec) as Record<string, any>
+  return postProcessJsonSchema(newSpec)
 }
 
 /**

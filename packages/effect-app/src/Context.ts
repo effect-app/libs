@@ -93,7 +93,7 @@ export const accessCn = <
 >(
   Tag: Opaque<Self, Shape>,
   key: K
-): Effect.Effect<Shape[K], never, Self> => Tag.useSync((s) => s[key]) as any
+): Effect.Effect<Shape[K], never, Self> => Tag.useSync((s) => s[key])
 
 /** Accessor for a service property that is an Effect. Delegates via `use`. */
 export const accessEffectCn = <

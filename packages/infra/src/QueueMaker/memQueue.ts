@@ -6,7 +6,7 @@ import { MemQueue } from "../adapters/memQueue.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.js"
-import { type QueueBase, QueueMeta } from "./service.js"
+import { QueueMeta } from "./service.js"
 
 export const makeMemQueue = Effect.fnUntraced(function*<
   Evt extends { id: S.StringId; _tag: string },
@@ -105,5 +105,5 @@ export const makeMemQueue = Effect.fnUntraced(function*<
       }, (effect) => effect.pipe(silenceAndReportError, Effect.forever))()
     }
   }
-  return queue as QueueBase<Evt, DrainEvt>
+  return queue
 })

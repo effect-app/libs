@@ -313,9 +313,7 @@ function decorateNew(
   if (out.descriptor) {
     out.descriptor = Object.assign({}, out.descriptor)
   }
-  const actualDesc: PropertyDescriptor = <any> (
-    out.descriptor || /* istanbul ignore next */ out
-  )
+  const actualDesc: PropertyDescriptor = out.descriptor || /* istanbul ignore next */ out
 
   const originalMethod = validateAndExtractMethodFromDescriptor(actualDesc)
   const isStatic = inp.placement === "static"
@@ -684,7 +682,7 @@ export type OptPromise<T extends () => any> = (
 ) => Promise<ReturnType<T>> | ReturnType<T>
 
 export function access<T extends string, T2>(t: Record<T, T2>) {
-  return (key: T) => t[key] as T2
+  return (key: T) => t[key]
 }
 
 export function todayAtUTCNoon() {

@@ -209,7 +209,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   f.select as
                     | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
                     | undefined,
-                  f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
+                  f.order,
                   f.skip,
                   f.limit
                 )

@@ -249,7 +249,7 @@ export const makeRouter = <
     type RequestModules = FilterRequestModules<Resource>
     const requestModules = typedKeysOf(rsc).reduce((acc, cur) => {
       if (Predicate.isObjectKeyword(rsc[cur]) && rsc[cur]["success"]) {
-        acc[cur as keyof RequestModules] = rsc[cur] as RequestModules[keyof RequestModules]
+        acc[cur as keyof RequestModules] = rsc[cur]
       }
       return acc
     }, {} as RequestModules)

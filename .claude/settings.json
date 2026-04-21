@@ -5,7 +5,9 @@
       "Bash(pnpm -r check)",
       "Bash(pnpm lint-fix:*)",
       "Bash(git commit -m ' *)",
-      "Read(//home/patroza/pj/effect-app/**)"
+      "Read(//home/patroza/pj/effect-app/**)",
+      "Bash(git checkout *)",
+      "Bash(pnpm --filter @effect-app/vue check)"
     ]
   }
 }

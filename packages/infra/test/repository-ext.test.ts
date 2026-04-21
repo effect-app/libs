@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer, S } from "effect-app"
+import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { makeRepo } from "../src/Model/Repository.js"
 import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
@@ -27,7 +28,10 @@ describe("repository ext save/remove batching", () => {
       const all = yield* repo.all
       expect(all).toHaveLength(4)
       expect(all.map((_) => _.id).toSorted()).toEqual(["1", "2", "3", "4"])
-    }).pipe(Effect.provide(TestStoreLive))
+    }).pipe(
+      setupRequestContextFromCurrent(),
+      Effect.provide(TestStoreLive)
+    )
   )
 
   it.effect("supports remove batching overload", () =>
@@ -46,6 +50,9 @@ describe("repository ext save/remove batching", () => {
       const all = yield* repo.all
       expect(all).toHaveLength(1)
       expect(all[0]?.id).toBe("4")
-    }).pipe(Effect.provide(TestStoreLive))
+    }).pipe(
+      setupRequestContextFromCurrent(),
+      Effect.provide(TestStoreLive)
+    )
   )
 })

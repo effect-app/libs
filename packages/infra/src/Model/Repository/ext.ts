@@ -281,7 +281,9 @@ export const extendRepo = <
       }
       return saveBatched(args as NonEmptyArray<T>)
     }) as {
-      (...items: NonEmptyArray<T>): Effect.Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
+      (
+        ...items: NonEmptyArray<T>
+      ): Effect.Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
       /**
        * Enables chunked writes for large batches.
        * Note: batching breaks transactional properties because chunks are saved independently.

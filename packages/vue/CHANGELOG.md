@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.129
+
+### Patch Changes
+
+- 34f6a97: fix missing fn
+  - effect-app@4.0.0-beta.129
+
 ## 4.0.0-beta.128
 
 ### Patch Changes

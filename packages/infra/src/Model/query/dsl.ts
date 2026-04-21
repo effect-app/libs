@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Data, flow, type Option, Pipeable, type S } from "effect-app"
+import { Data, flow, type Option, Pipeable, S } from "effect-app"
 import type { NonNegativeInt } from "effect-app/Schema"
 import type { Covariant } from "effect/Types"
 import type { Ops } from "../filter/filterApi.js"
@@ -354,7 +354,26 @@ export const project: {
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
-} = (schema: any, mode = "transform") => (current: any) => new Project({ current, schema, mode } as any)
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends {
+      [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? S.Top : never
+    },
+    A = {
+      [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? ExtractFieldValuesRefined<Q>[K] : never
+    },
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schemaFields: I
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, never, ExtractTType<Q>, E>
+} = (schemaOrFields: any, mode = "transform") => (current: any) =>
+  new Project({
+    current,
+    schema: S.isSchema(schemaOrFields) ? schemaOrFields : S.Struct(schemaOrFields),
+    mode
+  } as any)
 
 type GetArV<T> = T extends readonly (infer R)[] ? R : never
 

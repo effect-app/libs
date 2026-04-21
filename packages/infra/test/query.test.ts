@@ -152,6 +152,11 @@ it("works with repo", () =>
             )
           )
         )
+      const q3 = yield* somethingRepo
+        .query(
+          where("displayName", "Verona"),
+          project(Struct.pick(Something.fields, ["id", "displayName"]))
+        )
 
       const smtArr = yield* somethingRepo
         .query(
@@ -162,6 +167,7 @@ it("works with repo", () =>
 
       expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
       expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
+      expect(q3).toEqual([items[0]!].map(Struct.pick(["id", "displayName"])))
     })
     .pipe(
       Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),

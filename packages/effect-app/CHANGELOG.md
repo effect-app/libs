@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- 5ac46cb: Make `Schema.provide` dual (pipeable)
+
 ## 4.0.0-beta.120
 
 ### Minor Changes

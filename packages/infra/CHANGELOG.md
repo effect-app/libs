@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- 1015582: Fix `Q.project` field selection with `Schema.encodeKeys` by deriving selected fields from the encoded schema shape.
+- Updated dependencies [5ac46cb]
+  - effect-app@4.0.0-beta.121
+
 ## 4.0.0-beta.120
 
 ### Patch Changes

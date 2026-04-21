@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
+import { Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -345,16 +345,16 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
     )
   )
 
-export const provide = <Self extends S.Top, R>(
-  self: Self,
-  context: Context.Context<R>
-): ProvidedCodec<Self, R> => {
+export const provide: {
+  <R>(context: Context.Context<R>): <Self extends S.Top>(self: Self) => ProvidedCodec<Self, R>
+  <Self extends S.Top, R>(self: Self, context: Context.Context<R>): ProvidedCodec<Self, R>
+} = Function.dual(2, <Self extends S.Top, R>(self: Self, context: Context.Context<R>): ProvidedCodec<Self, R> => {
   const prov = Effect.provide(context)
   return self.pipe(
     S.middlewareDecoding((effect) => prov(effect)),
     S.middlewareEncoding((effect) => prov(effect))
   ) as ProvidedCodec<Self, R>
-}
+})
 export const contextFromServices = <
   Self extends S.Top,
   Tags extends ReadonlyArray<Context.Key<any, any>>

@@ -549,6 +549,33 @@ it(
 )
 
 it(
+  "project with encodeKeys in projection maps encoded keys",
+  () =>
+    Effect
+      .gen(function*() {
+        const schema = S.Struct({
+          id: S.String,
+          a: S.Number
+        })
+
+        const repo = yield* makeRepo(
+          "test",
+          schema,
+          {
+            makeInitial: Effect.sync(() => [{ id: "1", a: 1 }])
+          }
+        )
+
+        const outputSchema = S.Struct({ b: S.Number }).pipe(S.encodeKeys({ b: "a" }))
+
+        const result = yield* repo.query(project(outputSchema))
+
+        expect(result).toStrictEqual([{ b: 1 }])
+      })
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+)
+
+it(
   "doesn't mess when refining fields",
   () =>
     Effect

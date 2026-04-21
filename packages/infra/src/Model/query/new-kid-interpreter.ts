@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Array, identity, Match, Option, pipe, S } from "effect-app"
+import { Array, identity, Match, Option, pipe, S, SchemaAST } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { dropUndefinedT } from "effect-app/utils"
 import type { FilterResult } from "../filter/filterApi.js"
@@ -165,7 +165,7 @@ export const toFilter = <
   let select: (keyof TFieldValues | { key: string; subKeys: string[] })[] = []
   // TODO: support more complex (nested) schemas?
   if (schema) {
-    const t = walkTransformation(schema.ast)
+    const t = walkTransformation(SchemaAST.toEncoded(schema.ast))
     if (S.AST.isObjects(t)) {
       select = t.propertySignatures.map((_) => _.name as string)
       for (const prop of t.propertySignatures) {

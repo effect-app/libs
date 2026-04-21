@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect } from "effect-app"
 import { makeQueryKey } from "../src/lib.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
@@ -76,16 +75,9 @@ it.skip("works", () => {
   const f = client.GetSomething2.fn(null as any)
 
   // @ts-expect-error query requests no longer expose command helpers
-  const e0 = client.GetSomething2WithDependencies.wrap().handle // not available as we require dependencies not provided by the runtime
-  // @ts-expect-error query requests no longer match Command.wrap mutation signature
-  const e000 = Command.wrap(client.GetSomething2WithDependencies)().handle // not available as we require dependencies not provided by the runtime
-  // @ts-expect-error query requests no longer expose command helpers
-  const e00 = client.GetSomething2WithDependencies.wrap((_) => _ as Effect.Effect<number, never, never>).handle(
-    null as any
-  )
-  const e0000 =
-    // @ts-expect-error query request does not match Command.wrap mutation signature
-    Command.wrap(client.GetSomething2WithDependencies)((_) => _ as Effect.Effect<number, never, never>).handle
+  const e0 = client.GetSomething2WithDependencies.wrap
+  // @ts-expect-error query request does not match Command.wrap mutation signature
+  const e000 = Command.wrap(client.GetSomething2WithDependencies)
   // @ts-expect-error dependencies required that are not provided
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)
   // @ts-expect-error dependencies required that are not provided
@@ -93,6 +85,7 @@ it.skip("works", () => {
   // @ts-expect-error query requests no longer expose command helpers
   const f0 = client.GetSomething2WithDependencies.fn(null as any)
 
+  const g0 = client.DoSomething.wrap(null as any)
   const g = client.DoSomething.mutate.wrap(null as any)
   // @ts-expect-error mutate no longer exposes fn, use client.DoSomething.fn
   const h = client.DoSomething.mutate.fn(null as any)
@@ -105,13 +98,12 @@ it.skip("works", () => {
     b,
     e,
     e0,
-    e00,
     e000,
-    e0000,
     e1,
     e2,
     f,
     f0,
+    g0,
     g,
     h
   })

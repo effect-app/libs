@@ -45,12 +45,14 @@ export const checkJwt = (config: Config) => {
   return HttpMiddleware.make((app) =>
     Effect.gen(function*() {
       const req = yield* HttpServerRequest.HttpServerRequest
-      const response = yield* check(req.headers).pipe(Effect.catch((e) =>
-        HttpServerResponse.json({ message: e.message }, {
-          status: e.status,
-          headers: HttpHeaders.fromInput(e.headers)
-        })
-      ))
+      const response = yield* check(req.headers).pipe(
+        Effect.catch((e) =>
+          HttpServerResponse.json({ message: e.message }, {
+            status: e.status,
+            headers: HttpHeaders.fromInput(e.headers)
+          })
+        )
+      )
       if (response) {
         return response
       }

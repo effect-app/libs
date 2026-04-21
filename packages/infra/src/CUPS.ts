@@ -74,15 +74,13 @@ function printBuffer(printer: PrinterConfig, options: string[]) {
       )
 }
 
-function getAvailablePrinters(host?: string) {
-  return Effect.gen(function*() {
-    const { stdout } = yield* exec(["lpstat", ...buildListArgs({ host }), "-s"].join(" "))
-    return [...stdout.matchAll(/device for (\w+):/g)]
-      .map((_) => _[1])
-      .filter(Predicate.isNotNullish)
-      .map((_) => S.NonEmptyString255(_))
-  })
-}
+const getAvailablePrinters = Effect.fnUntraced(function*(host?: string) {
+  const { stdout } = yield* exec(["lpstat", ...buildListArgs({ host }), "-s"].join(" "))
+  return [...stdout.matchAll(/device for (\w+):/g)]
+    .map((_) => _[1])
+    .filter(Predicate.isNotNullish)
+    .map((_) => S.NonEmptyString255(_))
+})
 
 function* buildListArgs(config?: { host?: string | undefined }) {
   if (config?.host) {

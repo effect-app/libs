@@ -3,24 +3,22 @@ import { Effect, Layer, Logger } from "effect-app"
 import { CauseException } from "effect-app/client/errors"
 import { type Context } from "effect-app/Context"
 
-export function makeAppRuntime<A, E>(layer: Layer.Layer<A, E>) {
-  return Effect.gen(function*() {
-    const l = layer.pipe(
-      Layer.provide(Logger.layer([Logger.consolePretty()]))
-    ) as Layer.Layer<A, never>
-    const mrt = ManagedRuntime.make(l)
-    yield* mrt.contextEffect
-    return Object.assign(mrt, {
-      [Symbol.dispose]() {
-        return Effect.runSync(mrt.disposeEffect)
-      },
+export const makeAppRuntime = Effect.fnUntraced(function*<A, E>(layer: Layer.Layer<A, E>) {
+  const l = layer.pipe(
+    Layer.provide(Logger.layer([Logger.consolePretty()]))
+  ) as Layer.Layer<A, never>
+  const mrt = ManagedRuntime.make(l)
+  yield* mrt.contextEffect
+  return Object.assign(mrt, {
+    [Symbol.dispose]() {
+      return Effect.runSync(mrt.disposeEffect)
+    },
 
-      [Symbol.asyncDispose]() {
-        return mrt.dispose()
-      }
-    }) // as we initialise here, there is no more error left.
-  })
-}
+    [Symbol.asyncDispose]() {
+      return mrt.dispose()
+    }
+  }) // as we initialise here, there is no more error left.
+})
 
 export function initializeSync<A, E>(layer: Layer.Layer<A, E, never>) {
   const runtime = Effect.runSync(makeAppRuntime(layer))

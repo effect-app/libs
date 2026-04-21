@@ -12,33 +12,34 @@ export const makeETag = <E extends PersistenceModelType<{}>>(
     _etag: crypto.createHash("sha256").update(JSON.stringify(e)).digest("hex")
   }) as any
 
-export const makeUpdateETag =
-  (type: string) =>
-  <IdKey extends keyof E, E extends PersistenceModelType<{}>>(e: E, idKey: IdKey, current: Option.Option<E>) =>
-    Effect.gen(function*() {
-      if (e._etag) {
-        if (Option.isNone(current)) {
-          return yield* new OptimisticConcurrencyException({
-            type,
-            id: e[idKey] as string,
-            current: "",
-            found: e._etag,
-            code: 409
-          })
-        }
-      }
-      if (Option.isSome(current) && current.value._etag !== e._etag) {
+export const makeUpdateETag = (type: string) =>
+  Effect.fnUntraced(function*<IdKey extends keyof E, E extends PersistenceModelType<{}>>(
+    e: E,
+    idKey: IdKey,
+    current: Option.Option<E>
+  ) {
+    if (e._etag) {
+      if (Option.isNone(current)) {
         return yield* new OptimisticConcurrencyException({
           type,
-          id: current.value[idKey] as string,
-          current: current.value._etag,
+          id: e[idKey] as string,
+          current: "",
           found: e._etag,
-          code: 412
+          code: 409
         })
       }
-      const newE = makeETag(e)
-      return newE
-    })
+    }
+    if (Option.isSome(current) && current.value._etag !== e._etag) {
+      return yield* new OptimisticConcurrencyException({
+        type,
+        id: current.value[idKey] as string,
+        current: current.value._etag,
+        found: e._etag,
+        code: 412
+      })
+    }
+    return makeETag(e)
+  })
 
 export function lowercaseIfString<T>(val: T) {
   if (typeof val === "string") {

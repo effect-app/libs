@@ -248,28 +248,16 @@ export function makeRepoInternal<
             }
           )
 
-          const parseMany = (items: readonly PM[]) =>
-            Effect
-              .flatMap(cms, (cm) =>
-                decodeMany(items.map((_) => mapReverse(_, cm.set)))
-                  .pipe(
-                    Effect.orDie,
-                    Effect.withSpan("parseMany", { attributes: { itemType: name } }, { captureStackTrace: false })
-                  ))
-          const parseMany2 = <A, R>(
-            items: readonly PM[],
-            schema: S.Codec<A, Encoded, R>
-          ) =>
-            Effect
-              .flatMap(cms, (cm) =>
-                S
-                  .decodeEffect(S.Array(schema))(
-                    items.map((_) => mapReverse(_, cm.set))
-                  )
-                  .pipe(
-                    Effect.orDie,
-                    Effect.withSpan("parseMany2", { attributes: { itemType: name } }, { captureStackTrace: false })
-                  ))
+          const parseMany = Effect.fn("parseMany", { attributes: { itemType: name } })(function*(items: readonly PM[]) {
+            const cm = yield* cms
+            return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+          })
+          const parseMany2 = Effect.fn("parseMany2", { attributes: { itemType: name } })(
+            function*<A, R>(items: readonly PM[], schema: S.Codec<A, Encoded, R>) {
+              const cm = yield* cms
+              return yield* S.decodeEffect(S.Array(schema))(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+            }
+          )
           const filter = <U extends keyof Encoded = keyof Encoded>(args: FilterArgs<Encoded, U>) =>
             store
               .filter(

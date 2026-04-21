@@ -21,16 +21,12 @@ export class Confirm extends Context.Service<Confirm>()("Confirm", {
   static readonly DefaultWithoutDependencies = Layer.effect(this, this.make)
   static readonly Default = this.DefaultWithoutDependencies
 
-  static confirm(message?: string) {
-    return Effect.gen(function*() {
-      const c = yield* Confirm
-      return yield* c.confirm(message)
-    })
-  }
-  static confirmOrInterrupt(message?: string) {
-    return Effect.gen(function*() {
-      const c = yield* Confirm
-      return yield* c.confirmOrInterrupt(message)
-    })
-  }
+  static readonly confirm = Effect.fnUntraced(function*(message?: string) {
+    const c = yield* Confirm
+    return yield* c.confirm(message)
+  })
+  static readonly confirmOrInterrupt = Effect.fnUntraced(function*(message?: string) {
+    const c = yield* Confirm
+    return yield* c.confirmOrInterrupt(message)
+  })
 }

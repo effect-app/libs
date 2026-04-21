@@ -112,6 +112,7 @@
     "ready-bananas-scream",
     "real-lilies-design",
     "real-suits-clean",
+    "remove-by-id-array",
     "remove-class-struct-pick-omit",
     "remove-legacy-from-make-client",
     "remove-tagged-error-compat",

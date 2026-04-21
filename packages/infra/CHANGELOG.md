@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.125
+
+### Patch Changes
+
+- 7191fc1: `removeById` now takes `id | NonEmptyReadonlyArray<id>` instead of a variadic rest, and the extended repo's `removeById` accepts a `batch` option to chunk large deletes — consistent with `save` and `remove`.
+  - effect-app@4.0.0-beta.125
+
 ## 4.0.0-beta.124
 
 ### Patch Changes

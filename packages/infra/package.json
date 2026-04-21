@@ -396,7 +396,7 @@
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && effect-app-cli packagejson pnpm check",
-    "check": "tsc --build",
+    "check": "tsgo --build",
     "build": "pnpm build:tsc",
     "watch2": "pnpm clean-dist && NODE_OPTIONS=--max-old-space-size=6144 tsc -w",
     "clean": "rm -rf dist",

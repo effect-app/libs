@@ -152,10 +152,17 @@ it("works with repo", () =>
             )
           )
         )
+      // array-of-keys shorthand
       const q3 = yield* somethingRepo
         .query(
           where("displayName", "Verona"),
-          project(Struct.pick(Something.fields, ["id", "displayName"]))
+          project(["id", "displayName"])
+        )
+      // pick-function shorthand (Struct.pick curried form)
+      const q4 = yield* somethingRepo
+        .query(
+          where("displayName", "Verona"),
+          project(Struct.pick(["id", "displayName"]))
         )
 
       const smtArr = yield* somethingRepo
@@ -168,6 +175,7 @@ it("works with repo", () =>
       expect(q1).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["id", "displayName"])))
       expect(q2).toEqual(items.slice(0, 2).toReversed().map(Struct.pick(["displayName"])))
       expect(q3).toEqual([items[0]!].map(Struct.pick(["id", "displayName"])))
+      expect(q4).toEqual([items[0]!].map(Struct.pick(["id", "displayName"])))
     })
     .pipe(
       Effect.provide(Layer.mergeAll(SomethingRepo.Test, SomeService.Default)),

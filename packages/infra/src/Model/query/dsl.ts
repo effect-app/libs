@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { SchemaTransformation } from "effect"
 import { Data, flow, type Option, Pipeable, S } from "effect-app"
 import type { NonNegativeInt } from "effect-app/Schema"
 import type { Covariant } from "effect/Types"
@@ -299,12 +300,41 @@ export const count: {
   ): QueryProjection<ExtractFieldValuesRefined<Q>, NonNegativeInt, never, "count", ExtractExclusiveness<Q>>
 } = (current) => new Count({ current })
 
-const toProjectionSchema = <A, I, R>(
-  schemaOrFields: S.Codec<A, I, R> | S.Struct.Fields
-): S.Codec<A, I, R> | S.Struct<S.Struct.Fields> =>
-  S.isSchema(schemaOrFields) ? schemaOrFields : S.Struct(schemaOrFields)
+const toProjectionSchema = (schemaOrFields: any): any => {
+  if (S.isSchema(schemaOrFields)) return schemaOrFields
+  if (Array.isArray(schemaOrFields)) {
+    // Array of field name strings → build a passthrough Struct so the select optimisation works
+    return S.Struct(Object.fromEntries(schemaOrFields.map((k: string) => [k, S.Unknown])))
+  }
+  if (typeof schemaOrFields === "function") {
+    // Pick function like Struct.pick(["id", "displayName"]) — apply as a transform; no select
+    // optimisation (all columns are fetched), but the result is correctly typed
+    return S.Unknown.pipe(
+      S.decodeTo(
+        S.Unknown,
+        SchemaTransformation.transform({ decode: schemaOrFields, encode: (i: any) => i })
+      )
+    )
+  }
+  // S.Struct.Fields map → wrap in S.Struct
+  return S.Struct(schemaOrFields)
+}
 
 export const project: {
+  // ─── pick-function overload ───────────────────────────────────────────────────
+  // `project(Struct.pick(["id", "displayName"]))` — applies an arbitrary pick/map
+  // function; all columns are fetched and the function is applied in-memory.
+  // Uses `Record<string, unknown>` for `self` so TypeScript can contextually type
+  // Struct.pick's keys as `ReadonlyArray<string>` without needing to resolve Q first
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    A,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    pickFn: (self: Record<string, unknown>) => A
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, never, ExtractTType<Q>, E>
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
     I,
@@ -373,6 +403,23 @@ export const project: {
   ): (
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, never, ExtractTType<Q>, E>
+  // ─── key-string array overload ───────────────────────────────────────────────
+  // `project(["id", "displayName"])` — picks named fields; select optimisation applies
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    const Keys extends readonly (keyof ExtractFieldValuesRefined<Q>)[],
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    keys: Keys
+  ): (
+    current: Q
+  ) => QueryProjection<
+    ExtractFieldValuesRefined<Q>,
+    Pick<ExtractFieldValuesRefined<Q>, Keys[number]>,
+    never,
+    ExtractTType<Q>,
+    E
+  >
 } = (schemaOrFields: any, mode = "transform") => (current: any) =>
   new Project({
     current,

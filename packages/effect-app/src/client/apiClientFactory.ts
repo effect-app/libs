@@ -254,14 +254,14 @@ const makeApiClientFactory = Effect
       }
 
       return Effect.fnUntraced(function*<M extends RequestsAny>(models: M) {
-        const found = cache.get(models)
+        const found = cache.get(models) as Client<M, ExtractModuleName<M>> | undefined
         if (found) {
           return found
         }
         const m = yield* makeClientFor(models, requestLevelLayers, options)
         cache.set(models, m.client)
         register.push(m.mr)
-        return m.client
+        return m.client as Client<M, ExtractModuleName<M>>
       })
     }
 

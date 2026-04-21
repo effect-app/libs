@@ -74,9 +74,6 @@ export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
    * see Command.wrap for details */
   wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
-  /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
-   * see Command.fn for details */
-  fn: Commander.CommanderFn<RT, Id, Id, undefined>
 }
 
 /** my other doc */
@@ -87,7 +84,7 @@ export interface MutationExtWithInput<
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, I, A, E, R> {
+> extends MutationExtensions<RT, Id, I, A, E, R> {
   /**
    * Call the endpoint with input
    * Invalidate queries based on namespace of this mutation.
@@ -107,12 +104,7 @@ export interface MutationExt<
   A,
   E,
   R
-> extends
-  Commander.CommandContextLocal<Id, Id>,
-  Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
-  MutationExtensions<RT, Id, void, A, E, R>,
-  Effect.Effect<A, E, R>
-{
+> extends MutationExtensions<RT, Id, void, A, E, R>, Effect.Effect<A, E, R> {
 }
 
 export type MutationWithExtensions<RT, Req> = Req extends
@@ -444,13 +436,8 @@ export const makeClient = <RT_, RTHooks>(
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
         const mut: any = mutation(client[key] as any)
-        const fn = Command.fn(client[key].id)
         const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
-        ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
-          mut,
-          fn, // to get the i18n key etc.
-          { wrap, fn }
-        )
+        ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(mut, { wrap })
         return acc
       },
       {} as {
@@ -485,10 +472,8 @@ export const makeClient = <RT_, RTHooks>(
           (mutate) =>
             Object.assign(
               mutate,
-              fn, // to get the i18n key etc.
               {
-                wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id }),
-                fn
+                wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id })
               }
             )
         )

@@ -87,6 +87,7 @@ it.skip("works", () => {
   const f0 = client.GetSomething2WithDependencies.fn(null as any)
 
   const g = client.GetSomething2.mutate.wrap(null as any)
+  // @ts-expect-error mutate no longer exposes fn, use client.GetSomething2.fn
   const h = client.GetSomething2.mutate.fn(null as any)
 
   expect(true).toBe(true)

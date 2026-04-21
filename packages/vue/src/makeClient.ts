@@ -115,25 +115,23 @@ export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
 }
 
 /** my other doc */
-export type MutationExtWithInput<
+export interface MutationExtWithInput<
   RT,
   Id extends string,
   I,
   A,
   E,
   R
-> =
-  & MutationExtensions<RT, Id, I, A, E, R>
-  & {
-    /**
-     * Send the request to the endpoint and return the raw Effect response.
-     * Also invalidates query caches using the request namespace by default.
-     * Namespace invalidation targets parent namespace keys
-     * (for example `$project/$configuration.get` invalidates `$project`).
-     * Override invalidation in client options via `queryInvalidation`.
-     */
-    (i: I): Effect.Effect<A, E, R>
-  }
+> extends MutationExtensions<RT, Id, I, A, E, R> {
+  /**
+   * Send the request to the endpoint and return the raw Effect response.
+   * Also invalidates query caches using the request namespace by default.
+   * Namespace invalidation targets parent namespace keys
+   * (for example `$project/$configuration.get` invalidates `$project`).
+   * Override invalidation in client options via `queryInvalidation`.
+   */
+  (i: I): Effect.Effect<A, E, R>
+}
 
 /**
  * Send the request to the endpoint and return the raw Effect response.

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.120
+
+### Minor Changes
+
+- f21190c: Add `copy` property to `Class` and `TaggedClass` for creating modified instances with updated fields. The `copy` method is cached per-class and supports both object and function-based updates, with pipeline support.
+
 ## 4.0.0-beta.119
 
 ## 4.0.0-beta.118

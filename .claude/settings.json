@@ -7,7 +7,12 @@
       "Bash(git commit -m ' *)",
       "Read(//home/patroza/pj/effect-app/**)",
       "Bash(git checkout *)",
-      "Bash(pnpm --filter @effect-app/vue check)"
+      "Bash(pnpm --filter @effect-app/vue check)",
+      "Bash(git -C /home/patroza/pj/effect-app/libs status)",
+      "Bash(git -C /home/patroza/pj/effect-app/libs diff --stat)",
+      "Bash(git -C /home/patroza/pj/effect-app/libs log -5 --oneline)",
+      "Bash(git -C /home/patroza/pj/effect-app/libs add packages/infra/src/Model/Repository/ext.ts packages/infra/src/Model/Repository/internal/internal.ts packages/infra/src/Model/Repository/service.ts .changeset/repo-mutations-accept-empty-arrays.md)",
+      "Bash(git -C /home/patroza/pj/effect-app/libs commit -m ' *)"
     ]
   }
 }

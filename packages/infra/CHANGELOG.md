@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.127
+
+### Patch Changes
+
+- 71a0719: Merge `batchPar` into `batch`, expose `concurrency` via an optional `BatchOptions` argument, and make `batch` dual (data-first + data-last).
+- 4bc3d05: Repository `save`, `remove`, and `removeById` now accept plain `ReadonlyArray` instead of `NonEmptyReadonlyArray`. Callers no longer need to narrow or guard for non-emptiness before invoking — empty inputs short-circuit to a no-op, making it ergonomic to pass through query results directly.
+  - effect-app@4.0.0-beta.127
+
 ## 4.0.0-beta.126
 
 ### Patch Changes

@@ -11,6 +11,7 @@
     "@effect-app/vue-components": "3.2.0"
   },
   "changesets": [
+    "batch-dual-options",
     "bold-berries-change",
     "brave-bushes-fold",
     "brave-laws-add",
@@ -23,6 +24,7 @@
     "chubby-dolls-yell",
     "clean-sql-data-column",
     "clever-pets-follow",
+    "client-fetch-property",
     "cold-rabbits-pay",
     "commander-state-toast-types",
     "context-map-resolver-cache",
@@ -120,6 +122,7 @@
     "remove-tagged-request",
     "remove-withDefaultConstructor",
     "replace-proxify-with-accessors",
+    "repo-mutations-accept-empty-arrays",
     "repo-spans-itemtype",
     "repository-registry",
     "resolver-cache-use-official",

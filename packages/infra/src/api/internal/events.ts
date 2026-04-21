@@ -1,6 +1,7 @@
 import { Duration, Effect, pipe, S, Schedule, Stream } from "effect-app"
 import { HttpHeaders, HttpServerResponse } from "effect-app/http"
 import { reportError } from "../../errorReporter.js"
+import { storeId } from "../../Store/Memory.js"
 import { setupRequestContextFromCurrent } from "../setupRequest.js"
 
 // Tell the client to retry every 10 seconds if connectivity is lost
@@ -9,29 +10,32 @@ const keepAlive = Stream.fromEffectSchedule(Effect.succeed(":keep-alive"), Sched
 
 let connId = BigInt(0)
 
-export const makeSSE = <A extends { id: any }, SI, SR>(
-  schema: S.Codec<A, SI, SR>
+export const makeSSE = <A extends { id: any }, SI, SRD, SRE>(
+  schema: S.Codec<A, SI, SRD, SRE>
 ) =>
 <E, R>(events: Stream.Stream<{ evt: A; namespace: string }, E, R>) =>
   Effect
     .gen(function*() {
       const id = connId++
-      const ctx = yield* Effect.services<R | SR>()
+      const ctx = yield* Effect.context<R | SRD | SRE>()
       const res = HttpServerResponse.stream(
         // workaround for different scoped behaviour for streams in Bun
         // https://discord.com/channels/795981131316985866/1098177242598756412/1389646879675125861
         Effect
           .gen(function*() {
+            const ns = yield* storeId
             yield* Effect.annotateCurrentSpan({ connectionId: id.toString() })
-            yield* Effect.logInfo("$ start listening to events, id: " + id.toString())
-            yield* Effect.addFinalizer(() => Effect.logInfo("$ end listening to events, id: " + id.toString()))
+            yield* Effect.logInfo("$ start listening to events, id: " + id.toString() + ", ns: " + ns)
+            yield* Effect.addFinalizer(() =>
+              Effect.logInfo("$ end listening to events, id: " + id.toString() + ", ns: " + ns)
+            )
 
             const enc = new TextEncoder()
 
-            const encode = S.encodeEffect(S.fromJsonString(schema))
+            const encode = S.encodeEffect(S.fromJsonString(S.toCodecJson(schema)))
 
             const eventStream = Stream.mapEffect(
-              events,
+              Stream.filter(events, (_) => _.namespace === ns),
               (_) =>
                 encode(_.evt)
                   .pipe(Effect.map((data) => `id: ${_.evt.id}\ndata: ${data}`))
@@ -42,7 +46,7 @@ export const makeSSE = <A extends { id: any }, SI, SR>(
               Stream.merge(keepAlive),
               // Keep this unary so pipe receives a function, not a Stream value.
               (self) => Stream.merge(self, eventStream, { haltStrategy: "either" }),
-              Stream.tapCause((cause) => Effect.logError("SSE error", cause)),
+              Stream.tapCause((cause) => Effect.logError("SSE error, id: " + id.toString() + ", ns: " + ns, cause)),
               Stream.map((_) => enc.encode(_ + "\n\n"))
             )
 

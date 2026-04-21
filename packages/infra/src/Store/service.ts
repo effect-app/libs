@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { UniqueKey } from "@azure/cosmos"
-import { Effect, type NonEmptyReadonlyArray, type Option, type Redacted, ServiceMap } from "effect-app"
+import { Context, Effect, type NonEmptyReadonlyArray, type Option, type Redacted } from "effect-app"
+import * as Semaphore from "effect/Semaphore"
 import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
@@ -10,8 +11,8 @@ import { type RawQuery } from "../Model/query.js"
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
   /**
-   * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database
-   * currently only supported in disk/memory. CosmosDB is TODO.
+   * Primarily used for testing, creating namespaces in the database to separate data e.g to run multiple tests in isolation within the same database.
+   * Memory/Disk use separate store instances per namespace. CosmosDB uses namespace-prefixed partition keys. SQL uses a `_namespace` column.
    */
   allowNamespace?: (namespace: string) => boolean
   /**
@@ -87,9 +88,14 @@ export interface Store<
   ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
   batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void>
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
+  /**
+   * Explicitly seed a namespace. Primary is seeded eagerly on initialization.
+   * Non-primary namespaces must be seeded explicitly before use.
+   */
+  seedNamespace: (namespace: string) => Effect.Effect<void>
 }
 
-export class StoreMaker extends ServiceMap.Opaque<StoreMaker, {
+export class StoreMaker extends Context.Opaque<StoreMaker, {
   make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
     name: string,
     idKey: IdKey,
@@ -161,16 +167,34 @@ export const makeContextMap = () => {
   //   }
   // }
 
+  const store = new Map<symbol, unknown>()
+  const sem = Semaphore.makeUnsafe(1)
+
   return {
     get: getEtag,
-    set: setEtag
-    // parserEnv
+    set: setEtag,
+    getOrCreateStore: <T>(key: symbol, make: () => T): T => {
+      let value = store.get(key) as T | undefined
+      if (value === undefined) {
+        value = make()
+        store.set(key, value)
+      }
+      return value
+    },
+    getOrCreateStoreEffect: <T, E, R>(key: symbol, make: Effect.Effect<T, E, R>): Effect.Effect<T, E, R> =>
+      sem.withPermits(1)(Effect.uninterruptible(Effect.gen(function*() {
+        const value = store.get(key) as T | undefined
+        if (value !== undefined) return value
+        const v = yield* make
+        store.set(key, v)
+        return v
+      })))
   }
 }
 
 const makeMap = Effect.sync(() => makeContextMap())
 
-export class ContextMap extends ServiceMap.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
+export class ContextMap extends Context.Opaque<ContextMap>()("effect-app/ContextMap", { make: makeMap }) {
 }
 
 export type PersistenceModelType<Encoded extends object> = Encoded & {

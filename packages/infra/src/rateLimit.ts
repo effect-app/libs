@@ -21,7 +21,9 @@
 // }
 
 import { Array, type Duration, Effect, type NonEmptyArray } from "effect-app"
+import { dual } from "effect-app/Function"
 import type { Semaphore } from "effect/Semaphore"
+import type { Concurrency } from "effect/Types"
 
 /**
  * Executes the specified effect, acquiring the specified number of permits
@@ -45,36 +47,42 @@ export function SEM_withPermitsDuration(permits: number, duration: Duration.Dura
   }
 }
 
-export function batchPar<R, E, A, R2, E2, A2, T>(
-  n: number,
-  forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect.Effect<A, E, R>,
-  forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect.Effect<A2, E2, R2>
-) {
-  return (items: Iterable<T>) =>
+export interface BatchOptions {
+  readonly concurrency?: Concurrency | undefined
+}
+
+export const batch: {
+  <T, A, E, R, A2, E2, R2>(
+    n: number,
+    forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect.Effect<A, E, R>,
+    forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect.Effect<A2, E2, R2>,
+    options?: BatchOptions
+  ): (items: Iterable<T>) => Effect.Effect<Array<A2>, E | E2, R | R2>
+  <T, A, E, R, A2, E2, R2>(
+    items: Iterable<T>,
+    n: number,
+    forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect.Effect<A, E, R>,
+    forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect.Effect<A2, E2, R2>,
+    options?: BatchOptions
+  ): Effect.Effect<Array<A2>, E | E2, R | R2>
+} = dual(
+  (args) => typeof args[0] !== "number",
+  <T, A, E, R, A2, E2, R2>(
+    items: Iterable<T>,
+    n: number,
+    forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect.Effect<A, E, R>,
+    forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect.Effect<A2, E2, R2>,
+    options?: BatchOptions
+  ) =>
     Effect.forEach(
       Array.chunksOf(items, n),
       (_, i) =>
         Effect
           .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: "inherit" })
           .pipe(Effect.flatMap((_) => forEachBatch(_, i))),
-      { concurrency: "inherit" }
+      { concurrency: options?.concurrency }
     )
-}
-
-export function batch<R, E, A, R2, E2, A2, T>(
-  n: number,
-  forEachItem: (item: T, iWithinBatch: number, batchI: number) => Effect.Effect<A, E, R>,
-  forEachBatch: (a: NonEmptyArray<A>, i: number) => Effect.Effect<A2, E2, R2>
-) {
-  return (items: Iterable<T>) =>
-    Effect.forEach(
-      Array.chunksOf(items, n),
-      (_, i) =>
-        Effect
-          .forEach(_, (_, j) => forEachItem(_, j, i), { concurrency: "inherit" })
-          .pipe(Effect.flatMap((_) => forEachBatch(_, i)))
-    )
-}
+)
 
 // export function rateLimit(
 //   n: number,

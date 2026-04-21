@@ -3,6 +3,7 @@ import { Effect, Option, type Record, S } from "effect-app"
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
 import { isObject } from "@vueuse/core"
 import type { Fiber as EffectFiber } from "effect/Fiber"
+import type { Redacted } from "effect/Redacted"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
@@ -23,7 +24,7 @@ const isDevelopmentEnvironment = () => {
 
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
-  : T extends string | boolean | number | null | undefined | symbol | bigint ? ""
+  : T extends string | boolean | number | null | undefined | symbol | bigint | Redacted<any> ? ""
   // technically we cannot have array at the root
   : T extends ReadonlyArray<infer U> ? FieldPath_<U, `[${number}]`>
   : {
@@ -31,7 +32,7 @@ export type FieldPath<T> = unknown extends T ? string
   }[keyof T]
 
 export type FieldPath_<T, Path extends string> = unknown extends T ? string
-  : T extends string | boolean | number | null | undefined | symbol | bigint ? Path
+  : T extends string | boolean | number | null | undefined | symbol | bigint | Redacted<any> ? Path
   : T extends ReadonlyArray<infer U> ? FieldPath_<U, `${Path}[${number}]`> | Path
   : {
     [K in keyof T]: FieldPath_<T[K], `${Path}.${K & string}`>
@@ -236,7 +237,13 @@ export type PrefixFromDepth<
   _TDepth extends any[]
 > = K
 
-export type NestedKeyOf<T> = DeepKeys<T>
+// Recursively replace Redacted<A> with its inner type so DeepKeys treats it as a leaf
+type StripRedacted<T> = T extends Redacted<any> ? string
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<StripRedacted<U>>
+  : T extends Record<string, any> ? { [K in keyof T]: StripRedacted<T[K]> }
+  : T
+
+export type NestedKeyOf<T> = DeepKeys<StripRedacted<T>>
 
 export type FieldValidators<T> = {
   onChangeAsync?: FieldAsyncValidateOrFn<T, any, any>
@@ -249,6 +256,14 @@ export type FieldValidators<T> = {
 export type BaseFieldMeta = {
   required: boolean
   nullableOrUndefined?: false | "undefined" | "null"
+  /**
+   * True when the schema property is `S.optionalKey` (AST
+   * `context.isOptional`) — i.e. the key should be ABSENT from the submitted
+   * object when empty, not present with `undefined`. Distinct from
+   * `required: false`, which may also mean "empty string is valid" for
+   * unconstrained `S.String` fields.
+   */
+  isOptionalKey?: boolean
 }
 
 export type StringFieldMeta = BaseFieldMeta & {
@@ -401,7 +416,7 @@ const extractDefaultFromLink = (link: any): unknown | undefined => {
 }
 
 const getDefaultFromAst = (property: S.AST.AST) => {
-  // 1. Check withDefaultConstructor (stored in context.defaultValue)
+  // 1. Check withConstructorDefault (stored in context.defaultValue)
   const constructorLink = property.context?.defaultValue?.[0]
   const constructorDefault = extractDefaultFromLink(constructorLink)
   if (constructorDefault !== undefined) return constructorDefault
@@ -512,8 +527,11 @@ export const createMeta = <T = any>(
       const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
       const nullableOrUndefined = isNullableOrUndefined(p.type)
 
+      const isOptionalKey = (p.type as any).context?.isOptional === true
+
       // Determine if this field should be required:
       // - For nullable discriminated unions, only _tag should be non-required
+      // - optionalKey fields are not required
       // - All other fields should calculate their required status normally
       let isRequired: boolean
       if (meta._isNullableDiscriminatedUnion && p.name.toString() === "_tag") {
@@ -521,6 +539,8 @@ export const createMeta = <T = any>(
         isRequired = false
       } else if (meta.required === false) {
         // Explicitly set to non-required (legacy behavior for backwards compatibility)
+        isRequired = false
+      } else if (isOptionalKey) {
         isRequired = false
       } else {
         // Calculate from the property itself
@@ -730,8 +750,9 @@ export const createMeta = <T = any>(
               // an empty string is valid for a S.String field, so we should not mark it as required
               // TODO: handle this better via the createMeta minLength parsing
               required: isRequired
-                && (!S.AST.isString(typeToProcess) || !!getFieldMetadataFromAst(p.type).minLength),
-              nullableOrUndefined
+                && (!S.AST.isString(typeToProcess) || !!getFieldMetadataFromAst(typeToProcess).minLength),
+              nullableOrUndefined,
+              ...(isOptionalKey ? { isOptionalKey: true } : {})
             }
           })
 
@@ -801,6 +822,14 @@ export const createMeta = <T = any>(
         type: "multiple",
         members: property.elements,
         rest: property.rest
+      } as FieldMeta
+    }
+
+    if (S.AST.isLiteral(property)) {
+      return {
+        ...meta,
+        type: "select",
+        members: [property.literal]
       } as FieldMeta
     }
 
@@ -935,6 +964,70 @@ const metadataFromAst = <From, To>(
   }
 
   return { meta: newMeta, defaultValues, unionMeta }
+}
+
+/*
+ * Checks if an AST node is a S.Redacted Declaration without encoding.
+ * These need to be swapped to S.RedactedFromValue for form usage
+ * because S.Redacted expects Redacted objects, not plain strings.
+ */
+const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean =>
+  S.AST.isDeclaration(ast)
+  && (ast.annotations as any)?.typeConstructor?._tag === "effect/Redacted"
+  && !ast.encoding
+
+/*
+ * Creates a form-compatible schema by replacing S.Redacted(X) with
+ * S.RedactedFromValue(X). S.Redacted is a Declaration that expects
+ * Redacted<A> on both encoded and type sides, so form inputs (which
+ * produce plain strings) fail validation. S.RedactedFromValue accepts
+ * plain values on the encoded side and wraps them in Redacted on decode.
+ */
+export const toFormSchema = <From, To>(
+  schema: S.Codec<To, From, never>
+): S.Codec<To, From, never> => {
+  const ast = schema.ast
+  const objAst = S.AST.isObjects(ast)
+    ? ast
+    : S.AST.isDeclaration(ast)
+    ? S.AST.toEncoded(ast)
+    : null
+
+  if (!objAst || !("propertySignatures" in objAst)) return schema
+
+  let hasRedacted = false
+  const props: Record<string, S.Struct.Fields[string]> = {}
+
+  for (const p of objAst.propertySignatures) {
+    if (isRedactedWithoutEncoding(p.type)) {
+      hasRedacted = true
+      const innerSchema = S.make((p.type as S.AST.Declaration).typeParameters[0]!)
+      props[p.name as string] = S.RedactedFromValue(innerSchema)
+    } else if (S.AST.isUnion(p.type)) {
+      const types = p.type.types
+      const redactedType = types.find(isRedactedWithoutEncoding)
+      if (redactedType) {
+        hasRedacted = true
+        const innerSchema = S.make((redactedType as S.AST.Declaration).typeParameters[0]!)
+        const hasNull = types.some(S.AST.isNull)
+        const hasUndefined = types.some(S.AST.isUndefined)
+        const base = S.RedactedFromValue(innerSchema)
+        props[p.name as string] = hasNull && hasUndefined
+          ? S.NullishOr(base)
+          : hasNull
+          ? S.NullOr(base)
+          : hasUndefined
+          ? S.UndefinedOr(base)
+          : base
+      } else {
+        props[p.name as string] = S.make(p.type)
+      }
+    } else {
+      props[p.name as string] = S.make(p.type)
+    }
+  }
+
+  return hasRedacted ? S.Struct(props) as unknown as S.Codec<To, From, never> : schema
 }
 
 export const duplicateSchema = <From, To>(
@@ -1136,18 +1229,8 @@ export function deepMerge(target: any, source: any) {
   return result
 }
 
-// Type definitions for schemas with fields and members
-type SchemaWithFields = {
-  fields: Record<string, S.Schema<any>>
-}
-
 type SchemaWithMembers = {
   members: readonly S.Schema<any>[]
-}
-
-// Type guards to check schema types
-function hasFields(schema: any): schema is SchemaWithFields {
-  return schema && "fields" in schema && typeof schema.fields === "object"
 }
 
 function hasMembers(schema: any): schema is SchemaWithMembers {
@@ -1173,23 +1256,31 @@ export const defaultsValueFromSchema = (
     return undefined
   }
 
-  // Check if schema has fields directly
-  if (hasFields(schema)) {
-    // Process fields and extract default values
+  // Handle structs via AST (covers plain structs, transformed schemas like decodeTo, ExtendedClass, etc.)
+  const objectsAst = S.AST.isObjects(ast)
+    ? ast
+    : S.AST.isDeclaration(ast)
+    ? unwrapDeclaration(ast)
+    : undefined
+  if (objectsAst && S.AST.isObjects(objectsAst)) {
     const result: Record<string, any> = {}
 
-    for (const [key, fieldSchema] of Object.entries(schema.fields)) {
-      const fieldDefault = getDefaultFromAst((fieldSchema as any)?.ast)
-      if (fieldDefault !== undefined) {
-        result[key] = fieldDefault
+    for (const prop of objectsAst.propertySignatures) {
+      const key = prop.name.toString()
+      const propType = prop.type
+
+      const propDefault = getDefaultFromAst(propType)
+      if (propDefault !== undefined) {
+        result[key] = propDefault
         continue
       }
 
-      // Recursively process the field
-      const fieldValue = defaultsValueFromSchema(fieldSchema as any, record[key] || {})
-      if (fieldValue !== undefined) {
-        result[key] = fieldValue
-      } else if (isNullableOrUndefined((fieldSchema as any).ast) === "undefined") {
+      const propSchema = S.make(propType)
+      const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
+
+      if (propValue !== undefined) {
+        result[key] = propValue
+      } else if (isNullableOrUndefined(propType) === "undefined") {
         result[key] = undefined
       }
     }
@@ -1197,74 +1288,41 @@ export const defaultsValueFromSchema = (
     return { ...result, ...record }
   }
 
-  // Check if schema has fields in from (for ExtendedClass and similar transformations)
-  if ((schema as any)?.from && hasFields((schema as any).from)) {
-    return defaultsValueFromSchema((schema as any).from, record)
-  }
+  // Handle unions via AST or schema-level .members
+  const unionTypes = S.AST.isUnion(ast)
+    ? ast.types
+    : hasMembers(schema)
+    ? schema.members.map((m) => m.ast)
+    : undefined
+  if (unionTypes) {
+    const mergedFields: Record<string, { ast: S.AST.AST }> = {}
 
-  if (hasMembers(schema)) {
-    // Merge all member fields, giving precedence to fields with default values
-    const mergedMembers = schema.members.reduce((acc, member) => {
-      if (hasFields(member)) {
-        // Check each field and give precedence to ones with default values
-        Object.entries(member.fields).forEach(([key, fieldSchema]) => {
-          const fieldDefault = getDefaultFromAst(fieldSchema.ast)
-          const existingDefault = acc[key] ? getDefaultFromAst(acc[key].ast) : undefined
+    for (const memberAstRaw of unionTypes) {
+      const memberAst = unwrapDeclaration(memberAstRaw)
+      if (!S.AST.isObjects(memberAst)) continue
 
-          // If field doesn't exist yet, or new field has default and existing doesn't, use new field
-          if (!acc[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
-            acc[key] = fieldSchema
-          }
-          // If both have defaults or neither have defaults, keep the first one (existing)
-        })
-        return acc
+      for (const prop of memberAst.propertySignatures) {
+        const key = prop.name.toString()
+        const fieldDefault = getDefaultFromAst(prop.type)
+        const existingDefault = mergedFields[key] ? getDefaultFromAst(mergedFields[key]!.ast) : undefined
+
+        if (!mergedFields[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
+          mergedFields[key] = { ast: prop.type }
+        }
       }
-      return acc
-    }, {} as Record<string, any>)
+    }
 
-    if (Object.keys(mergedMembers).length === 0) {
+    if (Object.keys(mergedFields).length === 0) {
       return Object.keys(record).length > 0 ? record : undefined
     }
 
-    // Use reduce to properly accumulate the merged fields
-    return Object.entries(mergedMembers).reduce((acc, [key, value]) => {
-      acc[key] = defaultsValueFromSchema(value, record[key] || {})
+    return Object.entries(mergedFields).reduce((acc, [key, { ast: propAst }]) => {
+      acc[key] = defaultsValueFromSchema(S.make(propAst), record[key] || {})
       return acc
     }, record)
   }
 
   if (Object.keys(record).length === 0) {
-    if (S.AST.isObjects(ast)) {
-      // Process TypeLiteral fields directly to build the result object
-      const result: Record<string, any> = { ...record }
-
-      for (const prop of ast.propertySignatures) {
-        const key = prop.name.toString()
-        const propType = prop.type
-
-        const propDefault = getDefaultFromAst(propType)
-        if (propDefault !== undefined) {
-          result[key] = propDefault
-          continue
-        }
-
-        // Create a schema from the property type and get its defaults
-        const propSchema = S.make(propType)
-
-        // Recursively process the property - don't pas for prop processing
-        // to allow proper unwrapping of nested structures
-        const propValue = defaultsValueFromSchema(propSchema, record[key] || {})
-
-        if (propValue !== undefined) {
-          result[key] = propValue
-        } else if (isNullableOrUndefined(propType) === "undefined") {
-          result[key] = undefined
-        }
-      }
-
-      return result
-    }
-
     if (S.AST.isString(ast)) {
       return ""
     }

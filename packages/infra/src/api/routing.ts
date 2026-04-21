@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, type Scope } from "effect-app"
+import { getMeta } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type TypeTestId } from "effect-app/TypeTest"
@@ -182,10 +183,9 @@ export const makeRouter = <
    * if `check` is provided, the router will only be created if the effect succeeds with true
    */
   function matchFor<
-    const ModuleName extends string,
     const Resource extends Record<string, any>
   >(
-    rsc: Resource & { meta: { moduleName: ModuleName } },
+    rsc: Resource,
     options?: { check?: Effect.Effect<boolean> }
   ) {
     type HandlerWithInputGen<
@@ -244,12 +244,12 @@ export const makeRouter = <
 
     type AnyHandlers<Action extends AnyRequestModule> = HandlersRaw<Action> | HandlersDecoded<Action>
 
-    const { meta } = rsc
+    const meta = getMeta(rsc)
 
     type RequestModules = FilterRequestModules<Resource>
     const requestModules = typedKeysOf(rsc).reduce((acc, cur) => {
       if (Predicate.isObjectKeyword(rsc[cur]) && rsc[cur]["success"]) {
-        acc[cur as keyof RequestModules] = rsc[cur] as RequestModules[keyof RequestModules]
+        acc[cur as keyof RequestModules] = rsc[cur]
       }
       return acc
     }, {} as RequestModules)

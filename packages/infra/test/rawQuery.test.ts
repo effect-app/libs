@@ -1,9 +1,10 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Array, Config, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S, ServiceMap } from "effect-app"
+import { Array, Config, Context, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S } from "effect-app"
 import { LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, or, project, where, whereEvery, whereSome } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
+import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 
@@ -49,7 +50,7 @@ const items = [
 ]
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
+class SomethingRepo extends Context.Service<SomethingRepo>()(
   "SomethingRepo",
   {
     make: Effect.gen(function*() {
@@ -76,7 +77,7 @@ class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
   static readonly Test = this
     .layer
     .pipe(
-      Layer.provide(MemoryStoreLive)
+      Layer.provide(Layer.merge(MemoryStoreLive, RepositoryRegistryLive))
     )
 
   static readonly TestCosmos = this
@@ -98,6 +99,7 @@ class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
               prefix: "",
               url
             })
+              .pipe(Layer.merge(RepositoryRegistryLive))
           })
           .pipe(Layer.unwrap)
       )
@@ -407,7 +409,7 @@ describe("removeByIds", () => {
 
       yield* repo.saveAndPublish(items)
       const itemsAfterSave = yield* repo.all
-      yield* repo.removeById(...items.slice(0, 2).map((_) => _.id))
+      yield* repo.removeById([items[0]!.id, items[1]!.id])
 
       const items2 = yield* repo.all
 

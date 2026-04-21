@@ -1,94 +1,109 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect } from "effect-app"
-import { Something, useClient, useExperimental } from "./stubs.js"
+import { makeQueryKey } from "../src/lib.js"
+import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
-it.skip("works2", () => {
-  const { legacy } = useClient()
-  const n = legacy.useQuery({
-    Request: null as any,
-    handler: null as any as (a: string) => Effect.Effect<number>,
-    id: "id"
-  })
+it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
+  expectTypeOf(SomethingReq.moduleName).toEqualTypeOf<"Something">()
+  expectTypeOf(SomethingElseReq.moduleName).toEqualTypeOf<"SomethingElse">()
 
-  const [, z] = n("a")
+  expectTypeOf(Something.GetSomething2.moduleName).toEqualTypeOf<"Something">()
+  expectTypeOf(Something.GetSomething2.id).toEqualTypeOf<"Something.GetSomething2">()
+  expectTypeOf(Something.GetSomething2.type).toEqualTypeOf<"query">()
+  expectTypeOf(Something.DoSomething.type).toEqualTypeOf<"command">()
+
+  expectTypeOf(SomethingElse.GetSomething2.moduleName).toEqualTypeOf<"SomethingElse">()
+  expectTypeOf(SomethingElse.GetSomething2.id).toEqualTypeOf<"SomethingElse.GetSomething2">()
+})
+
+it.skip("query type tests", () => {
+  const { clientFor } = useClient()
+  const client = clientFor(Something, () => ({
+    GetSomething2WithDependencies: (queryKey) => [
+      { filters: { queryKey } },
+      {
+        filters: {
+          queryKey: makeQueryKey(
+            SomethingElse
+              .GetSomething2
+          )
+        }
+      }
+    ]
+  }))
+
+  const q = client.GetSomething2.query
+
+  const [, z] = q({ id: "a" })
   const valz = z.value
   expectTypeOf(valz).toEqualTypeOf<number | undefined>()
 
-  const [, a] = n("a", { placeholderData: () => 123 })
+  const [, a] = q({ id: "a" }, { placeholderData: () => 123 })
   const val1 = a.value
   expectTypeOf(val1).toEqualTypeOf<number>()
 
-  const [, bbbb] = n("a", { select: (data) => data.toString() })
+  const [, bbbb] = q({ id: "a" }, { select: (data) => data.toString() })
   const val = bbbb.value
   expectTypeOf(val).toEqualTypeOf<string | undefined>()
 
-  const [, ccc] = n("a", { placeholderData: () => 123, select: (data) => data.toString() })
+  const [, ccc] = q({ id: "a" }, { placeholderData: () => 123, select: (data) => data.toString() })
   const val2 = ccc.value
   expectTypeOf(val2).toEqualTypeOf<string>()
 
-  const [, ddd] = n("a", { initialData: 123, select: (data) => data.toString() })
+  const [, ddd] = q({ id: "a" }, { initialData: 123, select: (data) => data.toString() })
   const val3 = ddd.value
   expectTypeOf(val3).toEqualTypeOf<string>()
 
-  const [, eee] = n("a", { initialData: 123, placeholderData: () => 123, select: (data) => data.toString() })
+  const [, eee] = q({ id: "a" }, { initialData: 123, placeholderData: () => 123, select: (data) => data.toString() })
   const val4 = eee.value
   expectTypeOf(val4).toEqualTypeOf<string>()
 })
 
 it.skip("works", () => {
-  const { clientFor, legacy } = useClient()
+  const { clientFor } = useClient()
   const client = clientFor(Something)
   const Command = useExperimental()
 
   // just for jsdoc / type testing.
-  const a0 = client.GetSomething2(null as any)
-  const a00 = client.GetSomething2.mutate(null as any)
+  const a0 = client.GetSomething2.request(null as any)
+  const a00 = client.DoSomething.mutate(null as any)
   const a = client.GetSomething2.suspense(null as any)
   const b = client.GetSomething2.query(null as any)
 
-  const c0 = legacy.useSafeMutation(null as any)
-  const c = legacy.useQuery(null as any)
-  const d = legacy.useSuspenseQuery(null as any)
-
+  // @ts-expect-error query requests no longer expose command helpers
   const e = client.GetSomething2.wrap(null as any)
+  // @ts-expect-error query requests no longer expose command helpers
   const f = client.GetSomething2.fn(null as any)
 
-  // @ts-expect-error dependencies required that are not provided
-  const e0 = client.GetSomething2WithDependencies.wrap().handle // not available as we require dependencies not provided by the runtime
-  // @ts-expect-error dependencies required that are not provided
-  const e000 = Command.wrap(client.GetSomething2WithDependencies)().handle // not available as we require dependencies not provided by the runtime
-  const e00 = client.GetSomething2WithDependencies.wrap((_) => _ as Effect.Effect<number, never, never>).handle(
-    null as any
-  )
-  const e0000 =
-    Command.wrap(client.GetSomething2WithDependencies)((_) => _ as Effect.Effect<number, never, never>).handle
+  // @ts-expect-error query requests no longer expose command helpers
+  const e0 = client.GetSomething2WithDependencies.wrap
+  // @ts-expect-error query request does not match Command.wrap mutation signature
+  const e000 = Command.wrap(client.GetSomething2WithDependencies)
   // @ts-expect-error dependencies required that are not provided
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)
   // @ts-expect-error dependencies required that are not provided
   const e2 = client.GetSomething2WithDependencies.query(null as any)
+  // @ts-expect-error query requests no longer expose command helpers
   const f0 = client.GetSomething2WithDependencies.fn(null as any)
 
-  const g = client.GetSomething2.mutate.wrap(null as any)
-  const h = client.GetSomething2.mutate.fn(null as any)
+  const g0 = client.DoSomething.wrap(null as any)
+  const g = client.DoSomething.mutate.wrap(null as any)
+  // @ts-expect-error mutate no longer exposes fn, use client.DoSomething.fn
+  const h = client.DoSomething.mutate.fn(null as any)
 
   expect(true).toBe(true)
   console.log({
     a,
     a0,
     a00,
-    c0,
     b,
-    c,
-    d,
     e,
     e0,
-    e00,
     e000,
-    e0000,
     e1,
     e2,
     f,
     f0,
+    g0,
     g,
     h
   })

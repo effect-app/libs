@@ -9,7 +9,7 @@
 1. run `pnpm test` and `pnpm lint-fix` to compare later
 2. update package.json files
 3. run `pnpm i`
-4. update `repos/effect-v4` pointer to the same version we just updated the packages to. and run `pnpm i` inside it.
+4. run `pnpm subtree:effect` to sync the `repos/effect` subtree to the same version, then run `pnpm i` inside it.
 5. run test and lint again, compare to from before the update.
 6. create a changeset describing the changes
 7. prepare commit

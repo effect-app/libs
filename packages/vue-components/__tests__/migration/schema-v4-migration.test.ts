@@ -8,7 +8,7 @@
  *   1. "current" tests → pin behavior with current schema patterns
  *   2. When refactoring internals, ALL tests must stay green
  *
- * NOTE: Uses `S.withDefaultConstructor` from effect-app (wraps in Option.some),
+ * NOTE: Uses `S.withConstructorDefault` from effect-app (wraps in Effect),
  *       NOT `S.withConstructorDefault` from native effect (expects raw Option return).
  *
  * ---- v4 breaking changes (from v3) ----
@@ -54,7 +54,7 @@
  */
 
 import { mount } from "@vue/test-utils"
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 import { defaultsValueFromSchema, generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
@@ -151,8 +151,8 @@ describe("generateMetaFromSchema", () => {
   describe("discriminated union (nested in struct)", () => {
     const schema = S.Struct({
       union: S.Union([
-        S.Struct({ _tag: S.Literal("A"), a: S.NonEmptyString255 }),
-        S.Struct({ _tag: S.Literal("B"), b: S.Finite })
+        S.Struct({ _tag: S.tag("A"), a: S.NonEmptyString255 }),
+        S.Struct({ _tag: S.tag("B"), b: S.Finite })
       ])
     })
 
@@ -286,11 +286,11 @@ describe("defaultsValueFromSchema", () => {
     })
   })
 
-  describe("withDefaultConstructor (effect-app wrapper)", () => {
+  describe("withConstructorDefault (effect-app wrapper)", () => {
     it("respects constructor defaults", () => {
       const schema = S.Struct({
-        name: S.String.pipe(S.withDefaultConstructor(() => "hello")),
-        count: S.Finite.pipe(S.withDefaultConstructor(() => 42))
+        name: S.String.pipe(S.withConstructorDefault(Effect.succeed("hello"))),
+        count: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(42)))
       })
       const defaults = defaultsValueFromSchema(schema)
       expect(defaults.name).toBe("hello")
@@ -300,8 +300,8 @@ describe("defaultsValueFromSchema", () => {
     it("constructor defaults in union members", () => {
       const schema = S.Union([
         S.Struct({
-          _tag: S.Literal("A").pipe(S.withDefaultConstructor(() => "A")),
-          a: S.String.pipe(S.withDefaultConstructor(() => "defaultA"))
+          _tag: S.Literal("A").pipe(S.withConstructorDefault(Effect.succeed("A"))),
+          a: S.String.pipe(S.withConstructorDefault(Effect.succeed("defaultA")))
         }),
         S.Struct({
           _tag: S.Literal("B"),
@@ -318,7 +318,7 @@ describe("defaultsValueFromSchema", () => {
     it("recursively extracts defaults from nested structs", () => {
       const schema = S.Struct({
         outer: S.Struct({
-          name: S.String.pipe(S.withDefaultConstructor(() => "nested")),
+          name: S.String.pipe(S.withConstructorDefault(Effect.succeed("nested"))),
           value: S.Boolean
         })
       })
@@ -345,8 +345,8 @@ describe("defaultsValueFromSchema", () => {
 describe("withDecodingDefault decoding defaults", () => {
   it("withDecodingDefault fills value during decoding", () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "defaultName")),
-      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 0))
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("defaultName"))),
+      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(Effect.succeed(0)))
     })
 
     const decoded = S.decodeUnknownSync(schema)({})
@@ -355,17 +355,17 @@ describe("withDecodingDefault decoding defaults", () => {
 
   it("withDecodingDefault respects provided values", () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "defaultName"))
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("defaultName")))
     })
 
     const decoded = S.decodeUnknownSync(schema)({ name: "provided" })
     expect(decoded).toEqual({ name: "provided" })
   })
 
-  it("mixed withDefaultConstructor and withDecodingDefault", () => {
+  it("mixed withConstructorDefault and withDecodingDefault", () => {
     const schema = S.Struct({
-      constructorDefault: S.String.pipe(S.withDefaultConstructor(() => "fromConstructor")),
-      decodingDefault: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "fromDecoding"))
+      constructorDefault: S.String.pipe(S.withConstructorDefault(Effect.succeed("fromConstructor"))),
+      decodingDefault: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("fromDecoding")))
     })
 
     // defaultsValueFromSchema should pick up constructor default
@@ -379,7 +379,7 @@ describe("withDecodingDefault decoding defaults", () => {
 
   it("defaultsValueFromSchema extracts withDecodingDefault alongside regular fields", () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decodingDefault")),
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("decodingDefault"))),
       required: S.String
     })
 
@@ -390,9 +390,9 @@ describe("withDecodingDefault decoding defaults", () => {
 
   it("withDecodingDefault can replace manual form default initialization", () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
-      active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(() => true))
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("John"))),
+      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(Effect.succeed(25))),
+      active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(Effect.succeed(true)))
     })
 
     // Single decode call produces all defaults — no AST walking needed
@@ -412,7 +412,7 @@ describe("withDecodingDefault decoding defaults", () => {
 describe("Form defaults integration", () => {
   it("schema defaults flow into form values", async () => {
     const schema = S.Struct({
-      name: S.String.pipe(S.withDefaultConstructor(() => "hello")),
+      name: S.String.pipe(S.withConstructorDefault(Effect.succeed("hello"))),
       active: S.Boolean,
       nullable: S.NullOr(S.String)
     })
@@ -426,8 +426,8 @@ describe("Form defaults integration", () => {
   it("union defaults flow into form values", async () => {
     const schema = S.Union([
       S.Struct({
-        _tag: S.Literal("A").pipe(S.withDefaultConstructor(() => "A")),
-        value: S.String.pipe(S.withDefaultConstructor(() => "default"))
+        _tag: S.Literal("A").pipe(S.withConstructorDefault(Effect.succeed("A"))),
+        value: S.String.pipe(S.withConstructorDefault(Effect.succeed("default")))
       }),
       S.Struct({
         _tag: S.Literal("B"),
@@ -442,8 +442,8 @@ describe("Form defaults integration", () => {
 
   it("tanstack defaultValues override schema defaults", async () => {
     const schema = S.Struct({
-      name: S.String.pipe(S.withDefaultConstructor(() => "fromSchema")),
-      age: S.Finite.pipe(S.withDefaultConstructor(() => 0))
+      name: S.String.pipe(S.withConstructorDefault(Effect.succeed("fromSchema"))),
+      age: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(0)))
     })
 
     const values = await mountAndGetDefaults(schema, {
@@ -577,10 +577,10 @@ describe("TaggedStruct API", () => {
     expect(meta["union.b"]?.required).toBe(true)
   })
 
-  it("TaggedStruct defaults work with withDefaultConstructor", () => {
+  it("TaggedStruct defaults work with withConstructorDefault", () => {
     const schema = S.Union([
       S.TaggedStruct("A", {
-        a: S.String.pipe(S.withDefaultConstructor(() => "defaultA"))
+        a: S.String.pipe(S.withConstructorDefault(Effect.succeed("defaultA")))
       }),
       S.TaggedStruct("B", { b: S.Finite })
     ])
@@ -637,8 +637,8 @@ describe("array metadata", () => {
 describe("withDecodingDefault form integration", () => {
   it("withDecodingDefault defaults flow into form values", async () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("John"))),
+      age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(Effect.succeed(25))),
       active: S.Boolean
     })
 
@@ -648,10 +648,10 @@ describe("withDecodingDefault form integration", () => {
     expect(values.active).toBe(false)
   })
 
-  it("withDecodingDefault mixed with withDefaultConstructor", async () => {
+  it("withDecodingDefault mixed with withConstructorDefault", async () => {
     const schema = S.Struct({
-      fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decoding")),
-      fromConstructor: S.String.pipe(S.withDefaultConstructor(() => "constructor")),
+      fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("decoding"))),
+      fromConstructor: S.String.pipe(S.withConstructorDefault(Effect.succeed("constructor"))),
       plain: S.Boolean
     })
 
@@ -663,8 +663,8 @@ describe("withDecodingDefault form integration", () => {
 
   it("tanstack defaultValues override withDecodingDefault", async () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "fromSchema")),
-      other: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 99))
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("fromSchema"))),
+      other: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(Effect.succeed(99)))
     })
 
     const values = await mountAndGetDefaults(schema, {
@@ -691,7 +691,7 @@ describe("regression guards", () => {
 
   it("withDecodingDefault extracted by defaultsValueFromSchema", () => {
     const schema = S.Struct({
-      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "myDefault"))
+      name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("myDefault")))
     })
     const defaults = defaultsValueFromSchema(schema)
     expect(defaults.name).toBe("myDefault")

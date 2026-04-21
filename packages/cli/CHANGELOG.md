@@ -1,5 +1,65 @@
 # @effect-app/cli
 
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- Update effect packages to 4.0.0-beta.52
+
+## 2.1.0-beta.13
+
+### Minor Changes
+
+- 97207c0: Add `sync-effect` CLI command to sync the Effect git subtree to the version pinned in package.json manifests.
+
+## 2.0.1-beta.12
+
+### Patch Changes
+
+- fac725d: update effect to latest beta
+
+## 2.0.1-beta.11
+
+### Patch Changes
+
+- 8267e7d: update to latest effect
+
+## 2.0.1-beta.10
+
+### Patch Changes
+
+- 1f9d7da: fix missing toCodecJson usages
+
+## 2.0.1-beta.9
+
+### Patch Changes
+
+- cec026d: update packages
+
+## 2.0.1-beta.8
+
+### Patch Changes
+
+- d867272: the return of `Context`
+
+## 2.0.1-beta.7
+
+### Patch Changes
+
+- 10b55ff: update packages
+
+## 2.0.1-beta.6
+
+### Patch Changes
+
+- a37aa38: Update to effect beta 43
+
+## 2.0.1-beta.5
+
+### Patch Changes
+
+- 8c645d5: update to latest effect
+
 ## 2.0.1-beta.4
 
 ### Patch Changes

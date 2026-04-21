@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, Result, S, ServiceMap } from "effect-app"
+import { Context, Effect, Layer, Result, S } from "effect-app"
 import { NotLoggedInError, UnauthorizedError } from "effect-app/client"
 import { HttpHeaders } from "effect-app/http"
 import * as RpcX from "effect-app/rpc"
@@ -63,11 +63,12 @@ const testSuite = (_mw: typeof middleware3) =>
       "works",
       Effect.fn(function*() {
         const defaultOpts = {
+          client: null as any, // TODO?
           headers: HttpHeaders.fromRecordUnsafe({}),
           payload: { _tag: "Test" },
           clientId: 0,
           requestId: "test-id" as any,
-          rpc: { ...TestRpc, annotations: ServiceMap.make(_mw.requestContext, {}) }
+          rpc: { ...TestRpc, annotations: Context.make(_mw.requestContext, {}) }
         }
         const next = Effect.void as unknown as Effect.Effect<SuccessValue, unhandled, never>
         const layer = _mw.layer.pipe(
@@ -89,7 +90,7 @@ const testSuite = (_mw: typeof middleware3) =>
                 headers: HttpHeaders.fromRecordUnsafe({ "x-user": "test-user", "x-is-manager": "true" }),
                 rpc: {
                   ...defaultOpts.rpc,
-                  annotations: ServiceMap.make(_mw.requestContext, { requireRoles: ["manager"] })
+                  annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] })
                 }
               })
             )
@@ -127,7 +128,7 @@ const testSuite = (_mw: typeof middleware3) =>
                 Object.assign({ ...defaultOpts }, {
                   rpc: {
                     ...defaultOpts.rpc,
-                    annotations: ServiceMap.make(_mw.requestContext, { requireRoles: ["manager"] })
+                    annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] })
                   }
                 })
               )
@@ -153,7 +154,7 @@ const testSuite = (_mw: typeof middleware3) =>
                   {
                     rpc: {
                       ...defaultOpts.rpc,
-                      annotations: ServiceMap.make(_mw.requestContext, { requireRoles: ["manager"] })
+                      annotations: Context.make(_mw.requestContext, { requireRoles: ["manager"] })
                     }
                   }
                 )

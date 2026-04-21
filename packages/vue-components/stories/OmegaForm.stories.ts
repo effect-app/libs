@@ -12,6 +12,7 @@ import CreateUseFormWithCustomInputComponent from "./OmegaForm/createUseFormWIth
 import CustomInputClassNameComponent from "./OmegaForm/CustomInputClassName.vue"
 import CustomLabelSlotComponent from "./OmegaForm/CustomLabelSlot.vue"
 import DateComponent from "./OmegaForm/Date.vue"
+import DecodeTransformFallbackComponent from "./OmegaForm/DecodeTransformFallback.vue"
 import DefaultsComponent from "./OmegaForm/Defaults.vue"
 import DialogBlockingExamplesComponent from "./OmegaForm/DialogBlockingExamples.vue"
 import EmailFormComponent from "./OmegaForm/EmailForm.vue"
@@ -21,9 +22,11 @@ import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerma
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
 import NullComponent from "./OmegaForm/Null.vue"
+import NullableComponent from "./OmegaForm/Nullable.vue"
 import OptionalKeyComponent from "./OmegaForm/OptionalKey.vue"
 import PersistencyFormComponent from "./OmegaForm/PersistencyForm.vue"
 import ProgrammaticallyHandleSubmitCheckErrorsComponent from "./OmegaForm/ProgrammaticallyHandleSubmitCheckErrors.vue"
+import RedactedComponent from "./OmegaForm/Redacted.vue"
 import RootLevelTaggedUnionComponent from "./OmegaForm/RootLevelTaggedUnion.vue"
 import RootLevelTaggedUnionLegacyComponent from "./OmegaForm/RootLevelTaggedUnionLegacy.vue"
 import SetErrorOnSubmitComponent from "./OmegaForm/SetErrorOnSubmit.vue"
@@ -121,6 +124,13 @@ export const SimpleForm: Story = {
   render: () => ({
     components: { SimpleFormComponent },
     template: "<SimpleFormComponent />"
+  })
+}
+
+export const Nullable: Story = {
+  render: () => ({
+    components: { NullableComponent },
+    template: "<NullableComponent />"
   })
 }
 
@@ -321,6 +331,28 @@ export const Defaults: Story = {
     components: { DefaultsComponent },
     template: "<DefaultsComponent />"
   })
+}
+
+export const Redacted: Story = {
+  render: () => ({
+    components: { RedactedComponent },
+    template: "<RedactedComponent />"
+  })
+}
+
+export const DecodeTransformFallback: Story = {
+  render: () => ({
+    components: { DecodeTransformFallbackComponent },
+    template: "<DecodeTransformFallbackComponent />"
+  }),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Outer schema NonNegativeInt should allow 0 as input; decode fallback rewrites { amount: 0 } to { amount: 666 } so it satisfies the inner PositiveInt target. Any positive value passes through unchanged."
+      }
+    }
+  }
 }
 
 export const IntegerValidationGerman: Story = {

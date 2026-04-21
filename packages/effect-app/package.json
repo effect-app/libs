@@ -1,31 +1,31 @@
 {
   "name": "effect-app",
-  "version": "4.0.0-beta.33",
+  "version": "4.0.0-beta.128",
   "license": "MIT",
   "type": "module",
   "dependencies": {
     "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.1.0",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.9",
     "path-parser": "^6.1.0",
     "query-string": "^9.3.1",
     "ts-pattern": "^5.9.0",
     "ts-toolbelt": "^9.6.0",
-    "uuid": "^13.0.0",
-    "validator": "^13.15.26"
+    "uuid": "^14.0.0",
+    "validator": "^13.15.35"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
-    "@types/node": "25.3.3",
+    "@types/node": "25.6.0",
     "@types/uuid": "^11.0.0",
     "@types/validator": "^13.15.10",
     "@effect-app/eslint-shared-config": "workspace:*",
-    "fast-check": "~4.5.3",
-    "typescript": "~6.0.2",
-    "vitest": "^4.0.18"
+    "fast-check": "~4.7.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.5"
   },
   "peerDependencies": {
-    "effect": "^4.0.0-beta.40"
+    "effect": "^4.0.0-beta.52"
   },
   "typesVersions": {
     "*": {
@@ -47,9 +47,21 @@
       "types": "./dist/Chunk.d.ts",
       "default": "./dist/Chunk.js"
     },
+    "./Config": {
+      "types": "./dist/Config.d.ts",
+      "default": "./dist/Config.js"
+    },
     "./Config/SecretURL": {
       "types": "./dist/Config/SecretURL.d.ts",
       "default": "./dist/Config/SecretURL.js"
+    },
+    "./ConfigProvider": {
+      "types": "./dist/ConfigProvider.d.ts",
+      "default": "./dist/ConfigProvider.js"
+    },
+    "./Context": {
+      "types": "./dist/Context.d.ts",
+      "default": "./dist/Context.js"
     },
     "./Effect": {
       "types": "./dist/Effect.d.ts",
@@ -99,6 +111,14 @@
       "types": "./dist/Schema/Methods.d.ts",
       "default": "./dist/Schema/Methods.js"
     },
+    "./Schema/SpecialJsonSchema": {
+      "types": "./dist/Schema/SpecialJsonSchema.d.ts",
+      "default": "./dist/Schema/SpecialJsonSchema.js"
+    },
+    "./Schema/SpecialOpenApi": {
+      "types": "./dist/Schema/SpecialOpenApi.d.ts",
+      "default": "./dist/Schema/SpecialOpenApi.js"
+    },
     "./Schema/brand": {
       "types": "./dist/Schema/brand.d.ts",
       "default": "./dist/Schema/brand.js"
@@ -130,10 +150,6 @@
     "./Schema/strings": {
       "types": "./dist/Schema/strings.d.ts",
       "default": "./dist/Schema/strings.js"
-    },
-    "./ServiceMap": {
-      "types": "./dist/ServiceMap.d.ts",
-      "default": "./dist/ServiceMap.js"
     },
     "./Set": {
       "types": "./dist/Set.d.ts",

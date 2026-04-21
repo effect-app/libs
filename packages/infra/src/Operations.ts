@@ -1,6 +1,6 @@
 import { reportError } from "@effect-app/infra/errorReporter"
 import { subHours } from "date-fns"
-import { Cause, copy, Duration, Effect, Exit, type Fiber, Layer, Option, S, Schedule, ServiceMap } from "effect-app"
+import { Cause, Context, copy, Duration, Effect, Exit, type Fiber, Layer, Option, S, Schedule } from "effect-app"
 import { annotateLogscoped } from "effect-app/Effect"
 import { dual, pipe } from "effect-app/Function"
 import { Operation, OperationFailure, OperationId, type OperationProgress, OperationSuccess } from "effect-app/Operations"
@@ -20,6 +20,33 @@ const make = Effect.gen(function*() {
   const reqFiberSet = yield* RequestFiberSet
   const makeOp = Effect.sync(() => OperationId.make())
 
+  const addOp = Effect.fnUntraced(function*(id: OperationId, title: NonEmptyString2k) {
+    return yield* repo.save(new Operation({ id, title })).pipe(Effect.orDie)
+  })
+
+  const finishOp = Effect.fnUntraced(function*(id: OperationId, exit: Exit.Exit<unknown, unknown>) {
+    const op = yield* repo.get(id).pipe(Effect.orDie)
+    const result = Exit.isSuccess(exit)
+      ? new OperationSuccess()
+      : new OperationFailure({
+        message: Cause.hasInterruptsOnly(exit.cause)
+          ? NonEmptyString2k("Interrupted")
+          : Cause.hasDies(exit.cause)
+          ? NonEmptyString2k("Unknown error")
+          : Cause
+            .findErrorOption(exit.cause)
+            .pipe(
+              Option.flatMap((_) =>
+                typeof _ === "object" && _ !== null && "message" in _ && S.is(NonEmptyString2k)(_.message)
+                  ? Option.some(_.message)
+                  : Option.none()
+              ),
+              Option.getOrNull
+            )
+      })
+    return yield* repo.save(copy(op, { updatedAt: new Date(), result })).pipe(Effect.orDie)
+  })
+
   const register = (title: NonEmptyString2k) =>
     Effect.tap(
       makeOp,
@@ -30,53 +57,20 @@ const make = Effect.gen(function*() {
         )
     )
 
-  const cleanup = Effect.sync(() => subHours(new Date(), 1)).pipe(
-    Effect.andThen((before) => repo.query(where("updatedAt", "lt", before.toISOString()))),
-    Effect.andThen((ops) => pipe(ops, batch(100, Effect.succeed, (items) => repo.removeAndPublish(items)))),
-    setupRequestContextFromCurrent("Operations.cleanup")
-  )
+  const cleanup = Effect
+    .gen(function*() {
+      const before = subHours(new Date(), 1)
+      const ops = yield* repo.query(where("updatedAt", "lt", before.toISOString()))
+      return yield* pipe(ops, batch(100, Effect.succeed, (items) => repo.removeAndPublish(items)))
+    })
+    .pipe(setupRequestContextFromCurrent("Operations.cleanup"))
 
-  function addOp(id: OperationId, title: NonEmptyString2k) {
-    return repo.save(new Operation({ id, title })).pipe(Effect.orDie)
-  }
-  function findOp(id: OperationId) {
-    return repo.find(id)
-  }
-  function finishOp(id: OperationId, exit: Exit.Exit<unknown, unknown>) {
-    return Effect
-      .flatMap(repo.get(id).pipe(Effect.orDie), (_) =>
-        repo
-          .save(
-            copy(_, {
-              updatedAt: new Date(),
-              result: Exit.isSuccess(exit)
-                ? new OperationSuccess()
-                : new OperationFailure({
-                  message: Cause.hasInterruptsOnly(exit.cause)
-                    ? NonEmptyString2k("Interrupted")
-                    : Cause.hasDies(exit.cause)
-                    ? NonEmptyString2k("Unknown error")
-                    : Cause
-                      .findErrorOption(exit.cause)
-                      .pipe(
-                        Option.flatMap((_) =>
-                          typeof _ === "object" && _ !== null && "message" in _ && S.is(NonEmptyString2k)(_.message)
-                            ? Option.some(_.message)
-                            : Option.none()
-                        ),
-                        Option.getOrNull
-                      )
-                })
-            })
-          )
-          .pipe(Effect.orDie))
-  }
-  function update(id: OperationId, progress: OperationProgress) {
-    return Effect.flatMap(
-      repo.get(id).pipe(Effect.orDie),
-      (_) => repo.save(copy(_, { updatedAt: new Date(), progress })).pipe(Effect.orDie)
-    )
-  }
+  const findOp = (id: OperationId) => repo.find(id)
+
+  const update = Effect.fnUntraced(function*(id: OperationId, progress: OperationProgress) {
+    const op = yield* repo.get(id).pipe(Effect.orDie)
+    return yield* repo.save(copy(op, { updatedAt: new Date(), progress })).pipe(Effect.orDie)
+  })
 
   function fork<R, R2, E, E2, A, A2>(
     self: (id: OperationId) => Effect.Effect<A, E, R>,
@@ -87,29 +81,18 @@ const make = Effect.gen(function*() {
     never,
     Exclude<R, Scope.Scope> | Exclude<R2, Scope.Scope>
   > {
-    return Effect
-      .flatMap(
-        Scope.make(),
-        (scope) =>
-          register(title)
-            .pipe(
-              Scope.provide(scope),
-              Effect.flatMap((id) =>
-                reqFiberSet
-                  .forkDaemonReportUnexpected(Scope.use(
-                    self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
-                    scope
-                  ))
-                  .pipe(Effect.map((fiber): RunningOperation<A, E> => ({ fiber, id })))
-              ),
-              Effect.tap(({ id }) =>
-                Effect.interruptible(fnc(id)).pipe(
-                  Effect.forkScoped,
-                  Scope.provide(scope)
-                )
-              )
-            )
+    return Effect.gen(function*() {
+      const scope = yield* Scope.make()
+      const id = yield* Scope.provide(register(title), scope)
+      const fiber = yield* reqFiberSet.forkDaemonReportUnexpected(
+        Scope.use(
+          self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
+          scope
+        )
       )
+      yield* Scope.provide(Effect.forkScoped(Effect.interruptible(fnc(id))), scope)
+      return { fiber, id } satisfies RunningOperation<A, E>
+    })
   }
 
   const fork2: {
@@ -122,24 +105,20 @@ const make = Effect.gen(function*() {
     ): Effect.Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
   } = dual(
     2,
-    <R, E, A>(self: (opId: OperationId) => Effect.Effect<A, E, R>, title: NonEmptyString2k) =>
-      Effect.flatMap(
-        Scope.make(),
-        (scope) =>
-          register(title)
-            .pipe(
-              Scope.provide(scope),
-              Effect
-                .flatMap((id) =>
-                  reqFiberSet
-                    .forkDaemonReportUnexpected(Scope.use(
-                      self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
-                      scope
-                    ))
-                    .pipe(Effect.map((fiber): RunningOperation<A, E> => ({ fiber, id })))
-                )
-            )
+    Effect.fnUntraced(function*<R, E, A>(
+      self: (opId: OperationId) => Effect.Effect<A, E, R>,
+      title: NonEmptyString2k
+    ) {
+      const scope = yield* Scope.make()
+      const id = yield* Scope.provide(register(title), scope)
+      const fiber = yield* reqFiberSet.forkDaemonReportUnexpected(
+        Scope.use(
+          self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
+          scope
+        )
       )
+      return { fiber, id } satisfies RunningOperation<A, E>
+    })
   )
 
   const forkOperation: {
@@ -152,28 +131,21 @@ const make = Effect.gen(function*() {
     ): Effect.Effect<RunningOperation<A, E>, never, Exclude<R, Scope.Scope>>
   } = dual(
     2,
-    <R, E, A>(self: Effect.Effect<A, E, R>, title: NonEmptyString2k) =>
-      Effect.flatMap(
-        Scope.make(),
-        (scope) =>
-          register(title)
-            .pipe(
-              Scope.provide(scope),
-              Effect
-                .flatMap((id) =>
-                  reqFiberSet
-                    .forkDaemonReportUnexpected(Scope.use(
-                      self.pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
-                      scope
-                    ))
-                    .pipe(Effect.map((fiber): RunningOperation<A, E> => ({ fiber, id })))
-                )
-            )
+    Effect.fnUntraced(function*<R, E, A>(self: Effect.Effect<A, E, R>, title: NonEmptyString2k) {
+      const scope = yield* Scope.make()
+      const id = yield* Scope.provide(register(title), scope)
+      const fiber = yield* reqFiberSet.forkDaemonReportUnexpected(
+        Scope.use(
+          self.pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
+          scope
+        )
       )
+      return { fiber, id } satisfies RunningOperation<A, E>
+    })
   )
 
   function forkOperationFunction<R, E, A, Inp>(fnc: (inp: Inp) => Effect.Effect<A, E, R>, title: NonEmptyString2k) {
-    return (inp: Inp) => fnc(inp).pipe((_) => forkOperation(_, title))
+    return (inp: Inp) => forkOperation(fnc(inp), title)
   }
 
   return {
@@ -189,19 +161,12 @@ const make = Effect.gen(function*() {
   }
 })
 
-export class Operations extends ServiceMap.Opaque<Operations>()("effect-app/Operations", { make }) {
+export class Operations extends Context.Opaque<Operations>()("effect-app/Operations", { make }) {
   private static readonly CleanupLive = this
     .use((_) =>
       _.cleanup.pipe(
         Effect.exit,
-        Effect
-          .flatMap((_) => {
-            if (Exit.isSuccess(_)) {
-              return Effect.void
-            } else {
-              return reportAppError(_.cause)
-            }
-          }),
+        Effect.flatMap((exit) => Exit.isSuccess(exit) ? Effect.void : reportAppError(exit.cause)),
         Effect.schedule(Schedule.fixed(Duration.minutes(20))),
         Effect.map((_) => _ as never),
         MainFiberSet.run

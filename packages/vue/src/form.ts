@@ -147,10 +147,18 @@ function handlePropertySignature(
             const typeLiteral = getObjectsAST(ps.type)
 
             const tagPropertySignature = typeLiteral?.propertySignatures.find((_) => _.name === "_tag")
-            const tagLiteral = tagPropertySignature
-                && S.AST.isLiteral(tagPropertySignature.type)
-                && typeof tagPropertySignature.type.literal === "string"
-              ? tagPropertySignature.type.literal
+            // unwrap single-element Union to Literal (S.Struct({ _tag: S.Literal("x") }) wraps as Union([Literal("x")]))
+            const tagType = tagPropertySignature
+              ? S.AST.isUnion(tagPropertySignature.type)
+                  && tagPropertySignature.type.types.length === 1
+                  && S.AST.isLiteral(tagPropertySignature.type.types[0]!)
+                ? tagPropertySignature.type.types[0]
+                : tagPropertySignature.type
+              : undefined
+            const tagLiteral = tagType
+                && S.AST.isLiteral(tagType)
+                && typeof tagType.literal === "string"
+              ? tagType.literal
               : void 0
 
             const toRet = handlePropertySignature(ps)
@@ -254,7 +262,7 @@ function buildFieldInfo(
   const propertyKey = property.name
   const schema = S.make<S.Codec<unknown>>(property.type)
   const metadata = getMetadataFromSchema(property.type)
-  const parse = S.decodeUnknownExit(schema as S.Codec<unknown> & { readonly DecodingServices: never })
+  const parse = S.decodeUnknownExit(schema)
 
   const nullableOrUndefined = S.AST.isUnion(property.type)
     && (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "Undefined"))
@@ -277,7 +285,7 @@ function buildFieldInfo(
     }
 
     // parse specific error types for better translation support
-    const integerMatch = err.match(/Expected.*integer.*actual\s+(.+)/i)
+    const integerMatch = err.match(/Expected.*integer.*(?:actual|got)\s+([^)]+)/i)
     if (integerMatch) {
       return translate.value(
         { defaultMessage: "Expected an integer, actual {actualValue}", id: "validation.integer.expected" },
@@ -285,7 +293,7 @@ function buildFieldInfo(
       )
     }
 
-    const numberMatch = err.match(/Expected.*number.*actual\s+(.+)/i)
+    const numberMatch = err.match(/Expected.*number.*(?:actual|got)\s+([^)]+)/i)
     if (numberMatch) {
       return translate.value(
         { defaultMessage: "Expected a number, actual {actualValue}", id: "validation.number.expected" },
@@ -376,7 +384,7 @@ function buildFieldInfo(
       : metadata.type === "float" || metadata.type === "int"
       ? numberRules
       : []) as UnknownRule[],
-    parseRule as UnknownRule
+    parseRule
   ]
 
   const info = {
@@ -420,6 +428,27 @@ export function getMetadataFromSchema(
   required: boolean
   description?: string
 } {
+  const findJsonSchemaType = (
+    schema: any,
+    target: "number" | "integer"
+  ): boolean => {
+    if (!schema || typeof schema !== "object") {
+      return false
+    }
+
+    if (schema.type === target) {
+      return true
+    }
+
+    if (Array.isArray(schema.type) && schema.type.includes(target)) {
+      return true
+    }
+
+    return ["anyOf", "oneOf", "allOf"].some((key) =>
+      Array.isArray(schema[key]) && schema[key].some((member: any) => findJsonSchemaType(member, target))
+    )
+  }
+
   const nullable = S.AST.isUnion(ast) && ast.types.includes(S.Null.ast)
   const realSelf = nullable && S.AST.isUnion(ast)
     ? ast.types.filter((_) => _ !== S.Null.ast)[0]!
@@ -429,7 +458,7 @@ export function getMetadataFromSchema(
   try {
     const doc = S.toJsonSchemaDocument(S.make<S.Codec<unknown>>(realSelf))
     jschema = doc.schema as any
-    const defs = doc.definitions as Record<string, any>
+    const defs = doc.definitions
     // resolve $ref against definitions
     while (jschema["$ref"] && jschema["$ref"].startsWith("#/$defs/")) {
       const { $ref: _, ...rest } = jschema
@@ -449,8 +478,8 @@ export function getMetadataFromSchema(
   //         "title": "Int"
   //     }
   // }
-  const isNumber = jschema.type === "number" || jschema.type === "integer"
-  const isInt = jschema.type === "integer"
+  const isInt = findJsonSchemaType(jschema, "integer")
+  const isNumber = isInt || findJsonSchemaType(jschema, "number")
   return {
     type: isInt ? "int" as const : isNumber ? "float" as const : "text" as const,
     minimum: jschema.minimum,

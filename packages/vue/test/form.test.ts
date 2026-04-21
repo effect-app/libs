@@ -1,15 +1,19 @@
 import { Effect, S } from "effect-app"
-import { buildFieldInfoFromFieldsRoot, type DiscriminatedUnionFieldInfo, type FieldInfo, type NestedFieldInfo, type UnionFieldInfo } from "../src/form.js"
+import { buildFieldInfoFromFieldsRoot, type DiscriminatedUnionFieldInfo, type FieldInfo, getMetadataFromSchema, type NestedFieldInfo, type UnionFieldInfo } from "../src/form.js"
 
 export class NestedSchema extends S.Class<NestedSchema>("NestedSchema")({
   shallow: S.String,
   nested: S.Struct({
     deep: S.NonEmptyString,
     nested: S.Struct({
-      deepest: S.Finite
+      deepest: S.Number
     })
   }),
-  age: S.Struct({ nfs: S.FiniteFromString.pipe(S.decodeTo(S.PositiveInt)) })
+  age: S.Struct({ nfs: S.NumberFromString.pipe(S.decodeTo(S.PositiveInt)) }),
+  testNumber: S.Number,
+  testFinite: S.Finite,
+  testNullableNummber: S.NullOr(S.Number),
+  testOptionalNumber: S.optional(S.Number)
 }) {}
 
 export class SchemaContainsClass extends S.Class<SchemaContainsClass>("SchemaContainsClass")({
@@ -33,7 +37,7 @@ class Square extends S.TaggedClass<Square>()("Square", {
 
 class Triangle extends S.TaggedClass<Triangle>()("Triangle", {
   base: S.PositiveInt,
-  height: S.Finite
+  height: S.Number
 }) {}
 
 const CircleStruct = S.Struct({
@@ -49,7 +53,7 @@ const SquareStruct = S.Struct({
 const TriangleStruct = S.Struct({
   _tag: S.Literal("TriangleStruct"),
   base: S.PositiveInt,
-  height: S.Finite
+  height: S.Number
 })
 
 const ShapeWithStructs = S.Union([CircleStruct, SquareStruct, TriangleStruct])
@@ -156,6 +160,15 @@ function testDiscriminatedUnionFieldInfo<T extends Record<PropertyKey, any>>(duf
   )
 }
 
+it("getMetadataFromSchema handles composed numeric schemas", () => {
+  expect(getMetadataFromSchema(S.Number.ast).type).toBe("float")
+  expect(getMetadataFromSchema(S.Finite.ast).type).toBe("float")
+  expect(getMetadataFromSchema(S.PositiveNumber.ast).type).toBe("float")
+  expect(getMetadataFromSchema(S.Int.ast).type).toBe("int")
+  expect(getMetadataFromSchema(S.PositiveInt.ast).type).toBe("int")
+  expect(getMetadataFromSchema(S.NullOr(S.Number).ast).type).toBe("float")
+})
+
 it("buildFieldInfo", () =>
   Effect
     .gen(function*() {
@@ -176,6 +189,11 @@ it("buildFieldInfo", () =>
       testNestedFieldInfo(nestedFieldinfo)
       testNestedFieldInfo(nestedFieldinfo.fields.nested)
       testNestedFieldInfo(nestedFieldinfo.fields.age)
+
+      expect(nestedFieldinfo.fields.testNumber.type).toBe("float")
+      expect(nestedFieldinfo.fields.testFinite.type).toBe("float")
+      expect(nestedFieldinfo.fields.testNullableNummber.type).toBe("float")
+      expect(nestedFieldinfo.fields.testOptionalNumber.type).toBe("float")
     })
     .pipe(Effect.runPromise))
 

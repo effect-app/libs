@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, Schema, type SchemaAST, SchemaGetter, SchemaIssue, SchemaTransformation, ServiceMap } from "effect"
+import { Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
 import * as S from "effect/Schema"
+import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
+import * as Context from "../Context.js"
 import { extendM, typedKeysOf } from "../utils.js"
 import { type AST } from "./schema.js"
 
@@ -13,57 +15,80 @@ type ProvidedCodec<Self extends S.Top, R> = S.Codec<
   Exclude<Self["EncodingServices"], R>
 >
 
-// TODO: v4 migration — withConstructorDefault signature changed, propertySignature removed
-// Constraint relaxed from `Self extends S.Top & S.WithoutConstructorDefault` to `Self extends S.Top`
-// because `.pipe()` widens the schema type to `Top` which doesn't satisfy `WithoutConstructorDefault`.
-// The narrowing assertions below are safe — we're asserting "this schema hasn't had a default applied yet".
-export const withDefaultConstructor = <A>(
-  makeDefault: () => NoInfer<A>
-) =>
-<Self extends S.Top>(self: Self): S.withConstructorDefault<Self & S.WithoutConstructorDefault> => {
-  type Narrowed = Self & S.WithoutConstructorDefault
-  return S.withConstructorDefault<Narrowed>(
-    () => Option.some(makeDefault() as Narrowed["~type.make.in"])
-  )(self as Narrowed)
-}
-
 // TODO: v4 migration - Date is no longer by default encoded to string.
-const DateFromString = Schema.Date.pipe(
-  Schema.encodeTo(Schema.String, {
-    decode: SchemaGetter.Date(),
-    encode: SchemaGetter.transform((_) => _.toISOString())
-  })
-)
+
+const DateString = S.String.annotate({
+  identifier: "Date",
+  description: "a string in ISO 8601 format that will be decoded as a Date",
+  format: "date-time"
+})
+
+/**
+ * Schema type for {@link DateFromString}.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export interface DateFromString extends S.decodeTo<S.Date, S.String> {}
+
+/**
+ * A transformation schema that parses an ISO 8601 string into a `Date`.
+ *
+ * Decoding:
+ * - A `string` is decoded as a `Date`.
+ *
+ * Encoding:
+ * - A `Date` is encoded as a `string`.
+ *
+ * @since 4.0.0
+ */
+export const DateFromString: DateFromString = DateString.pipe(S.decodeTo(S.Date, SchemaTransformation.dateFromString))
 
 /**
  * Like the default Schema `Date` but from String with `withDefault` => now
  */
 export const Date = Object.assign(DateFromString, {
-  withDefault: DateFromString.pipe(withDefaultConstructor(() => new global.Date()))
+  withDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  withDecodingDefaultType: DateFromString.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
+})
+
+/**
+ * Like the default Schema `DateValid` but from String with `withDefault` => now
+ */
+export const DateValid = Object.assign(Date.check(isDateValid()), {
+  withDefault: DateFromString.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date()))),
+  withDecodingDefaultType: DateFromString.pipe(S.withDecodingDefaultType(Effect.sync(() => new global.Date())))
 })
 
 /**
  * Like the default Schema `Boolean` but with `withDefault` => false
  */
 export const Boolean = Object.assign(S.Boolean, {
-  withDefault: S.Boolean.pipe(withDefaultConstructor(() => false))
+  withDefault: S.Boolean.pipe(S.withConstructorDefault(Effect.succeed(false))),
+  withDecodingDefaultType: S.Boolean.pipe(S.withDecodingDefaultType(Effect.succeed(false)))
 })
 
 /**
  * You probably want to use `Finite` instead of this.
  * Like the default Schema `Number` but with `withDefault` => 0
  */
-export const Number = Object.assign(S.Number, { withDefault: S.Number.pipe(withDefaultConstructor(() => 0)) })
+export const Number = Object.assign(S.Number, {
+  withDefault: S.Number.pipe(S.withConstructorDefault(Effect.succeed(0))),
+  withDecodingDefaultType: S.Number.pipe(S.withDecodingDefaultType(Effect.succeed(0)))
+})
 
 /**
  * Like the default Schema `Finite` but with `withDefault` => 0
  */
-export const Finite = Object.assign(S.Finite, { withDefault: S.Finite.pipe(withDefaultConstructor(() => 0)) })
+export const Finite = Object.assign(S.Finite, {
+  withDefault: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(0))),
+  withDecodingDefaultType: S.Finite.pipe(S.withDecodingDefaultType(Effect.succeed(0)))
+})
 
 /**
- * Like the default Schema `Literal` but with `withDefault` => literals[0]
+ * Like the default Schema `Literals` but with `withDefault` => literals[0]
  */
-export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(...literals: Literals) =>
+export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.LiteralValue>>(literals: Literals) =>
   pipe(
     S.Literals(literals),
     (s) =>
@@ -71,56 +96,111 @@ export const Literal = <Literals extends NonEmptyReadonlyArray<AST.LiteralValue>
         changeDefault: <A extends Literals[number]>(a: A) => {
           return Object.assign(S.Literals(literals), {
             Default: a,
-            withDefault: s.pipe(withDefaultConstructor(() => a))
+            withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(a))),
+            withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(a)))
           }) // todo: copy annotations from original?
         },
-        Default: literals[0] as typeof literals[0],
-        withDefault: s.pipe(withDefaultConstructor(() => literals[0]))
+        Default: literals[0] as Literals[0],
+        withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(literals[0]))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(literals[0])))
       })
   )
 
 /**
  * Like the default Schema `Array` but with `withDefault` => []
  */
+const co = { parseOptions: { concurrency: "unbounded" as const } }
+export { co as concurrencyUnbounded }
+
 export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
   return pipe(
-    S.Array(value),
-    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => [])) })
+    S.Array(value).annotate(co),
+    (s) =>
+      Object.assign(s, {
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => [])))
+      })
   )
 }
 
 /**
- * Like the default Schema `Map` but with `withDefault` => []
+ * An annotated `S.Array` of unique items that decodes to a `ReadonlySet`.
  */
-function Map_<KeySchema extends S.Top, ValueSchema extends S.Top>(input: { key: KeySchema; value: ValueSchema }) {
-  return pipe(
-    S.ReadonlyMap(input.key, input.value),
-    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new global.Map())) })
+export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
+  const from = S
+    .Array(value)
+    .annotate({ ...co, expected: "an array of unique items that will be decoded as a ReadonlySet" })
+  const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
+  const schema = from.pipe(
+    S.decodeTo(
+      to,
+      SchemaTransformation.transform({
+        decode: (arr) => new Set(arr) as ReadonlySet<S.Schema.Type<ValueSchema>>,
+        encode: (set) => [...set]
+      })
+    )
   )
+  return schema
 }
 
-export { Map_ as Map }
+/**
+ * An annotated `S.Array` of key-value tuples that decodes to a `ReadonlyMap`.
+ */
+export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
+  readonly key: KeySchema
+  readonly value: ValueSchema
+}) => {
+  const from = S
+    .Array(S.Tuple([pair.key, pair.value]))
+    .annotate({ ...co, expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
+  const to = S.instanceOf(Map) as S.instanceOf<
+    ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
+  >
+  const schema = from.pipe(
+    S.decodeTo(
+      to,
+      SchemaTransformation.transform({
+        decode: (
+          arr
+        ) => new Map(arr) as ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>,
+        encode: (
+          map
+        ) => [...map.entries()] as any // fu
+      })
+    )
+  )
+  return schema
+}
 
 /**
- * Like the default Schema `ReadonlySet` but with `withDefault` => new Set()
+ * Like the default Schema `ReadonlySet` but from Array with `withDefault` => new Set()
  */
 export const ReadonlySet = <ValueSchema extends S.Top>(value: ValueSchema) =>
   pipe(
-    S.ReadonlySet(value),
+    ReadonlySetFromArray(value),
     (s) =>
-      Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Set<S.Schema.Type<ValueSchema>>())) })
+      Object.assign(s, {
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))),
+        withDecodingDefaultType: s.pipe(
+          S.withDecodingDefaultType(Effect.sync(() => new Set<S.Schema.Type<ValueSchema>>()))
+        )
+      })
   )
 
 /**
- * Like the default Schema `ReadonlyMap` but with `withDefault` => new Map()
+ * Like the default Schema `ReadonlyMap` but from Array with `withDefault` => new Map()
  */
 export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(pair: {
   readonly key: KeySchema
   readonly value: ValueSchema
 }) =>
   pipe(
-    S.ReadonlyMap(pair.key, pair.value),
-    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => new Map())) })
+    ReadonlyMapFromArray(pair),
+    (s) =>
+      Object.assign(s, {
+        withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new Map()))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new Map())))
+      })
   )
 
 /**
@@ -129,21 +209,30 @@ export const ReadonlyMap = <KeySchema extends S.Top, ValueSchema extends S.Top>(
 export const NullOr = <Schema extends S.Top>(self: Schema) =>
   pipe(
     S.NullOr(self),
-    (s) => Object.assign(s, { withDefault: s.pipe(withDefaultConstructor(() => null)) })
+    (s) =>
+      Object.assign(s, {
+        withDefault: s.pipe(S.withConstructorDefault(Effect.succeed(null))),
+        withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.succeed(null)))
+      })
   )
 
-export const defaultDate = <Schema extends S.Top>(schema: Schema) =>
-  schema.pipe(withDefaultConstructor(() => new global.Date()))
+export const defaultDate = <Schema extends S.Top & S.WithoutConstructorDefault>(schema: Schema) =>
+  schema.pipe(S.withConstructorDefault(Effect.sync(() => new global.Date())))
 
-export const defaultBool = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => false))
+export const defaultBool = <Schema extends S.Top & S.WithoutConstructorDefault>(schema: Schema) =>
+  schema.pipe(S.withConstructorDefault(Effect.succeed(false)))
 
-export const defaultNullable = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => null))
+export const defaultNullable = <Schema extends S.Top & S.WithoutConstructorDefault>(schema: Schema) =>
+  schema.pipe(S.withConstructorDefault(Effect.succeed(null)))
 
-export const defaultArray = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => []))
+export const defaultArray = <Schema extends S.Top & S.WithoutConstructorDefault>(schema: Schema) =>
+  schema.pipe(S.withConstructorDefault(Effect.sync(() => [])))
 
-export const defaultMap = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => new Map()))
+export const defaultMap = <Schema extends S.Top & S.WithoutConstructorDefault>(schema: Schema) =>
+  schema.pipe(S.withConstructorDefault(Effect.sync(() => new Map())))
 
-export const defaultSet = <Schema extends S.Top>(schema: Schema) => schema.pipe(withDefaultConstructor(() => new Set()))
+export const defaultSet = <Schema extends S.Top & S.WithoutConstructorDefault>(schema: Schema) =>
+  schema.pipe(S.withConstructorDefault(Effect.sync(() => new Set())))
 
 export const withDefaultMake = <Self extends S.Top>(s: Self) => {
   const a = Object.assign(S.decodeSync(s as any) as WithDefaults<Self>, s)
@@ -173,8 +262,11 @@ export type WithDefaults<Self extends S.Top> = (
 //   : never
 
 export const inputDate = extendM(
-  S.Union([S.DateValid, S.Date]),
-  (s) => ({ withDefault: s.pipe(withDefaultConstructor(() => new globalThis.Date())) })
+  S.Union([S.DateValid, Date]),
+  (s) => ({
+    withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => new globalThis.Date()))),
+    withDecodingDefaultType: s.pipe(S.withDecodingDefaultType(Effect.sync(() => new globalThis.Date())))
+  })
 )
 
 export interface UnionBrand {}
@@ -224,7 +316,7 @@ export const transformTo = <To extends S.Top, From extends S.Top>(
               { message: "One way schema transformation, encoding is not allowed" }
             )
           )
-      }) as any
+      })
     )
   )
 
@@ -241,7 +333,7 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
     S.decodeTo(
       to,
       SchemaTransformation.transformOrFail({
-        decode: decode as any,
+        decode,
         encode: (i: any) =>
           Effect.fail(
             new SchemaIssue.Forbidden(
@@ -249,34 +341,36 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
               { message: "One way schema transformation, encoding is not allowed" }
             )
           )
-      }) as any
+      })
     )
   )
 
-export const provide = <Self extends S.Top, R>(
-  self: Self,
-  context: ServiceMap.ServiceMap<R>
-): ProvidedCodec<Self, R> => {
+export const provide: {
+  <R>(context: Context.Context<R>): <Self extends S.Top>(self: Self) => ProvidedCodec<Self, R>
+  <Self extends S.Top, R>(self: Self, context: Context.Context<R>): ProvidedCodec<Self, R>
+} = Function.dual(2, <Self extends S.Top, R>(self: Self, context: Context.Context<R>): ProvidedCodec<Self, R> => {
   const prov = Effect.provide(context)
   return self.pipe(
     S.middlewareDecoding((effect) => prov(effect)),
     S.middlewareEncoding((effect) => prov(effect))
-  ) as ProvidedCodec<Self, R>
-}
-export const contextFromServices = <
+  )
+})
+export const contextFromServices = Effect.fnUntraced(function*<
   Self extends S.Top,
-  Tags extends ReadonlyArray<ServiceMap.Key<any, any>>
+  Tags extends ReadonlyArray<Context.Key<any, any>>
+>(self: Self, ...services: Tags) {
+  const context: Context.Context<Context.Service.Identifier<Tags[number]>> = Context.pick(...services)(
+    yield* Effect.context<Context.Service.Identifier<Tags[number]>>()
+  )
+  return provide(self, context)
+}) as <
+  Self extends S.Top,
+  Tags extends ReadonlyArray<Context.Key<any, any>>
 >(
   self: Self,
   ...services: Tags
-): Effect.Effect<
-  ProvidedCodec<Self, ServiceMap.Service.Identifier<Tags[number]>>,
+) => Effect.Effect<
+  ProvidedCodec<Self, Context.Service.Identifier<Tags[number]>>,
   never,
-  ServiceMap.Service.Identifier<Tags[number]>
-> =>
-  Effect.gen(function*() {
-    const context: ServiceMap.ServiceMap<ServiceMap.Service.Identifier<Tags[number]>> = ServiceMap.pick(...services)(
-      yield* Effect.services<ServiceMap.Service.Identifier<Tags[number]>>()
-    )
-    return provide(self, context)
-  })
+  Context.Service.Identifier<Tags[number]>
+>

@@ -3,7 +3,7 @@
 
 import * as api from "@opentelemetry/api"
 import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Array, Data, Effect, Fiber, Option, Order, S } from "effect-app"
+import { Array, Context, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
@@ -11,10 +11,12 @@ import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
+import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, toFormSchema } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
+
+import { makeRunPromise } from "@effect-app/vue/runtime"
 
 type keysRule<T> =
   | {
@@ -395,7 +397,7 @@ export interface OmegaFormReturn<
 > extends OF<From, To> {
   // Pre-computed type aliases - computed ONCE for performance
   _paths: FieldPath<From>
-  _keys: DeepKeys<From>
+  _keys: NestedKeyOf<From>
   _schema: S.Codec<To, From, never>
 
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
@@ -668,6 +670,8 @@ export interface OmegaFormReturn<
   }
 }
 
+const runPromise = makeRunPromise(Context.empty())
+
 export const useOmegaForm = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   From extends Record<PropertyKey, any>,
@@ -680,8 +684,9 @@ export const useOmegaForm = <
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
-  const standardSchema = S.toStandardSchemaV1(schema)
-  const decode = S.decodeUnknownEffect(schema)
+  const formCompatibleSchema = toFormSchema(schema)
+  const standardSchema = S.toStandardSchemaV1(formCompatibleSchema)
+  const decode = S.decodeUnknownEffect(formCompatibleSchema)
 
   const { meta, unionMeta } = generateMetaFromSchema(schema)
 
@@ -790,7 +795,7 @@ export const useOmegaForm = <
       ? ({ formApi, meta, value }) =>
         wrapWithSpan(meta?.currentSpan, async () => {
           // validators only validate, they don't actually transform, so we have to do that manually here.
-          const parsedValue = await Effect.runPromise(decode(value))
+          const parsedValue = await runPromise(decode(value))
           const r = tanstackFormOptions.onSubmit!({
             formApi: formApi as OmegaFormApi<From, To>,
             meta,
@@ -800,7 +805,7 @@ export const useOmegaForm = <
             return await runtimeFiberAsPromise(r)
           }
           if (Effect.isEffect(r)) {
-            const effectResult = await Effect.runPromise(r)
+            const effectResult = await runPromise(r)
             return Fiber.isFiber(effectResult)
               ? await runtimeFiberAsPromise(effectResult)
               : effectResult
@@ -973,6 +978,24 @@ export const useOmegaForm = <
       })
     }
   })
+
+  // Clear all field onSubmit errors when any value changes after a failed submission.
+  // Form-level onSubmit validation (e.g. union schemas) distributes errors to individual fields.
+  // TanStack only clears the changed field's onSubmit error, leaving sibling fields with stale
+  // errors that keep isFieldsValid=false and block re-submission.
+  const lastSubmitAttempts = ref(0)
+  const submissionAttempts = form.useStore((s) => s.submissionAttempts)
+  const formValues = form.useStore((s) => s.values)
+  watch(formValues, () => {
+    if (lastSubmitAttempts.value === submissionAttempts.value) return
+    lastSubmitAttempts.value = submissionAttempts.value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const info of Object.values(form.fieldInfo) as any[]) {
+      if (info?.instance?.state.meta.errorMap?.onSubmit) {
+        info.instance.setMeta((prev: any) => ({ ...prev, errorMap: { ...prev.errorMap, onSubmit: undefined } }))
+      }
+    }
+  }, { deep: true })
 
   const errorContext = { form: formWithExtras, fieldMap }
 

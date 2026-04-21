@@ -121,9 +121,9 @@ const exampleForm = useOmegaForm(
   },
   {
     persistency: {
-      policies: ["local"],
-      overrideDefaultValues: true
-    }
+      policies: ["local"]
+    },
+    defaultValuesPriority: ["tanstack", "schema"]
   }
 )
 </script>

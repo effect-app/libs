@@ -1,5 +1,378 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.128
+
+### Patch Changes
+
+- 57db551: Split `TaggedRequestFor` into `Query` and `Command` factories, and mark generated request classes with `type: "query" | "command"`.
+
+  Vue client helpers now expose query-only helpers (`query`, `suspense`, `fetch`) for query requests and mutation-only helpers (`mutate`, `fetch`) for command requests.
+
+## 4.0.0-beta.127
+
+## 4.0.0-beta.126
+
+### Patch Changes
+
+- 458bb1b: fix type
+
+## 4.0.0-beta.125
+
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- 256ae85: cleanup
+
+## 4.0.0-beta.123
+
+### Patch Changes
+
+- 14aba14: fix: clientFor
+
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` in `apiClientFactory`.
+
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- 5ac46cb: Make `Schema.provide` dual (pipeable)
+
+## 4.0.0-beta.120
+
+### Minor Changes
+
+- f21190c: Add `copy` property to `Class` and `TaggedClass` for creating modified instances with updated fields. The `copy` method is cached per-class and supports both object and function-based updates, with pipeline support.
+
+## 4.0.0-beta.119
+
+## 4.0.0-beta.118
+
+### Minor Changes
+
+- 08d2e70: Add `concurrency: "unbounded"` parseOptions annotation to Schema constructors (Struct, Array, NonEmptyArray, Record, TaggedStruct, ReadonlySet, ReadonlyMap, Class, TaggedClass) so all encode/decode operations automatically run with unbounded concurrency. Also override `mapFields` on Struct and Class/TaggedClass to preserve the annotation.
+
+### Patch Changes
+
+- bd26832: Add nested anyOf flattening to JSON Schema post-processing
+- Update effect packages to 4.0.0-beta.52
+
+## 4.0.0-beta.117
+
+## 4.0.0-beta.116
+
+## 4.0.0-beta.115
+
+## 4.0.0-beta.114
+
+## 4.0.0-beta.113
+
+## 4.0.0-beta.112
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- ca94edf: fix typo
+
+## 4.0.0-beta.110
+
+## 4.0.0-beta.109
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- 3e46e7b: allow excess props in openapi schemas
+
+## 4.0.0-beta.107
+
+## 4.0.0-beta.106
+
+## 4.0.0-beta.105
+
+## 4.0.0-beta.104
+
+### Minor Changes
+
+- e944bca: Add `generateGuards` and `generateGuardsFor` to `TaggedUnion` / `ExtendTaggedUnion` for property-scoped type guards.
+
+  - `generateGuards("key")` — generic per-guard, no need to specify the container type
+  - `generateGuardsFor<A>()("key")` — curried, fixes `A` for concrete guard signatures
+
+  Both return `{ is{Tag}, isAnyOf }` guards that narrow the container type by its tagged union property.
+
+## 4.0.0-beta.103
+
+### Minor Changes
+
+- 7119320: Add `generateGuards` to `TaggedUnion` / `ExtendTaggedUnion` for generating property-scoped type guards.
+
+  Usage: `MyUnion.generateGuards<MyType>()("propertyKey")` returns `{ is{Tag}, isAnyOf }` guards that narrow the container type by its tagged union property.
+
+## 4.0.0-beta.102
+
+## 4.0.0-beta.101
+
+## 4.0.0-beta.100
+
+## 4.0.0-beta.99
+
+## 4.0.0-beta.98
+
+## 4.0.0-beta.97
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- 5615e47: bs
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- 88838fb: Remove pick/omit customizations from Class/TaggedClass/Struct/TaggedStruct. Use `Struct.pick(X.fields, [...])` from `effect-app` instead.
+
+## 4.0.0-beta.94
+
+## 4.0.0-beta.93
+
+## 4.0.0-beta.92
+
+## 4.0.0-beta.91
+
+### Minor Changes
+
+- 738b482: Add pick/omit to Struct and TaggedStruct
+
+## 4.0.0-beta.90
+
+## 4.0.0-beta.89
+
+## 4.0.0-beta.88
+
+## 4.0.0-beta.87
+
+## 4.0.0-beta.86
+
+## 4.0.0-beta.85
+
+## 4.0.0-beta.84
+
+## 4.0.0-beta.83
+
+## 4.0.0-beta.82
+
+## 4.0.0-beta.81
+
+## 4.0.0-beta.80
+
+## 4.0.0-beta.79
+
+### Minor Changes
+
+- d16845e: Remove `TaggedRequest` from `makeRpcClient`, now only `TaggedRequestFor` is returned. Remove all legacy `meta.moduleName` support — `id` and `moduleName` are now required on `Req` type. Remove `makeRpcGroup` (use `makeRpcGroupFromRequestsAndModuleName` instead).
+
+## 4.0.0-beta.78
+
+## 4.0.0-beta.77
+
+### Minor Changes
+
+- 3613e87: Add `TaggedRequestFor` helper to `makeRpcClient` that curries a `moduleName`, producing request classes with static `id` and `moduleName` properties. This enables passing request classes directly to `makeQueryKey` without going through `clientFor` first. The `clientFor` function no longer requires a `meta` property on the module when requests carry `moduleName`. The meta codegen preset now generates `Req = TaggedRequestFor(moduleName)`. Original `TaggedRequest` remains for backwards compatibility.
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- a5248a9: use new schema features
+- fac725d: update effect to latest beta
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- 24f0a5a: rename Literal to Literals, no longer hiding Schema's singular Literal.
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- 54ec1ef: fix bs
+
+## 4.0.0-beta.73
+
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- 0541f0d: fix withDefault types
+
+## 4.0.0-beta.71
+
+### Minor Changes
+
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+
+## 4.0.0-beta.70
+
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- dc465e3: update to latest effect beta
+
+## 4.0.0-beta.68
+
+### Patch Changes
+
+- e6f2341: Add SecretURL tests and switch secretURL config to use Config.nonEmptyString
+
+## 4.0.0-beta.67
+
+## 4.0.0-beta.66
+
+### Patch Changes
+
+- edc52e4: update
+
+## 4.0.0-beta.65
+
+### Minor Changes
+
+- 1f103b2: Replace `proxify` with explicit service accessor helpers: `accessFn`, `accessEffectFn`, `accessCn`, `accessEffectCn`.
+
+### Patch Changes
+
+- 31739d7: Fix JSON schema output for Email, Date, PhoneNumber, and Url schemas. The `jsonSchema` annotation key is not recognized by Effect v4's JSON schema generator — use proper v4 annotations (`format`, `description`) and built-in checks (`isMinLength`, `isMaxLength`) instead.
+
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- c1a6fdc: fix proxify
+
+## 4.0.0-beta.63
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- 0b21a02: fix: flatten simple allOf constraints in JSON Schema output for better codegen compatibility
+
+## 4.0.0-beta.61
+
+## 4.0.0-beta.60
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- cec026d: update packages
+
+## 4.0.0-beta.58
+
+## 4.0.0-beta.57
+
+## 4.0.0-beta.56
+
+## 4.0.0-beta.55
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- d867272: the return of `Context`
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- ee9694e: fix type issue?
+
+## 4.0.0-beta.52
+
+### Minor Changes
+
+- 6252808: Add `ReadonlySetFromArray` and `ReadonlyMapFromArray` schema transformations that decode from annotated arrays to Set/Map. Update `ReadonlySet` and `ReadonlyMap` to use these internally.
+
+## 4.0.0-beta.51
+
+## 4.0.0-beta.50
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- e585c9c: fix config nested
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 0c88f78: Remove `TaggedError` compatibility re-export, use `TaggedErrorClass` directly
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 3365758: workaround effect error messages
+
+## 4.0.0-beta.46
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- 10b55ff: update packages
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- a37aa38: Update to effect beta 43
+
+## 4.0.0-beta.43
+
+## 4.0.0-beta.42
+
+## 4.0.0-beta.41
+
+## 4.0.0-beta.40
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- 10e90d5: fix: TaggedRequest should be an Opaque Schema Class
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- 0b3e00e: fix bug
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- 947fe20: fix input date
+
+## 4.0.0-beta.36
+
+## 4.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 8c645d5: update to latest effect
+
 ## 4.0.0-beta.33
 
 ### Patch Changes

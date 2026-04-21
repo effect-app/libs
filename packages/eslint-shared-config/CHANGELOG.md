@@ -1,5 +1,73 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.10
+
+### Minor Changes
+
+- af43f2f: Add `no-await-effect` lint rule that errors when awaiting Effect, Option, Result, or Fiber values from the effect library. Enabled when type-checked linting is active (`ESLINT_TS=1`).
+
+### Patch Changes
+
+- @effect-app/eslint-codegen-model@2.0.0-beta.6
+
+## 0.5.7-beta.9
+
+### Patch Changes
+
+- Updated dependencies [3b27909]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.6
+
+## 0.5.7-beta.8
+
+### Patch Changes
+
+- Updated dependencies [3613e87]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.5
+
+## 0.5.7-beta.7
+
+### Patch Changes
+
+- cec026d: update packages
+- Updated dependencies [cec026d]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.4
+
+## 0.5.7-beta.6
+
+### Patch Changes
+
+- 784c732: bs
+  - @effect-app/eslint-codegen-model@2.0.0-beta.3
+
+## 0.5.7-beta.5
+
+### Patch Changes
+
+- 68c3ba6: fml
+  - @effect-app/eslint-codegen-model@2.0.0-beta.3
+
+## 0.5.7-beta.5
+
+### Patch Changes
+
+- c82d746: dprint bs
+  - @effect-app/eslint-codegen-model@2.0.0-beta.3
+
+## 0.5.7-beta.4
+
+### Patch Changes
+
+- 10b55ff: update packages
+- Updated dependencies [10b55ff]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.3
+
+## 0.5.7-beta.3
+
+### Patch Changes
+
+- c9caa37: pin dprint/formatter
+  - @effect-app/eslint-codegen-model@2.0.0-beta.2
+
 ## 0.5.7-beta.2
 
 ### Patch Changes

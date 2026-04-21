@@ -17,29 +17,34 @@ export const ForceVoid = S
 
 type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
 
-type TaggedRequestResult<
+type TaggedRequestForResult<
+  Self,
   Tag extends string,
   Payload extends S.Struct.Fields,
   Success extends S.Top,
   Error extends S.Top,
-  Config = Record<string, never>
+  Config,
+  ModuleName extends string,
+  Type extends "command" | "query"
 > =
-  & S.TaggedStruct<Tag, Payload>
+  & S.EnhancedClass<Self, S.TaggedStruct<Tag, Payload>, {}>
   & {
-    new(...args: any[]): any
     readonly _tag: Tag
-    readonly fields: { readonly _tag: S.tag<Tag> } & Payload
     readonly success: Success
     readonly error: Error
     readonly config: Config
     readonly "~decodingServices": S.Codec.DecodingServices<Success> | S.Codec.DecodingServices<Error>
+    readonly "~encodingServices": S.Codec.EncodingServices<Success> | S.Codec.EncodingServices<Error>
+    readonly id: `${ModuleName}.${Tag}`
+    readonly moduleName: ModuleName
+    readonly type: Type
   }
 
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Top = never
 >(rcs: RequestContextMap, generalErrors?: GeneralErrors) => {
-  // Long way around ServiceMap/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
+  // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type ServiceMap = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     error: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
@@ -52,64 +57,143 @@ export const makeRpcClient = <
     : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C>
     : MergeError<GetEffectError<RequestContextMap["config"], C>>
 
-  function TaggedRequest<_Self>(): {
-    <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
-      tag: Tag,
-      fields: Payload,
-      config: RequestConfig & C
-    ): TaggedRequestResult<Tag, Payload, SchemaOrFields<C["success"]>, ErrorResult<C>, Omit<C, "success" | "error">>
-    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
-      tag: Tag,
-      fields: Payload,
-      config: RequestConfig & C
-    ): TaggedRequestResult<Tag, Payload, SchemaOrFields<C["success"]>, ErrorResult<C>, Omit<C, "success" | "error">>
-    <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
-      tag: Tag,
-      fields: Payload,
-      config: RequestConfig & C
-    ): TaggedRequestResult<Tag, Payload, typeof ForceVoid, ErrorResult<C>, Omit<C, "success" | "error">>
-    <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
-      tag: Tag,
-      fields: Payload,
-      config: C & RequestConfig
-    ): TaggedRequestResult<Tag, Payload, typeof ForceVoid, ErrorResult<C>, Omit<C, "success" | "error">>
-    <Tag extends string, Payload extends S.Struct.Fields>(
-      tag: Tag,
-      fields: Payload
-    ): TaggedRequestResult<Tag, Payload, typeof ForceVoid, ErrorResult<{}>, Record<string, never>>
-  } {
-    // TODO: filter errors based on config + take care of inversion
-    const errorSchemas = Object.values(rcs.config).map((_) => _.error)
-    return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
-      tag: Tag,
-      fields: Fields,
-      config?: C
-    ) => {
-      // TODO: S.TaggedRequest removed in v4 — needs rework to use Rpc.make or Request.TaggedClass
-      // For now, creating a simple tagged struct class with success/failure properties
-      const failureSchema = merge(
-        config?.error ? S.isSchema(config.error) ? config.error : S.Struct(config.error) : undefined,
-        [...errorSchemas, generalErrors].filter(Boolean)
-      )
-      const successSchema = config?.success
-        ? S.isSchema(config.success)
-          ? AST.isVoid(config.success.ast) ? ForceVoid : config.success
-          : S.Struct(config.success)
-        : ForceVoid
+  // TODO: filter errors based on config + take care of inversion
+  const errorSchemas = Object.values(rcs.config).map((_) => _.error)
 
-      const RequestClass = S.TaggedClass<any>()(tag, fields)
-      Object.assign(RequestClass, {
-        _tag: tag,
-        success: successSchema,
-        error: failureSchema,
-        config
-      })
+  function makeRequestClass<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
+    tag: Tag,
+    fields: Fields,
+    config?: C
+  ) {
+    const failureSchema = merge(
+      config?.error ? S.isSchema(config.error) ? config.error : S.Struct(config.error) : undefined,
+      [...errorSchemas, generalErrors].filter(Boolean)
+    )
+    const successSchema = config?.success
+      ? S.isSchema(config.success)
+        ? AST.isVoid(config.success.ast) ? ForceVoid : config.success
+        : S.Struct(config.success)
+      : ForceVoid
 
-      return RequestClass
-    }) as any
+    const RequestClass = S.TaggedClass<any>()(tag, fields)
+    Object.assign(RequestClass, {
+      _tag: tag,
+      success: successSchema,
+      error: failureSchema,
+      config
+    })
+
+    return RequestClass
+  }
+
+  function makeTaggedRequestWithMeta<ModuleName extends string, Type extends "command" | "query">(
+    moduleName: ModuleName,
+    type: Type
+  ) {
+    function TaggedRequestWithMeta<Self>(): {
+      <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
+        tag: Tag,
+        fields: Payload,
+        config: RequestConfig & C
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        SchemaOrFields<C["success"]>,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName,
+        Type
+      >
+      <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
+        tag: Tag,
+        fields: Payload,
+        config: RequestConfig & C
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        SchemaOrFields<C["success"]>,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName,
+        Type
+      >
+      <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
+        tag: Tag,
+        fields: Payload,
+        config: RequestConfig & C
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName,
+        Type
+      >
+      <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
+        tag: Tag,
+        fields: Payload,
+        config: C & RequestConfig
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<C>,
+        Omit<C, "success" | "error">,
+        ModuleName,
+        Type
+      >
+      <Tag extends string, Payload extends S.Struct.Fields>(
+        tag: Tag,
+        fields: Payload
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<{}>,
+        Record<string, never>,
+        ModuleName,
+        Type
+      >
+    } {
+      return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
+        tag: Tag,
+        fields: Fields,
+        config?: C
+      ) => {
+        const cls = makeRequestClass(tag, fields, config)
+        Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName, type })
+        return cls
+      }) as any
+    }
+    return Object.assign(TaggedRequestWithMeta, { moduleName, type } as const)
+  }
+
+  function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
+    const Query = makeTaggedRequestWithMeta(moduleName, "query")
+    const Command = makeTaggedRequestWithMeta(moduleName, "command")
+
+    return {
+      moduleName,
+      /**
+       * Create query request classes for this module.
+       * Queries read state and should not mutate server state.
+       */
+      Query,
+      /**
+       * Create command request classes for this module.
+       * Commands mutate state and should avoid returning complex read models.
+       */
+      Command
+    } as const
   }
 
   return {
-    TaggedRequest
+    TaggedRequestFor
   }
 }

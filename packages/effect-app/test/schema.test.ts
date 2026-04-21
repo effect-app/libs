@@ -1,6 +1,7 @@
 // import { generateFromArbitrary } from "@effect-app/infra/test"
 import { Array, S } from "effect-app"
-import { expect, expectTypeOf, test } from "vitest"
+import { specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import { describe, expect, expectTypeOf, test } from "vitest"
 
 const A = S.Struct({ a: S.NonEmptyString255, email: S.NullOr(S.Email) })
 test("works", () => {
@@ -14,14 +15,21 @@ test("works", () => {
 })
 
 test("literal default works", () => {
-  const l = S.Literal("a", "b")
+  const l = S.Literals(["a", "b"])
   expect(l.Default).toBe("a")
+  expectTypeOf(l.Default).toEqualTypeOf<"a">()
   const s = S.Struct({ l: l.withDefault })
-  expect(s.makeUnsafe({}).l).toBe("a")
+  expect(s.make({}).l).toBe("a")
 
   const l2 = l.changeDefault("b")
   const s2 = S.Struct({ l: l2.withDefault })
-  expect(s2.makeUnsafe({}).l).toBe("b")
+  expect(s2.make({}).l).toBe("b")
+})
+
+test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
+  const l = S.Literals(["A", "B"])
+  expect(l.Default).toBe("A")
+  expectTypeOf(l.Default).toEqualTypeOf<"A">()
 })
 
 test("tagged union derives tag map and tags from v4 literal ast", () => {
@@ -199,4 +207,326 @@ test("TaggedUnion with TaggedClass members", () => {
   expect(schema.guards.Foo(new Foo({ name: "Alice" }))).toBe(true)
   expect(schema.guards.Foo(new Bar({ count: 3 }))).toBe(false)
   expect(schema.guards.Bar(new Bar({ count: 3 }))).toBe(true)
+})
+
+describe("ReadonlySetFromArray", () => {
+  test("decodes an array of strings to a Set", () => {
+    const schema = S.ReadonlySetFromArray(S.String)
+    const decoded = S.decodeUnknownSync(schema)(["a", "b", "c"])
+    expect(decoded).toEqual(new Set(["a", "b", "c"]))
+  })
+
+  test("encodes a Set back to an array", () => {
+    const schema = S.ReadonlySetFromArray(S.String)
+    const encoded = S.encodeSync(schema)(new Set(["a", "b"]))
+    expect(encoded).toEqual(["a", "b"])
+  })
+
+  test("decodes with NumberFromString as value", () => {
+    const schema = S.ReadonlySetFromArray(S.NumberFromString)
+    const decoded = S.decodeUnknownSync(schema)(["1", "2", "3"])
+    expect(decoded).toEqual(new Set([1, 2, 3]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlySet<number>>()
+  })
+
+  test("encodes with NumberFromString as value", () => {
+    const schema = S.ReadonlySetFromArray(S.NumberFromString)
+    const encoded = S.encodeSync(schema)(new Set([1, 2, 3]))
+    expect(encoded).toEqual(["1", "2", "3"])
+  })
+
+  test("rejects invalid input", () => {
+    const schema = S.ReadonlySetFromArray(S.NumberFromString)
+    expect(() => S.decodeUnknownSync(schema)([1, 2])).toThrow()
+  })
+})
+
+describe("ReadonlyMapFromArray", () => {
+  test("decodes an array of tuples to a Map", () => {
+    const schema = S.ReadonlyMap({ key: S.String, value: S.Finite })
+    const decoded = S.decodeUnknownSync(schema)([["a", 1], ["b", 2]])
+    expect(decoded).toEqual(new Map([["a", 1], ["b", 2]]))
+  })
+
+  test("encodes a Map back to an array of tuples", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.Finite })
+    const encoded = S.encodeSync(schema)(new Map([["a", 1], ["b", 2]]))
+    expect(encoded).toEqual([["a", 1], ["b", 2]])
+  })
+
+  test("decodes with NumberFromString as key", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
+    const decoded = S.decodeUnknownSync(schema)([["1", "one"], ["2", "two"]])
+    expect(decoded).toEqual(new Map([[1, "one"], [2, "two"]]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<number, string>>()
+  })
+
+  test("encodes with NumberFromString as key", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
+    const encoded = S.encodeSync(schema)(new Map([[1, "one"], [2, "two"]]))
+    expect(encoded).toEqual([["1", "one"], ["2", "two"]])
+  })
+
+  test("decodes with NumberFromString as value", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.NumberFromString })
+    const decoded = S.decodeUnknownSync(schema)([["a", "10"], ["b", "20"]])
+    expect(decoded).toEqual(new Map([["a", 10], ["b", 20]]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<string, number>>()
+  })
+
+  test("encodes with NumberFromString as value", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.String, value: S.NumberFromString })
+    const encoded = S.encodeSync(schema)(new Map([["a", 10], ["b", 20]]))
+    expect(encoded).toEqual([["a", "10"], ["b", "20"]])
+  })
+
+  test("decodes with NumberFromString as both key and value", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.NumberFromString })
+    const decoded = S.decodeUnknownSync(schema)([["1", "10"], ["2", "20"]])
+    expect(decoded).toEqual(new Map([[1, 10], [2, 20]]))
+    expectTypeOf(decoded).toEqualTypeOf<ReadonlyMap<number, number>>()
+  })
+
+  test("rejects invalid input", () => {
+    const schema = S.ReadonlyMapFromArray({ key: S.NumberFromString, value: S.String })
+    expect(() => S.decodeUnknownSync(schema)([[1, "val"]])).toThrow()
+  })
+})
+
+describe("ReadonlySet (with withDefault)", () => {
+  test("make provides withDefault", () => {
+    const schema = S.ReadonlySet(S.NumberFromString)
+    const struct = S.Struct({ items: schema.withDefault })
+    const made = struct.make({})
+    expect(made.items).toEqual(new Set())
+  })
+
+  test("decodes array with NumberFromString values", () => {
+    const schema = S.ReadonlySet(S.NumberFromString)
+    const decoded = S.decodeUnknownSync(schema)(["1", "2"])
+    expect(decoded).toEqual(new Set([1, 2]))
+  })
+})
+
+describe("ReadonlyMap (with withDefault)", () => {
+  test("make provides withDefault", () => {
+    const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
+    const struct = S.Struct({ items: schema.withDefault })
+    const made = struct.make({})
+    expect(made.items).toEqual(new Map())
+  })
+
+  test("decodes array of tuples with NumberFromString keys", () => {
+    const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
+    const decoded = S.decodeUnknownSync(schema)([["1", "one"]])
+    expect(decoded).toEqual(new Map([[1, "one"]]))
+  })
+})
+
+describe("JSON Schema", () => {
+  test("Email has format, minLength, maxLength", () => {
+    const doc = S.toJsonSchemaDocument(S.Email)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Email" },
+      definitions: {
+        Email: {
+          type: "string",
+          title: "Email",
+          description: "an email according to RFC 5322",
+          format: "email",
+          allOf: [
+            { minLength: 3 },
+            { maxLength: 998 }
+          ]
+        }
+      }
+    })
+  })
+
+  test("Email specialJsonSchemaDocument flattens allOf", () => {
+    const doc = specialJsonSchemaDocument(S.Email)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Email" },
+      definitions: {
+        Email: {
+          type: "string",
+          title: "Email",
+          description: "an email according to RFC 5322",
+          format: "email",
+          minLength: 3,
+          maxLength: 998
+        }
+      }
+    })
+  })
+
+  test("Date has format date-time and description", () => {
+    const doc = S.toJsonSchemaDocument(S.Date)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Date" },
+      definitions: {
+        Date: {
+          type: "string",
+          description: "a string in ISO 8601 format that will be decoded as a Date",
+          format: "date-time"
+        }
+      }
+    })
+  })
+
+  test("DateValid has format date-time", () => {
+    const doc = S.toJsonSchemaDocument(S.DateValid)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Date" },
+      definitions: {
+        Date: {
+          type: "string",
+          description: "a string in ISO 8601 format that will be decoded as a Date",
+          format: "date-time"
+        }
+      }
+    })
+  })
+
+  test("PhoneNumber has format phone", () => {
+    const doc = specialJsonSchemaDocument(S.PhoneNumber)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/PhoneNumber" },
+      definitions: {
+        PhoneNumber: {
+          type: "string",
+          title: "PhoneNumber",
+          description: "a phone number with at least 7 digits",
+          format: "phone"
+        }
+      }
+    })
+  })
+
+  test("Url has format uri", () => {
+    const doc = specialJsonSchemaDocument(S.Url)
+    expect(doc).toStrictEqual({
+      dialect: "draft-2020-12",
+      schema: { "$ref": "#/$defs/Url" },
+      definitions: {
+        Url: {
+          type: "string",
+          title: "Url",
+          format: "uri"
+        }
+      }
+    })
+  })
+})
+
+describe("generateGuards", () => {
+  const StateSchema = S.TaggedUnion(
+    S.TaggedStruct("Active", { since: S.String }),
+    S.TaggedStruct("Inactive", { reason: S.String }),
+    S.TaggedStruct("Pending", { eta: S.Finite })
+  )
+
+  type State = S.Schema.Type<typeof StateSchema>
+  type Entity = { readonly state: State; readonly name: string }
+
+  const { isActive, isAnyOf, isInactive, isPending } = StateSchema.generateGuards("state")
+
+  test("isActive narrows to Active member", () => {
+    const entity: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    expect(isActive(entity)).toBe(true)
+    if (isActive(entity)) {
+      expectTypeOf(entity.state).toEqualTypeOf<{ readonly _tag: "Active"; readonly since: string }>()
+    }
+  })
+
+  test("isActive returns false for non-Active", () => {
+    const entity: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "foo" }
+    expect(isActive(entity)).toBe(false)
+  })
+
+  test("isInactive narrows to Inactive member", () => {
+    const entity: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "foo" }
+    expect(isInactive(entity)).toBe(true)
+  })
+
+  test("isPending narrows to Pending member", () => {
+    const entity: Entity = { state: { _tag: "Pending", eta: 42 }, name: "foo" }
+    expect(isPending(entity)).toBe(true)
+  })
+
+  test("isAnyOf narrows to union of specified members", () => {
+    const isActiveOrPending = isAnyOf(["Active", "Pending"])
+    const active: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    const pending: Entity = { state: { _tag: "Pending", eta: 5 }, name: "bar" }
+    const inactive: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "baz" }
+
+    expect(isActiveOrPending(active)).toBe(true)
+    expect(isActiveOrPending(pending)).toBe(true)
+    expect(isActiveOrPending(inactive)).toBe(false)
+
+    if (isActiveOrPending(active)) {
+      expectTypeOf(active.state).toEqualTypeOf<
+        { readonly _tag: "Active"; readonly since: string } | { readonly _tag: "Pending"; readonly eta: number }
+      >()
+    }
+  })
+
+  test("guards use schema-based validation (built-in guards)", () => {
+    expect(StateSchema.guards.Active({ _tag: "Active" })).toBe(false)
+    expect(StateSchema.guards.Active({ _tag: "Active", since: "2024-01-01" })).toBe(true)
+  })
+})
+
+describe("generateGuardsFor", () => {
+  const StateSchema = S.TaggedUnion(
+    S.TaggedStruct("Active", { since: S.String }),
+    S.TaggedStruct("Inactive", { reason: S.String }),
+    S.TaggedStruct("Pending", { eta: S.Finite })
+  )
+
+  type State = S.Schema.Type<typeof StateSchema>
+  type Entity = { readonly state: State; readonly name: string }
+
+  const { isActive, isAnyOf } = StateSchema.generateGuardsFor<Entity>()("state")
+
+  test("isActive narrows to Active member", () => {
+    const entity: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    expect(isActive(entity)).toBe(true)
+    if (isActive(entity)) {
+      expectTypeOf(entity.state).toEqualTypeOf<{ readonly _tag: "Active"; readonly since: string }>()
+    }
+  })
+
+  test("isActive returns false for non-Active", () => {
+    const entity: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "foo" }
+    expect(isActive(entity)).toBe(false)
+  })
+
+  test("isAnyOf narrows to union of specified members", () => {
+    const isActiveOrPending = isAnyOf(["Active", "Pending"])
+    const active: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    const inactive: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "baz" }
+
+    expect(isActiveOrPending(active)).toBe(true)
+    expect(isActiveOrPending(inactive)).toBe(false)
+  })
+
+  test("ExtendTaggedUnion also exposes generateGuardsFor", () => {
+    const union = S.Union([
+      S.TaggedStruct("X", { x: S.String }),
+      S.TaggedStruct("Y", { y: S.Finite })
+    ])
+    const extended = S.ExtendTaggedUnion(union)
+    type Obj = { readonly field: S.Schema.Type<typeof extended> }
+    const { isX, isY } = extended.generateGuardsFor<Obj>()("field")
+
+    expect(isX({ field: { _tag: "X", x: "hi" } })).toBe(true)
+    expect(isX({ field: { _tag: "Y", y: 1 } })).toBe(false)
+    expect(isY({ field: { _tag: "Y", y: 1 } })).toBe(true)
+  })
 })

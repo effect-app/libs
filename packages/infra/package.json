@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/infra",
-  "version": "4.0.0-beta.33",
+  "version": "4.0.0-beta.128",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -8,47 +8,45 @@
     "change-case": "^5.4.4",
     "cross-fetch": "^4.1.0",
     "effect-app": "workspace:*",
-    "express-oauth2-jwt-bearer": "^1.7.4",
-    "fast-check": "~4.5.3",
+    "fast-check": "~4.7.0",
+    "jose": "^6.2.2",
     "path-parser": "^6.1.0",
     "proper-lockfile": "^4.1.2",
     "pure-rand": "7.0.1",
     "query-string": "^9.3.1"
   },
   "devDependencies": {
-    "@azure/cosmos": "^4.9.1",
+    "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@sentry/node": "10.42.0",
-    "@sentry/opentelemetry": "10.42.0",
-    "@types/express": "^5.0.6",
-    "@types/node": "25.3.3",
+    "@effect-app/eslint-shared-config": "workspace:*",
+    "@sentry/node": "10.49.0",
+    "@sentry/opentelemetry": "10.49.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "25.6.0",
     "@types/proper-lockfile": "^4.1.4",
     "@types/redis": "^2.8.32",
     "@types/redlock": "^4.0.8",
-    "express": "^5.2.1",
-    "jwks-rsa": "2.1.4",
+    "better-sqlite3": "^12.9.0",
     "jwt-decode": "^4.0.0",
-    "mongodb": "7.1.0",
+    "mongodb": "7.2.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0",
     "strip-ansi": "^7.2.0",
-    "typescript": "~6.0.2",
-    "vitest": "^4.0.18",
-    "@effect-app/eslint-shared-config": "workspace:*"
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.5"
   },
   "peerDependencies": {
-    "@azure/cosmos": "^4.9.1",
+    "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/vitest": "^4.0.0-beta.40",
+    "@effect/vitest": "^4.0.0-beta.52",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
-    "@sentry/node": "10.42.0",
-    "@sentry/opentelemetry": "10.42.0",
+    "@sentry/node": "10.49.0",
+    "@sentry/opentelemetry": "10.49.0",
+    "effect": "^4.0.0-beta.52",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
-    "redlock": "^4.2.0",
-    "effect": "^4.0.0-beta.40",
-    "express": "^5.2.1"
+    "redlock": "^4.2.0"
   },
   "typesVersions": {
     "*": {
@@ -93,6 +91,10 @@
     "./Model/Repository": {
       "types": "./dist/Model/Repository.d.ts",
       "default": "./dist/Model/Repository.js"
+    },
+    "./Model/Repository/Registry": {
+      "types": "./dist/Model/Repository/Registry.d.ts",
+      "default": "./dist/Model/Repository/Registry.js"
     },
     "./Model/Repository/ext": {
       "types": "./dist/Model/Repository/ext.d.ts",
@@ -225,6 +227,18 @@
     "./Store/Memory": {
       "types": "./dist/Store/Memory.d.ts",
       "default": "./dist/Store/Memory.js"
+    },
+    "./Store/SQL": {
+      "types": "./dist/Store/SQL.d.ts",
+      "default": "./dist/Store/SQL.js"
+    },
+    "./Store/SQL/Pg": {
+      "types": "./dist/Store/SQL/Pg.d.ts",
+      "default": "./dist/Store/SQL/Pg.js"
+    },
+    "./Store/SQL/query": {
+      "types": "./dist/Store/SQL/query.d.ts",
+      "default": "./dist/Store/SQL/query.js"
     },
     "./Store/codeFilter": {
       "types": "./dist/Store/codeFilter.d.ts",

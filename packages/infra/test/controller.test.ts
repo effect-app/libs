@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, S, Scope, ServiceMap } from "effect-app"
+import { Context, Effect, Layer, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import * as RpcX from "effect-app/rpc"
@@ -99,7 +99,7 @@ class MyContextProvider2
 
 //
 
-class Str extends ServiceMap.Service<Str, "str">()("str") {}
+class Str extends Context.Service<Str, "str">()("str") {}
 
 export class BogusMiddleware extends RpcX.RpcMiddleware.Tag<BogusMiddleware>()("BogusMiddleware") {
   static Default = Layer.make(this, {
@@ -202,14 +202,17 @@ export const middleware3 = MiddlewareMaker
   .middleware(Test)
   .middleware(BogusMiddleware)
 
-export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
+export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const Req = TaggedRequestFor("Something")
+const Command = Req.Command
+const Query = Req.Query
 
-export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
-export class Gen extends Req<Gen>()("Gen", {}) {}
+export class Eff extends Command<Eff>()("Eff", {}, { success: S.Void }) {}
+export class Gen extends Command<Gen>()("Gen", {}) {}
 
 expectTypeOf(Eff.error).toEqualTypeOf<typeof Gen.error>()
 
-export class DoSomething extends Req<DoSomething>()("DoSomething", {
+export class DoSomething extends Command<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
 
@@ -227,20 +230,20 @@ export class DoSomething extends Req<DoSomething>()("DoSomething", {
 //   )
 // )
 
-export class GetSomething extends Req<GetSomething>()("GetSomething", {
+export class GetSomething extends Query<GetSomething>()("GetSomething", {
   id: S.String
 }, { success: S.String }) {}
 
-export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
+export class GetSomething2 extends Query<GetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
-const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2, meta: { moduleName: "Something" as const } }
+const Something = { Eff, Gen, DoSomething, GetSomething, GetSomething2 }
 
 // const client = ApiClientFactory.makeFor(Layer.empty)(Something)
 // client.pipe(Effect.map(c => c.DoSomething.name))
 
-export class SomethingService extends ServiceMap.Service<SomethingService>()(
+export class SomethingService extends Context.Service<SomethingService>()(
   "SomethingService",
   {
     make: Effect.gen(function*() {
@@ -260,7 +263,7 @@ declare const a: {
   (opt: { b: 3 }): void
 }
 
-export class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
+export class SomethingRepo extends Context.Service<SomethingRepo>()(
   "SomethingRepo",
   {
     make: Effect.gen(function*() {
@@ -273,7 +276,7 @@ export class SomethingRepo extends ServiceMap.Service<SomethingRepo>()(
   static Default = Layer.effect(this, this.make).pipe(Layer.provide(SomethingService.Default))
 }
 
-export class SomethingService2 extends ServiceMap.Service<SomethingService2>()(
+export class SomethingService2 extends Context.Service<SomethingService2>()(
   "SomethingService2",
   {
     make: Effect.gen(function*() {

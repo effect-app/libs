@@ -1,5 +1,750 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [57db551]
+  - effect-app@4.0.0-beta.128
+  - @effect-app/vue@4.0.0-beta.128
+
+## 4.0.0-beta.127
+
+### Patch Changes
+
+- Updated dependencies [6a3d364]
+  - @effect-app/vue@4.0.0-beta.127
+  - effect-app@4.0.0-beta.127
+
+## 4.0.0-beta.126
+
+### Patch Changes
+
+- Updated dependencies [458bb1b]
+  - effect-app@4.0.0-beta.126
+  - @effect-app/vue@4.0.0-beta.126
+
+## 4.0.0-beta.125
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.125
+- @effect-app/vue@4.0.0-beta.125
+
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- Updated dependencies [256ae85]
+  - effect-app@4.0.0-beta.124
+  - @effect-app/vue@4.0.0-beta.124
+
+## 4.0.0-beta.123
+
+### Patch Changes
+
+- Updated dependencies [14aba14]
+  - effect-app@4.0.0-beta.123
+  - @effect-app/vue@4.0.0-beta.123
+
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- Updated dependencies [f052d38]
+- Updated dependencies [07a57b6]
+- Updated dependencies [f052d38]
+  - effect-app@4.0.0-beta.122
+  - @effect-app/vue@4.0.0-beta.122
+
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [5ac46cb]
+  - effect-app@4.0.0-beta.121
+  - @effect-app/vue@4.0.0-beta.121
+
+## 4.0.0-beta.120
+
+### Patch Changes
+
+- Updated dependencies [f21190c]
+  - effect-app@4.0.0-beta.120
+  - @effect-app/vue@4.0.0-beta.120
+
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.119
+- @effect-app/vue@4.0.0-beta.119
+
+## 4.0.0-beta.118
+
+### Patch Changes
+
+- Update effect packages to 4.0.0-beta.52
+- Updated dependencies [bd26832]
+- Updated dependencies [08d2e70]
+- Updated dependencies
+  - effect-app@4.0.0-beta.118
+  - @effect-app/vue@4.0.0-beta.118
+
+## 4.0.0-beta.117
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.117
+- @effect-app/vue@4.0.0-beta.117
+
+## 4.0.0-beta.116
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.116
+- @effect-app/vue@4.0.0-beta.116
+
+## 4.0.0-beta.115
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.115
+- @effect-app/vue@4.0.0-beta.115
+
+## 4.0.0-beta.114
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.114
+- @effect-app/vue@4.0.0-beta.114
+
+## 4.0.0-beta.113
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.113
+- @effect-app/vue@4.0.0-beta.113
+
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.112
+- @effect-app/vue@4.0.0-beta.112
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [ca94edf]
+  - effect-app@4.0.0-beta.111
+  - @effect-app/vue@4.0.0-beta.111
+
+## 4.0.0-beta.110
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.110
+- @effect-app/vue@4.0.0-beta.110
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.109
+- @effect-app/vue@4.0.0-beta.109
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [3e46e7b]
+  - effect-app@4.0.0-beta.108
+  - @effect-app/vue@4.0.0-beta.108
+
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.107
+- @effect-app/vue@4.0.0-beta.107
+
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.106
+- @effect-app/vue@4.0.0-beta.106
+
+## 4.0.0-beta.105
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.105
+- @effect-app/vue@4.0.0-beta.105
+
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [e944bca]
+  - effect-app@4.0.0-beta.104
+  - @effect-app/vue@4.0.0-beta.104
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [7119320]
+  - effect-app@4.0.0-beta.103
+  - @effect-app/vue@4.0.0-beta.103
+
+## 4.0.0-beta.102
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.102
+- @effect-app/vue@4.0.0-beta.102
+
+## 4.0.0-beta.101
+
+### Patch Changes
+
+- ff432eb: OmegaForm: meta extraction now walks the encoded (source) side of struct-level `decodeTo` transformations, so the outer schema drives field-level validation. Example: `S.Struct({ amount: S.NonNegativeInt }).pipe(S.decodeTo(S.Struct({ amount: S.PositiveInt }), ...))` now lets users enter `0` without a field error and the decode fallback can rewrite it before submit.
+  - effect-app@4.0.0-beta.101
+  - @effect-app/vue@4.0.0-beta.101
+
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.100
+- @effect-app/vue@4.0.0-beta.100
+
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.99
+- @effect-app/vue@4.0.0-beta.99
+
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.98
+- @effect-app/vue@4.0.0-beta.98
+
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.97
+- @effect-app/vue@4.0.0-beta.97
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [5615e47]
+  - effect-app@4.0.0-beta.96
+  - @effect-app/vue@4.0.0-beta.96
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [88838fb]
+  - effect-app@4.0.0-beta.95
+  - @effect-app/vue@4.0.0-beta.95
+
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- f37889d: Fixes optionalKey input in OmegaForm
+  - effect-app@4.0.0-beta.94
+  - @effect-app/vue@4.0.0-beta.94
+
+## 4.0.0-beta.93
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.93
+- @effect-app/vue@4.0.0-beta.93
+
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.92
+- @effect-app/vue@4.0.0-beta.92
+
+## 4.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [738b482]
+  - effect-app@4.0.0-beta.91
+  - @effect-app/vue@4.0.0-beta.91
+
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.90
+- @effect-app/vue@4.0.0-beta.90
+
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.89
+- @effect-app/vue@4.0.0-beta.89
+
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.88
+- @effect-app/vue@4.0.0-beta.88
+
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.87
+- @effect-app/vue@4.0.0-beta.87
+
+## 4.0.0-beta.86
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.86
+- @effect-app/vue@4.0.0-beta.86
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.85
+- @effect-app/vue@4.0.0-beta.85
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.84
+- @effect-app/vue@4.0.0-beta.84
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.83
+- @effect-app/vue@4.0.0-beta.83
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.82
+- @effect-app/vue@4.0.0-beta.82
+
+## 4.0.0-beta.81
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.81
+- @effect-app/vue@4.0.0-beta.81
+
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.80
+- @effect-app/vue@4.0.0-beta.80
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [d16845e]
+  - effect-app@4.0.0-beta.79
+  - @effect-app/vue@4.0.0-beta.79
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.78
+- @effect-app/vue@4.0.0-beta.78
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [3613e87]
+  - effect-app@4.0.0-beta.77
+  - @effect-app/vue@4.0.0-beta.77
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- fac725d: update effect to latest beta
+- Updated dependencies [08d30af]
+- Updated dependencies [a5248a9]
+- Updated dependencies [fac725d]
+  - @effect-app/vue@4.0.0-beta.76
+  - effect-app@4.0.0-beta.76
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [24f0a5a]
+  - effect-app@4.0.0-beta.75
+  - @effect-app/vue@4.0.0-beta.75
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [54ec1ef]
+  - effect-app@4.0.0-beta.74
+  - @effect-app/vue@4.0.0-beta.74
+
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.73
+- @effect-app/vue@4.0.0-beta.73
+
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- Updated dependencies [0541f0d]
+  - effect-app@4.0.0-beta.72
+  - @effect-app/vue@4.0.0-beta.72
+
+## 4.0.0-beta.71
+
+### Patch Changes
+
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+- Updated dependencies [beae3a0]
+  - effect-app@4.0.0-beta.71
+  - @effect-app/vue@4.0.0-beta.71
+
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.70
+- @effect-app/vue@4.0.0-beta.70
+
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- dc465e3: update to latest effect beta
+- Updated dependencies [dc465e3]
+  - effect-app@4.0.0-beta.69
+  - @effect-app/vue@4.0.0-beta.69
+
+## 4.0.0-beta.68
+
+### Patch Changes
+
+- Updated dependencies [e6f2341]
+  - effect-app@4.0.0-beta.68
+  - @effect-app/vue@4.0.0-beta.68
+
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- 22e979c: wrap vuetify reset
+  - effect-app@4.0.0-beta.67
+  - @effect-app/vue@4.0.0-beta.67
+
+## 4.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [edc52e4]
+  - effect-app@4.0.0-beta.66
+  - @effect-app/vue@4.0.0-beta.66
+
+## 4.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [31739d7]
+- Updated dependencies [1f103b2]
+  - effect-app@4.0.0-beta.65
+  - @effect-app/vue@4.0.0-beta.65
+
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- Updated dependencies [c1a6fdc]
+  - effect-app@4.0.0-beta.64
+  - @effect-app/vue@4.0.0-beta.64
+
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- Updated dependencies [b3ed68a]
+  - @effect-app/vue@4.0.0-beta.63
+  - effect-app@4.0.0-beta.63
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [0b21a02]
+  - effect-app@4.0.0-beta.62
+  - @effect-app/vue@4.0.0-beta.62
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- c1e71a6: remove unnecessary span?
+  - effect-app@4.0.0-beta.61
+  - @effect-app/vue@4.0.0-beta.61
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.60
+- @effect-app/vue@4.0.0-beta.60
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- cec026d: update packages
+- Updated dependencies [cec026d]
+  - effect-app@4.0.0-beta.59
+  - @effect-app/vue@4.0.0-beta.59
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [7fd35e4]
+  - @effect-app/vue@4.0.0-beta.58
+  - effect-app@4.0.0-beta.58
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.57
+- @effect-app/vue@4.0.0-beta.57
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- 79074cf: Fixes optionalKey in OmegaForm handling
+  - effect-app@4.0.0-beta.56
+  - @effect-app/vue@4.0.0-beta.56
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [eceb3a3]
+  - @effect-app/vue@4.0.0-beta.55
+  - effect-app@4.0.0-beta.55
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- d867272: the return of `Context`
+- Updated dependencies [d867272]
+  - effect-app@4.0.0-beta.54
+  - @effect-app/vue@4.0.0-beta.54
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [ee9694e]
+  - effect-app@4.0.0-beta.53
+  - @effect-app/vue@4.0.0-beta.53
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [6252808]
+  - effect-app@4.0.0-beta.52
+  - @effect-app/vue@4.0.0-beta.52
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- 92b52d0: Bump
+  - effect-app@4.0.0-beta.51
+  - @effect-app/vue@4.0.0-beta.51
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- 6ffa729: Fixes useOmegaFormErrorStale stale errorMap
+  - effect-app@4.0.0-beta.50
+  - @effect-app/vue@4.0.0-beta.50
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [e585c9c]
+  - effect-app@4.0.0-beta.49
+  - @effect-app/vue@4.0.0-beta.49
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 16fa809: Fix defaultsValueFromSchema for transformed struct schemas (e.g. decodeTo) in unions. Walk the AST properly instead of relying on schema-level .fields/.from chains.
+- Updated dependencies [0c88f78]
+  - effect-app@4.0.0-beta.48
+  - @effect-app/vue@4.0.0-beta.48
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [3365758]
+  - effect-app@4.0.0-beta.47
+  - @effect-app/vue@4.0.0-beta.47
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 0c42d67: move out Commander and friends from experimental
+- Updated dependencies [28a0b29]
+- Updated dependencies [0c42d67]
+  - @effect-app/vue@4.0.0-beta.46
+  - effect-app@4.0.0-beta.46
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- 10b55ff: update packages
+- Updated dependencies [10b55ff]
+  - effect-app@4.0.0-beta.45
+  - @effect-app/vue@4.0.0-beta.45
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- a37aa38: Update to effect beta 43
+- Updated dependencies [a37aa38]
+  - effect-app@4.0.0-beta.44
+  - @effect-app/vue@4.0.0-beta.44
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.43
+- @effect-app/vue@4.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [d195003]
+  - @effect-app/vue@4.0.0-beta.42
+  - effect-app@4.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [702d51c]
+  - @effect-app/vue@4.0.0-beta.41
+  - effect-app@4.0.0-beta.41
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [18fd1df]
+  - @effect-app/vue@4.0.0-beta.40
+  - effect-app@4.0.0-beta.40
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [10e90d5]
+  - effect-app@4.0.0-beta.39
+  - @effect-app/vue@4.0.0-beta.39
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [0b3e00e]
+  - effect-app@4.0.0-beta.38
+  - @effect-app/vue@4.0.0-beta.38
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- 04fc985: bump to release
+- Updated dependencies [947fe20]
+- Updated dependencies [04fc985]
+  - effect-app@4.0.0-beta.37
+  - @effect-app/vue@4.0.0-beta.37
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- 297331a: bogus
+  - effect-app@4.0.0-beta.36
+  - @effect-app/vue@4.0.0-beta.36
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- bump
+  - effect-app@4.0.0-beta.35
+  - @effect-app/vue@4.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 8c645d5: update to latest effect
+- Fixes Redacted Meta in Omega Form
+- Updated dependencies [8c645d5]
+  - effect-app@4.0.0-beta.34
+  - @effect-app/vue@4.0.0-beta.34
+
 ## 4.0.0-beta.33
 
 ### Patch Changes

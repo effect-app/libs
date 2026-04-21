@@ -1,8 +1,8 @@
-import { Effect, ServiceMap } from "effect-app"
+import { Context, Effect } from "effect-app"
 import { Operation } from "effect-app/Operations"
 import { makeRepo } from "./Model.js"
 
-export class OperationsRepo extends ServiceMap.Service<OperationsRepo>()(
+export class OperationsRepo extends Context.Service<OperationsRepo>()(
   "OperationRepo",
   {
     make: Effect.gen(function*() {

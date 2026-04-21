@@ -6,13 +6,13 @@ import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import { ref } from "vue"
-import { Commander } from "../src/experimental/commander.js"
-import { I18n } from "../src/experimental/intl.js"
-import { makeUseCommand } from "../src/experimental/makeUseCommand.js"
-import * as Toast from "../src/experimental/toast.js"
-import { WithToast } from "../src/experimental/withToast.js"
-import { LegacyMutation, makeClient } from "../src/makeClient.js"
+import { Commander } from "../src/commander.js"
+import { I18n } from "../src/intl.js"
+import { makeClient } from "../src/makeClient.js"
 import { type MakeIntlReturn } from "../src/makeIntl.js"
+import { makeUseCommand } from "../src/makeUseCommand.js"
+import * as Toast from "../src/toast.js"
+import { WithToast } from "../src/withToast.js"
 
 const fakeToastLayer = (toasts: any[] = []) =>
   Layer.effect(
@@ -92,20 +92,56 @@ export const useExperimental = (
 }
 
 export class RequestContextMap extends RpcContextMap.makeMap({}) {}
-export const { TaggedRequest: Req } = makeRpcClient(RequestContextMap)
-export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
+export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+
+export const SomethingReq = TaggedRequestFor("Something")
+const SomethingQuery = SomethingReq.Query
+const SomethingCommand = SomethingReq.Command
+
+class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
-export class GetSomething2WithDependencies extends Req<GetSomething2WithDependencies>()("GetSomething2", {
-  id: S.String
-}, {
-  // this is intentilally fake, to simulate a codec that requires a dependency
-  success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
-  error: S.String
-}) {}
+class SomethingGetSomething2WithDependencies
+  extends SomethingQuery<SomethingGetSomething2WithDependencies>()("GetSomething2", {
+    id: S.String
+  }, {
+    // this is intentilally fake, to simulate a codec that requires a dependency
+    success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
+    error: S.String
+  })
+{}
 
-export const Something = { GetSomething2, GetSomething2WithDependencies, meta: { moduleName: "Something" as const } }
+class SomethingDoSomething extends SomethingCommand<SomethingDoSomething>()("DoSomething", {
+  id: S.String
+}, { success: S.FiniteFromString }) {}
+
+export const Something = {
+  GetSomething2: SomethingGetSomething2,
+  GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
+  DoSomething: SomethingDoSomething
+}
+
+export const SomethingElseReq = TaggedRequestFor("SomethingElse")
+const SomethingElseQuery = SomethingElseReq.Query
+
+class SomethingElseGetSomething2 extends SomethingElseQuery<SomethingElseGetSomething2>()("GetSomething2", {
+  id: S.String
+}, { success: S.FiniteFromString }) {}
+
+class SomethingElseGetSomething2WithDependencies
+  extends SomethingElseQuery<SomethingElseGetSomething2WithDependencies>()("GetSomething2", {
+    id: S.String
+  }, {
+    success: S.FiniteFromString as S.Codec<number, string, "dep-a">,
+    error: S.String
+  })
+{}
+
+export const SomethingElse = {
+  GetSomething2: SomethingElseGetSomething2,
+  GetSomething2WithDependencies: SomethingElseGetSomething2WithDependencies
+}
 
 export const useClient = (
   options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }
@@ -117,8 +153,7 @@ export const useClient = (
   const api = ApiClientFactory.layer({ url: "bogus", headers: Option.none() }).pipe(
     Layer.provide(FetchHttpClient.layer)
   )
-  const lm = LegacyMutation.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
-  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api, lm)
+  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api)
 
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
   return makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)

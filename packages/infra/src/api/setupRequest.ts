@@ -1,8 +1,17 @@
-import { Effect, Layer, Tracer } from "effect-app"
+import { Effect, Layer, Option, Tracer } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
+import { SqlClient } from "effect/unstable/sql"
 import { LocaleRef, RequestContext, spanAttributes } from "../RequestContext.js"
 import { ContextMapContainer } from "../Store/ContextMapContainer.js"
 import { storeId } from "../Store/Memory.js"
+
+const withSqlTransaction = <R, E, A>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.serviceOption(SqlClient.SqlClient).pipe(
+    Effect.flatMap(Option.match({
+      onNone: () => self,
+      onSome: (sql) => sql.withTransaction(self).pipe(Effect.orDie)
+    }))
+  )
 
 export const getRequestContext = Effect
   .all({
@@ -43,33 +52,24 @@ const withRequestSpan = (name = "request", options?: Tracer.SpanOptions) => <R, 
       )
   )
 
+export interface SetupRequestOptions {
+  readonly withTransaction?: boolean
+}
+
 export const setupRequestContextFromCurrent =
-  (name = "request", options?: Tracer.SpanOptions) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
+  (name = "request", options?: Tracer.SpanOptions & SetupRequestOptions) => <R, E, A>(self: Effect.Effect<A, E, R>) =>
     self
       .pipe(
+        options?.withTransaction === true ? withSqlTransaction : (_) => _,
         withRequestSpan(name, options),
-        Effect.provide(ContextMapContainer.layer)
+        Effect.provide(ContextMapContainer.layer, { local: true })
       )
 
 // TODO: consider integrating Effect.withParentSpan
-export function setupRequestContext<R, E, A>(self: Effect.Effect<A, E, R>, requestContext: RequestContext) {
-  const layer = Layer.mergeAll(
-    ContextMapContainer.layer,
-    Layer.succeed(LocaleRef, requestContext.locale),
-    Layer.succeed(storeId, requestContext.namespace)
-  )
-  return self
-    .pipe(
-      withRequestSpan(requestContext.name),
-      Effect.provide(layer)
-    )
-}
-
-export function setupRequestContextWithCustomSpan<R, E, A>(
+export function setupRequestContext<R, E, A>(
   self: Effect.Effect<A, E, R>,
   requestContext: RequestContext,
-  name: string,
-  options?: Tracer.SpanOptions
+  options?: SetupRequestOptions
 ) {
   const layer = Layer.mergeAll(
     ContextMapContainer.layer,
@@ -78,7 +78,27 @@ export function setupRequestContextWithCustomSpan<R, E, A>(
   )
   return self
     .pipe(
+      options?.withTransaction === true ? withSqlTransaction : (_) => _,
+      withRequestSpan(requestContext.name),
+      Effect.provide(layer, { local: true })
+    )
+}
+
+export function setupRequestContextWithCustomSpan<R, E, A>(
+  self: Effect.Effect<A, E, R>,
+  requestContext: RequestContext,
+  name: string,
+  options?: Tracer.SpanOptions & SetupRequestOptions
+) {
+  const layer = Layer.mergeAll(
+    ContextMapContainer.layer,
+    Layer.succeed(LocaleRef, requestContext.locale),
+    Layer.succeed(storeId, requestContext.namespace)
+  )
+  return self
+    .pipe(
+      options?.withTransaction === true ? withSqlTransaction : (_) => _,
       withRequestSpan(name, options),
-      Effect.provide(layer)
+      Effect.provide(layer, { local: true })
     )
 }

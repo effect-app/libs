@@ -6,7 +6,7 @@ import { Receiver, Sender } from "../adapters/ServiceBus.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
-import { type QueueBase, QueueMeta } from "./service.js"
+import { QueueMeta } from "./service.js"
 
 export function makeServiceBusQueue<
   Evt extends { id: StringId; _tag: string },
@@ -21,10 +21,10 @@ export function makeServiceBusQueue<
     body: schema,
     meta: QueueMeta
   })
-  const wireSchemaJson = S.fromJsonString(wireSchema)
+  const wireSchemaJson = S.fromJsonString(S.toCodecJson(wireSchema))
   const encodePublish = S.encodeEffect(wireSchemaJson)
   const drainW = S.Struct({ body: drainSchema, meta: QueueMeta })
-  const drainWJson = S.fromJsonString(drainW)
+  const drainWJson = S.fromJsonString(S.toCodecJson(drainW))
   const parseDrain = flow(S.decodeUnknownEffect(drainWJson), Effect.orDie)
 
   return Effect.gen(function*() {
@@ -42,96 +42,66 @@ export function makeServiceBusQueue<
         handleEvent: (ks: DrainEvt) => Effect.Effect<void, DrainE, DrainR>,
         sessionId?: string
       ) => {
-        function processMessage(messageBody: unknown) {
-          return parseDrain(messageBody).pipe(
-            Effect.orDie,
-            Effect
-              .flatMap(({ body, meta }) => {
-                let effect = InfraLogger
-                  .logDebug(`[${receiver.name}] Processing incoming message`)
-                  .pipe(
-                    Effect.annotateLogs({
-                      body: pretty(body),
-                      meta: pretty(meta)
-                    }),
-                    Effect.andThen(handleEvent(body)),
-                    Effect.orDie
-                  )
-                  // we silenceAndReportError here, so that the error is reported, and moves into the Exit.
-                  .pipe(
-                    silenceAndReportError,
-                    (_) =>
-                      setupRequestContextWithCustomSpan(
-                        _,
-                        meta,
-                        `queue.drain: ${receiver.name}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
-                        {
-                          captureStackTrace: false,
-                          kind: "consumer",
-                          attributes: {
-                            "queue.name": receiver.name,
-                            "queue.sessionId": sessionId,
-                            "queue.input": body
-                          }
-                        }
-                      )
-                  )
-                if (meta.span) {
-                  effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
-                }
-                return effect
-              }),
-            Effect
-              // we reportError here, so that we report the error only, and keep flowing
-              .tapCause(reportError),
-            // we still need to flatten the Exit.
-            Effect.flatMap((_) => _)
-          )
-        }
+        const processMessage = Effect.fnUntraced(function*(messageBody: unknown) {
+          const { body, meta } = yield* parseDrain(messageBody).pipe(Effect.orDie)
+          let effect = InfraLogger
+            .logDebug(`[${receiver.name}] Processing incoming message`)
+            .pipe(
+              Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
+              Effect.andThen(handleEvent(body)),
+              Effect.orDie,
+              // we silenceAndReportError here, so that the error is reported, and moves into the Exit.
+              silenceAndReportError,
+              (_) =>
+                setupRequestContextWithCustomSpan(
+                  _,
+                  meta,
+                  `queue.drain: ${receiver.name}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
+                  {
+                    captureStackTrace: false,
+                    kind: "consumer",
+                    attributes: {
+                      "queue.name": receiver.name,
+                      "queue.sessionId": sessionId,
+                      "queue.input": body
+                    }
+                  }
+                )
+            )
+          if (meta.span) {
+            effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
+          }
+          // we reportError here, so that we report the error only, and keep flowing
+          const exit = yield* Effect.tapCause(effect, reportError)
+          return yield* exit
+        })
 
         return receiver
           .subscribe({
             processMessage: (x) => processMessage(x.body).pipe(Effect.uninterruptible),
             processError: (err) => reportQueueError(Cause.fail(err.error))
-            // Deferred.completeWith(
-            //   deferred,
-            //   reportFatalQueueError(Cause.fail(err.error))
-            //     .pipe(Effect.andThen(Effect.fail(err.error)))
-            // )
           }, sessionId)
-          // .pipe(Effect.andThen(Deferred.await(deferred).pipe(Effect.orDie))),
-          .pipe(
-            Effect.andThen(Effect.never)
-          )
+          .pipe(Effect.andThen(Effect.never))
       },
 
-      publish: (...messages: NonEmptyReadonlyArray<Evt>) =>
-        getRequestContext
-          .pipe(
-            Effect.flatMap((requestContext) =>
-              Effect
-                .forEach(messages, (m) =>
-                  encodePublish({
-                    body: m,
-                    meta: requestContext
-                  })
-                    .pipe(
-                      Effect.orDie,
-                      Effect.map((body) => ({
-                        body,
-                        messageId: m.id, /* correllationid: requestId */
-                        contentType: "application/json",
-                        sessionId: "sessionId" in m ? m.sessionId as string : undefined as unknown as string // TODO: optional
-                      }))
-                    ))
-                .pipe(Effect.flatMap((msgs) => sender.sendMessages(msgs)))
-            ),
-            Effect.withSpan("queue.publish: " + sender.name, {
-              kind: "producer",
-              attributes: { "message_tags": messages.map((_) => _._tag) }
-            }, { captureStackTrace: false })
-          )
+      publish: Effect.fn("queue.publish: " + sender.name, {
+        kind: "producer"
+      })(function*(...messages: NonEmptyReadonlyArray<Evt>) {
+        yield* Effect.annotateCurrentSpan({ "message_tags": messages.map((_) => _._tag) })
+        const requestContext = yield* getRequestContext
+        const msgs = yield* Effect.forEach(messages, (m) =>
+          encodePublish({ body: m, meta: requestContext }).pipe(
+            Effect.orDie,
+            Effect.map((body) => ({
+              body,
+              messageId: m.id, /* correllationid: requestId */
+              contentType: "application/json",
+              sessionId: "sessionId" in m ? m.sessionId as string : undefined as unknown as string // TODO: optional
+            }))
+          ))
+        yield* sender.sendMessages(msgs)
+      })
     }
-    return queue as QueueBase<Evt, DrainEvt>
+    return queue
   })
 }

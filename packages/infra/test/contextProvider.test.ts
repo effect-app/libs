@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { expectTypeOf, it } from "@effect/vitest"
-import { Effect, Layer, Scope, ServiceMap } from "effect-app"
+import { Context, Effect, Layer, Scope } from "effect-app"
 import { ContextProvider, mergeContextProviders, MergedContextProvider } from "../src/api/ContextProvider.js"
 import { CustomError1, Some, SomeElse, SomeService } from "./fixtures.js"
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProvider extends ServiceMap.Service<MyContextProvider>()(
+class MyContextProvider extends Context.Service<MyContextProvider>()(
   "MyContextProvider",
   {
     make: Effect.gen(function*() {
@@ -20,7 +20,7 @@ class MyContextProvider extends ServiceMap.Service<MyContextProvider>()(
         yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
         yield* Effect.succeed("this is a generator")
 
-        return Some.serviceMap({ a: 1 }) 
+        return Some.context({ a: 1 })
       })
     })
   }
@@ -28,7 +28,7 @@ class MyContextProvider extends ServiceMap.Service<MyContextProvider>()(
   static readonly Default = Layer.effect(this, this.make)
 }
 
-class MyContextProvider2 extends ServiceMap.Service<MyContextProvider2>()(
+class MyContextProvider2 extends Context.Service<MyContextProvider2>()(
   "MyContextProvider2",
   {
     make: Effect.gen(function*() {
@@ -37,7 +37,7 @@ class MyContextProvider2 extends ServiceMap.Service<MyContextProvider2>()(
       return Effect.gen(function*() {
         // we test without dependencies, so that we end up with an R of never.
 
-        return SomeElse.serviceMap({ b: 2 })
+        return SomeElse.context({ b: 2 })
       })
     })
   }
@@ -45,7 +45,7 @@ class MyContextProvider2 extends ServiceMap.Service<MyContextProvider2>()(
   static readonly Default = Layer.effect(this, this.make)
 }
 
-class MyContextProvider2Gen extends ServiceMap.Service<MyContextProvider2Gen>()(
+class MyContextProvider2Gen extends Context.Service<MyContextProvider2Gen>()(
   "MyContextProvider2Gen",
   {
     make: Effect.gen(function*() {
@@ -54,7 +54,7 @@ class MyContextProvider2Gen extends ServiceMap.Service<MyContextProvider2Gen>()(
       return function*() {
         // we test without dependencies, so that we end up with an R of never
 
-        return SomeElse.serviceMap({ b: 2 })
+        return SomeElse.context({ b: 2 })
       }
     })
   }
@@ -63,7 +63,7 @@ class MyContextProvider2Gen extends ServiceMap.Service<MyContextProvider2Gen>()(
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class MyContextProviderGen extends ServiceMap.Service<MyContextProviderGen>()(
+class MyContextProviderGen extends Context.Service<MyContextProviderGen>()(
   "MyContextProviderGen",
   {
     make: Effect.gen(function*() {
@@ -77,7 +77,7 @@ class MyContextProviderGen extends ServiceMap.Service<MyContextProviderGen>()(
         yield* Effect.logInfo("MyContextProviderGen", "this is a generator")
         yield* Effect.succeed("this is a generator")
 
-        return Some.serviceMap({ a: 1 })
+        return Some.context({ a: 1 })
       }
     })
   }
@@ -100,7 +100,7 @@ export const someContextProvider = ContextProvider({
       // currently the effectful context provider cannot trigger an error when building the per request context
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return Some.serviceMap({ a: 1 })
+      return Some.context({ a: 1 })
     })
   })
 })
@@ -119,7 +119,7 @@ export const someContextProviderGen = ContextProvider({
       // currently the effectful context provider cannot trigger an error when building the per request context
       // if (Math.random() > 0.5) return yield* new CustomError2()
 
-      return Some.serviceMap({ a: 1 })
+      return Some.context({ a: 1 })
     }
   })
 })

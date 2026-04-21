@@ -1,6 +1,6 @@
 import { type FileOptions, tempFile } from "@effect-app/infra/fileUtil"
 import cp from "child_process"
-import { Config, Effect, Layer, Option, Predicate, S, ServiceMap } from "effect-app"
+import { Config, Context, Effect, Layer, Option, Predicate, S } from "effect-app"
 import { pretty } from "effect-app/utils"
 import fs from "fs"
 import os from "os"
@@ -74,15 +74,13 @@ function printBuffer(printer: PrinterConfig, options: string[]) {
       )
 }
 
-function getAvailablePrinters(host?: string) {
-  return Effect.gen(function*() {
-    const { stdout } = yield* exec(["lpstat", ...buildListArgs({ host }), "-s"].join(" "))
-    return [...stdout.matchAll(/device for (\w+):/g)]
-      .map((_) => _[1])
-      .filter(Predicate.isNotNullish)
-      .map((_) => S.NonEmptyString255(_))
-  })
-}
+const getAvailablePrinters = Effect.fnUntraced(function*(host?: string) {
+  const { stdout } = yield* exec(["lpstat", ...buildListArgs({ host }), "-s"].join(" "))
+  return [...stdout.matchAll(/device for (\w+):/g)]
+    .map((_) => _[1])
+    .filter(Predicate.isNotNullish)
+    .map((_) => S.NonEmptyString255(_))
+})
 
 function* buildListArgs(config?: { host?: string | undefined }) {
   if (config?.host) {
@@ -100,7 +98,7 @@ export const CUPSConfig = Config.all({
     )
 })
 
-export class CUPS extends ServiceMap.Service<CUPS>()("effect-app/CUPS", {
+export class CUPS extends Context.Service<CUPS>()("effect-app/CUPS", {
   make: Effect.gen(function*() {
     const config = yield* CUPSConfig
     const serverUrl = Option.getOrUndefined(config.server)

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Layer, ServiceMap } from "effect-app"
+import { Context, Effect, Layer } from "effect-app"
 import { type RouteLocationAsPath, type RouteLocationAsRelative, type RouteLocationAsRelativeTyped, type RouteLocationAsString, type RouteLocationNormalizedLoaded, type RouteLocationRaw, type RouteLocationResolved, type RouteMap, type RouteRecordNameGeneric, type RouteRecordRaw, useRoute, useRouter } from "vue-router"
 
 /**
@@ -7,6 +7,7 @@ import { type RouteLocationAsPath, type RouteLocationAsRelative, type RouteLocat
  */
 export const useEffectRouter = () => {
   const r = useRouter()
+  if (!r) throw new Error("useEffectRouter must be used within a RouterProvider")
   const effectified = {
     current: useRoute(),
     replace: (to: RouteLocationRaw) => Effect.promise(() => r.replace(to)),
@@ -26,7 +27,7 @@ export const useEffectRouter = () => {
   return proxy
 }
 
-export class Router extends ServiceMap.Service<Router, ReturnType<typeof useEffectRouter>>()("Router") {
+export class Router extends Context.Service<Router, ReturnType<typeof useEffectRouter>>()("Router") {
   static readonly Default = Layer.sync(this, useEffectRouter)
 
   static readonly addRoute: {

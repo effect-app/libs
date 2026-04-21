@@ -12,25 +12,25 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { ref, watch } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({
-  first: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
-  second: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+  first: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
+  second: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
   third: S.NullOr(S.String).withDefault,
   fourth: S
     .Struct({
       addForm: S.NullOr(S.String).withDefault,
-      b: S.PositiveNumber.pipe(S.withDefaultConstructor(() => S.PositiveNumber(100))),
+      b: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
       c: S.Struct({
-        d: S.Finite.pipe(S.withDefaultConstructor(() => 10))
+        d: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(10)))
       })
     }),
   fifth: S.Email,
-  sixth: S.FiniteFromString.pipe(S.withDefaultConstructor(() => 1000))
+  sixth: S.FiniteFromString.pipe(S.withConstructorDefault(Effect.succeed(1000)))
 })
 
 const addForm = useOmegaForm(

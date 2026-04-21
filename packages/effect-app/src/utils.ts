@@ -313,9 +313,7 @@ function decorateNew(
   if (out.descriptor) {
     out.descriptor = Object.assign({}, out.descriptor)
   }
-  const actualDesc: PropertyDescriptor = <any> (
-    out.descriptor || /* istanbul ignore next */ out
-  )
+  const actualDesc: PropertyDescriptor = out.descriptor || /* istanbul ignore next */ out
 
   const originalMethod = validateAndExtractMethodFromDescriptor(actualDesc)
   const isStatic = inp.placement === "static"
@@ -684,7 +682,7 @@ export type OptPromise<T extends () => any> = (
 ) => Promise<ReturnType<T>> | ReturnType<T>
 
 export function access<T extends string, T2>(t: Record<T, T2>) {
-  return (key: T) => t[key] as T2
+  return (key: T) => t[key]
 }
 
 export function todayAtUTCNoon() {
@@ -755,6 +753,12 @@ type CopyOriginSelf<A, U> = Equals<{}, U> extends true
 
 // just one input param: the convention is that the ctor takes an object
 // containing the properties of the class (I can't put object there as type because of contravariance)
+/**
+ * By design this does not return `Self` directly.
+ *
+ * The return type is computed from `Self` and the update payload so callers can
+ * expose an explicit structural return type that remains assignable to `Self`.
+ */
 export const copyOrigin = <Ctor extends new(_: any) => any>(ctor: Ctor) =>
   dual<
     {

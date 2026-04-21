@@ -23,7 +23,7 @@
       </template>
     </basic.Form>
 
-    <h3>Mixed withDefaultConstructor and optionalKey</h3>
+    <h3>Mixed withConstructorDefault and optionalKey</h3>
     <pre v-highlightjs>
 <code class="typescript">{{ mixedCode }}</code></pre>
 
@@ -58,22 +58,22 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const basicCode = `const form = useOmegaForm(
   S.Struct({
-    name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-    age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
-    active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(() => true)),
+    name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("John"))),
+    age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(Effect.succeed(25))),
+    active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(Effect.succeed(true))),
     required: S.NonEmptyString255
   })
 )`
 
 const mixedCode = `const form = useOmegaForm(
   S.Struct({
-    fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decodingValue")),
-    fromConstructor: S.String.pipe(S.withDefaultConstructor(() => "constructorValue")),
+    fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("decodingValue"))),
+    fromConstructor: S.String.pipe(S.withConstructorDefault(Effect.succeed("constructorValue"))),
     plain: S.Boolean
   })
 )`
@@ -81,38 +81,40 @@ const mixedCode = `const form = useOmegaForm(
 const nestedCode = `const form = useOmegaForm(
   S.Struct({
     title: S.optionalKey(S.NonEmptyString255).pipe(
-      S.withDecodingDefault(() => S.NonEmptyString255("Default Title"))
+      S.withDecodingDefault(Effect.succeed(S.NonEmptyString255("Default Title")))
     ),
     address: S.Struct({
-      street: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "123 Main St")),
-      city: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "Springfield"))
+      street: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("123 Main St"))),
+      city: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("Springfield")))
     })
   })
 )`
 
 const basic = useOmegaForm(
   S.Struct({
-    name: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "John")),
-    age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(() => 25)),
-    active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(() => true)),
+    name: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("John"))),
+    age: S.optionalKey(S.Finite).pipe(S.withDecodingDefault(Effect.succeed(25))),
+    active: S.optionalKey(S.Boolean).pipe(S.withDecodingDefault(Effect.succeed(true))),
     required: S.NonEmptyString255
   })
 )
 
 const mixed = useOmegaForm(
   S.Struct({
-    fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "decodingValue")),
-    fromConstructor: S.String.pipe(S.withDefaultConstructor(() => "constructorValue")),
+    fromDecoding: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("decodingValue"))),
+    fromConstructor: S.String.pipe(S.withConstructorDefault(Effect.succeed("constructorValue"))),
     plain: S.Boolean
   })
 )
 
 const nested = useOmegaForm(
   S.Struct({
-    title: S.optionalKey(S.NonEmptyString255).pipe(S.withDecodingDefault(() => S.NonEmptyString255("Default Title"))),
+    title: S.optionalKey(S.NonEmptyString255).pipe(
+      S.withDecodingDefault(Effect.succeed(S.NonEmptyString255("Default Title")))
+    ),
     address: S.Struct({
-      street: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "123 Main St")),
-      city: S.optionalKey(S.String).pipe(S.withDecodingDefault(() => "Springfield"))
+      street: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("123 Main St"))),
+      city: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("Springfield")))
     })
   })
 )

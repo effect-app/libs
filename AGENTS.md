@@ -14,9 +14,9 @@ This is the Effect App library repository, focusing on functional programming pa
 - **Clarity over Cleverness**: Choose clear, maintainable solutions
 - **Conciseness**: Keep code and any wording concise and to the point. Sacrifice grammar for the sake of concision.
 - **Reduce comments**: Avoid comments unless absolutely required to explain unusual or complex logic. Comments in jsdocs are acceptable.
-- **Look for effect sources inside `repos/effect-v4`**
+- **Look for effect sources inside `repos/effect`**
 - **Never import local `repos` files**: Always use the latest online versions of packages instead.
-- **Never webfetch from the `effect-v3` and `effect-v4` repos**: just use the locally included under `repos`
+- **Never webfetch from the effect repos**: just use the locally included under `repos`
 
 ### Mandatory Validation Steps
 
@@ -63,14 +63,14 @@ const fn = Effect.fnUntraced(function*(param: string) {
 })
 ```
 
-## Using `ServiceMap.Service`
+## Using `Context.Service`
 
-Prefer the class syntax when working with `ServiceMap.Service`. For example:
+Prefer the class syntax when working with `Context.Service`. For example:
 
 ```ts
-import { ServiceMap } from "effect"
+import { Context } from "effect-app"
 
-class MyService extends ServiceMap.Service<MyService, {
+class MyService extends Context.Service<MyService, {
   readonly doSomething: (input: string) => number
 }>()("MyService") {}
 ```

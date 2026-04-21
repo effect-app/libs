@@ -1,5 +1,705 @@
 # @effect-app/infra
 
+## 4.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [57db551]
+  - effect-app@4.0.0-beta.128
+
+## 4.0.0-beta.127
+
+### Patch Changes
+
+- 71a0719: Merge `batchPar` into `batch`, expose `concurrency` via an optional `BatchOptions` argument, and make `batch` dual (data-first + data-last).
+- 4bc3d05: Repository `save`, `remove`, and `removeById` now accept plain `ReadonlyArray` instead of `NonEmptyReadonlyArray`. Callers no longer need to narrow or guard for non-emptiness before invoking — empty inputs short-circuit to a no-op, making it ergonomic to pass through query results directly.
+  - effect-app@4.0.0-beta.127
+
+## 4.0.0-beta.126
+
+### Patch Changes
+
+- Updated dependencies [458bb1b]
+  - effect-app@4.0.0-beta.126
+
+## 4.0.0-beta.125
+
+### Patch Changes
+
+- 7191fc1: `removeById` now takes `id | NonEmptyReadonlyArray<id>` instead of a variadic rest, and the extended repo's `removeById` accepts a `batch` option to chunk large deletes — consistent with `save` and `remove`.
+  - effect-app@4.0.0-beta.125
+
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- c9e0c44: cleanup auth
+- 256ae85: cleanup
+- Updated dependencies [256ae85]
+  - effect-app@4.0.0-beta.124
+
+## 4.0.0-beta.123
+
+### Patch Changes
+
+- Updated dependencies [14aba14]
+  - effect-app@4.0.0-beta.123
+
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- 27bf9b6: Fix `Repository.query` environment typing to exclude schema context provided through `makeRepo` options.
+- e02a258: Add optional batching overloads for repository `save` and `remove` helpers.
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` and convert select multi-step `pipe` chains to `Effect.gen` across infra.
+- Updated dependencies [f052d38]
+  - effect-app@4.0.0-beta.122
+
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- 1015582: Fix `Q.project` field selection with `Schema.encodeKeys` by deriving selected fields from the encoded schema shape.
+- Updated dependencies [5ac46cb]
+  - effect-app@4.0.0-beta.121
+
+## 4.0.0-beta.120
+
+### Patch Changes
+
+- Updated dependencies [f21190c]
+  - effect-app@4.0.0-beta.120
+
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- db7ba34: Filter SSE events stream by storeId namespace
+  - effect-app@4.0.0-beta.119
+
+## 4.0.0-beta.118
+
+### Patch Changes
+
+- Update effect packages to 4.0.0-beta.52
+- Updated dependencies [bd26832]
+- Updated dependencies [08d2e70]
+- Updated dependencies
+  - effect-app@4.0.0-beta.118
+
+## 4.0.0-beta.117
+
+### Patch Changes
+
+- 1d85785: Wrap store seed effects with `Effect.uninterruptible` to prevent interruption during seeding
+  - effect-app@4.0.0-beta.117
+
+## 4.0.0-beta.116
+
+### Patch Changes
+
+- 7d5cefc: SQL and Pg stores now scope seed migration records by namespace and table name in shared databases to avoid cross-namespace seed collisions.
+  - effect-app@4.0.0-beta.116
+
+## 4.0.0-beta.115
+
+### Patch Changes
+
+- fe2caba: SQL and Pg stores: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+  - effect-app@4.0.0-beta.115
+
+## 4.0.0-beta.114
+
+### Patch Changes
+
+- 1ab3cf7: SQLite per-namespace adapter: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+  - effect-app@4.0.0-beta.114
+
+## 4.0.0-beta.113
+
+### Minor Changes
+
+- ddc5492: Add RepositoryRegistry service that tracks all repositories by modelName, with `seedNamespace` to seed all registered repos in parallel and `entries` to inspect the registry.
+
+  Make non-primary namespace seeding explicit: Store and Repository now expose `seedNamespace` instead of auto-seeding on access. Primary namespace is still seeded eagerly on initialization.
+
+  SQL stores: table creation (`CREATE TABLE IF NOT EXISTS`) is now part of `seedNamespace` instead of running eagerly at store construction, ensuring tables for non-primary namespaces are only created when explicitly seeded.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.113
+
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- 8a4a6d2: fup
+  - effect-app@4.0.0-beta.112
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- ca94edf: fix typo
+- Updated dependencies [ca94edf]
+  - effect-app@4.0.0-beta.111
+
+## 4.0.0-beta.110
+
+### Minor Changes
+
+- c313c07: Add per-namespace in-memory SQLite adapter via LayerMap. When `makeSqlClientLayer` option is provided to `SQLiteStoreLayer`, each namespace gets its own SQLite database instance managed by a `LayerMap`. Introduces `WithNsTransaction` service for namespace-aware SQL transactions, used by `makeSqlTransactionMiddleware`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.110
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- 82f66f1: use uninterruptiple
+  - effect-app@4.0.0-beta.109
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [3e46e7b]
+  - effect-app@4.0.0-beta.108
+
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- 902ca1b: fix
+  - effect-app@4.0.0-beta.107
+
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- f22a026: Use `Effect.cached` in `getOrCreateStoreEffect` for proper memoization of the resolver effect.
+  - effect-app@4.0.0-beta.106
+
+## 4.0.0-beta.105
+
+### Minor Changes
+
+- 3d732b1: Rewrite `withRequestResolverCache` to use official `RequestResolver.withCache`, creating a cached resolver per ContextMap via `getOrCreateStoreEffect` with semaphore-guarded initialization.
+
+### Patch Changes
+
+- 47e53f5: Fix `withRequestResolverCache` causing "RequestResolver did not complete request" errors by using the `preCheck` hook instead of handling cache in `runAll`. Cache hits for in-flight or completed requests are now handled before entries enter the batch, preventing uncompleted entries.
+- 5773159: Add `itemType` annotation to all repository spans
+  - effect-app@4.0.0-beta.105
+
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [e944bca]
+  - effect-app@4.0.0-beta.104
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [7119320]
+  - effect-app@4.0.0-beta.103
+
+## 4.0.0-beta.102
+
+### Patch Changes
+
+- 62627e9: Fix boolean handling in SQL SELECT and WHERE
+  - effect-app@4.0.0-beta.102
+
+## 4.0.0-beta.101
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.101
+
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- 43611c7: enable cosmosdb large partition key hashes
+  - effect-app@4.0.0-beta.100
+
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- 6a0e008: remove artificial Cosmos bulkSet delays
+  - effect-app@4.0.0-beta.99
+
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- 5aed2e3: Add span to Cosmos `batchRemove` and include `namespace` attribute on all Cosmos store spans.
+  - effect-app@4.0.0-beta.98
+
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- 3eb66e9: Fix CosmosDB store `filter` to trigger namespace seeding on first access. Previously, if `filter` was the first operation called on a namespace, seed data was never created.
+  - effect-app@4.0.0-beta.97
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [5615e47]
+  - effect-app@4.0.0-beta.96
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- 88838fb: Remove pick/omit customizations from Class/TaggedClass/Struct/TaggedStruct. Use `Struct.pick(X.fields, [...])` from `effect-app` instead.
+- Updated dependencies [88838fb]
+  - effect-app@4.0.0-beta.95
+
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.94
+
+## 4.0.0-beta.93
+
+### Patch Changes
+
+- 2d85646: fix SQL includes-any/all double-quoting values for SQLite (JSON.stringify only needed for Postgres jsonb)
+  - effect-app@4.0.0-beta.93
+
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- b4ffee0: fix SQL whereEvery double-negation bug causing wrong query when operators like notIn are used (especially with empty arrays)
+  - effect-app@4.0.0-beta.92
+
+## 4.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [738b482]
+  - effect-app@4.0.0-beta.91
+
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- d786b91: Fix SQL `whereSome`/`whereEvery` array relation queries using `EXISTS` with `json_each` (SQLite) / `jsonb_array_elements` (Pg).
+  - effect-app@4.0.0-beta.90
+
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- 9a9e46c: Fix SQL select queries to read `_etag` from column instead of JSON data, preventing INSERT on update.
+  - effect-app@4.0.0-beta.89
+
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- dfd5562: Fix SQL `IN`/`NOT IN` with null values to use `IS NULL`/`IS NOT NULL` instead of `IN (NULL, ...)`.
+  - effect-app@4.0.0-beta.88
+
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- 5a709d1: Fix SQLite select query type coercion using `json_quote` and apply defaultValues in SQL WHERE clauses via `COALESCE`.
+  - effect-app@4.0.0-beta.87
+
+## 4.0.0-beta.86
+
+### Patch Changes
+
+- 70f1f27: Fix store seeding: break circular dependency where bulkSet re-entered seedNamespace, and add explicit seed markers to SQL/Pg stores using a dedicated `__seed__` namespace.
+  - effect-app@4.0.0-beta.86
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- db285e9: Add per-namespace seeding to SQL (SQLite/PostgreSQL) and CosmosDB store adapters. Previously only the `primary` namespace was seeded at initialization; now each namespace is lazily seeded on first access using `Effect.cached` to guarantee at-most-once execution. Primary namespace continues to seed eagerly on initialization. CosmosDB uses namespace-specific marker documents for backward compatibility.
+  - effect-app@4.0.0-beta.85
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- c80e781: Fix SQLite store namespace parameter ordering in filter queries. The `_namespace` placeholder was prepended to the WHERE clause but its value was appended to the end of the positional params array, causing it to bind to the wrong placeholder. PostgreSQL was unaffected (uses indexed `$N` placeholders).
+  - effect-app@4.0.0-beta.84
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- d1fc90a: Strip `_etag` and `id` from the `data` JSON column in SQL store adapters (SQLite + PostgreSQL). These fields are already stored as dedicated columns and were redundantly duplicated inside the JSON blob. On read, `parseRow` now re-injects `id` from the row column. Backward compatible: existing rows with `_etag`/`id` in `data` continue to work as the column values take precedence.
+  - effect-app@4.0.0-beta.83
+
+## 4.0.0-beta.82
+
+### Minor Changes
+
+- 48f1457: Add storage namespace support to CosmosDB adapter via partition key prefixing. When `allowNamespace` is configured, the namespace from `storeId` is prepended to partition key values (e.g., `test-ns::primary`), isolating data per namespace within the same container.
+- 48f1457: Add storage namespace support to SQL adapters (SQLite and Postgres) via a `_namespace` column. When `allowNamespace` is configured, a `_namespace` column with composite primary key `(id, _namespace)` isolates data per namespace within the same table. New tables get the schema automatically; existing tables require manual migration.
+- 48f1457: Add SQL Store adapter for Effect SQL (SQLite + PostgreSQL). Table-per-repo with id/etag/data JSON columns, query DSL translation to SQL WHERE clauses, optimistic concurrency via etag.
+- 48f1457: Make `withSqlTransaction` in `setupRequest` configurable via `withTransaction` option (defaults to `false`). Add `requiresTransactionConfig` and `makeSqlTransactionMiddleware` for per-RPC transaction control as a dynamic middleware that requires `SqlClient` directly. Transactions are disabled by default; opt in with `withTransaction: true` or `requiresTransaction: true`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.82
+
+## 4.0.0-beta.81
+
+### Minor Changes
+
+- fd67f0b: Add `withRequestResolverCache` to scope RequestResolver cache to the ContextMap (request-scoped). Add `getOrCreateStore` to ContextMap for generic scoped storage.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.81
+
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- eaf0115: enforce local
+  - effect-app@4.0.0-beta.80
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- d16845e: Remove `TaggedRequest` from `makeRpcClient`, now only `TaggedRequestFor` is returned. Remove all legacy `meta.moduleName` support — `id` and `moduleName` are now required on `Req` type. Remove `makeRpcGroup` (use `makeRpcGroupFromRequestsAndModuleName` instead).
+- Updated dependencies [d16845e]
+  - effect-app@4.0.0-beta.79
+
+## 4.0.0-beta.78
+
+### Minor Changes
+
+- 818e047: Router `matchFor` no longer requires `meta` property on resource when requests carry `moduleName` from `TaggedRequestFor`
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.78
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [3613e87]
+  - effect-app@4.0.0-beta.77
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- fac725d: update effect to latest beta
+- Updated dependencies [a5248a9]
+- Updated dependencies [fac725d]
+  - effect-app@4.0.0-beta.76
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [24f0a5a]
+  - effect-app@4.0.0-beta.75
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [54ec1ef]
+  - effect-app@4.0.0-beta.74
+
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- b53c59e: fix signature
+  - effect-app@4.0.0-beta.73
+
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- Updated dependencies [0541f0d]
+  - effect-app@4.0.0-beta.72
+
+## 4.0.0-beta.71
+
+### Patch Changes
+
+- beae3a0: Remove `withDefaultConstructor` wrapper, use `S.withConstructorDefault` directly with `Effect.succeed`/`Effect.sync`.
+- Updated dependencies [beae3a0]
+  - effect-app@4.0.0-beta.71
+
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- fdb9cb3: cleanup
+  - effect-app@4.0.0-beta.70
+
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- dc465e3: update to latest effect beta
+- Updated dependencies [dc465e3]
+  - effect-app@4.0.0-beta.69
+
+## 4.0.0-beta.68
+
+### Patch Changes
+
+- Updated dependencies [e6f2341]
+  - effect-app@4.0.0-beta.68
+
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.67
+
+## 4.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [edc52e4]
+  - effect-app@4.0.0-beta.66
+
+## 4.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [31739d7]
+- Updated dependencies [1f103b2]
+  - effect-app@4.0.0-beta.65
+
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- Updated dependencies [c1a6fdc]
+  - effect-app@4.0.0-beta.64
+
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- 1f9d7da: fix missing toCodecJson usages
+  - effect-app@4.0.0-beta.63
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [0b21a02]
+  - effect-app@4.0.0-beta.62
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.61
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- 29c39d2: Fix repository `find` with transformed id fields in tagged union schemas
+  - effect-app@4.0.0-beta.60
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- cec026d: update packages
+- Updated dependencies [cec026d]
+  - effect-app@4.0.0-beta.59
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.58
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- fbf47b8: Fix repository `find` with transformed id fields (e.g. composite ids using `decodeTo`)
+  - effect-app@4.0.0-beta.57
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.56
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.55
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- d867272: the return of `Context`
+- Updated dependencies [d867272]
+  - effect-app@4.0.0-beta.54
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [ee9694e]
+  - effect-app@4.0.0-beta.53
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [6252808]
+  - effect-app@4.0.0-beta.52
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.51
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.50
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [e585c9c]
+  - effect-app@4.0.0-beta.49
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [0c88f78]
+  - effect-app@4.0.0-beta.48
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [3365758]
+  - effect-app@4.0.0-beta.47
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.46
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- 10b55ff: update packages
+- Updated dependencies [10b55ff]
+  - effect-app@4.0.0-beta.45
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- a37aa38: Update to effect beta 43
+- Updated dependencies [a37aa38]
+  - effect-app@4.0.0-beta.44
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- dab6992: no need for .lock.lock
+  - effect-app@4.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.41
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.40
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [10e90d5]
+  - effect-app@4.0.0-beta.39
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [0b3e00e]
+  - effect-app@4.0.0-beta.38
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [947fe20]
+  - effect-app@4.0.0-beta.37
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.36
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 8c645d5: update to latest effect
+- Updated dependencies [8c645d5]
+  - effect-app@4.0.0-beta.34
+
 ## 4.0.0-beta.33
 
 ### Patch Changes

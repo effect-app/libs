@@ -36,13 +36,13 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { ref, watch } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const sum = ref(0)
 const AddSchema = S.Struct({
-  first: S.Finite.pipe(S.withDefaultConstructor(() => 23)),
+  first: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(23))),
   second: S.Finite.pipe(S.check(S.isGreaterThan(3))),
   third: S.Struct({
     fourth: S.Finite,

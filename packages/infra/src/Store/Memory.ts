@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Array, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, ServiceMap, Struct } from "effect-app"
+import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { get } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
@@ -27,7 +27,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
           n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys as never[]))
         })
         return n as M
-      }) as any
+      })
     }
     const skip = f?.skip
     const limit = f?.limit
@@ -72,7 +72,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
 }
 
 const defaultNs: NonEmptyString255 = NonEmptyString255("primary")
-export class storeId extends ServiceMap.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
+export class storeId extends Context.Reference("StoreId", { defaultValue: (): NonEmptyString255 => defaultNs }) {}
 
 function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
   return InfraLogger
@@ -151,6 +151,8 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           withPermit
         )
     const s: Store<IdKey, Encoded> = {
+      seedNamespace: () => Effect.void,
+
       queryRaw: (query) =>
         all
           .pipe(
@@ -250,56 +252,60 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
 }
 
 export const makeMemoryStore = () => ({
-  make: <IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
+  make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
     modelName: string,
     idKey: IdKey,
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
-  ) =>
-    Effect.gen(function*() {
-      const storesSem = Semaphore.makeUnsafe(1)
-      const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
-        modelName,
-        idKey,
-        "primary",
-        seed,
-        config?.defaultValues
-      )
-      const ctx = yield* Effect.services<R>()
-      const stores = new Map([["primary", primary]])
-      const getStore = !config?.allowNamespace
-        ? Effect.succeed(primary)
-        : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
-          const store = stores.get(namespace)
-          if (store) {
-            return Effect.succeed(store)
-          }
-          if (!config.allowNamespace!(namespace)) {
-            throw new Error(`Namespace ${namespace} not allowed!`)
-          }
-          return storesSem.withPermits(1)(Effect.suspend(() => {
-            const store = stores.get(namespace)
-            if (store) return Effect.sync(() => store)
-            return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
-              .pipe(
-                Effect.orDie,
-                Effect.provide(ctx),
-                Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-              )
-          }))
-        }))
-      const s: Store<IdKey, Encoded> = {
-        all: Effect.flatMap(getStore, (_) => _.all),
-        queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args)),
-        find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
-        filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),
-        set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
-        batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
-        bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
-        batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args))
+  ) {
+    const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
+      modelName,
+      idKey,
+      "primary",
+      seed,
+      config?.defaultValues
+    )
+    const ctx = yield* Effect.context<R>()
+    const stores = new Map([["primary", primary]])
+    const semaphores = new Map<string, Semaphore.Semaphore>()
+    const getSem = (ns: string) => {
+      let sem = semaphores.get(ns)
+      if (!sem) {
+        sem = Semaphore.makeUnsafe(1)
+        semaphores.set(ns, sem)
       }
-      return s
-    })
+      return sem
+    }
+    const ensureStore = (namespace: string) =>
+      getSem(namespace).withPermits(1)(Effect.suspend(() => {
+        const store = stores.get(namespace)
+        if (store) return Effect.succeed(store)
+        if (config?.allowNamespace && !config.allowNamespace(namespace)) {
+          throw new Error(`Namespace ${namespace} not allowed!`)
+        }
+        return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
+          .pipe(
+            Effect.orDie,
+            Effect.provide(ctx),
+            Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
+          )
+      }))
+    const getStore = !config?.allowNamespace
+      ? Effect.succeed(primary)
+      : storeId.asEffect().pipe(Effect.flatMap((namespace) => ensureStore(namespace)))
+    const s: Store<IdKey, Encoded> = {
+      seedNamespace: (namespace) => ensureStore(namespace).pipe(Effect.asVoid),
+      all: Effect.flatMap(getStore, (_) => _.all),
+      queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args)),
+      find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
+      filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),
+      set: (...args) => Effect.flatMap(getStore, (_) => _.set(...args)),
+      batchSet: (...args) => Effect.flatMap(getStore, (_) => _.batchSet(...args)),
+      bulkSet: (...args) => Effect.flatMap(getStore, (_) => _.bulkSet(...args)),
+      batchRemove: (...args) => Effect.flatMap(getStore, (_) => _.batchRemove(...args))
+    }
+    return s
+  })
 })
 
 export const MemoryStoreLive = StoreMaker.toLayer(Effect.sync(() => makeMemoryStore()))

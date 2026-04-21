@@ -1,5 +1,5 @@
 /** @effect-diagnostics overriddenSchemaConstructor:skip-file */
-import { TaggedError } from "effect-app/Schema"
+import { TaggedErrorClass } from "effect-app/Schema"
 import * as Cause from "effect/Cause"
 import * as S from "../Schema.js"
 
@@ -21,7 +21,7 @@ export const tryToJson = (error: { toJSON(): unknown; toString(): string }) => {
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 // @ts-expect-error type not used
-export class NotFoundError<ItemType = string> extends TaggedError<NotFoundError<ItemType>>()("NotFoundError", {
+export class NotFoundError<ItemType = string> extends TaggedErrorClass<NotFoundError<ItemType>>()("NotFoundError", {
   type: S.String,
   id: S.Unknown
 }) {
@@ -29,76 +29,97 @@ export class NotFoundError<ItemType = string> extends TaggedError<NotFoundError<
     props: { type: string; id: unknown; cause?: unknown },
     disableValidation?: boolean
   ) {
-    super(props as any, disableValidation as any)
+    super(props, disableValidation as any)
   }
   override get message() {
     return `Didn't find ${(this as any).type}#${JSON.stringify((this as any).id)}`
+  }
+  override toString() {
+    return `NotFoundError: ${this.message}`
   }
 }
 
 const messageFallback = (messageOrObject?: string | { message: string }) =>
   typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject ?? "" }
 
-export class InvalidStateError extends TaggedError<InvalidStateError>()("InvalidStateError", {
+export class InvalidStateError extends TaggedErrorClass<InvalidStateError>()("InvalidStateError", {
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(
-      typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any,
+      typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject },
       disableValidation as any
     )
   }
+  override toString() {
+    return `InvalidStateError: ${this.message}`
+  }
 }
 
-export class ServiceUnavailableError extends TaggedError<ServiceUnavailableError>()("ServiceUnavailableError", {
+export class ServiceUnavailableError extends TaggedErrorClass<ServiceUnavailableError>()("ServiceUnavailableError", {
   message: S.String
 }) {
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(
-      typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject } as any,
+      typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject },
       disableValidation as any
     )
   }
+  override toString() {
+    return `ServiceUnavailableError: ${this.message}`
+  }
 }
 
-export class ValidationError extends TaggedError<ValidationError>()("ValidationError", {
+export class ValidationError extends TaggedErrorClass<ValidationError>()("ValidationError", {
   errors: S.Array(S.Unknown)
 }) {
   constructor(
     props: { errors: ReadonlyArray<unknown>; cause?: unknown },
     disableValidation?: boolean
   ) {
-    super(props as any, disableValidation as any)
+    super(props, disableValidation as any)
   }
   override get message() {
     return `Validation failed: ${(this as any).errors.map((e: any) => JSON.stringify(e, undefined, 2)).join(",\n")}`
   }
+  override toString() {
+    return `ValidationError: ${this.message}`
+  }
 }
 
-export class NotLoggedInError extends TaggedError<NotLoggedInError>()("NotLoggedInError", {
+export class NotLoggedInError extends TaggedErrorClass<NotLoggedInError>()("NotLoggedInError", {
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject) as any, disableValidation as any)
+    super(messageFallback(messageOrObject), disableValidation as any)
+  }
+  override toString() {
+    return `NotLoggedInError: ${this.message}`
   }
 }
 
 /**
  * The user carries a valid Userprofile, but there is a problem with the login none the less.
  */
-export class LoginError extends TaggedError<LoginError>()("NotLoggedInError", {
+export class LoginError extends TaggedErrorClass<LoginError>()("NotLoggedInError", {
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject) as any, disableValidation as any)
+    super(messageFallback(messageOrObject), disableValidation as any)
+  }
+  override toString() {
+    return `LoginError: ${this.message}`
   }
 }
 
-export class UnauthorizedError extends TaggedError<UnauthorizedError>()("UnauthorizedError", {
+export class UnauthorizedError extends TaggedErrorClass<UnauthorizedError>()("UnauthorizedError", {
   message: S.String
 }) {
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
-    super(messageFallback(messageOrObject) as any, disableValidation as any)
+    super(messageFallback(messageOrObject), disableValidation as any)
+  }
+  override toString() {
+    return `UnauthorizedError: ${this.message}`
   }
 }
 
@@ -110,7 +131,7 @@ type OptimisticConcurrencyDetails = {
   readonly found?: string | undefined
 }
 
-export class OptimisticConcurrencyException extends TaggedError<OptimisticConcurrencyException>()(
+export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticConcurrencyException>()(
   "OptimisticConcurrencyException",
   { message: S.String }
 ) {
@@ -123,12 +144,15 @@ export class OptimisticConcurrencyException extends TaggedError<OptimisticConcur
     disableValidation?: boolean
   ) {
     super(
-      "message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` } as any,
+      "message" in args ? args : { message: `Existing ${args.type} ${args.id} record changed` },
       disableValidation as any
     )
     if (!("message" in args)) {
       this.details = args
     }
+  }
+  override toString() {
+    return `OptimisticConcurrencyException: ${this.message}`
   }
 }
 
@@ -183,6 +207,7 @@ export class CauseException<E> extends Error {
     Error.stackTraceLimit = 0
     super()
     Error.stackTraceLimit = limit
+    this.cause = Cause.squash(originalCause)
     // v4: makeFiberFailure removed — use Cause.prettyErrors instead
     const errors = Cause.prettyErrors(originalCause)
     const first = errors[0]

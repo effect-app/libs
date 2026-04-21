@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/eslint-shared-config",
-  "version": "0.5.7-beta.2",
+  "version": "0.6.0-beta.10",
   "description": "Shared flat ESLint base & vue configs for effect-app monorepo",
   "license": "MIT",
   "private": false,
@@ -25,28 +25,28 @@
   "dependencies": {
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@eslint/js": "10.0.1",
-    "@eslint/eslintrc": "3.3.4",
+    "@eslint/eslintrc": "3.3.5",
     "eslint-plugin-import": "2.32.0",
     "eslint-import-resolver-typescript": "4.4.4",
     "eslint-plugin-codegen": "0.17.0",
     "eslint-plugin-sort-destructure-keys": "3.0.0",
     "eslint-plugin-unused-imports": "4.4.1",
-    "@ben_12/eslint-plugin-dprint": "1.16.0",
-    "eslint-plugin-formatjs": "6.2.0",
+    "@ben_12/eslint-plugin-dprint": "1.17.0",
+    "eslint-plugin-formatjs": "6.4.5",
     "@vue/eslint-config-typescript": "14.7.0",
-    "typescript-eslint": "8.56.1",
+    "typescript-eslint": "8.59.0",
     "eslint-plugin-vue": "10.8.0",
-    "dprint-plugin-malva": "0.15.2",
-    "dprint-plugin-markup": "0.26.0",
+    "dprint-plugin-malva": "0.15.3",
+    "dprint-plugin-markup": "0.27.0",
     "dprint-plugin-yaml": "0.6.0",
     "@dprint/typescript": "0.95.15",
-    "@eslint/compat": "2.0.2",
-    "eslint-import-resolver-webpack": "0.13.10",
-    "eslint-plugin-simple-import-sort": "12.1.1",
+    "@eslint/compat": "2.0.5",
+    "eslint-import-resolver-webpack": "0.13.11",
+    "eslint-plugin-simple-import-sort": "13.0.0",
     "eslint-watch": "^8.0.0",
-    "@typescript-eslint/eslint-plugin": "8.56.1",
-    "@typescript-eslint/parser": "8.56.1",
-    "@dprint/formatter": "0.5.1",
+    "@typescript-eslint/eslint-plugin": "8.59.0",
+    "@typescript-eslint/parser": "8.59.0",
+    "@dprint/formatter": "~0.5.1",
     "jsonc-parser": "3.3.1"
   },
   "bundledDependencies": [
@@ -54,8 +54,8 @@
   ],
   "devDependencies": {},
   "peerDependencies": {
-    "eslint": "^10.0.2",
-    "typescript": "~6.0.2",
-    "dprint": "^0.52.0"
+    "eslint": "^10.2.1",
+    "typescript": "~6.0.3",
+    "dprint": "^0.54.0"
   }
 }

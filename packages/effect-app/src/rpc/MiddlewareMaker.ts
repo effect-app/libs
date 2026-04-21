@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Layer, type Schema, Schema as S, type Scope, ServiceMap } from "effect"
+import { Effect, Layer, type Schema, Schema as S, type Scope } from "effect"
 import { type NonEmptyArray, type NonEmptyReadonlyArray } from "effect/Array"
 import { type Simplify } from "effect/Types"
 import { Rpc, type RpcGroup, type RpcSchema } from "effect/unstable/rpc"
 import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
-import { type RequestId } from "effect/unstable/rpc/RpcMessage"
-import { type HttpHeaders } from "../http.js"
+import * as Context from "../Context.js"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
 import { typedValuesOf } from "../utils.js"
@@ -61,13 +60,13 @@ export interface MiddlewareMaker<
     }
   >
 {
-  readonly layer: Layer.Layer<Self, never, ServiceMap.Service.Identifier<MiddlewareProviders[number]>>
+  readonly layer: Layer.Layer<Self, never, Context.Service.Identifier<MiddlewareProviders[number]>>
   readonly requestContext: RequestContextTag<RequestContextMap>
   readonly requestContextMap: RequestContextMap
 }
 
 export interface RequestContextTag<RequestContextMap extends Record<string, RpcContextMap.Any>>
-  extends ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>
+  extends Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>
 {}
 
 export namespace MiddlewareMaker {
@@ -258,10 +257,10 @@ export type MiddlewaresBuilder<
     : { new(_: never): {} }
     : { new(_: never): {} })
 
-const middlewareMaker = <
+const middlewareMaker = Effect.fnUntraced(function*<
   MiddlewareProviders extends ReadonlyArray<MiddlewareMaker.Any>
->(middlewares: MiddlewareProviders): Effect.Effect<
-  RpcMiddlewareV4<
+>(middlewares: MiddlewareProviders) {
+  type Middleware = RpcMiddlewareV4<
     MiddlewareMaker.ManyProvided<MiddlewareProviders>,
     MiddlewareMaker.ManyErrors<MiddlewareProviders>,
     Exclude<
@@ -270,42 +269,32 @@ const middlewareMaker = <
     > extends never ? never
       : Exclude<MiddlewareMaker.ManyRequired<MiddlewareProviders>, MiddlewareMaker.ManyProvided<MiddlewareProviders>>
   >
-> => {
+  type Next = Parameters<Middleware>[0]
+  type Options = Parameters<Middleware>[1]
+
   // we want to run them in reverse order because latter middlewares will provide context to former ones
-  middlewares = middlewares.toReversed() as any
+  const reversed = middlewares.toReversed()
+  const context = yield* Effect.context()
 
-  return Effect.gen(function*() {
-    const context = yield* Effect.services()
+  // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
+  // v4: wrap middleware takes (effect, options) as two params instead of a single options bag
+  return (next: Next, options: Options) => {
+    // we start with the actual handler
+    let handler = next
 
-    // returns a Effect/RpcMiddlewareV4 with Scope.Scope in requirements
-    // v4: wrap middleware takes (effect, options) as two params instead of a single options bag
-    return (
-      next: Effect.Effect<any, any, any>,
-      options: {
-        readonly clientId: number
-        readonly requestId: RequestId
-        readonly rpc: Rpc.AnyWithProps
-        readonly payload: unknown
-        readonly headers: HttpHeaders.Headers
-      }
-    ) => {
-      // we start with the actual handler
-      let handler = next
+    // inspired from Effect/RpcMiddleware
+    for (const tag of reversed) {
+      // use the tag to get the middleware from context
+      const middleware = Context.getUnsafe(context, tag)
 
-      // inspired from Effect/RpcMiddleware
-      for (const tag of middlewares) {
-        // use the tag to get the middleware from context
-        const middleware = ServiceMap.getUnsafe(context, tag)
-
-        // wrap the current handler, allowing the middleware to run before and after it
-        handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
-          Effect.andThen(middleware(handler, options))
-        ) as any
-      }
-      return handler
+      // wrap the current handler, allowing the middleware to run before and after it
+      handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+        Effect.andThen(middleware(handler, options))
+      ) as any
     }
-  }) as any
-}
+    return handler
+  }
+})
 
 const makeMiddlewareBasic = <Self>() =>
 // by setting RequestContextMap beforehand, execute contextual typing does not fuck up itself to anys
@@ -367,7 +356,7 @@ const makeMiddlewareBasic = <Self>() =>
   return Object.assign(MiddlewareMaker, {
     layer,
     // tag to be used to retrieve the RequestContextConfig from Rpc annotations
-    requestContext: ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
+    requestContext: Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap>>(
       "RequestContextConfig"
     ),
     requestContextMap: rcm
@@ -380,7 +369,7 @@ export const Tag = <Self>() =>
   RequestContextMap extends RequestContextMapTagAny
 >(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap["config"]> => {
   let allMiddleware: MiddlewareMaker.Any[] = []
-  const requestContext = ServiceMap.Service<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
+  const requestContext = Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
     "RequestContextConfig"
   )
   const it = {

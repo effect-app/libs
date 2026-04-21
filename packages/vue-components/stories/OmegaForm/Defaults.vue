@@ -52,36 +52,36 @@
 </template>
 
 <script setup lang="ts">
-import { S } from "effect-app"
+import { Effect, S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const struct = {
-  a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
+  a: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default")))),
   b: S.NonEmptyString,
   c: S.NonEmptyArray(S.String).pipe(
-    S.withDefaultConstructor(() => [S.NonEmptyString("C"), S.NonEmptyString("Non Empty Array")])
+    S.withConstructorDefault(Effect.sync(() => [S.NonEmptyString("C"), S.NonEmptyString("Non Empty Array")]))
   ),
   d: S
     .NonEmptyArray(S.Struct({
       e: S.NonEmptyString
     }))
     .pipe(
-      S.withDefaultConstructor(() => [{ e: S.NonEmptyString("default") }])
+      S.withConstructorDefault(Effect.sync(() => [{ e: S.NonEmptyString("default") }]))
     ),
   f: S.Union([
     S.Struct({
-      _tag: S.Literal("taggo1").pipe(S.withDefaultConstructor(() => "taggo1")),
-      g: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
-      i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
+      _tag: S.Literal("taggo1").pipe(S.withConstructorDefault(Effect.succeed("taggo1"))),
+      g: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default")))),
+      i: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default"))))
     }),
     S.Struct({
-      _tag: S.Literal("taggo2").pipe(S.withDefaultConstructor(() => "taggo2")),
-      h: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
-      i: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default")))
+      _tag: S.Literal("taggo2").pipe(S.withConstructorDefault(Effect.succeed("taggo2"))),
+      h: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default")))),
+      i: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default"))))
     })
   ]),
-  j: S.Finite.pipe(S.withDefaultConstructor(() => 0)),
-  k: S.Boolean.pipe(S.withDefaultConstructor(() => true)),
+  j: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(0))),
+  k: S.Boolean.pipe(S.withConstructorDefault(Effect.succeed(true))),
   l: S.NullOr(
     S.Union([
       S.Struct({
@@ -109,7 +109,7 @@ const struct = {
     }))
     .withDefault,
   s: S.NullOr(S.Struct({ z: S.String })).withDefault,
-  t: S.FiniteFromString.pipe(S.withDefaultConstructor(() => 1000)),
+  t: S.FiniteFromString.pipe(S.withConstructorDefault(Effect.succeed(1000))),
   u: S.NullOr(S.NonEmptyString),
   v: S.UndefinedOr(S.NonEmptyString)
 }
@@ -119,14 +119,14 @@ const schema = S.Struct(struct)
 
 const Union = S.Union([
   S.Struct({
-    _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
-    a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
+    _tag: S.Literal("tag1").pipe(S.withConstructorDefault(Effect.succeed("tag1"))),
+    a: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default")))),
     b: schema
   }),
   S.Struct({
     _tag: S.Literal("tag2"),
-    a: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
-    b: S.NonEmptyString.pipe(S.withDefaultConstructor(() => S.NonEmptyString("default"))),
+    a: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default")))),
+    b: S.NonEmptyString.pipe(S.withConstructorDefault(Effect.succeed(S.NonEmptyString("default")))),
     c: schema
   })
 ])
@@ -166,7 +166,7 @@ const six = useOmegaForm(schema, {
 
 const seven = useOmegaForm(S.Union([
   S.Struct({
-    _tag: S.Literal("tag1").pipe(S.withDefaultConstructor(() => "tag1")),
+    _tag: S.Literal("tag1").pipe(S.withConstructorDefault(Effect.succeed("tag1"))),
     a: S.NonEmptyString,
     s: S.NullOr(S.Finite).withDefault
   }),

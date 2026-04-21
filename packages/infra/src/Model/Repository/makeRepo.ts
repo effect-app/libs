@@ -7,11 +7,12 @@
 // import type { ParserEnv } from "effect-app/Schema/custom/Parser"
 import type {} from "effect/Equal"
 import type {} from "effect/Hash"
-import { Effect, type NonEmptyReadonlyArray, type S, type ServiceMap } from "effect-app"
+import { type Context, Effect, type NonEmptyReadonlyArray, type S } from "effect-app"
 import type { StoreConfig, StoreMaker } from "../../Store.js"
 import type { FieldValues } from "../filter/types.js"
 import { type ExtendedRepository, extendRepo } from "./ext.js"
 import { makeRepoInternal } from "./internal/internal.js"
+import { RepositoryRegistry } from "./Registry.js"
 import type { Repository } from "./service.js"
 
 export interface RepositoryOptions<
@@ -52,11 +53,11 @@ export interface RepositoryOptions<
    * Optional context to be provided to Schema decode/encode.
    * Useful for effectful transformations like XWithItems, where items is a transformation retrieving elements from another database table or other source.
    */
-  schemaContext?: ServiceMap.ServiceMap<RCtx>
+  schemaContext?: Context.Context<RCtx>
 
   overrides?: (
-    repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>
-  ) => Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>
+    repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>
+  ) => Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>
 }
 
 /**
@@ -83,9 +84,9 @@ export const makeRepo: {
     schema: S.Codec<T, Encoded, RSchema>,
     options: RepositoryOptions<IdKey, Encoded, T, ItemType, Evt, RPublish, E, RInitial, RCtx, RSchema>
   ): Effect.Effect<
-    ExtendedRepository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>,
+    ExtendedRepository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>,
     E,
-    RInitial | StoreMaker
+    RInitial | StoreMaker | RepositoryRegistry
   >
   <
     ItemType extends string,
@@ -102,9 +103,9 @@ export const makeRepo: {
     schema: S.Codec<T, Encoded, RSchema>,
     options: Omit<RepositoryOptions<"id", Encoded, T, ItemType, Evt, RPublish, E, RInitial, RCtx, RSchema>, "idKey">
   ): Effect.Effect<
-    ExtendedRepository<T, Encoded, Evt, ItemType, "id", Exclude<RSchema, RCtx>, RPublish>,
+    ExtendedRepository<T, Encoded, Evt, ItemType, "id", Exclude<RSchema, RCtx>, RPublish, RCtx>,
     E,
-    RInitial | StoreMaker
+    RInitial | StoreMaker | RepositoryRegistry
   >
 } = <
   ItemType extends string,
@@ -135,5 +136,7 @@ export const makeRepo: {
     let r = yield* mkRepo.make<RInitial, E, RPublish, RCtx>(options as any)
     if (options.overrides) r = options.overrides(r)
     const repo = extendRepo(r)
+    const registry = yield* RepositoryRegistry
+    registry.register(itemType, repo)
     return repo
   })

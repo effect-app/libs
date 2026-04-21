@@ -12,6 +12,7 @@
     "lib": ["esnext", "dom"],
     "declaration": true,
     "emitDeclarationOnly": true,
+    "rootDir": "./src",
     "declarationDir": "./dist/types",
     "isolatedModules": true,
     "skipLibCheck": true,

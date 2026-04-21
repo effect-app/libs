@@ -1,4 +1,4 @@
-import { pipe } from "effect"
+import { Effect, pipe } from "effect"
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
 import * as S from "effect/Schema"
@@ -6,7 +6,7 @@ import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
 import { fromBrand, nominal } from "./brand.js"
-import { withDefaultConstructor, withDefaultMake, type WithDefaults } from "./ext.js"
+import { withDefaultMake, type WithDefaults } from "./ext.js"
 import { type B } from "./schema.js"
 import type { NonEmptyString255Brand, NonEmptyStringBrand } from "./strings.js"
 
@@ -160,7 +160,7 @@ export const StringId = extendM(
   ),
   (s) => ({
     make: makeStringId,
-    withDefault: s.pipe(withDefaultConstructor(makeStringId))
+    withDefault: s.pipe(S.withConstructorDefault(Effect.sync(makeStringId)))
   })
 )
   .pipe(withDefaultMake)
@@ -182,7 +182,7 @@ export function prefixedStringId<Brand extends StringId>() {
         (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const s: S.Codec<string & Brand, string> = StringId
+    const s = StringId
       .pipe(
         S.refine((x: string): x is string & Brand => x.startsWith(pref), {
           identifier: name,
@@ -191,7 +191,7 @@ export function prefixedStringId<Brand extends StringId>() {
         S.annotate({
           toArbitrary: () => (fc) => arb()(fc)
         })
-      ) as S.Codec<string & Brand, string>
+      )
     const schema = s.pipe(withDefaultMake)
     const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Brand
 
@@ -208,7 +208,9 @@ export function prefixedStringId<Brand extends StringId>() {
          */
         prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
         prefix,
-        withDefault: schema.pipe(withDefaultConstructor(make))
+        withDefault: schema.pipe(S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>(
+          Effect.sync(make)
+        ))
       })
     )
   }
@@ -247,6 +249,10 @@ const isUrl: Refinement<string, Url> = (s: string): s is Url => {
 export const Url = S
   .String
   .pipe(
+    S.annotate({
+      title: "Url",
+      format: "uri"
+    }),
     S.refine(isUrl, {
       identifier: "Url",
       title: "Url",

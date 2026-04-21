@@ -9,6 +9,22 @@ import type { Query, QueryEnd, QueryWhere } from "../query.js"
 import * as Q from "../query.js"
 import type { Repository } from "./service.js"
 
+interface BatchOptions {
+  readonly batch?: true | number
+}
+
+const asReadonlyArray = <T>(itemOrItems: T | ReadonlyArray<T>): ReadonlyArray<T> =>
+  globalThis.Array.isArray(itemOrItems)
+    ? itemOrItems as ReadonlyArray<T>
+    : [itemOrItems as T]
+
+const getBatchSize = (batch?: true | number) =>
+  batch === true
+    ? 100
+    : typeof batch === "number" && Number.isFinite(batch) && batch > 0
+    ? Math.floor(batch)
+    : undefined
+
 export const extendRepo = <
   T,
   Encoded extends FieldValues,
@@ -16,9 +32,10 @@ export const extendRepo = <
   ItemType extends string,
   IdKey extends keyof T & keyof Encoded,
   RSchema,
-  RPublish
+  RPublish,
+  RProvided = never
 >(
-  repo: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>
+  repo: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish, RProvided>
 ) => {
   const get = (id: T[IdKey]) =>
     repo.find(id).pipe(
@@ -244,8 +261,77 @@ export const extendRepo = <
     request: (id: T[IdKey]) => Effect.request(_request({ id }), requestResolver),
     get,
     log: (evt: Evt) => AnyPureDSL.log(evt),
-    save: (...items: NonEmptyArray<T>) => repo.saveAndPublish(items),
+    /**
+     * Enables chunked writes for large batches via `options.batch`.
+     * Note: batching breaks transactional properties because chunks are saved independently.
+     */
+    save: ((itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
+      const items = asReadonlyArray(itemOrItems)
+      if (!Array.isReadonlyArrayNonEmpty(items)) {
+        return Effect.void
+      }
+      const batchSize = getBatchSize(options?.batch)
+      if (batchSize === undefined) {
+        return repo.saveAndPublish(items)
+      }
+      return Effect.forEach(
+        Array.chunksOf(items, batchSize),
+        (batch) => repo.saveAndPublish(batch),
+        { discard: true }
+      )
+    }) as (
+      itemOrItems: T | ReadonlyArray<T>,
+      options?: BatchOptions
+    ) => Effect.Effect<
+      void,
+      InvalidStateError | OptimisticConcurrencyException,
+      RSchema | RPublish
+    >,
     saveWithEvents: (events: Iterable<Evt>) => (...items: NonEmptyArray<T>) => repo.saveAndPublish(items, events),
+    /**
+     * Enables chunked deletes for large batches via `options.batch`.
+     * Note: batching breaks transactional properties because chunks are removed independently.
+     */
+    remove: ((itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
+      const items = asReadonlyArray(itemOrItems)
+      if (!Array.isReadonlyArrayNonEmpty(items)) {
+        return Effect.void
+      }
+      const batchSize = getBatchSize(options?.batch)
+      if (batchSize === undefined) {
+        return repo.removeAndPublish(items)
+      }
+      return Effect.forEach(
+        Array.chunksOf(items, batchSize),
+        (batch) => repo.removeAndPublish(batch),
+        { discard: true }
+      )
+    }) as (
+      itemOrItems: T | ReadonlyArray<T>,
+      options?: BatchOptions
+    ) => Effect.Effect<void, never, RSchema | RPublish>,
+    /**
+     * Enables chunked deletes for large batches via `options.batch`.
+     * Note: batching breaks transactional properties because chunks are removed independently.
+     */
+    removeById: ((idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>, options?: BatchOptions) => {
+      const ids = asReadonlyArray(idOrIds)
+      if (!Array.isReadonlyArrayNonEmpty(ids)) {
+        return Effect.void
+      }
+      const batchSize = getBatchSize(options?.batch)
+      if (batchSize === undefined) {
+        return repo.removeById(ids)
+      }
+      return Effect.forEach(
+        Array.chunksOf(ids, batchSize),
+        (batch) => repo.removeById(batch),
+        { discard: true }
+      )
+    }) as (
+      idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>,
+      options?: BatchOptions
+    ) => Effect.Effect<void, never, RSchema>,
     queryAndSavePure,
     saveManyWithPure,
     byIdAndSaveWithPure,
@@ -268,7 +354,7 @@ export const extendRepo = <
   return {
     ...repo,
     ...exts
-  } as Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish> & typeof exts
+  } as Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish, RProvided> & typeof exts
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -279,5 +365,6 @@ export interface ExtendedRepository<
   ItemType extends string,
   IdKey extends keyof T & keyof Encoded,
   RSchema,
-  RPublish
-> extends ReturnType<typeof extendRepo<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>> {}
+  RPublish,
+  RProvided = never
+> extends ReturnType<typeof extendRepo<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish, RProvided>> {}

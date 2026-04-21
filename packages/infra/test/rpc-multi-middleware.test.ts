@@ -1,14 +1,14 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Console, Effect, Layer, Result } from "effect"
-import { S } from "effect-app"
+import { Console, Effect, Layer, Ref, Result } from "effect"
+import { Context, S } from "effect-app"
 import { NotLoggedInError } from "effect-app/client"
 import { HttpRouter } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import { MiddlewareMaker } from "effect-app/rpc"
 import { middlewareGroup } from "effect-app/rpc/MiddlewareMaker"
 import { FetchHttpClient } from "effect/unstable/http"
-import { RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/unstable/rpc"
+import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/unstable/rpc"
 import { createServer } from "http"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
@@ -134,5 +134,74 @@ it.live(
       expect(user).toBe("also-awesome")
     },
     Effect.provide(RpcTestLayer)
+  )
+)
+
+// Per-request service isolation test
+
+class PerRequestCounter extends Context.Service<PerRequestCounter>()(
+  "PerRequestCounter",
+  { make: Effect.sync(() => ({ a: 0 })) }
+) {
+  static Default = Layer.effect(this, this.make)
+}
+
+class GlobalCounter extends Context.Service<GlobalCounter, {
+  readonly ref: Ref.Ref<number>
+}>()("GlobalCounter") {}
+
+const CounterRpcs = RpcGroup.make(
+  Rpc.make("incrementA", {
+    success: S.Number
+  }),
+  Rpc.make("incrementB", {
+    success: S.Number
+  })
+)
+
+const counterImpl = CounterRpcs
+  .toLayer({
+    incrementA: Effect.fn(function*() {
+      const counter = yield* PerRequestCounter
+      counter.a++
+      const global = yield* GlobalCounter
+      yield* Ref.update(global.ref, (n) => n + 1)
+      return counter.a
+    }, Effect.provide(PerRequestCounter.Default)),
+    incrementB: Effect.fn(function*() {
+      const counter = yield* PerRequestCounter
+      counter.a++
+      const global = yield* GlobalCounter
+      yield* Ref.update(global.ref, (n) => n + 1)
+      return counter.a
+    }, Effect.provide(PerRequestCounter.Default))
+  })
+
+const GlobalCounterLive = Layer.effect(
+  GlobalCounter,
+  Ref.make(0).pipe(Effect.map((ref) => ({ ref })))
+)
+
+const CounterTestLayer = counterImpl.pipe(Layer.provideMerge(GlobalCounterLive))
+
+it.live(
+  "per-request service isolation with shared global counter",
+  Effect.fnUntraced(
+    function*() {
+      const client = yield* RpcTest.makeClient(CounterRpcs)
+      const global = yield* GlobalCounter
+
+      const r1 = yield* client.incrementA()
+      const r2 = yield* client.incrementB()
+
+      // per-request counter is fresh each time → both return 1
+      expect(r1).toBe(1)
+      expect(r2).toBe(1)
+
+      // global counter is shared across requests → accumulates to 2
+      const globalCount = yield* Ref.get(global.ref)
+      expect(globalCount).toBe(2)
+    },
+    Effect.provide(CounterTestLayer)
   )
 )

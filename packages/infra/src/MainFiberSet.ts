@@ -1,4 +1,4 @@
-import { Effect, Fiber, FiberSet, Layer, ServiceMap } from "effect-app"
+import { Context, Effect, Fiber, FiberSet, Layer } from "effect-app"
 import type {} from "effect/Scope"
 import { InfraLogger } from "./logger.js"
 import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.js"
@@ -62,7 +62,7 @@ const make = Effect.gen(function*() {
  * you should register these long running fibers in a FiberSet, and join them at the end of your main program.
  * This way any errors will blow up the main program instead of fibers dying unknowingly.
  */
-export class MainFiberSet extends ServiceMap.Service<MainFiberSet>()("MainFiberSet", { make }) {
+export class MainFiberSet extends Context.Service<MainFiberSet>()("MainFiberSet", { make }) {
   static readonly Live = Layer.effect(this, this.make)
   static readonly JoinLive = this.asEffect().pipe(
     Effect.andThen((_) => _.join),

@@ -1,32 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
-import { Cause, Data, Effect, Exit, Layer, type ManagedRuntime, Match, Option, S, ServiceMap, Struct } from "effect-app"
+import { type Context, Effect, Exit, type Layer, type ManagedRuntime, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
-import type { RequestHandler, RequestHandlers, RequestHandlerWithInput, Requests } from "effect-app/client/clientFor"
-import { ErrorSilenced, type SupportedErrors } from "effect-app/client/errors"
-import { constant, identity, pipe, tuple } from "effect-app/Function"
-import { type OperationFailure, OperationSuccess } from "effect-app/Operations"
-import { dropUndefinedT, extendM } from "effect-app/utils"
+import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestsAny } from "effect-app/client/clientFor"
+import { extendM } from "effect-app/utils"
 import { type Fiber } from "effect/Fiber"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import { computed, type ComputedRef, onBeforeUnmount, type Ref, ref, watch, type WatchSource } from "vue"
-import { reportMessage } from "./errorReporter.js"
-import { type Commander, CommanderStatic } from "./experimental/commander.js"
-import { I18n } from "./experimental/intl.js"
-import { type CommanderResolved, makeUseCommand } from "./experimental/makeUseCommand.js"
-import { Toast } from "./experimental/toast.js"
-import { buildFieldInfoFromFieldsRoot } from "./form.js"
-import { reportRuntimeError } from "./lib.js"
-import { asResult, makeMutation, type MutationOptions, type MutationOptionsBase, mutationResultToVue, type Res, useMakeMutation } from "./mutate.js"
+import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
+import { type Commander, CommanderStatic } from "./commander.js"
+import { type I18n } from "./intl.js"
+import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
+import { makeMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
 import { type CustomUndefinedInitialQueryOptions, makeQuery } from "./query.js"
+import { makeRunPromise } from "./runtime.js"
+import { type Toast } from "./toast.js"
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
 
-export interface RequestExtensions<RT, Id extends string, I, A, E, R> {
+export interface CommandRequestExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
    * The Request function will be taken as the first member of the Command, the Command required input will be the Request input.
    * see Command.wrap for details */
@@ -44,16 +39,14 @@ export interface RequestExtWithInput<
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, RequestExtensions<RT, Id, I, A, E, R> {
+> extends Commander.CommandContextLocal<Id, Id>, CommandRequestExtensions<RT, Id, I, A, E, R> {
   /**
-   * Request the endpoint with input
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not perform query cache invalidation.
    */
-  (i: I): Effect.Effect<A, E, R>
+  request: (i: I) => Effect.Effect<A, E, R>
 }
 
-/**
- * Request the endpoint
- */
 export interface RequestExt<
   RT,
   Id extends string,
@@ -63,15 +56,55 @@ export interface RequestExt<
 > extends
   Commander.CommandContextLocal<Id, Id>,
   Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
-  RequestExtensions<RT, Id, void, A, E, R>,
-  Effect.Effect<A, E, R>
+  CommandRequestExtensions<RT, Id, void, A, E, R>
 {
+  /**
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not perform query cache invalidation.
+   */
+  request: Effect.Effect<A, E, R>
 }
 
-export type RequestWithExtensions<RT, Req> = Req extends
+export type CommandRequestWithExtensions<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
   ? RequestExtWithInput<RT, Id, I, A, E, R>
   : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, A, E, R>
+  : never
+
+export interface QueryExtensionsWithInput<I, A, E, R> {
+  /**
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not set up query state tracking.
+   */
+  request: (i: I) => Effect.Effect<A, E, R>
+}
+
+export interface QueryExtensions<A, E, R> {
+  /**
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not set up query state tracking.
+   */
+  request: Effect.Effect<A, E, R>
+}
+
+export type QueryRequestWithExtensions<Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id>
+  ? QueryExtensionsWithInput<I, A, E, R>
+  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer _Id> ? QueryExtensions<A, E, R>
+  : never
+
+type QueryHandler<Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? Request["type"] extends "query" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "query" ? RequestHandler<A, E, R, Request, Id> : never
+  : never
+
+type CommandHandler<Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? Request["type"] extends "command" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "command" ? RequestHandler<A, E, R, Request, Id> : never
   : never
 
 export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
@@ -79,9 +112,6 @@ export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
    * see Command.wrap for details */
   wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
-  /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
-   * see Command.fn for details */
-  fn: Commander.CommanderFn<RT, Id, Id, undefined>
 }
 
 /** my other doc */
@@ -92,19 +122,23 @@ export interface MutationExtWithInput<
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, MutationExtensions<RT, Id, I, A, E, R> {
+> extends MutationExtensions<RT, Id, I, A, E, R> {
   /**
-   * Call the endpoint with input
-   * Invalidate queries based on namespace of this mutation.
-   * Do not use for queries.
+   * Send the request to the endpoint and return the raw Effect response.
+   * Also invalidates query caches using the request namespace by default.
+   * Namespace invalidation targets parent namespace keys
+   * (for example `$project/$configuration.get` invalidates `$project`).
+   * Override invalidation in client options via `queryInvalidation`.
    */
   (i: I): Effect.Effect<A, E, R>
 }
 
 /**
- * Call the endpoint
- * Invalidate queries based on namespace of this mutation.
- * Do not use for queries.
+ * Send the request to the endpoint and return the raw Effect response.
+ * Also invalidates query caches using the request namespace by default.
+ * Namespace invalidation targets parent namespace keys
+ * (for example `$project/$configuration.get` invalidates `$project`).
+ * Override invalidation in client options via `queryInvalidation`.
  */
 export interface MutationExt<
   RT,
@@ -112,12 +146,7 @@ export interface MutationExt<
   A,
   E,
   R
-> extends
-  Commander.CommandContextLocal<Id, Id>,
-  Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
-  MutationExtensions<RT, Id, void, A, E, R>,
-  Effect.Effect<A, E, R>
-{
+> extends MutationExtensions<RT, Id, void, A, E, R>, Effect.Effect<A, E, R> {
 }
 
 export type MutationWithExtensions<RT, Req> = Req extends
@@ -134,27 +163,29 @@ declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
 
 export interface QueriesWithInput<Request extends Req, Id extends string, I, A, E> {
   /**
-   * Effect results are passed to the caller, including errors.
+   * Read helper for query requests.
+   * Runs as a tracked Vue Query and returns reactive state.
+   * Queries read state and should not be used to mutate it.
    */
   query: ReturnType<typeof useQuery_<I, E, A, Request, Id>>
   // TODO or suspense as Option?
   /**
-   * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-   * which ensures that either there always is a latest value, or an error occurs on load.
-   * So that Suspense and error boundaries can be used.
+   * Like `.query`, but returns a Promise for setup-time awaiting.
+   * Use this when integrating with Vue Suspense / error boundaries.
    */
   suspense: ReturnType<typeof useSuspenseQuery_<I, E, A, Request, Id>>
 }
 export interface QueriesWithoutInput<Request extends Req, Id extends string, A, E> {
   /**
-   * Effect results are passed to the caller, including errors.
+   * Read helper for query requests.
+   * Runs as a tracked Vue Query and returns reactive state.
+   * Queries read state and should not be used to mutate it.
    */
   query: ReturnType<typeof useQuery_<E, A, Request, Id>>
   // TODO or suspense as Option?
   /**
-   * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-   * which ensures that either there always is a latest value, or an error occurs on load.
-   * So that Suspense and error boundaries can be used.
+   * Like `.query`, but returns a Promise for setup-time awaiting.
+   * Use this when integrating with Vue Suspense / error boundaries.
    */
   suspense: ReturnType<typeof useSuspenseQuery_<E, A, Request, Id>>
 }
@@ -166,175 +197,17 @@ export type MissingDependencies<RT, R> = {
 
 export type Queries<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? Exclude<R, RT> extends never ? QueriesWithInput<Request, Id, I, A, E>
-  : {
-    query: MissingDependencies<RT, R> & {}
-    suspense: MissingDependencies<RT, R> & {}
-  }
-  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-    ? Exclude<R, RT> extends never ? QueriesWithoutInput<Request, Id, A, E>
-    : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
+  ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueriesWithInput<Request, Id, I, A, E>
+    : {
+      query: MissingDependencies<RT, R> & {}
+      suspense: MissingDependencies<RT, R> & {}
+    }
   : never
-
-/**
- * Use this after handling an error yourself, still continueing on the Error track, but the error will not be reported.
- */
-export class SuppressErrors extends Data.TaggedError("SuppressErrors")<{}> {
-  readonly [ErrorSilenced] = true as const
-}
-
-export type ResponseErrors = S.SchemaError | SupportedErrors | SuppressErrors | OperationFailure
-
-export interface Opts<
-  A,
-  E,
-  R,
-  I = void,
-  A2 = A,
-  E2 = E,
-  R2 = R,
-  ESuccess = never,
-  RSuccess = never,
-  EError = never,
-  RError = never,
-  EDefect = never,
-  RDefect = never
-> extends MutationOptions<A, E, R, A2, E2, R2, I> {
-  /** set to `undefined` to use default message */
-  successMessage?: ((a: A2, i: I) => Effect.Effect<string | undefined, ESuccess, RSuccess>) | undefined
-  /** set to `undefined` to use default message */
-  failMessage?: ((e: E2, i: I) => Effect.Effect<string | undefined, EError, RError>) | undefined
-  /** set to `undefined` to use default message */
-  defectMessage?: ((e: Cause.Cause<E2>, i: I) => Effect.Effect<string | undefined, EDefect, RDefect>) | undefined
-}
-
-export interface LowOpts<
-  A,
-  E,
-  I = void,
-  ESuccess = never,
-  RSuccess = never,
-  EError = never,
-  RError = never,
-  EDefect = never,
-  RDefect = never
-> {
-  onSuccess: (a: A, i: I) => Effect.Effect<void, ESuccess, RSuccess>
-  onFail: (e: E, i: I) => Effect.Effect<void, EError, RError>
-  onDefect: (e: Cause.Cause<E>, i: I) => Effect.Effect<void, EDefect, RDefect>
-}
-
-export interface LowOptsOptional<
-  A,
-  E,
-  R,
-  I = void,
-  A2 = A,
-  E2 = E,
-  R2 = R,
-  ESuccess = never,
-  RSuccess = never,
-  EError = never,
-  RError = never,
-  EDefect = never,
-  RDefect = never
-> extends MutationOptions<A, E, R, A2, E2, R2, I> {
-  onSuccess?: (a: A, i: I) => Effect.Effect<void, ESuccess, RSuccess>
-  onFail?: (e: E, i: I) => Effect.Effect<void, EError, RError>
-  onDefect?: (e: Cause.Cause<E>, i: I) => Effect.Effect<void, EDefect, RDefect>
-}
-
-type WithAction<A> = A & {
-  action: string
-}
-
-// computed() takes a getter function and returns a readonly reactive ref
-// object for the returned value from the getter.
-
-type Resp<I, A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
-  V,
-  WithAction<(I: I) => Effect.Effect<Exit.Exit<A, E>, never, R>>
-]
-
-type ActResp<A, E, R, V = ComputedRef<Res<A, E>>> = readonly [
-  V,
-  WithAction<Effect.Effect<Exit.Exit<A, E>, never, R>>
-]
-
-export const suppressToast = constant(Effect.succeed(undefined))
-
-/** handles errors as specified and reports defects */
-function handleRequest<
-  E extends ResponseErrors,
-  A,
-  R,
-  I = void,
-  ESuccess = never,
-  RSuccess = never,
-  EError = never,
-  RError = never,
-  EDefect = never,
-  RDefect = never
->(
-  f: Effect.Effect<Exit.Exit<A, E>, never, R> | ((i: I) => Effect.Effect<Exit.Exit<A, E>, never, R>),
-  id: string,
-  action: string,
-  options: {
-    onSuccess: (a: A, i: I) => Effect.Effect<void, ESuccess, RSuccess>
-    onFail: (e: E, i: I) => Effect.Effect<void, EError, RError>
-    onDefect: (e: Cause.Cause<E>, i: I) => Effect.Effect<void, EDefect, RDefect>
-  }
-) {
-  const handleEffect = (i: any) => (self: Effect.Effect<Exit.Exit<A, E>, never, R>) =>
-    self.pipe(
-      Effect.tap(
-        Effect.matchCauseEffect({
-          onSuccess: (r) => options.onSuccess(r, i),
-          onFailure: (cause) =>
-            Effect.gen(function*() {
-              if (Cause.hasInterruptsOnly(cause)) {
-                console.info(`Interrupted while trying to ${action}`)
-                return
-              }
-
-              const fail = Cause.findErrorOption(cause)
-              if (Option.isSome(fail)) {
-                if (fail.value._tag === "SuppressErrors") {
-                  console.info(`Suppressed error trying to ${action}`, fail.value)
-                  return
-                }
-                const message = `Failure trying to ${action}`
-                yield* reportMessage(message, { action, error: fail.value })
-                yield* options.onFail(fail.value, i)
-                return
-              }
-
-              const extra = {
-                action,
-                message: `Unexpected Error trying to ${action}`
-              }
-              yield* reportRuntimeError(cause, extra)
-
-              yield* options.onDefect(cause, i)
-            })
-        })
-      ),
-      Effect.withSpan(`mutation ${id}`, {}, { captureStackTrace: false })
-    )
-  return Object.assign(
-    Effect.isEffect(f)
-      ? pipe(
-        f,
-        handleEffect(void 0)
-      )
-      : (i: I) =>
-        pipe(
-          f(i),
-          handleEffect(i)
-        ),
-    { action }
-  )
-}
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueriesWithoutInput<Request, Id, A, E>
+      : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
+    : never
+  : never
 
 const _useMutation = makeMutation()
 
@@ -389,702 +262,10 @@ export const useMutationInt = (): typeof _useMutation => {
     )
 }
 
-export class LegacyMutationImpl<RT> {
-  constructor(
-    private readonly getRuntime: () => ServiceMap.ServiceMap<RT>,
-    private readonly toast: Toast,
-    private readonly intl: I18n
-  ) {}
-
-  /**
-   * Effect results are converted to Exit, so errors are ignored by default.
-   * you should use the result ref to render errors!
-   * @deprecated use `Command.fn` and friends instead
-   */
-  readonly useSafeMutation: {
-    /**
-     * Effect results are converted to Exit, so errors are ignored by default.
-     * you should use the result ref to render errors!
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
-      options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): readonly [
-      ComputedRef<AsyncResult.AsyncResult<A2, E2>>,
-      (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
-    ]
-    /**
-     * Effect results are converted to Exit, so errors are ignored by default.
-     * you should use the result ref to render errors!
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandler<A, E, R, Request, Name>,
-      options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): readonly [
-      ComputedRef<AsyncResult.AsyncResult<A2, E2>>,
-      Effect.Effect<Exit.Exit<A2, E2>, never, R2>
-    ]
-  } = <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
-    options?: MutationOptions<A, E, R, A2, E2, R2, I>
-  ) => {
-    const unsafe = _useMutation(self as any, options)
-
-    type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
-    const mh = options?.mapHandler ?? identity as MH
-
-    const [a, b] = asResult(
-      mapHandler(
-        mapHandler(unsafe as any, mh),
-        Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause))
-      ) as any
-    )
-    return [
-      a,
-      mapHandler(
-        b,
-        Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })
-      )
-    ] as const as any
-  }
-
-  /** handles errors as toasts and reports defects
-   * @deprecated use `Command.fn` and friends instead
-   */
-  readonly useHandleRequestWithToast = () => {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-    return handleRequestWithToast
-    /**
-     * Pass a function that returns a Promise.
-     * Returns an execution function which reports errors as Toast.
-     */
-    function handleRequestWithToast<
-      A,
-      E extends ResponseErrors,
-      R,
-      I = void,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      f: Effect.Effect<Exit.Exit<A2, E2>, never, R2> | ((i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>),
-      id: string,
-      action: string,
-      options: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect> = {}
-    ) {
-      const actionMessage = self.intl.formatMessage({ id: `action.${action}`, defaultMessage: action })
-      const defaultWarnMessage = self.intl.formatMessage(
-        { id: "handle.with_warnings" },
-        { action: actionMessage }
-      )
-      const defaultSuccessMessage = self.intl.formatMessage(
-        { id: "handle.success" },
-        { action: actionMessage }
-      )
-      const defaultErrorMessage = self.intl.formatMessage(
-        { id: "handle.with_errors" },
-        { action: actionMessage }
-      )
-
-      return handleRequest<E2, A2, R2, any, ESuccess, RSuccess, EError, RError, EDefect, RDefect>(f, id, action, {
-        onSuccess: Effect.fnUntraced(function*(a, i) {
-          const message = options.successMessage ? yield* options.successMessage(a, i) : defaultSuccessMessage
-            + (S.is(OperationSuccess)(a) && a.message
-              ? "\n" + a.message
-              : "")
-          if (message) {
-            yield* self.toast.success(message)
-          }
-        }),
-        onFail: Effect.fnUntraced(function*(e, i) {
-          if (!options.failMessage && e._tag === "OperationFailure") {
-            yield* self.toast.warning(
-              defaultWarnMessage + e.message
-                ? "\n" + e.message
-                : ""
-            )
-            return
-          }
-
-          const message = options.failMessage
-            ? yield* options.failMessage(e, i)
-            : `${defaultErrorMessage}:\n` + renderError(e)
-          if (message) {
-            yield* self.toast.error(message)
-          }
-        }),
-        onDefect: Effect.fnUntraced(function*(cause, i) {
-          const message = options.defectMessage
-            ? yield* options.defectMessage(cause, i)
-            : self.intl.formatMessage(
-              { id: "handle.unexpected_error" },
-              {
-                action: actionMessage,
-                error: Cause.pretty(cause)
-              }
-            )
-          if (message) {
-            yield* self.toast.error(message)
-          }
-        })
-      })
-    }
-
-    function renderError(e: ResponseErrors): string {
-      return Match.value(e as any).pipe(
-        Match.tags({
-          // HttpErrorRequest: e =>
-          //   this.intl.value.formatMessage(
-          //     { id: "handle.request_error" },
-          //     { error: `${e.error}` },
-          //   ),
-          // HttpErrorResponse: e =>
-          //   e.response.status >= 500 ||
-          //   e.response.body._tag !== "Some" ||
-          //   !e.response.body.value
-          //     ? this.intl.value.formatMessage(
-          //         { id: "handle.error_response" },
-          //         {
-          //           error: `${
-          //             e.response.body._tag === "Some" && e.response.body.value
-          //               ? parseError(e.response.body.value)
-          //               : "Unknown"
-          //           } (${e.response.status})`,
-          //         },
-          //       )
-          //     : this.intl.value.formatMessage(
-          //         { id: "handle.unexpected_error" },
-          //         {
-          //           error:
-          //             JSON.stringify(e.response.body, undefined, 2) +
-          //             "( " +
-          //             e.response.status +
-          //             ")",
-          //         },
-          //       ),
-          // ResponseError: e =>
-          //   this.intl.value.formatMessage(
-          //     { id: "handle.response_error" },
-          //     { error: `${e.error}` },
-          //   ),
-          SchemaError: (e: any) => {
-            console.warn(e.toString())
-            return self.intl.formatMessage({ id: "validation.failed" })
-          }
-        }),
-        Match.orElse((e: any) => `${e.message ?? e._tag ?? e}`)
-      )
-    }
-  }
-
-  /**
-   * Pass a function that returns an Effect, e.g from a client action, give it a name.
-   * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
-   * @deprecated use `Command.fn` and friends instead
-   */
-  readonly useAndHandleMutationResult: {
-    /**
-     * Pass a function that returns an Effect, e.g from a client action, give it a name.
-     * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      I,
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
-      action: string,
-      options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R2, ComputedRef<AsyncResult.AsyncResult<A2, E2>>>
-    /**
-     * Pass a function that returns an Effect, e.g from a client action, give it a name.
-     * Returns a tuple with raw Result and execution function which reports success and errors as Toast.
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandler<A, E, R, Request, Name>,
-      action: string,
-      options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<A2, E2, R2, ComputedRef<AsyncResult.AsyncResult<A2, E2>>>
-  } = <E extends ResponseErrors, A, R, Request extends Req, Name extends string, I>(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
-    action: any,
-    options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
-  ): any => {
-    const handleRequestWithToast = this.useHandleRequestWithToast()
-    const handler = self.handler
-    const unsafe = _useMutation({
-      ...self,
-      handler: Effect.isEffect(handler)
-        ? (pipe(
-          Effect.annotateCurrentSpan({ action }),
-          Effect.andThen(handler)
-        ) as any)
-        : (...args: [any]) =>
-          pipe(
-            Effect.annotateCurrentSpan({ action }),
-            Effect.andThen(handler(...args))
-          )
-    }, options ? dropUndefinedT(options) : undefined)
-
-    type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
-    const mh = options?.mapHandler ?? identity as MH
-
-    // Effect.tapDefect(reportRuntimeError) handled in toast handler,
-    const [a, b] = asResult(mapHandler(unsafe, mh) as any)
-
-    return tuple(
-      a,
-      handleRequestWithToast(b as any, self.id, action, options)
-    )
-  }
-  //
-
-  /**
-   * Pass a function that returns an Effect, e.g from a client action, give it a name.
-   * Returns a tuple with state ref and execution function which reports success and errors as Toast.
-   *
-   * @deprecated use `Command.fn` and friends instead
-   */
-  readonly useAndHandleMutation: {
-    /**
-     * Pass a function that returns an Effect, e.g from a client action, give it a name.
-     * Returns a tuple with state ref and execution function which reports success and errors as Toast.
-     *
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      I,
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
-      action: string,
-      options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R2>
-    /**
-     * Pass a function that returns an Effect, e.g from a client action, give it a name.
-     * Returns a tuple with state ref and execution function which reports success and errors as Toast.
-     *
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandler<A, E, R, Request, Name>,
-      action: string,
-      options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<A2, E2, R2>
-  } = (
-    self: any,
-    action: any,
-    options?: Opts<any, any, any, any, any, any, any, any, any, any, any, any, any>
-  ): any => {
-    const [a, b] = this.useAndHandleMutationResult(self, action, options)
-
-    return tuple(
-      computed(() => mutationResultToVue(a.value)),
-      b
-    )
-  }
-
-  /** @deprecated use `Command.fn` and friends instead */
-  readonly makeUseAndHandleMutation = (
-    defaultOptions?: Opts<any, any, any, any, any, any, any, any, any>
-  ) =>
-    ((self: any, action: any, options: any) => {
-      return this.useAndHandleMutation(
-        self,
-        action,
-        { ...defaultOptions, ...options }
-      )
-    }) as unknown as {
-      <
-        I,
-        E extends ResponseErrors,
-        A,
-        R,
-        Request extends Req,
-        Name extends string,
-        A2 = A,
-        E2 extends ResponseErrors = E,
-        R2 = R,
-        ESuccess = never,
-        RSuccess = never,
-        EError = never,
-        RError = never,
-        EDefect = never,
-        RDefect = never
-      >(
-        self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
-        action: string,
-        options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-      ): Resp<I, A2, E2, R2>
-      <
-        E extends ResponseErrors,
-        A,
-        R,
-        Request extends Req,
-        Name extends string,
-        A2 = A,
-        E2 extends ResponseErrors = E,
-        R2 = R,
-        ESuccess = never,
-        RSuccess = never,
-        EError = never,
-        RError = never,
-        EDefect = never,
-        RDefect = never
-      >(
-        self: RequestHandler<A, E, R, Request, Name>,
-        action: string,
-        options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-      ): ActResp<A2, E2, R2>
-    }
-
-  /**
-   * The same as @see useAndHandleMutation, but does not display any toasts by default.
-   * Messages for success, error and defect toasts can be provided in the Options.
-   * @deprecated use `Command.fn` and friends instead
-   */
-  readonly useAndHandleMutationSilently: {
-    /**
-     * The same as @see useAndHandleMutation, but does not display any toasts by default.
-     * Messages for success, error and defect toasts can be provided in the Options.
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      I,
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
-      action: string,
-      options?: Opts<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R>
-    /**
-     * The same as @see useAndHandleMutation, but does not display any toasts by default.
-     * Messages for success, error and defect toasts can be provided in the Options.
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandler<A, E, R, Request, Name>,
-      action: string,
-      options?: Opts<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<void, never, R>
-  } = this.makeUseAndHandleMutation({
-    successMessage: suppressToast,
-    failMessage: suppressToast,
-    defectMessage: suppressToast
-  }) as any
-
-  /**
-   * The same as @see useAndHandleMutation, but does not act on success, error or defect by default.
-   * Actions for success, error and defect can be provided in the Options.
-   * @deprecated use `Command.fn` and friends instead
-   */
-  readonly useAndHandleMutationCustom: {
-    /**
-     * The same as @see useAndHandleMutation, but does not act on success, error or defect by default.
-     * Actions for success, error and defect can be provided in the Options.
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      I,
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
-      action: string,
-      options?: LowOptsOptional<A, E, R, I, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): Resp<I, A2, E2, R2>
-    /**
-     * The same as @see useAndHandleMutation, but does not act on success, error or defect by default.
-     * Actions for success, error and defect can be provided in the Options.
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <
-      E extends ResponseErrors,
-      A,
-      R,
-      Request extends Req,
-      Name extends string,
-      A2 = A,
-      E2 extends ResponseErrors = E,
-      R2 = R,
-      ESuccess = never,
-      RSuccess = never,
-      EError = never,
-      RError = never,
-      EDefect = never,
-      RDefect = never
-    >(
-      self: RequestHandler<A, E, R, Request, Name>,
-      action: string,
-      options?: LowOptsOptional<A, E, R, void, A2, E2, R2, ESuccess, RSuccess, EError, RError, EDefect, RDefect>
-    ): ActResp<A2, E2, R2>
-  } = (self: any, action: string, options: any) => {
-    const unsafe = _useMutation({
-      ...self,
-      handler: Effect.isEffect(self.handler)
-        ? (pipe(
-          Effect.annotateCurrentSpan({ action }),
-          Effect.andThen(self.handler)
-        ) as any)
-        : (...args: any[]) =>
-          pipe(
-            Effect.annotateCurrentSpan({ action }),
-            Effect.andThen(self.handler(...args))
-          )
-    }, options ? dropUndefinedT(options) : undefined)
-
-    type MH = NonNullable<NonNullable<typeof options>["mapHandler"]>
-    const mh = options?.mapHandler ?? identity as MH
-
-    const [a, b] = asResult(
-      mapHandler(
-        mapHandler(unsafe as any, mh),
-        Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause))
-      ) as any
-    )
-
-    return tuple(
-      computed(() => mutationResultToVue(a.value)),
-      handleRequest(b as any, self.id, action, {
-        onSuccess: suppressToast,
-        onDefect: suppressToast,
-        onFail: suppressToast,
-        ...options
-      })
-    ) as any
-  }
-
-  /**
-   * Effect results are converted to Exit, so errors are ignored by default.
-   * you should use the result ref to render errors!
-   * @deprecated use `Command.fn` and friends instead
-   */
-  readonly useSafeMutationWithState: {
-    /**
-     * Effect results are converted to Exit, so errors are ignored by default.
-     * you should use the result ref to render errors!
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
-      options?: MutationOptions<A, E, R, A2, E2, R2, I>
-    ): readonly [
-      ComputedRef<Res<A, E>>,
-      (i: I) => Effect.Effect<Exit.Exit<A2, E2>, never, R2>
-    ]
-    /**
-     * Effect results are converted to Exit, so errors are ignored by default.
-     * you should use the result ref to render errors!
-     * @deprecated use `Command.fn` and friends instead
-     */
-    <E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
-      self: RequestHandler<A, E, R, Request, Name>,
-      options?: MutationOptions<A, E, R, A2, E2, R2>
-    ): readonly [
-      ComputedRef<Res<A, E>>,
-      Effect.Effect<Exit.Exit<A2, E2>, never, R2>
-    ]
-  } = <I, E, A, R, Request extends Req, Name extends string, A2 = A, E2 = E, R2 = R>(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
-    options?: MutationOptions<A, E, R, A2, E2, R2, I>
-  ) => {
-    const [a, b] = this.useSafeMutation(self as any, options)
-
-    return tuple(
-      computed(() => mutationResultToVue(a.value)),
-      b
-    ) as any
-  }
-
-  /** @deprecated use OmegaForm */
-  readonly buildFormFromSchema = <
-    From extends Record<PropertyKey, any>,
-    To extends Record<PropertyKey, any>,
-    C extends Record<PropertyKey, any>,
-    OnSubmitA
-  >(
-    s:
-      & S.Codec<To>
-      & { new(c: C): any; extend: any; fields: S.Struct.Fields },
-    state: Ref<Omit<From, "_tag">>,
-    onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, RT>
-  ) => {
-    const fields = buildFieldInfoFromFieldsRoot(s).fields
-    const schema = S.Struct(Struct.omit(s.fields, ["_tag"])) as unknown as S.Codec<any> & {
-      readonly DecodingServices: never
-    }
-    const parse = S.decodeUnknownSync(schema)
-    const isDirty = ref(false)
-    const isValid = ref(true)
-    const isLoading = ref(false)
-    const runPromise = Effect.runPromiseWith(this.getRuntime())
-
-    const submit1 =
-      (onSubmit: (a: To) => Effect.Effect<OnSubmitA, never, never>) =>
-      async <T extends Promise<{ valid: boolean }>>(e: T) => {
-        isLoading.value = true
-        try {
-          const r = await e
-          if (!r.valid) return
-          return await runPromise(onSubmit(new (s as any)(await runPromise(parse(state.value)))) as any)
-        } finally {
-          isLoading.value = false
-        }
-      }
-    const submit = submit1(onSubmit as any)
-
-    watch(
-      state,
-      (v) => {
-        // TODO: do better
-        isDirty.value = JSON.stringify(v) !== JSON.stringify(state.value)
-      },
-      { deep: true }
-    )
-
-    const submitFromState = Effect.gen(function*() {
-      return yield* (onSubmit(yield* parse(state.value)) as any)
-    })
-
-    const submitFromStatePromise = () => runPromise(submitFromState as any)
-
-    return {
-      fields,
-      /** optimized for Vuetify v-form submit callback */
-      submit,
-      /** optimized for Native form submit callback or general use */
-      submitFromState,
-      submitFromStatePromise,
-      isDirty,
-      isValid,
-      isLoading
-    }
-  }
-}
-
-// @effect-diagnostics-next-line missingEffectServiceDependency:off
-export class LegacyMutation extends ServiceMap.Service<LegacyMutation>()("LegacyMutation", {
-  make: Effect.gen(function*() {
-    const intl = yield* I18n
-    const toast = yield* Toast
-
-    return <R>(getRuntime: () => ServiceMap.ServiceMap<R>) => new LegacyMutationImpl(getRuntime, toast, intl)
-  })
-}) {
-  static readonly DefaultWithoutDependencies = Layer.effect(this, this.make)
-  static readonly Default = this.DefaultWithoutDependencies
-}
-
-export type ClientFrom<M extends Requests> = RequestHandlers<never, never, M, M["meta"]["moduleName"]>
+export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
 
 export class QueryImpl<R> {
-  constructor(readonly getRuntime: () => ServiceMap.ServiceMap<R>) {
+  constructor(readonly getRuntime: () => Context.Context<R>) {
     this.useQuery = makeQuery(this.getRuntime)
   }
   /**
@@ -1163,7 +344,7 @@ export class QueryImpl<R> {
   } = <Arg, E, A, Request extends Req, Name extends string>(
     self: RequestHandlerWithInput<Arg, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
   ) => {
-    const runPromise = Effect.runPromiseWith(this.getRuntime())
+    const runPromise = makeRunPromise(this.getRuntime())
     const q = this.useQuery(self as any) as any
     return (argOrOptions?: any, options?: any) => {
       const [resultRef, latestRef, fetch, uqrt] = q(argOrOptions, { ...options, suspense: true } // experimental_prefetchInRender: true }
@@ -1214,10 +395,10 @@ export class QueryImpl<R> {
 }
 
 // somehow mrt.runtimeEffect doesnt work sync, but this workaround works fine? not sure why though as the layers are generally only sync
-const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.services<A>())
+const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt.runSync(Effect.context<A>())
 
 type Base = I18n | Toast
-type Mix = ApiClientFactory | Commander | LegacyMutation | Base
+type Mix = ApiClientFactory | Commander | Base
 export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
@@ -1225,54 +406,26 @@ export const makeClient = <RT_, RTHooks>(
   rtHooks: Layer.Layer<RTHooks, never, Mix>
 ) => {
   type RT = RT_ | Mix
-  const getRt = Effect.services<RT>()
   const getBaseRt = () => managedRuntimeRt(getBaseMrt())
   const makeCommand = makeUseCommand<RT, RTHooks>(rtHooks)
-  const makeMutation = Effect.gen(function*() {
-    const mut = yield* LegacyMutation
-
-    return mut(() => getBaseMrt().runSync(getRt))
-  })
   let cmd: Effect.Success<typeof makeCommand>
   const useCommand = () => cmd ??= getBaseMrt().runSync(makeCommand)
-  let mut: Effect.Success<typeof makeMutation>
-  const getMutation = () => mut ??= getBaseMrt().runSync(makeMutation)
 
   let m: ReturnType<typeof useMutationInt>
   const useMutation = () => m ??= useMutationInt()
-
-  const keys = [
-    "useSafeMutationWithState",
-    "useAndHandleMutation",
-    "useAndHandleMutationResult",
-    "useAndHandleMutationSilently",
-    "useAndHandleMutationCustom",
-    "makeUseAndHandleMutation",
-    "useHandleRequestWithToast",
-    "buildFormFromSchema",
-    "useSafeMutation"
-  ] as const satisfies readonly (keyof ReturnType<typeof getMutation>)[]
-  type mut = Pick<LegacyMutationImpl<RT>, typeof keys[number]>
-
-  const mutations = keys.reduce(
-    (prev, cur) => {
-      ;(prev as any)[cur] = ((...args: [any]) => {
-        return (getMutation() as any)[cur](...args)
-      }) as any
-      return prev
-    },
-    {} as Pick<LegacyMutationImpl<RT>, typeof keys[number]>
-  )
 
   const query = new QueryImpl(getBaseRt)
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
 
-  const mapQuery = <M extends Requests>(
+  const mapQuery = <M extends RequestsAny>(
     client: ClientFrom<M>
   ) => {
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
+        if (client[key].Request.type !== "query") {
+          return acc
+        }
         ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
           id: client[key].id
         })
@@ -1284,26 +437,35 @@ export const makeClient = <RT_, RTHooks>(
       {} as
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as `${ToCamel<string & Key>}Query`]: Queries<RT, typeof client[Key]>["query"]
+          [
+            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}Query`
+          ]: Queries<RT, QueryHandler<typeof client[Key]>>["query"]
         }
         // todo: or suspense as an Option?
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as `${ToCamel<string & Key>}SuspenseQuery`]: Queries<
+          [
+            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}SuspenseQuery`
+          ]: Queries<
             RT,
-            typeof client[Key]
+            QueryHandler<typeof client[Key]>
           >["suspense"]
         }
     )
     return queries
   }
 
-  const mapRequest = <M extends Requests>(
+  const mapRequest = <M extends RequestsAny>(
     client: ClientFrom<M>
   ) => {
     const Command = useCommand()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
+        if (client[key].Request.type !== "command") {
+          return acc
+        }
         const mut = client[key].handler
         const fn = Command.fn(client[key].id)
         const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
@@ -1315,36 +477,40 @@ export const makeClient = <RT_, RTHooks>(
         return acc
       },
       {} as {
-        [Key in keyof typeof client as `${ToCamel<string & Key>}Request`]: RequestWithExtensions<
+        [
+          Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
+            : `${ToCamel<string & Key>}Request`
+        ]: CommandRequestWithExtensions<
           RT | RTHooks,
-          typeof client[Key]
+          CommandHandler<typeof client[Key]>
         >
       }
     )
     return mutations
   }
 
-  const mapMutation = <M extends Requests>(
+  const mapMutation = <M extends RequestsAny>(
     client: ClientFrom<M>
   ) => {
     const Command = useCommand()
     const mutation = useMutation()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
+        if (client[key].Request.type !== "command") {
+          return acc
+        }
         const mut: any = mutation(client[key] as any)
-        const fn = Command.fn(client[key].id)
         const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
-        ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(
-          mut,
-          fn, // to get the i18n key etc.
-          { wrap, fn }
-        )
+        ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(mut, { wrap })
         return acc
       },
       {} as {
-        [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
+        [
+          Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
+            : `${ToCamel<string & Key>}Mutation`
+        ]: MutationWithExtensions<
           RT | RTHooks,
-          typeof client[Key]
+          CommandHandler<typeof client[Key]>
         >
       }
     )
@@ -1353,7 +519,7 @@ export const makeClient = <RT_, RTHooks>(
 
   // make available .query, .suspense and .mutate for each operation
   // and a .helpers with all mutations and queries
-  const mapClient = <M extends Requests>(
+  const mapClient = <M extends RequestsAny>(
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) =>
   (
@@ -1364,47 +530,58 @@ export const makeClient = <RT_, RTHooks>(
     const invalidation = queryInvalidation?.(client)
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
+        const requestType = client[key].Request.type
         const fn = Command.fn(client[key].id)
-        const mutate = extendM(
-          mutation(
-            client[key] as any,
-            invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
-          ),
-          (mutate) =>
-            Object.assign(
-              mutate,
-              fn, // to get the i18n key etc.
-              {
-                wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id }),
-                fn
-              }
-            )
-        )
-
         const h_ = client[key].handler
-        const h = Effect.isEffect(h_)
+        const wrapInput = Effect.isEffect(h_)
           ? () => h_
           : (...args: [any]) => h_(...args)
+        const request = Effect.isEffect(h_) ? h_ : wrapInput
         ;(acc as any)[key] = Object.assign(
-          h,
-          client[key],
-          fn, // to get the i18n key etc.
-          {
-            mutate,
-            query: useQuery(client[key] as any),
-            suspense: useSuspenseQuery(client[key] as any),
-            wrap: Command.wrap({ mutate: h, id: client[key].id }),
-            fn
-          }
+          requestType === "query"
+            ? {
+              ...client[key],
+              request,
+              query: useQuery(client[key] as any),
+              suspense: useSuspenseQuery(client[key] as any)
+            }
+            : {
+              mutate: extendM(
+                mutation(
+                  client[key] as any,
+                  invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
+                ),
+                (mutate) =>
+                  Object.assign(
+                    mutate,
+                    {
+                      wrap: Command.wrap({
+                        mutate: Effect.isEffect(mutate) ? () => mutate : mutate,
+                        id: client[key].id
+                      })
+                    }
+                  )
+              ),
+              ...client[key],
+              ...fn, // to get the i18n key etc.
+              request,
+              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
+            }
         )
         return acc
       },
       {} as {
         [Key in keyof typeof client]:
           & typeof client[Key]
-          & RequestWithExtensions<RT | RTHooks, typeof client[Key]>
-          & { mutate: MutationWithExtensions<RT | RTHooks, typeof client[Key]> }
-          & Queries<RT, typeof client[Key]>
+          & (QueryHandler<typeof client[Key]> extends never ? {}
+            :
+              & QueryRequestWithExtensions<QueryHandler<typeof client[Key]>>
+              & Queries<RT, QueryHandler<typeof client[Key]>>)
+          & (CommandHandler<typeof client[Key]> extends never ? {}
+            : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>>)
+          & (CommandHandler<typeof client[Key]> extends never ? {}
+            : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
+          & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }
     )
     return Object.assign(extended, { helpers: { ...mapRequest(client), ...mapMutation(client), ...mapQuery(client) } })
@@ -1412,7 +589,7 @@ export const makeClient = <RT_, RTHooks>(
 
   // TODO: Clean up this delay initialisation messs
   // TODO; invalidateQueries should perhaps be configured in the Request impl themselves?
-  const clientFor__ = <M extends Requests>(
+  const clientFor__ = <M extends RequestsAny>(
     m: M,
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation))))
@@ -1420,7 +597,7 @@ export const makeClient = <RT_, RTHooks>(
   // delay client creation until first access
   // the idea is that we don't need the useNuxtApp().$runtime (only available at later initialisation stage)
   // until we are at a place where it is available..
-  const clientFor = <M extends Requests>(
+  const clientFor = <M extends RequestsAny>(
     m: M,
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
   ) => {
@@ -1444,11 +621,6 @@ export const makeClient = <RT_, RTHooks>(
     return proxy
   }
 
-  const legacy: Legacy<RT> = {
-    ...mutations,
-    ...query
-  }
-
   const Command: CommanderResolved<RT, RTHooks> = {
     ...{
       // delay initialisation until first use...
@@ -1463,16 +635,9 @@ export const makeClient = <RT_, RTHooks>(
   return {
     Command,
     useCommand,
-    clientFor,
-    legacy
+    clientFor
   }
 }
-
-export interface Legacy<R>
-  extends
-    Pick<QueryImpl<R>, "useQuery" | "useSuspenseQuery">,
-    Omit<LegacyMutationImpl<R>, "getRuntime" | "toast" | "intl">
-{}
 
 export type QueryInvalidation<M> = {
   [K in keyof M]?: (defaultKey: string[], name: string) => {

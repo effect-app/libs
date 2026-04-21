@@ -1,14 +1,18 @@
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, flow, Layer, Option, pipe, S, ServiceMap, Struct } from "effect-app"
+import { SchemaTransformation } from "effect"
+import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-app"
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, count, make, one, or, order, page, project, type QueryEnd, type QueryProjection, type QueryWhere, toFilter, where } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository.js"
+import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
 import { SomeService } from "./fixtures.js"
+
+const TestStoreLive = Layer.merge(MemoryStoreLive, RepositoryRegistryLive)
 
 const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
 const num = S.Struct({ _tag: S.Literal("number"), value: S.Finite })
@@ -19,7 +23,7 @@ export class Something extends S.Class<Something>("Something")({
   displayName: S.NonEmptyString255,
   name: S.NullOr(S.NonEmptyString255).withDefault,
   n: S.Date.withDefault,
-  union: someUnion.pipe(S.withDefaultConstructor(() => ({ _tag: "string" as const, value: "hi" })))
+  union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
 }) {}
 export declare namespace Something {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -90,8 +94,8 @@ it("works", () => {
 
   const processed = memFilter(interpreted)(items.map((_) =>
     S.encodeUnknownSync(S.Struct({
-      ...Something.omit("displayName"),
-      displayName: S.Literal("Verona", "Riley")
+      ...Struct.omit(Something.fields, ["displayName"]),
+      displayName: S.Literals(["Verona", "Riley"])
     }))(_)
   ))
 
@@ -99,7 +103,7 @@ it("works", () => {
 })
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off
-class SomethingRepo extends ServiceMap.Service<SomethingRepo>()("SomethingRepo", {
+class SomethingRepo extends Context.Service<SomethingRepo>()("SomethingRepo", {
   make: Effect.gen(function*() {
     return yield* makeRepo("Something", Something, {})
   })
@@ -112,7 +116,7 @@ class SomethingRepo extends ServiceMap.Service<SomethingRepo>()("SomethingRepo",
       })
     )
     .pipe(
-      Layer.provide(MemoryStoreLive)
+      Layer.provide(TestStoreLive)
     )
 }
 
@@ -279,7 +283,7 @@ it(
         expect(result).toEqual([])
         expect(result2).toEqual([])
       })
-      .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
 
 it(
@@ -465,7 +469,7 @@ it(
 
         expect([]).toEqual([])
       })
-      .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
 
 it(
@@ -508,7 +512,7 @@ it(
 
         expect([]).toEqual([])
       })
-      .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
 
 it(
@@ -519,8 +523,8 @@ it(
         const schema = S.Struct({
           id: S.String,
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(() => new Date().toISOString()),
-            S.withConstructorDefault(() => Option.some(new Date()))
+            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
         const repo = yield* makeRepo(
@@ -532,8 +536,8 @@ it(
         const outputSchema = S.Struct({
           id: S.Literal("123"),
           createdAt: S.Date.pipe(
-            S.withDecodingDefault(() => new Date().toISOString()),
-            S.withConstructorDefault(() => Option.some(new Date()))
+            S.withDecodingDefault(Effect.sync(() => new Date().toISOString())),
+            S.withConstructorDefault(Effect.sync(() => new Date()))
           )
         })
 
@@ -541,7 +545,34 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+)
+
+it(
+  "project with encodeKeys in projection maps encoded keys",
+  () =>
+    Effect
+      .gen(function*() {
+        const schema = S.Struct({
+          id: S.String,
+          a: S.Number
+        })
+
+        const repo = yield* makeRepo(
+          "test",
+          schema,
+          {
+            makeInitial: Effect.sync(() => [{ id: "1", a: 1 }])
+          }
+        )
+
+        const outputSchema = S.Struct({ b: S.Number }).pipe(S.encodeKeys({ b: "a" }))
+
+        const result = yield* repo.query(project(outputSchema))
+
+        expect(result).toStrictEqual([{ b: 1 }])
+      })
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
 
 it(
@@ -551,7 +582,7 @@ it(
       .gen(function*() {
         const schema = S.Struct({
           id: S.String,
-          literals: S.Literal("a", "b", "c")
+          literals: S.Literals(["a", "b", "c"])
         })
 
         type Schema = typeof schema.Type
@@ -571,7 +602,7 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
 
 it(
@@ -581,7 +612,7 @@ it(
       .gen(function*() {
         const schema = S.Struct({
           id: S.String,
-          literals: S.Union([S.Literal("a", "b", "c"), S.Null])
+          literals: S.Union([S.Literals(["a", "b", "c"]), S.Null])
         })
 
         type Schema = typeof schema.Type
@@ -615,7 +646,7 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
 
 it(
@@ -659,7 +690,7 @@ it(
 
         expect(result).toEqual([])
       })
-      .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
+      .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
 
 it("remove null from one constituent of a tagged union", () =>
@@ -708,7 +739,7 @@ it("remove null from one constituent of a tagged union", () =>
         })[]
       >()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("refine 3", () =>
   Effect
@@ -746,7 +777,7 @@ it("refine 3", () =>
       const resQuer1 = yield* repo.query(where("id", "AA"))
       expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("my test", () =>
   Effect
@@ -764,7 +795,7 @@ it("my test", () =>
       )
       expectTypeOf(resQuer1).toEqualTypeOf<readonly AA[]>()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("refine inner without imposing a projection", () =>
   Effect
@@ -808,7 +839,7 @@ it("refine inner without imposing a projection", () =>
         where("union._tag", "AA"),
         // But if I wanna the whole Data as output ignoring the inner refinement
         // I wanna be able to do so
-        project(S.Struct(Data.pick("union")))
+        project(Data.mapFields(Struct.pick(["union"])))
       )
 
       expectTypeOf(query2).toEqualTypeOf<
@@ -839,7 +870,7 @@ it("refine inner without imposing a projection", () =>
         }[]
       >()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("does not allow string queries on arrays", () =>
   Effect
@@ -874,7 +905,7 @@ it("does not allow string queries on arrays", () =>
       expectTypeOf(good3).toEqualTypeOf<QueryWhere<Some, Some>>()
       expectTypeOf(good4).toEqualTypeOf<QueryWhere<Some, Some>>()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("test array.length", () =>
   Effect
@@ -915,7 +946,7 @@ it("test array.length", () =>
         QueryWhere<Something, Something>
       >()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("distribution over union", () =>
   Effect
@@ -939,7 +970,7 @@ it("distribution over union", () =>
         })[]
       >()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("refine nested union", () =>
   Effect
@@ -980,7 +1011,154 @@ it("refine nested union", () =>
         }[]
       >()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("find with transformed id", () =>
+  Effect
+    .gen(function*() {
+      const ConfiguratorId = S.NonEmptyString255
+
+      class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
+        configuratorId: ConfiguratorId,
+        label: S.NonEmptyString50
+      }) {}
+
+      const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
+        S.decodeTo(
+          S.toType(PreconfigurationId),
+          SchemaTransformation.transformOrFail({
+            decode: Effect.fnUntraced(function*(value) {
+              const values = value.split("_")
+              const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              return new PreconfigurationId({ configuratorId, label })
+            }),
+            encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
+          })
+        ),
+        S.revealCodec
+      )
+
+      const Preconfiguration = S.Struct({
+        id: PreconfigurationIdFromString,
+        name: S.String
+      })
+
+      const repo = yield* makeRepo("Preconfiguration", Preconfiguration, { idKey: "id" as const })
+
+      const id = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("myConfigurator"),
+        label: S.NonEmptyString50("myLabel")
+      })
+      const item = { id, name: "test preconfig" }
+
+      yield* repo.saveAndPublish([item])
+
+      const found = yield* repo.find(id)
+      expect(Option.isSome(found)).toBe(true)
+      expect(Option.getOrThrow(found).name).toBe("test preconfig")
+      expect(Option.getOrThrow(found).id).toEqual(id)
+
+      const notFound = yield* repo.find(
+        new PreconfigurationId({
+          configuratorId: S.NonEmptyString255("other"),
+          label: S.NonEmptyString50("nope")
+        })
+      )
+      expect(Option.isNone(notFound)).toBe(true)
+    })
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+
+it("find with transformed id in tagged union", () =>
+  Effect
+    .gen(function*() {
+      const ConfiguratorId = S.NonEmptyString255
+
+      class PreconfigurationId extends S.Class<PreconfigurationId>("PreconfigurationId")({
+        configuratorId: ConfiguratorId,
+        label: S.NonEmptyString50
+      }) {}
+
+      const PreconfigurationIdFromString = S.NonEmptyString255.pipe(
+        S.decodeTo(
+          S.toType(PreconfigurationId),
+          SchemaTransformation.transformOrFail({
+            decode: Effect.fnUntraced(function*(value) {
+              const values = value.split("_")
+              const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              return new PreconfigurationId({ configuratorId, label })
+            }),
+            encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
+          })
+        ),
+        S.revealCodec
+      )
+
+      class Draft extends S.TaggedClass<Draft>()("Draft", {
+        id: PreconfigurationIdFromString,
+        name: S.String
+      }) {}
+
+      class Published extends S.TaggedClass<Published>()("Published", {
+        id: PreconfigurationIdFromString,
+        name: S.String,
+        publishedAt: S.String
+      }) {}
+
+      class Archived extends S.TaggedClass<Archived>()("Archived", {
+        id: PreconfigurationIdFromString,
+        name: S.String,
+        archivedAt: S.String
+      }) {}
+
+      const Preconfiguration = S.Union([Draft, Published, Archived])
+
+      const repo = yield* makeRepo("Preconfiguration", Preconfiguration, {})
+
+      const id1 = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("conf1"),
+        label: S.NonEmptyString50("draft1")
+      })
+      const id2 = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("conf2"),
+        label: S.NonEmptyString50("pub1")
+      })
+      const id3 = new PreconfigurationId({
+        configuratorId: S.NonEmptyString255("conf3"),
+        label: S.NonEmptyString50("arch1")
+      })
+
+      const draft = new Draft({ id: id1, name: "my draft" })
+      const published = new Published({ id: id2, name: "my published", publishedAt: "2024-01-01" })
+      const archived = new Archived({ id: id3, name: "my archived", archivedAt: "2024-06-01" })
+
+      yield* repo.saveAndPublish([draft, published, archived])
+
+      // find each by their PreconfigurationId instance
+      const foundDraft = yield* repo.find(id1)
+      expect(Option.isSome(foundDraft)).toBe(true)
+      expect(Option.getOrThrow(foundDraft)._tag).toBe("Draft")
+      expect(Option.getOrThrow(foundDraft).name).toBe("my draft")
+
+      const foundPublished = yield* repo.find(id2)
+      expect(Option.isSome(foundPublished)).toBe(true)
+      expect(Option.getOrThrow(foundPublished)._tag).toBe("Published")
+
+      const foundArchived = yield* repo.find(id3)
+      expect(Option.isSome(foundArchived)).toBe(true)
+      expect(Option.getOrThrow(foundArchived)._tag).toBe("Archived")
+
+      // not found
+      const notFound = yield* repo.find(
+        new PreconfigurationId({
+          configuratorId: S.NonEmptyString255("nope"),
+          label: S.NonEmptyString50("nope")
+        })
+      )
+      expect(Option.isNone(notFound)).toBe(true)
+    })
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
 
 it("refine union with nested union", () =>
   Effect
@@ -1095,4 +1273,4 @@ it("refine union with nested union", () =>
         })[]
       >()
     })
-    .pipe(Effect.provide(MemoryStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))
+    .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise))

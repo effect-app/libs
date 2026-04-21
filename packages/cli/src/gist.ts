@@ -1,7 +1,7 @@
 /* eslint-disable no-constant-binary-expression */
 /* eslint-disable no-empty-pattern */
 // import necessary modules from the libraries
-import { Array, Config, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, ServiceMap, SynchronizedRef } from "effect"
+import { Array, Config, Context, Data, Effect, FileSystem, Layer, Option, Path, pipe, Redacted, Result, Schema, SchemaIssue, SchemaTransformation, SynchronizedRef } from "effect"
 
 import * as yaml from "js-yaml"
 import path from "path"
@@ -167,7 +167,7 @@ class GistYAMLError extends Data.TaggedError("GistYAMLError")<{
 // Services
 //
 
-class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService", {
+class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
   make: Effect.gen(function*() {
     const CACHE_GIST_DESCRIPTION = "GIST_CACHE_DO_NOT_EDIT_effa_cli_internal"
     const { runGetExitCode, runGetString } = yield* RunCommandService
@@ -256,7 +256,7 @@ class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService",
 
             const entries = yield* pipe(
               cacheContent,
-              Schema.decodeUnknownEffect(Schema.fromJsonString(GistCacheEntries)),
+              Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
               Effect.orDie
             )
 
@@ -301,7 +301,7 @@ class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService",
       function*(cache: GistCache) {
         const cacheJson = yield* pipe(
           cache.entries,
-          Schema.encodeUnknownEffect(Schema.fromJsonString(GistCacheEntries)),
+          Schema.encodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
           // cannot recover from parse errors in any case, better to die here instead of cluttering the signature
           Effect.orDie
         )
@@ -597,7 +597,7 @@ class GHGistService extends ServiceMap.Service<GHGistService>()("GHGistService",
   )
 }
 
-export class GistHandler extends ServiceMap.Service<GistHandler>()("GistHandler", {
+export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
   make: Effect.gen(function*() {
     const GH = yield* GHGistService
 

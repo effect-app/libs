@@ -175,10 +175,21 @@ export const makeRpcClient = <
   }
 
   function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
+    const Query = makeTaggedRequestWithMeta(moduleName, "query")
+    const Command = makeTaggedRequestWithMeta(moduleName, "command")
+
     return {
       moduleName,
-      Command: makeTaggedRequestWithMeta(moduleName, "command"),
-      Query: makeTaggedRequestWithMeta(moduleName, "query")
+      /**
+       * Create query request classes for this module.
+       * Queries read state and should not mutate server state.
+       */
+      Query,
+      /**
+       * Create command request classes for this module.
+       * Commands mutate state and should avoid returning complex read models.
+       */
+      Command
     } as const
   }
 

@@ -41,7 +41,8 @@ export interface RequestExtWithInput<
   R
 > extends Commander.CommandContextLocal<Id, Id>, CommandRequestExtensions<RT, Id, I, A, E, R> {
   /**
-   * Request the endpoint with input
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not perform query cache invalidation.
    */
   request: (i: I) => Effect.Effect<A, E, R>
 }
@@ -58,7 +59,8 @@ export interface RequestExt<
   CommandRequestExtensions<RT, Id, void, A, E, R>
 {
   /**
-   * Request the endpoint
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not perform query cache invalidation.
    */
   request: Effect.Effect<A, E, R>
 }
@@ -70,10 +72,18 @@ export type CommandRequestWithExtensions<RT, Req> = Req extends
   : never
 
 export interface QueryExtensionsWithInput<I, A, E, R> {
+  /**
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not set up query state tracking.
+   */
   request: (i: I) => Effect.Effect<A, E, R>
 }
 
 export interface QueryExtensions<A, E, R> {
+  /**
+   * Send the request to the endpoint and return the raw Effect response.
+   * This does not set up query state tracking.
+   */
   request: Effect.Effect<A, E, R>
 }
 
@@ -114,17 +124,21 @@ export interface MutationExtWithInput<
   R
 > extends MutationExtensions<RT, Id, I, A, E, R> {
   /**
-   * Call the endpoint with input
-   * Invalidate queries based on namespace of this mutation.
-   * Do not use for queries.
+   * Send the request to the endpoint and return the raw Effect response.
+   * Also invalidates query caches using the request namespace by default.
+   * Namespace invalidation targets parent namespace keys
+   * (for example `$project/$configuration.get` invalidates `$project`).
+   * Override invalidation in client options via `queryInvalidation`.
    */
   (i: I): Effect.Effect<A, E, R>
 }
 
 /**
- * Call the endpoint
- * Invalidate queries based on namespace of this mutation.
- * Do not use for queries.
+ * Send the request to the endpoint and return the raw Effect response.
+ * Also invalidates query caches using the request namespace by default.
+ * Namespace invalidation targets parent namespace keys
+ * (for example `$project/$configuration.get` invalidates `$project`).
+ * Override invalidation in client options via `queryInvalidation`.
  */
 export interface MutationExt<
   RT,
@@ -149,27 +163,29 @@ declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
 
 export interface QueriesWithInput<Request extends Req, Id extends string, I, A, E> {
   /**
-   * Effect results are passed to the caller, including errors.
+   * Read helper for query requests.
+   * Runs as a tracked Vue Query and returns reactive state.
+   * Queries read state and should not be used to mutate it.
    */
   query: ReturnType<typeof useQuery_<I, E, A, Request, Id>>
   // TODO or suspense as Option?
   /**
-   * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-   * which ensures that either there always is a latest value, or an error occurs on load.
-   * So that Suspense and error boundaries can be used.
+   * Like `.query`, but returns a Promise for setup-time awaiting.
+   * Use this when integrating with Vue Suspense / error boundaries.
    */
   suspense: ReturnType<typeof useSuspenseQuery_<I, E, A, Request, Id>>
 }
 export interface QueriesWithoutInput<Request extends Req, Id extends string, A, E> {
   /**
-   * Effect results are passed to the caller, including errors.
+   * Read helper for query requests.
+   * Runs as a tracked Vue Query and returns reactive state.
+   * Queries read state and should not be used to mutate it.
    */
   query: ReturnType<typeof useQuery_<E, A, Request, Id>>
   // TODO or suspense as Option?
   /**
-   * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-   * which ensures that either there always is a latest value, or an error occurs on load.
-   * So that Suspense and error boundaries can be used.
+   * Like `.query`, but returns a Promise for setup-time awaiting.
+   * Use this when integrating with Vue Suspense / error boundaries.
    */
   suspense: ReturnType<typeof useSuspenseQuery_<E, A, Request, Id>>
 }

@@ -70,13 +70,16 @@ it.skip("works", () => {
   const a = client.GetSomething2.suspense(null as any)
   const b = client.GetSomething2.query(null as any)
 
+  // @ts-expect-error query requests no longer expose command helpers
   const e = client.GetSomething2.wrap(null as any)
+  // @ts-expect-error query requests no longer expose command helpers
   const f = client.GetSomething2.fn(null as any)
 
-  // @ts-expect-error dependencies required that are not provided
+  // @ts-expect-error query requests no longer expose command helpers
   const e0 = client.GetSomething2WithDependencies.wrap().handle // not available as we require dependencies not provided by the runtime
-  // @ts-expect-error dependencies required that are not provided
+  // @ts-expect-error query requests no longer match Command.wrap mutation signature
   const e000 = Command.wrap(client.GetSomething2WithDependencies)().handle // not available as we require dependencies not provided by the runtime
+  // @ts-expect-error query requests no longer expose command helpers
   const e00 = client.GetSomething2WithDependencies.wrap((_) => _ as Effect.Effect<number, never, never>).handle(
     null as any
   )
@@ -87,6 +90,7 @@ it.skip("works", () => {
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)
   // @ts-expect-error dependencies required that are not provided
   const e2 = client.GetSomething2WithDependencies.query(null as any)
+  // @ts-expect-error query requests no longer expose command helpers
   const f0 = client.GetSomething2WithDependencies.fn(null as any)
 
   const g = client.DoSomething.mutate.wrap(null as any)

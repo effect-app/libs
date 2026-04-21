@@ -21,7 +21,7 @@ const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
 
-export interface RequestExtensions<RT, Id extends string, I, A, E, R> {
+export interface CommandRequestExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
    * The Request function will be taken as the first member of the Command, the Command required input will be the Request input.
    * see Command.wrap for details */
@@ -39,7 +39,7 @@ export interface RequestExtWithInput<
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, RequestExtensions<RT, Id, I, A, E, R> {
+> extends Commander.CommandContextLocal<Id, Id>, CommandRequestExtensions<RT, Id, I, A, E, R> {
   /**
    * Request the endpoint with input
    */
@@ -55,7 +55,7 @@ export interface RequestExt<
 > extends
   Commander.CommandContextLocal<Id, Id>,
   Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
-  RequestExtensions<RT, Id, void, A, E, R>
+  CommandRequestExtensions<RT, Id, void, A, E, R>
 {
   /**
    * Request the endpoint
@@ -63,10 +63,24 @@ export interface RequestExt<
   fetch: Effect.Effect<A, E, R>
 }
 
-export type RequestWithExtensions<RT, Req> = Req extends
+export type CommandRequestWithExtensions<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
   ? RequestExtWithInput<RT, Id, I, A, E, R>
   : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, A, E, R>
+  : never
+
+export interface QueryExtensionsWithInput<I, A, E, R> {
+  fetch: (i: I) => Effect.Effect<A, E, R>
+}
+
+export interface QueryExtensions<A, E, R> {
+  fetch: Effect.Effect<A, E, R>
+}
+
+export type QueryRequestWithExtensions<Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id>
+  ? QueryExtensionsWithInput<I, A, E, R>
+  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer _Id> ? QueryExtensions<A, E, R>
   : never
 
 type QueryHandler<Req> = Req extends
@@ -433,6 +447,9 @@ export const makeClient = <RT_, RTHooks>(
     const Command = useCommand()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
+        if (client[key].Request.type !== "command") {
+          return acc
+        }
         const mut = client[key].handler
         const fn = Command.fn(client[key].id)
         const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
@@ -444,9 +461,12 @@ export const makeClient = <RT_, RTHooks>(
         return acc
       },
       {} as {
-        [Key in keyof typeof client as `${ToCamel<string & Key>}Request`]: RequestWithExtensions<
+        [
+          Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
+            : `${ToCamel<string & Key>}Request`
+        ]: CommandRequestWithExtensions<
           RT | RTHooks,
-          typeof client[Key]
+          CommandHandler<typeof client[Key]>
         >
       }
     )
@@ -505,11 +525,9 @@ export const makeClient = <RT_, RTHooks>(
           requestType === "query"
             ? {
               ...client[key],
-              ...fn, // to get the i18n key etc.
               fetch,
               query: useQuery(client[key] as any),
-              suspense: useSuspenseQuery(client[key] as any),
-              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
+              suspense: useSuspenseQuery(client[key] as any)
             }
             : {
               mutate: extendM(
@@ -539,8 +557,12 @@ export const makeClient = <RT_, RTHooks>(
       {} as {
         [Key in keyof typeof client]:
           & typeof client[Key]
-          & RequestWithExtensions<RT | RTHooks, typeof client[Key]>
-          & (QueryHandler<typeof client[Key]> extends never ? {} : Queries<RT, QueryHandler<typeof client[Key]>>)
+          & (QueryHandler<typeof client[Key]> extends never ? {}
+            :
+              & QueryRequestWithExtensions<QueryHandler<typeof client[Key]>>
+              & Queries<RT, QueryHandler<typeof client[Key]>>)
+          & (CommandHandler<typeof client[Key]> extends never ? {}
+            : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }

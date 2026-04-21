@@ -95,13 +95,15 @@ export class RequestContextMap extends RpcContextMap.makeMap({}) {}
 export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 
 export const SomethingReq = TaggedRequestFor("Something")
+const SomethingQuery = SomethingReq.Query
+const SomethingCommand = SomethingReq.Command
 
-class SomethingGetSomething2 extends SomethingReq<SomethingGetSomething2>()("GetSomething2", {
+class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
 class SomethingGetSomething2WithDependencies
-  extends SomethingReq<SomethingGetSomething2WithDependencies>()("GetSomething2", {
+  extends SomethingQuery<SomethingGetSomething2WithDependencies>()("GetSomething2", {
     id: S.String
   }, {
     // this is intentilally fake, to simulate a codec that requires a dependency
@@ -110,19 +112,25 @@ class SomethingGetSomething2WithDependencies
   })
 {}
 
+class SomethingDoSomething extends SomethingCommand<SomethingDoSomething>()("DoSomething", {
+  id: S.String
+}, { success: S.FiniteFromString }) {}
+
 export const Something = {
   GetSomething2: SomethingGetSomething2,
-  GetSomething2WithDependencies: SomethingGetSomething2WithDependencies
+  GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
+  DoSomething: SomethingDoSomething
 }
 
 export const SomethingElseReq = TaggedRequestFor("SomethingElse")
+const SomethingElseQuery = SomethingElseReq.Query
 
-class SomethingElseGetSomething2 extends SomethingElseReq<SomethingElseGetSomething2>()("GetSomething2", {
+class SomethingElseGetSomething2 extends SomethingElseQuery<SomethingElseGetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
 class SomethingElseGetSomething2WithDependencies
-  extends SomethingElseReq<SomethingElseGetSomething2WithDependencies>()("GetSomething2", {
+  extends SomethingElseQuery<SomethingElseGetSomething2WithDependencies>()("GetSomething2", {
     id: S.String
   }, {
     success: S.FiniteFromString as S.Codec<number, string, "dep-a">,

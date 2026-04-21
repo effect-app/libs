@@ -69,6 +69,20 @@ export type RequestWithExtensions<RT, Req> = Req extends
   : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, A, E, R>
   : never
 
+type QueryHandler<Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? Request["type"] extends "query" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "query" ? RequestHandler<A, E, R, Request, Id> : never
+  : never
+
+type CommandHandler<Req> = Req extends
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? Request["type"] extends "command" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "command" ? RequestHandler<A, E, R, Request, Id> : never
+  : never
+
 export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
@@ -153,14 +167,16 @@ export type MissingDependencies<RT, R> = {
 
 export type Queries<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? Exclude<R, RT> extends never ? QueriesWithInput<Request, Id, I, A, E>
-  : {
-    query: MissingDependencies<RT, R> & {}
-    suspense: MissingDependencies<RT, R> & {}
-  }
+  ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueriesWithInput<Request, Id, I, A, E>
+    : {
+      query: MissingDependencies<RT, R> & {}
+      suspense: MissingDependencies<RT, R> & {}
+    }
+  : never
   : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-    ? Exclude<R, RT> extends never ? QueriesWithoutInput<Request, Id, A, E>
-    : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
+    ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueriesWithoutInput<Request, Id, A, E>
+      : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
+    : never
   : never
 
 const _useMutation = makeMutation()
@@ -377,6 +393,9 @@ export const makeClient = <RT_, RTHooks>(
   ) => {
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
+        if (client[key].Request.type !== "query") {
+          return acc
+        }
         ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
           id: client[key].id
         })
@@ -388,15 +407,17 @@ export const makeClient = <RT_, RTHooks>(
       {} as
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as `${ToCamel<string & Key>}Query`]: Queries<RT, typeof client[Key]>["query"]
+          [Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+            : `${ToCamel<string & Key>}Query`]: Queries<RT, QueryHandler<typeof client[Key]>>["query"]
         }
         // todo: or suspense as an Option?
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as `${ToCamel<string & Key>}SuspenseQuery`]: Queries<
-            RT,
-            typeof client[Key]
-          >["suspense"]
+          [Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+            : `${ToCamel<string & Key>}SuspenseQuery`]: Queries<
+              RT,
+              QueryHandler<typeof client[Key]>
+            >["suspense"]
         }
     )
     return queries
@@ -435,16 +456,20 @@ export const makeClient = <RT_, RTHooks>(
     const mutation = useMutation()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
+        if (client[key].Request.type !== "command") {
+          return acc
+        }
         const mut: any = mutation(client[key] as any)
         const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(mut, { wrap })
         return acc
       },
       {} as {
-        [Key in keyof typeof client as `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
-          RT | RTHooks,
-          typeof client[Key]
-        >
+        [Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
+          : `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
+            RT | RTHooks,
+            CommandHandler<typeof client[Key]>
+          >
       }
     )
     return mutations
@@ -464,49 +489,53 @@ export const makeClient = <RT_, RTHooks>(
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
         const fn = Command.fn(client[key].id)
-        const mutate = extendM(
-          mutation(
-            client[key] as any,
-            invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
-          ),
-          (mutate) =>
-            Object.assign(
-              mutate,
-              {
-                wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id })
-              }
-            )
-        )
-
         const h_ = client[key].handler
         const wrapInput = Effect.isEffect(h_)
           ? () => h_
           : (...args: [any]) => h_(...args)
         const fetch = Effect.isEffect(h_) ? h_ : wrapInput
         ;(acc as any)[key] = Object.assign(
-          {},
-          client[key],
-          fn, // to get the i18n key etc.
-          {
-            fetch,
-            mutate,
-            query: useQuery(client[key] as any),
-            suspense: useSuspenseQuery(client[key] as any),
-            wrap: Command.wrap({ mutate: wrapInput, id: client[key].id }),
-            fn
-          }
-        )
+          client[key].Request.type === "query"
+            ? {
+              ...client[key],
+              ...fn, // to get the i18n key etc.
+              fetch,
+              query: useQuery(client[key] as any),
+              suspense: useSuspenseQuery(client[key] as any),
+              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id }),
+              fn
+            }
+            : {
+              mutate: extendM(
+                mutation(
+                  client[key] as any,
+                  invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
+                ),
+                (mutate) =>
+                  Object.assign(
+                    mutate,
+                    {
+                      wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id })
+                    }
+                  )
+              ),
+              ...client[key],
+              ...fn, // to get the i18n key etc.
+              fetch,
+              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id }),
+              fn
+            }
+        ) as any
         return acc
       },
       {} as {
         [Key in keyof typeof client]:
           & typeof client[Key]
           & RequestWithExtensions<RT | RTHooks, typeof client[Key]>
-          & {
-            mutate: MutationWithExtensions<RT | RTHooks, typeof client[Key]>
-            Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never
-          }
-          & Queries<RT, typeof client[Key]>
+          & (QueryHandler<typeof client[Key]> extends never ? {} : Queries<RT, QueryHandler<typeof client[Key]>>)
+          & (CommandHandler<typeof client[Key]> extends never ? {}
+            : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
+          & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }
     )
     return Object.assign(extended, { helpers: { ...mapRequest(client), ...mapMutation(client), ...mapQuery(client) } })

@@ -9,6 +9,8 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
 
   expectTypeOf(Something.GetSomething2.moduleName).toEqualTypeOf<"Something">()
   expectTypeOf(Something.GetSomething2.id).toEqualTypeOf<"Something.GetSomething2">()
+  expectTypeOf(Something.GetSomething2.type).toEqualTypeOf<"query">()
+  expectTypeOf(Something.DoSomething.type).toEqualTypeOf<"command">()
 
   expectTypeOf(SomethingElse.GetSomething2.moduleName).toEqualTypeOf<"SomethingElse">()
   expectTypeOf(SomethingElse.GetSomething2.id).toEqualTypeOf<"SomethingElse.GetSomething2">()
@@ -64,7 +66,7 @@ it.skip("works", () => {
 
   // just for jsdoc / type testing.
   const a0 = client.GetSomething2.fetch(null as any)
-  const a00 = client.GetSomething2.mutate(null as any)
+  const a00 = client.DoSomething.mutate(null as any)
   const a = client.GetSomething2.suspense(null as any)
   const b = client.GetSomething2.query(null as any)
 
@@ -86,9 +88,9 @@ it.skip("works", () => {
   const e2 = client.GetSomething2WithDependencies.query(null as any)
   const f0 = client.GetSomething2WithDependencies.fn(null as any)
 
-  const g = client.GetSomething2.mutate.wrap(null as any)
-  // @ts-expect-error mutate no longer exposes fn, use client.GetSomething2.fn
-  const h = client.GetSomething2.mutate.fn(null as any)
+  const g = client.DoSomething.mutate.wrap(null as any)
+  // @ts-expect-error mutate no longer exposes fn, use client.DoSomething.fn
+  const h = client.DoSomething.mutate.fn(null as any)
 
   expect(true).toBe(true)
   console.log({

@@ -9,7 +9,7 @@
     "cross-fetch": "^4.1.0",
     "effect-app": "workspace:*",
     "fast-check": "~4.7.0",
-    "jose": "^4.15.9",
+    "jose": "^6.2.2",
     "path-parser": "^6.1.0",
     "proper-lockfile": "^4.1.2",
     "pure-rand": "7.0.1",

@@ -100,7 +100,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error)
 
 const normalizeAudience = (audience: Config["audience"]): string | Array<string> | undefined =>
-  Array.isArray(audience) ? Array.from(audience) : audience
+  Array.isArray(audience) ? Array.from(audience) : audience as string | undefined
 
 const buildDiscoveryUrl = (issuerBaseURL: string) => {
   const url = new URL(issuerBaseURL)

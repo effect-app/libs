@@ -9,6 +9,7 @@ import tsParser from "@typescript-eslint/parser"
 
 import codegen from "eslint-plugin-codegen"
 import _import from "eslint-plugin-import"
+import oxlint from "eslint-plugin-oxlint"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
 import unusedImports from "eslint-plugin-unused-imports"
 
@@ -56,6 +57,7 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
       eslint.configs.recommended,
       tseslint.configs.recommended,
     ),
+    ...oxlint.configs["flat/recommended"],
     ...(enableTS ? tseslint.configs.recommendedTypeChecked : []),
     {
       // otherwise this config object doesn't apply inside vue files

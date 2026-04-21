@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Effect, NonEmptyReadonlyArray, Option, PubSub, S } from "effect-app"
+import type { Effect, Option, PubSub, S } from "effect-app"
 import type { InvalidStateError, NotFoundError, OptimisticConcurrencyException } from "effect-app/client/errors"
 import type { NonNegativeInt } from "effect-app/Schema/numbers"
 import type { FieldValues, IsNever, ResolveFirstLevel } from "../filter/types.js"
@@ -32,7 +32,7 @@ export interface Repository<
   ) => Effect.Effect<void, never, RSchema | RPublish>
 
   readonly removeById: (
-    idOrIds: T[IdKey] | NonEmptyReadonlyArray<T[IdKey]>
+    idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>
   ) => Effect.Effect<void, never, RSchema>
 
   readonly queryRaw: <T, Out, R>(

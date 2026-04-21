@@ -13,9 +13,7 @@ interface BatchOptions {
   readonly batch?: true | number
 }
 
-type NonEmptyReadonlyArray<A> = readonly [A, ...A[]]
-
-const asReadonlyArray = <T>(itemOrItems: T | NonEmptyReadonlyArray<T>): ReadonlyArray<T> =>
+const asReadonlyArray = <T>(itemOrItems: T | ReadonlyArray<T>): ReadonlyArray<T> =>
   globalThis.Array.isArray(itemOrItems)
     ? itemOrItems as ReadonlyArray<T>
     : [itemOrItems as T]
@@ -267,8 +265,11 @@ export const extendRepo = <
      * Enables chunked writes for large batches via `options.batch`.
      * Note: batching breaks transactional properties because chunks are saved independently.
      */
-    save: ((itemOrItems: T | NonEmptyReadonlyArray<T>, options?: BatchOptions) => {
+    save: ((itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
       const items = asReadonlyArray(itemOrItems)
+      if (!Array.isReadonlyArrayNonEmpty(items)) {
+        return Effect.void
+      }
       const batchSize = getBatchSize(options?.batch)
       if (batchSize === undefined) {
         return repo.saveAndPublish(items)
@@ -279,7 +280,7 @@ export const extendRepo = <
         { discard: true }
       )
     }) as (
-      itemOrItems: T | NonEmptyReadonlyArray<T>,
+      itemOrItems: T | ReadonlyArray<T>,
       options?: BatchOptions
     ) => Effect.Effect<
       void,
@@ -291,8 +292,11 @@ export const extendRepo = <
      * Enables chunked deletes for large batches via `options.batch`.
      * Note: batching breaks transactional properties because chunks are removed independently.
      */
-    remove: ((itemOrItems: T | NonEmptyReadonlyArray<T>, options?: BatchOptions) => {
+    remove: ((itemOrItems: T | ReadonlyArray<T>, options?: BatchOptions) => {
       const items = asReadonlyArray(itemOrItems)
+      if (!Array.isReadonlyArrayNonEmpty(items)) {
+        return Effect.void
+      }
       const batchSize = getBatchSize(options?.batch)
       if (batchSize === undefined) {
         return repo.removeAndPublish(items)
@@ -303,15 +307,18 @@ export const extendRepo = <
         { discard: true }
       )
     }) as (
-      itemOrItems: T | NonEmptyReadonlyArray<T>,
+      itemOrItems: T | ReadonlyArray<T>,
       options?: BatchOptions
     ) => Effect.Effect<void, never, RSchema | RPublish>,
     /**
      * Enables chunked deletes for large batches via `options.batch`.
      * Note: batching breaks transactional properties because chunks are removed independently.
      */
-    removeById: ((idOrIds: T[IdKey] | NonEmptyReadonlyArray<T[IdKey]>, options?: BatchOptions) => {
-      const ids = asReadonlyArray(idOrIds) as NonEmptyReadonlyArray<T[IdKey]>
+    removeById: ((idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>, options?: BatchOptions) => {
+      const ids = asReadonlyArray(idOrIds)
+      if (!Array.isReadonlyArrayNonEmpty(ids)) {
+        return Effect.void
+      }
       const batchSize = getBatchSize(options?.batch)
       if (batchSize === undefined) {
         return repo.removeById(ids)
@@ -322,7 +329,7 @@ export const extendRepo = <
         { discard: true }
       )
     }) as (
-      idOrIds: T[IdKey] | NonEmptyReadonlyArray<T[IdKey]>,
+      idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>,
       options?: BatchOptions
     ) => Effect.Effect<void, never, RSchema>,
     queryAndSavePure,

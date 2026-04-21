@@ -233,7 +233,7 @@ export function makeRepoInternal<
           )
 
           const removeById = Effect.fn("removeById", { attributes: { itemType: name } })(
-            function*(idOrIds: T[IdKey] | NonEmptyReadonlyArray<T[IdKey]>) {
+            function*(idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>) {
               const ids = globalThis.Array.isArray(idOrIds)
                 ? idOrIds as readonly T[IdKey][]
                 : [idOrIds as T[IdKey]]

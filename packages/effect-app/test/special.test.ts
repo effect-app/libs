@@ -140,6 +140,57 @@ describe("TaggedClass constructor", () => {
   })
 })
 
+describe("Class.copy", () => {
+  it("creates a new instance with updated fields", () => {
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+    const instance = new A({ a: "hello", b: 1 })
+    const copied: A = A.copy(instance, { b: 2 })
+    expect(copied).toBeInstanceOf(A)
+    expect(copied.a).toBe("hello")
+    expect(copied.b).toBe(2)
+  })
+
+  it("accepts a function for updates", () => {
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+    const instance = new A({ a: "hello", b: 1 })
+    const copied: A = A.copy(instance, (a) => ({ b: a.b + 1 }))
+    expect(copied).toBeInstanceOf(A)
+    expect(copied.b).toBe(2)
+  })
+
+  it("is pipeable", () => {
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+    const instance = new A({ a: "hello", b: 1 })
+    const copied: A = A.copy({ b: 2 })(instance)
+    expect(copied).toBeInstanceOf(A)
+    expect(copied.b).toBe(2)
+  })
+})
+
+describe("TaggedClass.copy", () => {
+  it("creates a new instance with updated fields", () => {
+    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+
+    const instance = new Circle({ radius: 5 })
+    const copied: Circle = Circle.copy(instance, { radius: 10 })
+    expect(copied).toBeInstanceOf(Circle)
+    expect(copied._tag).toBe("Circle")
+    expect(copied.radius).toBe(10)
+  })
+
+  it("accepts a function for updates", () => {
+    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+
+    const instance = new Circle({ radius: 5 })
+    const copied: Circle = Circle.copy(instance, (c) => ({ radius: c.radius * 2 }))
+    expect(copied).toBeInstanceOf(Circle)
+    expect(copied.radius).toBe(10)
+  })
+})
+
 describe("TaggedError", () => {
   it("InvalidStateError toString includes the message", () => {
     const error = new InvalidStateError("something went wrong")

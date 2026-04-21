@@ -4,7 +4,8 @@
       "Bash(git commit -m ':*)",
       "Bash(pnpm -r check)",
       "Bash(pnpm lint-fix:*)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Read(//home/patroza/pj/effect-app/**)"
     ]
   }
 }

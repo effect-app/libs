@@ -409,7 +409,7 @@ describe("removeByIds", () => {
 
       yield* repo.saveAndPublish(items)
       const itemsAfterSave = yield* repo.all
-      yield* repo.removeById(...items.slice(0, 2).map((_) => _.id))
+      yield* repo.removeById([items[0]!.id, items[1]!.id])
 
       const items2 = yield* repo.all
 

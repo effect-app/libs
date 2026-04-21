@@ -24,7 +24,8 @@ type TaggedRequestForResult<
   Success extends S.Top,
   Error extends S.Top,
   Config,
-  ModuleName extends string
+  ModuleName extends string,
+  Type extends "command" | "query"
 > =
   & S.EnhancedClass<Self, S.TaggedStruct<Tag, Payload>, {}>
   & {
@@ -36,6 +37,7 @@ type TaggedRequestForResult<
     readonly "~encodingServices": S.Codec.EncodingServices<Success> | S.Codec.EncodingServices<Error>
     readonly id: `${ModuleName}.${Tag}`
     readonly moduleName: ModuleName
+    readonly type: Type
   }
 
 export const makeRpcClient = <
@@ -84,7 +86,10 @@ export const makeRpcClient = <
     return RequestClass
   }
 
-  function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
+  function makeTaggedRequestWithMeta<ModuleName extends string, Type extends "command" | "query">(
+    moduleName: ModuleName,
+    type: Type
+  ) {
     function TaggedRequestWithMeta<Self>(): {
       <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
         tag: Tag,
@@ -97,7 +102,8 @@ export const makeRpcClient = <
         SchemaOrFields<C["success"]>,
         ErrorResult<C>,
         Omit<C, "success" | "error">,
-        ModuleName
+        ModuleName,
+        Type
       >
       <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
         tag: Tag,
@@ -110,7 +116,8 @@ export const makeRpcClient = <
         SchemaOrFields<C["success"]>,
         ErrorResult<C>,
         Omit<C, "success" | "error">,
-        ModuleName
+        ModuleName,
+        Type
       >
       <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
         tag: Tag,
@@ -123,7 +130,8 @@ export const makeRpcClient = <
         typeof ForceVoid,
         ErrorResult<C>,
         Omit<C, "success" | "error">,
-        ModuleName
+        ModuleName,
+        Type
       >
       <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
         tag: Tag,
@@ -136,7 +144,8 @@ export const makeRpcClient = <
         typeof ForceVoid,
         ErrorResult<C>,
         Omit<C, "success" | "error">,
-        ModuleName
+        ModuleName,
+        Type
       >
       <Tag extends string, Payload extends S.Struct.Fields>(
         tag: Tag,
@@ -148,7 +157,8 @@ export const makeRpcClient = <
         typeof ForceVoid,
         ErrorResult<{}>,
         Record<string, never>,
-        ModuleName
+        ModuleName,
+        Type
       >
     } {
       return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
@@ -157,11 +167,30 @@ export const makeRpcClient = <
         config?: C
       ) => {
         const cls = makeRequestClass(tag, fields, config)
-        Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName })
+        Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName, type })
         return cls
       }) as any
     }
-    return Object.assign(TaggedRequestWithMeta, { moduleName } as const)
+    return Object.assign(TaggedRequestWithMeta, { moduleName, type } as const)
+  }
+
+  function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
+    const Query = makeTaggedRequestWithMeta(moduleName, "query")
+    const Command = makeTaggedRequestWithMeta(moduleName, "command")
+
+    return {
+      moduleName,
+      /**
+       * Create query request classes for this module.
+       * Queries read state and should not mutate server state.
+       */
+      Query,
+      /**
+       * Create command request classes for this module.
+       * Commands mutate state and should avoid returning complex read models.
+       */
+      Command
+    } as const
   }
 
   return {

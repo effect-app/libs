@@ -39,6 +39,7 @@ export type Req = S.Top & {
   config?: Record<string, any>
   readonly id: string
   readonly moduleName: string
+  readonly type: "command" | "query"
   readonly "~decodingServices"?: unknown
 }
 

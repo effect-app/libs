@@ -204,13 +204,15 @@ export const middleware3 = MiddlewareMaker
 
 export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 const Req = TaggedRequestFor("Something")
+const Command = Req.Command
+const Query = Req.Query
 
-export class Eff extends Req<Eff>()("Eff", {}, { success: S.Void }) {}
-export class Gen extends Req<Gen>()("Gen", {}) {}
+export class Eff extends Command<Eff>()("Eff", {}, { success: S.Void }) {}
+export class Gen extends Command<Gen>()("Gen", {}) {}
 
 expectTypeOf(Eff.error).toEqualTypeOf<typeof Gen.error>()
 
-export class DoSomething extends Req<DoSomething>()("DoSomething", {
+export class DoSomething extends Command<DoSomething>()("DoSomething", {
   id: S.String
 }, { success: S.Void }) {}
 
@@ -228,11 +230,11 @@ export class DoSomething extends Req<DoSomething>()("DoSomething", {
 //   )
 // )
 
-export class GetSomething extends Req<GetSomething>()("GetSomething", {
+export class GetSomething extends Query<GetSomething>()("GetSomething", {
   id: S.String
 }, { success: S.String }) {}
 
-export class GetSomething2 extends Req<GetSomething2>()("GetSomething2", {
+export class GetSomething2 extends Query<GetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
 

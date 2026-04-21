@@ -127,13 +127,13 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     const runPromise = makeRunPromise(getRuntime())
     const arr = arg
     const req: { value: I } = !arg
-      ? undefined
+      ? undefined as any
       : typeof arr === "function"
       ? ({
         get value() {
           return (arr as any)()
         }
-      } as any)
+      })
       : ref(arg)
     const queryKey = makeQueryKey(q)
     const handler = q.handler

@@ -17,12 +17,19 @@ test("works", () => {
 test("literal default works", () => {
   const l = S.Literals(["a", "b"])
   expect(l.Default).toBe("a")
+  expectTypeOf(l.Default).toEqualTypeOf<"a">()
   const s = S.Struct({ l: l.withDefault })
   expect(s.make({}).l).toBe("a")
 
   const l2 = l.changeDefault("b")
   const s2 = S.Struct({ l: l2.withDefault })
   expect(s2.make({}).l).toBe("b")
+})
+
+test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
+  const l = S.Literals(["A", "B"])
+  expect(l.Default).toBe("A")
+  expectTypeOf(l.Default).toEqualTypeOf<"A">()
 })
 
 test("tagged union derives tag map and tags from v4 literal ast", () => {

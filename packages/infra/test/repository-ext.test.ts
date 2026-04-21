@@ -23,7 +23,7 @@ describe("repository ext save/remove batching", () => {
         new BatchItem({ id: "4", label: "four" })
       ] as const
 
-      yield* repo.save({ batch: 2 })(...items)
+      yield* repo.save(items, { batch: 2 })
 
       const all = yield* repo.all
       expect(all).toHaveLength(4)
@@ -44,8 +44,8 @@ describe("repository ext save/remove batching", () => {
         new BatchItem({ id: "4", label: "four" })
       ] as const
 
-      yield* repo.save(...items)
-      yield* repo.remove({ batch: true })(items[0], items[1], items[2])
+      yield* repo.save(items)
+      yield* repo.remove([items[0], items[1], items[2]], { batch: true })
 
       const all = yield* repo.all
       expect(all).toHaveLength(1)

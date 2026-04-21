@@ -14,7 +14,8 @@ export interface Repository<
   ItemType extends string,
   IdKey extends keyof T,
   RSchema,
-  RPublish
+  RPublish,
+  RProvided = never
 > {
   readonly itemType: ItemType
   readonly idKey: IdKey
@@ -59,7 +60,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -79,7 +80,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -101,7 +102,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -125,7 +126,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -151,7 +152,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -177,7 +178,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -205,7 +206,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -235,7 +236,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -267,7 +268,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       A,
@@ -301,7 +302,7 @@ export interface Repository<
       TType extends "many" ? readonly A[] : TType extends "count" ? NonNegativeInt : A,
       | (TType extends "many" ? never : NotFoundError<ItemType>)
       | (TType extends "count" ? never : S.SchemaError),
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
 
     // ending with generic query
@@ -315,7 +316,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -331,7 +332,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -351,7 +352,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -371,7 +372,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -393,7 +394,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -417,7 +418,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -443,7 +444,7 @@ export interface Repository<
     ): Effect.Effect<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined> : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -472,7 +473,7 @@ export interface Repository<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined>
         : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -503,7 +504,7 @@ export interface Repository<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined>
         : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
     <
       R = never,
@@ -536,7 +537,7 @@ export interface Repository<
       TType extends "many" ? DistributeQueryIfExclusiveOnArray<E, T, EncodedRefined>
         : RefineTHelper<T, EncodedRefined>,
       TType extends "many" ? never : NotFoundError<ItemType>,
-      R | RSchema
+      Exclude<R, RProvided> | RSchema
     >
   }
 

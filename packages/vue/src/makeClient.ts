@@ -565,6 +565,7 @@ export const makeClient = <RT_, RTHooks>(
               ...client[key],
               ...fn, // to get the i18n key etc.
               request,
+              fn,
               wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
             }
         )

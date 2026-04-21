@@ -9,6 +9,23 @@ import type { Query, QueryEnd, QueryWhere } from "../query.js"
 import * as Q from "../query.js"
 import type { Repository } from "./service.js"
 
+interface BatchOptions {
+  readonly batch?: true | number
+}
+
+const getBatchSize = (batch?: true | number) =>
+  batch === true
+    ? 100
+    : typeof batch === "number" && Number.isFinite(batch) && batch > 0
+    ? Math.floor(batch)
+    : undefined
+
+const isBatchOptions = (value: unknown): value is BatchOptions =>
+  typeof value === "object"
+  && value !== null
+  && Object.keys(value).every((_) => _ === "batch")
+  && Object.hasOwn(value, "batch")
+
 export const extendRepo = <
   T,
   Encoded extends FieldValues,
@@ -245,8 +262,61 @@ export const extendRepo = <
     request: (id: T[IdKey]) => Effect.request(_request({ id }), requestResolver),
     get,
     log: (evt: Evt) => AnyPureDSL.log(evt),
-    save: (...items: NonEmptyArray<T>) => repo.saveAndPublish(items),
+    save: ((...args: readonly [BatchOptions] | NonEmptyArray<T>) => {
+      const saveBatched = (items: NonEmptyArray<T>, options?: BatchOptions) => {
+        const batchSize = getBatchSize(options?.batch)
+        if (batchSize === undefined) {
+          return repo.saveAndPublish(items)
+        }
+        return Effect.forEach(
+          Array.chunksOf(items, batchSize),
+          (batch) => repo.saveAndPublish(batch),
+          { discard: true }
+        )
+      }
+
+      const [first] = args
+      if (args.length === 1 && isBatchOptions(first)) {
+        return (...items: NonEmptyArray<T>) => saveBatched(items, first)
+      }
+      return saveBatched(args as NonEmptyArray<T>)
+    }) as {
+      (...items: NonEmptyArray<T>): Effect.Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
+      /**
+       * Enables chunked writes for large batches.
+       * Note: batching breaks transactional properties because chunks are saved independently.
+       */
+      (options: BatchOptions): (
+        ...items: NonEmptyArray<T>
+      ) => Effect.Effect<void, InvalidStateError | OptimisticConcurrencyException, RSchema | RPublish>
+    },
     saveWithEvents: (events: Iterable<Evt>) => (...items: NonEmptyArray<T>) => repo.saveAndPublish(items, events),
+    remove: ((...args: readonly [BatchOptions] | NonEmptyArray<T>) => {
+      const removeBatched = (items: NonEmptyArray<T>, options?: BatchOptions) => {
+        const batchSize = getBatchSize(options?.batch)
+        if (batchSize === undefined) {
+          return repo.removeAndPublish(items)
+        }
+        return Effect.forEach(
+          Array.chunksOf(items, batchSize),
+          (batch) => repo.removeAndPublish(batch),
+          { discard: true }
+        )
+      }
+
+      const [first] = args
+      if (args.length === 1 && isBatchOptions(first)) {
+        return (...items: NonEmptyArray<T>) => removeBatched(items, first)
+      }
+      return removeBatched(args as NonEmptyArray<T>)
+    }) as {
+      (...items: NonEmptyArray<T>): Effect.Effect<void, never, RSchema | RPublish>
+      /**
+       * Enables chunked deletes for large batches.
+       * Note: batching breaks transactional properties because chunks are removed independently.
+       */
+      (options: BatchOptions): (...items: NonEmptyArray<T>) => Effect.Effect<void, never, RSchema | RPublish>
+    },
     queryAndSavePure,
     saveManyWithPure,
     byIdAndSaveWithPure,

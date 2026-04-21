@@ -291,10 +291,10 @@ export function makeRepoInternal<
           const query: {
             <A, R, From extends FieldValues>(
               q: Q.QueryProjection<Encoded extends From ? From : never, A, R>
-            ): Effect.Effect<readonly A[], S.SchemaError, R>
+            ): Effect.Effect<readonly A[], S.SchemaError, Exclude<R, RCtx>>
             <A, R, EncodedRefined extends Encoded = Encoded>(
               q: Q.QAll<NoInfer<Encoded>, NoInfer<EncodedRefined>, A, R>
-            ): Effect.Effect<readonly A[], never, R>
+            ): Effect.Effect<readonly A[], never, Exclude<R, RCtx>>
           } = (<A, R, EncodedRefined extends Encoded = Encoded>(q: Q.QAll<Encoded, EncodedRefined, A, R>) => {
             const a = Q.toFilter(q)
             const eff = a.mode === "project"
@@ -463,7 +463,7 @@ export function makeRepoInternal<
               }
             }
           }
-          return r as Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<R, RCtx>, RPublish>
+          return r as Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<R, RCtx>, RPublish, RCtx>
         })
         .pipe(Effect
           // .withSpan("Repository.make [effect-app/infra]", { attributes: { "repository.model_name": name } })

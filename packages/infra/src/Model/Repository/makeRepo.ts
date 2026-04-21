@@ -56,8 +56,8 @@ export interface RepositoryOptions<
   schemaContext?: Context.Context<RCtx>
 
   overrides?: (
-    repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>
-  ) => Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>
+    repo: Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>
+  ) => Repository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>
 }
 
 /**
@@ -84,7 +84,7 @@ export const makeRepo: {
     schema: S.Codec<T, Encoded, RSchema>,
     options: RepositoryOptions<IdKey, Encoded, T, ItemType, Evt, RPublish, E, RInitial, RCtx, RSchema>
   ): Effect.Effect<
-    ExtendedRepository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish>,
+    ExtendedRepository<T, Encoded, Evt, ItemType, IdKey, Exclude<RSchema, RCtx>, RPublish, RCtx>,
     E,
     RInitial | StoreMaker | RepositoryRegistry
   >
@@ -103,7 +103,7 @@ export const makeRepo: {
     schema: S.Codec<T, Encoded, RSchema>,
     options: Omit<RepositoryOptions<"id", Encoded, T, ItemType, Evt, RPublish, E, RInitial, RCtx, RSchema>, "idKey">
   ): Effect.Effect<
-    ExtendedRepository<T, Encoded, Evt, ItemType, "id", Exclude<RSchema, RCtx>, RPublish>,
+    ExtendedRepository<T, Encoded, Evt, ItemType, "id", Exclude<RSchema, RCtx>, RPublish, RCtx>,
     E,
     RInitial | StoreMaker | RepositoryRegistry
   >

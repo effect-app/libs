@@ -16,9 +16,10 @@ export const extendRepo = <
   ItemType extends string,
   IdKey extends keyof T & keyof Encoded,
   RSchema,
-  RPublish
+  RPublish,
+  RProvided = never
 >(
-  repo: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>
+  repo: Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish, RProvided>
 ) => {
   const get = (id: T[IdKey]) =>
     repo.find(id).pipe(
@@ -268,7 +269,7 @@ export const extendRepo = <
   return {
     ...repo,
     ...exts
-  } as Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish> & typeof exts
+  } as Repository<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish, RProvided> & typeof exts
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -279,5 +280,6 @@ export interface ExtendedRepository<
   ItemType extends string,
   IdKey extends keyof T & keyof Encoded,
   RSchema,
-  RPublish
-> extends ReturnType<typeof extendRepo<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish>> {}
+  RPublish,
+  RProvided = never
+> extends ReturnType<typeof extendRepo<T, Encoded, Evt, ItemType, IdKey, RSchema, RPublish, RProvided>> {}

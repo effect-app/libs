@@ -1,12 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
 import * as S from "effect/Schema"
+import { copyOrigin } from "../utils.js"
+import { concurrencyUnbounded } from "./ext.js"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
 
 export interface EnhancedClass<Self, SchemaS extends S.Top & { readonly fields: S.Struct.Fields }, Inherited>
   extends S.Class<Self, SchemaS, Inherited>
 {
+  /**
+   * See `copyOrigin` docs in `utils.ts` for return-type design details.
+   */
+  readonly copy: ReturnType<typeof copyOrigin<new(_: any) => Self>>
 }
 type MissingSelfGeneric<Usage extends string, Params extends string = ""> =
   `Missing \`Self\` generic - use \`class Self extends ${Usage}<Self>()(${Params}{ ... })\``
@@ -17,7 +23,11 @@ type HasFields<Fields extends S.Struct.Fields> = {
   readonly from: HasFields<Fields>
 }
 
-export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, Inherited> = S.Class<Self, S, Inherited>
+export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, Inherited> = EnhancedClass<
+  Self,
+  S,
+  Inherited
+>
 
 /**
  * Build a modified Declaration that accepts struct-matching values during
@@ -30,6 +40,11 @@ function makeRelaxedDeclaration(
 ): SchemaAST.Declaration {
   const structSchema = Schema.Struct(fields)
   const isStructValue = Schema.is(structSchema)
+  const existingParseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
+  const annotations = {
+    ...ast.annotations,
+    parseOptions: { ...existingParseOptions, concurrency: "unbounded" as const }
+  }
   return new SchemaAST.Declaration(
     ast.typeParameters,
     () => (input: unknown, self: SchemaAST.Declaration) => {
@@ -38,7 +53,7 @@ function makeRelaxedDeclaration(
       }
       return Effect.fail(new SchemaIssue.InvalidType(self, Option.some(input)))
     },
-    ast.annotations,
+    annotations,
     ast.checks,
     ast.encoding,
     ast.context
@@ -84,8 +99,17 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
 
     // Cache per-class to avoid recomputing
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
+    const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
 
     return class extends Base {
+      static get copy() {
+        let cached = copyCache.get(this)
+        if (cached === undefined) {
+          cached = copyOrigin(this)
+          copyCache.set(this, cached)
+        }
+        return cached
+      }
       static get ast(): SchemaAST.Declaration {
         let cached = astCache.get(this)
         if (cached !== undefined) return cached
@@ -95,6 +119,9 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
         cached = makeRelaxedDeclaration(originalAst, Base.fields, this)
         astCache.set(this, cached)
         return cached
+      }
+      static mapFields(f: any, options?: any) {
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
       }
     } as any
   }
@@ -134,8 +161,17 @@ export const TaggedClass: <Self = never>(
     const Base = (S.TaggedClass as any)(identifier)(tag, fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
+    const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
 
     return class extends Base {
+      static get copy() {
+        let cached = copyCache.get(this)
+        if (cached === undefined) {
+          cached = copyOrigin(this)
+          copyCache.set(this, cached)
+        }
+        return cached
+      }
       static get ast(): SchemaAST.Declaration {
         let cached = astCache.get(this)
         if (cached !== undefined) return cached
@@ -143,6 +179,9 @@ export const TaggedClass: <Self = never>(
         cached = makeRelaxedDeclaration(originalAst, Base.fields, this)
         astCache.set(this, cached)
         return cached
+      }
+      static mapFields(f: any, options?: any) {
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
       }
     } as any
   }

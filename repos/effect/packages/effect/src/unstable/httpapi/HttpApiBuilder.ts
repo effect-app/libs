@@ -18,7 +18,7 @@ import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
 import * as Issue from "../../SchemaIssue.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
-import type * as Scope from "../../Scope.ts"
+import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
@@ -36,6 +36,7 @@ import * as Multipart from "../http/Multipart.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import type * as HttpApi from "./HttpApi.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import { HttpApiSchemaError } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -120,7 +121,9 @@ export const group = <
   Exclude<Handlers.Context<Return>, Scope.Scope>
 > =>
   Layer.effectContext(Effect.gen(function*() {
-    const services = yield* Effect.context<any>()
+    const services = (yield* Effect.context<any>()).pipe(
+      Context.omit(Scope.Scope)
+    )
     const group = api.groups[groupName]!
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any> = Effect.isEffect(result)
@@ -333,7 +336,13 @@ export const endpoint = <
   Effect.contextWith((context: Context.Context<any>) => {
     const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
     const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
-    return Effect.succeed(handlerToHttpEffect(group, endpoint, context, handler as any, false))
+    return Effect.succeed(handlerToHttpEffect(
+      group,
+      endpoint,
+      Context.omit(Scope.Scope)(context),
+      handler as any,
+      false
+    ))
   })
 
 /**
@@ -581,13 +590,13 @@ function handlerToHttpEffect(
         group
       }
       if (decodeParams) {
-        request.params = yield* decodeParams(routeContext.params)
+        request.params = yield* HttpApiSchemaError.wrap("Params", decodeParams(routeContext.params))
       }
       if (decodeHeaders) {
-        request.headers = yield* decodeHeaders(httpRequest.headers)
+        request.headers = yield* HttpApiSchemaError.wrap("Headers", decodeHeaders(httpRequest.headers))
       }
       if (decodeQuery) {
-        request.query = yield* decodeQuery(query)
+        request.query = yield* HttpApiSchemaError.wrap("Query", decodeQuery(query))
       }
       if (payloadBy) {
         const result = decodePayload(payloadBy, httpRequest, query)
@@ -595,15 +604,20 @@ function handlerToHttpEffect(
           return result
         }
         if (result !== undefined) {
-          request.payload = yield* result
+          request.payload = yield* HttpApiSchemaError.wrap("Payload", result)
         }
       }
       const response = yield* handler(request)
-      return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
+      return Response.isHttpServerResponse(response)
+        ? response
+        : yield* HttpApiSchemaError.wrap("Body", encodeSuccess(response))
     })
   ).pipe(
     Effect.withErrorReporting,
-    Effect.catch((error) => Effect.orDie(encodeError(error))),
+    Effect.catch((error) => {
+      if (HttpApiSchemaError.is(error)) return Effect.die(error)
+      return Effect.orDie(encodeError(error))
+    }),
     Effect.provideContext(context)
   )
 }
@@ -711,6 +725,7 @@ function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encod
 
 function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
   const schemas = HttpApiEndpoint.getErrorSchemas(endpoint).map(toResponseErrorSchema)
+  if (schemas.length === 0) return Schema.Never
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 

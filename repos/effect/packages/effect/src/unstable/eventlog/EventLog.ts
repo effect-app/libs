@@ -358,7 +358,9 @@ const IdentityEncodedSchema = Schema.Struct({
   privateKey: Schema.Uint8ArrayFromBase64
 })
 
-const IdentityStringSchema = Schema.fromJsonString(IdentityEncodedSchema)
+const IdentityStringSchema = Schema.StringFromBase64Url.pipe(
+  Schema.decodeTo(Schema.fromJsonString(IdentityEncodedSchema))
+)
 
 /**
  * @since 4.0.0
@@ -584,7 +586,10 @@ export const makeReplayFromRemote = (options: {
   }
 }) =>
   Effect.fnUntraced(
-    function*({ conflicts, entry }): Effect.fn.Return<void, Schema.SchemaError> {
+    function*({ conflicts, entry }: {
+      readonly entry: Entry
+      readonly conflicts: ReadonlyArray<Entry>
+    }): Effect.fn.Return<void, Schema.SchemaError> {
       const handler = options.handlers.get(entry.event) as Handlers.Item<any> | undefined
       if (!handler) {
         return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)

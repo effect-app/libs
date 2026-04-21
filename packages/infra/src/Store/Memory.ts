@@ -91,15 +91,15 @@ function logQuery(f: FilterArgs<any, any>, defaultValues?: any) {
     }))
 }
 
-export const makeMemoryStoreInt = Effect.fnUntraced(
-  function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
-    modelName: string,
-    idKey: IdKey,
-    namespace: string,
-    seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-    _defaultValues?: Partial<Encoded>
-  ) {
-    type PM = PersistenceModelType<Encoded>
+export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R = never, E = never>(
+  modelName: string,
+  idKey: IdKey,
+  namespace: string,
+  seed?: Effect.Effect<Iterable<Encoded>, E, R>,
+  _defaultValues?: Partial<Encoded>
+) {
+  type PM = PersistenceModelType<Encoded>
+  return Effect.gen(function*() {
     const updateETag = makeUpdateETag(modelName)
     const items_ = yield* seed ?? Effect.sync(() => [])
     const defaultValues = _defaultValues ?? {}
@@ -112,77 +112,144 @@ export const makeMemoryStoreInt = Effect.fnUntraced(
 
     const all = Effect.map(values, Array.fromIterable)
 
-    const batchSet = Effect.fnUntraced(function*(items: NonEmptyReadonlyArray<PM>) {
-      const updated = yield* Effect.forEach(
-        items,
-        (i) => Effect.flatMap(s.find(i[idKey]), (current) => updateETag(i, idKey, current))
-      )
-      const m = yield* Ref.get(store)
-      const mut = m as Map<Encoded[IdKey], PM>
-      updated.forEach((e) => mut.set(e[idKey], e))
-      yield* Ref.set(store, mut)
-      return updated
-    }, withPermit)
+    const batchSet = (items: NonEmptyReadonlyArray<PM>) =>
+      Effect
+        .forEach(items, (i) => Effect.flatMap(s.find(i[idKey]), (current) => updateETag(i, idKey, current)))
+        .pipe(
+          Effect
+            .tap((items) =>
+              Ref
+                .get(store)
+                .pipe(
+                  Effect
+                    .map((m) => {
+                      const mut = m as Map<Encoded[IdKey], PM>
+                      items.forEach((e) => mut.set(e[idKey], e))
+                      return mut
+                    }),
+                  Effect
+                    .flatMap((_) => Ref.set(store, _))
+                )
+            ),
+          Effect
+            .map((_) => _),
+          withPermit
+        )
 
-    const batchRemove = Effect.fnUntraced(function*(items: NonEmptyReadonlyArray<Encoded[IdKey]>) {
-      const m = yield* Ref.get(store)
-      yield* Ref.set(store, new Map([...m].filter(([_k]) => !items.includes(_k))))
-    }, withPermit)
-
-    const spanAttrs = {
-      attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-    }
-
+    const batchRemove = (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
+      Ref
+        .get(store)
+        .pipe(
+          Effect
+            .map((m) => {
+              return new Map([...m].filter(([_k]) => !items.includes(_k)))
+            }),
+          Effect
+            .flatMap((_) => Ref.set(store, _))
+        )
+        .pipe(
+          withPermit
+        )
     const s: Store<IdKey, Encoded> = {
-      queryRaw: Effect.fn("Memory.queryRaw [effect-app/infra/Store]", spanAttrs)(function*(query) {
-        return query.memory(yield* all)
-      }),
+      seedNamespace: () => Effect.void,
+
+      queryRaw: (query) =>
+        all
+          .pipe(
+            // Effect.tap(() => logQuery(query, defaultValues)),
+            Effect.map(query.memory),
+            Effect.withSpan("Memory.queryRaw [effect-app/infra/Store]", {
+              attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+            }, { captureStackTrace: false })
+          ),
 
       all: all.pipe(Effect.withSpan("Memory.all [effect-app/infra/Store]", {
-        attributes: { modelName, namespace }
-      })),
-
-      find: Effect.fn("Memory.find [effect-app/infra/Store]", {
-        attributes: { modelName, namespace }
-      })(function*(id) {
-        return Option.fromNullishOr((yield* Ref.get(store)).get(id))
-      }),
-
-      filter: Effect.fn("Memory.filter [effect-app/infra/Store]", spanAttrs)(function*(f) {
-        yield* logQuery(f, defaultValues)
-        return memFilter(f)(yield* all)
-      }),
-
-      set: Effect.fn("Memory.set [effect-app/infra/Store]", spanAttrs)(function*(e) {
-        const current = yield* s.find(e[idKey])
-        const updated = yield* updateETag(e, idKey, current)
-        const m = yield* Ref.get(store)
-        yield* Ref.set(store, new Map([...m, [updated[idKey], updated]]))
-        return updated
-      }, withPermit),
-
-      batchRemove: Effect.fn("Memory.batchRemove [effect-app/infra/Store]", spanAttrs)(function*(
-        items: NonEmptyReadonlyArray<Encoded[IdKey]>
-      ) {
-        if (items.length > 100) return yield* Effect.die("BatchRemove: a batch may not exceed 100 items")
-        yield* batchRemove(items)
-      }),
-
-      batchSet: Effect.fn("Memory.batchSet [effect-app/infra/Store]", spanAttrs)(function*(
-        items: readonly [PM, ...PM[]]
-      ) {
-        if (items.length > 100) return yield* Effect.die("BatchSet: a batch may not exceed 100 items")
-        return yield* batchSet(items)
-      }),
-
+        attributes: {
+          modelName,
+          namespace
+        }
+      }, { captureStackTrace: false })),
+      find: (id) =>
+        Ref
+          .get(store)
+          .pipe(
+            Effect.map((_) => Option.fromNullishOr(_.get(id))),
+            Effect
+              .withSpan("Memory.find [effect-app/infra/Store]", {
+                attributes: {
+                  modelName,
+                  namespace
+                }
+              }, { captureStackTrace: false })
+          ),
+      filter: (f) =>
+        all
+          .pipe(
+            Effect.tap(() => logQuery(f, defaultValues)),
+            Effect.map(memFilter(f)),
+            Effect.withSpan("Memory.filter [effect-app/infra/Store]", {
+              attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+            }, { captureStackTrace: false })
+          ),
+      set: (e) =>
+        s
+          .find(e[idKey])
+          .pipe(
+            Effect.flatMap((current) => updateETag(e, idKey, current)),
+            Effect
+              .tap((e) =>
+                Ref.get(store).pipe(
+                  Effect.map((_) => new Map([..._, [e[idKey], e]])),
+                  Effect.flatMap((_) => Ref.set(store, _))
+                )
+              ),
+            withPermit,
+            Effect
+              .withSpan("Memory.set [effect-app/infra/Store]", {
+                attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+              }, { captureStackTrace: false })
+          ),
+      batchRemove: (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
+        pipe(
+          Effect
+            .sync(() => items)
+            // align with CosmosDB
+            .pipe(
+              Effect.filterOrFail((_) => _.length <= 100, () => "BatchRemove: a batch may not exceed 100 items"),
+              Effect.orDie,
+              Effect.andThen(batchRemove),
+              Effect
+                .withSpan("Memory.batchRemove [effect-app/infra/Store]", {
+                  attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+                }, { captureStackTrace: false })
+            )
+        ),
+      batchSet: (items: readonly [PM, ...PM[]]) =>
+        pipe(
+          Effect
+            .sync(() => items)
+            // align with CosmosDB
+            .pipe(
+              Effect.filterOrFail((_) => _.length <= 100, () => "BatchSet: a batch may not exceed 100 items"),
+              Effect.orDie,
+              Effect.andThen(batchSet),
+              Effect
+                .withSpan("Memory.batchSet [effect-app/infra/Store]", {
+                  attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+                }, { captureStackTrace: false })
+            )
+        ),
       bulkSet: flow(
         batchSet,
-        Effect.withSpan("Memory.bulkSet [effect-app/infra/Store]", spanAttrs)
+        (_) =>
+          _.pipe(Effect.withSpan("Memory.bulkSet [effect-app/infra/Store]", {
+            attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
+          }, { captureStackTrace: false }))
       )
     }
     return s
-  }
-)
+  })
+}
 
 export const makeMemoryStore = () => ({
   make: Effect.fnUntraced(function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
@@ -191,7 +258,6 @@ export const makeMemoryStore = () => ({
     seed?: Effect.Effect<Iterable<Encoded>, E, R>,
     config?: StoreConfig<Encoded>
   ) {
-    const storesSem = Semaphore.makeUnsafe(1)
     const primary = yield* makeMemoryStoreInt<IdKey, Encoded, R, E>(
       modelName,
       idKey,
@@ -201,28 +267,34 @@ export const makeMemoryStore = () => ({
     )
     const ctx = yield* Effect.context<R>()
     const stores = new Map([["primary", primary]])
-    const getStore = !config?.allowNamespace
-      ? Effect.succeed(primary)
-      : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
+    const semaphores = new Map<string, Semaphore.Semaphore>()
+    const getSem = (ns: string) => {
+      let sem = semaphores.get(ns)
+      if (!sem) {
+        sem = Semaphore.makeUnsafe(1)
+        semaphores.set(ns, sem)
+      }
+      return sem
+    }
+    const ensureStore = (namespace: string) =>
+      getSem(namespace).withPermits(1)(Effect.suspend(() => {
         const store = stores.get(namespace)
-        if (store) {
-          return Effect.succeed(store)
-        }
-        if (!config.allowNamespace!(namespace)) {
+        if (store) return Effect.succeed(store)
+        if (config?.allowNamespace && !config.allowNamespace(namespace)) {
           throw new Error(`Namespace ${namespace} not allowed!`)
         }
-        return storesSem.withPermits(1)(Effect.suspend(() => {
-          const store = stores.get(namespace)
-          if (store) return Effect.sync(() => store)
-          return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
-            .pipe(
-              Effect.orDie,
-              Effect.provide(ctx),
-              Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-            )
-        }))
+        return makeMemoryStoreInt(modelName, idKey, namespace, seed, config?.defaultValues)
+          .pipe(
+            Effect.orDie,
+            Effect.provide(ctx),
+            Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
+          )
       }))
+    const getStore = !config?.allowNamespace
+      ? Effect.succeed(primary)
+      : storeId.asEffect().pipe(Effect.flatMap((namespace) => ensureStore(namespace)))
     const s: Store<IdKey, Encoded> = {
+      seedNamespace: (namespace) => ensureStore(namespace).pipe(Effect.asVoid),
       all: Effect.flatMap(getStore, (_) => _.all),
       queryRaw: (...args) => Effect.flatMap(getStore, (_) => _.queryRaw(...args)),
       find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),

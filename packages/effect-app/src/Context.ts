@@ -10,7 +10,7 @@ export interface Opaque<Self extends object, in out Shape extends object>
   extends CTX.Key<Self, Self>, Yieldable<Opaque<Self, Shape>, Self, never, Self>
 {
   of(this: void, self: Shape): Self
-  serviceMap(self: Shape): CTX.Context<Self>
+  context(self: Shape): CTX.Context<Self>
   // a version that leverages the Shape -> Self conversion
   toLayer: <E, R>(
     eff: Effect.Effect<Shape, E, R>
@@ -24,7 +24,7 @@ export interface Opaque<Self extends object, in out Shape extends object>
 // {
 //   // temp while sorting out https://github.com/Effect-TS/effect-smol/pull/1534
 //   of(self: Shape): Self
-//   serviceMap2(self: Shape): CTX.Context<Self>
+//   contextMap2(self: Shape): CTX.Context<Self>
 //   // a version that leverages the Shape -> Self conversion
 //   toLayer: {
 //     <E, R>(

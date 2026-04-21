@@ -1,5 +1,158 @@
 # @effect-app/infra
 
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- 1015582: Fix `Q.project` field selection with `Schema.encodeKeys` by deriving selected fields from the encoded schema shape.
+- Updated dependencies [5ac46cb]
+  - effect-app@4.0.0-beta.121
+
+## 4.0.0-beta.120
+
+### Patch Changes
+
+- Updated dependencies [f21190c]
+  - effect-app@4.0.0-beta.120
+
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- db7ba34: Filter SSE events stream by storeId namespace
+  - effect-app@4.0.0-beta.119
+
+## 4.0.0-beta.118
+
+### Patch Changes
+
+- Update effect packages to 4.0.0-beta.52
+- Updated dependencies [bd26832]
+- Updated dependencies [08d2e70]
+- Updated dependencies
+  - effect-app@4.0.0-beta.118
+
+## 4.0.0-beta.117
+
+### Patch Changes
+
+- 1d85785: Wrap store seed effects with `Effect.uninterruptible` to prevent interruption during seeding
+  - effect-app@4.0.0-beta.117
+
+## 4.0.0-beta.116
+
+### Patch Changes
+
+- 7d5cefc: SQL and Pg stores now scope seed migration records by namespace and table name in shared databases to avoid cross-namespace seed collisions.
+  - effect-app@4.0.0-beta.116
+
+## 4.0.0-beta.115
+
+### Patch Changes
+
+- fe2caba: SQL and Pg stores: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+  - effect-app@4.0.0-beta.115
+
+## 4.0.0-beta.114
+
+### Patch Changes
+
+- 1ab3cf7: SQLite per-namespace adapter: use separate `_migrations` table for seed tracking instead of inserting a marker row into the data table, preventing it from appearing in `all`/`filter` queries.
+  - effect-app@4.0.0-beta.114
+
+## 4.0.0-beta.113
+
+### Minor Changes
+
+- ddc5492: Add RepositoryRegistry service that tracks all repositories by modelName, with `seedNamespace` to seed all registered repos in parallel and `entries` to inspect the registry.
+
+  Make non-primary namespace seeding explicit: Store and Repository now expose `seedNamespace` instead of auto-seeding on access. Primary namespace is still seeded eagerly on initialization.
+
+  SQL stores: table creation (`CREATE TABLE IF NOT EXISTS`) is now part of `seedNamespace` instead of running eagerly at store construction, ensuring tables for non-primary namespaces are only created when explicitly seeded.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.113
+
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- 8a4a6d2: fup
+  - effect-app@4.0.0-beta.112
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- ca94edf: fix typo
+- Updated dependencies [ca94edf]
+  - effect-app@4.0.0-beta.111
+
+## 4.0.0-beta.110
+
+### Minor Changes
+
+- c313c07: Add per-namespace in-memory SQLite adapter via LayerMap. When `makeSqlClientLayer` option is provided to `SQLiteStoreLayer`, each namespace gets its own SQLite database instance managed by a `LayerMap`. Introduces `WithNsTransaction` service for namespace-aware SQL transactions, used by `makeSqlTransactionMiddleware`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.110
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- 82f66f1: use uninterruptiple
+  - effect-app@4.0.0-beta.109
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [3e46e7b]
+  - effect-app@4.0.0-beta.108
+
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- 902ca1b: fix
+  - effect-app@4.0.0-beta.107
+
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- f22a026: Use `Effect.cached` in `getOrCreateStoreEffect` for proper memoization of the resolver effect.
+  - effect-app@4.0.0-beta.106
+
+## 4.0.0-beta.105
+
+### Minor Changes
+
+- 3d732b1: Rewrite `withRequestResolverCache` to use official `RequestResolver.withCache`, creating a cached resolver per ContextMap via `getOrCreateStoreEffect` with semaphore-guarded initialization.
+
+### Patch Changes
+
+- 47e53f5: Fix `withRequestResolverCache` causing "RequestResolver did not complete request" errors by using the `preCheck` hook instead of handling cache in `runAll`. Cache hits for in-flight or completed requests are now handled before entries enter the batch, preventing uncompleted entries.
+- 5773159: Add `itemType` annotation to all repository spans
+  - effect-app@4.0.0-beta.105
+
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [e944bca]
+  - effect-app@4.0.0-beta.104
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [7119320]
+  - effect-app@4.0.0-beta.103
+
 ## 4.0.0-beta.102
 
 ### Patch Changes

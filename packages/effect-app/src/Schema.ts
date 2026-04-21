@@ -3,7 +3,7 @@ import * as S from "effect/Schema"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import { fakerArb } from "./faker.js"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
-import { withDefaultMake } from "./Schema/ext.js"
+import { concurrencyUnbounded, withDefaultMake } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
 import { extendM } from "./utils.js"
 
@@ -31,6 +31,58 @@ export * as SchemaIssue from "effect/SchemaIssue"
 export * as SchemaParser from "effect/SchemaParser"
 
 export { Void as Void_ } from "effect/Schema"
+
+// ---------------------------------------------------------------------------
+// Struct / NonEmptyArray / Record — with concurrency: "unbounded"
+// ---------------------------------------------------------------------------
+
+export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): S.Struct<Fields> {
+  const result = S.Struct(fields).annotate(concurrencyUnbounded)
+  // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment
+  const origMapFields: any = result.mapFields
+  ;(result as any).mapFields = function(this: any, f: any, options?: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    return origMapFields.call(this, f, options).annotate(concurrencyUnbounded)
+  }
+  return result
+}
+export interface Struct<Fields extends S.Struct.Fields> extends S.Struct<Fields> {}
+export declare namespace Struct {
+  export type Fields = S.Struct.Fields
+  export type Type<F extends S.Struct.Fields> = S.Struct.Type<F>
+  export type Encoded<F extends S.Struct.Fields> = S.Struct.Encoded<F>
+  export type DecodingServices<F extends S.Struct.Fields> = S.Struct.DecodingServices<F>
+  export type EncodingServices<F extends S.Struct.Fields> = S.Struct.EncodingServices<F>
+  export type MakeIn<F extends S.Struct.Fields> = S.Struct.MakeIn<F>
+  export type Iso<F extends S.Struct.Fields> = S.Struct.Iso<F>
+}
+
+export function NonEmptyArray<Value extends S.Top>(value: Value): S.NonEmptyArray<Value> {
+  return S.NonEmptyArray(value).annotate(concurrencyUnbounded)
+}
+
+export function TaggedStruct<const Tag extends SchemaAST.LiteralValue, const Fields extends S.Struct.Fields>(
+  value: Tag,
+  fields: Fields
+): S.TaggedStruct<Tag, Fields> {
+  return Struct({ _tag: S.tag(value), ...fields }) as any
+}
+export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> = S.TaggedStruct<
+  Tag,
+  Fields
+>
+
+export function Record<Key extends S.Record.Key, Value extends S.Top>(
+  key: Key,
+  value: Value
+): S.$Record<Key, Value> {
+  return S.Record(key, value).annotate(concurrencyUnbounded)
+}
+export declare namespace Record {
+  export type Key = S.Record.Key
+  export type Type<K extends S.Record.Key, V extends S.Top> = S.Record.Type<K, V>
+  export type Encoded<K extends S.Record.Key, V extends S.Top> = S.Record.Encoded<K, V>
+}
 
 export const SpanId = Symbol()
 export type SpanId = typeof SpanId
@@ -125,13 +177,76 @@ type TaggedUnionTags<Members extends TaggedUnionMembers> = S.Literals<
   }
 >
 
+type TaggedPropertyKeys<A, Members extends TaggedUnionMembers> = {
+  [K in keyof A & string]: A[K] extends Members[number]["Type"] ? K : never
+}[keyof A & string]
+
+type PropertyGuardsFor<
+  Members extends TaggedUnionMembers,
+  K extends string,
+  A
+> =
+  & {
+    readonly [M in Members[number] as `is${M["Type"]["_tag"]}`]: (
+      target: A
+    ) => target is A & { readonly [P in K]: M["Type"] }
+  }
+  & {
+    readonly isAnyOf: <const Tags extends ReadonlyArray<Members[number]["Type"]["_tag"]>>(
+      tags: Tags
+    ) => (
+      target: A
+    ) => target is A & { readonly [P in K]: Extract<Members[number]["Type"], { readonly _tag: Tags[number] }> }
+  }
+
+type PropertyGuards<
+  Members extends TaggedUnionMembers,
+  K extends string
+> =
+  & {
+    readonly [M in Members[number] as `is${M["Type"]["_tag"]}`]: <
+      T extends { readonly [P in K]: Members[number]["Type"] }
+    >(target: T) => target is T & { readonly [P in K]: M["Type"] }
+  }
+  & {
+    readonly isAnyOf: <const Tags extends ReadonlyArray<Members[number]["Type"]["_tag"]>>(
+      tags: Tags
+    ) => <T extends { readonly [P in K]: Members[number]["Type"] }>(
+      target: T
+    ) => target is T & { readonly [P in K]: Extract<Members[number]["Type"], { readonly _tag: Tags[number] }> }
+  }
+
 type TaggedUnionWithTags<Members extends TaggedUnionMembers> = S.toTaggedUnion<"_tag", Members> & {
   readonly tags: TaggedUnionTags<Members>
+  readonly generateGuards: <K extends string>(property: K) => PropertyGuards<Members, K>
+  readonly generateGuardsFor: <A>() => <K extends TaggedPropertyKeys<A, Members>>(
+    property: K
+  ) => PropertyGuardsFor<Members, K, A>
 }
 
 const extendTaggedUnionWithTags = <Members extends TaggedUnionMembers>(
   schema: S.Union<Members>
-): TaggedUnionWithTags<Members> => extendM(schema.pipe(S.toTaggedUnion("_tag")), () => ({ tags: tags(schema.members) }))
+): TaggedUnionWithTags<Members> =>
+  extendM(schema.pipe(S.toTaggedUnion("_tag")), (tagged) => {
+    const makeGuards = (property: string) => {
+      const result: any = {}
+      const guards: Record<string, (u: unknown) => boolean> = tagged.guards
+      for (const tag of Object.keys(guards)) {
+        const guard = guards[tag]!
+        result[`is${tag}`] = (target: any) => guard(target[property])
+      }
+      result.isAnyOf = (memberTags: Array<string>) => {
+        const check = tagged.isAnyOf(memberTags)
+        return (target: any) => check(target[property])
+      }
+      return result
+    }
+    return {
+      tags: tags(schema.members),
+      generateGuards: makeGuards,
+      generateGuardsFor: () => makeGuards
+    }
+  })
 
 export const ExtendTaggedUnion = <Members extends TaggedUnionMembers>(
   schema: S.Union<Members>

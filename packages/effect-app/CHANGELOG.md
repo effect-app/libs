@@ -1,5 +1,83 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- 5ac46cb: Make `Schema.provide` dual (pipeable)
+
+## 4.0.0-beta.120
+
+### Minor Changes
+
+- f21190c: Add `copy` property to `Class` and `TaggedClass` for creating modified instances with updated fields. The `copy` method is cached per-class and supports both object and function-based updates, with pipeline support.
+
+## 4.0.0-beta.119
+
+## 4.0.0-beta.118
+
+### Minor Changes
+
+- 08d2e70: Add `concurrency: "unbounded"` parseOptions annotation to Schema constructors (Struct, Array, NonEmptyArray, Record, TaggedStruct, ReadonlySet, ReadonlyMap, Class, TaggedClass) so all encode/decode operations automatically run with unbounded concurrency. Also override `mapFields` on Struct and Class/TaggedClass to preserve the annotation.
+
+### Patch Changes
+
+- bd26832: Add nested anyOf flattening to JSON Schema post-processing
+- Update effect packages to 4.0.0-beta.52
+
+## 4.0.0-beta.117
+
+## 4.0.0-beta.116
+
+## 4.0.0-beta.115
+
+## 4.0.0-beta.114
+
+## 4.0.0-beta.113
+
+## 4.0.0-beta.112
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- ca94edf: fix typo
+
+## 4.0.0-beta.110
+
+## 4.0.0-beta.109
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- 3e46e7b: allow excess props in openapi schemas
+
+## 4.0.0-beta.107
+
+## 4.0.0-beta.106
+
+## 4.0.0-beta.105
+
+## 4.0.0-beta.104
+
+### Minor Changes
+
+- e944bca: Add `generateGuards` and `generateGuardsFor` to `TaggedUnion` / `ExtendTaggedUnion` for property-scoped type guards.
+
+  - `generateGuards("key")` — generic per-guard, no need to specify the container type
+  - `generateGuardsFor<A>()("key")` — curried, fixes `A` for concrete guard signatures
+
+  Both return `{ is{Tag}, isAnyOf }` guards that narrow the container type by its tagged union property.
+
+## 4.0.0-beta.103
+
+### Minor Changes
+
+- 7119320: Add `generateGuards` to `TaggedUnion` / `ExtendTaggedUnion` for generating property-scoped type guards.
+
+  Usage: `MyUnion.generateGuards<MyType>()("propertyKey")` returns `{ is{Tag}, isAnyOf }` guards that narrow the container type by its tagged union property.
+
 ## 4.0.0-beta.102
 
 ## 4.0.0-beta.101

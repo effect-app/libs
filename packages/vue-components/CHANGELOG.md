@@ -1,5 +1,148 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [5ac46cb]
+  - effect-app@4.0.0-beta.121
+  - @effect-app/vue@4.0.0-beta.121
+
+## 4.0.0-beta.120
+
+### Patch Changes
+
+- Updated dependencies [f21190c]
+  - effect-app@4.0.0-beta.120
+  - @effect-app/vue@4.0.0-beta.120
+
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.119
+- @effect-app/vue@4.0.0-beta.119
+
+## 4.0.0-beta.118
+
+### Patch Changes
+
+- Update effect packages to 4.0.0-beta.52
+- Updated dependencies [bd26832]
+- Updated dependencies [08d2e70]
+- Updated dependencies
+  - effect-app@4.0.0-beta.118
+  - @effect-app/vue@4.0.0-beta.118
+
+## 4.0.0-beta.117
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.117
+- @effect-app/vue@4.0.0-beta.117
+
+## 4.0.0-beta.116
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.116
+- @effect-app/vue@4.0.0-beta.116
+
+## 4.0.0-beta.115
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.115
+- @effect-app/vue@4.0.0-beta.115
+
+## 4.0.0-beta.114
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.114
+- @effect-app/vue@4.0.0-beta.114
+
+## 4.0.0-beta.113
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.113
+- @effect-app/vue@4.0.0-beta.113
+
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.112
+- @effect-app/vue@4.0.0-beta.112
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [ca94edf]
+  - effect-app@4.0.0-beta.111
+  - @effect-app/vue@4.0.0-beta.111
+
+## 4.0.0-beta.110
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.110
+- @effect-app/vue@4.0.0-beta.110
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.109
+- @effect-app/vue@4.0.0-beta.109
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [3e46e7b]
+  - effect-app@4.0.0-beta.108
+  - @effect-app/vue@4.0.0-beta.108
+
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.107
+- @effect-app/vue@4.0.0-beta.107
+
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.106
+- @effect-app/vue@4.0.0-beta.106
+
+## 4.0.0-beta.105
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.105
+- @effect-app/vue@4.0.0-beta.105
+
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [e944bca]
+  - effect-app@4.0.0-beta.104
+  - @effect-app/vue@4.0.0-beta.104
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [7119320]
+  - effect-app@4.0.0-beta.103
+  - @effect-app/vue@4.0.0-beta.103
+
 ## 4.0.0-beta.102
 
 ### Patch Changes

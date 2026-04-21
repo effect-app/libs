@@ -1,7 +1,5 @@
-import { Context, Data, Effect, type Exit, Layer, RequestResolver } from "effect-app"
-import type { NonEmptyArray } from "effect/Array"
+import { Context, Data, Effect, Layer, RequestResolver } from "effect-app"
 import { dual } from "effect/Function"
-import * as MutableHashMap from "effect/MutableHashMap"
 import type * as Request from "effect/Request"
 import { ContextMap } from "./service.js"
 
@@ -23,94 +21,39 @@ export const getContextMap = ContextMapContainer.asEffect().pipe(
   Effect.filterOrFail((_) => _ !== "root", () => new ContextMapNotStartedError())
 )
 
+/**
+ * Uses the official `RequestResolver.withCache` internally,
+ * creating one cached resolver per ContextMap (i.e. per request).
+ * Uses a shared semaphore in the ContextMap to ensure safe single initialization.
+ */
 export const withRequestResolverCache: {
   <A extends Request.Request<any, any>>(options: {
     readonly capacity: number
     readonly strategy?: "lru" | "fifo" | undefined
-  }): (self: RequestResolver.RequestResolver<A>) => RequestResolver.RequestResolver<A>
+  }): (
+    self: RequestResolver.RequestResolver<A>
+  ) => Effect.Effect<RequestResolver.RequestResolver<A>, ContextMapNotStartedError>
   <A extends Request.Request<any, any>>(
     self: RequestResolver.RequestResolver<A>,
     options: {
       readonly capacity: number
       readonly strategy?: "lru" | "fifo" | undefined
     }
-  ): RequestResolver.RequestResolver<A>
+  ): Effect.Effect<RequestResolver.RequestResolver<A>, ContextMapNotStartedError>
 } = dual(2, <A extends Request.Request<any, any>>(
   self: RequestResolver.RequestResolver<A>,
   options: {
     readonly capacity: number
     readonly strategy?: "lru" | "fifo" | undefined
   }
-): RequestResolver.RequestResolver<A> => {
+): Effect.Effect<RequestResolver.RequestResolver<A>, ContextMapNotStartedError> => {
   const cacheKey = Symbol()
-  const strategy = options.strategy ?? "lru"
-  type CacheEntry = {
-    readonly entry: Request.Entry<A>
-    exit: Exit.Exit<Request.Success<A>, Request.Error<A>> | undefined
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  return RequestResolver.makeWith({
-    ...(self as any),
-    runAll(
-      entries: NonEmptyArray<Request.Entry<A>>,
-      key: unknown
-    ) {
-      return Effect.flatMap(
-        getContextMap.pipe(Effect.orDie),
-        (contextMap) => {
-          const cache = contextMap.getOrCreateStore<MutableHashMap.MutableHashMap<A, CacheEntry>>(
-            cacheKey,
-            () => MutableHashMap.empty()
-          )
-
-          const uncached: Array<Request.Entry<A>> = []
-          for (const entry of entries) {
-            const ocached = MutableHashMap.get(cache, entry.request)
-            if (ocached._tag === "None") {
-              const cached: CacheEntry = { entry, exit: undefined }
-              MutableHashMap.set(cache, entry.request, cached)
-              const prevComplete = entry.completeUnsafe.bind(entry)
-              entry.completeUnsafe = (exit) => {
-                cached.exit = exit
-                prevComplete(exit)
-              }
-              uncached.push(entry)
-            } else {
-              const cached = ocached.value
-              if (cached.exit) {
-                if (strategy === "lru") {
-                  MutableHashMap.remove(cache, cached.entry.request)
-                  MutableHashMap.set(cache, cached.entry.request, cached)
-                }
-                entry.completeUnsafe(cached.exit as any)
-              } else {
-                cached.entry.uninterruptible = true
-                const prevComplete = cached.entry.completeUnsafe.bind(cached.entry)
-                cached.entry.completeUnsafe = (exit) => {
-                  prevComplete(exit)
-                  entry.completeUnsafe(exit)
-                }
-              }
-            }
-          }
-
-          if (uncached.length === 0) return Effect.void
-
-          return Effect.onExit(
-            (self as any).runAll(uncached, key),
-            () => {
-              let toRemove = MutableHashMap.size(cache) - options.capacity
-              if (toRemove <= 0) return Effect.void
-              for (const k of MutableHashMap.keys(cache)) {
-                MutableHashMap.remove(cache, k)
-                toRemove--
-                if (toRemove <= 0) break
-              }
-              return Effect.void
-            }
-          )
-        }
+  return getContextMap.pipe(
+    Effect.flatMap((ctxMap) =>
+      ctxMap.getOrCreateStoreEffect(
+        cacheKey,
+        RequestResolver.withCache(self, options)
       )
-    }
-  })
+    )
+  )
 })

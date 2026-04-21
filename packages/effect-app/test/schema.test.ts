@@ -416,3 +416,110 @@ describe("JSON Schema", () => {
     })
   })
 })
+
+describe("generateGuards", () => {
+  const StateSchema = S.TaggedUnion(
+    S.TaggedStruct("Active", { since: S.String }),
+    S.TaggedStruct("Inactive", { reason: S.String }),
+    S.TaggedStruct("Pending", { eta: S.Finite })
+  )
+
+  type State = S.Schema.Type<typeof StateSchema>
+  type Entity = { readonly state: State; readonly name: string }
+
+  const { isActive, isAnyOf, isInactive, isPending } = StateSchema.generateGuards("state")
+
+  test("isActive narrows to Active member", () => {
+    const entity: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    expect(isActive(entity)).toBe(true)
+    if (isActive(entity)) {
+      expectTypeOf(entity.state).toEqualTypeOf<{ readonly _tag: "Active"; readonly since: string }>()
+    }
+  })
+
+  test("isActive returns false for non-Active", () => {
+    const entity: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "foo" }
+    expect(isActive(entity)).toBe(false)
+  })
+
+  test("isInactive narrows to Inactive member", () => {
+    const entity: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "foo" }
+    expect(isInactive(entity)).toBe(true)
+  })
+
+  test("isPending narrows to Pending member", () => {
+    const entity: Entity = { state: { _tag: "Pending", eta: 42 }, name: "foo" }
+    expect(isPending(entity)).toBe(true)
+  })
+
+  test("isAnyOf narrows to union of specified members", () => {
+    const isActiveOrPending = isAnyOf(["Active", "Pending"])
+    const active: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    const pending: Entity = { state: { _tag: "Pending", eta: 5 }, name: "bar" }
+    const inactive: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "baz" }
+
+    expect(isActiveOrPending(active)).toBe(true)
+    expect(isActiveOrPending(pending)).toBe(true)
+    expect(isActiveOrPending(inactive)).toBe(false)
+
+    if (isActiveOrPending(active)) {
+      expectTypeOf(active.state).toEqualTypeOf<
+        { readonly _tag: "Active"; readonly since: string } | { readonly _tag: "Pending"; readonly eta: number }
+      >()
+    }
+  })
+
+  test("guards use schema-based validation (built-in guards)", () => {
+    expect(StateSchema.guards.Active({ _tag: "Active" })).toBe(false)
+    expect(StateSchema.guards.Active({ _tag: "Active", since: "2024-01-01" })).toBe(true)
+  })
+})
+
+describe("generateGuardsFor", () => {
+  const StateSchema = S.TaggedUnion(
+    S.TaggedStruct("Active", { since: S.String }),
+    S.TaggedStruct("Inactive", { reason: S.String }),
+    S.TaggedStruct("Pending", { eta: S.Finite })
+  )
+
+  type State = S.Schema.Type<typeof StateSchema>
+  type Entity = { readonly state: State; readonly name: string }
+
+  const { isActive, isAnyOf } = StateSchema.generateGuardsFor<Entity>()("state")
+
+  test("isActive narrows to Active member", () => {
+    const entity: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    expect(isActive(entity)).toBe(true)
+    if (isActive(entity)) {
+      expectTypeOf(entity.state).toEqualTypeOf<{ readonly _tag: "Active"; readonly since: string }>()
+    }
+  })
+
+  test("isActive returns false for non-Active", () => {
+    const entity: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "foo" }
+    expect(isActive(entity)).toBe(false)
+  })
+
+  test("isAnyOf narrows to union of specified members", () => {
+    const isActiveOrPending = isAnyOf(["Active", "Pending"])
+    const active: Entity = { state: { _tag: "Active", since: "2024-01-01" }, name: "foo" }
+    const inactive: Entity = { state: { _tag: "Inactive", reason: "expired" }, name: "baz" }
+
+    expect(isActiveOrPending(active)).toBe(true)
+    expect(isActiveOrPending(inactive)).toBe(false)
+  })
+
+  test("ExtendTaggedUnion also exposes generateGuardsFor", () => {
+    const union = S.Union([
+      S.TaggedStruct("X", { x: S.String }),
+      S.TaggedStruct("Y", { y: S.Finite })
+    ])
+    const extended = S.ExtendTaggedUnion(union)
+    type Obj = { readonly field: S.Schema.Type<typeof extended> }
+    const { isX, isY } = extended.generateGuardsFor<Obj>()("field")
+
+    expect(isX({ field: { _tag: "X", x: "hi" } })).toBe(true)
+    expect(isX({ field: { _tag: "Y", y: 1 } })).toBe(false)
+    expect(isY({ field: { _tag: "Y", y: 1 } })).toBe(true)
+  })
+})

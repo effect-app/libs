@@ -59,11 +59,19 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           return namespace
         }))
 
-      yield* sql
+      const ensureTable = sql
         .unsafe(
           `CREATE TABLE IF NOT EXISTS "${tableName}" (id TEXT NOT NULL, _namespace TEXT NOT NULL DEFAULT 'primary', _etag TEXT, data JSONB NOT NULL, PRIMARY KEY (id, _namespace))`
         )
-        .pipe(Effect.orDie)
+        .pipe(
+          Effect.andThen(
+            sql.unsafe(
+              `CREATE TABLE IF NOT EXISTS "_migrations" (id TEXT NOT NULL, version TEXT NOT NULL, PRIMARY KEY (id, version))`
+            )
+          ),
+          Effect.orDie,
+          Effect.asVoid
+        )
 
       const toRow = (e: PM) => {
         const newE = makeETag(e)
@@ -74,8 +82,6 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       }
 
       const exec = (query: string, params?: readonly unknown[]) => sql.unsafe(query, params as any).pipe(Effect.orDie)
-
-      const seedMarkerId = `__seed_marker__`
 
       const setInternal = Effect.fnUntraced(function*(e: PM, ns: string) {
         const row = toRow(e)
@@ -127,135 +133,175 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
       const ctx = yield* Effect.context<R>()
       const seedCache = new Map<string, Effect.Effect<void>>()
       const makeSeedEffect = Effect.fnUntraced(function*(ns: string) {
+        yield* ensureTable
+        if (!seed) return
         const existing = yield* exec(
-          `SELECT id FROM "${tableName}" WHERE id = $1 AND _namespace = $2`,
-          [seedMarkerId, `__seed__::${ns}`]
+          `SELECT id FROM "_migrations" WHERE id = $1 AND version = $2`,
+          [`${tableName}::${ns}`, tableName]
         )
         if ((existing as any[]).length > 0) return
         yield* InfraLogger.logInfo(`Seeding data for ${name} (namespace: ${ns})`)
-        const items = yield* seed!
-        const arr = toNonEmptyArray([...items])
-        if (Option.isSome(arr)) {
-          yield* bulkSetInternal(arr.value, ns)
-        }
+        const items = yield* seed.pipe(Effect.provide(ctx), Effect.orDie)
+        const ne = toNonEmptyArray([...items])
+        if (Option.isSome(ne)) yield* bulkSetInternal(ne.value, ns)
         yield* exec(
-          `INSERT INTO "${tableName}" (id, _namespace, _etag, data) VALUES ($1, $2, $3, $4)`,
-          [seedMarkerId, `__seed__::${ns}`, null, JSON.stringify({ _marker: true })]
+          `INSERT INTO "_migrations" (id, version) VALUES ($1, $2)`,
+          [`${tableName}::${ns}`, tableName]
         )
-      }, (effect) => effect.pipe(Effect.provide(ctx), Effect.orDie))
-
-      const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
-        if (!seed) return
+      })
+      const seedNamespace = (ns: string) => {
         let cached = seedCache.get(ns)
         if (!cached) {
-          cached = yield* Effect.cached(makeSeedEffect(ns))
+          cached = Effect.cached(Effect.uninterruptible(makeSeedEffect(ns))).pipe(Effect.runSync)
           seedCache.set(ns, cached)
         }
-        yield* cached
-      })
-      const resolveAndSeed = Effect.tap(resolveNamespace, (ns) => seedNamespace(ns))
-
-      const tableAttrs = { "repository.table_name": tableName, "repository.model_name": name }
-
+        return cached
+      }
       const s: Store<IdKey, Encoded> = {
-        all: Effect
-          .gen(function*() {
-            const ns = yield* resolveAndSeed
-            const rows = yield* exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`, [ns])
-            yield* Effect.annotateCurrentSpan({ "repository.namespace": ns })
-            return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))
-          })
-          .pipe(Effect.withSpan("PgSQL.all [effect-app/infra/Store]", { attributes: tableAttrs })),
+        seedNamespace: (ns) => seedNamespace(ns),
 
-        find: Effect.fn("PgSQL.find [effect-app/infra/Store]", { attributes: tableAttrs })(function*(id) {
-          yield* Effect.annotateCurrentSpan({ id })
-          const ns = yield* resolveAndSeed
-          const rows = yield* exec(
-            `SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`,
-            [id, ns]
+        all: resolveNamespace.pipe(
+          Effect.flatMap((ns) =>
+            exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`, [ns])
+              .pipe(
+                Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
+                Effect.withSpan("PgSQL.all [effect-app/infra/Store]", {
+                  attributes: {
+                    "repository.table_name": tableName,
+                    "repository.model_name": name,
+                    "repository.namespace": ns
+                  }
+                }, { captureStackTrace: false })
+              )
           )
-          const row = (rows as any[])[0]
-          return row
-            ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
-            : Option.none()
-        }),
+        ),
 
-        filter: Effect.fn("PgSQL.filter [effect-app/infra/Store]", { attributes: tableAttrs })(function*<
-          U extends keyof Encoded = never
-        >(f: FilterArgs<Encoded, U>) {
+        find: (id) =>
+          resolveNamespace.pipe(Effect
+            .flatMap((ns) =>
+              exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`, [id, ns])
+                .pipe(
+                  Effect.map((rows) => {
+                    const row = (rows as any[])[0]
+                    return row
+                      ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
+                      : Option.none()
+                  }),
+                  Effect.withSpan("PgSQL.find [effect-app/infra/Store]", {
+                    attributes: { "repository.table_name": tableName, "repository.model_name": name, id }
+                  }, { captureStackTrace: false })
+                )
+            )),
+
+        filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
+          const filter = f
+            .filter
           type M = U extends undefined ? Encoded : Pick<Encoded, U>
-          const ns = yield* resolveAndSeed
-          const filter = f.filter
-          const baseQ = buildWhereSQLQuery(
-            pgDialect,
-            idKey,
-            filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
-            tableName,
-            defaultValues,
-            f.select as
-              | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
-              | undefined,
-            f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
-            f.skip,
-            f.limit
-          )
-          const nsPlaceholder = pgDialect.placeholder(baseQ.params.length + 1)
-          const hasWhere = baseQ.sql.includes("WHERE")
-          const nsSql = hasWhere
-            ? baseQ.sql.replace("WHERE", `WHERE _namespace = ${nsPlaceholder} AND`)
-            : baseQ.sql.replace(
-              `FROM "${tableName}"`,
-              `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`
-            )
-          const q = { sql: nsSql, params: [...baseQ.params, ns] }
-          yield* logQuery(q)
-          const rows = yield* exec(q.sql, q.params)
-          if (f.select) {
-            return (rows as any[]).map((r) => {
-              const selected = parseSelectRow(r, idKey, {})
-              return {
-                ...Struct.pick(
-                  defaultValues as any,
-                  f.select!.filter((_) => typeof _ === "string") as never[]
+          return resolveNamespace.pipe(Effect.flatMap((ns) =>
+            Effect
+              .sync(() => {
+                const q = buildWhereSQLQuery(
+                  pgDialect,
+                  idKey,
+                  filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
+                  tableName,
+                  defaultValues,
+                  f.select as
+                    | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
+                    | undefined,
+                  f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
+                  f.skip,
+                  f.limit
+                )
+                const nsPlaceholder = pgDialect.placeholder(q.params.length + 1)
+                const hasWhere = q.sql.includes("WHERE")
+                const nsSql = hasWhere
+                  ? q.sql.replace("WHERE", `WHERE _namespace = ${nsPlaceholder} AND`)
+                  : q.sql.replace(
+                    `FROM "${tableName}"`,
+                    `FROM "${tableName}" WHERE _namespace = ${nsPlaceholder}`
+                  )
+                return { sql: nsSql, params: [...q.params, ns] }
+              })
+              .pipe(
+                Effect.tap((q) => logQuery(q)),
+                Effect.flatMap((q) =>
+                  exec(q.sql, q.params).pipe(
+                    Effect.map((rows) => {
+                      if (f.select) {
+                        return (rows as any[]).map((r) => {
+                          const selected = parseSelectRow(r, idKey, {})
+                          return {
+                            ...Struct.pick(
+                              defaultValues as any,
+                              f.select!.filter((_) => typeof _ === "string") as never[]
+                            ),
+                            ...selected
+                          } as M
+                        })
+                      }
+                      return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
+                    })
+                  )
                 ),
-                ...selected
-              } as M
-            })
-          }
-          return (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues) as any as M)
-        }),
+                Effect.withSpan("PgSQL.filter [effect-app/infra/Store]", {
+                  attributes: { "repository.table_name": tableName, "repository.model_name": name }
+                }, { captureStackTrace: false })
+              )
+          ))
+        },
 
-        set: Effect.fn("PgSQL.set [effect-app/infra/Store]", { attributes: tableAttrs })(function*(e) {
-          yield* Effect.annotateCurrentSpan({ id: e[idKey] })
-          const ns = yield* resolveAndSeed
-          return yield* setInternal(e, ns)
-        }),
+        set: (e) =>
+          resolveNamespace.pipe(Effect.flatMap((ns) =>
+            setInternal(e, ns).pipe(
+              Effect.withSpan("PgSQL.set [effect-app/infra/Store]", {
+                attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
+              }, { captureStackTrace: false })
+            )
+          )),
 
-        batchSet: Effect.fn("PgSQL.batchSet [effect-app/infra/Store]", { attributes: tableAttrs })(function*(items) {
-          const ns = yield* resolveAndSeed
-          return yield* bulkSetInternal(items, ns)
-        }),
+        batchSet: (items) =>
+          resolveNamespace.pipe(Effect.flatMap((ns) =>
+            bulkSetInternal(items, ns).pipe(
+              Effect.withSpan("PgSQL.batchSet [effect-app/infra/Store]", {
+                attributes: { "repository.table_name": tableName, "repository.model_name": name }
+              }, { captureStackTrace: false })
+            )
+          )),
 
-        bulkSet: Effect.fn("PgSQL.bulkSet [effect-app/infra/Store]", { attributes: tableAttrs })(function*(items) {
-          const ns = yield* resolveAndSeed
-          return yield* bulkSetInternal(items, ns)
-        }),
+        bulkSet: (items) =>
+          resolveNamespace.pipe(Effect.flatMap((ns) =>
+            bulkSetInternal(items, ns).pipe(
+              Effect.withSpan("PgSQL.bulkSet [effect-app/infra/Store]", {
+                attributes: { "repository.table_name": tableName, "repository.model_name": name }
+              }, { captureStackTrace: false })
+            )
+          )),
 
-        batchRemove: Effect.fn("PgSQL.batchRemove [effect-app/infra/Store]", { attributes: tableAttrs })(function*(
-          ids
-        ) {
-          const ns = yield* resolveAndSeed
+        batchRemove: (ids) => {
           const placeholders = ids.map((_, i) => `$${i + 1}`).join(", ")
           const nsPlaceholder = `$${ids.length + 1}`
-          yield* exec(
-            `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`,
-            [...ids, ns]
-          )
-        }),
+          return resolveNamespace.pipe(Effect.flatMap((ns) =>
+            exec(
+              `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`,
+              [...ids, ns]
+            )
+              .pipe(
+                Effect.asVoid,
+                Effect.withSpan("PgSQL.batchRemove [effect-app/infra/Store]", {
+                  attributes: { "repository.table_name": tableName, "repository.model_name": name }
+                }, { captureStackTrace: false })
+              )
+          ))
+        },
 
-        queryRaw: Effect.fn("PgSQL.queryRaw [effect-app/infra/Store]", { attributes: tableAttrs })(function*(query) {
-          return query.memory(yield* s.all)
-        })
+        queryRaw: (query) =>
+          s.all.pipe(
+            Effect.map(query.memory),
+            Effect.withSpan("PgSQL.queryRaw [effect-app/infra/Store]", {
+              attributes: { "repository.table_name": tableName, "repository.model_name": name }
+            }, { captureStackTrace: false })
+          )
       }
 
       // Eagerly seed primary namespace on initialization

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { UniqueKey } from "@azure/cosmos"
 import { Context, Effect, type NonEmptyReadonlyArray, type Option, type Redacted } from "effect-app"
+import * as Semaphore from "effect/Semaphore"
 import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
@@ -87,6 +88,11 @@ export interface Store<
   ) => Effect.Effect<NonEmptyReadonlyArray<PM>, OptimisticConcurrencyException>
   batchRemove: (ids: NonEmptyReadonlyArray<Encoded[IdKey]>, partitionKey?: string) => Effect.Effect<void>
   queryRaw: <Out>(query: RawQuery<Encoded, Out>) => Effect.Effect<readonly Out[]>
+  /**
+   * Explicitly seed a namespace. Primary is seeded eagerly on initialization.
+   * Non-primary namespaces must be seeded explicitly before use.
+   */
+  seedNamespace: (namespace: string) => Effect.Effect<void>
 }
 
 export class StoreMaker extends Context.Opaque<StoreMaker, {
@@ -162,6 +168,7 @@ export const makeContextMap = () => {
   // }
 
   const store = new Map<symbol, unknown>()
+  const sem = Semaphore.makeUnsafe(1)
 
   return {
     get: getEtag,
@@ -173,7 +180,15 @@ export const makeContextMap = () => {
         store.set(key, value)
       }
       return value
-    }
+    },
+    getOrCreateStoreEffect: <T, E, R>(key: symbol, make: Effect.Effect<T, E, R>): Effect.Effect<T, E, R> =>
+      sem.withPermits(1)(Effect.uninterruptible(Effect.gen(function*() {
+        const value = store.get(key) as T | undefined
+        if (value !== undefined) return value
+        const v = yield* make
+        store.set(key, v)
+        return v
+      })))
   }
 }
 

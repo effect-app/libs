@@ -2,7 +2,7 @@ import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import * as AppSchema from "effect-app/Schema"
 import { Class, TaggedClass } from "effect-app/Schema/Class"
-import { flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
+import { flattenNestedAnyOf, flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as S from "effect/Schema"
 import { describe, expect, it } from "vitest"
@@ -140,6 +140,57 @@ describe("TaggedClass constructor", () => {
   })
 })
 
+describe("Class.copy", () => {
+  it("creates a new instance with updated fields", () => {
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+    const instance = new A({ a: "hello", b: 1 })
+    const copied: A = A.copy(instance, { b: 2 })
+    expect(copied).toBeInstanceOf(A)
+    expect(copied.a).toBe("hello")
+    expect(copied.b).toBe(2)
+  })
+
+  it("accepts a function for updates", () => {
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+    const instance = new A({ a: "hello", b: 1 })
+    const copied: A = A.copy(instance, (a) => ({ b: a.b + 1 }))
+    expect(copied).toBeInstanceOf(A)
+    expect(copied.b).toBe(2)
+  })
+
+  it("is pipeable", () => {
+    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+    const instance = new A({ a: "hello", b: 1 })
+    const copied: A = A.copy({ b: 2 })(instance)
+    expect(copied).toBeInstanceOf(A)
+    expect(copied.b).toBe(2)
+  })
+})
+
+describe("TaggedClass.copy", () => {
+  it("creates a new instance with updated fields", () => {
+    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+
+    const instance = new Circle({ radius: 5 })
+    const copied: Circle = Circle.copy(instance, { radius: 10 })
+    expect(copied).toBeInstanceOf(Circle)
+    expect(copied._tag).toBe("Circle")
+    expect(copied.radius).toBe(10)
+  })
+
+  it("accepts a function for updates", () => {
+    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+
+    const instance = new Circle({ radius: 5 })
+    const copied: Circle = Circle.copy(instance, (c) => ({ radius: c.radius * 2 }))
+    expect(copied).toBeInstanceOf(Circle)
+    expect(copied.radius).toBe(10)
+  })
+})
+
 describe("TaggedError", () => {
   it("InvalidStateError toString includes the message", () => {
     const error = new InvalidStateError("something went wrong")
@@ -231,8 +282,7 @@ describe("SpecialJsonSchema", () => {
         "type": "object",
         "properties": {
           "status": { "type": "string" }
-        },
-        "additionalProperties": false
+        }
       },
       definitions: {}
     })
@@ -276,8 +326,7 @@ describe("SpecialJsonSchema", () => {
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
-        "required": ["c", "d"],
-        "additionalProperties": false
+        "required": ["c", "d"]
       },
       definitions: {
         X: {
@@ -343,8 +392,7 @@ describe("SpecialJsonSchema", () => {
           "d": { "$ref": "#/$defs/X" },
           "e": { "$ref": "#/$defs/X" }
         },
-        "required": ["c", "d"],
-        "additionalProperties": false
+        "required": ["c", "d"]
       },
       definitions: {
         X: {
@@ -688,8 +736,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
           ]
         }
       },
-      required: ["note"],
-      additionalProperties: false
+      required: ["note"]
     })
 
     // allOf flattened in the referenced definition
@@ -710,7 +757,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     })
   })
 
-  it("NullOr union preserves null and non-null members in anyOf", () => {
+  it("NullOr union flattens nested anyOf members", () => {
     const A = S.String.annotate({ identifier: "A", title: "A" })
     const B = S.Boolean.annotate({ identifier: "B", title: "B" })
     const schema = S.Struct({
@@ -721,9 +768,95 @@ describe("Post-processing integration — real Effect Schema types", () => {
 
     expect(valueProp).toStrictEqual({
       anyOf: [
-        { anyOf: [{ $ref: "#/$defs/A" }, { $ref: "#/$defs/B" }] },
+        { $ref: "#/$defs/A" },
+        { $ref: "#/$defs/B" },
         { type: "null" }
       ]
     })
+  })
+})
+
+describe("flattenNestedAnyOf", () => {
+  it("flattens nested anyOf with no sibling keys", () => {
+    const input = {
+      anyOf: [
+        { anyOf: [{ type: "string" }, { type: "number" }] },
+        { type: "null" }
+      ]
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      anyOf: [
+        { type: "string" },
+        { type: "number" },
+        { type: "null" }
+      ]
+    })
+  })
+
+  it("does not flatten anyOf entry with sibling keys", () => {
+    const input = {
+      anyOf: [
+        { anyOf: [{ type: "string" }], title: "X" },
+        { type: "null" }
+      ]
+    }
+    // The inner anyOf is not flattened into the outer (sibling "title" prevents it),
+    // but the single-element inner anyOf is unwrapped within the entry itself
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      anyOf: [
+        { type: "string", title: "X" },
+        { type: "null" }
+      ]
+    })
+  })
+
+  it("unwraps anyOf with single item after flattening", () => {
+    const input = {
+      anyOf: [
+        { anyOf: [{ type: "string" }] }
+      ]
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({ type: "string" })
+  })
+
+  it("unwraps anyOf with single item, merging sibling properties", () => {
+    const input = {
+      title: "MyField",
+      anyOf: [{ type: "string" }]
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      title: "MyField",
+      type: "string"
+    })
+  })
+
+  it("recurses into nested objects", () => {
+    const input = {
+      properties: {
+        field: {
+          anyOf: [
+            { anyOf: [{ $ref: "#/defs/A" }, { $ref: "#/defs/B" }] },
+            { type: "null" }
+          ]
+        }
+      }
+    }
+    expect(flattenNestedAnyOf(input)).toStrictEqual({
+      properties: {
+        field: {
+          anyOf: [
+            { $ref: "#/defs/A" },
+            { $ref: "#/defs/B" },
+            { type: "null" }
+          ]
+        }
+      }
+    })
+  })
+
+  it("passes through non-objects unchanged", () => {
+    expect(flattenNestedAnyOf(null)).toBe(null)
+    expect(flattenNestedAnyOf(42)).toBe(42)
+    expect(flattenNestedAnyOf("hello")).toBe("hello")
   })
 })

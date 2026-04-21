@@ -8,17 +8,17 @@ import type { FieldValues } from "../Model/filter/types.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
 import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 
-const makeDiskStoreInt = Effect.fnUntraced(
-  function*<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
-    prefix: string,
-    idKey: IdKey,
-    namespace: string,
-    dir: string,
-    name: string,
-    seed?: Effect.Effect<Iterable<Encoded>, E, R>,
-    defaultValues?: Partial<Encoded>
-  ) {
-    type PM = PersistenceModelType<Encoded>
+function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValues, R, E>(
+  prefix: string,
+  idKey: IdKey,
+  namespace: string,
+  dir: string,
+  name: string,
+  seed?: Effect.Effect<Iterable<Encoded>, E, R>,
+  defaultValues?: Partial<Encoded>
+) {
+  type PM = PersistenceModelType<Encoded>
+  return Effect.gen(function*() {
     if (namespace !== "primary") {
       dir = dir + "/" + namespace
       if (!fs.existsSync(dir)) {
@@ -119,8 +119,8 @@ const makeDiskStoreInt = Effect.fnUntraced(
         Effect.tap(flushToDiskInBackground)
       )
     } satisfies Store<IdKey, Encoded>
-  }
-)
+  })
+}
 
 /**
  * The Disk-backed store, flushes writes in background, but keeps the data in memory
@@ -138,43 +138,48 @@ export function makeDiskStore({ prefix }: StorageConfig, dir: string) {
         seed?: Effect.Effect<Iterable<Encoded>, E, R>,
         config?: StoreConfig<Encoded>
       ) {
-        const storesSem = Semaphore.makeUnsafe(1)
         const primary = yield* makeDiskStoreInt(prefix, idKey, "primary", dir, name, seed, config?.defaultValues)
         const stores = new Map<string, Store<IdKey, Encoded>>([["primary", primary]])
         const ctx = yield* Effect.context<R>()
+        const semaphores = new Map<string, Semaphore.Semaphore>()
+        const getSem = (ns: string) => {
+          let sem = semaphores.get(ns)
+          if (!sem) {
+            sem = Semaphore.makeUnsafe(1)
+            semaphores.set(ns, sem)
+          }
+          return sem
+        }
+        const ensureStore = (namespace: string) =>
+          getSem(namespace).withPermits(1)(
+            Effect.suspend(() => {
+              const existing = stores.get(namespace)
+              if (existing) return Effect.succeed(existing)
+              if (config?.allowNamespace && !config.allowNamespace(namespace)) {
+                throw new Error(`Namespace ${namespace} not allowed!`)
+              }
+              return makeDiskStoreInt<IdKey, Encoded, R, E>(
+                prefix,
+                idKey,
+                namespace,
+                dir,
+                name,
+                seed,
+                config?.defaultValues
+              )
+                .pipe(
+                  Effect.orDie,
+                  Effect.provide(ctx),
+                  Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
+                )
+            })
+          )
         const getStore = !config?.allowNamespace
           ? Effect.succeed(primary)
-          : storeId.asEffect().pipe(Effect.flatMap((namespace) => {
-            const store = stores.get(namespace)
-            if (store) {
-              return Effect.succeed(store)
-            }
-            if (!config.allowNamespace!(namespace)) {
-              throw new Error(`Namespace ${namespace} not allowed!`)
-            }
-            return storesSem.withPermits(1)(
-              Effect.suspend(() => {
-                const existing = stores.get(namespace)
-                if (existing) return Effect.sync(() => existing)
-                return makeDiskStoreInt<IdKey, Encoded, R, E>(
-                  prefix,
-                  idKey,
-                  namespace,
-                  dir,
-                  name,
-                  seed,
-                  config?.defaultValues
-                )
-                  .pipe(
-                    Effect.orDie,
-                    Effect.provide(ctx),
-                    Effect.tap((store) => Effect.sync(() => stores.set(namespace, store)))
-                  )
-              })
-            )
-          }))
+          : storeId.asEffect().pipe(Effect.flatMap((namespace) => ensureStore(namespace)))
 
         const s: Store<IdKey, Encoded> = {
+          seedNamespace: (namespace) => ensureStore(namespace).pipe(Effect.asVoid),
           all: Effect.flatMap(getStore, (_) => _.all),
           find: (...args) => Effect.flatMap(getStore, (_) => _.find(...args)),
           filter: (...args) => Effect.flatMap(getStore, (_) => _.filter(...args)),

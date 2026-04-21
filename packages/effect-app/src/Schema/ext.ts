@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
+import { Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -109,9 +109,12 @@ export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.Litera
 /**
  * Like the default Schema `Array` but with `withDefault` => []
  */
+const co = { parseOptions: { concurrency: "unbounded" as const } }
+export { co as concurrencyUnbounded }
+
 export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
   return pipe(
-    S.Array(value),
+    S.Array(value).annotate(co),
     (s) =>
       Object.assign(s, {
         withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
@@ -126,7 +129,7 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
   const from = S
     .Array(value)
-    .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
+    .annotate({ ...co, expected: "an array of unique items that will be decoded as a ReadonlySet" })
   const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
   const schema = from.pipe(
     S.decodeTo(
@@ -149,7 +152,7 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
 }) => {
   const from = S
     .Array(S.Tuple([pair.key, pair.value]))
-    .annotate({ expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
+    .annotate({ ...co, expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
   const to = S.instanceOf(Map) as S.instanceOf<
     ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
   >
@@ -342,16 +345,16 @@ export const transformToOrFail = <To extends S.Top, From extends S.Top, RD>(
     )
   )
 
-export const provide = <Self extends S.Top, R>(
-  self: Self,
-  context: Context.Context<R>
-): ProvidedCodec<Self, R> => {
+export const provide: {
+  <R>(context: Context.Context<R>): <Self extends S.Top>(self: Self) => ProvidedCodec<Self, R>
+  <Self extends S.Top, R>(self: Self, context: Context.Context<R>): ProvidedCodec<Self, R>
+} = Function.dual(2, <Self extends S.Top, R>(self: Self, context: Context.Context<R>): ProvidedCodec<Self, R> => {
   const prov = Effect.provide(context)
   return self.pipe(
     S.middlewareDecoding((effect) => prov(effect)),
     S.middlewareEncoding((effect) => prov(effect))
   ) as ProvidedCodec<Self, R>
-}
+})
 export const contextFromServices = Effect.fnUntraced(function*<
   Self extends S.Top,
   Tags extends ReadonlyArray<Context.Key<any, any>>

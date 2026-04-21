@@ -1,14 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Effect, Layer, Redacted } from "effect-app"
+import type { SqlClient } from "effect/unstable/sql"
 import { CosmosStoreLayer } from "./Cosmos.js"
 import { DiskStoreLayer } from "./Disk.js"
 import { MemoryStoreLive } from "./Memory.js"
 // import { RedisStoreLayer } from "./Redis.js"
+import { RepositoryRegistryLive } from "../Model.js"
 import type { StorageConfig } from "./service.js"
 import { SQLiteStoreLayer } from "./SQL.js"
 import { PgStoreLayer } from "./SQL/Pg.js"
 
-export function StoreMakerLayer(cfg: StorageConfig) {
+export function StoreMakerLayer(
+  cfg: StorageConfig,
+  options?: { makeSqlClientLayer?: (namespace: string) => Layer.Layer<SqlClient.SqlClient> }
+) {
   return Effect
     .sync(() => {
       const storageUrl = Redacted.value(cfg.url)
@@ -23,7 +28,7 @@ export function StoreMakerLayer(cfg: StorageConfig) {
       }
       if (storageUrl.startsWith("sqlite://")) {
         console.log("Using SQLite store")
-        return SQLiteStoreLayer(cfg)
+        return SQLiteStoreLayer(cfg, options)
       }
       if (storageUrl.startsWith("pg://")) {
         console.log("Using PostgreSQL store")
@@ -37,7 +42,7 @@ export function StoreMakerLayer(cfg: StorageConfig) {
       console.log("Using Cosmos DB store")
       return CosmosStoreLayer(cfg)
     })
-    .pipe(Layer.unwrap)
+    .pipe(Layer.unwrap, Layer.merge(RepositoryRegistryLive))
 }
 
 export * from "./service.js"

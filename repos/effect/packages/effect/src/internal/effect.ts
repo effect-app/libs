@@ -58,7 +58,6 @@ import {
   contA,
   contAll,
   contE,
-  Die,
   evaluate,
   exitDie,
   exitFail,
@@ -4457,72 +4456,8 @@ export const forEach: {
     const out: Array<B> | undefined = options?.discard
       ? undefined
       : new Array(length)
-    let index = 0
-    const annotations = fiberStackAnnotations(parent)
-
-    return callback((resume) => {
-      const fibers = new Set<Fiber.Fiber<unknown, unknown>>()
-      const failures: Array<Cause.Reason<E>> = []
-      let failed = false
-      let inProgress = 0
-      let doneCount = 0
-      let pumping = false
-      let interrupted = false
-      function pump() {
-        pumping = true
-        while (inProgress < concurrency && index < length) {
-          const currentIndex = index
-          const item = items[currentIndex]
-          index++
-          inProgress++
-          try {
-            const child = forkUnsafe(parent, f(item, currentIndex), true, true, "inherit")
-            fibers.add(child)
-            child.addObserver((exit) => {
-              if (interrupted) {
-                return
-              }
-              fibers.delete(child)
-              if (exit._tag === "Failure") {
-                if (!failed) {
-                  failed = true
-                  length = index
-                  failures.push(...exit.cause.reasons)
-                  fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, annotations))
-                } else {
-                  for (const f of exit.cause.reasons) {
-                    if (f._tag === "Interrupt") continue
-                    failures.push(f)
-                  }
-                }
-              } else if (out !== undefined) {
-                out[currentIndex] = exit.value
-              }
-              doneCount++
-              inProgress--
-              if (doneCount === length) {
-                resume(failures.length > 0 ? exitFailCause(causeFromReasons(failures)) : succeed(out))
-              } else if (!pumping && !failed && inProgress < concurrency) {
-                pump()
-              }
-            })
-          } catch (err) {
-            failed = true
-            length = index
-            failures.push(new Die(err))
-            fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, annotations))
-          }
-        }
-        pumping = false
-      }
-      pump()
-
-      return suspend(() => {
-        interrupted = true
-        index = length
-        return fiberInterruptAll(fibers)
-      })
-    })
+    const eff = forEachConcurrent({ f, out }, items, { concurrency })
+    return eff ? as(eff, out as any) : succeed(out as any)
   }))
 
 const forEachSequential = <A, B, E, R>(
@@ -4549,6 +4484,188 @@ const forEachSequential = <A, B, E, R>(
       out
     )
   })
+
+const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
+  readonly onItem: (state: S, item: A, index: number) => Effect.Effect<X, E, R>
+  readonly step: (state: NoInfer<S>, item: A, exit: Exit.Exit<X, E>, index: number) => Exit.Exit<void, E2> | void
+}): (
+  initialState: S,
+  items: ReadonlyArray<A>,
+  options?: {
+    readonly concurrency?: number | undefined
+    readonly start?: number | undefined
+    readonly end?: number | undefined
+  }
+) => Effect.Effect<void, E | E2, R> | undefined => {
+  const onItem = options.onItem
+  const step = options.step
+
+  return (
+    state: S,
+    items: ReadonlyArray<A>,
+    opts: {
+      readonly concurrency?: number | undefined
+      readonly start?: number | undefined
+      readonly end?: number | undefined
+    } | undefined
+  ): Effect.Effect<void, E | E2, R> | undefined => {
+    let index = opts?.start ?? 0
+    const end = opts?.end ?? items.length
+    const concurrency = opts?.concurrency ?? 1
+    let done = false
+    let parentFiber: Fiber.Fiber<any, any> | undefined
+    let fibers: Set<Fiber.Fiber<any, any>> | undefined
+    let resume: ((effect: Effect.Effect<void, E | E2, R>) => void) | undefined
+    let interrupted = false
+    let terminal: Exit.Exit<void, E | E2> | void
+    let effect: Effect.Effect<X, E, R> | undefined
+
+    const go = (): Effect.Effect<void, E | E2, R> | undefined => {
+      let paused = false
+      for (; !terminal && index < end; index++) {
+        const item = items[index]
+        const eff = effect ?? onItem(state, item, index)
+
+        // fast case (already an exit)
+        if (effectIsExit(eff)) {
+          terminal = step(state, item, eff, index)
+          if (terminal) break
+
+          // Use flatMap for concurrency of 1
+        } else if (concurrency === 1) {
+          return flatMap(exit(eff), (exit) => {
+            terminal = step(state, item, exit, index)
+            index++
+            return terminal ?? go() ?? void_
+          })
+
+          // We have an effect, so enter "async" mode
+        } else if (!parentFiber) {
+          return callback((cb) => {
+            parentFiber = getCurrentFiber()!
+            effect = eff
+            resume = cb
+            const result = go()
+            if (result) return cb(result)
+            return suspend(() => {
+              terminal = exitVoid
+              interrupted = true
+              return fibers ? fiberInterruptAll(fibers) : void_
+            })
+          })
+
+          // Fork the effect with concurrency > 1
+        } else {
+          // Clear the temporary effect from capturing the parentFiber
+          effect = undefined
+
+          const fiber = forkUnsafe(parentFiber, eff, true, true, "inherit")
+          if (fiber._exit) {
+            terminal = step(state, item, fiber._exit, index)
+            if (terminal) break
+            continue
+          }
+
+          // Add the fiber to the Set
+          if (fibers) fibers.add(fiber)
+          else fibers = new Set([fiber])
+
+          const currentIndex = index
+          fiber.addObserver((exit) => {
+            fibers!.delete(fiber)
+            if (terminal) {
+              if (!interrupted && exit._tag === "Failure") {
+                for (const reason of exit.cause.reasons) {
+                  if (reason._tag === "Interrupt") continue
+                  else if (terminal._tag === "Failure") {
+                    ;(terminal.cause.reasons as Array<any>).push(reason)
+                  } else {
+                    terminal = exitFailCause(causeFromReasons([reason]))
+                  }
+                }
+              }
+            } else {
+              const result = step(state, item, exit, currentIndex)
+              if (result) {
+                terminal = result._tag === "Failure"
+                  ? exitFailCause(causeFromReasons(result.cause.reasons.slice()))
+                  : result
+                go()
+              }
+            }
+
+            if (paused) {
+              const eff = go()
+              if (eff) resume!(eff)
+            } else if (done && fibers!.size === 0) {
+              resume!(terminal ?? void_)
+            }
+          })
+
+          // Check if we have reached the concurrency limit
+          if (fibers.size < concurrency) continue
+          paused = true
+          index++
+          return
+        }
+      }
+
+      done = true
+
+      if (terminal) {
+        if (fibers && fibers.size > 0) {
+          const annotations = fiberStackAnnotations(parentFiber!)
+          fibers.forEach((f) => f.interruptUnsafe(parentFiber!.id, annotations))
+          return
+        }
+        if (resume || terminal._tag === "Failure") {
+          return terminal
+        }
+      } else if (resume) {
+        if (!fibers) {
+          return exitVoid
+        } else if (fibers.size === 0) {
+          resume(void_)
+        }
+      }
+    }
+
+    return go()
+  }
+}
+
+/** @internal */
+export const iterateEager = <S, A>(): <X, E, R, E2>(options: {
+  readonly onItem: (state: S, item: A, index: number) => Effect.Effect<X, E, R>
+  readonly step: (state: NoInfer<S>, item: A, exit: Exit.Exit<X, E>, index: number) => Exit.Exit<void, E2> | void
+}) => (
+  initialState: S,
+  items: ReadonlyArray<A>,
+  options?: {
+    readonly concurrency?: number | undefined
+    readonly start?: number | undefined
+    readonly end?: number | undefined
+  }
+) => Effect.Effect<void, E | E2, R> | undefined => iterateEagerImpl
+
+const forEachConcurrent = iterateEagerImpl({
+  onItem(
+    state: {
+      readonly f: (a: any, i: number) => Effect.Effect<any, any, any>
+      readonly out: Array<any> | undefined
+    },
+    item,
+    index
+  ) {
+    return state.f(item, index)
+  },
+  step(state, _, exit, index) {
+    if (exit._tag === "Failure") return exit
+    else if (state.out) {
+      state.out[index] = exit.value
+    }
+  }
+})
 
 /* @internal */
 export const filterOrElse: {
@@ -4862,7 +4979,7 @@ export const forkUnsafe = <FA, FE, A, E, R>(
   immediate = false,
   daemon = false,
   uninterruptible: boolean | "inherit" = false
-): Fiber.Fiber<A, E> => {
+): FiberImpl<A, E> => {
   const interruptible = uninterruptible === "inherit" ? parent.interruptible : !uninterruptible
   const child = new FiberImpl<A, E>(parent.context, interruptible)
   if (immediate) {
@@ -5332,7 +5449,7 @@ export const makeSpanUnsafe = <XA, XE>(
       parent,
       annotations: options?.annotations ?? Context.empty(),
       links,
-      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
+      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : BigInt(0),
       kind: options?.kind ?? "internal",
       root: options?.root ?? Option.isNone(parent),
       sampled: options?.sampled ??
@@ -6022,6 +6139,7 @@ const prettyLoggerTty = (options: {
   return loggerMake<unknown, void>(
     ({ cause, date, fiber, logLevel, message: message_ }) => {
       const console = fiber.getRef(ConsoleRef)
+      // oxlint-disable-next-line no-console
       const log = fiber.getRef(LogToStderr) ? console.error : console.log
 
       const message = Array.isArray(message_) ? message_.slice() : [message_]
@@ -6047,6 +6165,7 @@ const prettyLoggerTty = (options: {
       }
 
       log(firstLine)
+      // oxlint-disable-next-line no-console
       if (!processIsBun) console.group()
 
       if (cause.reasons.length > 0) {
@@ -6064,6 +6183,7 @@ const prettyLoggerTty = (options: {
         log(color(`${key}:`, colors.bold, colors.white), redact(value))
       }
 
+      // oxlint-disable-next-line no-console
       if (!processIsBun) console.groupEnd()
     }
   )
@@ -6110,14 +6230,17 @@ const prettyLoggerBrowser = (options: {
         }
       }
 
+      // oxlint-disable-next-line no-console
       console.groupCollapsed(firstLine, ...firstParams)
 
       if (cause.reasons.length > 0) {
+        // oxlint-disable-next-line no-console
         console.error(causePretty(cause))
       }
 
       if (messageIndex < message.length) {
         for (; messageIndex < message.length; messageIndex++) {
+          // oxlint-disable-next-line no-console
           console.log(redact(message[messageIndex]))
         }
       }
@@ -6126,12 +6249,15 @@ const prettyLoggerBrowser = (options: {
       for (const [key, value] of Object.entries(annotations)) {
         const redacted = redact(value)
         if (options.colors) {
+          // oxlint-disable-next-line no-console
           console.log(`%c${key}:`, "color:gray", redacted)
         } else {
+          // oxlint-disable-next-line no-console
           console.log(`${key}:`, redacted)
         }
       }
 
+      // oxlint-disable-next-line no-console
       console.groupEnd()
     }
   )
@@ -6154,6 +6280,7 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
     message_.push(annotations)
   }
   const console = fiber.getRef(ConsoleRef)
+  // oxlint-disable-next-line no-console
   const log = fiber.getRef(LogToStderr) ? console.error : console.log
   log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
 })

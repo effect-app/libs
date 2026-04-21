@@ -485,7 +485,7 @@ export function makeStore<Encoded extends FieldValues>() {
     mapTo: (e: E, etag: string | undefined) => Encoded,
     idKey: IdKey
   ) => {
-    function makeStore<RInitial = never, EInitial = never>(
+    const makeStore = Effect.fnUntraced(function*<RInitial = never, EInitial = never>(
       makeInitial?: Effect.Effect<readonly T[], EInitial, RInitial>,
       config?: Omit<StoreConfig<Encoded>, "partitionValue"> & {
         partitionValue?: (e?: Encoded) => string
@@ -507,31 +507,29 @@ export function makeStore<Encoded extends FieldValues>() {
         return mapTo(e, getEtag((e as any)[idKey] as string))
       }
 
-      return Effect.gen(function*() {
-        const { make } = yield* StoreMaker
+      const { make } = yield* StoreMaker
 
-        const store = yield* make<IdKey, Encoded, RInitial | R, EInitial>(
-          pluralize(name),
-          idKey,
-          makeInitial
-            ? makeInitial
-              .pipe(
-                Effect.flatMap(Effect.forEach(encodeToEncoded())),
-                setupRequestContextFromCurrent("Repository.makeInitial [effect-app/infra]", {
-                  attributes: { "repository.model_name": name }
-                })
-              )
-            : undefined,
-          {
-            ...config,
-            partitionValue: config?.partitionValue
-              ?? ((_) => "primary") /*(isIntegrationEvent(r) ? r.companyId : r.id*/
-          }
-        )
+      const store = yield* make<IdKey, Encoded, RInitial | R, EInitial>(
+        pluralize(name),
+        idKey,
+        makeInitial
+          ? makeInitial
+            .pipe(
+              Effect.flatMap(Effect.forEach(encodeToEncoded())),
+              setupRequestContextFromCurrent("Repository.makeInitial [effect-app/infra]", {
+                attributes: { "repository.model_name": name }
+              })
+            )
+          : undefined,
+        {
+          ...config,
+          partitionValue: config?.partitionValue
+            ?? ((_) => "primary") /*(isIntegrationEvent(r) ? r.companyId : r.id*/
+        }
+      )
 
-        return store
-      })
-    }
+      return store
+    })
 
     return makeStore
   }

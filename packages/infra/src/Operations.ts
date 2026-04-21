@@ -72,28 +72,22 @@ const make = Effect.gen(function*() {
     return yield* repo.save(copy(op, { updatedAt: new Date(), progress })).pipe(Effect.orDie)
   })
 
-  function fork<R, R2, E, E2, A, A2>(
+  const fork = Effect.fnUntraced(function*<R, R2, E, E2, A, A2>(
     self: (id: OperationId) => Effect.Effect<A, E, R>,
     fnc: (id: OperationId) => Effect.Effect<A2, E2, R2>,
     title: NonEmptyString2k
-  ): Effect.Effect<
-    RunningOperation<A, E>,
-    never,
-    Exclude<R, Scope.Scope> | Exclude<R2, Scope.Scope>
-  > {
-    return Effect.gen(function*() {
-      const scope = yield* Scope.make()
-      const id = yield* Scope.provide(register(title), scope)
-      const fiber = yield* reqFiberSet.forkDaemonReportUnexpected(
-        Scope.use(
-          self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
-          scope
-        )
+  ) {
+    const scope = yield* Scope.make()
+    const id = yield* Scope.provide(register(title), scope)
+    const fiber = yield* reqFiberSet.forkDaemonReportUnexpected(
+      Scope.use(
+        self(id).pipe(Effect.withSpan(title, {}, { captureStackTrace: false })),
+        scope
       )
-      yield* Scope.provide(Effect.forkScoped(Effect.interruptible(fnc(id))), scope)
-      return { fiber, id } satisfies RunningOperation<A, E>
-    })
-  }
+    )
+    yield* Scope.provide(Effect.forkScoped(Effect.interruptible(fnc(id))), scope)
+    return { fiber, id } satisfies RunningOperation<A, E>
+  })
 
   const fork2: {
     (title: NonEmptyString2k): <R, E, A>(

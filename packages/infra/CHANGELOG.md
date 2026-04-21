@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- 27bf9b6: Fix `Repository.query` environment typing to exclude schema context provided through `makeRepo` options.
+- e02a258: Add optional batching overloads for repository `save` and `remove` helpers.
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` and convert select multi-step `pipe` chains to `Effect.gen` across infra.
+- Updated dependencies [f052d38]
+  - effect-app@4.0.0-beta.122
+
 ## 4.0.0-beta.121
 
 ### Patch Changes

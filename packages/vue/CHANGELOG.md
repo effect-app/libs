@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- 07a57b6: Limit `client.method.mutate` extensions to only expose the mutation call and `wrap`.
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` in commander `withDefaultToast`.
+- Updated dependencies [f052d38]
+  - effect-app@4.0.0-beta.122
+
 ## 4.0.0-beta.121
 
 ### Patch Changes

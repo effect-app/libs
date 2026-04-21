@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- f052d38: Replace `(...) => Effect.gen` with `Effect.fnUntraced` in `apiClientFactory`.
+
 ## 4.0.0-beta.121
 
 ### Patch Changes

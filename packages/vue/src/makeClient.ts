@@ -43,7 +43,7 @@ export interface RequestExtWithInput<
   /**
    * Request the endpoint with input
    */
-  fetch: (i: I) => Effect.Effect<A, E, R>
+  request: (i: I) => Effect.Effect<A, E, R>
 }
 
 export interface RequestExt<
@@ -60,7 +60,7 @@ export interface RequestExt<
   /**
    * Request the endpoint
    */
-  fetch: Effect.Effect<A, E, R>
+  request: Effect.Effect<A, E, R>
 }
 
 export type CommandRequestWithExtensions<RT, Req> = Req extends
@@ -70,11 +70,11 @@ export type CommandRequestWithExtensions<RT, Req> = Req extends
   : never
 
 export interface QueryExtensionsWithInput<I, A, E, R> {
-  fetch: (i: I) => Effect.Effect<A, E, R>
+  request: (i: I) => Effect.Effect<A, E, R>
 }
 
 export interface QueryExtensions<A, E, R> {
-  fetch: Effect.Effect<A, E, R>
+  request: Effect.Effect<A, E, R>
 }
 
 export type QueryRequestWithExtensions<Req> = Req extends
@@ -520,12 +520,12 @@ export const makeClient = <RT_, RTHooks>(
         const wrapInput = Effect.isEffect(h_)
           ? () => h_
           : (...args: [any]) => h_(...args)
-        const fetch = Effect.isEffect(h_) ? h_ : wrapInput
+        const request = Effect.isEffect(h_) ? h_ : wrapInput
         ;(acc as any)[key] = Object.assign(
           requestType === "query"
             ? {
               ...client[key],
-              fetch,
+              request,
               query: useQuery(client[key] as any),
               suspense: useSuspenseQuery(client[key] as any)
             }
@@ -548,7 +548,7 @@ export const makeClient = <RT_, RTHooks>(
               ),
               ...client[key],
               ...fn, // to get the i18n key etc.
-              fetch,
+              request,
               wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
             }
         )

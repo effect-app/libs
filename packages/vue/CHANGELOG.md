@@ -4,9 +4,9 @@
 
 ### Minor Changes
 
-- 6a3d364: Client entries are now plain objects; use `.fetch` to invoke the request.
+- 6a3d364: Client entries are now plain objects; use `.request` to invoke the request.
 
-  `client.Xxx` no longer is callable or an `Effect` itself. Call `client.Xxx.fetch(input)` (or `client.Xxx.fetch` for input-less requests) instead. `.mutate`, `.query`, `.suspense`, `.wrap`, and `.fn` are unchanged.
+  `client.Xxx` no longer is callable or an `Effect` itself. Call `client.Xxx.request(input)` (or `client.Xxx.request` for input-less requests) instead. `.mutate`, `.query`, `.suspense`, `.wrap`, and `.fn` are unchanged.
 
 ### Patch Changes
 

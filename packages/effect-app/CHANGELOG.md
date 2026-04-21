@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.123
+
+### Patch Changes
+
+- 14aba14: fix: clientFor
+
 ## 4.0.0-beta.122
 
 ### Patch Changes

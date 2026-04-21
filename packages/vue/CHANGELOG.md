@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 4.0.0-beta.128
+
+### Patch Changes
+
+- 57db551: Split `TaggedRequestFor` into `Query` and `Command` factories, and mark generated request classes with `type: "query" | "command"`.
+
+  Vue client helpers now expose query-only helpers (`query`, `suspense`, `fetch`) for query requests and mutation-only helpers (`mutate`, `fetch`) for command requests.
+
+- Updated dependencies [57db551]
+  - effect-app@4.0.0-beta.128
+
 ## 4.0.0-beta.127
 
 ### Minor Changes

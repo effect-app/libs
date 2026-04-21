@@ -157,6 +157,7 @@
     "struct-pick-omit",
     "sweet-humans-ring",
     "sync-effect-subtree",
+    "tagged-request-command-query-split",
     "tagged-request-for",
     "tagged-union-drop-fields-constraint",
     "tagged-union-generate-guards",

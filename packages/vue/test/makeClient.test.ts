@@ -63,7 +63,7 @@ it.skip("works", () => {
   const Command = useExperimental()
 
   // just for jsdoc / type testing.
-  const a0 = client.GetSomething2(null as any)
+  const a0 = client.GetSomething2.fetch(null as any)
   const a00 = client.GetSomething2.mutate(null as any)
   const a = client.GetSomething2.suspense(null as any)
   const b = client.GetSomething2.query(null as any)

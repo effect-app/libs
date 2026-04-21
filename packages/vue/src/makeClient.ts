@@ -43,12 +43,9 @@ export interface RequestExtWithInput<
   /**
    * Request the endpoint with input
    */
-  (i: I): Effect.Effect<A, E, R>
+  fetch: (i: I) => Effect.Effect<A, E, R>
 }
 
-/**
- * Request the endpoint
- */
 export interface RequestExt<
   RT,
   Id extends string,
@@ -58,9 +55,12 @@ export interface RequestExt<
 > extends
   Commander.CommandContextLocal<Id, Id>,
   Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
-  RequestExtensions<RT, Id, void, A, E, R>,
-  Effect.Effect<A, E, R>
+  RequestExtensions<RT, Id, void, A, E, R>
 {
+  /**
+   * Request the endpoint
+   */
+  fetch: Effect.Effect<A, E, R>
 }
 
 export type RequestWithExtensions<RT, Req> = Req extends
@@ -479,18 +479,20 @@ export const makeClient = <RT_, RTHooks>(
         )
 
         const h_ = client[key].handler
-        const h = Effect.isEffect(h_)
+        const wrapInput = Effect.isEffect(h_)
           ? () => h_
           : (...args: [any]) => h_(...args)
+        const fetch = Effect.isEffect(h_) ? h_ : wrapInput
         ;(acc as any)[key] = Object.assign(
-          h,
+          {},
           client[key],
           fn, // to get the i18n key etc.
           {
+            fetch,
             mutate,
             query: useQuery(client[key] as any),
             suspense: useSuspenseQuery(client[key] as any),
-            wrap: Command.wrap({ mutate: h, id: client[key].id }),
+            wrap: Command.wrap({ mutate: wrapInput, id: client[key].id }),
             fn
           }
         )

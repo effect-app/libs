@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- c9e0c44: cleanup auth
+- 256ae85: cleanup
+- Updated dependencies [256ae85]
+  - effect-app@4.0.0-beta.124
+
 ## 4.0.0-beta.123
 
 ### Patch Changes

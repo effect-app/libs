@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- 256ae85: cleanup
+
 ## 4.0.0-beta.123
 
 ### Patch Changes

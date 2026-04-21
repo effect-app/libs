@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- 256ae85: cleanup
+- Updated dependencies [256ae85]
+  - effect-app@4.0.0-beta.124
+
 ## 4.0.0-beta.123
 
 ### Patch Changes

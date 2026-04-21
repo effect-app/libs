@@ -407,17 +407,21 @@ export const makeClient = <RT_, RTHooks>(
       {} as
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
-            : `${ToCamel<string & Key>}Query`]: Queries<RT, QueryHandler<typeof client[Key]>>["query"]
+          [
+            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}Query`
+          ]: Queries<RT, QueryHandler<typeof client[Key]>>["query"]
         }
         // todo: or suspense as an Option?
         & {
           // apparently can't get JSDoc in here..
-          [Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
-            : `${ToCamel<string & Key>}SuspenseQuery`]: Queries<
-              RT,
-              QueryHandler<typeof client[Key]>
-            >["suspense"]
+          [
+            Key in keyof typeof client as QueryHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}SuspenseQuery`
+          ]: Queries<
+            RT,
+            QueryHandler<typeof client[Key]>
+          >["suspense"]
         }
     )
     return queries
@@ -465,11 +469,13 @@ export const makeClient = <RT_, RTHooks>(
         return acc
       },
       {} as {
-        [Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
-          : `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<
-            RT | RTHooks,
-            CommandHandler<typeof client[Key]>
-          >
+        [
+          Key in keyof typeof client as CommandHandler<typeof client[Key]> extends never ? never
+            : `${ToCamel<string & Key>}Mutation`
+        ]: MutationWithExtensions<
+          RT | RTHooks,
+          CommandHandler<typeof client[Key]>
+        >
       }
     )
     return mutations
@@ -488,6 +494,7 @@ export const makeClient = <RT_, RTHooks>(
     const invalidation = queryInvalidation?.(client)
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
+        const requestType = client[key].Request.type
         const fn = Command.fn(client[key].id)
         const h_ = client[key].handler
         const wrapInput = Effect.isEffect(h_)
@@ -495,15 +502,14 @@ export const makeClient = <RT_, RTHooks>(
           : (...args: [any]) => h_(...args)
         const fetch = Effect.isEffect(h_) ? h_ : wrapInput
         ;(acc as any)[key] = Object.assign(
-          client[key].Request.type === "query"
+          requestType === "query"
             ? {
               ...client[key],
               ...fn, // to get the i18n key etc.
               fetch,
               query: useQuery(client[key] as any),
               suspense: useSuspenseQuery(client[key] as any),
-              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id }),
-              fn
+              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
             }
             : {
               mutate: extendM(
@@ -515,17 +521,19 @@ export const makeClient = <RT_, RTHooks>(
                   Object.assign(
                     mutate,
                     {
-                      wrap: Command.wrap({ mutate: Effect.isEffect(mutate) ? () => mutate : mutate, id: client[key].id })
+                      wrap: Command.wrap({
+                        mutate: Effect.isEffect(mutate) ? () => mutate : mutate,
+                        id: client[key].id
+                      })
                     }
                   )
               ),
               ...client[key],
               ...fn, // to get the i18n key etc.
               fetch,
-              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id }),
-              fn
+              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
             }
-        ) as any
+        )
         return acc
       },
       {} as {

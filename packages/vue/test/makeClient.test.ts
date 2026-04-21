@@ -81,6 +81,7 @@ it.skip("works", () => {
     null as any
   )
   const e0000 =
+    // @ts-expect-error query request does not match Command.wrap mutation signature
     Command.wrap(client.GetSomething2WithDependencies)((_) => _ as Effect.Effect<number, never, never>).handle
   // @ts-expect-error dependencies required that are not provided
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)

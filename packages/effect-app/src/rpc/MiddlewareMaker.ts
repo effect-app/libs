@@ -288,10 +288,9 @@ const middlewareMaker = Effect.fnUntraced(function*<
       const middleware = Context.getUnsafe(context, tag)
 
       // wrap the current handler, allowing the middleware to run before and after it
-      handler = Effect.flatMap(
-        PreludeLogger.logDebug("Applying middleware wrap " + tag.key),
-        () => middleware(handler, options)
-      )
+      handler = PreludeLogger.logDebug("Applying middleware wrap " + tag.key).pipe(
+        Effect.andThen(middleware(handler, options))
+      ) as any
     }
     return handler
   }

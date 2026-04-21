@@ -1,6 +1,11 @@
 {
   "private": true,
   "pnpm": {
+    "overrides": {
+      "fast-xml-parser": ">=5.3.8",
+      "axios": ">=1.13.5",
+      "path-to-regexp": ">=8.4.0"
+    },
     "onlyBuiltDependencies": ["better-sqlite3"],
     "patchedDependencies": {
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",

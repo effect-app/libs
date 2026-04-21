@@ -299,6 +299,11 @@ export const count: {
   ): QueryProjection<ExtractFieldValuesRefined<Q>, NonNegativeInt, never, "count", ExtractExclusiveness<Q>>
 } = (current) => new Count({ current })
 
+const toProjectionSchema = <A, I, R>(
+  schemaOrFields: S.Codec<A, I, R> | S.Struct.Fields
+): S.Codec<A, I, R> | S.Struct<S.Struct.Fields> =>
+  S.isSchema(schemaOrFields) ? schemaOrFields : S.Struct(schemaOrFields)
+
 export const project: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
@@ -371,7 +376,7 @@ export const project: {
 } = (schemaOrFields: any, mode = "transform") => (current: any) =>
   new Project({
     current,
-    schema: S.isSchema(schemaOrFields) ? schemaOrFields : S.Struct(schemaOrFields),
+    schema: toProjectionSchema(schemaOrFields),
     mode
   } as any)
 

@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.131
+
+### Patch Changes
+
+- 1b57aa4: Add a `Commander` error-renderer registry via `Context.Reference` and apply registered guarded renderers before default error formatting.
+  - effect-app@4.0.0-beta.131
+
 ## 4.0.0-beta.130
 
 ### Patch Changes

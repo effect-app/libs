@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.131
+
+### Patch Changes
+
+- 4a7d95a: Use request-type RPC annotations to drive interruptibility and retry behavior, apply command uninterruptibility through the router wrapper path, and add an in-memory E2E test covering command vs query interruption behavior.
+  - effect-app@4.0.0-beta.131
+
 ## 4.0.0-beta.130
 
 ### Patch Changes

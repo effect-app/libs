@@ -2,4 +2,4 @@ import type { Preset } from "eslint-plugin-codegen";
 export declare const model: Preset<{
     writeFullTypes?: boolean;
 }>;
-//# sourceMappingURL=model.d.ts.map
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibW9kZWwuZC50cyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy9wcmVzZXRzL21vZGVsLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUdBLE9BQU8sS0FBSyxFQUFFLE1BQU0sRUFBRSxNQUFNLHVCQUF1QixDQUFBO0FBcUJuRCxlQUFPLE1BQU0sS0FBSyxFQUFFLE1BQU0sQ0FBQztJQUN6QixjQUFjLENBQUMsRUFBRSxPQUFPLENBQUE7Q0FDekIsQ0FpREEsQ0FBQSJ9

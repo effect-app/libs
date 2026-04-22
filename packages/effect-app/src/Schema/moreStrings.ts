@@ -27,7 +27,7 @@ export type NonEmptyString50 = string & NonEmptyString50Brand
  */
 export const NonEmptyString50 = nonEmptyString.pipe(
   S.check(S.isMaxLength(50)),
-  fromBrand(nominal<NonEmptyString50>(), {
+  fromBrand<NonEmptyString50>(nominal<NonEmptyString50>(), {
     identifier: "NonEmptyString50",
     title: "NonEmptyString50",
     jsonSchema: {}
@@ -50,7 +50,7 @@ export type NonEmptyString64 = string & NonEmptyString64Brand
  */
 export const NonEmptyString64 = nonEmptyString.pipe(
   S.check(S.isMaxLength(64)),
-  fromBrand(nominal<NonEmptyString64>(), {
+  fromBrand<NonEmptyString64>(nominal<NonEmptyString64>(), {
     identifier: "NonEmptyString64",
     title: "NonEmptyString64",
     jsonSchema: {}
@@ -74,7 +74,7 @@ export type NonEmptyString80 = string & NonEmptyString80Brand
 
 export const NonEmptyString80 = nonEmptyString.pipe(
   S.check(S.isMaxLength(80)),
-  fromBrand(nominal<NonEmptyString80>(), {
+  fromBrand<NonEmptyString80>(nominal<NonEmptyString80>(), {
     identifier: "NonEmptyString80",
     title: "NonEmptyString80",
     jsonSchema: {}
@@ -97,7 +97,7 @@ export type NonEmptyString100 = string & NonEmptyString100Brand
  */
 export const NonEmptyString100 = nonEmptyString.pipe(
   S.check(S.isMaxLength(100)),
-  fromBrand(nominal<NonEmptyString100>(), {
+  fromBrand<NonEmptyString100>(nominal<NonEmptyString100>(), {
     identifier: "NonEmptyString100",
     title: "NonEmptyString100",
     jsonSchema: {}
@@ -121,7 +121,11 @@ export type Min3String255 = string & Min3String255Brand
 export const Min3String255 = pipe(
   S.String,
   S.check(S.isMinLength(3), S.isMaxLength(255)),
-  fromBrand(nominal<Min3String255>(), { identifier: "Min3String255", title: "Min3String255", jsonSchema: {} }),
+  fromBrand<Min3String255>(nominal<Min3String255>(), {
+    identifier: "Min3String255",
+    title: "Min3String255",
+    jsonSchema: {}
+  }),
   withDefaultMake
 )
 
@@ -151,7 +155,7 @@ export const StringId = extendM(
   pipe(
     S.String,
     S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
-    fromBrand(nominal<StringId>(), {
+    fromBrand<StringId>(nominal<StringId>(), {
       identifier: "StringId",
       title: "StringId",
       toArbitrary: () => (fc) => StringIdArb()(fc),

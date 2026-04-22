@@ -35,11 +35,19 @@ type BrandAnnotations<C extends B.Brand<any>> =
       : {}
   )
 
+type BrandedSchema<Self extends S.Top, C extends B.Brand<any>> =
+  & Omit<S.brand<Self["Rebuild"], B.Brand.Keys<C>>, "Type" | "Iso" | "~type.make">
+  & {
+    readonly Type: C
+    readonly Iso: C
+    readonly "~type.make": C
+  }
+
 export const fromBrand = <C extends B.Brand<any>>(
   constructor: Constructor<C>,
   options?: BrandAnnotations<C>
 ) =>
-<Self extends S.Top>(self: Self): S.brand<Self["Rebuild"], B.Brand.Keys<C>> => {
+<Self extends S.Top>(self: Self): BrandedSchema<Self, C> => {
   const branded = S.fromBrand(options?.identifier ?? "Brand", constructor as any)(self as any)
   return options ? (branded as any).pipe(S.annotate(options)) : branded as any
 }

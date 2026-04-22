@@ -26,6 +26,12 @@ test("literal default works", () => {
   expect(s2.make({}).l).toBe("b")
 })
 
+test("NonEmptyString255.Type uses the named brand alias", () => {
+  type A = typeof S.NonEmptyString255.Type
+  type B = string & S.NonEmptyString255Brand
+  expectTypeOf<A>().toEqualTypeOf<B>()
+})
+
 test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
   const l = S.Literals(["A", "B"])
   expect(l.Default).toBe("A")

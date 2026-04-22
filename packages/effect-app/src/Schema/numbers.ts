@@ -12,7 +12,7 @@ export interface PositiveIntBrand
 export const PositiveInt = extendM(
   S.Int.pipe(
     S.check(S.isGreaterThan(0)),
-    fromBrand(nominal<PositiveInt>(), { identifier: "PositiveInt", title: "PositiveInt", jsonSchema: {} }),
+    fromBrand<PositiveInt>(nominal<PositiveInt>(), { identifier: "PositiveInt", title: "PositiveInt", jsonSchema: {} }),
     withDefaultMake
   ),
   (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(1)))) })
@@ -23,7 +23,7 @@ export interface NonNegativeIntBrand extends Simplify<B.Brand<"NonNegativeInt"> 
 export const NonNegativeInt = extendM(
   S.Int.pipe(
     S.check(S.isGreaterThanOrEqualTo(0)),
-    fromBrand(nominal<NonNegativeInt>(), {
+    fromBrand<NonNegativeInt>(nominal<NonNegativeInt>(), {
       identifier: "NonNegativeInt",
       title: "NonNegativeInt",
       jsonSchema: {}
@@ -36,7 +36,7 @@ export type NonNegativeInt = number & NonNegativeIntBrand
 
 export interface IntBrand extends Simplify<B.Brand<"Int">> {}
 export const Int = extendM(
-  S.Int.pipe(fromBrand(nominal<Int>(), { identifier: "Int", title: "Int", jsonSchema: {} }), withDefaultMake),
+  S.Int.pipe(fromBrand<Int>(nominal<Int>(), { identifier: "Int", title: "Int", jsonSchema: {} }), withDefaultMake),
   (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0)))) })
 )
 export type Int = number & IntBrand
@@ -45,7 +45,7 @@ export interface PositiveNumberBrand extends Simplify<B.Brand<"PositiveNumber"> 
 export const PositiveNumber = extendM(
   S.Finite.pipe(
     S.check(S.isGreaterThan(0)),
-    fromBrand(nominal<PositiveNumber>(), {
+    fromBrand<PositiveNumber>(nominal<PositiveNumber>(), {
       identifier: "PositiveNumber",
       title: "PositiveNumber",
       jsonSchema: {}
@@ -62,7 +62,7 @@ export const NonNegativeNumber = extendM(
     .Finite
     .pipe(
       S.check(S.isGreaterThanOrEqualTo(0)),
-      fromBrand(nominal<NonNegativeNumber>(), {
+      fromBrand<NonNegativeNumber>(nominal<NonNegativeNumber>(), {
         identifier: "NonNegativeNumber",
         title: "NonNegativeNumber",
         jsonSchema: {}

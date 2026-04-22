@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.132
+
+### Patch Changes
+
+- 8753c52: render
+  - effect-app@4.0.0-beta.132
+
 ## 4.0.0-beta.131
 
 ### Patch Changes

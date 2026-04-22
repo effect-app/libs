@@ -1661,42 +1661,71 @@ export declare namespace Commander {
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
 
-const renderErrorMaker = I18n.useSync(
-  ({ intl }) =>
-  <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
-  (e: E, ...args: Args): string => {
-    if (errorRenderer) {
-      const m = errorRenderer(e, action, ...args)
-      if (m !== undefined) {
-        return m
+type RegisteredErrorRenderer = {
+  guard: Predicate.Predicate<unknown>
+  render: (guarded: unknown) => string | undefined
+}
+
+export class CommanderErrorRenderers extends Context.Reference("Commander.ErrorRenderers", {
+  defaultValue: (): ReadonlyArray<RegisteredErrorRenderer> => []
+}) {}
+
+const makeRegisteredErrorRenderer = <A>(
+  guard: Predicate.Refinement<unknown, A>,
+  render: (guarded: A) => string | undefined
+): RegisteredErrorRenderer => ({
+  guard,
+  render: (guarded) => guard(guarded) ? render(guarded) : undefined
+})
+
+const renderErrorMaker = Effect.gen(function*() {
+  const { intl } = yield* I18n
+  const registeredRenderers = yield* CommanderErrorRenderers
+  return (
+    <E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) =>
+    (e: E, ...args: Args): string => {
+      if (errorRenderer) {
+        const m = errorRenderer(e, action, ...args)
+        if (m !== undefined) {
+          return m
+        }
       }
-    }
-    if (!S.is(SupportedErrors)(e) && !S.isSchemaError(e)) {
-      if (typeof e === "object" && e !== null) {
-        if ("message" in e) {
-          return `${e.message}`
+      for (const entry of registeredRenderers) {
+        if (!entry.guard(e)) {
+          continue
         }
-        if ("_tag" in e) {
-          return `${e._tag}`
+        const m = entry.render(e)
+        if (m !== undefined) {
+          return m
         }
       }
-      return ""
-    }
-    const e2: SupportedErrors | S.SchemaError = e
-    return Match.value(e2).pipe(
-      Match.tags({
-        NotFoundError: (e) => {
-          return intl.formatMessage({ id: "handle.not_found" }, { type: e.type, id: e.id })
-        },
-        SchemaError: (e) => {
-          console.warn(e.toString())
-          return intl.formatMessage({ id: "validation.failed" })
+      if (!S.is(SupportedErrors)(e) && !S.isSchemaError(e)) {
+        if (typeof e === "object" && e !== null) {
+          if ("message" in e) {
+            return `${e.message}`
+          }
+          if ("_tag" in e) {
+            return `${e._tag}`
+          }
         }
-      }),
-      Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
-    )
-  }
-)
+        return ""
+      }
+      const e2: SupportedErrors | S.SchemaError = e
+      return Match.value(e2).pipe(
+        Match.tags({
+          NotFoundError: (e) => {
+            return intl.formatMessage({ id: "handle.not_found" }, { type: e.type, id: e.id })
+          },
+          SchemaError: (e) => {
+            console.warn(e.toString())
+            return intl.formatMessage({ id: "validation.failed" })
+          }
+        }),
+        Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+      )
+    }
+  )
+})
 
 const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
   actionMaker:
@@ -1782,6 +1811,17 @@ export const CommanderStatic = {
         CommandContext,
         (c) => ({ ...c, action: update(c.action, ...input) })
       ),
+  registerErrorRenderer: <A>(
+    guard: Predicate.Refinement<unknown, A>,
+    render: (guarded: A) => string | undefined
+  ) =>
+    Layer.effect(
+      CommanderErrorRenderers,
+      Effect.gen(function*() {
+        const current = yield* CommanderErrorRenderers
+        return [...current, makeRegisteredErrorRenderer(guard, render)]
+      })
+    ),
   defaultFailureMessageHandler,
   renderError: renderErrorMaker,
   /**

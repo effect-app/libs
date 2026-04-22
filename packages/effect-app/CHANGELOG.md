@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.130
+
+### Patch Changes
+
+- ea1bd46: fix: prevent expansion of nominal brands
+
 ## 4.0.0-beta.129
 
 ## 4.0.0-beta.128

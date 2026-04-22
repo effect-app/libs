@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.130
+
+### Patch Changes
+
+- fc41dcf: add trace id and span id to toasts
+- Updated dependencies [ea1bd46]
+  - effect-app@4.0.0-beta.130
+
 ## 4.0.0-beta.129
 
 ### Patch Changes

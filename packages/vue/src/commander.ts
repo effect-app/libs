@@ -5,6 +5,7 @@ import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, Muta
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
+import { type Refinement } from "effect/Predicate"
 import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref } from "vue"
@@ -1661,19 +1662,19 @@ export declare namespace Commander {
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
 
-type RegisteredErrorRenderer = {
-  guard: Predicate.Predicate<unknown>
-  render: (guarded: unknown) => string | undefined
+type RegisteredErrorRenderer<A> = {
+  guard: Refinement<unknown, A>
+  render: (guarded: A) => string | undefined
 }
 
 export class CommanderErrorRenderers extends Context.Reference("Commander.ErrorRenderers", {
-  defaultValue: (): ReadonlyArray<RegisteredErrorRenderer> => []
+  defaultValue: () => [] as RegisteredErrorRenderer<any>[]
 }) {}
 
-const makeRegisteredErrorRenderer = <A>(
+export const makeRegisteredErrorRenderer = <A>(
   guard: Predicate.Refinement<unknown, A>,
   render: (guarded: A) => string | undefined
-): RegisteredErrorRenderer => ({
+): RegisteredErrorRenderer<A> => ({
   guard,
   render: (guarded) => guard(guarded) ? render(guarded) : undefined
 })

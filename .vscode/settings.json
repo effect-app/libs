@@ -59,5 +59,9 @@
   ],
   "files.watcherExclude": {
     "**/target": true
+  },
+  "chat.tools.terminal.autoApprove": {
+    "git add": true,
+    "git commit": true
   }
 }

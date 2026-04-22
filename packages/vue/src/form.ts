@@ -76,7 +76,8 @@ export interface DiscriminatedUnionFieldInfo<T> {
 }
 
 export type NestedFieldInfoKey<Key> = [Key] extends [Record<PropertyKey, any>]
-  ? Unbranded<Key> extends Record<PropertyKey, any> ? NestedFieldInfo<Key>
+  ? Unbranded<Key> extends (string | number | boolean | bigint | symbol) ? FieldInfo<Key>
+  : Unbranded<Key> extends Record<PropertyKey, any> ? NestedFieldInfo<Key>
   : FieldInfo<Key>
   : FieldInfo<Key>
 

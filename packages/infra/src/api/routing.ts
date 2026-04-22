@@ -11,14 +11,20 @@ import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Yieldable } from "effect/Effect"
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "effect/unstable/rpc"
 import { type LayerUtils } from "./layerUtils.js"
-import { type RouterMiddleware } from "./routing/middleware.js"
+import { RequestType as RequestTypeAnnotation, type RouterMiddleware } from "./routing/middleware.js"
 
 export * from "./routing/middleware.js"
+
+export const applyRequestTypeInterruptibility = <A, E, R>(
+  requestType: "command" | "query",
+  effect: Effect.Effect<A, E, R>
+) => requestType === "command" ? Rpc.uninterruptible(effect) : effect
 
 // it's the result of extending S.Req setting success, config
 // it's a schema plus some metadata
 export type AnyRequestModule = S.Top & {
   _tag: string // unique identifier for the request module
+  type: "command" | "query"
   config: any // ?
   success: S.Top // validates the success response
   error: S.Top // validates the failure response
@@ -386,12 +392,15 @@ export const makeRouter = <
                   static success = S.toEncoded(resource.success)
                 } as any
                 : resource,
-              (payload: any, headers: any) =>
-                (handler.handler(payload, headers) as Effect.Effect<unknown, unknown, unknown>).pipe(
+              (payload: any, headers: any) => {
+                const effect = (handler.handler(payload, headers) as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {}, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
                 )
+
+                return applyRequestTypeInterruptibility(resource.type, effect)
+              }
             ] as const
             return acc
           }, {} as any) as {
@@ -418,6 +427,7 @@ export const makeRouter = <
                 return Rpc
                   .make(resource._tag, { payload: resource, success: resource.success, error: resource.error })
                   .annotate(middleware.requestContext, resource.config ?? {})
+                  .annotate(RequestTypeAnnotation, resource.type)
               })
             )
             .prefix(`${meta.moduleName}.`)

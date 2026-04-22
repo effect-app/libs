@@ -3,11 +3,11 @@ import { Cause, Config, Effect, Layer, Schema } from "effect"
 import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
 import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
+import * as Context from "effect/Context"
 import { type Rpc } from "effect/unstable/rpc"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { WithNsTransaction } from "../../../Store/SQL.js"
-import { determineMethod, isCommand } from "../utils.js"
 
 const logRequestError = logError("Request")
 const reportRequestError = reportError("Request")
@@ -29,22 +29,20 @@ export const RequestCacheMiddlewareLive = Layer.succeed(
 const isOptimisticConcurrencyException = (input: unknown) =>
   typeof input === "object" && input !== null && "_tag" in input && input._tag === "OptimisticConcurrencyException"
 
+export const RequestType = Context.Reference<"command" | "query">(
+  "@effect-app/infra/api/routing/RequestType",
+  { defaultValue: () => "query" }
+)
+
 export const ConfigureInterruptibilityMiddlewareLive = Layer.effect(
   ConfigureInterruptibilityMiddleware,
   Effect.gen(function*() {
-    const cache = new Map()
-    const getCached = (key: string, schema: Schema.Top) => {
-      const existing = cache.get(key)
-      if (existing) return existing
-      const n = determineMethod(key, schema)
-      cache.set(key, n)
-      return n
-    }
     return (effect, { rpc }) => {
-      const method = getCached(rpc._tag, rpc.payloadSchema)
+      const requestType = Context.get(rpc.annotations, RequestType)
+      const isCommand = requestType === "command"
 
-      effect = isCommand(method)
-        ? Effect.retry(Effect.uninterruptible(effect), { times: 1, while: isOptimisticConcurrencyException })
+      effect = isCommand
+        ? Effect.retry(effect, { times: 1, while: isOptimisticConcurrencyException })
         : Effect.interruptible(effect)
 
       return effect

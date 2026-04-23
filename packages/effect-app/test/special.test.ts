@@ -131,6 +131,21 @@ describe("TaggedClass constructor", () => {
     expect((decoded as Circle)._tag).toBe("Circle")
   })
 
+  it("S.decodeSync(S.toType(X)) should report n length schema error", () => {
+    class X extends TaggedClass<X>()("X", { n: S.String.pipe(S.check(S.isMinLength(3))) }) {}
+
+    try {
+      S.decodeSync(S.toType(X))({ _tag: "X", n: "a" /* not length 3 */ })
+      expect.fail("expected decode to fail with a SchemaError")
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error)
+      if (error instanceof Error) {
+        expect(error.message).toContain("n")
+        expect(error.message.toLowerCase()).toContain("length")
+      }
+    }
+  })
+
   it("exposes fields, identifier", () => {
     class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
 

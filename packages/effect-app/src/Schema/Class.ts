@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
 import * as S from "effect/Schema"
+import * as SchemaParser from "effect/SchemaParser"
 import { copyOrigin } from "../utils.js"
 import { concurrencyUnbounded } from "./ext.js"
 
@@ -39,7 +40,7 @@ function makeRelaxedDeclaration(
   cls: any
 ): SchemaAST.Declaration {
   const structSchema = Schema.Struct(fields)
-  const isStructValue = Schema.is(structSchema)
+  const decodeStruct = SchemaParser.decodeUnknownEffect(structSchema)
   const existingParseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
   const annotations = {
     ...ast.annotations,
@@ -47,9 +48,12 @@ function makeRelaxedDeclaration(
   }
   return new SchemaAST.Declaration(
     ast.typeParameters,
-    () => (input: unknown, self: SchemaAST.Declaration) => {
-      if (input instanceof cls || isStructValue(input)) {
+    () => (input: unknown, self: SchemaAST.Declaration, options: SchemaAST.ParseOptions) => {
+      if (input instanceof cls) {
         return Effect.succeed(input)
+      }
+      if (input !== null && typeof input === "object") {
+        return decodeStruct(input, options)
       }
       return Effect.fail(new SchemaIssue.InvalidType(self, Option.some(input)))
     },

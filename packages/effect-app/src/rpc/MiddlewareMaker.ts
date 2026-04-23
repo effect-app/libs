@@ -310,7 +310,7 @@ const makeMiddlewareBasic = <Self>() =>
   // reverse middlewares and wrap one after the other
   const middleware = middlewareMaker(make)
 
-  const failures = make.map((_) => _.error).filter(Boolean)
+  const failures = make.flatMap((_) => _.error ? [_.error] : [])
   const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
   const requires = make
     .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
@@ -368,7 +368,7 @@ export const Tag = <Self>() =>
   const Id extends string,
   RequestContextMap extends RequestContextMapTagAny
 >(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap["config"]> => {
-  let allMiddleware: MiddlewareMaker.Any[] = []
+  const allMiddleware: MiddlewareMaker.Any[] = []
   const requestContext = Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
     "RequestContextConfig"
   )
@@ -426,7 +426,7 @@ export const Tag = <Self>() =>
     middleware: (...middlewares: any[]) => {
       for (const mw of middlewares) {
         // recall that we run middlewares in reverse order
-        allMiddleware = [mw, ...allMiddleware]
+        allMiddleware.unshift(mw)
       }
       return allMiddleware.filter((m) => !!m.dynamic).length !== Object.keys(rcm.config).length
         // for sure, until all the dynamic middlewares are provided it's non sensical to call makeMiddlewareBasic

@@ -186,6 +186,7 @@ export const codeFilter3_ = <E>(state: readonly FilterResult[], sut: E): boolean
   const statements: any[] = [] // must be defined here to be used by eval.
   // always put everything inside a root scope.
   const s = codeFilter3__([{ t: "where-scope", result: state, relation: "some" }], sut, statements, null, false)
+  // oxlint-disable-next-line no-eval
   return eval(s)
 }
 

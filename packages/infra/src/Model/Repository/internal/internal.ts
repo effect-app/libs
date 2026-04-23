@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type {} from "effect/Equal"
-import type {} from "effect/Hash"
+
 import { Array, Chunk, Context, Effect, Equivalence, flow, type NonEmptyReadonlyArray, Option, pipe, Pipeable, PubSub, Result, S, SchemaAST, Unify } from "effect-app"
 import { toNonEmptyArray } from "effect-app/Array"
 import { NotFoundError } from "effect-app/client/errors"
@@ -195,7 +194,7 @@ export function makeRepoInternal<
             function*(items: Iterable<T>, events: Iterable<Evt> = []) {
               const it = Chunk.fromIterable(items)
               const evts = [...events]
-              yield* Effect.annotateCurrentSpan({ itemIds: [...Chunk.map(it, (_) => _[idKey])], events: evts.length })
+              yield* Effect.annotateCurrentSpan({ itemIds: Chunk.map(it, (_) => _[idKey]), events: evts.length })
               return yield* saveAll(it)
                 .pipe(
                   Effect.andThen(Effect.sync(() => toNonEmptyArray(evts))),

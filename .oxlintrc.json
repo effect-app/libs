@@ -22,7 +22,7 @@
       "fixStyle": "inline-type-imports"
     }],
     "import/no-duplicates": "error",
-    "import/no-self-import": "error",
+    "import/no-self-import": "warn",
     "import/no-empty-named-blocks": "error",
     "eslint/no-restricted-imports": ["error", {
       "paths": [

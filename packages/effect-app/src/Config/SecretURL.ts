@@ -21,6 +21,7 @@ import * as internal from "./internal/configSecretURL.js"
  * @since 1.0.0
  * @category models
  */
+// eslint-disable-next-line import/namespace
 export interface SecretURL extends Redacted.Redacted, Equal.Equal {
   /** @internal */
   readonly raw: Array<number>

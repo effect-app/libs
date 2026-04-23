@@ -1,5 +1,5 @@
 import { Context, Effect, Fiber, FiberSet, Layer } from "effect-app"
-import type {} from "effect/Scope"
+
 import { InfraLogger } from "./logger.js"
 import { reportNonInterruptedFailureCause } from "./QueueMaker/errors.js"
 import { setRootParentSpan } from "./RequestFiberSet.js"

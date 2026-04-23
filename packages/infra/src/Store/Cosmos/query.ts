@@ -296,16 +296,14 @@ export function buildWhereCosmosQuery3(
     ${filter.length ? `WHERE (${print(filter, values.map((_) => _.value), null, false)})` : ""}
     ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
-    parameters: [
-      ...values
-        .flatMap((x, i) =>
-          [{
-            name: `@v${i}`,
-            value: x.value as any
-          }]
-            // TODO: only for arrays that are used with _ANY or _ALL
-            .concat(Array.isArray(x.value) ? x.value.map((_, i2) => ({ name: `@v${i}__${i2}`, value: _ as any })) : [])
-        )
-    ]
+    parameters: values
+      .flatMap((x, i) =>
+        [{
+          name: `@v${i}`,
+          value: x.value as any
+        }]
+          // TODO: only for arrays that are used with _ANY or _ALL
+          .concat(Array.isArray(x.value) ? x.value.map((_, i2) => ({ name: `@v${i}__${i2}`, value: _ as any })) : [])
+      )
   }
 }

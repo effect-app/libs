@@ -211,10 +211,8 @@ class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
           // search for existing cache gist
           const output = yield* runGetStringSuppressed(`gh gist list --filter "${CACHE_GIST_DESCRIPTION}"`)
 
-          const lines = output.trim().split("\n").filter((line: string) => line.trim())
-
+          const firstLine = output.trim().split("\n").find((line: string) => line.trim())
           // extract first gist ID (should be our cache gist)
-          const firstLine = lines[0]
           if (!firstLine) {
             return yield* new GistCacheNotFound({ message: "Empty gist list output" })
           }

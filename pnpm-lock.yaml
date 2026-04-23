@@ -124,6 +124,9 @@ importers:
       npm-check-updates:
         specifier: ^21.0.3
         version: 21.0.3
+      oxlint:
+        specifier: ^1.61.0
+        version: 1.61.0
       ts-plugin-sort-import-suggestions:
         specifier: ^1.0.4
         version: 1.0.4(patch_hash=4664506575d0f4e799401cb7140b6f15f34a6fe213da6314d68439f7e8d30561)

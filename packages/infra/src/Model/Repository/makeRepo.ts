@@ -5,8 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // import type { ParserEnv } from "effect-app/Schema/custom/Parser"
-import type {} from "effect/Equal"
-import type {} from "effect/Hash"
+
 import { type Context, Effect, type NonEmptyReadonlyArray, type S } from "effect-app"
 import type { StoreConfig, StoreMaker } from "../../Store.js"
 import type { FieldValues } from "../filter/types.js"

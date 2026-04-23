@@ -2,10 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { Context, Effect, Layer, S, Scope } from "effect-app"
+import { Context, Effect, Layer, RpcX, S, Scope } from "effect-app"
 import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/client"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
-import * as RpcX from "effect-app/rpc"
 import { MiddlewareMaker } from "effect-app/rpc"
 import { TypeTestId } from "effect-app/TypeTest"
 import { type RpcSerialization } from "effect/unstable/rpc"

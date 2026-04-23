@@ -102,7 +102,10 @@ NodeRuntime.runMain(
           "@effect-app/vue": "file:" + effectAppLibsPath + "/packages/vue",
           "@effect-app/vue-components": "file:" + effectAppLibsPath + "/packages/vue-components",
           "@effect-app/eslint-shared-config": "file:" + effectAppLibsPath + "/packages/eslint-shared-config",
-          ...packages.reduce((acc, p) => ({ ...acc, [p]: `file:${effectAppLibsPath}/node_modules/${p}` }), {})
+          ...packages.reduce((acc, p) => {
+            acc[p] = `file:${effectAppLibsPath}/node_modules/${p}`
+            return acc
+          }, {} as Record<string, string>)
         }
 
         pj.resolutions = resolutions
@@ -304,7 +307,10 @@ NodeRuntime.runMain(
               // filter exports by directory depth - only include paths up to specified levels deep
               .filter((_) => _.split("/").length <= (levels + 1 /* `./` */))
               .reduce(
-                (prev, cur) => ({ ...prev, [cur]: sortedExportEntries[cur] }),
+                (prev, cur) => {
+                  prev[cur] = sortedExportEntries[cur]
+                  return prev
+                },
                 {} as Record<string, unknown>
               )
             : sortedExportEntries
@@ -320,13 +326,15 @@ NodeRuntime.runMain(
             ...Object
               .keys(filteredExportEntries)
               .reduce(
-                (prev, cur) => ({
-                  ...prev,
+                (prev, cur) => {
                   // exclude index files and internal modules from package exports:
                   // - skip "./index" to avoid conflicts with the main "." export
                   // - skip "/internal/" paths to keep internal modules private
-                  ...cur !== "./index" && !cur.includes("/internal/") && { [cur]: filteredExportEntries[cur] }
-                }),
+                  if (cur !== "./index" && !cur.includes("/internal/")) {
+                    prev[cur] = filteredExportEntries[cur]
+                  }
+                  return prev
+                },
                 {} as Record<string, unknown>
               )
           }

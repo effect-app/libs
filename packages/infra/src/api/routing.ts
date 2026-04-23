@@ -267,12 +267,14 @@ export const makeRouter = <
           if (handlerImpl[Symbol.toStringTag] === "GeneratorFunction") handlerImpl = Effect.fnUntraced(handlerImpl)
           const stack = new Error().stack?.split("\n").slice(2).join("\n")
           return Effect.isEffect(handlerImpl)
+            // oxlint-disable-next-line typescript/no-extraneous-class
             ? class {
               static request = rsc[cur]
               static stack = stack
               static _tag = RequestTypes.DECODED
               static handler = () => handlerImpl
             }
+            // oxlint-disable-next-line typescript/no-extraneous-class
             : class {
               static request = rsc[cur]
               static stack = stack
@@ -290,12 +292,14 @@ export const makeRouter = <
               if (handlerImpl[Symbol.toStringTag] === "GeneratorFunction") handlerImpl = Effect.fnUntraced(handlerImpl)
               const stack = new Error().stack?.split("\n").slice(2).join("\n")
               return Effect.isEffect(handlerImpl)
+                // oxlint-disable-next-line typescript/no-extraneous-class
                 ? class {
                   static request = rsc[cur]
                   static stack = stack
                   static _tag = RequestTypes.RAW
                   static handler = () => handlerImpl
                 }
+                // oxlint-disable-next-line typescript/no-extraneous-class
                 : class {
                   static request = rsc[cur]
                   static stack = stack

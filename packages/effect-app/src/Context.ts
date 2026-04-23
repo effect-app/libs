@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable import/namespace */
 
 import { type Effect, Layer, type Scope, type Types } from "effect"
 import * as CTX from "effect/Context"

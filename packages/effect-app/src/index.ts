@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-unassigned-import
 import "./builtin.js"
 
 export * as Fnc from "./Function.js"
@@ -19,5 +20,6 @@ export * from "effect"
 export type * as Types from "./Types.js"
 
 export * as SecretURL from "./Config/SecretURL.js"
+export * as RpcX from "./rpc.js"
 export * as S from "./Schema.js"
 export { copy } from "./utils.js"

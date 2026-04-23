@@ -1,5 +1,39 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- [#1933](https://github.com/Effect-TS/effect-smol/pull/1933) [`c5a7327`](https://github.com/Effect-TS/effect-smol/commit/c5a732746690185b8bb7935d0cf26a5ef21658e4) Thanks @IMax153! - Accept both `in-memory` and `in_memory` for OpenAI `prompt_cache_retention` schema fields.
+
+- [#1933](https://github.com/Effect-TS/effect-smol/pull/1933) [`c5a7327`](https://github.com/Effect-TS/effect-smol/commit/c5a732746690185b8bb7935d0cf26a5ef21658e4) Thanks @IMax153! - Fix OpenAI MCP tool call handling to keep the canonical `OpenAiMcp` tool name across response and stream paths, including approval flows.
+
+- Updated dependencies []:
+  - effect@4.0.0-beta.56
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [[`42cc744`](https://github.com/Effect-TS/effect-smol/commit/42cc744570968deb365fb46d47b53d3277050c93), [`04855ce`](https://github.com/Effect-TS/effect-smol/commit/04855ceeca4d40c55a5750dd9893b691f8ea741a)]:
+  - effect@4.0.0-beta.55
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [[`e4b74f9`](https://github.com/Effect-TS/effect-smol/commit/e4b74f9c01a0e9b6cd58416de4af3a26d51da7c8), [`4c72808`](https://github.com/Effect-TS/effect-smol/commit/4c728081851c66dacf889a816535671bc841ae96)]:
+  - effect@4.0.0-beta.54
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- [#2060](https://github.com/Effect-TS/effect-smol/pull/2060) [`aef2b1c`](https://github.com/Effect-TS/effect-smol/commit/aef2b1c0130a61a430f116465e4c200c51bcd9e2) Thanks @tim-smart! - add back openai reasoning types
+
+- Updated dependencies [[`0768509`](https://github.com/Effect-TS/effect-smol/commit/07685094e931af07d104165195826a535b55fa7e), [`476aede`](https://github.com/Effect-TS/effect-smol/commit/476aede69c6efa06b5781ca5eb3e3b128ca29141), [`4f79c54`](https://github.com/Effect-TS/effect-smol/commit/4f79c542e7b508c235ff485d862cc8b29a8260c5), [`4be6a7c`](https://github.com/Effect-TS/effect-smol/commit/4be6a7cf35dab2a01d652f56dd35f0358c5a7e88), [`88927eb`](https://github.com/Effect-TS/effect-smol/commit/88927ebb896162cdba103b36553280b58e0facac)]:
+  - effect@4.0.0-beta.53
+
 ## 4.0.0-beta.52
 
 ### Minor Changes

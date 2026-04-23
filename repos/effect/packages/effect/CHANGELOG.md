@@ -1,5 +1,39 @@
 # effect
 
+## 4.0.0-beta.56
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- [#2081](https://github.com/Effect-TS/effect-smol/pull/2081) [`42cc744`](https://github.com/Effect-TS/effect-smol/commit/42cc744570968deb365fb46d47b53d3277050c93) Thanks @gcanti! - Export the `Schema.encodeKeys` interface, closes [#2070](https://github.com/Effect-TS/effect-smol/issues/2070).
+
+  Previously the interface was internal, so exporting a value whose inferred type referenced it triggered TypeScript error `TS4023: Exported variable has or is using name 'encodeKeys' from external module ... but cannot be named`, e.g.:
+
+- [#2067](https://github.com/Effect-TS/effect-smol/pull/2067) [`04855ce`](https://github.com/Effect-TS/effect-smol/commit/04855ceeca4d40c55a5750dd9893b691f8ea741a) Thanks @mrazauskas! - fix `isNullish()` type predicate
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- [#2078](https://github.com/Effect-TS/effect-smol/pull/2078) [`e4b74f9`](https://github.com/Effect-TS/effect-smol/commit/e4b74f9c01a0e9b6cd58416de4af3a26d51da7c8) Thanks @tim-smart! - add Socket.make
+
+- [#2075](https://github.com/Effect-TS/effect-smol/pull/2075) [`4c72808`](https://github.com/Effect-TS/effect-smol/commit/4c728081851c66dacf889a816535671bc841ae96) Thanks @tim-smart! - ensure workflow failures are not squashed by suspension interrupts
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- [#2068](https://github.com/Effect-TS/effect-smol/pull/2068) [`0768509`](https://github.com/Effect-TS/effect-smol/commit/07685094e931af07d104165195826a535b55fa7e) Thanks @tim-smart! - Fix `AtomHttpApi` query and mutation error inference to include endpoint middleware and client middleware errors, matching `HttpApiClient` behavior (including response-only mutation mode).
+
+- [#2062](https://github.com/Effect-TS/effect-smol/pull/2062) [`476aede`](https://github.com/Effect-TS/effect-smol/commit/476aede69c6efa06b5781ca5eb3e3b128ca29141) Thanks @aldotestino! - Fix `HttpIncomingMessage.schemaBodyJson` to forward parse options via the `parseOptions` annotation key.
+
+- [#2074](https://github.com/Effect-TS/effect-smol/pull/2074) [`4f79c54`](https://github.com/Effect-TS/effect-smol/commit/4f79c542e7b508c235ff485d862cc8b29a8260c5) Thanks @tim-smart! - fix Latch.release
+
+- [#2069](https://github.com/Effect-TS/effect-smol/pull/2069) [`4be6a7c`](https://github.com/Effect-TS/effect-smol/commit/4be6a7cf35dab2a01d652f56dd35f0358c5a7e88) Thanks @mikearnaldi! - Fix `TestClock.currentTimeNanosUnsafe()` to floor fractional millisecond instants before converting them to `BigInt`.
+
+- [#2065](https://github.com/Effect-TS/effect-smol/pull/2065) [`88927eb`](https://github.com/Effect-TS/effect-smol/commit/88927ebb896162cdba103b36553280b58e0facac) Thanks @tim-smart! - add Effectable module
+
 ## 4.0.0-beta.52
 
 ### Patch Changes

@@ -46,7 +46,7 @@ test("ForceVoid decodes and encodes as void", () => {
   expectTypeOf<typeof _statsRequestType>().toEqualTypeOf<"query">()
 })
 
-test("RPC success response retains over-provided data on decode and drops it on encode", () => {
+test("RPC success response drops over-provided data on decode and encode", () => {
   const response = {
     usersActive24Hours: 1,
     usersActiveLastWeek: 2,
@@ -55,7 +55,7 @@ test("RPC success response retains over-provided data on decode and drops it on 
     cause: { reason: "extra" }
   }
   const decoded = S.decodeUnknownSync(Stats.success)(response)
-  expect((decoded as any).cause).toEqual({ reason: "extra" })
+  expect((decoded as any).cause).toBeUndefined()
 
   const encoded = S.encodeUnknownSync(Stats.success)(decoded)
   expect(encoded).toEqual({
@@ -67,14 +67,14 @@ test("RPC success response retains over-provided data on decode and drops it on 
   expect((encoded as any).cause).toBeUndefined()
 })
 
-test("RPC error response retains over-provided data on decode and drops it on encode", () => {
+test("RPC error response drops over-provided data on decode and encode", () => {
   const response = {
     _tag: "UnauthorizedError",
     message: "forbidden",
     cause: { reason: "extra" }
   }
   const decoded = S.decodeUnknownSync(Stats.error)(response)
-  expect((decoded as any).cause).toEqual({ reason: "extra" })
+  expect((decoded as any).cause).toBeUndefined()
 
   const encoded = S.encodeUnknownSync(Stats.error)(decoded)
   expect(encoded).toEqual({

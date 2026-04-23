@@ -11,6 +11,7 @@
     "@effect-app/vue-components": "3.2.0"
   },
   "changesets": [
+    "add-oxlint-integration",
     "batch-dual-options",
     "bold-berries-change",
     "brave-bushes-fold",
@@ -33,6 +34,7 @@
     "cosmos-namespace-support",
     "crisp-seals-care",
     "crisp-trees-smash",
+    "cuddly-laws-smell",
     "curly-beds-sing",
     "curvy-pugs-rush",
     "cyan-experts-smoke",
@@ -61,6 +63,7 @@
     "fix-sql-array-relation-queries",
     "fix-sql-in-null-handling",
     "fix-sql-includes-serialize",
+    "fix-sql-json-from-string-codec",
     "fix-sql-namespace-params",
     "fix-sql-pg-seed-migrations-table",
     "fix-sql-select-etag-column",
@@ -178,6 +181,7 @@
     "tidy-poets-think",
     "tough-apes-whisper",
     "twenty-seas-grab",
+    "two-clocks-wash",
     "update-effect-beta-36",
     "update-effect-beta-52",
     "vue-prefer-fn-untraced",

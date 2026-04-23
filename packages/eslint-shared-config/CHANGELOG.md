@@ -1,5 +1,17 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.11
+
+### Minor Changes
+
+- 4b91f31: Add oxlint integration: run oxlint before ESLint, with `eslint-plugin-oxlint` disabling ESLint rules already covered by oxlint. Add repo-root `.oxlintrc.json` with shared rule config. Update `lint`/`lint-fix` scripts in cli, effect-app, and infra packages.
+
+### Patch Changes
+
+- c3299f7: update packages
+- Updated dependencies [c3299f7]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.7
+
 ## 0.6.0-beta.10
 
 ### Minor Changes

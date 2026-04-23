@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.133
+
+### Patch Changes
+
+- 99a2e9b: Use warning toasts for expected commander failures, while keeping unexpected errors as error toasts.
+- c3299f7: update packages
+- Updated dependencies [c3299f7]
+  - effect-app@4.0.0-beta.133
+
 ## 4.0.0-beta.132
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.0.0-beta.133
+
+### Patch Changes
+
+- 2f862a4: Apply `toCodecJson` in `SQLModel.JsonFromString` so SQL JSON string fields use the proper JSON-safe codec at the encode/decode boundary (aligns with queue, event, and gist call sites).
+- c3299f7: update packages
+- Updated dependencies [c3299f7]
+  - effect-app@4.0.0-beta.133
+
 ## 4.0.0-beta.132
 
 ### Patch Changes

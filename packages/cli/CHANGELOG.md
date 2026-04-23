@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.15
+
+### Patch Changes
+
+- c3299f7: update packages
+
 ## 2.1.0-beta.14
 
 ### Patch Changes

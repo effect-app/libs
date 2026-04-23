@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- c3299f7: update packages
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.135
+
+### Patch Changes
+
+- f8cff13: Uses onBlur instead of intrusive onChange
+- 61e93d8: bump
+  - effect-app@4.0.0-beta.135
+  - @effect-app/vue@4.0.0-beta.135
+
 ## 4.0.0-beta.134
 
 ### Patch Changes

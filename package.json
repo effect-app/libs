@@ -7,7 +7,8 @@
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
       "typescript@6.0.3": "patches/typescript.patch",
       "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch",
-      "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch"
+      "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch",
+      "@sendgrid/mail": "patches/@sendgrid__mail.patch"
     }
   },
   "engines": {

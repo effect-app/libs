@@ -13,6 +13,9 @@ patchedDependencies:
   '@ben_12/eslint-plugin-dprint':
     hash: b8e8106d9b2a2cf9ac8b08b3f7b7f5ab6ee17195c86f69601d3218139e96e32b
     path: patches/@ben_12__eslint-plugin-dprint.patch
+  '@sendgrid/mail':
+    hash: 3d2dd1cd5f52d3eef1772e4be48776258a596f9277c00adf0a471f54fcd3e21a
+    path: patches/@sendgrid__mail.patch
   '@tanstack/query-core':
     hash: c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2
     path: patches/@tanstack__query-core.patch
@@ -402,7 +405,7 @@ importers:
         version: 8.0.0
       '@sendgrid/mail':
         specifier: ^8.1.6
-        version: 8.1.6
+        version: 8.1.6(patch_hash=3d2dd1cd5f52d3eef1772e4be48776258a596f9277c00adf0a471f54fcd3e21a)
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
@@ -493,7 +496,7 @@ importers:
     dependencies:
       '@effect/atom-vue':
         specifier: ^4.0.0-beta.52
-        version: 4.0.0-beta.52(effect@4.0.0-beta.52)(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        version: 4.0.0-beta.52(effect@4.0.0-beta.52)(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))
       '@effect/platform-browser':
         specifier: ^4.0.0-beta.52
         version: 4.0.0-beta.52(effect@4.0.0-beta.52)
@@ -508,10 +511,10 @@ importers:
         version: 5.96.2(patch_hash=c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2)
       '@tanstack/vue-query':
         specifier: 5.96.2
-        version: 5.96.2(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        version: 5.96.2(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))
       '@vueuse/core':
         specifier: ^14.2.1
-        version: 14.2.1(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        version: 14.2.1(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
@@ -526,7 +529,7 @@ importers:
         version: 9.3.1
       vue:
         specifier: ^3.5.32
-        version: 3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
+        version: 3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)
     devDependencies:
       '@effect-app/eslint-shared-config':
         specifier: workspace:*
@@ -542,7 +545,7 @@ importers:
         version: 25.6.0
       '@vitejs/plugin-vue':
         specifier: ^6.0.6
-        version: 6.0.6(vite@8.0.9(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        version: 6.0.6(vite@8.0.9(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))
       intl-messageformat:
         specifier: ^11.2.1
         version: 11.2.1
@@ -550,8 +553,8 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
+        specifier: npm:@typescript/native-preview@beta
+        version: '@typescript/native-preview@7.0.0-dev.20260421.2'
       vite:
         specifier: ^8.0.9
         version: 8.0.9(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)
@@ -7569,10 +7572,10 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  '@effect/atom-vue@4.0.0-beta.52(effect@4.0.0-beta.52)(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@effect/atom-vue@4.0.0-beta.52(effect@4.0.0-beta.52)(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))':
     dependencies:
       effect: 4.0.0-beta.52
-      vue: 3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
+      vue: 3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)
 
   '@effect/language-service@0.85.1': {}
 
@@ -8482,7 +8485,7 @@ snapshots:
     dependencies:
       deepmerge: 4.3.1
 
-  '@sendgrid/mail@8.1.6':
+  '@sendgrid/mail@8.1.6(patch_hash=3d2dd1cd5f52d3eef1772e4be48776258a596f9277c00adf0a471f54fcd3e21a)':
     dependencies:
       '@sendgrid/client': 8.1.6
       '@sendgrid/helpers': 8.0.0
@@ -8695,13 +8698,13 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
 
-  '@tanstack/vue-query@5.96.2(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@tanstack/vue-query@5.96.2(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))':
     dependencies:
       '@tanstack/match-sorter-utils': 8.19.4
       '@tanstack/query-core': 5.96.2(patch_hash=c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2)
       '@vue/devtools-api': 6.6.4
-      vue: 3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
-      vue-demi: 0.14.10(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+      vue: 3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)
+      vue-demi: 0.14.10(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))
 
   '@tanstack/vue-store@0.7.7(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -9227,6 +9230,12 @@ snapshots:
       vite: 5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass@1.99.0)(terser@5.45.0)
       vue: 3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
+  '@vitejs/plugin-vue@6.0.6(vite@8.0.9(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.0-rc.13
+      vite: 8.0.9(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)
+      vue: 3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)
+
   '@vitejs/plugin-vue@6.0.6(vite@8.0.9(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.13
@@ -9497,7 +9506,6 @@ snapshots:
       '@vueuse/metadata': 14.2.1
       '@vueuse/shared': 14.2.1(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))
       vue: 3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)
-    optional: true
 
   '@vueuse/core@14.2.1(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -9532,7 +9540,6 @@ snapshots:
   '@vueuse/shared@14.2.1(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2))':
     dependencies:
       vue: 3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)
-    optional: true
 
   '@vueuse/shared@14.2.1(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -13492,6 +13499,10 @@ snapshots:
   vue-component-type-helpers@2.2.12: {}
 
   vue-component-type-helpers@3.2.7: {}
+
+  vue-demi@0.14.10(vue@3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)):
+    dependencies:
+      vue: 3.5.32(@typescript/native-preview@7.0.0-dev.20260421.2)
 
   vue-demi@0.14.10(vue@3.5.32(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))):
     dependencies:

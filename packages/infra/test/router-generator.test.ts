@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type MakeContext, type MakeErrors, makeRouter } from "@effect-app/infra/api/routing"
 import { makeAllDSL, makeOneDSL } from "@effect-app/infra/Model"
 import { expectTypeOf, it } from "@effect/vitest"
@@ -7,20 +6,11 @@ import { InvalidStateError, makeRpcClient, UnauthorizedError } from "effect-app/
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import { type FixEnv } from "effect-app/Pure"
 import { MiddlewareMaker } from "effect-app/rpc"
-import { TypeTestId } from "effect-app/TypeTest"
+import { type TypeTestId } from "effect-app/TypeTest"
+import { type ConfigError } from "effect/Config"
+import { type RpcSerialization } from "effect/unstable/rpc/RpcSerialization"
 import { DefaultGenericMiddlewaresLive, DevModeMiddlewareLive } from "../src/api/routing/middleware.js"
-import {
-  AllowAnonymous,
-  AllowAnonymousLive,
-  RequestContextMap,
-  RequireRoles,
-  RequireRolesLive,
-  Some,
-  SomeElse,
-  SomeService,
-  Test,
-  TestLive
-} from "./fixtures.js"
+import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElse, SomeService, Test, TestLive } from "./fixtures.js"
 
 // Inline minimal context provider (provides `Some`)
 class CtxProvider extends RpcX.RpcMiddleware.Tag<CtxProvider, { provides: Some }>()("CtxProvider") {
@@ -34,9 +24,7 @@ class CtxProvider extends RpcX.RpcMiddleware.Tag<CtxProvider, { provides: Some }
 }
 
 // Provides `SomeElse` so AllowAnonymous's requirement is met.
-class SomeElseProvider
-  extends RpcX.RpcMiddleware.Tag<SomeElseProvider, { provides: SomeElse }>()("SomeElseProvider")
-{
+class SomeElseProvider extends RpcX.RpcMiddleware.Tag<SomeElseProvider, { provides: SomeElse }>()("SomeElseProvider") {
   static Default = Layer.make(this, {
     *make() {
       return Effect.fnUntraced(function*(effect) {
@@ -124,8 +112,10 @@ const routerRaw = Router({ GetThing })({
 })
 
 it("router with generator-method handlers compiles", () => {
-  expectTypeOf(router).toMatchTypeOf<Layer.Layer<never, any, any>>()
-  expectTypeOf(routerRaw).toMatchTypeOf<Layer.Layer<never, any, any>>()
+  expectTypeOf(router).toMatchTypeOf<
+    Layer.Layer<never, ConfigError | InvalidStateError, SomeService | RpcSerialization>
+  >()
+  expectTypeOf(routerRaw).toMatchTypeOf<Layer.Layer<never, ConfigError, SomeService | RpcSerialization>>()
 })
 
 // Type-level assertions: verify generator yields propagate to MakeErrors / MakeContext
@@ -135,7 +125,9 @@ expectTypeOf<Errors>().toEqualTypeOf<InvalidStateError>()
 expectTypeOf<Ctx>().toEqualTypeOf<ThingRepo>()
 
 const matched = matchAll({ router })
-expectTypeOf(matched).toMatchTypeOf<Layer.Layer<never, any, any>>()
+expectTypeOf(matched).toMatchTypeOf<
+  Layer.Layer<never, ConfigError | InvalidStateError, SomeService | RpcSerialization>
+>()
 
 // ---------------------------------------------------------------------------
 // DSL R-inference regression
@@ -179,10 +171,10 @@ const oneModify = Item$.modify((item, _dsl) =>
 
 // `R` should be `FixEnv<Dep, Evt, …>` — never collapsed to `unknown`/`never`.
 // The regression manifested as `unknown` here, breaking `Dep` assignability.
-expectTypeOf(oneUpdate).toMatchTypeOf<Effect.Effect<Item, never, FixEnv<Dep, Evt, Item, Item>>>();
+expectTypeOf(oneUpdate).toMatchTypeOf<Effect.Effect<Item, never, FixEnv<Dep, Evt, Item, Item>>>()
 expectTypeOf(allUpdate).toMatchTypeOf<
   Effect.Effect<readonly Item[], never, FixEnv<Dep, Evt, readonly Item[], readonly Item[]>>
->();
+>()
 expectTypeOf(oneModify).toMatchTypeOf<
   Effect.Effect<{ tag: "dep"; id: string; label: string }, never, FixEnv<Dep, Evt, Item, Item>>
 >()

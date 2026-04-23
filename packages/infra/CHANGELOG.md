@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.0.0-beta.134
+
+### Patch Changes
+
+- eed57c6: Fix `R` inference in `OneDSL`, `OneDSLExt.modify` and `OneDSLExt.update`. The callback's effect type was annotated as `Effect<…, E, FixEnv<R, Evt, S1, S2>>`, which deadlocked inference of `R` (TS6 fell back to `never`, tsgo to `unknown`, leaking `unknown` into yielded effects in generator handlers). Now matches the existing `AllDSLExt` pattern: bare `R` in the callback, `FixEnv<R, …>` only in the return type.
+- Updated dependencies [9d3495e]
+- Updated dependencies [f353d48]
+  - effect-app@4.0.0-beta.134
+
 ## 4.0.0-beta.133
 
 ### Patch Changes

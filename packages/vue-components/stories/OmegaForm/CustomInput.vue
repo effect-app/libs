@@ -17,6 +17,7 @@
         :value="state.value"
         :class="inputProps.inputClass"
         @change="(e: any) => field.handleChange(e.target.value)"
+        @blur="field.handleBlur"
       >
     </div>
   </slot>

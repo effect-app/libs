@@ -1756,16 +1756,17 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
             message: intl.formatMessage(
                 { id: "handle.with_warnings" },
                 { action }
-              ) + e.message
-              ? "\n" + e.message
-              : ""
+              ) + (e.message ? "\n" + e.message : "")
           }
-          : `${
-            intl.formatMessage(
-              { id: "handle.with_errors" },
-              { action }
-            )
-          }:\n` + renderError(action, errorRenderer)(e, ...args)
+          : {
+            level: "warn" as const,
+            message: `${
+              intl.formatMessage(
+                { id: "handle.with_errors" },
+                { action }
+              )
+            }:\n` + renderError(action, errorRenderer)(e, ...args)
+          }
     })
   })
 

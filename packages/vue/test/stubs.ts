@@ -26,21 +26,21 @@ const fakeToastLayer = (toasts: any[] = []) =>
           toasts.splice(idx, 1)
         }
       }
-      const fakeToast = (message: string, options?: Toast.ToastOpts) => {
+      const fakeToast = (type: "error" | "warning" | "success" | "info") => (message: string, options?: Toast.ToastOpts) => {
         const id = options?.id ?? Math.random().toString(36).substring(2, 15)
-        console.log(`Toast [${id}]: ${message}`, options)
+        console.log(`Toast [${type}][${id}]: ${message}`, options)
 
         options = { ...options, id }
         const idx = toasts.findIndex((_) => _.id === id)
         if (idx > -1) {
           const toast = toasts[idx]
           clearTimeout(toast.timeoutId)
-          Object.assign(toast, { message, options })
+          Object.assign(toast, { type, message, options })
           toast.timeoutId = setTimeout(() => {
             toasts.splice(idx, 1)
           }, options?.timeout ?? 3000)
         } else {
-          const toast: any = { id, message, options }
+          const toast: any = { id, type, message, options }
           toast.timeoutId = setTimeout(() => {
             toasts.splice(idx, 1)
           }, options?.timeout ?? 3000)
@@ -49,10 +49,10 @@ const fakeToastLayer = (toasts: any[] = []) =>
         return id
       }
       return Toast.Toast.of(Toast.wrap({
-        error: fakeToast,
-        warning: fakeToast,
-        success: fakeToast,
-        info: fakeToast,
+        error: fakeToast("error"),
+        warning: fakeToast("warning"),
+        success: fakeToast("success"),
+        info: fakeToast("info"),
         dismiss
       })) as any
     })

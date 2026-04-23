@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.137
+
+### Patch Changes
+
+- 13a048d: Handles blur in veutify
+  - effect-app@4.0.0-beta.137
+  - @effect-app/vue@4.0.0-beta.137
+
 ## 4.0.0-beta.136
 
 ### Patch Changes

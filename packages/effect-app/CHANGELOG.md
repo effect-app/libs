@@ -1,5 +1,14 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.134
+
+### Patch Changes
+
+- 9d3495e: Preserve field-level schema decode errors for relaxed Class and TaggedClass declarations so decode failures report nested constraints (for example min-length violations) instead of only a generic class-type mismatch.
+- f353d48: Rename the Class/TaggedClass relaxed declaration option to `strict` (default `false`) and apply it to `Class`, `TaggedClass`, `ExtendedClass`, and `ExtendedTaggedClass`.
+
+  When `strict: true`, class decoding keeps strict class-level declaration behavior; by default, decoding remains relaxed and preserves field-level schema errors.
+
 ## 4.0.0-beta.133
 
 ### Patch Changes

@@ -4,7 +4,7 @@
     :key="fieldKey"
     :name="name"
     :validators="{
-      onBlur: schema,
+      onChange: schema,
       ...validators
     }"
   >

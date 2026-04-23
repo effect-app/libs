@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type Sqlite from "better-sqlite3"
 import BetterSqlite from "better-sqlite3"
+import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
 import { parseRow } from "../src/Store/SQL.js"
 import { buildWhereSQLQuery, pgDialect, sqliteDialect } from "../src/Store/SQL/query.js"
@@ -975,9 +976,33 @@ describe("toRow strips _etag and id from data", () => {
     expect(parsed).not.toHaveProperty("id")
     expect(parsed).not.toHaveProperty("_etag")
   })
+
+  it("drops over-provided fields on write after schema encoding", () => {
+    const schema = S.Struct({ id: S.String, name: S.String })
+    const encoded = S.encodeUnknownSync(schema)({ id: "1", name: "Alice", cause: { reason: "boom" } })
+    const row = toRow(encoded, "id")
+    const parsed = JSON.parse(row.data) as any
+    expect(parsed).toEqual({ name: "Alice" })
+    expect(parsed).not.toHaveProperty("cause")
+  })
 })
 
 describe("parseRow reconstructs full object from row", () => {
+  it("retains over-provided fields from database rows on read", () => {
+    const result: any = parseRow(
+      {
+        id: "1",
+        _etag: "e1",
+        data: JSON.stringify({ name: "Alice", cause: { reason: "db-extra" } })
+      },
+      "id",
+      {}
+    )
+    expect(result.id).toBe("1")
+    expect(result.name).toBe("Alice")
+    expect(result.cause).toEqual({ reason: "db-extra" })
+  })
+
   it("re-injects id from row column using idKey", () => {
     const result: any = parseRow(
       { id: "42", _etag: "etag1", data: JSON.stringify({ name: "Alice", age: 30 }) },

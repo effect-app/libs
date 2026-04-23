@@ -1753,10 +1753,12 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
         S.is(OperationFailure)(e)
           ? {
             level: "warn" as const,
-            message: intl.formatMessage(
-              { id: "handle.with_warnings" },
-              { action }
-            ) + (e.message ? "\n" + e.message : "")
+            message: `${
+              intl.formatMessage(
+                { id: "handle.with_warnings" },
+                { action }
+              )
+            }${e.message ? "\n" + e.message : ""}`
           }
           : {
             level: "warn" as const,

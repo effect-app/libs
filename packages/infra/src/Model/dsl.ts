@@ -42,16 +42,16 @@ export function makeAllDSL<T, Evt>() {
 
 export type OneDSL<T, Evt> =
   & (<R, A, E, S1 extends T, S2 extends T>(
-    pure: (dsl: PureDSL<S1, S2, Evt>) => Effect.Effect<A, E, FixEnv<R, Evt, S1, S2>>
+    pure: (dsl: PureDSL<S1, S2, Evt>) => Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, FixEnv<R, Evt, S1, S2>>)
   & OneDSLExt<T, Evt>
 
 export interface OneDSLExt<T, Evt> {
   modify: <R, E, A, S1 extends T, S2 extends T>(
-    pure: (items: S1, dsl: PureDSL<S1, S2, Evt>) => Effect.Effect<A, E, FixEnv<R, Evt, S1, S2>>
+    pure: (items: S1, dsl: PureDSL<S1, S2, Evt>) => Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, FixEnv<R, Evt, S1, S2> | PureEnvEnv<Evt, S1, S1>>
   update: <R, E, S1 extends T, S2 extends T>(
-    pure: (items: S1, log: (...evt: Evt[]) => PureLogT<Evt>) => Effect.Effect<S2, E, FixEnv<R, Evt, S1, S2>>
+    pure: (items: S1, log: (...evt: Evt[]) => PureLogT<Evt>) => Effect.Effect<S2, E, R>
   ) => Effect.Effect<S2, E, FixEnv<R, Evt, S1, S2>>
   updateWith: <S1 extends T, S2 extends T>(
     upd: (item: S1) => S2

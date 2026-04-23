@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
+import { OperationFailure } from "effect-app/Operations"
 import { CommandContext, DefaultIntl } from "../src/commander.js"
 import { AsyncResult } from "../src/lib.js"
 import { useExperimental } from "./stubs.js"
@@ -400,6 +401,7 @@ it.live("fail", () =>
       expect(command.waiting).toBe(false)
       expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
+      expect(toasts[0].type).toBe("warning")
       expect(toasts[0].message).toContain("Test Action Failed:\nBoom!")
       expect(toasts[0].message).toMatch(/Trace: [a-f0-9]{32}/)
       expect(toasts[0].message).toMatch(/Span: [a-f0-9]{16}/)
@@ -422,6 +424,30 @@ it.live("fail with showSpanInfo disabled", () =>
 
       expect(toasts.length).toBe(1)
       expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
+    }))
+
+it.live("fail with custom errorRenderer uses warning toast", () =>
+  Effect
+    .gen(function*() {
+      const toasts: any[] = []
+      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
+
+      const command = Command.fn("Test Action")(
+        function*() {
+          return yield* Effect.fail(new OperationFailure({ message: null }))
+        },
+        Command.withDefaultToast({
+          errorRenderer: () => "Rendered Boom!"
+        })
+      )
+
+      yield* Fiber.join(command.handle())
+
+      expect(toasts.length).toBe(1)
+      expect(toasts[0].type).toBe("warning")
+      expect(toasts[0].message).toContain("Test Action, with warnings\nRendered Boom!")
+      expect(toasts[0].message).toMatch(/Trace: [a-f0-9]{32}/)
+      expect(toasts[0].message).toMatch(/Span: [a-f0-9]{16}/)
     }))
 
 it.live("fail and recover", () =>
@@ -477,6 +503,7 @@ it.live("defect", () =>
       expect(command.waiting).toBe(false)
       expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
+      expect(toasts[0].type).toBe("error")
       expect(toasts[0].message).toContain("Test Action unexpected error, please try again shortly.")
     }))
 
@@ -735,6 +762,7 @@ it.live("fail with alt", () =>
       expect(command.waiting).toBe(false)
       expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
+      expect(toasts[0].type).toBe("warning")
       expect(toasts[0].message).toContain("Test Action Failed:\nBoom!")
     }))
 
@@ -795,6 +823,7 @@ it.live("defect with alt", () =>
       expect(command.waiting).toBe(false)
       expect(Exit.isFailure(AsyncResult.toExit(command.result))).toBe(true)
       expect(toasts.length).toBe(1) // toast should show error
+      expect(toasts[0].type).toBe("error")
       expect(toasts[0].message).toContain("Test Action unexpected error, please try again shortly.")
     }))
 

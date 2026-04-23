@@ -1749,23 +1749,28 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
             error: "" // TODO consider again Cause.pretty(cause), // will be reported to Sentry/Otel anyway.. and we shouldn't bother users with error dumps?
           }
         ),
-      onSome: (e) =>
-        S.is(OperationFailure)(e)
+      onSome: (e) => {
+        const rendered = renderError(action, errorRenderer)(e, ...args)
+        return S.is(OperationFailure)(e)
           ? {
             level: "warn" as const,
-            message: intl.formatMessage(
+            message: `${
+              intl.formatMessage(
                 { id: "handle.with_warnings" },
                 { action }
-              ) + e.message
-              ? "\n" + e.message
-              : ""
+              )
+            }${rendered ? "\n" + rendered : ""}`
           }
-          : `${
-            intl.formatMessage(
-              { id: "handle.with_errors" },
-              { action }
-            )
-          }:\n` + renderError(action, errorRenderer)(e, ...args)
+          : {
+            level: "warn" as const,
+            message: `${
+              intl.formatMessage(
+                { id: "handle.with_errors" },
+                { action }
+              )
+            }:\n` + rendered
+          }
+      }
     })
   })
 

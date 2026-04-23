@@ -1,7 +1,10 @@
 <template>
   <div
     class="omega-input"
-    @focusout="(e) => { $emit('blur', e); field.handleBlur() }"
+    @focusout="(e) => {
+      $emit('blur', e)
+      field.handleBlur()
+    }"
     @focusin="$emit('focus', $event)"
   >
     <component

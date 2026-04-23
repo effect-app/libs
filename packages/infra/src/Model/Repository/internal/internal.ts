@@ -74,8 +74,9 @@ export function makeRepoInternal<
           const rctx: Context.Context<RCtx> = args.schemaContext ?? Context.empty() as any
           const provideRctx = Effect.provide(rctx)
           const encodeMany = flow(
-            S.encodeEffect(S.Array(schema)),
+            S.encodeEffect(S.Array(S.toCodecJson(schema))),
             provideRctx,
+            Effect.map((_) => _ as unknown as Encoded[]),
             Effect.withSpan("encodeMany", { attributes: { itemType: name } }, { captureStackTrace: false })
           )
           const decode = flow(S.decodeEffect(schema), provideRctx)
@@ -422,7 +423,7 @@ export function makeRepoInternal<
              */
             mapped: <A, R>(schema: S.Codec<A, any, R>) => {
               const dec = S.decodeEffect(schema)
-              const encMany = S.encodeEffect(S.Array(schema))
+              const encMany = S.encodeEffect(S.Array(S.toCodecJson(schema)))
               const decMany = S.decodeEffect(S.Array(schema))
               return {
                 all: allE.pipe(
@@ -496,9 +497,9 @@ export function makeStore<Encoded extends FieldValues>() {
       function encodeToEncoded() {
         const getEtag = () => undefined
         return (t: T) =>
-          S.encodeEffect(schema)(t).pipe(
+          S.encodeEffect(S.toCodecJson(schema))(t).pipe(
             Effect.orDie,
-            Effect.map((_) => mapToPersistenceModel(_, getEtag))
+            Effect.map((_) => mapToPersistenceModel(_ as unknown as E, getEtag))
           )
       }
 

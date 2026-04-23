@@ -77,14 +77,14 @@ test("works with class", () => {
 
   expect(Object.getPrototypeOf(res3)).toEqual(Banana.prototype)
 
-  // @ts-expect-error extraProp is not a valid property of Banana
   copyBanana(
     original,
+    // @ts-expect-error extraProp is not a valid property of Banana
     { name: "string", extraProp: "whatever" }
   )
 
-  // @ts-expect-error extraProp is not a valid property of Banana
   copyBanana(
+    // @ts-expect-error extraProp is not a valid property of Banana
     original,
     { extraProp: "whatever" }
   )
@@ -179,14 +179,14 @@ test("works with schema class", () => {
 
   expect(Object.getPrototypeOf(res3)).toEqual(Banana.prototype)
 
-  // @ts-expect-error extraProp is not a valid property of Banana
   copyBanana(
     original,
+    // @ts-expect-error extraProp is not a valid property of Banana
     { name: "string", extraProp: "whatever" }
   )
 
-  // @ts-expect-error extraProp is not a valid property of Banana
   copyBanana(
+    // @ts-expect-error extraProp is not a valid property of Banana
     original,
     { extraProp: "whatever" }
   )

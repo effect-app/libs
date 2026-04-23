@@ -1,6 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.136
+
 ## 4.0.0-beta.135
+
+### Patch Changes
+
+- c7bbc41: fix - class should check type side
 
 ## 4.0.0-beta.134
 

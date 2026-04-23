@@ -12,6 +12,7 @@
   },
   "changesets": [
     "add-oxlint-integration",
+    "all-phones-dream",
     "batch-dual-options",
     "bold-berries-change",
     "brave-bushes-fold",
@@ -191,6 +192,7 @@
     "update-effect-beta-52",
     "vue-prefer-fn-untraced",
     "warm-streets-smell",
+    "wet-roses-press",
     "wet-sites-fall",
     "wild-olives-bathe",
     "wild-wombats-nail",

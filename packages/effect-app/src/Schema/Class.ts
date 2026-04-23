@@ -44,7 +44,7 @@ function makeRelaxedDeclaration(
   cls: any
 ): SchemaAST.Declaration {
   const structSchema = Schema.Struct(fields)
-  const decodeStruct = SchemaParser.decodeUnknownEffect(structSchema)
+  const decodeStruct = SchemaParser.decodeUnknownEffect(S.toType(structSchema))
   const existingParseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
   const annotations = {
     ...ast.annotations,

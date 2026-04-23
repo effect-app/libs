@@ -20,14 +20,14 @@
   },
   "peerDependencies": {
     "@mdi/js": "^7.4.47",
-    "effect": "^4.0.0-beta.52",
+    "effect": "^4.0.0-beta.56",
     "intl-messageformat": "^11.2.1",
     "mdi-js": "^1.0.1",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
-    "vue": "^3.5.32",
-    "vuetify": "^4.0.5"
+    "vue": "^3.5.33",
+    "vuetify": "^4.0.6"
   },
   "devDependencies": {
     "@effect-app/eslint-shared-config": "workspace:*",
@@ -44,14 +44,14 @@
     "storybook": "^10.3.5",
     "storybook-vue3-router": "^7.0.0",
     "typescript": "~6.0.3",
-    "vite": "^8.0.9",
+    "vite": "^8.0.10",
     "vite-plugin-css-injected-by-js": "^5.0.1",
     "vitepress": "^1.6.4",
     "vitest": "^4.1.5",
-    "vue-router": "^5.0.4",
+    "vue-router": "^5.0.6",
     "vue-toastification": "^2.0.0-rc.5",
     "vue-tsc": "^3.2.7",
-    "vuetify": "^4.0.5"
+    "vuetify": "^4.0.6"
   },
   "files": [
     "src",

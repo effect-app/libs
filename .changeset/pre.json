@@ -12,6 +12,7 @@
   },
   "changesets": [
     "add-oxlint-integration",
+    "all-phones-dream",
     "batch-dual-options",
     "bold-berries-change",
     "brave-bushes-fold",
@@ -107,7 +108,6 @@
     "modern-humans-chew",
     "neat-dingos-tease",
     "new-badgers-wait",
-    "nice-jars-grow",
     "nice-needles-film",
     "no-await-effect",
     "odd-deers-work",

@@ -164,6 +164,7 @@
     "sql-transaction-middleware",
     "sqlite-per-namespace-layermap",
     "sse-filter-namespace-by-storeid",
+    "stale-actors-remain",
     "stale-emus-see",
     "store-effect-cached",
     "store-seed-uninterruptible",

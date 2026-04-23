@@ -24,6 +24,10 @@ type HasFields<Fields extends S.Struct.Fields> = {
   readonly from: HasFields<Fields>
 }
 
+type ClassOptions = {
+  readonly strict?: boolean
+}
+
 export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, Inherited> = EnhancedClass<
   Self,
   S,
@@ -89,13 +93,15 @@ function makeRelaxedDeclaration(
  */
 export const Class: <Self = never>(identifier: string) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
-  annotations?: ClassAnnotations<Self>
+  annotations?: ClassAnnotations<Self>,
+  options?: ClassOptions
 ) => [Self] extends [never] ? MissingSelfGeneric<"Class">
   : EnhancedClass<
     Self,
     S.Struct<Fields>,
     {}
-  > = (identifier) => (fields, annotations) => {
+  > = (identifier) => (fields, annotations, options) => {
+    const relaxed = !(options?.strict ?? false)
     // Build the original Schema.Class
     const Base = (S.Class as any)(identifier)(fields, annotations)
     // Get the original ast getter from the base class
@@ -120,7 +126,7 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
         // Call the original getter with `this` bound to the actual user class,
         // so getClassSchema(this) creates a schema that uses `new this(...)`.
         const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
-        cached = makeRelaxedDeclaration(originalAst, Base.fields, this)
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
         astCache.set(this, cached)
         return cached
       }
@@ -155,13 +161,15 @@ export const TaggedClass: <Self = never>(
 ) => <Tag extends string, Fields extends S.Struct.Fields>(
   tag: Tag,
   fieldsOr: Fields | HasFields<Fields>,
-  annotations?: ClassAnnotations<Self>
+  annotations?: ClassAnnotations<Self>,
+  options?: ClassOptions
 ) => [Self] extends [never] ? MissingSelfGeneric<"TaggedClass">
   : EnhancedClass<
     Self,
     S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>,
     {}
-  > = (identifier) => (tag, fields, annotations) => {
+  > = (identifier) => (tag, fields, annotations, options) => {
+    const relaxed = !(options?.strict ?? false)
     const Base = (S.TaggedClass as any)(identifier)(tag, fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
@@ -180,7 +188,7 @@ export const TaggedClass: <Self = never>(
         let cached = astCache.get(this)
         if (cached !== undefined) return cached
         const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
-        cached = makeRelaxedDeclaration(originalAst, Base.fields, this)
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
         astCache.set(this, cached)
         return cached
       }
@@ -196,7 +204,8 @@ export const TaggedClass: <Self = never>(
 
 export const ExtendedClass: <Self, _SelfFrom>(identifier: string) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
-  annotations?: ClassAnnotations<Self>
+  annotations?: ClassAnnotations<Self>,
+  options?: ClassOptions
 ) => EnhancedClass<
   Self,
   S.Struct<Fields>,
@@ -223,7 +232,8 @@ export const ExtendedTaggedClass: <Self, SelfFrom>(
 ) => <Tag extends string, Fields extends S.Struct.Fields>(
   tag: Tag,
   fieldsOr: Fields | HasFields<Fields>,
-  annotations?: ClassAnnotations<Self>
+  annotations?: ClassAnnotations<Self>,
+  options?: ClassOptions
 ) => EnhancedTaggedClass<
   Self,
   Tag,

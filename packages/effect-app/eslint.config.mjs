@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 export default [
-  ...augmentedConfig(__dirname, false),
+  ...augmentedConfig(__dirname, false, undefined, true),
   {
     ignores: [
       "**/*.js",

@@ -32,9 +32,11 @@ const compat = new FlatCompat({
 /**
  * @param {string} dirName
  * @param {boolean} [forceTS=false]
+ * @param {unknown} [project]
+ * @param {boolean} [enableOxlint=false]
  * @returns {import("eslint").Linter.FlatConfig[]}
  */
-export function baseConfig(dirName, forceTS = false, project = undefined) {
+export function baseConfig(dirName, forceTS = false, project = undefined, enableOxlint = false) {
   // eslint-disable-next-line no-undef
   const enableTS = !!dirName && (forceTS || process.env["ESLINT_TS"])
   return [
@@ -57,7 +59,7 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
       eslint.configs.recommended,
       tseslint.configs.recommended,
     ),
-    ...oxlint.configs["flat/recommended"],
+    ...(enableOxlint ? oxlint.configs["flat/recommended"] : []),
     ...(enableTS ? tseslint.configs.recommendedTypeChecked : []),
     {
       // otherwise this config object doesn't apply inside vue files
@@ -168,11 +170,13 @@ export function baseConfig(dirName, forceTS = false, project = undefined) {
 /**
  * @param {string} dirName
  * @param {boolean} [forceTS=false]
+ * @param {unknown} [project]
+ * @param {boolean} [enableOxlint=false]
  * @returns {import("eslint").Linter.FlatConfig[]}
  */
-export function augmentedConfig(dirName, forceTS = false, project = undefined) {
+export function augmentedConfig(dirName, forceTS = false, project = undefined, enableOxlint = false) {
   return [
-    ...baseConfig(dirName, forceTS, project),
+    ...baseConfig(dirName, forceTS, project, enableOxlint),
     {
       name: "augmented",
       plugins: {

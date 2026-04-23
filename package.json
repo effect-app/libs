@@ -7,7 +7,8 @@
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
       "typescript@6.0.3": "patches/typescript.patch",
       "@ben_12/eslint-plugin-dprint": "patches/@ben_12__eslint-plugin-dprint.patch",
-      "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch"
+      "eslint-plugin-codegen": "patches/eslint-plugin-codegen.patch",
+      "@sendgrid/mail": "patches/@sendgrid__mail.patch"
     }
   },
   "engines": {
@@ -38,12 +39,12 @@
     "testsuite-packages": "pnpm packages testsuite",
     "watch-packages": "pnpm packages build && pnpm packages watch",
     "build:tsc": "effect-app-cli packagejson-packages pnpm check",
-    "check": "tsc --build ./tsconfig.all.json",
+    "check": "tsgo --build ./tsconfig.all.json",
     "watch": "pnpm build:tsc --watch",
     "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",
     "nnm": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && pnpm i",
-    "prepare": "effect-language-service patch",
+    "prepare": "node -e \"const v=require('typescript/package.json').version;if(v.startsWith('6.')){require('child_process').execSync('effect-language-service patch',{stdio:'inherit'})}else{console.log('Skipping effect-language-service patch for TypeScript '+v)}\"",
     "subtree:effect": "node scripts/sync-effect-subtree.js"
   },
   "resolutions": {
@@ -90,7 +91,7 @@
     "tsc-watch": "^7.2.0",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
-    "typescript": "~6.0.3",
+    "typescript": "npm:@typescript/native-preview@beta",
     "unplugin-auto-import": "^21.0.0",
     "vite": "^8.0.9",
     "vitest": "^4.1.5"

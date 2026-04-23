@@ -6,8 +6,8 @@
   "scripts": {
     "watch": "pnpm build:tsc -w",
     "build:tsc": "pnpm clean-dist && pnpm check",
-    "check": "tsc --build",
-    "build": "tsc",
+    "check": "tsgo --build",
+    "build": "tsgo",
     "circular": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "ncu": "ncu",
     "pub": "pnpm prepublish && npm publish --access public",
@@ -31,7 +31,7 @@
     "@types/glob": "8.1.0",
     "@types/lodash": "4.17.24",
     "madge": "8.0.0",
-    "typescript": "~6.0.3",
+    "typescript": "npm:@typescript/native-preview@beta",
     "effect-app": "workspace:*",
     "@effect-app/eslint-shared-config": "workspace:*"
   },

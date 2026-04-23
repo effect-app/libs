@@ -1,0 +1,105 @@
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/argv-patch.d.ts /tmp/dist-snapshots/tsgo/cli/dist/argv-patch.d.ts
+--- /tmp/dist-snapshots/tsc/cli/dist/argv-patch.d.ts	2026-04-23 09:01:04.869381218 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/argv-patch.d.ts	2026-04-23 09:00:34.692216249 +0200
+@@ -1,2 +1,2 @@
+ export declare const patchArgvForWrapCommands: (argv: Array<string>) => void;
+-//# sourceMappingURL=argv-patch.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/extract.d.ts /tmp/dist-snapshots/tsgo/cli/dist/extract.d.ts
+--- /tmp/dist-snapshots/tsc/cli/dist/extract.d.ts	2026-04-23 09:01:04.869429571 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/extract.d.ts	2026-04-23 09:00:34.692414309 +0200
+@@ -10,5 +10,5 @@
+  * This allows users to import individual modules instead of the entire package:
+  * import { helper } from 'package/utils/helper' instead of 'package'
+  */
+-export declare const ExtractExportMappingsService: Effect.Effect<(cwd: string) => Effect.Effect<string, PlatformError.PlatformError, never>, never, Path.Path | FileSystem.FileSystem>;
+-//# sourceMappingURL=extract.d.ts.map
+\ No newline at end of file
++export declare const ExtractExportMappingsService: Effect.Effect<(cwd: string) => Effect.Effect<string, PlatformError.PlatformError, never>, never, FileSystem.FileSystem | Path.Path>;
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/gist.d.ts /tmp/dist-snapshots/tsgo/cli/dist/gist.d.ts
+--- /tmp/dist-snapshots/tsc/cli/dist/gist.d.ts	2026-04-23 09:01:04.869549304 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/gist.d.ts	2026-04-23 09:00:34.692446679 +0200
+@@ -380,17 +380,17 @@
+ declare const GistHandler_base: Context.ServiceClass<GistHandler, "GistHandler", {
+     handler: (args_0: {
+         YAMLPath: string;
+-    }) => Effect.Effect<undefined, import("effect/PlatformError").PlatformError | GistError | Schema.SchemaError | GistCacheOfCompanyNotFound | GistYAMLError | Config.ConfigError, never>;
++    }) => Effect.Effect<undefined, Config.ConfigError | GistCacheOfCompanyNotFound | GistError | GistYAMLError | import("effect/PlatformError").PlatformError | Schema.SchemaError, never>;
+ }> & {
+     readonly make: Effect.Effect<{
+         handler: (args_0: {
+             YAMLPath: string;
+-        }) => Effect.Effect<undefined, import("effect/PlatformError").PlatformError | GistError | Schema.SchemaError | GistCacheOfCompanyNotFound | GistYAMLError | Config.ConfigError, never>;
+-    }, never, Path.Path | FileSystem.FileSystem | GHGistService>;
++        }) => Effect.Effect<undefined, Config.ConfigError | GistCacheOfCompanyNotFound | GistError | GistYAMLError | import("effect/PlatformError").PlatformError | Schema.SchemaError, never>;
++    }, never, FileSystem.FileSystem | GHGistService | Path.Path>;
+ };
+ export declare class GistHandler extends GistHandler_base {
+-    static DefaultWithoutDependencies: Layer.Layer<GistHandler, never, Path.Path | FileSystem.FileSystem | GHGistService>;
+-    static Default: Layer.Layer<GistHandler, never, Path.Path | FileSystem.FileSystem | import("effect/unstable/process/ChildProcessSpawner").ChildProcessSpawner>;
++    static DefaultWithoutDependencies: Layer.Layer<GistHandler, never, FileSystem.FileSystem | GHGistService | Path.Path>;
++    static Default: Layer.Layer<GistHandler, never, import("effect/unstable/process/ChildProcessSpawner").ChildProcessSpawner | FileSystem.FileSystem | Path.Path>;
+ }
+ export {};
+-//# sourceMappingURL=gist.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/gist.js /tmp/dist-snapshots/tsgo/cli/dist/gist.js
+--- /tmp/dist-snapshots/tsc/cli/dist/gist.js	2026-04-23 09:01:04.869505226 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/gist.js	2026-04-23 09:00:34.692336429 +0200
+@@ -571,4 +571,4 @@
+     static DefaultWithoutDependencies = Layer.effect(this, this.make);
+     static Default = this.DefaultWithoutDependencies.pipe(Layer.provide(GHGistService.Default));
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/index.d.ts /tmp/dist-snapshots/tsgo/cli/dist/index.d.ts
+--- /tmp/dist-snapshots/tsc/cli/dist/index.d.ts	2026-04-23 09:01:04.869699582 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/index.d.ts	2026-04-23 09:00:34.692308126 +0200
+@@ -1,2 +1,2 @@
+ export {};
+-//# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/os-command.d.ts /tmp/dist-snapshots/tsgo/cli/dist/os-command.d.ts
+--- /tmp/dist-snapshots/tsc/cli/dist/os-command.d.ts	2026-04-23 09:01:04.869468770 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/os-command.d.ts	2026-04-23 09:00:34.692392481 +0200
+@@ -18,4 +18,4 @@
+     static Default: Layer.Layer<RunCommandService, never, ChildProcessSpawner>;
+ }
+ export {};
+-//# sourceMappingURL=os-command.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/os-command.js /tmp/dist-snapshots/tsgo/cli/dist/os-command.js
+--- /tmp/dist-snapshots/tsc/cli/dist/os-command.js	2026-04-23 09:01:04.869442248 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/os-command.js	2026-04-23 09:00:34.692244418 +0200
+@@ -40,4 +40,4 @@
+ }) {
+     static Default = Layer.effect(this, this.make);
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/shared.d.ts /tmp/dist-snapshots/tsgo/cli/dist/shared.d.ts
+--- /tmp/dist-snapshots/tsc/cli/dist/shared.d.ts	2026-04-23 09:01:04.869588162 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/shared.d.ts	2026-04-23 09:00:34.692193030 +0200
+@@ -1,3 +1,3 @@
+ export declare const packages: string[];
+ export declare const EFFECT_APP_LIBS: string;
+-//# sourceMappingURL=shared.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/cli/dist/sync-effect-subtree.d.ts /tmp/dist-snapshots/tsgo/cli/dist/sync-effect-subtree.d.ts
+--- /tmp/dist-snapshots/tsc/cli/dist/sync-effect-subtree.d.ts	2026-04-23 09:01:04.869629192 +0200
++++ /tmp/dist-snapshots/tsgo/cli/dist/sync-effect-subtree.d.ts	2026-04-23 09:00:34.692370523 +0200
+@@ -6,5 +6,5 @@
+     readonly remoteName: string;
+     readonly remoteUrl: string;
+ }
+-export declare const syncEffectSubtree: (config: SyncEffectConfig) => Effect.Effect<undefined, import("effect/PlatformError").PlatformError | Error, FileSystem.FileSystem | RunCommandService>;
+-//# sourceMappingURL=sync-effect-subtree.d.ts.map
+\ No newline at end of file
++export declare const syncEffectSubtree: (config: SyncEffectConfig) => Effect.Effect<undefined, Error | import("effect/PlatformError").PlatformError, FileSystem.FileSystem | RunCommandService>;
+\ No newline at end of file

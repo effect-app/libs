@@ -1,0 +1,379 @@
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/commander.d.ts /tmp/dist-snapshots/tsgo/vue/dist/commander.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/commander.d.ts	2026-04-23 09:01:04.892024701 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/commander.d.ts	2026-04-23 09:00:34.709330840 +0200
+@@ -214,16 +214,16 @@
+ export declare const CommanderStatic: {
+     accessArgs: <In, Out, Arg2, Arg = void>(cb: (a: NoInfer<Arg>, b: NoInfer<Arg2>) => (self: NoInfer<In>) => Out) => (self: In, arg: Arg, arg2: Arg2) => Out;
+     /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
+-    confirmOrInterrupt: (message?: string | undefined) => Effect.Effect<void, never, I18n | CommandContext | Confirm>;
++    confirmOrInterrupt: (message?: string | undefined) => Effect.Effect<void, never, CommandContext | Confirm | I18n>;
+     /** Version of @see confirm that automatically includes the action name in the default messages */
+-    confirm: (message?: string | undefined) => Effect.Effect<boolean, never, I18n | CommandContext | Confirm>;
+-    updateAction: <Args extends Array<unknown>>(update: (currentActionId: string, ...args: Args) => string) => <A, E, R>(_: Effect.Effect<A, E, R>, ...input: Args) => Effect.Effect<A, E, CommandContext | R>;
++    confirm: (message?: string | undefined) => Effect.Effect<boolean, never, CommandContext | Confirm | I18n>;
++    updateAction: <Args extends Array<unknown>>(update: (currentActionId: string, ...args: Args) => string) => <A, E, R>(_: Effect.Effect<A, E, R>, ...input: Args) => Effect.Effect<A, E, R | CommandContext>;
+     registerErrorRenderer: <A>(guard: Predicate.Refinement<unknown, A>, render: (guarded: A) => string | undefined) => Layer.Layer<never, never, never>;
+     defaultFailureMessageHandler: <E, Args extends Array<unknown>, AME, AMR>(actionMaker: string | ((o: Option.Option<E>, ...args: Args) => string) | ((o: Option.Option<E>, ...args: Args) => Effect.Effect<string, AME, AMR>), errorRenderer?: ErrorRenderer<E, Args>) => (o: Option.Option<E>, ...args: Args) => Effect.Effect<string | {
+         level: "warn";
+         message: string;
+-    }, AME, I18n | AMR>;
+-    renderError: Effect.Effect<(<E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) => (e: E, ...args: Args) => string), never, I18n>;
++    }, AME, AMR | I18n>;
++    renderError: Effect.Effect<<E, Args extends readonly any[]>(action: string, errorRenderer?: ErrorRenderer<E, Args>) => (e: E, ...args: Args) => string, never, I18n>;
+     /**
+      * Version of withDefaultToast that automatically includes the action name in the default messages and uses intl.
+      * uses the Command id as i18n namespace.  `action.{id}` is the main action name,
+@@ -244,7 +244,7 @@
+         showSpanInfo?: false;
+         onWaiting?: null | undefined | string | ((id: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined);
+         onSuccess?: null | undefined | string | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined);
+-    }) => (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, I18n | CommandContext | R | WithToast>;
++    }) => (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, R | CommandContext | I18n | WithToast>;
+     /** borrowing the idea from Families in Effect Atom */
+     family: <T extends object, Arg, ArgIn = Arg>(maker: (arg: Arg) => T, keyMaker?: (arg: ArgIn) => Arg) => (arg: ArgIn) => T;
+ };
+@@ -360,11 +360,11 @@
+     }), options?: FnOptions<Id, I18nKey, State>) => Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R>;
+ }
+ declare const Commander_base: Context.ServiceClass<Commander, "Commander", <RT, RTHooks>(rt: Context.Context<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) => CommanderImpl<RT, RTHooks>> & {
+-    readonly make: Effect.Effect<(<RT, RTHooks>(rt: Context.Context<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) => CommanderImpl<RT, RTHooks>), never, I18n>;
++    readonly make: Effect.Effect<<RT, RTHooks>(rt: Context.Context<RT>, rtHooks: Layer.Layer<RTHooks, never, RT>) => CommanderImpl<RT, RTHooks>, never, I18n>;
+ };
+ export declare class Commander extends Commander_base {
+     static readonly DefaultWithoutDependencies: Layer.Layer<Commander, never, I18n>;
+     static readonly Default: Layer.Layer<Commander, never, I18n>;
+ }
+ export {};
+-//# sourceMappingURL=commander.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/commander.js /tmp/dist-snapshots/tsgo/vue/dist/commander.js
+--- /tmp/dist-snapshots/tsc/vue/dist/commander.js	2026-04-23 09:01:04.891937621 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/commander.js	2026-04-23 09:00:34.709206793 +0200
+@@ -583,4 +583,4 @@
+     static DefaultWithoutDependencies = Layer.effect(this, this.make);
+     static Default = this.DefaultWithoutDependencies;
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/confirm.d.ts /tmp/dist-snapshots/tsgo/vue/dist/confirm.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/confirm.d.ts	2026-04-23 09:01:04.891858962 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/confirm.d.ts	2026-04-23 09:00:34.708911213 +0200
+@@ -16,4 +16,4 @@
+     static readonly confirmOrInterrupt: (message?: string | undefined) => Effect.Effect<void, never, Confirm>;
+ }
+ export {};
+-//# sourceMappingURL=confirm.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/confirm.js /tmp/dist-snapshots/tsgo/vue/dist/confirm.js
+--- /tmp/dist-snapshots/tsc/vue/dist/confirm.js	2026-04-23 09:01:04.891826441 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/confirm.js	2026-04-23 09:00:34.708818831 +0200
+@@ -21,4 +21,4 @@
+         return yield* c.confirmOrInterrupt(message);
+     });
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/errorReporter.d.ts /tmp/dist-snapshots/tsgo/vue/dist/errorReporter.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/errorReporter.d.ts	2026-04-23 09:01:04.891260608 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/errorReporter.d.ts	2026-04-23 09:00:34.708713254 +0200
+@@ -5,4 +5,4 @@
+ export declare function logError<E>(name: string): (cause: Cause.Cause<E>, extras?: Record<string, unknown> | undefined) => Effect.Effect<void, never, never>;
+ export declare function captureException(error: unknown, extras?: Record<string, unknown>): void;
+ export declare const reportMessage: (message: string, extras?: Record<string, unknown> | undefined) => Effect.Effect<void, never, never>;
+-//# sourceMappingURL=errorReporter.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/errorReporter.js /tmp/dist-snapshots/tsgo/vue/dist/errorReporter.js
+--- /tmp/dist-snapshots/tsc/vue/dist/errorReporter.js	2026-04-23 09:01:04.891198669 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/errorReporter.js	2026-04-23 09:00:34.708619225 +0200
+@@ -71,4 +71,4 @@
+     Sentry.captureMessage(message, scope);
+     console.warn(message, extras);
+ });
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/form.d.ts /tmp/dist-snapshots/tsgo/vue/dist/form.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/form.d.ts	2026-04-23 09:01:04.891362150 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/form.d.ts	2026-04-23 09:00:34.708962763 +0200
+@@ -80,10 +80,10 @@
+ /** @deprecated Use OmegaForm instead */
+ export declare const translate: import("vue").Ref<{
+     (this: void, descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, import("intl-messageformat").PrimitiveType | import("intl-messageformat").FormatXMLElementFn<string, string>>, opts?: import("intl-messageformat").Options): string;
+-    <T extends unknown, TValue extends T | import("intl-messageformat").FormatXMLElementFn<T>>(this: void, descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, import("intl-messageformat").PrimitiveType | TValue> | undefined, opts?: import("intl-messageformat").Options): string | T | (string | T)[];
++    <T extends unknown, TValue extends T | import("intl-messageformat").FormatXMLElementFn<T>>(this: void, descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, TValue | import("intl-messageformat").PrimitiveType> | undefined, opts?: import("intl-messageformat").Options): string | T | (string | T)[];
+ }, {
+     (this: void, descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, import("intl-messageformat").PrimitiveType | import("intl-messageformat").FormatXMLElementFn<string, string>>, opts?: import("intl-messageformat").Options): string;
+-    <T extends unknown, TValue extends T | import("intl-messageformat").FormatXMLElementFn<T>>(this: void, descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, import("intl-messageformat").PrimitiveType | TValue> | undefined, opts?: import("intl-messageformat").Options): string | T | (string | T)[];
++    <T extends unknown, TValue extends T | import("intl-messageformat").FormatXMLElementFn<T>>(this: void, descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, TValue | import("intl-messageformat").PrimitiveType> | undefined, opts?: import("intl-messageformat").Options): string | T | (string | T)[];
+ }>;
+ /** @deprecated Use OmegaForm instead */
+ export declare const customSchemaErrors: import("vue").Ref<Map<string | S.AST.AST, (message: string, e: unknown, v: unknown) => string> & Omit<Map<string | S.AST.AST, (message: string, e: unknown, v: unknown) => string>, keyof Map<any, any>>, Map<string | S.AST.AST, (message: string, e: unknown, v: unknown) => string> | (Map<string | S.AST.AST, (message: string, e: unknown, v: unknown) => string> & Omit<Map<string | S.AST.AST, (message: string, e: unknown, v: unknown) => string>, keyof Map<any, any>>)>;
+@@ -100,4 +100,4 @@
+     description?: string;
+ };
+ export {};
+-//# sourceMappingURL=form.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/form.js /tmp/dist-snapshots/tsgo/vue/dist/form.js
+--- /tmp/dist-snapshots/tsc/vue/dist/form.js	2026-04-23 09:01:04.891326620 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/form.js	2026-04-23 09:00:34.708787153 +0200
+@@ -327,4 +327,4 @@
+         required: !nullable
+     };
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/index.d.ts /tmp/dist-snapshots/tsgo/vue/dist/index.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/index.d.ts	2026-04-23 09:01:04.891814112 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/index.d.ts	2026-04-23 09:00:34.708592857 +0200
+@@ -5,4 +5,4 @@
+ export * from "./mutate.js";
+ export * from "./query.js";
+ export * from "./runtime.js";
+-//# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/intl.d.ts /tmp/dist-snapshots/tsgo/vue/dist/intl.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/intl.d.ts	2026-04-23 09:01:04.891481207 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/intl.d.ts	2026-04-23 09:00:34.709179799 +0200
+@@ -3,13 +3,13 @@
+     locale: import("vue").Ref<string, string>;
+     trans: (id: string, values?: Record<string, import("intl-messageformat").PrimitiveType | import("intl-messageformat").FormatXMLElementFn<string, string>>) => string;
+     readonly formatMessage: (descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, import("intl-messageformat").PrimitiveType | import("intl-messageformat").FormatXMLElementFn<string, string>>, opts?: import("intl-messageformat").Options) => string;
+-    readonly intl: import("./makeIntl.js").IntlShape<Locale>;
++    readonly intl: import("./makeIntl.js").IntlShape<string>;
+ }>;
+ export declare class I18n extends I18n_base {
+     static readonly locale: import("effect/Effect").Effect<import("vue").Ref<string, string>, never, I18n>;
+-    static readonly trans: (id: string, values?: Record<string, import("intl-messageformat").PrimitiveType | import("intl-messageformat").FormatXMLElementFn<string, string>> | undefined) => import("effect/Effect").Effect<string, never, I18n>;
+-    static readonly formatMessage: (descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, import("intl-messageformat").PrimitiveType | import("intl-messageformat").FormatXMLElementFn<string, string>> | undefined, opts?: import("intl-messageformat").Options | undefined) => import("effect/Effect").Effect<string, never, I18n>;
++    static readonly trans: (id: string, values?: Record<string, import("intl-messageformat").FormatXMLElementFn<string, string> | import("intl-messageformat").PrimitiveType> | undefined) => import("effect/Effect").Effect<string, never, I18n>;
++    static readonly formatMessage: (descriptor: import("@formatjs/intl").MessageDescriptor, values?: Record<string, import("intl-messageformat").FormatXMLElementFn<string, string> | import("intl-messageformat").PrimitiveType> | undefined, opts?: import("intl-messageformat").Options | undefined) => import("effect/Effect").Effect<string, never, I18n>;
+     static readonly intl: import("effect/Effect").Effect<import("./makeIntl.js").IntlShape<string>, never, I18n>;
+ }
+ export {};
+-//# sourceMappingURL=intl.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/intl.js /tmp/dist-snapshots/tsgo/vue/dist/intl.js
+--- /tmp/dist-snapshots/tsc/vue/dist/intl.js	2026-04-23 09:01:04.891450224 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/intl.js	2026-04-23 09:00:34.708565766 +0200
+@@ -6,4 +6,4 @@
+     static formatMessage = accessFn(this, "formatMessage");
+     static intl = accessCn(this, "intl");
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/lib.d.ts /tmp/dist-snapshots/tsgo/vue/dist/lib.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/lib.d.ts	2026-04-23 09:01:04.891300029 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/lib.d.ts	2026-04-23 09:00:34.708932792 +0200
+@@ -21,4 +21,4 @@
+     <I, E, R, A, E2, A2, R2, Request extends Req, Name extends string>(self: RequestHandlerWithInput<I, A, E, R, Request, Name>, map: (handler: (i: I) => Effect.Effect<A, E, R>) => (i: I) => Effect.Effect<A2, E2, R2>): RequestHandlerWithInput<I, A2, E2, R2, Request, Name>;
+     <E, A, R, E2, A2, R2, Request extends Req, Name extends string>(self: RequestHandler<A, E, R, Request, Name>, map: (handler: Effect.Effect<A, E, R>) => Effect.Effect<A2, E2, R2>): RequestHandler<A2, E2, R2, Request, Name>;
+ };
+-//# sourceMappingURL=lib.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/makeClient.d.ts /tmp/dist-snapshots/tsgo/vue/dist/makeClient.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/makeClient.d.ts	2026-04-23 09:01:04.891764969 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/makeClient.d.ts	2026-04-23 09:00:34.709085584 +0200
+@@ -204,14 +204,14 @@
+ type Base = I18n | Toast;
+ type Mix = ApiClientFactory | Commander | Base;
+ export declare const makeClient: <RT_, RTHooks>(getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>, clientFor_: ReturnType<(typeof ApiClientFactory)["makeFor"]>, rtHooks: Layer.Layer<RTHooks, never, Mix>) => {
+-    Command: CommanderResolved<Mix | RT_, RTHooks>;
+-    useCommand: () => CommanderResolved<Mix | RT_, RTHooks>;
+-    clientFor: <M extends RequestsAny>(m: M, queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>) => { [Key in keyof RequestHandlers<never, never, M, ExtractModuleName<M>>]: RequestHandlers<never, never, M, ExtractModuleName<M>>[Key] & (QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? {} : QueryRequestWithExtensions<QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>> & Queries<Mix | RT_, QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>) & (CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? {} : CommandRequestWithExtensions<RTHooks | (Mix | RT_), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>) & (CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? {} : {
+-        mutate: MutationWithExtensions<RTHooks | (Mix | RT_), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>;
++    Command: CommanderResolved<RT_ | Mix, RTHooks>;
++    useCommand: () => CommanderResolved<RT_ | Mix, RTHooks>;
++    clientFor: <M extends RequestsAny>(m: M, queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>) => { [Key in keyof RequestHandlers<never, never, M, ExtractModuleName<M>>]: RequestHandlers<never, never, M, ExtractModuleName<M>>[Key] & (QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? {} : QueryRequestWithExtensions<QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>> & Queries<RT_ | Mix, QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>) & (CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? {} : CommandRequestWithExtensions<RTHooks | (RT_ | Mix), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>) & (CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? {} : {
++        mutate: MutationWithExtensions<RTHooks | (RT_ | Mix), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>;
+     }) & {
+         Input: RequestHandlers<never, never, M, ExtractModuleName<M>>[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never;
+     }; } & {
+-        helpers: { [Key_1 in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_1]> extends never ? never : `${ToCamel<string & Key_1>}Request`]: CommandRequestWithExtensions<RTHooks | (Mix | RT_), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_1]>>; } & { [Key_2 in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_2]> extends never ? never : `${ToCamel<string & Key_2>}Mutation`]: MutationWithExtensions<RTHooks | (Mix | RT_), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_2]>>; } & { [Key_3 in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_3]> extends never ? never : `${ToCamel<string & Key_3>}Query`]: Queries<Mix | RT_, QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_3]>>["query"]; } & { [Key_4 in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_4]> extends never ? never : `${ToCamel<string & Key_4>}SuspenseQuery`]: Queries<Mix | RT_, QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key_4]>>["suspense"]; };
++        helpers: { [Key in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? never : `${ToCamel<string & Key>}Request`]: CommandRequestWithExtensions<RTHooks | (RT_ | Mix), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>; } & { [Key in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? never : `${ToCamel<string & Key>}Mutation`]: MutationWithExtensions<RTHooks | (RT_ | Mix), CommandHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>; } & { [Key in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? never : `${ToCamel<string & Key>}Query`]: Queries<RT_ | Mix, QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>["query"]; } & { [Key in keyof RequestHandlers<never, never, M, ExtractModuleName<M>> as QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]> extends never ? never : `${ToCamel<string & Key>}SuspenseQuery`]: Queries<RT_ | Mix, QueryHandler<RequestHandlers<never, never, M, ExtractModuleName<M>>[Key]>>["suspense"]; };
+     };
+ };
+ export type QueryInvalidation<M> = {
+@@ -234,4 +234,4 @@
+ export interface CommandFromRequest<I extends abstract new (...args: any) => any, A = unknown, E = unknown> extends EffectCommand<ConstructorParameters<I>[0], A, E> {
+ }
+ export {};
+-//# sourceMappingURL=makeClient.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/makeClient.js /tmp/dist-snapshots/tsgo/vue/dist/makeClient.js
+--- /tmp/dist-snapshots/tsc/vue/dist/makeClient.js	2026-04-23 09:01:04.891721959 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/makeClient.js	2026-04-23 09:00:34.708885163 +0200
+@@ -222,4 +222,4 @@
+         clientFor
+     };
+ };
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/makeContext.d.ts /tmp/dist-snapshots/tsgo/vue/dist/makeContext.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/makeContext.d.ts	2026-04-23 09:01:04.891398718 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/makeContext.d.ts	2026-04-23 09:00:34.708986782 +0200
+@@ -14,4 +14,4 @@
+     use: () => T & ({} | null);
+     provide: (locale: T) => void;
+ };
+-//# sourceMappingURL=makeContext.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/makeIntl.d.ts /tmp/dist-snapshots/tsgo/vue/dist/makeIntl.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/makeIntl.d.ts	2026-04-23 09:01:04.891437622 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/makeIntl.d.ts	2026-04-23 09:00:34.709112625 +0200
+@@ -18,4 +18,4 @@
+         provide: (locale: Ref<NoInfer<Locale>, NoInfer<Locale>>) => void;
+     };
+ };
+-//# sourceMappingURL=makeIntl.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/makeUseCommand.d.ts /tmp/dist-snapshots/tsgo/vue/dist/makeUseCommand.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/makeUseCommand.d.ts	2026-04-23 09:01:04.891520678 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/makeUseCommand.d.ts	2026-04-23 09:00:34.708674269 +0200
+@@ -5,4 +5,4 @@
+ }
+ export declare const makeUseCommand: <R = never, RTHooks = never>(rtHooks: Layer.Layer<RTHooks, never, R>) => Effect.Effect<CommanderResolved<R, RTHooks>, never, R | Commander>;
+ export {};
+-//# sourceMappingURL=makeUseCommand.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/mutate.d.ts /tmp/dist-snapshots/tsgo/vue/dist/mutate.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/mutate.d.ts	2026-04-23 09:01:04.891567289 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/mutate.d.ts	2026-04-23 09:00:34.709012792 +0200
+@@ -14,7 +14,7 @@
+     readonly data: A | undefined;
+     readonly error: Cause.Cause<E> | undefined;
+ }
+-export declare function make<A, E, R>(self: Effect.Effect<A, E, R>): readonly [import("vue").ShallowRef<AsyncResult.AsyncResult<A, E>, AsyncResult.AsyncResult<A, E>>, ComputedRef<A | undefined>, Effect.Effect<AsyncResult.Success<A, E> | AsyncResult.Failure<A, E>, never, R>];
++export declare function make<A, E, R>(self: Effect.Effect<A, E, R>): readonly [import("vue").ShallowRef<AsyncResult.AsyncResult<A, E>, AsyncResult.AsyncResult<A, E>>, ComputedRef<A | undefined>, Effect.Effect<AsyncResult.Failure<A, E> | AsyncResult.Success<A, E>, never, R>];
+ export interface MutationOptionsBase {
+     /**
+      * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
+@@ -59,4 +59,4 @@
+         readonly id: Id;
+     };
+ };
+-//# sourceMappingURL=mutate.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/mutate.js /tmp/dist-snapshots/tsgo/vue/dist/mutate.js
+--- /tmp/dist-snapshots/tsc/vue/dist/mutate.js	2026-04-23 09:01:04.891536961 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/mutate.js	2026-04-23 09:00:34.708762846 +0200
+@@ -117,4 +117,4 @@
+     };
+     return useMutation;
+ };
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/query.d.ts /tmp/dist-snapshots/tsgo/vue/dist/query.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/query.d.ts	2026-04-23 09:01:04.891661004 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/query.d.ts	2026-04-23 09:00:34.709246452 +0200
+@@ -33,19 +33,19 @@
+          */
+         <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, ComputedRef<A | undefined>, (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>, UseQueryReturnType<any, any>];
+     };
+-    <Arg, E, A_1, Request_1 extends Req, Name_1 extends string>(self: RequestHandlerWithInput<Arg, A_1, E, R, Request_1, Name_1>): {
++    <Arg, E, A, Request extends Req, Name extends string>(self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>): {
+         /**
+          * Effect results are passed to the caller, including errors.
+          */
+-        <TData = A_1>(arg: Arg | WatchSource<Arg>, options: CustomDefinedInitialQueryOptions<A_1, CauseException<E>, TData>): readonly [ComputedRef<AsyncResult.AsyncResult<TData, E>>, ComputedRef<TData>, (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>, UseQueryReturnType<any, any>];
++        <TData = A>(arg: Arg | WatchSource<Arg>, options: CustomDefinedInitialQueryOptions<A, CauseException<E>, TData>): readonly [ComputedRef<AsyncResult.AsyncResult<TData, E>>, ComputedRef<TData>, (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>, UseQueryReturnType<any, any>];
+         /**
+          * Effect results are passed to the caller, including errors.
+          */
+-        <TData = A_1>(arg: Arg | WatchSource<Arg>, options: CustomDefinedPlaceholderQueryOptions<A_1, CauseException<E>, TData>): readonly [ComputedRef<AsyncResult.AsyncResult<TData, E>>, ComputedRef<TData>, (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>, UseQueryReturnType<any, any>];
++        <TData = A>(arg: Arg | WatchSource<Arg>, options: CustomDefinedPlaceholderQueryOptions<A, CauseException<E>, TData>): readonly [ComputedRef<AsyncResult.AsyncResult<TData, E>>, ComputedRef<TData>, (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>, UseQueryReturnType<any, any>];
+         /**
+          * Effect results are passed to the caller, including errors.
+          */
+-        <TData = A_1>(arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A_1, CauseException<E>, TData>): readonly [ComputedRef<AsyncResult.AsyncResult<TData, E>>, ComputedRef<TData | undefined>, (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>, UseQueryReturnType<any, any>];
++        <TData = A>(arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>): readonly [ComputedRef<AsyncResult.AsyncResult<TData, E>>, ComputedRef<TData | undefined>, (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>, UseQueryReturnType<any, any>];
+     };
+ };
+ export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {
+@@ -60,4 +60,4 @@
+     <I, A>(query: RequestHandlerWithInput<I, A, any, any, any, any>, input: I, updater: (data: NoInfer<A>) => NoInfer<A>): void;
+ };
+ export {};
+-//# sourceMappingURL=query.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/routeParams.d.ts /tmp/dist-snapshots/tsgo/vue/dist/routeParams.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/routeParams.d.ts	2026-04-23 09:01:04.892069985 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/routeParams.d.ts	2026-04-23 09:00:34.709048751 +0200
+@@ -9,4 +9,4 @@
+ export declare function parseRouteParams<NER extends Record<string, S.Codec<any, any>>>(query: Record<string, any>, t: NER): {
+     [K in keyof NER]: Schema.Type<NER[K]>;
+ };
+-//# sourceMappingURL=routeParams.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/runtime.d.ts /tmp/dist-snapshots/tsgo/vue/dist/runtime.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/runtime.d.ts	2026-04-23 09:01:04.891601033 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/runtime.d.ts	2026-04-23 09:00:34.709134051 +0200
+@@ -15,4 +15,4 @@
+ }>;
+ export declare const makeRunPromise: <T>(services: Context<T>) => <A, E>(effect: Effect.Effect<A, E, T>, options?: Effect.RunOptions | undefined) => Promise<Awaited<import("effect/Types").NoInfer<A>>>;
+ export declare const makeRunSync: <T>(services: Context<T>) => <A, E>(effect: Effect.Effect<A, E, T>) => import("effect/Types").NoInfer<A>;
+-//# sourceMappingURL=runtime.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/toast.d.ts /tmp/dist-snapshots/tsgo/vue/dist/toast.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/toast.d.ts	2026-04-23 09:01:04.891702394 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/toast.d.ts	2026-04-23 09:00:34.708866348 +0200
+@@ -43,4 +43,4 @@
+     static readonly dismiss: (toastId: ToastId) => Effect.Effect<void, never, Toast>;
+ }
+ export {};
+-//# sourceMappingURL=toast.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/toast.js /tmp/dist-snapshots/tsgo/vue/dist/toast.js
+--- /tmp/dist-snapshots/tsc/vue/dist/toast.js	2026-04-23 09:01:04.891678266 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/toast.js	2026-04-23 09:00:34.708745249 +0200
+@@ -29,4 +29,4 @@
+     static warning = accessEffectFn(this, "warning");
+     static dismiss = accessEffectFn(this, "dismiss");
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/withToast.d.ts /tmp/dist-snapshots/tsgo/vue/dist/withToast.d.ts
+--- /tmp/dist-snapshots/tsc/vue/dist/withToast.d.ts	2026-04-23 09:01:04.891900948 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/withToast.d.ts	2026-04-23 09:00:34.708841336 +0200
+@@ -14,8 +14,8 @@
+         message: string;
+     }, never, ErrR>);
+ }
+-declare const WithToast_base: Context.ServiceClass<WithToast, "WithToast", <A, E, Args extends readonly unknown[], R, WaiR = never, SucR = never, ErrR = never>(options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>) => (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, R | WaiR | SucR | ErrR>> & {
+-    readonly make: Effect.Effect<(<A, E, Args extends readonly unknown[], R, WaiR = never, SucR = never, ErrR = never>(options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>) => (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, R | WaiR | SucR | ErrR>), never, Toast>;
++declare const WithToast_base: Context.ServiceClass<WithToast, "WithToast", <A, E, Args extends readonly unknown[], R, WaiR = never, SucR = never, ErrR = never>(options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>) => (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, ErrR | R | SucR | WaiR>> & {
++    readonly make: Effect.Effect<<A, E, Args extends readonly unknown[], R, WaiR = never, SucR = never, ErrR = never>(options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>) => (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, ErrR | R | SucR | WaiR>, never, Toast>;
+ };
+ export declare class WithToast extends WithToast_base {
+     static readonly DefaultWithoutDependencies: Layer.Layer<WithToast, never, Toast>;
+@@ -23,4 +23,4 @@
+     static readonly handle: <A, E, Args extends Array<unknown>, R, WaiR = never, SucR = never, ErrR = never>(options: ToastOptions<A, E, Args, WaiR, SucR, ErrR>) => (self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, R | WaiR | SucR | ErrR | WithToast>;
+ }
+ export {};
+-//# sourceMappingURL=withToast.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/vue/dist/withToast.js /tmp/dist-snapshots/tsgo/vue/dist/withToast.js
+--- /tmp/dist-snapshots/tsc/vue/dist/withToast.js	2026-04-23 09:01:04.891874940 +0200
++++ /tmp/dist-snapshots/tsgo/vue/dist/withToast.js	2026-04-23 09:00:34.708688873 +0200
+@@ -46,4 +46,4 @@
+     static Default = this.DefaultWithoutDependencies;
+     static handle = (options) => (self, ...args) => this.use((_) => _(options)(self, ...args));
+ }
+\ No newline at end of file
+\ No newline at end of file

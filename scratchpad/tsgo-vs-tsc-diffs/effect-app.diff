@@ -1,0 +1,1296 @@
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Array.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Array.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Array.d.ts	2026-04-23 09:01:04.874368054 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Array.d.ts	2026-04-23 09:00:34.697355920 +0200
+@@ -24,4 +24,4 @@
+ export declare function chunk_<T>(items_: Iterable<T>, size: number): Chunk.Chunk<T[]>;
+ export declare function forEachEffectNA<A, R, E, B>(as: NonEmptyReadonlyArray<A>, f: (a: A) => Effect.Effect<B, E, R>): Effect.Effect<readonly [B, ...B[]] | null, E, R>;
+ export * from "effect/Array";
+-//# sourceMappingURL=Array.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Chunk.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Chunk.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Chunk.d.ts	2026-04-23 09:01:04.874404940 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Chunk.d.ts	2026-04-23 09:00:34.697734002 +0200
+@@ -32,4 +32,4 @@
+     <A, B extends A>(self: Chunk.Chunk<A>, refinement: Refinement<A, B>): Option.Option<B>;
+     <A>(self: Chunk.Chunk<A>, predicate: Predicate<A>): Option.Option<A>;
+ };
+-//# sourceMappingURL=Chunk.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Config/SecretURL.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Config/SecretURL.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Config/SecretURL.d.ts	2026-04-23 09:01:04.876501256 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Config/SecretURL.d.ts	2026-04-23 09:00:34.695412604 +0200
+@@ -50,4 +50,4 @@
+  */
+ export declare const unsafeWipe: (self: SecretURL) => void;
+ export declare const secretURL: (name?: string) => Config.Config<SecretURL>;
+-//# sourceMappingURL=SecretURL.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Config/internal/configSecretURL.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Config/internal/configSecretURL.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Config/internal/configSecretURL.d.ts	2026-04-23 09:01:04.876463527 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Config/internal/configSecretURL.d.ts	2026-04-23 09:00:34.695378069 +0200
+@@ -12,4 +12,4 @@
+ export declare const value: (self: SecretURL.SecretURL) => string;
+ /** @internal */
+ export declare const unsafeWipe: (self: SecretURL.SecretURL) => void;
+-//# sourceMappingURL=configSecretURL.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Config.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Config.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Config.d.ts	2026-04-23 09:01:04.874478884 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Config.d.ts	2026-04-23 09:00:34.696932903 +0200
+@@ -4,4 +4,4 @@
+     <A>(self: Config<A>, name: string): Config<A>;
+ };
+ export * from "effect/Config";
+-//# sourceMappingURL=Config.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/ConfigProvider.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/ConfigProvider.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/ConfigProvider.d.ts	2026-04-23 09:01:04.874441124 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/ConfigProvider.d.ts	2026-04-23 09:00:34.696753545 +0200
+@@ -36,4 +36,4 @@
+     (self: ConfigProvider, prefix: string | Path): ConfigProvider;
+ };
+ export * from "effect/ConfigProvider";
+-//# sourceMappingURL=ConfigProvider.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Context.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Context.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Context.d.ts	2026-04-23 09:01:04.874879032 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Context.d.ts	2026-04-23 09:00:34.697444204 +0200
+@@ -37,4 +37,4 @@
+         readonly make: Make;
+     };
+ };
+-//# sourceMappingURL=Context.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Effect.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Effect.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Effect.d.ts	2026-04-23 09:01:04.874835532 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Effect.d.ts	2026-04-23 09:00:34.697308591 +0200
+@@ -71,4 +71,4 @@
+  * Annotates each log in this scope with the specified log annotations.
+  */
+ export declare function annotateLogsScoped(kvps: Record<string, string>): Effect.Effect<void, never, Scope>;
+-//# sourceMappingURL=Effect.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Function.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Function.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Function.d.ts	2026-04-23 09:01:04.874284717 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Function.d.ts	2026-04-23 09:00:34.697519436 +0200
+@@ -69,4 +69,4 @@
+     r: (a: A) => (b: B) => C;
+ };
+ export declare function lazy<A>(f: () => A): () => A;
+-//# sourceMappingURL=Function.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Inputify.type.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Inputify.type.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Inputify.type.d.ts	2026-04-23 09:01:04.874947134 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Inputify.type.d.ts	2026-04-23 09:00:34.697131589 +0200
+@@ -7,4 +7,4 @@
+ } : [T] extends [object] ? {
+     [K in keyof T]: Inputify<T[K]>;
+ } : T;
+-//# sourceMappingURL=Inputify.type.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Layer.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Layer.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Layer.d.ts	2026-04-23 09:01:04.874984898 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Layer.d.ts	2026-04-23 09:00:34.696740603 +0200
+@@ -39,4 +39,4 @@
+     <I, S>(tag: Context.Service<I, S>): <Opts extends Make<Types.NoInfer<S>, any, any>>(options: Opts) => PackedOrUnpackedLayer<I, Opts>;
+     <I, S, Opts extends Make<Types.NoInfer<S>, any, any>>(tag: Context.Service<I, S>, options: Opts): PackedOrUnpackedLayer<I, Opts>;
+ };
+-//# sourceMappingURL=Layer.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/NonEmptySet.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/NonEmptySet.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/NonEmptySet.d.ts	2026-04-23 09:01:04.875089762 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/NonEmptySet.d.ts	2026-04-23 09:00:34.697416467 +0200
+@@ -32,4 +32,4 @@
+ export declare const make: <A>(ord: Order.Order<A>, eq?: Equivalence.Equivalence<A>) => NonEmptySetSchemaExtensions<A>;
+ export declare function fromSet<A>(set: Set<A>): Option.None<NonEmptySet<A>> | Option.Some<NonEmptySet<A>>;
+ export * from "./Set.js";
+-//# sourceMappingURL=NonEmptySet.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Operations.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Operations.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Operations.d.ts	2026-04-23 09:01:04.875811430 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Operations.d.ts	2026-04-23 09:00:34.697492617 +0200
+@@ -1,62 +1,62 @@
+ import * as S from "./Schema.js";
+ export type OperationId = S.StringId;
+-export declare const OperationId: S.WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++export declare const OperationId: S.WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: S.StringId;
+     readonly Iso: S.StringId;
+     readonly "~type.make": S.StringId;
+ } & {
+     make: () => S.StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.StringId;
+         readonly Iso: S.StringId;
+         readonly "~type.make": S.StringId;
+     }>;
+-}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: S.StringId;
+     readonly Iso: S.StringId;
+     readonly "~type.make": S.StringId;
+ } & {
+     make: () => S.StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.StringId;
+         readonly Iso: S.StringId;
+         readonly "~type.make": S.StringId;
+     }>;
+ };
+ declare const OperationProgress_base: S.EnhancedClass<OperationProgress, import("effect/Schema").Struct<{
+-    completed: S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++    completed: S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonNegativeInt;
+         readonly Iso: S.NonNegativeInt;
+         readonly "~type.make": S.NonNegativeInt;
+-    }> & Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonNegativeInt;
+         readonly Iso: S.NonNegativeInt;
+         readonly "~type.make": S.NonNegativeInt;
+     } & {
+-        withDefault: S.withConstructorDefault<S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++        withDefault: S.withConstructorDefault<S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+             readonly Type: S.NonNegativeInt;
+             readonly Iso: S.NonNegativeInt;
+             readonly "~type.make": S.NonNegativeInt;
+-        }> & Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++        }> & Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+             readonly Type: S.NonNegativeInt;
+             readonly Iso: S.NonNegativeInt;
+             readonly "~type.make": S.NonNegativeInt;
+         }>;
+     };
+-    total: S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++    total: S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonNegativeInt;
+         readonly Iso: S.NonNegativeInt;
+         readonly "~type.make": S.NonNegativeInt;
+-    }> & Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonNegativeInt;
+         readonly Iso: S.NonNegativeInt;
+         readonly "~type.make": S.NonNegativeInt;
+     } & {
+-        withDefault: S.withConstructorDefault<S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++        withDefault: S.withConstructorDefault<S.WithDefaults<Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+             readonly Type: S.NonNegativeInt;
+             readonly Iso: S.NonNegativeInt;
+             readonly "~type.make": S.NonNegativeInt;
+-        }> & Omit<S.brand<import("effect/Schema").Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++        }> & Omit<S.brand<import("effect/Schema").Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+             readonly Type: S.NonNegativeInt;
+             readonly Iso: S.NonNegativeInt;
+             readonly "~type.make": S.NonNegativeInt;
+@@ -68,11 +68,11 @@
+ declare const OperationSuccess_base: S.EnhancedTaggedClass<OperationSuccess, "OperationSuccess", {
+     readonly _tag: S.tag<"OperationSuccess">;
+ } & {
+-    message: S.withConstructorDefault<import("effect/Schema").NullOr<S.WithDefaults<Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++    message: S.withConstructorDefault<import("effect/Schema").NullOr<S.WithDefaults<Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonEmptyString2k;
+         readonly Iso: S.NonEmptyString2k;
+         readonly "~type.make": S.NonEmptyString2k;
+-    }> & Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonEmptyString2k;
+         readonly Iso: S.NonEmptyString2k;
+         readonly "~type.make": S.NonEmptyString2k;
+@@ -83,11 +83,11 @@
+ declare const OperationFailure_base: S.EnhancedTaggedClass<OperationFailure, "OperationFailure", {
+     readonly _tag: S.tag<"OperationFailure">;
+ } & {
+-    message: S.withConstructorDefault<import("effect/Schema").NullOr<S.WithDefaults<Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++    message: S.withConstructorDefault<import("effect/Schema").NullOr<S.WithDefaults<Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonEmptyString2k;
+         readonly Iso: S.NonEmptyString2k;
+         readonly "~type.make": S.NonEmptyString2k;
+-    }> & Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonEmptyString2k;
+         readonly Iso: S.NonEmptyString2k;
+         readonly "~type.make": S.NonEmptyString2k;
+@@ -97,81 +97,75 @@
+ }
+ export declare const OperationResult: S.Union<[typeof OperationSuccess, typeof OperationFailure]> & {
+     readonly cases: {
+-        OperationSuccess: typeof OperationSuccess;
+         OperationFailure: typeof OperationFailure;
++        OperationSuccess: typeof OperationSuccess;
+     };
+-    readonly isAnyOf: <const Keys>(keys: readonly Keys[]) => (value: OperationSuccess | OperationFailure) => value is Extract<OperationSuccess, {
++    readonly isAnyOf: <const Keys>(keys: readonly Keys[]) => (value: OperationFailure | OperationSuccess) => value is Extract<OperationFailure, {
+         _tag: Keys;
+-    }> | Extract<OperationFailure, {
++    }> | Extract<OperationSuccess, {
+         _tag: Keys;
+     }>;
+     readonly guards: {
+-        OperationSuccess: (u: unknown) => u is OperationSuccess;
+         OperationFailure: (u: unknown) => u is OperationFailure;
++        OperationSuccess: (u: unknown) => u is OperationSuccess;
+     };
+     readonly match: {
+-        <Cases extends {
+-            OperationSuccess: (value: OperationSuccess) => any;
+-            OperationFailure: (value: OperationFailure) => any;
+-        }>(value: OperationSuccess | OperationFailure, cases: Cases): Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
+-        <Cases extends {
+-            OperationSuccess: (value: OperationSuccess) => any;
+-            OperationFailure: (value: OperationFailure) => any;
+-        }>(cases: Cases): (value: OperationSuccess | OperationFailure) => Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
++        <Cases extends { [M in typeof OperationSuccess | typeof OperationFailure as M["Type"]["_tag"]]: (value: M["Type"]) => any; }>(value: OperationFailure | OperationSuccess, cases: Cases): Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
++        <Cases extends { [M in typeof OperationSuccess | typeof OperationFailure as M["Type"]["_tag"]]: (value: M["Type"]) => any; }>(cases: Cases): (value: OperationFailure | OperationSuccess) => Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
+     };
+ } & {
+     readonly tags: import("effect/Schema").Literals<["OperationSuccess", "OperationFailure"]>;
+     readonly generateGuards: <K extends string>(property: K) => {
+-        readonly isOperationSuccess: <T extends { readonly [P in K]: OperationSuccess | OperationFailure; }>(target: T) => target is T & { readonly [P_1 in K]: OperationSuccess; };
+-        readonly isOperationFailure: <T extends { readonly [P in K]: OperationSuccess | OperationFailure; }>(target: T) => target is T & { readonly [P_1 in K]: OperationFailure; };
++        readonly isOperationFailure: <T extends { readonly [P in K]: OperationFailure | OperationSuccess; }>(target: T) => target is T & { readonly [P in K]: OperationFailure; };
++        readonly isOperationSuccess: <T extends { readonly [P in K]: OperationFailure | OperationSuccess; }>(target: T) => target is T & { readonly [P in K]: OperationSuccess; };
+     } & {
+-        readonly isAnyOf: <const Tags extends readonly ("OperationSuccess" | "OperationFailure")[]>(tags: Tags) => <T extends { readonly [P in K]: OperationSuccess | OperationFailure; }>(target: T) => target is T & { readonly [P_1 in K]: Extract<OperationSuccess, {
++        readonly isAnyOf: <const Tags extends ReadonlyArray<"OperationFailure" | "OperationSuccess">>(tags: Tags) => <T extends { readonly [P in K]: OperationFailure | OperationSuccess; }>(target: T) => target is T & { readonly [P in K]: Extract<OperationFailure, {
+             readonly _tag: Tags[number];
+-        }> | Extract<OperationFailure, {
++        }> | Extract<OperationSuccess, {
+             readonly _tag: Tags[number];
+         }>; };
+     };
+-    readonly generateGuardsFor: <A>() => <K extends { [K_1 in keyof A & string]: A[K_1] extends OperationSuccess | OperationFailure ? K_1 : never; }[keyof A & string]>(property: K) => {
+-        readonly isOperationSuccess: (target: A) => target is A & { readonly [P in K]: OperationSuccess; };
++    readonly generateGuardsFor: <A>() => <K extends { [K_1 in keyof A & string]: A[K_1] extends OperationFailure | OperationSuccess ? K_1 : never; }[keyof A & string]>(property: K) => {
+         readonly isOperationFailure: (target: A) => target is A & { readonly [P in K]: OperationFailure; };
++        readonly isOperationSuccess: (target: A) => target is A & { readonly [P in K]: OperationSuccess; };
+     } & {
+-        readonly isAnyOf: <const Tags extends readonly ("OperationSuccess" | "OperationFailure")[]>(tags: Tags) => (target: A) => target is A & { readonly [P in K]: Extract<OperationSuccess, {
++        readonly isAnyOf: <const Tags extends ReadonlyArray<"OperationFailure" | "OperationSuccess">>(tags: Tags) => (target: A) => target is A & { readonly [P in K]: Extract<OperationFailure, {
+             readonly _tag: Tags[number];
+-        }> | Extract<OperationFailure, {
++        }> | Extract<OperationSuccess, {
+             readonly _tag: Tags[number];
+         }>; };
+     };
+ };
+ export type OperationResult = S.Schema.Type<typeof OperationResult>;
+ declare const Operation_base: S.EnhancedClass<Operation, import("effect/Schema").Struct<{
+-    id: S.WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    id: S.WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.StringId;
+         readonly Iso: S.StringId;
+         readonly "~type.make": S.StringId;
+     } & {
+         make: () => S.StringId;
+-        withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++        withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+             readonly Type: S.StringId;
+             readonly Iso: S.StringId;
+             readonly "~type.make": S.StringId;
+         }>;
+-    }> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.StringId;
+         readonly Iso: S.StringId;
+         readonly "~type.make": S.StringId;
+     } & {
+         make: () => S.StringId;
+-        withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++        withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+             readonly Type: S.StringId;
+             readonly Iso: S.StringId;
+             readonly "~type.make": S.StringId;
+         }>;
+     };
+-    title: S.WithDefaults<Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++    title: S.WithDefaults<Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonEmptyString2k;
+         readonly Iso: S.NonEmptyString2k;
+         readonly "~type.make": S.NonEmptyString2k;
+-    }> & Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<import("effect/Schema").NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: S.NonEmptyString2k;
+         readonly Iso: S.NonEmptyString2k;
+         readonly "~type.make": S.NonEmptyString2k;
+@@ -179,47 +173,41 @@
+     progress: S.optional<typeof OperationProgress>;
+     result: S.optional<S.Union<[typeof OperationSuccess, typeof OperationFailure]> & {
+         readonly cases: {
+-            OperationSuccess: typeof OperationSuccess;
+             OperationFailure: typeof OperationFailure;
++            OperationSuccess: typeof OperationSuccess;
+         };
+-        readonly isAnyOf: <const Keys>(keys: readonly Keys[]) => (value: OperationSuccess | OperationFailure) => value is Extract<OperationSuccess, {
++        readonly isAnyOf: <const Keys>(keys: readonly Keys[]) => (value: OperationFailure | OperationSuccess) => value is Extract<OperationFailure, {
+             _tag: Keys;
+-        }> | Extract<OperationFailure, {
++        }> | Extract<OperationSuccess, {
+             _tag: Keys;
+         }>;
+         readonly guards: {
+-            OperationSuccess: (u: unknown) => u is OperationSuccess;
+             OperationFailure: (u: unknown) => u is OperationFailure;
++            OperationSuccess: (u: unknown) => u is OperationSuccess;
+         };
+         readonly match: {
+-            <Cases extends {
+-                OperationSuccess: (value: OperationSuccess) => any;
+-                OperationFailure: (value: OperationFailure) => any;
+-            }>(value: OperationSuccess | OperationFailure, cases: Cases): Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
+-            <Cases extends {
+-                OperationSuccess: (value: OperationSuccess) => any;
+-                OperationFailure: (value: OperationFailure) => any;
+-            }>(cases: Cases): (value: OperationSuccess | OperationFailure) => Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
++            <Cases extends { [M in typeof OperationSuccess | typeof OperationFailure as M["Type"]["_tag"]]: (value: M["Type"]) => any; }>(value: OperationFailure | OperationSuccess, cases: Cases): Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
++            <Cases extends { [M in typeof OperationSuccess | typeof OperationFailure as M["Type"]["_tag"]]: (value: M["Type"]) => any; }>(cases: Cases): (value: OperationFailure | OperationSuccess) => Cases[keyof Cases] extends (value: any) => infer R ? import("effect/Unify").Unify<R> : never;
+         };
+     } & {
+         readonly tags: import("effect/Schema").Literals<["OperationSuccess", "OperationFailure"]>;
+         readonly generateGuards: <K extends string>(property: K) => {
+-            readonly isOperationSuccess: <T extends { readonly [P in K]: OperationSuccess | OperationFailure; }>(target: T) => target is T & { readonly [P_1 in K]: OperationSuccess; };
+-            readonly isOperationFailure: <T extends { readonly [P in K]: OperationSuccess | OperationFailure; }>(target: T) => target is T & { readonly [P_1 in K]: OperationFailure; };
++            readonly isOperationFailure: <T extends { readonly [P in K]: OperationFailure | OperationSuccess; }>(target: T) => target is T & { readonly [P in K]: OperationFailure; };
++            readonly isOperationSuccess: <T extends { readonly [P in K]: OperationFailure | OperationSuccess; }>(target: T) => target is T & { readonly [P in K]: OperationSuccess; };
+         } & {
+-            readonly isAnyOf: <const Tags extends readonly ("OperationSuccess" | "OperationFailure")[]>(tags: Tags) => <T extends { readonly [P in K]: OperationSuccess | OperationFailure; }>(target: T) => target is T & { readonly [P_1 in K]: Extract<OperationSuccess, {
++            readonly isAnyOf: <const Tags extends ReadonlyArray<"OperationFailure" | "OperationSuccess">>(tags: Tags) => <T extends { readonly [P in K]: OperationFailure | OperationSuccess; }>(target: T) => target is T & { readonly [P in K]: Extract<OperationFailure, {
+                 readonly _tag: Tags[number];
+-            }> | Extract<OperationFailure, {
++            }> | Extract<OperationSuccess, {
+                 readonly _tag: Tags[number];
+             }>; };
+         };
+-        readonly generateGuardsFor: <A>() => <K extends { [K_1 in keyof A & string]: A[K_1] extends OperationSuccess | OperationFailure ? K_1 : never; }[keyof A & string]>(property: K) => {
+-            readonly isOperationSuccess: (target: A) => target is A & { readonly [P in K]: OperationSuccess; };
++        readonly generateGuardsFor: <A>() => <K extends { [K_1 in keyof A & string]: A[K_1] extends OperationFailure | OperationSuccess ? K_1 : never; }[keyof A & string]>(property: K) => {
+             readonly isOperationFailure: (target: A) => target is A & { readonly [P in K]: OperationFailure; };
++            readonly isOperationSuccess: (target: A) => target is A & { readonly [P in K]: OperationSuccess; };
+         } & {
+-            readonly isAnyOf: <const Tags extends readonly ("OperationSuccess" | "OperationFailure")[]>(tags: Tags) => (target: A) => target is A & { readonly [P in K]: Extract<OperationSuccess, {
++            readonly isAnyOf: <const Tags extends ReadonlyArray<"OperationFailure" | "OperationSuccess">>(tags: Tags) => (target: A) => target is A & { readonly [P in K]: Extract<OperationFailure, {
+                 readonly _tag: Tags[number];
+-            }> | Extract<OperationFailure, {
++            }> | Extract<OperationSuccess, {
+                 readonly _tag: Tags[number];
+             }>; };
+         };
+@@ -233,20 +221,20 @@
+ export declare class Operation extends Operation_base {
+ }
+ export declare namespace OperationProgress {
+-    interface Encoded extends S.Struct.Encoded<typeof OperationProgress["fields"]> {
++    interface Encoded extends S.Struct.Encoded<(typeof OperationProgress)["fields"]> {
+     }
+ }
+ export declare namespace OperationSuccess {
+-    interface Encoded extends S.Struct.Encoded<typeof OperationSuccess["fields"]> {
++    interface Encoded extends S.Struct.Encoded<(typeof OperationSuccess)["fields"]> {
+     }
+ }
+ export declare namespace OperationFailure {
+-    interface Encoded extends S.Struct.Encoded<typeof OperationFailure["fields"]> {
++    interface Encoded extends S.Struct.Encoded<(typeof OperationFailure)["fields"]> {
+     }
+ }
+ export declare namespace Operation {
+-    interface Encoded extends S.Struct.Encoded<typeof Operation["fields"]> {
++    interface Encoded extends S.Struct.Encoded<(typeof Operation)["fields"]> {
+     }
+ }
+ export {};
+-//# sourceMappingURL=Operations.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Option.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Option.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Option.d.ts	2026-04-23 09:01:04.874322391 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Option.d.ts	2026-04-23 09:00:34.697205947 +0200
+@@ -23,4 +23,4 @@
+  * Simulates a partial function
+  */
+ export declare function partial<ARGS extends any[], A>(f: (miss: <X>() => X) => (...args: ARGS) => A): (...args: ARGS) => Option.Option<A>;
+-//# sourceMappingURL=Option.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Pure.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Pure.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Pure.d.ts	2026-04-23 09:01:04.875860316 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Pure.d.ts	2026-04-23 09:00:34.697618529 +0200
+@@ -32,9 +32,9 @@
+ }] ? S2 : never>;
+ export type Pure<W, S, S2, R, E, A> = Effect.Effect<A, E, PureEnvEnv<W, S, S2> | R>;
+ export declare function GMUA_<W, S, S2, GR, GE, GA, MR, ME, MA, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, modify: (i: GA) => Pure<W, S, S2, MR, ME, readonly [GA, MA]>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>): Pure<W, S, S2, GR | MR | UR, GE | ME | UE, MA>;
+-export declare function GMUA<W, S, S2, GA, MR, ME, MA>(modify: (i: GA) => Pure<W, S, S2, MR, ME, readonly [GA, MA]>): <GR, GE, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>) => Pure<W, S, S2, MR | GR | UR, ME | GE | UE, MA>;
++export declare function GMUA<W, S, S2, GA, MR, ME, MA>(modify: (i: GA) => Pure<W, S, S2, MR, ME, readonly [GA, MA]>): <GR, GE, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>) => Pure<W, S, S2, GR | MR | UR, GE | ME | UE, MA>;
+ export declare function GMU_<W, S, S2, GR, GE, GA, MR, ME, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, modify: (i: GA) => Pure<W, S, S2, MR, ME, GA>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>): Pure<W, S, S2, GR | MR | UR, GE | ME | UE, UA>;
+-export declare function GMU<W, S, S2, GA, MR, ME>(modify: (i: GA) => Pure<W, S, S2, MR, ME, GA>): <GR, GE, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>) => Pure<W, S, S2, MR | GR | UR, ME | GE | UE, UA>;
++export declare function GMU<W, S, S2, GA, MR, ME>(modify: (i: GA) => Pure<W, S, S2, MR, ME, GA>): <GR, GE, UR, UE, UA>(get: Pure<W, S, S2, GR, GE, GA>, update: (i: GA) => Pure<W, S, S2, UR, UE, UA>) => Pure<W, S, S2, GR | MR | UR, GE | ME | UE, UA>;
+ export declare const ServiceTag: unique symbol;
+ export type ServiceTag = typeof ServiceTag;
+ export declare abstract class PhantomTypeParameter<Identifier extends keyof any, InstantiatedType> {
+@@ -80,4 +80,4 @@
+ export declare function updateWithEffect<W, R, E, S2, S3>(upd: (s: S2, log: (evt: W) => PureLogT<W>) => Effect.Effect<S3, E, FixEnv<R, W, S2, S3>>): Effect.Effect<S3, E, FixEnv<R, W, S2, S3>>;
+ export type FixEnv<R, W, S, S2> = Exclude<R, PureEnvEnv<any, any, any>> | PureEnvEnv<W, S, S2>;
+ export {};
+-//# sourceMappingURL=Pure.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/Class.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/Class.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/Class.d.ts	2026-04-23 09:01:04.875519692 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/Class.d.ts	2026-04-23 09:00:34.695910656 +0200
+@@ -67,4 +67,4 @@
+     readonly _tag: S.tag<Tag>;
+ } & Fields, SelfFrom>;
+ export {};
+-//# sourceMappingURL=Class.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/FastCheck.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/FastCheck.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/FastCheck.d.ts	2026-04-23 09:01:04.875446771 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/FastCheck.d.ts	2026-04-23 09:00:34.695709221 +0200
+@@ -7,4 +7,4 @@
+ export declare const UC_alphabet: (min: number, max: number) => (fc: FC) => fc.Arbitrary<string>;
+ export declare const LC_alphabet: (min: number, max: number) => (fc: Pick<FC, "array" | "integer">) => fc.Arbitrary<string>;
+ export declare const Numbers: (min: number, max: number) => (fc: Pick<FC, "array" | "integer">) => fc.Arbitrary<string>;
+-//# sourceMappingURL=FastCheck.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/Methods.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/Methods.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/Methods.d.ts	2026-04-23 09:01:04.875724106 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/Methods.d.ts	2026-04-23 09:00:34.695597339 +0200
+@@ -3,4 +3,4 @@
+ export type Rest = ReadMethods | WriteMethods;
+ export type System = "OPTIONS" | "HEAD" | "TRACE";
+ export type All = Rest | System;
+-//# sourceMappingURL=Methods.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/SpecialJsonSchema.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/SpecialJsonSchema.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/SpecialJsonSchema.d.ts	2026-04-23 09:01:04.875643377 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/SpecialJsonSchema.d.ts	2026-04-23 09:00:34.695539785 +0200
+@@ -30,4 +30,4 @@
+  * flattens nested anyOf, then strips additionalProperties: false.
+  */
+ export declare function postProcessJsonSchema(obj: JsonSchema.JsonSchema): JsonSchema.JsonSchema;
+-//# sourceMappingURL=SpecialJsonSchema.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/SpecialOpenApi.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/SpecialOpenApi.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/SpecialOpenApi.d.ts	2026-04-23 09:01:04.875686719 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/SpecialOpenApi.d.ts	2026-04-23 09:00:34.695791538 +0200
+@@ -29,4 +29,4 @@
+  * Designed to be used as the `transform` option in `OpenApi.annotations`.
+  */
+ export declare function deduplicateOpenApiSchemas(spec: Record<string, any>): Record<string, any>;
+-//# sourceMappingURL=SpecialOpenApi.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/brand.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/brand.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/brand.d.ts	2026-04-23 09:01:04.875283566 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/brand.d.ts	2026-04-23 09:00:34.695649412 +0200
+@@ -37,4 +37,4 @@
+ export type Unbranded<P> = P extends B.Brand<any> ? B.Brand.Unbranded<P> : P;
+ export declare const nominal: <A extends B.Brand<any>>() => Constructor<A>;
+ export {};
+-//# sourceMappingURL=brand.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/email.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/email.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/email.d.ts	2026-04-23 09:01:04.875411417 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/email.d.ts	2026-04-23 09:00:34.695835363 +0200
+@@ -6,4 +6,4 @@
+ }
+ export type Email = string & EmailBrand;
+ export declare const Email: S.refine<Email, S.String>;
+-//# sourceMappingURL=email.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/ext.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/ext.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/ext.d.ts	2026-04-23 09:01:04.875339432 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/ext.d.ts	2026-04-23 09:00:34.695939180 +0200
+@@ -159,4 +159,4 @@
+     <Self extends S.Top, R>(self: Self, context: Context.Context<R>): ProvidedCodec<Self, R>;
+ };
+ export declare const contextFromServices: <Self extends S.Top, Tags extends ReadonlyArray<Context.Key<any, any>>>(self: Self, ...services: Tags) => Effect.Effect<ProvidedCodec<Self, Context.Service.Identifier<Tags[number]>>, never, Context.Service.Identifier<Tags[number]>>;
+-//# sourceMappingURL=ext.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/moreStrings.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/moreStrings.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/moreStrings.d.ts	2026-04-23 09:01:04.875603207 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/moreStrings.d.ts	2026-04-23 09:00:34.695970118 +0200
+@@ -15,11 +15,11 @@
+ /**
+  * A string that is at least 1 character long and a maximum of 50.
+  */
+-export declare const NonEmptyString50: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++export declare const NonEmptyString50: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString50;
+     readonly Iso: NonEmptyString50;
+     readonly "~type.make": NonEmptyString50;
+-}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString50;
+     readonly Iso: NonEmptyString50;
+     readonly "~type.make": NonEmptyString50;
+@@ -36,11 +36,11 @@
+ /**
+  * A string that is at least 1 character long and a maximum of 64.
+  */
+-export declare const NonEmptyString64: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++export declare const NonEmptyString64: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString64;
+     readonly Iso: NonEmptyString64;
+     readonly "~type.make": NonEmptyString64;
+-}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString64;
+     readonly Iso: NonEmptyString64;
+     readonly "~type.make": NonEmptyString64;
+@@ -57,11 +57,11 @@
+ /**
+  * A string that is at least 1 character long and a maximum of 80.
+  */
+-export declare const NonEmptyString80: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString80" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++export declare const NonEmptyString80: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k" | "NonEmptyString80">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString80;
+     readonly Iso: NonEmptyString80;
+     readonly "~type.make": NonEmptyString80;
+-}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString80" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k" | "NonEmptyString80">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString80;
+     readonly Iso: NonEmptyString80;
+     readonly "~type.make": NonEmptyString80;
+@@ -78,11 +78,11 @@
+ /**
+  * A string that is at least 1 character long and a maximum of 100.
+  */
+-export declare const NonEmptyString100: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++export declare const NonEmptyString100: WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString100;
+     readonly Iso: NonEmptyString100;
+     readonly "~type.make": NonEmptyString100;
+-}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString100">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString100;
+     readonly Iso: NonEmptyString100;
+     readonly "~type.make": NonEmptyString100;
+@@ -99,11 +99,11 @@
+ /**
+  * A string that is at least 3 character long and a maximum of 255.
+  */
+-export declare const Min3String255: WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "Min3String255">, "Iso" | "Type" | "~type.make"> & {
++export declare const Min3String255: WithDefaults<Omit<S.brand<S.String, "Min3String255" | "NonEmptyString" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: Min3String255;
+     readonly Iso: Min3String255;
+     readonly "~type.make": Min3String255;
+-}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "Min3String255">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.String, "Min3String255" | "NonEmptyString" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: Min3String255;
+     readonly Iso: Min3String255;
+     readonly "~type.make": Min3String255;
+@@ -120,69 +120,69 @@
+ /**
+  * A string that is at least 6 characters long and a maximum of 50.
+  */
+-export declare const StringId: WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++export declare const StringId: WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: StringId;
+     readonly Iso: StringId;
+     readonly "~type.make": StringId;
+ } & {
+     make: () => StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: StringId;
+         readonly Iso: StringId;
+         readonly "~type.make": StringId;
+     }>;
+-}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: StringId;
+     readonly Iso: StringId;
+     readonly "~type.make": StringId;
+ } & {
+     make: () => StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: StringId;
+         readonly Iso: StringId;
+         readonly "~type.make": StringId;
+     }>;
+ };
+-export declare function prefixedStringId<Brand extends StringId>(): <Prefix extends string, Separator extends string = "-">(prefix: Prefix, name: string, separator?: Separator) => WithDefaults<S.refine<string & Brand, WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++export declare function prefixedStringId<Brand extends StringId>(): <Prefix extends string, Separator extends string = "-">(prefix: Prefix, name: string, separator?: Separator) => WithDefaults<S.refine<string & Brand, WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: StringId;
+     readonly Iso: StringId;
+     readonly "~type.make": StringId;
+ } & {
+     make: () => StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: StringId;
+         readonly Iso: StringId;
+         readonly "~type.make": StringId;
+     }>;
+-}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: StringId;
+     readonly Iso: StringId;
+     readonly "~type.make": StringId;
+ } & {
+     make: () => StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: StringId;
+         readonly Iso: StringId;
+         readonly "~type.make": StringId;
+     }>;
+-}>> & S.refine<string & Brand, WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++}>> & S.refine<string & Brand, WithDefaults<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: StringId;
+     readonly Iso: StringId;
+     readonly "~type.make": StringId;
+ } & {
+     make: () => StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: StringId;
+         readonly Iso: StringId;
+         readonly "~type.make": StringId;
+     }>;
+-}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: StringId;
+     readonly Iso: StringId;
+     readonly "~type.make": StringId;
+ } & {
+     make: () => StringId;
+-    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString80" | "NonEmptyString100" | "StringId">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<Omit<S.brand<S.String, "NonEmptyString" | "NonEmptyString100" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString50" | "NonEmptyString64" | "NonEmptyString64k" | "NonEmptyString80" | "StringId">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: StringId;
+         readonly Iso: StringId;
+         readonly "~type.make": StringId;
+@@ -206,4 +206,4 @@
+ }
+ export type Url = string & UrlBrand;
+ export declare const Url: WithDefaults<S.refine<Url, S.String>> & S.refine<Url, S.String>;
+-//# sourceMappingURL=moreStrings.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/numbers.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/numbers.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/numbers.d.ts	2026-04-23 09:01:04.875557847 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/numbers.d.ts	2026-04-23 09:00:34.695885873 +0200
+@@ -3,20 +3,20 @@
+ import { type B } from "./schema.js";
+ export interface PositiveIntBrand extends Simplify<B.Brand<"PositiveInt"> & NonNegativeIntBrand & PositiveNumberBrand> {
+ }
+-export declare const PositiveInt: import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "PositiveInt" | "NonNegativeInt" | "Int" | "NonNegativeNumber" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
++export declare const PositiveInt: import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber" | "PositiveInt" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: PositiveInt;
+     readonly Iso: PositiveInt;
+     readonly "~type.make": PositiveInt;
+-}> & Omit<S.brand<S.Int, "PositiveInt" | "NonNegativeInt" | "Int" | "NonNegativeNumber" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber" | "PositiveInt" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: PositiveInt;
+     readonly Iso: PositiveInt;
+     readonly "~type.make": PositiveInt;
+ } & {
+-    withDefault: S.withConstructorDefault<import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "PositiveInt" | "NonNegativeInt" | "Int" | "NonNegativeNumber" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber" | "PositiveInt" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: PositiveInt;
+         readonly Iso: PositiveInt;
+         readonly "~type.make": PositiveInt;
+-    }> & Omit<S.brand<S.Int, "PositiveInt" | "NonNegativeInt" | "Int" | "NonNegativeNumber" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber" | "PositiveInt" | "PositiveNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: PositiveInt;
+         readonly Iso: PositiveInt;
+         readonly "~type.make": PositiveInt;
+@@ -25,20 +25,20 @@
+ export type PositiveInt = number & PositiveIntBrand;
+ export interface NonNegativeIntBrand extends Simplify<B.Brand<"NonNegativeInt"> & IntBrand & NonNegativeNumberBrand> {
+ }
+-export declare const NonNegativeInt: import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++export declare const NonNegativeInt: import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonNegativeInt;
+     readonly Iso: NonNegativeInt;
+     readonly "~type.make": NonNegativeInt;
+-}> & Omit<S.brand<S.Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonNegativeInt;
+     readonly Iso: NonNegativeInt;
+     readonly "~type.make": NonNegativeInt;
+ } & {
+-    withDefault: S.withConstructorDefault<import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++    withDefault: S.withConstructorDefault<import("./ext.js").WithDefaults<Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: NonNegativeInt;
+         readonly Iso: NonNegativeInt;
+         readonly "~type.make": NonNegativeInt;
+-    }> & Omit<S.brand<S.Int, "NonNegativeInt" | "Int" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
++    }> & Omit<S.brand<S.Int, "Int" | "NonNegativeInt" | "NonNegativeNumber">, "Iso" | "Type" | "~type.make"> & {
+         readonly Type: NonNegativeInt;
+         readonly Iso: NonNegativeInt;
+         readonly "~type.make": NonNegativeInt;
+@@ -155,4 +155,4 @@
+ };
+ /** @deprecated Not an actual decimal */
+ export type PositiveDecimal = PositiveNumber;
+-//# sourceMappingURL=numbers.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/phoneNumber.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/phoneNumber.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/phoneNumber.d.ts	2026-04-23 09:01:04.875480982 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/phoneNumber.d.ts	2026-04-23 09:00:34.695686746 +0200
+@@ -6,4 +6,4 @@
+ }
+ export type PhoneNumber = string & PhoneNumberBrand;
+ export declare const PhoneNumber: import("./ext.js").WithDefaults<S.refine<PhoneNumber, S.String>> & S.refine<PhoneNumber, S.String>;
+-//# sourceMappingURL=phoneNumber.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/schema.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/schema.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/schema.d.ts	2026-04-23 09:01:04.875250999 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/schema.d.ts	2026-04-23 09:00:34.695857439 +0200
+@@ -2,4 +2,4 @@
+ import * as AST from "effect/SchemaAST";
+ import * as P from "effect/SchemaParser";
+ export { AST, B, P };
+-//# sourceMappingURL=schema.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema/strings.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/strings.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema/strings.d.ts	2026-04-23 09:01:04.875373442 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema/strings.d.ts	2026-04-23 09:00:34.695732340 +0200
+@@ -27,11 +27,11 @@
+ export interface NonEmptyString2kBrand extends Simplify<B.Brand<"NonEmptyString2k"> & NonEmptyString64kBrand> {
+ }
+ export type NonEmptyString2k = string & NonEmptyString2kBrand;
+-export declare const NonEmptyString2k: import("./ext.js").WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++export declare const NonEmptyString2k: import("./ext.js").WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString2k;
+     readonly Iso: NonEmptyString2k;
+     readonly "~type.make": NonEmptyString2k;
+-}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString2k;
+     readonly Iso: NonEmptyString2k;
+     readonly "~type.make": NonEmptyString2k;
+@@ -39,13 +39,13 @@
+ export interface NonEmptyString255Brand extends Simplify<B.Brand<"NonEmptyString255"> & NonEmptyString2kBrand> {
+ }
+ export type NonEmptyString255 = string & NonEmptyString255Brand;
+-export declare const NonEmptyString255: import("./ext.js").WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255">, "Iso" | "Type" | "~type.make"> & {
++export declare const NonEmptyString255: import("./ext.js").WithDefaults<Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString255;
+     readonly Iso: NonEmptyString255;
+     readonly "~type.make": NonEmptyString255;
+-}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString64k" | "NonEmptyString2k" | "NonEmptyString255">, "Iso" | "Type" | "~type.make"> & {
++}> & Omit<S.brand<S.NonEmptyString, "NonEmptyString" | "NonEmptyString255" | "NonEmptyString2k" | "NonEmptyString64k">, "Iso" | "Type" | "~type.make"> & {
+     readonly Type: NonEmptyString255;
+     readonly Iso: NonEmptyString255;
+     readonly "~type.make": NonEmptyString255;
+ };
+-//# sourceMappingURL=strings.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Schema.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema.d.ts	2026-04-23 09:01:04.875767287 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema.d.ts	2026-04-23 09:00:34.697252775 +0200
+@@ -101,4 +101,4 @@
+ };
+ export declare const ExtendTaggedUnion: <Members extends TaggedUnionMembers>(schema: S.Union<Members>) => TaggedUnionWithTags<Members>;
+ export declare const TaggedUnion: <Members extends TaggedUnionMembers>(...a: Members) => TaggedUnionWithTags<Members>;
+-//# sourceMappingURL=Schema.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Schema.js /tmp/dist-snapshots/tsgo/effect-app/dist/Schema.js
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Schema.js	2026-04-23 09:01:04.875739661 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Schema.js	2026-04-23 09:00:34.696951059 +0200
+@@ -115,4 +115,4 @@
+ });
+ export const ExtendTaggedUnion = (schema) => extendTaggedUnionWithTags(schema);
+ export const TaggedUnion = (...a) => extendTaggedUnionWithTags(S.Union(a));
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Set.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Set.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Set.d.ts	2026-04-23 09:01:04.875046531 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Set.d.ts	2026-04-23 09:00:34.697768307 +0200
+@@ -206,4 +206,4 @@
+ }
+ export declare const make: <A>(ord: Order.Order<A>, eq?: Equivalence.Equivalence<A>) => SetSchemaExtensions<A>;
+ export {};
+-//# sourceMappingURL=Set.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/TypeTest.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/TypeTest.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/TypeTest.d.ts	2026-04-23 09:01:04.875894317 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/TypeTest.d.ts	2026-04-23 09:00:34.696986950 +0200
+@@ -1,3 +1,3 @@
+ export declare const TypeTestId: "effect-app/type-test";
+ export type TypeTestId = typeof TypeTestId;
+-//# sourceMappingURL=TypeTest.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Types.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Types.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Types.d.ts	2026-04-23 09:01:04.874517914 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Types.d.ts	2026-04-23 09:00:34.697686387 +0200
+@@ -6,4 +6,4 @@
+     -readonly [P in keyof T]: T[P];
+ };
+ export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
+-//# sourceMappingURL=Types.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/Widen.type.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/Widen.type.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/Widen.type.d.ts	2026-04-23 09:01:04.874912012 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/Widen.type.d.ts	2026-04-23 09:00:34.696617536 +0200
+@@ -16,4 +16,4 @@
+     [K in AllKeys<T>]: Widen<Idx<T, K>>;
+ }, Exclude<AllKeys<T>, keyof T> | OptionalKeys<T>> : T;
+ export {};
+-//# sourceMappingURL=Widen.type.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/_ext/Array.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/Array.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/_ext/Array.d.ts	2026-04-23 09:01:04.876762222 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/Array.d.ts	2026-04-23 09:00:34.696570347 +0200
+@@ -7,4 +7,4 @@
+ export declare function getFirstById<A extends {
+     id: unknown;
+ }, Type extends string>(a: Iterable<A>, id: A["id"], type: Type): Effect.Effect<A, NotFoundError<Type>, never>;
+-//# sourceMappingURL=Array.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/_ext/date.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/date.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/_ext/date.d.ts	2026-04-23 09:01:04.876803876 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/date.d.ts	2026-04-23 09:00:34.696593770 +0200
+@@ -12,4 +12,4 @@
+ export declare const DateSubMonths: (date: Date, amount: number) => Date;
+ export declare const DateAddWeeks: (date: Date, amount: number) => Date;
+ export declare const DateSubWeeks: (date: Date, amount: number) => Date;
+-//# sourceMappingURL=date.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/_ext/misc.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/misc.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/_ext/misc.d.ts	2026-04-23 09:01:04.876842267 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/misc.d.ts	2026-04-23 09:00:34.696535872 +0200
+@@ -11,4 +11,4 @@
+ export declare function toNullable<R, E, A>(self: Effect.Effect<Option.Option<A>, E, R>): Effect.Effect<A | null, E, R>;
+ export declare function scope<R, E, A, R2, E2, A2>(scopedEffect: Effect.Effect<A, E, R | Scope.Scope>, effect: Effect.Effect<A2, E2, R2>): Effect.Effect<A2, E | E2, Exclude<R | R2, Scope.Scope>>;
+ export declare function flatMapScoped<R, E, A, R2, E2, A2>(scopedEffect: Effect.Effect<A, E, R | Scope.Scope>, effect: (a: A) => Effect.Effect<A2, E2, R2>): Effect.Effect<A2, E | E2, Exclude<R | R2, Scope.Scope>>;
+-//# sourceMappingURL=misc.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/_ext/ord.ext.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/ord.ext.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/_ext/ord.ext.d.ts	2026-04-23 09:01:04.876876248 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/_ext/ord.ext.d.ts	2026-04-23 09:00:34.696512114 +0200
+@@ -10,4 +10,4 @@
+  * in an array of type `Chunk.Chunk<A>`.
+  */
+ export declare function elem<A>(E: Equivalence.Equivalence<A>, value: A): (self: Chunk.Chunk<A>) => boolean;
+-//# sourceMappingURL=ord.ext.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/builtin.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/builtin.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/builtin.d.ts	2026-04-23 09:01:04.875932946 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/builtin.d.ts	2026-04-23 09:00:34.696887587 +0200
+@@ -40,4 +40,4 @@
+         get value(): A | undefined;
+     }
+ }
+-//# sourceMappingURL=builtin.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/client/apiClientFactory.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/client/apiClientFactory.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/client/apiClientFactory.d.ts	2026-04-23 09:01:04.876152758 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/client/apiClientFactory.d.ts	2026-04-23 09:00:34.696334535 +0200
+@@ -49,4 +49,4 @@
+     static readonly makeFor: (requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) => <M extends RequestsAny>(resource: M) => Effect.Effect<import("./clientFor.js").RequestHandlers<never, never, M, ExtractModuleName<M>>, never, ApiClientFactory>;
+ }
+ export {};
+-//# sourceMappingURL=apiClientFactory.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/client/apiClientFactory.js /tmp/dist-snapshots/tsgo/effect-app/dist/client/apiClientFactory.js
+--- /tmp/dist-snapshots/tsc/effect-app/dist/client/apiClientFactory.js	2026-04-23 09:01:04.876124833 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/client/apiClientFactory.js	2026-04-23 09:00:34.696281425 +0200
+@@ -161,4 +161,4 @@
+         return f(resource);
+     });
+ }
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/client/clientFor.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/client/clientFor.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/client/clientFor.d.ts	2026-04-23 09:01:04.876105611 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/client/clientFor.d.ts	2026-04-23 09:00:34.696396933 +0200
+@@ -39,4 +39,4 @@
+     [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true ? RequestHandler<S.Schema.Type<M[K]["success"]>, S.Schema.Type<M[K]["error"]> | E, R | ReqDecodingServices<M[K]>, M[K], `${ModuleName}.${K & string}`> : RequestHandlerWithInput<Omit<S.Schema.Type<M[K]>, Cruft>, S.Schema.Type<M[K]["success"]>, S.Schema.Type<M[K]["error"]> | E, R | ReqDecodingServices<M[K]>, M[K], `${ModuleName}.${K & string}`>;
+ };
+ export {};
+-//# sourceMappingURL=clientFor.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/client/errors.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/client/errors.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/client/errors.d.ts	2026-04-23 09:01:04.876192340 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/client/errors.d.ts	2026-04-23 09:00:34.696359879 +0200
+@@ -135,4 +135,4 @@
+     toString(): string;
+ }) => unknown;
+ export {};
+-//# sourceMappingURL=errors.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/client/errors.js /tmp/dist-snapshots/tsgo/effect-app/dist/client/errors.js
+--- /tmp/dist-snapshots/tsc/effect-app/dist/client/errors.js	2026-04-23 09:01:04.876166864 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/client/errors.js	2026-04-23 09:00:34.696263718 +0200
+@@ -214,4 +214,4 @@
+         }
+     }
+ };
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/client/makeClient.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/client/makeClient.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/client/makeClient.d.ts	2026-04-23 09:01:04.876231576 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/client/makeClient.d.ts	2026-04-23 09:00:34.696309027 +0200
+@@ -30,22 +30,22 @@
+             }>(tag: Tag, fields: Payload, config: GetContextConfig<RequestContextMap["config"]> & C): TaggedRequestForResult<Self, Tag, Payload, SchemaOrFields<C["success"]>, C extends {
+                 error: infer E;
+             } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "query">;
+-            <Tag extends string, Payload_1 extends S.Struct.Fields, C_1 extends Pick<{
++            <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<{
+                 success: S.Top | S.Struct.Fields;
+                 error: S.Top | S.Struct.Fields;
+-            }, "success">>(tag: Tag, fields: Payload_1, config: GetContextConfig<RequestContextMap["config"]> & C_1): TaggedRequestForResult<Self, Tag, Payload_1, SchemaOrFields<C_1["success"]>, C_1 extends {
++            }, "success">>(tag: Tag, fields: Payload, config: GetContextConfig<RequestContextMap["config"]> & C): TaggedRequestForResult<Self, Tag, Payload, SchemaOrFields<C["success"]>, C extends {
+                 error: infer E;
+-            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C_1> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C_1>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C_1>>, GeneralErrors]>, Omit<C_1, "error" | "success">, ModuleName, "query">;
+-            <Tag extends string, Payload_2 extends S.Struct.Fields, C_2 extends Pick<{
++            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "query">;
++            <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<{
+                 success: S.Top | S.Struct.Fields;
+                 error: S.Top | S.Struct.Fields;
+-            }, "error">>(tag: Tag, fields: Payload_2, config: GetContextConfig<RequestContextMap["config"]> & C_2): TaggedRequestForResult<Self, Tag, Payload_2, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C_2 extends {
++            }, "error">>(tag: Tag, fields: Payload, config: GetContextConfig<RequestContextMap["config"]> & C): TaggedRequestForResult<Self, Tag, Payload, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C extends {
+                 error: infer E;
+-            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C_2> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C_2>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C_2>>, GeneralErrors]>, Omit<C_2, "error" | "success">, ModuleName, "query">;
+-            <Tag extends string, Payload_3 extends S.Struct.Fields, C_3 extends Record<string, any>>(tag: Tag, fields: Payload_3, config: C_3 & GetContextConfig<RequestContextMap["config"]>): TaggedRequestForResult<Self, Tag, Payload_3, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C_3 extends {
++            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "query">;
++            <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(tag: Tag, fields: Payload, config: C & GetContextConfig<RequestContextMap["config"]>): TaggedRequestForResult<Self, Tag, Payload, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C extends {
+                 error: infer E;
+-            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C_3> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C_3>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C_3>>, GeneralErrors]>, Omit<C_3, "error" | "success">, ModuleName, "query">;
+-            <Tag extends string, Payload_4 extends S.Struct.Fields>(tag: Tag, fields: Payload_4): TaggedRequestForResult<Self, Tag, Payload_4, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], {}> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>>, GeneralErrors]>, Record<string, never>, ModuleName, "query">;
++            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "query">;
++            <Tag extends string, Payload extends S.Struct.Fields>(tag: Tag, fields: Payload): TaggedRequestForResult<Self, Tag, Payload, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], {}> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>>, GeneralErrors]>, Record<string, never>, ModuleName, "query">;
+         }) & {
+             readonly moduleName: ModuleName;
+             readonly type: "query";
+@@ -61,22 +61,22 @@
+             }>(tag: Tag, fields: Payload, config: GetContextConfig<RequestContextMap["config"]> & C): TaggedRequestForResult<Self, Tag, Payload, SchemaOrFields<C["success"]>, C extends {
+                 error: infer E;
+             } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "command">;
+-            <Tag extends string, Payload_1 extends S.Struct.Fields, C_1 extends Pick<{
++            <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<{
+                 success: S.Top | S.Struct.Fields;
+                 error: S.Top | S.Struct.Fields;
+-            }, "success">>(tag: Tag, fields: Payload_1, config: GetContextConfig<RequestContextMap["config"]> & C_1): TaggedRequestForResult<Self, Tag, Payload_1, SchemaOrFields<C_1["success"]>, C_1 extends {
++            }, "success">>(tag: Tag, fields: Payload, config: GetContextConfig<RequestContextMap["config"]> & C): TaggedRequestForResult<Self, Tag, Payload, SchemaOrFields<C["success"]>, C extends {
+                 error: infer E;
+-            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C_1> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C_1>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C_1>>, GeneralErrors]>, Omit<C_1, "error" | "success">, ModuleName, "command">;
+-            <Tag extends string, Payload_2 extends S.Struct.Fields, C_2 extends Pick<{
++            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "command">;
++            <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<{
+                 success: S.Top | S.Struct.Fields;
+                 error: S.Top | S.Struct.Fields;
+-            }, "error">>(tag: Tag, fields: Payload_2, config: GetContextConfig<RequestContextMap["config"]> & C_2): TaggedRequestForResult<Self, Tag, Payload_2, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C_2 extends {
++            }, "error">>(tag: Tag, fields: Payload, config: GetContextConfig<RequestContextMap["config"]> & C): TaggedRequestForResult<Self, Tag, Payload, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C extends {
+                 error: infer E;
+-            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C_2> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C_2>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C_2>>, GeneralErrors]>, Omit<C_2, "error" | "success">, ModuleName, "command">;
+-            <Tag extends string, Payload_3 extends S.Struct.Fields, C_3 extends Record<string, any>>(tag: Tag, fields: Payload_3, config: C_3 & GetContextConfig<RequestContextMap["config"]>): TaggedRequestForResult<Self, Tag, Payload_3, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C_3 extends {
++            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "command">;
++            <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(tag: Tag, fields: Payload, config: C & GetContextConfig<RequestContextMap["config"]>): TaggedRequestForResult<Self, Tag, Payload, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, C extends {
+                 error: infer E;
+-            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C_3> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C_3>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C_3>>, GeneralErrors]>, Omit<C_3, "error" | "success">, ModuleName, "command">;
+-            <Tag extends string, Payload_4 extends S.Struct.Fields>(tag: Tag, fields: Payload_4): TaggedRequestForResult<Self, Tag, Payload_4, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], {}> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>>, GeneralErrors]>, Record<string, never>, ModuleName, "command">;
++            } ? [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]> : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], C>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], C>>, GeneralErrors]>, Omit<C, "error" | "success">, ModuleName, "command">;
++            <Tag extends string, Payload extends S.Struct.Fields>(tag: Tag, fields: Payload): TaggedRequestForResult<Self, Tag, Payload, S.decodeTo<S.Any, S.declare<unknown, unknown>, never, never>, [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], {}> : [GeneralErrors] extends [never] ? SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>> : S.Union<[SchemaOrFields<GetEffectError<RequestContextMap["config"], {}>>, GeneralErrors]>, Record<string, never>, ModuleName, "command">;
+         }) & {
+             readonly moduleName: ModuleName;
+             readonly type: "command";
+@@ -84,4 +84,4 @@
+     };
+ };
+ export {};
+-//# sourceMappingURL=makeClient.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/client.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/client.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/client.d.ts	2026-04-23 09:01:04.876406586 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/client.d.ts	2026-04-23 09:00:34.696445297 +0200
+@@ -2,4 +2,4 @@
+ export * from "./client/clientFor.js";
+ export * from "./client/errors.js";
+ export * from "./client/makeClient.js";
+-//# sourceMappingURL=client.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/faker.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/faker.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/faker.d.ts	2026-04-23 09:01:04.875120588 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/faker.d.ts	2026-04-23 09:00:34.697333378 +0200
+@@ -4,4 +4,4 @@
+ export declare function getFaker(): Faker;
+ export declare const fakerToArb: <T>(fakerGen: () => T) => (fc: typeof FC) => FC.Arbitrary<T>;
+ export declare const fakerArb: <T>(gen: (fake: Faker) => () => T) => (a: any) => FC.Arbitrary<T>;
+-//# sourceMappingURL=faker.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/http/Request.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/http/Request.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/http/Request.d.ts	2026-04-23 09:01:04.876026452 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/http/Request.d.ts	2026-04-23 09:00:34.697095553 +0200
+@@ -5,5 +5,5 @@
+     readonly body: A;
+ }
+ export declare const responseWithJsonBody: (response: HttpClientResponse) => Effect.Effect<ResponseWithBody<unknown>, HttpClientError.HttpClientError, never>;
+-export declare const demandJson: (client: HttpClient.HttpClient) => HttpClient.HttpClient.With<HttpClientError.HttpClientError | HttpClientError.DecodeError, never>;
+-//# sourceMappingURL=Request.d.ts.map
+\ No newline at end of file
++export declare const demandJson: (client: HttpClient.HttpClient) => HttpClient.HttpClient.With<HttpClientError.DecodeError | HttpClientError.HttpClientError, never>;
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/http/internal/lib.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/http/internal/lib.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/http/internal/lib.d.ts	2026-04-23 09:01:04.875990719 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/http/internal/lib.d.ts	2026-04-23 09:00:34.697057333 +0200
+@@ -10,4 +10,4 @@
+ export * as HttpServerError from "effect/unstable/http/HttpServerError";
+ export * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
+ export * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
+-//# sourceMappingURL=lib.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/http.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/http.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/http.d.ts	2026-04-23 09:01:04.876058299 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/http.d.ts	2026-04-23 09:00:34.696796523 +0200
+@@ -1,2 +1,2 @@
+ export * from "./http/internal/lib.js";
+-//# sourceMappingURL=http.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/ids.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/ids.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/ids.d.ts	2026-04-23 09:01:04.876578991 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/ids.d.ts	2026-04-23 09:00:34.697391371 +0200
+@@ -23,4 +23,4 @@
+     make: () => string & StringIdBrand & UserProfileIdBrand;
+     withDefault: S.withConstructorDefault<Codec<string & StringIdBrand & UserProfileIdBrand, string, never, never> & S.WithoutConstructorDefault>;
+ } & S.WithDefaults<Codec<string & StringIdBrand & UserProfileIdBrand, string, never, never>>;
+-//# sourceMappingURL=ids.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/index.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/index.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/index.d.ts	2026-04-23 09:01:04.876538966 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/index.d.ts	2026-04-23 09:00:34.696775977 +0200
+@@ -15,4 +15,4 @@
+ export * as SecretURL from "./Config/SecretURL.js";
+ export * as S from "./Schema.js";
+ export { copy } from "./utils.js";
+-//# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/logger.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/logger.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/logger.d.ts	2026-04-23 09:01:04.876611862 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/logger.d.ts	2026-04-23 09:00:34.697181748 +0200
+@@ -6,4 +6,4 @@
+     logDebug: (...message: ReadonlyArray<any>) => import("effect/Effect").Effect<void, never, never>;
+     logWithLevel: (level: import("effect/LogLevel").Severity, ...message: ReadonlyArray<any>) => import("effect/Effect").Effect<void, never, never>;
+ };
+-//# sourceMappingURL=logger.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/middleware.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/middleware.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/middleware.d.ts	2026-04-23 09:01:04.876683873 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/middleware.d.ts	2026-04-23 09:00:34.697158608 +0200
+@@ -29,4 +29,4 @@
+ }
+ export declare const DefaultGenericMiddlewares: readonly [typeof RequestCacheMiddleware, typeof ConfigureInterruptibilityMiddleware, typeof LoggerMiddleware, typeof DevModeMiddleware];
+ export {};
+-//# sourceMappingURL=middleware.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/rpc/MiddlewareMaker.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/rpc/MiddlewareMaker.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/rpc/MiddlewareMaker.d.ts	2026-04-23 09:01:04.876371217 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/rpc/MiddlewareMaker.d.ts	2026-04-23 09:00:34.695319168 +0200
+@@ -132,4 +132,4 @@
+     toLayerDynamic: <Handlers extends HandlersFrom<AddMiddleware<R, Middleware>>, EX = never, RX = never>(build: Handlers | Effect.Effect<Handlers, EX, RX>) => Layer.Layer<Rpc.ToHandler<AddMiddleware<R, Middleware>>, EX, Exclude<RX, Scope.Scope> | RpcMiddlewareX.HandlersContext<AddMiddleware<R, Middleware>, Handlers>>;
+ };
+ export {};
+-//# sourceMappingURL=MiddlewareMaker.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/rpc/RpcContextMap.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/rpc/RpcContextMap.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/rpc/RpcContextMap.d.ts	2026-04-23 09:01:04.876322175 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/rpc/RpcContextMap.d.ts	2026-04-23 09:00:34.695283317 +0200
+@@ -66,4 +66,4 @@
+     readonly config: Record<string, RpcContextMap.Any>;
+ };
+ export {};
+-//# sourceMappingURL=RpcContextMap.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/rpc/RpcMiddleware.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/rpc/RpcMiddleware.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/rpc/RpcMiddleware.d.ts	2026-04-23 09:01:04.876287325 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/rpc/RpcMiddleware.d.ts	2026-04-23 09:00:34.695238024 +0200
+@@ -135,4 +135,4 @@
+     readonly provides: infer _P;
+ } ? [_P] extends [never] ? never : _P : never : never;
+ export type ExcludeProvides<Env, R extends Rpc.Any, Tag extends string> = Exclude<Env, ExtractProvides<R, Tag> | ExtractDynamicallyProvides<R, Tag>>;
+-//# sourceMappingURL=RpcMiddleware.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/rpc.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/rpc.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/rpc.d.ts	2026-04-23 09:01:04.876643897 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/rpc.d.ts	2026-04-23 09:00:34.696225952 +0200
+@@ -2,4 +2,4 @@
+ export * as MiddlewareMaker from "./rpc/MiddlewareMaker.js";
+ export * as RpcContextMap from "./rpc/RpcContextMap.js";
+ export * as RpcMiddleware from "./rpc/RpcMiddleware.js";
+-//# sourceMappingURL=rpc.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/transform.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/transform.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/transform.d.ts	2026-04-23 09:01:04.876720700 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/transform.d.ts	2026-04-23 09:00:34.697543790 +0200
+@@ -9,4 +9,4 @@
+ };
+ export declare const encodeOptsAsNullable: <T>(root: T) => TransformRoot<T>;
+ export {};
+-//# sourceMappingURL=transform.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils/effectify.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/utils/effectify.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils/effectify.d.ts	2026-04-23 09:01:04.874578960 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils/effectify.d.ts	2026-04-23 09:00:34.696146452 +0200
+@@ -207,4 +207,4 @@
+     <F extends (...args: Array<any>) => any, E, E2>(fn: F, onError: (error: CallbackError<F>, args: Parameters<F>) => E, onSyncError: (error: unknown, args: Parameters<F>) => E2): Effectify<F, E | E2>;
+ };
+ export {};
+-//# sourceMappingURL=effectify.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils/extend.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/utils/extend.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils/extend.d.ts	2026-04-23 09:01:04.874613143 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils/extend.d.ts	2026-04-23 09:00:34.696106960 +0200
+@@ -1,3 +1,3 @@
+ export declare const extend: <T extends {}, X extends {}>(a: T, ext: X) => T & X;
+ export declare const extendM: <T extends {}, X extends {}>(a: T, ext: (a: T) => X) => typeof a & X;
+-//# sourceMappingURL=extend.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils/gen.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/utils/gen.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils/gen.d.ts	2026-04-23 09:01:04.874643842 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils/gen.d.ts	2026-04-23 09:00:34.696059698 +0200
+@@ -4,4 +4,4 @@
+     type Error<EG> = EG extends Effect<infer _A, infer E, infer _R> ? E : EG extends (..._: infer _3) => Generator<never, infer _A, infer _2> ? never : EG extends (..._: infer _3) => Generator<Yieldable<any, infer _, infer E, infer _R>, infer _A, infer _2> ? E : never;
+     type Context<EG> = EG extends Effect<infer _A, infer _E, infer R> ? R : EG extends (..._: infer _3) => Generator<never, infer _A, infer _2> ? never : EG extends (..._: infer _3) => Generator<Yieldable<any, infer _, infer _E, infer R>, infer _A, infer _2> ? R : never;
+ }
+-//# sourceMappingURL=gen.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils/logLevel.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/utils/logLevel.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils/logLevel.d.ts	2026-04-23 09:01:04.874726318 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils/logLevel.d.ts	2026-04-23 09:00:34.696024461 +0200
+@@ -1,3 +1,3 @@
+ import { type LogLevel } from "effect";
+-export declare const LogLevelToSentry: (level: LogLevel.LogLevel) => "info" | "debug" | "error" | "warning" | "fatal" | "log";
+-//# sourceMappingURL=logLevel.d.ts.map
+\ No newline at end of file
++export declare const LogLevelToSentry: (level: LogLevel.LogLevel) => "debug" | "error" | "fatal" | "info" | "log" | "warning";
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils/logger.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/utils/logger.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils/logger.d.ts	2026-04-23 09:01:04.874682520 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils/logger.d.ts	2026-04-23 09:00:34.696178953 +0200
+@@ -13,4 +13,4 @@
+     logWithLevel: (level: LogLevel.Severity, ...message: ReadonlyArray<any>) => Effect.Effect<void, never, never>;
+ };
+ export {};
+-//# sourceMappingURL=logger.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils/logger.js /tmp/dist-snapshots/tsgo/effect-app/dist/utils/logger.js
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils/logger.js	2026-04-23 09:01:04.874655522 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils/logger.js	2026-04-23 09:00:34.696082499 +0200
+@@ -21,4 +21,4 @@
+         logWithLevel: (level, ...message) => Effect.logWithLevel(level)(...message).pipe(withLogNamespace)
+     };
+ };
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/utils.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils.d.ts	2026-04-23 09:01:04.874790697 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils.d.ts	2026-04-23 09:00:34.697584288 +0200
+@@ -97,7 +97,7 @@
+ }>(...as: AS): UnionToIntersection<{
+     [k in keyof AS]: AS[k];
+ }[number]>;
+-export type IsEqualTo<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
++export type IsEqualTo<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => (T extends Y ? 1 : 2) ? true : false;
+ export declare const unifyIndex: unique symbol;
+ export type unifyIndex = typeof unifyIndex;
+ export interface UnifiableIndexed<X> {
+@@ -189,10 +189,10 @@
+  */
+ export declare const copyOrigin: <Ctor extends new (_: any) => any>(ctor: Ctor) => {
+     <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(f: (a: A) => CopyOriginU<U, Ctor>): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>;
+-    <A extends InstanceType<Ctor>, U_1 extends Partial<InstanceType<Ctor>>>(updates: CopyOriginU<U_1, Ctor>): (self: CopyOriginSelf<A, U_1>) => CopyOriginRet<A, U_1>;
++    <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(updates: CopyOriginU<U, Ctor>): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>;
+ } & {
+-    <A extends InstanceType<Ctor>, U_2 extends Partial<InstanceType<Ctor>>>(self: CopyOriginSelf<A, U_2>, f: (a: A) => CopyOriginU<U_2, Ctor>): CopyOriginRet<A, U_2>;
+-    <A extends InstanceType<Ctor>, U_3 extends Partial<InstanceType<Ctor>>>(self: CopyOriginSelf<A, U_3>, updates: CopyOriginU<U_3, Ctor>): CopyOriginRet<A, U_3>;
++    <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(self: CopyOriginSelf<A, U>, f: (a: A) => CopyOriginU<U, Ctor>): CopyOriginRet<A, U>;
++    <A extends InstanceType<Ctor>, U extends Partial<InstanceType<Ctor>>>(self: CopyOriginSelf<A, U>, updates: CopyOriginU<U, Ctor>): CopyOriginRet<A, U>;
+ };
+ export declare function debug<A>(a: AnyOps<A>, name: string): Effect.Effect<A, never, never>;
+ export declare function debugUnsafe<A>(a: AnyOps<A>, name: string): A;
+@@ -244,4 +244,4 @@
+  * @since 3.11.0
+  */
+ export declare const isGeneratorFunction: (u: unknown) => u is (...args: Array<any>) => Generator<any, any, any>;
+-//# sourceMappingURL=utils.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/utils.js /tmp/dist-snapshots/tsgo/effect-app/dist/utils.js
+--- /tmp/dist-snapshots/tsc/effect-app/dist/utils.js	2026-04-23 09:01:04.874746540 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/utils.js	2026-04-23 09:00:34.696818801 +0200
+@@ -412,4 +412,4 @@
+  * @since 3.11.0
+  */
+ export const isGeneratorFunction = (u) => isObject(u) && u.constructor === genConstructor;
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/validation/validators.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/validation/validators.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/validation/validators.d.ts	2026-04-23 09:01:04.875165092 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/validation/validators.d.ts	2026-04-23 09:00:34.696694517 +0200
+@@ -8,4 +8,4 @@
+  * Allowed characters are [0-1] "/", "+", "-", " .js"
+  */
+ export declare const isValidPhone: (phone: string) => boolean;
+-//# sourceMappingURL=validators.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/effect-app/dist/validation.d.ts /tmp/dist-snapshots/tsgo/effect-app/dist/validation.d.ts
+--- /tmp/dist-snapshots/tsc/effect-app/dist/validation.d.ts	2026-04-23 09:01:04.875202991 +0200
++++ /tmp/dist-snapshots/tsgo/effect-app/dist/validation.d.ts	2026-04-23 09:00:34.697708446 +0200
+@@ -10,4 +10,4 @@
+     length: number;
+ }) => boolean;
+ export * from "./validation/validators.js";
+-//# sourceMappingURL=validation.d.ts.map
+\ No newline at end of file
+\ No newline at end of file

@@ -1,0 +1,75 @@
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/index.d.ts /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/index.d.ts
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/index.d.ts	2026-04-23 09:01:04.880738438 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/index.d.ts	2026-04-23 09:00:34.700250718 +0200
+@@ -1,2 +1,2 @@
+ export * from './presets';
+-//# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/barrel.d.ts /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/barrel.d.ts
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/barrel.d.ts	2026-04-23 09:01:04.880562518 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/barrel.d.ts	2026-04-23 09:00:34.700095677 +0200
+@@ -37,4 +37,4 @@
+     nodir?: boolean;
+     modulegen?: boolean;
+ }>;
+-//# sourceMappingURL=barrel.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/barrel.js /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/barrel.js
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/barrel.js	2026-04-23 09:01:04.880582560 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/barrel.js	2026-04-23 09:00:34.700112732 +0200
+@@ -162,4 +162,4 @@
+     return expectedContent;
+ };
+ exports.barrel = barrel;
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/index.d.ts /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/index.d.ts
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/index.d.ts	2026-04-23 09:01:04.880601924 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/index.d.ts	2026-04-23 09:00:34.700130705 +0200
+@@ -1,4 +1,4 @@
+ export * from './barrel';
+ export * from './model';
+ export * from './meta';
+-//# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/meta.d.ts /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/meta.d.ts
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/meta.d.ts	2026-04-23 09:01:04.880613599 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/meta.d.ts	2026-04-23 09:00:34.700140965 +0200
+@@ -5,4 +5,4 @@
+ export declare const meta: Preset<{
+     sourcePrefix?: string;
+ }>;
+-//# sourceMappingURL=meta.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/meta.js /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/meta.js
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/meta.js	2026-04-23 09:01:04.880624535 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/meta.js	2026-04-23 09:00:34.700151367 +0200
+@@ -23,4 +23,4 @@
+     return expectedContent;
+ };
+ exports.meta = meta;
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/model.d.ts /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/model.d.ts
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/model.d.ts	2026-04-23 09:01:04.880635193 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/model.d.ts	2026-04-23 09:00:34.700161608 +0200
+@@ -2,4 +2,4 @@
+ export declare const model: Preset<{
+     writeFullTypes?: boolean;
+ }>;
+-//# sourceMappingURL=model.d.ts.map
+\ No newline at end of file
+\ No newline at end of file
+diff -urN '--exclude=*.tsbuildinfo' '--exclude=*.map' /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/model.js /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/model.js
+--- /tmp/dist-snapshots/tsc/eslint-codegen-model/dist/presets/model.js	2026-04-23 09:01:04.880648025 +0200
++++ /tmp/dist-snapshots/tsgo/eslint-codegen-model/dist/presets/model.js	2026-04-23 09:00:34.700173087 +0200
+@@ -105,4 +105,4 @@
+     }
+ };
+ exports.model = model;
+\ No newline at end of file
+\ No newline at end of file

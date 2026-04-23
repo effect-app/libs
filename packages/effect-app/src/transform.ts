@@ -51,8 +51,8 @@ const encodeOptsAsNullable_ = (value: any, cacheMap: Map<any, any>): any => {
 
   if (
     value instanceof Date
-    || value instanceof Function
-    || value instanceof Promise
+    || typeof value === "function"
+    || (typeof value === "object" && value !== null && "then" in value && typeof value.then === "function")
   ) {
     return value
   }

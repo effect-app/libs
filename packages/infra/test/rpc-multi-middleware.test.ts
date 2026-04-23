@@ -1,19 +1,18 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { Console, Effect, Layer, Ref, Result } from "effect"
-import { Context, S } from "effect-app"
+import { Context, RpcX, S } from "effect-app"
 import { NotLoggedInError } from "effect-app/client"
 import { HttpRouter } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
-import { MiddlewareMaker } from "effect-app/rpc"
-import { middlewareGroup } from "effect-app/rpc/MiddlewareMaker"
 import { FetchHttpClient } from "effect/unstable/http"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/unstable/rpc"
 import { createServer } from "http"
 import { DefaultGenericMiddlewaresLive } from "../src/api/routing.js"
 import { AllowAnonymous, AllowAnonymousLive, RequestContextMap, RequireRoles, RequireRolesLive, Some, SomeElseMiddleware, SomeElseMiddlewareLive, SomeMiddleware, SomeMiddlewareLive, SomeService, Test, TestLive, UserProfile } from "./fixtures.js"
 
-const incomplete = MiddlewareMaker
+const incomplete = RpcX
+  .MiddlewareMaker
   .Tag<middleware>()("MiddlewareMaker", RequestContextMap)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
@@ -21,7 +20,8 @@ const incomplete = MiddlewareMaker
 // this extension is allowed otherwise the error is quite obscure
 export class incompleteMiddleware extends incomplete {}
 
-class middleware extends MiddlewareMaker
+class middleware extends RpcX
+  .MiddlewareMaker
   .Tag<middleware>()("MiddlewareMaker", RequestContextMap)
   .middleware(RequireRoles)
   .middleware(AllowAnonymous, Test)
@@ -29,7 +29,7 @@ class middleware extends MiddlewareMaker
   .middleware(...DefaultGenericMiddlewares)
 {}
 
-const UserRpcs = middlewareGroup(middleware)(
+const UserRpcs = RpcX.MiddlewareMaker.middlewareGroup(middleware)(
   RpcGroup.make(
     middleware.rpc("getUser", {
       success: S.Literal("awesome")
@@ -56,7 +56,7 @@ const impl = UserRpcs
 
 expectTypeOf<Layer.Services<typeof impl>>().toEqualTypeOf<never>()
 
-const UserRpcsBad = middlewareGroup(middleware)(
+const UserRpcsBad = RpcX.MiddlewareMaker.middlewareGroup(middleware)(
   RpcGroup.make(
     middleware.rpc("doSomethingElse", {
       success: S.Literal("also-awesome2"),

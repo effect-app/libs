@@ -136,6 +136,7 @@ type ValuesE<T> = T extends { [s: string]: infer S } ? ServiceE<S> : never
  * const b = a({ str: "" })   // valid, but shouldn't be!
  * ```
  */
+// eslint-disable-next-line import/namespace
 export interface EffectUnunified<R, E, A> extends Effect.Effect<R, E, A> {}
 
 export type LowerFirst<S extends PropertyKey> = S extends `${infer First}${infer Rest}` ? `${Lowercase<First>}${Rest}`

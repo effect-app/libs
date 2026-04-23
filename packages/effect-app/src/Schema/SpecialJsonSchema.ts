@@ -50,9 +50,9 @@ export function flattenSimpleAllOf(obj: unknown): unknown {
     )
     if (canFlatten) {
       const { allOf: _, ...rest } = result
-      let merged: Record<string, unknown> = { ...rest }
+      const merged: Record<string, unknown> = { ...rest }
       for (const entry of allOf) {
-        merged = { ...merged, ...entry }
+        Object.assign(merged, entry)
       }
       return merged
     }

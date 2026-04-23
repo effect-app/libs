@@ -269,7 +269,7 @@ export type EnforceNonEmptyRecord<R> = keyof R extends never ? never : R
 export function intersect<AS extends unknown[] & { 0: unknown }>(
   ...as: AS
 ): UnionToIntersection<{ [k in keyof AS]: AS[k] }[number]> {
-  return as.reduce((a: any, b: any) => ({ ...a, ...b })) as any
+  return as.reduce((a: any, b: any) => Object.assign(a, b), {}) as any
 }
 
 export type IsEqualTo<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
@@ -280,8 +280,7 @@ export type IsEqualTo<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
 export const unifyIndex = Symbol()
 export type unifyIndex = typeof unifyIndex
 
-// @ts-expect-error abc
-export interface UnifiableIndexed<X> {}
+export interface UnifiableIndexed<_X> {}
 export type UnifiableIndexedURI = keyof UnifiableIndexed<any>
 
 export interface Unifiable<X> {

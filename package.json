@@ -85,6 +85,7 @@
     "module-alias": "^2.3.4",
     "nodemon": "^3.1.14",
     "npm-check-updates": "^21.0.3",
+    "oxlint": "^1.61.0",
     "ts-plugin-sort-import-suggestions": "^1.0.4",
     "ts-transform-paths": "^3.0.0",
     "tsc-watch": "^7.2.0",

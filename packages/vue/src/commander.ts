@@ -1751,15 +1751,18 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
         ),
       onSome: (e) =>
         S.is(OperationFailure)(e)
-          ? {
-            level: "warn" as const,
-            message: `${
-              intl.formatMessage(
-                { id: "handle.with_warnings" },
-                { action }
-              )
-            }${e.message ? "\n" + e.message : ""}`
-          }
+          ? (() => {
+            const rendered = renderError(action, errorRenderer)(e, ...args)
+            return {
+              level: "warn" as const,
+              message: `${
+                intl.formatMessage(
+                  { id: "handle.with_warnings" },
+                  { action }
+                )
+              }${rendered ? "\n" + rendered : ""}`
+            }
+          })()
           : {
             level: "warn" as const,
             message: `${

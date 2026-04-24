@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.138
+
+### Patch Changes
+
+- 9be71e1: fix: double guard
+  - effect-app@4.0.0-beta.138
+
 ## 4.0.0-beta.137
 
 ### Patch Changes

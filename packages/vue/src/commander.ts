@@ -1676,7 +1676,7 @@ export const makeRegisteredErrorRenderer = <A>(
   render: (guarded: A) => string | undefined
 ): RegisteredErrorRenderer<A> => ({
   guard,
-  render: (guarded) => guard(guarded) ? render(guarded) : undefined
+  render
 })
 
 const renderErrorMaker = Effect.gen(function*() {

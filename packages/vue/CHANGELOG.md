@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.139
+
+### Patch Changes
+
+- ba61aad: raw dog
+  - effect-app@4.0.0-beta.139
+
 ## 4.0.0-beta.138
 
 ### Patch Changes

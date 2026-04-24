@@ -8,7 +8,7 @@ import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
 import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
-import { computed, type ComputedRef, reactive, ref } from "vue"
+import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
 import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
@@ -2156,6 +2156,7 @@ export class CommanderImpl<RT, RTHooks> {
         const runFork = Effect.runForkWith(rt)
 
         const handle = Object.assign((arg: Arg) => {
+          arg = toRaw(arg) // always remove all the vue proxy bs
           // we capture the call site stack here
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2

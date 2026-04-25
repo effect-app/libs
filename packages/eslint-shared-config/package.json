@@ -34,7 +34,7 @@
     "eslint-plugin-sort-destructure-keys": "3.0.0",
     "eslint-plugin-unused-imports": "4.4.1",
     "@ben_12/eslint-plugin-dprint": "1.17.0",
-    "eslint-plugin-formatjs": "6.4.5",
+    "eslint-plugin-formatjs": "6.4.6",
     "@vue/eslint-config-typescript": "14.7.0",
     "typescript-eslint": "8.59.0",
     "eslint-plugin-vue": "10.9.0",

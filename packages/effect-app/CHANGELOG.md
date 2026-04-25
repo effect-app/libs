@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.149
+
+### Patch Changes
+
+- f317c5e: Preserve omitted-input make helpers through Schema.Opaque when the wrapped schema allows optional or default-only constructor input.
+
 ## 4.0.0-beta.148
 
 ### Patch Changes

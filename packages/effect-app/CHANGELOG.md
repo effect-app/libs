@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.147
+
+### Patch Changes
+
+- 47e3742: Preserve Struct.copy through `annotate`, `annotateKey`, and `mapFields` chains, and add tests covering chained copy behavior on Struct schemas.
+
 ## 4.0.0-beta.146
 
 ### Patch Changes

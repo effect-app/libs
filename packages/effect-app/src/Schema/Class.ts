@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
+import { type Cause, Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
 import * as S from "effect/Schema"
 import * as SchemaParser from "effect/SchemaParser"
 import { copyOrigin } from "../utils.js"
@@ -171,6 +171,95 @@ export const TaggedClass: <Self = never>(
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = !(options?.strict ?? false)
     const Base = (S.TaggedClass as any)(identifier)(tag, fields, annotations)
+    const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
+    const astCache = new WeakMap<any, SchemaAST.Declaration>()
+    const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
+
+    return class extends Base {
+      static get copy() {
+        let cached = copyCache.get(this)
+        if (cached === undefined) {
+          cached = copyOrigin(this)
+          copyCache.set(this, cached)
+        }
+        return cached
+      }
+      static get ast(): SchemaAST.Declaration {
+        let cached = astCache.get(this)
+        if (cached !== undefined) return cached
+        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
+        astCache.set(this, cached)
+        return cached
+      }
+      static mapFields(f: any, options?: any) {
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
+      }
+    } as any
+  }
+
+// ---------------------------------------------------------------------------
+// ErrorClass — like Schema.ErrorClass but with relaxed encoding
+// ---------------------------------------------------------------------------
+
+export const ErrorClass: <Self = never, Brand = {}>(identifier: string) => <Fields extends S.Struct.Fields>(
+  fieldsOr: Fields | HasFields<Fields>,
+  annotations?: ClassAnnotations<Self>,
+  options?: ClassOptions
+) => [Self] extends [never] ? MissingSelfGeneric<"ErrorClass">
+  : EnhancedClass<
+    Self,
+    S.Struct<Fields>,
+    Cause.YieldableError & Brand
+  > = (identifier) => (fields, annotations, options) => {
+    const relaxed = !(options?.strict ?? false)
+    const Base = (S.ErrorClass as any)(identifier)(fields, annotations)
+    const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
+    const astCache = new WeakMap<any, SchemaAST.Declaration>()
+    const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
+
+    return class extends Base {
+      static get copy() {
+        let cached = copyCache.get(this)
+        if (cached === undefined) {
+          cached = copyOrigin(this)
+          copyCache.set(this, cached)
+        }
+        return cached
+      }
+      static get ast(): SchemaAST.Declaration {
+        let cached = astCache.get(this)
+        if (cached !== undefined) return cached
+        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
+        astCache.set(this, cached)
+        return cached
+      }
+      static mapFields(f: any, options?: any) {
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
+      }
+    } as any
+  }
+
+// ---------------------------------------------------------------------------
+// TaggedErrorClass — like Schema.TaggedErrorClass but with relaxed encoding
+// ---------------------------------------------------------------------------
+
+export const TaggedErrorClass: <Self = never, Brand = {}>(
+  identifier?: string
+) => <Tag extends string, Fields extends S.Struct.Fields>(
+  tag: Tag,
+  fieldsOr: Fields | HasFields<Fields>,
+  annotations?: ClassAnnotations<Self>,
+  options?: ClassOptions
+) => [Self] extends [never] ? MissingSelfGeneric<"TaggedErrorClass">
+  : EnhancedClass<
+    Self,
+    S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>,
+    Cause.YieldableError & Brand
+  > = (identifier) => (tag, fields, annotations, options) => {
+    const relaxed = !(options?.strict ?? false)
+    const Base = (S.TaggedErrorClass as any)(identifier)(tag, fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()

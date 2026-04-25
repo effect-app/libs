@@ -40,6 +40,15 @@ describe("Class", () => {
     expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
   })
 
+  it("S.is accepts class instances and matching plain objects", () => {
+    class A extends Class<A>("A")({ a: S.String }) {}
+
+    expect(S.is(A)(new A({ a: "hello" }))).toBe(true)
+    expect(S.is(A)({ a: "world" })).toBe(true)
+    expect(S.is(A)({ a: 1 })).toBe(false)
+    expect(S.is(A)(null)).toBe(false)
+  })
+
   it("rejects values that don't match the struct", () => {
     class A extends Class<A>("A")({ a: S.String }) {}
 

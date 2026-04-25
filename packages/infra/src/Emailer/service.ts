@@ -22,6 +22,12 @@ export interface SendgridConfig {
   realMail: boolean
   defaultFrom: EmailData
   apiKey: Redacted.Redacted<string>
+  /**
+   * Email address used for fake/test recipients. Use `{i}` as a placeholder for an auto-incrementing index to ensure uniqueness.
+   *
+   * @example "test+{i}@example.com"
+   */
+  fakeMailAddress: string
 }
 export type EmailTemplateMsg = MailData & { templateId: string }
 

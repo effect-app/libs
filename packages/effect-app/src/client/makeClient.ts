@@ -17,6 +17,10 @@ export const ForceVoid = S
 
 type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Struct<T> : S.Void
 
+type TaggedRequestSchema<Tag extends string, Payload extends S.Struct.Fields> = S.Struct<
+  { readonly _tag: S.tag<Tag> } & Payload
+>
+
 type TaggedRequestForResult<
   Self,
   Tag extends string,
@@ -27,7 +31,7 @@ type TaggedRequestForResult<
   ModuleName extends string,
   Type extends "command" | "query"
 > =
-  & S.EnhancedClass<Self, S.TaggedStruct<Tag, Payload>, {}>
+  & S.EnhancedClass<Self, TaggedRequestSchema<Tag, Payload>, {}>
   & {
     readonly _tag: Tag
     readonly success: Success

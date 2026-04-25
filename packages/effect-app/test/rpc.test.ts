@@ -1,3 +1,4 @@
+import { type Effect, type Option } from "effect"
 import { expect, test } from "vitest"
 import { makeRpcClient, NotLoggedInError, UnauthorizedError } from "../src/client.js"
 import { ForceVoid } from "../src/client/makeClient.js"
@@ -29,6 +30,10 @@ declare const _statsError: typeof Stats.error.Type
 declare const _statsRequestType: typeof Stats.type
 
 test("ForceVoid decodes and encodes as void", () => {
+  const statsFromMake = Stats.make({})
+  const statsFromMakeOption = Stats.makeOption({})
+  const statsFromMakeEffect = Stats.makeEffect({})
+
   expect(S.decodeUnknownSync(ForceVoid)(undefined)).toBe(undefined)
   expect(S.is(ForceVoid)(undefined)).toBe(true)
   expect(S.decodeUnknownSync(ForceVoid)("test")).toBe(undefined)
@@ -44,4 +49,7 @@ test("ForceVoid decodes and encodes as void", () => {
   }>()
   expectTypeOf<typeof _statsError>().toEqualTypeOf<NotLoggedInError | UnauthorizedError>()
   expectTypeOf<typeof _statsRequestType>().toEqualTypeOf<"query">()
+  expectTypeOf(statsFromMake).toEqualTypeOf<Stats>()
+  expectTypeOf(statsFromMakeOption).toEqualTypeOf<Option.Option<Stats>>()
+  expectTypeOf(statsFromMakeEffect).toEqualTypeOf<Effect.Effect<Stats, S.SchemaError>>()
 })

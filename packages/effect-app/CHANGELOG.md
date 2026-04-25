@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.148
+
+### Patch Changes
+
+- 199e9a5: Allow Struct and TaggedStruct make helpers to omit input when every constructor field is optional or defaulted, and preserve widening copy typings through a lighter named public type to improve TypeScript editor responsiveness.
+
 ## 4.0.0-beta.147
 
 ### Patch Changes

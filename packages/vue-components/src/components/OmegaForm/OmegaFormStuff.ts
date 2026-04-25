@@ -1256,7 +1256,7 @@ export const defaultsValueFromSchema = (
     return undefined
   }
 
-  // Handle structs via AST (covers plain structs, transformed schemas like decodeTo, ExtendedClass, etc.)
+  // Handle structs via AST (covers plain structs, transformed schemas like decodeTo, Class, etc.)
   const objectsAst = S.AST.isObjects(ast)
     ? ast
     : S.AST.isDeclaration(ast)

@@ -7,7 +7,7 @@ export type Locale = typeof Locale.Type
 
 export class LocaleRef extends Context.Reference("Locale", { defaultValue: (): Locale => "en" }) {}
 
-export class RequestContext extends S.ExtendedClass<
+export class RequestContext extends S.Class<
   RequestContext,
   RequestContext.Encoded
 >("RequestContext")({

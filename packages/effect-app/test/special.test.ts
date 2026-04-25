@@ -1,7 +1,7 @@
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import * as AppSchema from "effect-app/Schema"
-import { Class, ExtendedClass, ExtendedTaggedClass, TaggedClass } from "effect-app/Schema/Class"
+import { Class, TaggedClass } from "effect-app/Schema/Class"
 import { flattenNestedAnyOf, flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as S from "effect/Schema"
@@ -179,16 +179,16 @@ describe("strict declaration option", () => {
     expect(() => S.decodeSync(S.toType(X))({ _tag: "X", n: "a" })).toThrow("Expected X")
   })
 
-  it("ExtendedClass strict: true keeps class-level expected errors", () => {
-    class X extends ExtendedClass<X, never>("X")({ n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
+  it("Class with encoded override strict: true keeps class-level expected errors", () => {
+    class X extends Class<X, never>("X")({ n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
       strict: true
     }) {}
 
     expect(() => S.decodeSync(S.toType(X))({ n: "a" })).toThrow("Expected X")
   })
 
-  it("ExtendedTaggedClass strict: true keeps class-level expected errors", () => {
-    class X extends ExtendedTaggedClass<X, never>()("X", { n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
+  it("TaggedClass with encoded override strict: true keeps class-level expected errors", () => {
+    class X extends TaggedClass<X, never>()("X", { n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
       strict: true
     }) {}
 

@@ -28,6 +28,15 @@ type ClassOptions = {
   readonly strict?: boolean
 }
 
+declare const ExtendedSchemaNoEncoded: unique symbol
+
+type ExtendedSchemaNoEncoded = typeof ExtendedSchemaNoEncoded
+
+type WithEncoded<SchemaS extends S.Top, Encoded> = Omit<SchemaS, "Encoded"> & { readonly Encoded: Encoded }
+
+type ExtendedSchema<SchemaS extends S.Top, Encoded> = [Encoded] extends [ExtendedSchemaNoEncoded] ? SchemaS
+  : WithEncoded<SchemaS, Encoded>
+
 export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, Inherited> = EnhancedClass<
   Self,
   S,
@@ -91,14 +100,16 @@ function makeRelaxedDeclaration(
  * Schema.encodeUnknownSync(A)({ a: "hello" }) // { a: "hello" }
  * ```
  */
-export const Class: <Self = never>(identifier: string) => <Fields extends S.Struct.Fields>(
+export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
+  identifier: string
+) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>,
   options?: ClassOptions
 ) => [Self] extends [never] ? MissingSelfGeneric<"Class">
   : EnhancedClass<
     Self,
-    S.Struct<Fields>,
+    ExtendedSchema<S.Struct<Fields>, Encoded>,
     {}
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = !(options?.strict ?? false)
@@ -156,7 +167,7 @@ export const Class: <Self = never>(identifier: string) => <Fields extends S.Stru
  * Schema.encodeUnknownSync(Circle)({ _tag: "Circle", radius: 5 })
  * ```
  */
-export const TaggedClass: <Self = never>(
+export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
   identifier?: string
 ) => <Tag extends string, Fields extends S.Struct.Fields>(
   tag: Tag,
@@ -166,7 +177,7 @@ export const TaggedClass: <Self = never>(
 ) => [Self] extends [never] ? MissingSelfGeneric<"TaggedClass">
   : EnhancedClass<
     Self,
-    S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>,
+    ExtendedSchema<S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>, Encoded>,
     {}
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = !(options?.strict ?? false)
@@ -202,14 +213,16 @@ export const TaggedClass: <Self = never>(
 // ErrorClass — like Schema.ErrorClass but with relaxed encoding
 // ---------------------------------------------------------------------------
 
-export const ErrorClass: <Self = never, Brand = {}>(identifier: string) => <Fields extends S.Struct.Fields>(
+export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}>(
+  identifier: string
+) => <Fields extends S.Struct.Fields>(
   fieldsOr: Fields | HasFields<Fields>,
   annotations?: ClassAnnotations<Self>,
   options?: ClassOptions
 ) => [Self] extends [never] ? MissingSelfGeneric<"ErrorClass">
   : EnhancedClass<
     Self,
-    S.Struct<Fields>,
+    ExtendedSchema<S.Struct<Fields>, Encoded>,
     Cause.YieldableError & Brand
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = !(options?.strict ?? false)
@@ -245,7 +258,7 @@ export const ErrorClass: <Self = never, Brand = {}>(identifier: string) => <Fiel
 // TaggedErrorClass — like Schema.TaggedErrorClass but with relaxed encoding
 // ---------------------------------------------------------------------------
 
-export const TaggedErrorClass: <Self = never, Brand = {}>(
+export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand = {}>(
   identifier?: string
 ) => <Tag extends string, Fields extends S.Struct.Fields>(
   tag: Tag,
@@ -255,7 +268,7 @@ export const TaggedErrorClass: <Self = never, Brand = {}>(
 ) => [Self] extends [never] ? MissingSelfGeneric<"TaggedErrorClass">
   : EnhancedClass<
     Self,
-    S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>,
+    ExtendedSchema<S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>, Encoded>,
     Cause.YieldableError & Brand
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = !(options?.strict ?? false)
@@ -287,60 +300,8 @@ export const TaggedErrorClass: <Self = never, Brand = {}>(
     } as any
   }
 
-// ---------------------------------------------------------------------------
-// ExtendedClass — like Class but with extra type parameter for hierarchies
-// ---------------------------------------------------------------------------
-
-export const ExtendedClass: <Self, _SelfFrom>(identifier: string) => <Fields extends S.Struct.Fields>(
-  fieldsOr: Fields | HasFields<Fields>,
-  annotations?: ClassAnnotations<Self>,
-  options?: ClassOptions
-) => EnhancedClass<
-  Self,
-  S.Struct<Fields>,
-  {}
-> = Class as any
-
-declare const ExtendedOpaqueNoEncoded: unique symbol
-
-type ExtendedOpaqueNoEncoded = typeof ExtendedOpaqueNoEncoded
-
-type WithEncoded<SchemaS extends S.Top, Encoded> = Omit<SchemaS, "Encoded"> & { readonly Encoded: Encoded }
-
-type ExtendedOpaqueSchema<SchemaS extends S.Top, Encoded> = [Encoded] extends [ExtendedOpaqueNoEncoded] ? SchemaS
-  : WithEncoded<SchemaS, Encoded>
-
-const ExtendedOpaque: <Self, Encoded = ExtendedOpaqueNoEncoded, Brand = {}>() => <SchemaS extends S.Top>(
+const ExtendedOpaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <SchemaS extends S.Top>(
   schema: SchemaS
-) => S.Opaque<Self, ExtendedOpaqueSchema<SchemaS, Encoded>, Brand> & Omit<SchemaS, keyof S.Top> = S.Opaque as any
+) => S.Opaque<Self, ExtendedSchema<SchemaS, Encoded>, Brand> & Omit<SchemaS, keyof S.Top> = S.Opaque as any
 
 export const Opaque = ExtendedOpaque
-
-// ---------------------------------------------------------------------------
-// ExtendedTaggedClass — like TaggedClass but with extra type parameter for hierarchies
-// ---------------------------------------------------------------------------
-
-export interface EnhancedTaggedClass<Self, Tag extends string, Fields extends S.Struct.Fields, SelfFrom>
-  extends
-    EnhancedClass<
-      Self,
-      S.Struct<Fields> & { readonly Encoded: SelfFrom },
-      {}
-    >
-{
-  readonly _tag: Tag
-}
-
-export const ExtendedTaggedClass: <Self, SelfFrom>(
-  identifier?: string
-) => <Tag extends string, Fields extends S.Struct.Fields>(
-  tag: Tag,
-  fieldsOr: Fields | HasFields<Fields>,
-  annotations?: ClassAnnotations<Self>,
-  options?: ClassOptions
-) => EnhancedTaggedClass<
-  Self,
-  Tag,
-  { readonly _tag: S.tag<Tag> } & Fields,
-  SelfFrom
-> = TaggedClass as any

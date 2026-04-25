@@ -240,15 +240,15 @@ it("collect", () =>
       Effect.runPromise
     ))
 
-class Person extends S.ExtendedTaggedClass<Person, Person.Encoded>()("person", {
+class Person extends S.TaggedClass<Person, Person.Encoded>()("person", {
   id: S.String,
   surname: S.String
 }) {}
-class Animal extends S.ExtendedTaggedClass<Animal, Animal.Encoded>()("animal", {
+class Animal extends S.TaggedClass<Animal, Animal.Encoded>()("animal", {
   id: S.String,
   surname: S.String
 }) {}
-class Test extends S.ExtendedTaggedClass<Test, Test.Encoded>()("test", {
+class Test extends S.TaggedClass<Test, Test.Encoded>()("test", {
   id: S.String
 }) {}
 

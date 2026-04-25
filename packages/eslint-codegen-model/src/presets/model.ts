@@ -4,10 +4,42 @@ import { parse } from "@babel/parser"
 import type { Preset } from "eslint-plugin-codegen"
 import * as fs from "fs"
 
+function parseModule(code: string) {
+  return parse(code, { sourceType: "module", plugins: ["typescript"] }) as any
+}
+
+// Detects `export class Foo` whose extends clause contains e.g. `Class<Foo,` or
+// `S.TaggedClass<Foo,` — the second generic signals an Encoded override and marks
+// this class as a model that needs a generated namespace block.
+// We look at the text from `export class` up to the opening `{` of the class body
+// (stopping at the next `export class` boundary) so the pattern works for multi-line
+// extends expressions without bleeding into the next class declaration.
+const baseClassWithEncodedRe = /(?:^|[\s.])(?:Class|TaggedClass|ErrorClass|TaggedErrorClass)\s*<\s*\w[\w.]*\s*,/
+
+function getExportedModelNames(code: string): Array<string> {
+  const result: Array<string> = []
+  const classRe = /\bexport\s+class\s+(\w+)/g
+  let match: RegExpExecArray | null
+  while ((match = classRe.exec(code)) !== null) {
+    const name = match[1]!
+    // Take up to the next `export class` or 500 chars, whichever comes first,
+    // then trim further to only the extends clause (before the first `{`).
+    const nextClass = code.indexOf("export class", match.index + 1)
+    const rawWindow = code.slice(match.index, nextClass === -1 ? match.index + 500 : nextClass)
+    // Only look at the part before the class body opens.
+    const braceIdx = rawWindow.indexOf("{")
+    const extendsWindow = braceIdx === -1 ? rawWindow : rawWindow.slice(0, braceIdx)
+    if (baseClassWithEncodedRe.test(extendsWindow)) {
+      result.push(name)
+    }
+  }
+  return result
+}
+
 function normalise(str: string) {
   try {
     return generate(
-      parse(str, { sourceType: "module", plugins: ["typescript"] }) as any
+      parseModule(str)
     )
       .code
     // .replace(/'/g, `"`)
@@ -35,13 +67,8 @@ export const model: Preset<{
       throw Error(`Source path is not a file: ${sourcePath}`)
     }
 
-    const clss = targetContent.matchAll(/(.*)export class (\w+)[^{]*(Extended(Tagged)?Class)|ExtendedTaggedRequest/g)
     const them = []
-    for (const cls of clss) {
-      let modelName = null
-      if (cls && !cls[1] && cls[2]) {
-        modelName = cls[2]
-      } else continue
+    for (const modelName of getExportedModelNames(targetContent)) {
       if (processed.includes(modelName)) continue
       processed.push(modelName)
 

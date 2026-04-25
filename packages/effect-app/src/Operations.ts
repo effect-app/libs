@@ -3,7 +3,7 @@ import * as S from "./Schema.js"
 export type OperationId = S.StringId
 export const OperationId = S.StringId
 
-export class OperationProgress extends S.ExtendedClass<
+export class OperationProgress extends S.Class<
   OperationProgress,
   OperationProgress.Encoded
 >("OperationProgress")({
@@ -11,22 +11,18 @@ export class OperationProgress extends S.ExtendedClass<
   total: S.NonNegativeInt
 }) {}
 
-export class OperationSuccess
-  extends S.ExtendedTaggedClass<OperationSuccess, OperationSuccess.Encoded>()("OperationSuccess", {
-    message: S.NullOr(S.NonEmptyString2k).withDefault
-  })
-{}
+export class OperationSuccess extends S.TaggedClass<OperationSuccess, OperationSuccess.Encoded>()("OperationSuccess", {
+  message: S.NullOr(S.NonEmptyString2k).withDefault
+}) {}
 
-export class OperationFailure
-  extends S.ExtendedTaggedClass<OperationFailure, OperationFailure.Encoded>()("OperationFailure", {
-    message: S.NullOr(S.NonEmptyString2k).withDefault
-  })
-{}
+export class OperationFailure extends S.TaggedClass<OperationFailure, OperationFailure.Encoded>()("OperationFailure", {
+  message: S.NullOr(S.NonEmptyString2k).withDefault
+}) {}
 
 export const OperationResult = S.TaggedUnion(OperationSuccess, OperationFailure)
 export type OperationResult = S.Schema.Type<typeof OperationResult>
 
-export class Operation extends S.ExtendedClass<Operation, Operation.Encoded>("Operation")({
+export class Operation extends S.Class<Operation, Operation.Encoded>("Operation")({
   id: OperationId,
   title: S.NonEmptyString2k,
   progress: S.optional(OperationProgress),

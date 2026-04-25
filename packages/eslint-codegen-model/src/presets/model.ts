@@ -15,6 +15,8 @@ function parseModule(code: string) {
 // (stopping at the next `export class` boundary) so the pattern works for multi-line
 // extends expressions without bleeding into the next class declaration.
 const baseClassWithEncodedRe = /(?:^|[\s.])(?:Class|TaggedClass|ErrorClass|TaggedErrorClass)\s*<\s*\w[\w.]*\s*,/
+const opaqueWithEncodedRe = /(?:^|[\s.])Opaque\s*<\s*\w[\w.]*\s*,/
+const contextOpaqueRe = /(?:^|[\s.])Context\s*\.\s*Opaque\s*</
 
 function getExportedModelNames(code: string): Array<string> {
   const result: Array<string> = []
@@ -30,7 +32,10 @@ function getExportedModelNames(code: string): Array<string> {
     // Only look at the part before the class body opens.
     const braceIdx = rawWindow.indexOf("{")
     const extendsWindow = braceIdx === -1 ? rawWindow : rawWindow.slice(0, braceIdx)
-    if (baseClassWithEncodedRe.test(extendsWindow)) {
+    if (
+      baseClassWithEncodedRe.test(extendsWindow)
+      || (opaqueWithEncodedRe.test(extendsWindow) && !contextOpaqueRe.test(extendsWindow))
+    ) {
       result.push(name)
     }
   }

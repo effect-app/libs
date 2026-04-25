@@ -18,14 +18,15 @@ const baseClassWithEncodedRe = /(?:^|[\s.])(?:Class|TaggedClass|ErrorClass|Tagge
 
 function getExportedModelNames(code: string): Array<string> {
   const result: Array<string> = []
-  const classRe = /\bexport\s+class\s+(\w+)/g
-  let match: RegExpExecArray | null
-  while ((match = classRe.exec(code)) !== null) {
-    const name = match[1]!
+  const classRe = /(^|\n)\s*export\s+class\s+(\w+)/g
+  const matches = Array.from(code.matchAll(classRe))
+  for (const [index, match] of matches.entries()) {
+    const name = match[2]!
+    const start = match.index! + match[1]!.length
     // Take up to the next `export class` or 500 chars, whichever comes first,
     // then trim further to only the extends clause (before the first `{`).
-    const nextClass = code.indexOf("export class", match.index + 1)
-    const rawWindow = code.slice(match.index, nextClass === -1 ? match.index + 500 : nextClass)
+    const nextClass = matches[index + 1]?.index
+    const rawWindow = code.slice(start, nextClass === undefined ? start + 500 : nextClass)
     // Only look at the part before the class body opens.
     const braceIdx = rawWindow.indexOf("{")
     const extendsWindow = braceIdx === -1 ? rawWindow : rawWindow.slice(0, braceIdx)

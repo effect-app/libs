@@ -40,20 +40,58 @@ type WithSchemaCopy<Self extends S.Top> = Self & {
   readonly copy: ReturnType<typeof copyOrigin<new(_: any) => Self["Type"]>>
 }
 
-export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): WithSchemaCopy<S.Struct<Fields>> {
+export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): Struct<Fields> {
   const result = S.Struct(fields).annotate(concurrencyUnbounded)
   // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment
   const origMapFields: any = result.mapFields
+  // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment
+  const origAnnotate: any = result.annotate
+  // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment
+  const origAnnotateKey: any = result.annotateKey
+
+  const preserveCopyAndMethods = (schema: any): any => {
+    schema.copy = copy
+    schema.mapFields = function(this: any, f: any, options?: any) {
+      return (result as any).mapFields.call(this, f, options)
+    }
+    schema.annotate = function(this: any, annotations?: any) {
+      return (result as any).annotate.call(this, annotations)
+    }
+    schema.annotateKey = function(this: any, annotations?: any) {
+      return (result as any).annotateKey.call(this, annotations)
+    }
+    return schema
+  }
   ;(result as any).mapFields = function(this: any, f: any, options?: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const mapped = origMapFields.call(this, f, options).annotate(concurrencyUnbounded)
-    mapped.copy = copy
-    return mapped
+    return preserveCopyAndMethods(mapped)
+  }
+  ;(result as any).annotate = function(this: any, annotations?: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const annotated = origAnnotate.call(this, annotations)
+    return preserveCopyAndMethods(annotated)
+  }
+  ;(result as any).annotateKey = function(this: any, annotations?: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const annotated = origAnnotateKey.call(this, annotations)
+    return preserveCopyAndMethods(annotated)
   }
   ;(result as any).copy = copy
-  return result as WithSchemaCopy<S.Struct<Fields>>
+  return result as Struct<Fields>
 }
-export interface Struct<Fields extends S.Struct.Fields> extends WithSchemaCopy<S.Struct<Fields>> {}
+export interface Struct<Fields extends S.Struct.Fields> extends WithSchemaCopy<S.Struct<Fields>> {
+  annotate(
+    annotations: S.Annotations.Bottom<S.Struct.Type<Fields>, S.Struct<Fields>["~type.parameters"]>
+  ): Struct<Fields>
+  annotateKey(annotations: S.Annotations.Key<S.Struct.Type<Fields>>): Struct<Fields>
+  mapFields<To extends S.Struct.Fields>(
+    f: (fields: Fields) => To,
+    options?: {
+      readonly unsafePreserveChecks?: boolean | undefined
+    }
+  ): Struct<Readonly<To>>
+}
 export declare namespace Struct {
   export type Fields = S.Struct.Fields
   export type Type<F extends S.Struct.Fields> = S.Struct.Type<F>

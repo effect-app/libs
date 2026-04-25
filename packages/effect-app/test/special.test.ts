@@ -281,6 +281,49 @@ describe("Struct.copy", () => {
 
     expect(copied).toEqual({ name: "x", state: { _tag: "b", b: 1 } })
   })
+
+  it("copy function is preserved when using .annotate()", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number }).annotate({ title: "A" })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("copy function is preserved when using .annotateKey()", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number }).annotateKey({ title: "A" })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("copy function is preserved when using .mapFields()", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number }).mapFields((f) => ({ ...f }))
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("copy function is preserved through chained calls", () => {
+    const A = AppSchema
+      .Struct({ a: S.String, b: S.Number })
+      .annotate({ title: "A" })
+      .annotateKey({ description: "test" })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
 })
 
 describe("TaggedStruct.copy", () => {

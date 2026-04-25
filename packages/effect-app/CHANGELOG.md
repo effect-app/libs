@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.150
+
+### Patch Changes
+
+- 85a8275: Expose `make`, `makeOption`, and `makeEffect` static helpers on request classes created via `Query`/`Command`.
+
 ## 4.0.0-beta.149
 
 ### Patch Changes

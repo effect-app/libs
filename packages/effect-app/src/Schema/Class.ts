@@ -301,6 +301,21 @@ export const ExtendedClass: <Self, _SelfFrom>(identifier: string) => <Fields ext
   {}
 > = Class as any
 
+declare const ExtendedOpaqueNoEncoded: unique symbol
+
+type ExtendedOpaqueNoEncoded = typeof ExtendedOpaqueNoEncoded
+
+type WithEncoded<SchemaS extends S.Top, Encoded> = Omit<SchemaS, "Encoded"> & { readonly Encoded: Encoded }
+
+type ExtendedOpaqueSchema<SchemaS extends S.Top, Encoded> = [Encoded] extends [ExtendedOpaqueNoEncoded] ? SchemaS
+  : WithEncoded<SchemaS, Encoded>
+
+const ExtendedOpaque: <Self, Encoded = ExtendedOpaqueNoEncoded, Brand = {}>() => <SchemaS extends S.Top>(
+  schema: SchemaS
+) => S.Opaque<Self, ExtendedOpaqueSchema<SchemaS, Encoded>, Brand> & Omit<SchemaS, keyof S.Top> = S.Opaque as any
+
+export const Opaque = ExtendedOpaque
+
 // ---------------------------------------------------------------------------
 // ExtendedTaggedClass — like TaggedClass but with extra type parameter for hierarchies
 // ---------------------------------------------------------------------------

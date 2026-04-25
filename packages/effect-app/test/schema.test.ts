@@ -32,6 +32,36 @@ test("NonEmptyString255.Type uses the named brand alias", () => {
   expectTypeOf<A>().toEqualTypeOf<B>()
 })
 
+test("Opaque accepts an explicit Encoded type", () => {
+  interface User {
+    readonly id: string
+    readonly _tag: "User"
+  }
+
+  interface UserEncoded {
+    readonly id: string
+  }
+
+  const baseSchema = S.Struct({ id: S.String, name: S.String })
+  const _UserSchema = S.Opaque<User, UserEncoded>()(baseSchema)
+
+  expectTypeOf<S.Codec.Encoded<typeof _UserSchema>>().toEqualTypeOf<UserEncoded>()
+  expectTypeOf<S.Schema.Type<typeof _UserSchema>>().toEqualTypeOf<User>()
+  expectTypeOf<S.Codec.Encoded<typeof _UserSchema>>().not.toEqualTypeOf<S.Codec.Encoded<typeof baseSchema>>()
+})
+
+test("Opaque with one generic keeps the base encoded shape", () => {
+  interface User {
+    readonly id: string
+  }
+
+  const baseSchema = S.Struct({ id: S.String })
+  const _UserSchema = S.Opaque<User>()(baseSchema)
+
+  expectTypeOf<S.Codec.Encoded<typeof _UserSchema>>().toEqualTypeOf<{ readonly id: string }>()
+  expectTypeOf<S.Schema.Type<typeof _UserSchema>>().toEqualTypeOf<User>()
+})
+
 test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
   const l = S.Literals(["A", "B"])
   expect(l.Default).toBe("A")

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.143
+
+### Patch Changes
+
+- 79eb019: Remove redundant schema `title` annotations when they duplicate the schema `identifier`.
+
 ## 4.0.0-beta.142
 
 ### Minor Changes

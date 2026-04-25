@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.146
+
+### Patch Changes
+
+- a4dff57: Adjust Struct and TaggedStruct copy typing to follow class-style widening constraints while keeping structural copy runtime behavior.
+
 ## 4.0.0-beta.145
 
 ### Patch Changes

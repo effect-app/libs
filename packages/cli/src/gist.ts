@@ -14,12 +14,12 @@ export class GistError extends Data.TaggedError("GistError")<{ message: string }
 // Schemas
 //
 
-export class GistEntry extends Schema.Class<GistEntry>("GistEntry")({
+export class GistEntry extends Schema.Opaque<GistEntry>()(Schema.Struct({
   description: Schema.String,
   public: Schema.Boolean,
   company: Schema.String,
   files: Schema.Array(Schema.String)
-}) {}
+})) {}
 
 /**
  * Extended gist entry that validates file_name uniqueness and extracts base filenames.
@@ -96,7 +96,7 @@ export class GistEntryDecoded extends Schema.Opaque<GistEntryDecoded>()(
   )
 ) {}
 
-export class GistYAML extends Schema.Class<GistYAML>("GistYAML")({
+export class GistYAML extends Schema.Opaque<GistYAML>()(Schema.Struct({
   gists: Schema.optional(Schema.NullOr(
     Schema.Record(Schema.String, GistEntryDecoded)
   )),
@@ -104,16 +104,16 @@ export class GistYAML extends Schema.Class<GistYAML>("GistYAML")({
     token_env: Schema.String,
     base_directory: Schema.String
   })
-}) {}
+})) {}
 
 /**
  * Cache entry representing a gist mapping.
  * Each entry contains the gist's human-readable name and GitHub ID.
  */
-export class GistCacheEntry extends Schema.Class<GistCacheEntry>("GistCacheEntry")({
+export class GistCacheEntry extends Schema.Opaque<GistCacheEntry>()(Schema.Struct({
   name: Schema.String,
   id: Schema.String
-}) {}
+})) {}
 
 export const GistCacheEntries = Schema.Array(GistCacheEntry)
 export interface GistCacheEntries extends Schema.Schema.Type<typeof GistCacheEntries> {}

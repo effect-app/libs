@@ -8,17 +8,17 @@ const str = S.Struct({ _tag: S.Literal("string"), value: S.String })
 const num = S.Struct({ _tag: S.Literal("number"), value: S.Finite })
 const someUnion = S.Union(str, num)
 
-export class Something extends S.TaggedClass<Something>()("Something", {
+export class Something extends S.Opaque<Something>()(S.TaggedStruct("Something", {
   id: S.StringId.withDefault,
   displayName: S.NonEmptyString255,
   n: S.Date.withDefault,
   union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
-}) {}
+})) {}
 
-export class SomethingElse extends S.TaggedClass<SomethingElse>()("SomethingElse", {
+export class SomethingElse extends S.Opaque<SomethingElse>()(S.TaggedStruct("SomethingElse", {
   id: S.StringId.withDefault,
   banana: S.NonEmptyString255
-}) {}
+})) {}
 
 const Union = S.Union(Something, SomethingElse)
 
@@ -38,15 +38,15 @@ export declare namespace SomethingElse {
 }
 
 const items = [
-  new Something({ displayName: S.NonEmptyString255("Verona"), n: new Date("2020-01-01T00:00:00Z") }),
-  new Something({ displayName: S.NonEmptyString255("Riley") }),
-  new Something({
+  Something.make({ displayName: S.NonEmptyString255("Verona"), n: new Date("2020-01-01T00:00:00Z") }),
+  Something.make({ displayName: S.NonEmptyString255("Riley") }),
+  Something.make({
     displayName: S.NonEmptyString255("Riley"),
     n: new Date("2020-01-01T00:00:00Z"),
     union: { _tag: "number", value: 1 }
   }),
-  new SomethingElse({ banana: S.NonEmptyString255("Banana") }),
-  new SomethingElse({ banana: S.NonEmptyString255("Banana2") })
+  SomethingElse.make({ banana: S.NonEmptyString255("Banana") }),
+  SomethingElse.make({ banana: S.NonEmptyString255("Banana2") })
 ]
 
 class SomethingRepo extends Effect.Service<SomethingRepo>()("SomethingRepo", {

@@ -434,7 +434,7 @@ it.live("fail with custom errorRenderer uses warning toast", () =>
 
       const command = Command.fn("Test Action")(
         function*() {
-          return yield* Effect.fail(new OperationFailure({ message: null }))
+          return yield* Effect.fail(OperationFailure.make({ message: null }))
         },
         Command.withDefaultToast({
           errorRenderer: () => "Rendered Boom!"

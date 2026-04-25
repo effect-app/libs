@@ -380,7 +380,7 @@ export function makeRepoInternal<
 
               if (Result.isFailure(decodeResult)) {
                 errors.push(
-                  new ValidationError({
+                  ValidationError.make({
                     id,
                     rawData,
                     jitMResult,
@@ -390,7 +390,7 @@ export function makeRepoInternal<
               }
             }
 
-            return new ValidationResult({
+            return ValidationResult.make({
               total: NonNegativeInt(allIds.length),
               sampled: NonNegativeInt(sample.length),
               valid: NonNegativeInt(sample.length - errors.length),

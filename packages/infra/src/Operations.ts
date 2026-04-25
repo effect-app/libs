@@ -21,14 +21,14 @@ const make = Effect.gen(function*() {
   const makeOp = Effect.sync(() => OperationId.make())
 
   const addOp = Effect.fnUntraced(function*(id: OperationId, title: NonEmptyString2k) {
-    return yield* repo.save(new Operation({ id, title })).pipe(Effect.orDie)
+    return yield* repo.save(Operation.make({ id, title })).pipe(Effect.orDie)
   })
 
   const finishOp = Effect.fnUntraced(function*(id: OperationId, exit: Exit.Exit<unknown, unknown>) {
     const op = yield* repo.get(id).pipe(Effect.orDie)
     const result = Exit.isSuccess(exit)
-      ? new OperationSuccess()
-      : new OperationFailure({
+      ? OperationSuccess.make({})
+      : OperationFailure.make({
         message: Cause.hasInterruptsOnly(exit.cause)
           ? NonEmptyString2k("Interrupted")
           : Cause.hasDies(exit.cause)

@@ -21,7 +21,7 @@ export const RequestContextMiddleware = (defaultLocale: Locale = "en") =>
       const namespace = NonEmptyString255((ns && (Array.isArray(ns) ? ns[0] : ns)) || "primary")
       const deviceId = req.headers["x-fe-device-id"]
 
-      const requestContext = new RequestContext({
+      const requestContext = RequestContext.make({
         span: {
           traceId: currentSpan.traceId,
           spanId: currentSpan.spanId,

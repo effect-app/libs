@@ -7,7 +7,7 @@ export function getRequestContextFromFiber(fiber: Fiber.Fiber<unknown, unknown>)
   const span = Option.fromNullishOr(fiber.currentSpan)
   const locale = fiber.getRef(LocaleRef)
   const namespace = fiber.getRef(storeId)
-  return new RequestContext({
+  return RequestContext.make({
     span: Option.map(span, (s) => ({ spanId: s.spanId, traceId: s.traceId, sampled: s.sampled })).pipe(
       Option.getOrElse(() => ({ spanId: "bogus", sampled: true, traceId: "bogus" }))
     ),

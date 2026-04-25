@@ -210,7 +210,9 @@ const makeApiClientFactory = Effect
                 handler: mr.contextEffect.pipe(
                   Effect.flatMap((svcs) =>
                     TheClient
-                      .use((client) => (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any, never>)
+                      .use((client) =>
+                        (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any, never>
+                      )
                       .pipe(
                         Effect.provide(layers),
                         Effect.provide(svcs)

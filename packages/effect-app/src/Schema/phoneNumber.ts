@@ -20,7 +20,6 @@ export const PhoneNumber = S
     }),
     S.refine(isValidPhone as Refinement<string, PhoneNumber>, {
       identifier: "PhoneNumber",
-      title: "PhoneNumber",
       description: "a phone number with at least 7 digits",
       jsonSchema: { format: "phone" }
     }),

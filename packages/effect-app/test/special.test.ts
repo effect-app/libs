@@ -814,8 +814,8 @@ describe("Post-processing integration — real Effect Schema types", () => {
   })
 
   it("NullOr union flattens nested anyOf members", () => {
-    const A = S.String.annotate({ identifier: "A", title: "A" })
-    const B = S.Boolean.annotate({ identifier: "B", title: "B" })
+    const A = S.String.annotate({ identifier: "A" })
+    const B = S.Boolean.annotate({ identifier: "B" })
     const schema = S.Struct({
       value: S.NullOr(S.Union([A, B]))
     })

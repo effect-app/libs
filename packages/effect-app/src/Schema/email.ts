@@ -20,7 +20,6 @@ export const Email = S
     S.check(S.isMinLength(3), /* a@b */ S.isMaxLength(998)),
     S.refine(isValidEmail as Refinement<string, Email>, {
       identifier: "Email",
-      title: "Email",
       description: "an email according to RFC 5322",
       jsonSchema: { format: "email", minLength: 3, maxLength: 998 }
     }),

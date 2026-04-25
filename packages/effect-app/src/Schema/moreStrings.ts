@@ -29,7 +29,6 @@ export const NonEmptyString50 = nonEmptyString.pipe(
   S.check(S.isMaxLength(50)),
   fromBrand<NonEmptyString50>(nominal<NonEmptyString50>(), {
     identifier: "NonEmptyString50",
-    title: "NonEmptyString50",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -52,7 +51,6 @@ export const NonEmptyString64 = nonEmptyString.pipe(
   S.check(S.isMaxLength(64)),
   fromBrand<NonEmptyString64>(nominal<NonEmptyString64>(), {
     identifier: "NonEmptyString64",
-    title: "NonEmptyString64",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -76,7 +74,6 @@ export const NonEmptyString80 = nonEmptyString.pipe(
   S.check(S.isMaxLength(80)),
   fromBrand<NonEmptyString80>(nominal<NonEmptyString80>(), {
     identifier: "NonEmptyString80",
-    title: "NonEmptyString80",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -99,7 +96,6 @@ export const NonEmptyString100 = nonEmptyString.pipe(
   S.check(S.isMaxLength(100)),
   fromBrand<NonEmptyString100>(nominal<NonEmptyString100>(), {
     identifier: "NonEmptyString100",
-    title: "NonEmptyString100",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -123,7 +119,6 @@ export const Min3String255 = pipe(
   S.check(S.isMinLength(3), S.isMaxLength(255)),
   fromBrand<Min3String255>(nominal<Min3String255>(), {
     identifier: "Min3String255",
-    title: "Min3String255",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -157,7 +152,6 @@ export const StringId = extendM(
     S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
     fromBrand<StringId>(nominal<StringId>(), {
       identifier: "StringId",
-      title: "StringId",
       toArbitrary: () => (fc) => StringIdArb()(fc),
       jsonSchema: {}
     })
@@ -189,8 +183,7 @@ export function prefixedStringId<Brand extends StringId>() {
     const s = StringId
       .pipe(
         S.refine((x: string): x is string & Brand => x.startsWith(pref), {
-          identifier: name,
-          title: name
+          identifier: name
         }),
         S.annotate({
           toArbitrary: () => (fc) => arb()(fc)
@@ -259,7 +252,6 @@ export const Url = S
     }),
     S.refine(isUrl, {
       identifier: "Url",
-      title: "Url",
       jsonSchema: { format: "uri" }
     }),
     S.annotate({

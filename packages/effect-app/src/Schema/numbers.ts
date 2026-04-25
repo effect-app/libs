@@ -12,7 +12,7 @@ export interface PositiveIntBrand
 export const PositiveInt = extendM(
   S.Int.pipe(
     S.check(S.isGreaterThan(0)),
-    fromBrand<PositiveInt>(nominal<PositiveInt>(), { identifier: "PositiveInt", title: "PositiveInt", jsonSchema: {} }),
+    fromBrand<PositiveInt>(nominal<PositiveInt>(), { identifier: "PositiveInt", jsonSchema: {} }),
     withDefaultMake
   ),
   (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(1)))) })
@@ -25,7 +25,6 @@ export const NonNegativeInt = extendM(
     S.check(S.isGreaterThanOrEqualTo(0)),
     fromBrand<NonNegativeInt>(nominal<NonNegativeInt>(), {
       identifier: "NonNegativeInt",
-      title: "NonNegativeInt",
       jsonSchema: {}
     }),
     withDefaultMake
@@ -36,7 +35,7 @@ export type NonNegativeInt = number & NonNegativeIntBrand
 
 export interface IntBrand extends Simplify<B.Brand<"Int">> {}
 export const Int = extendM(
-  S.Int.pipe(fromBrand<Int>(nominal<Int>(), { identifier: "Int", title: "Int", jsonSchema: {} }), withDefaultMake),
+  S.Int.pipe(fromBrand<Int>(nominal<Int>(), { identifier: "Int", jsonSchema: {} }), withDefaultMake),
   (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0)))) })
 )
 export type Int = number & IntBrand
@@ -47,7 +46,6 @@ export const PositiveNumber = extendM(
     S.check(S.isGreaterThan(0)),
     fromBrand<PositiveNumber>(nominal<PositiveNumber>(), {
       identifier: "PositiveNumber",
-      title: "PositiveNumber",
       jsonSchema: {}
     }),
     withDefaultMake
@@ -64,7 +62,6 @@ export const NonNegativeNumber = extendM(
       S.check(S.isGreaterThanOrEqualTo(0)),
       fromBrand<NonNegativeNumber>(nominal<NonNegativeNumber>(), {
         identifier: "NonNegativeNumber",
-        title: "NonNegativeNumber",
         jsonSchema: {}
       }),
       withDefaultMake

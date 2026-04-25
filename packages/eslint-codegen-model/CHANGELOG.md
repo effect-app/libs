@@ -1,5 +1,12 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- 25008fb: Ignore commented-out exported classes when detecting model schemas for generated `Encoded` namespaces.
+- 77efa95: Detect `Schema.Opaque<Self, Encoded>()` model classes in the model preset while excluding `Context.Opaque` service tags.
+
 ## 2.0.0-beta.8
 
 ### Patch Changes

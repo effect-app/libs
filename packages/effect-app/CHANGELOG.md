@@ -1,5 +1,15 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.142
+
+### Minor Changes
+
+- 025de47: Fold the encoded-override support from `ExtendedClass` and `ExtendedTaggedClass` into `Class`, `TaggedClass`, `ErrorClass`, and `TaggedErrorClass`, and update model codegen to detect the new second-generic form.
+
+### Patch Changes
+
+- 3436d44: Extend `Schema.Opaque` in `effect-app/Schema` to support an optional encoded-type generic while preserving the original single-generic behavior.
+
 ## 4.0.0-beta.141
 
 ### Patch Changes

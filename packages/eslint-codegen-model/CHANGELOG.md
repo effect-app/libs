@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- 025de47: Fold the encoded-override support from `ExtendedClass` and `ExtendedTaggedClass` into `Class`, `TaggedClass`, `ErrorClass`, and `TaggedErrorClass`, and update model codegen to detect the new second-generic form.
+
 ## 2.0.0-beta.7
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.141
+
+### Patch Changes
+
+- 7c25dbb: Add relaxed wrapper support for `ErrorClass` and `TaggedErrorClass` in `effect-app/Schema`, matching the existing class wrapper behavior (`copy`, cached `ast`, and unbounded parse concurrency).
+
 ## 4.0.0-beta.140
 
 ## 4.0.0-beta.139

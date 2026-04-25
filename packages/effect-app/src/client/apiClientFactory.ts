@@ -31,7 +31,7 @@ export const DefaultApiConfig = Config.all({
 })
 
 export type Req = S.Top & {
-  new(...args: any[]): any
+  readonly make: (...args: any[]) => any
   _tag: string
   fields: S.Struct.Fields
   success: S.Top
@@ -210,7 +210,7 @@ const makeApiClientFactory = Effect
                 handler: mr.contextEffect.pipe(
                   Effect.flatMap((svcs) =>
                     TheClient
-                      .use((client) => (client as any)[requestAttr]!(new Request()) as Effect.Effect<any, any, never>)
+                      .use((client) => (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any, never>)
                       .pipe(
                         Effect.provide(layers),
                         Effect.provide(svcs)
@@ -225,7 +225,7 @@ const makeApiClientFactory = Effect
                     Effect.flatMap((svcs) =>
                       TheClient
                         .use((client) =>
-                          (client as any)[requestAttr]!(new Request(req)) as Effect.Effect<any, any, never>
+                          (client as any)[requestAttr]!(Request.make(req)) as Effect.Effect<any, any, never>
                         )
                         .pipe(
                           Effect.provide(layers),

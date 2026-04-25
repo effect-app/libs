@@ -663,6 +663,9 @@ export interface CommandBase<I = void, A = void> {
 
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>> {}
 
-export interface CommandFromRequest<I extends abstract new(...args: any) => any, A = unknown, E = unknown>
-  extends EffectCommand<ConstructorParameters<I>[0], A, E>
+type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> =
+  Parameters<I["make"]> extends [infer A, ...ReadonlyArray<any>] ? A : void
+
+export interface CommandFromRequest<I extends { readonly make: (...args: any[]) => any }, A = unknown, E = unknown>
+  extends EffectCommand<RequestInputFromMake<I>, A, E>
 {}

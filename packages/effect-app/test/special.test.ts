@@ -247,6 +247,39 @@ describe("TaggedClass.copy", () => {
   })
 })
 
+describe("Struct.copy", () => {
+  it("creates a new value with updated fields", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("accepts a function for updates", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, (a) => ({ b: a.b + 1 }))
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+  })
+})
+
+describe("TaggedStruct.copy", () => {
+  it("creates a new tagged value with updated fields", () => {
+    const Circle = AppSchema.TaggedStruct("Circle", { radius: S.Number })
+
+    const instance = Circle.make({ radius: 5 })
+    const copied = Circle.copy(instance, { radius: 10 })
+
+    expect(copied).toEqual({ _tag: "Circle", radius: 10 })
+    expect(copied).not.toBe(instance)
+  })
+})
+
 describe("TaggedError", () => {
   it("InvalidStateError toString includes the message", () => {
     const error = new InvalidStateError("something went wrong")

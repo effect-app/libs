@@ -5,7 +5,7 @@ import { fakerArb } from "./faker.js"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
 import { concurrencyUnbounded, withDefaultMake } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
-import { extendM } from "./utils.js"
+import { copy, extendM } from "./utils.js"
 
 export * from "effect/Schema"
 
@@ -36,17 +36,24 @@ export { Void as Void_ } from "effect/Schema"
 // Struct / NonEmptyArray / Record — with concurrency: "unbounded"
 // ---------------------------------------------------------------------------
 
-export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): S.Struct<Fields> {
+type WithSchemaCopy<Self extends S.Top> = Self & {
+  readonly copy: typeof copy
+}
+
+export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): WithSchemaCopy<S.Struct<Fields>> {
   const result = S.Struct(fields).annotate(concurrencyUnbounded)
   // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment
   const origMapFields: any = result.mapFields
   ;(result as any).mapFields = function(this: any, f: any, options?: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    return origMapFields.call(this, f, options).annotate(concurrencyUnbounded)
+    const mapped = origMapFields.call(this, f, options).annotate(concurrencyUnbounded)
+    mapped.copy = copy
+    return mapped
   }
-  return result
+  ;(result as any).copy = copy
+  return result as WithSchemaCopy<S.Struct<Fields>>
 }
-export interface Struct<Fields extends S.Struct.Fields> extends S.Struct<Fields> {}
+export interface Struct<Fields extends S.Struct.Fields> extends WithSchemaCopy<S.Struct<Fields>> {}
 export declare namespace Struct {
   export type Fields = S.Struct.Fields
   export type Type<F extends S.Struct.Fields> = S.Struct.Type<F>
@@ -64,12 +71,11 @@ export function NonEmptyArray<Value extends S.Top>(value: Value): S.NonEmptyArra
 export function TaggedStruct<const Tag extends SchemaAST.LiteralValue, const Fields extends S.Struct.Fields>(
   value: Tag,
   fields: Fields
-): S.TaggedStruct<Tag, Fields> {
-  return Struct({ _tag: S.tag(value), ...fields })
+): WithSchemaCopy<S.TaggedStruct<Tag, Fields>> {
+  return Struct({ _tag: S.tag(value), ...fields }) as any
 }
-export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> = S.TaggedStruct<
-  Tag,
-  Fields
+export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> = WithSchemaCopy<
+  S.TaggedStruct<Tag, Fields>
 >
 
 export function Record<Key extends S.Record.Key, Value extends S.Top>(

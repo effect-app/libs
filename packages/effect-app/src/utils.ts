@@ -751,7 +751,7 @@ type CopyOriginSelf<A, U> = Equals<{}, U> extends true
   : A
 
 // just one input param: the convention is that the ctor takes an object
-// containing the properties of the class (I can't put object there as type because of contravariance)
+// containing the properties of the value (I can't put object there as type because of contravariance)
 /**
  * By design this does not return `Self` directly.
  *

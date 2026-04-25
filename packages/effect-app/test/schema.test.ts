@@ -68,6 +68,25 @@ test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
   expectTypeOf(l.Default).toEqualTypeOf<"A">()
 })
 
+test("Struct.make accepts void when all fields are optional", () => {
+  const schema = S.Struct({
+    a: S.optional(S.String),
+    b: S.optional(S.Number)
+  })
+
+  const made = schema.make()
+  expect(made).toEqual({})
+  expectTypeOf(made).toEqualTypeOf<{ readonly a?: string | undefined; readonly b?: number | undefined }>()
+})
+
+test("TaggedStruct.make accepts void when only constructor-default fields exist", () => {
+  const schema = S.TaggedStruct("OnlyTag", {})
+
+  const made = schema.make()
+  expect(made).toEqual({ _tag: "OnlyTag" })
+  expectTypeOf(made).toEqualTypeOf<{ readonly _tag: "OnlyTag" }>()
+})
+
 test("tagged union derives tag map and tags from v4 literal ast", () => {
   const schema = S.TaggedUnion(
     S.TaggedStruct("A", { a: S.String }),

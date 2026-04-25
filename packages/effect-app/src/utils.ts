@@ -733,22 +733,55 @@ export const copy = dual<
   }
 >(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
 
-type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
+export type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
   & {
     [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
   }
   & {}
 
-type CopyOriginRet<A, U> =
+export type CopyOriginRet<A, U> =
   & {
     [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
   }
   & {}
 
-type CopyOriginSelf<A, U> = Equals<{}, U> extends true
+export type CopyOriginSelf<A, U> = Equals<{}, U> extends true
   ? Equals<keyof {}, keyof U> extends true ? `updates argument is empty or contains only extra properties`
   : A
   : A
+
+export interface StructuralCopyOrigin<Self extends object> {
+  <A extends Self, U extends Partial<Self>>(
+    f: (a: A) =>
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+  <A extends Self, U extends Partial<Self>>(
+    updates:
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+  <A extends Self, U extends Partial<Self>>(
+    self: CopyOriginSelf<A, U>,
+    f: (a: A) =>
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): CopyOriginRet<A, U>
+  <A extends Self, U extends Partial<Self>>(
+    self: CopyOriginSelf<A, U>,
+    updates:
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): CopyOriginRet<A, U>
+}
 
 // just one input param: the convention is that the ctor takes an object
 // containing the properties of the value (I can't put object there as type because of contravariance)

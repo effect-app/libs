@@ -5,7 +5,7 @@ import { fakerArb } from "./faker.js"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
 import { concurrencyUnbounded, withDefaultMake } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
-import { copy, type copyOrigin, extendM } from "./utils.js"
+import { copy, extendM, type StructuralCopyOrigin } from "./utils.js"
 
 export * from "effect/Schema"
 
@@ -36,12 +36,35 @@ export { Void as Void_ } from "effect/Schema"
 // Struct / NonEmptyArray / Record — with concurrency: "unbounded"
 // ---------------------------------------------------------------------------
 
-type WithSchemaCopy<Self extends S.Top> = Self & {
-  readonly copy: ReturnType<typeof copyOrigin<new(_: any) => Self["Type"]>>
+type WithSchemaCopy<Self extends S.Top & { readonly Type: object }> = Self & {
+  readonly copy: StructuralCopyOrigin<Self["Type"]>
 }
 
-export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): Struct<Fields> {
+type OptionalMakeInput<Fields extends S.Struct.Fields> = {} extends S.Struct.MakeIn<Fields> ? {
+    make(input?: S.Struct.MakeIn<Fields>, options?: S.MakeOptions): S.Struct.Type<Fields>
+  }
+  : {}
+
+export function Struct<const Fields extends S.Struct.Fields>(
+  fields: Fields
+): Struct<Fields> & OptionalMakeInput<Fields> {
   const result = S.Struct(fields).annotate(concurrencyUnbounded)
+  const allowVoidMake = (schema: any): any => {
+    // Normalize omitted input to an empty object so optional/default-only structs can be constructed with make().
+    const origMake: any = schema.make
+    const origMakeOption: any = schema.makeOption
+    const origMakeEffect: any = schema.makeEffect
+    schema.make = function(this: any, input: any, options?: any) {
+      return origMake.call(this, input === undefined ? {} : input, options)
+    }
+    schema.makeOption = function(this: any, input: any, options?: any) {
+      return origMakeOption.call(this, input === undefined ? {} : input, options)
+    }
+    schema.makeEffect = function(this: any, input: any, options?: any) {
+      return origMakeEffect.call(this, input === undefined ? {} : input, options)
+    }
+    return schema
+  }
   // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment
   const origMapFields: any = result.mapFields
   // eslint-disable-next-line @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment
@@ -60,7 +83,7 @@ export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): St
     schema.annotateKey = function(this: any, annotations?: any) {
       return (result as any).annotateKey.call(this, annotations)
     }
-    return schema
+    return allowVoidMake(schema)
   }
   ;(result as any).mapFields = function(this: any, f: any, options?: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
@@ -78,7 +101,8 @@ export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): St
     return preserveCopyAndMethods(annotated)
   }
   ;(result as any).copy = copy
-  return result as Struct<Fields>
+  allowVoidMake(result)
+  return result as Struct<Fields> & OptionalMakeInput<Fields>
 }
 export interface Struct<Fields extends S.Struct.Fields> extends WithSchemaCopy<S.Struct<Fields>> {
   annotate(
@@ -109,12 +133,14 @@ export function NonEmptyArray<Value extends S.Top>(value: Value): S.NonEmptyArra
 export function TaggedStruct<const Tag extends SchemaAST.LiteralValue, const Fields extends S.Struct.Fields>(
   value: Tag,
   fields: Fields
-): WithSchemaCopy<S.TaggedStruct<Tag, Fields>> {
+): TaggedStruct<Tag, Fields> {
   return Struct({ _tag: S.tag(value), ...fields }) as any
 }
-export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> = WithSchemaCopy<
-  S.TaggedStruct<Tag, Fields>
->
+export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> =
+  & WithSchemaCopy<
+    S.TaggedStruct<Tag, Fields>
+  >
+  & OptionalMakeInput<Readonly<{ readonly _tag: S.tag<Tag> } & Fields>>
 
 export function Record<Key extends S.Record.Key, Value extends S.Top>(
   key: Key,

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.145
+
+### Patch Changes
+
+- 12abb55: Refine schema copy behavior by keeping class copy constructor-based while using structural copy for Struct and TaggedStruct helpers.
+
 ## 4.0.0-beta.144
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.140
+
+### Patch Changes
+
+- 1576688: Add configurable `fakeMailAddress` to `SendgridConfig`. Supports `{i}` placeholder for unique addresses, e.g. `"test+{i}@example.com"`.
+  - effect-app@4.0.0-beta.140
+
 ## 4.0.0-beta.139
 
 ### Patch Changes

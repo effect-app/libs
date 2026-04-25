@@ -62,6 +62,34 @@ test("Opaque with one generic keeps the base encoded shape", () => {
   expectTypeOf<S.Schema.Type<typeof _UserSchema>>().toEqualTypeOf<User>()
 })
 
+test("Opaque preserves optional Struct.make input", () => {
+  interface User {
+    readonly a?: string | undefined
+    readonly b?: number | undefined
+  }
+
+  const schema = S.Opaque<User>()(S.Struct({
+    a: S.optional(S.String),
+    b: S.optional(S.Number)
+  }))
+
+  const made = schema.make()
+  expect(made).toEqual({})
+  expectTypeOf(made).toEqualTypeOf<User>()
+})
+
+test("Opaque preserves optional TaggedStruct.make input", () => {
+  interface OnlyTag {
+    readonly _tag: "OnlyTag"
+  }
+
+  const schema = S.Opaque<OnlyTag>()(S.TaggedStruct("OnlyTag", {}))
+
+  const made = schema.make()
+  expect(made).toEqual({ _tag: "OnlyTag" })
+  expectTypeOf(made).toEqualTypeOf<OnlyTag>()
+})
+
 test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
   const l = S.Literals(["A", "B"])
   expect(l.Default).toBe("A")

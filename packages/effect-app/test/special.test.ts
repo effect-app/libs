@@ -266,6 +266,21 @@ describe("Struct.copy", () => {
 
     expect(copied).toEqual({ a: "hello", b: 2 })
   })
+
+  it("allows widening updates against the full struct type", () => {
+    const A = AppSchema.Struct({
+      name: S.String,
+      state: S.Union([
+        S.Struct({ _tag: S.tag("a"), a: S.String }),
+        S.Struct({ _tag: S.tag("b"), b: S.Number })
+      ])
+    })
+
+    const instance = A.make({ name: "x", state: { _tag: "a", a: "a" } })
+    const copied = A.copy(instance, { state: { _tag: "b", b: 1 } })
+
+    expect(copied).toEqual({ name: "x", state: { _tag: "b", b: 1 } })
+  })
 })
 
 describe("TaggedStruct.copy", () => {

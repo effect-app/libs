@@ -5,7 +5,7 @@ import { fakerArb } from "./faker.js"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
 import { concurrencyUnbounded, withDefaultMake } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
-import { copy, extendM } from "./utils.js"
+import { copy, type copyOrigin, extendM } from "./utils.js"
 
 export * from "effect/Schema"
 
@@ -37,7 +37,7 @@ export { Void as Void_ } from "effect/Schema"
 // ---------------------------------------------------------------------------
 
 type WithSchemaCopy<Self extends S.Top> = Self & {
-  readonly copy: typeof copy
+  readonly copy: ReturnType<typeof copyOrigin<new(_: any) => Self["Type"]>>
 }
 
 export function Struct<const Fields extends S.Struct.Fields>(fields: Fields): WithSchemaCopy<S.Struct<Fields>> {

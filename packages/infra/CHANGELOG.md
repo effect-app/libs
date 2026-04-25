@@ -1,5 +1,14 @@
 # @effect-app/infra
 
+## 4.0.0-beta.144
+
+### Patch Changes
+
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+- Updated dependencies [11422f8]
+- Updated dependencies [d31253f]
+  - effect-app@4.0.0-beta.144
+
 ## 4.0.0-beta.143
 
 ### Patch Changes

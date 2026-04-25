@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.144
+
+### Patch Changes
+
+- 11422f8: Update request helper typing and runtime invocation to rely on schema `.make` instead of class constructors, avoiding `new`-based assumptions for request schemas.
+- Updated dependencies [11422f8]
+- Updated dependencies [d31253f]
+  - effect-app@4.0.0-beta.144
+
 ## 4.0.0-beta.143
 
 ### Patch Changes

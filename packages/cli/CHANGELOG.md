@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.16
+
+### Patch Changes
+
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+
 ## 2.1.0-beta.15
 
 ### Patch Changes

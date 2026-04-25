@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.144
+
+### Patch Changes
+
+- 11422f8: Update request helper typing and runtime invocation to rely on schema `.make` instead of class constructors, avoiding `new`-based assumptions for request schemas.
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+
 ## 4.0.0-beta.143
 
 ### Patch Changes

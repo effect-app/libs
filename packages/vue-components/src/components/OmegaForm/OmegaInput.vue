@@ -41,7 +41,6 @@
   generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, type DeepValue, type StandardSchemaV1 } from "@tanstack/vue-form"
-import { S } from "effect-app"
 import { computed, inject, type Ref, useAttrs } from "vue"
 import { useIntl } from "../../utils"
 import { type FieldMeta, type OmegaInputPropsBase, toLocalizedStandardSchemaV1 } from "./OmegaFormStuff"
@@ -103,10 +102,7 @@ const schema = computed<StandardSchemaV1<DeepValue<From, Name>, unknown>>(() => 
     console.log(props.name, Object.keys(props.form.meta), props.form.meta)
     throw new Error("Meta is undefined")
   }
-  if (meta.value.originalCodec) {
-    return toLocalizedStandardSchemaV1(meta.value.originalCodec, trans)
-  }
-  return toLocalizedStandardSchemaV1(S.Unknown, trans)
+  return toLocalizedStandardSchemaV1(meta.value.originalCodec, trans)
 })
 
 const errori18n = useErrorLabel(props.form)

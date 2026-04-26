@@ -256,7 +256,7 @@ export type FieldValidators<T> = {
 export type BaseFieldMeta = {
   required: boolean
   nullableOrUndefined?: false | "undefined" | "null"
-  originalCodec?: S.Decoder<unknown, never>
+  originalCodec: S.Decoder<unknown, never>
   /**
    * True when the schema property is `S.optionalKey` (AST
    * `context.isOptional`) — i.e. the key should be ABSENT from the submitted

@@ -946,7 +946,8 @@ const metadataFromAst = <From, To>(
           configurable: true,
           writable: true
         })
-      } catch {
+      } catch (error) {
+        console.warn(error)
         Object.defineProperty(fieldMeta, "originalCodec", {
           value: S.Unknown,
           enumerable: false,

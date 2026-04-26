@@ -509,7 +509,8 @@ const getFieldMetadataFromAst = (property: S.AST.AST) => {
 
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
-  acc: Partial<MetaRecord<T>> = {}
+  acc: Partial<MetaRecord<T>> = {},
+  fieldAstByPath?: Record<string, S.AST.AST>
 ): MetaRecord<T> | FieldMeta => {
   if (property) {
     property = unwrapDeclaration(property)
@@ -608,6 +609,9 @@ export const createMeta = <T = any>(
               required: isRequired,
               nullableOrUndefined
             } as FieldMeta
+            if (fieldAstByPath) {
+              fieldAstByPath[key] = p.type
+            }
 
             // If the array has struct elements, also create metadata for their properties
             if (arrayType.rest && arrayType.rest.length > 0) {
@@ -628,6 +632,9 @@ export const createMeta = <T = any>(
                   // add to accumulator if valid
                   if (propMeta && typeof propMeta === "object" && "type" in propMeta) {
                     acc[propKey as NestedKeyOf<T>] = propMeta as FieldMeta
+                    if (fieldAstByPath) {
+                      fieldAstByPath[propKey] = prop.type
+                    }
 
                     if (
                       propMeta.type === "multiple" && S.AST.isArrays(prop.type) && prop
@@ -651,6 +658,9 @@ export const createMeta = <T = any>(
                           // add to accumulator if valid
                           if (nestedPropMeta && typeof nestedPropMeta === "object" && "type" in nestedPropMeta) {
                             acc[nestedPropKey as NestedKeyOf<T>] = nestedPropMeta as FieldMeta
+                            if (fieldAstByPath) {
+                              fieldAstByPath[nestedPropKey] = nestedProp.type
+                            }
                           }
                         }
                       }
@@ -667,17 +677,24 @@ export const createMeta = <T = any>(
               meta: { required: isRequired, nullableOrUndefined }
             })
             acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
+            if (fieldAstByPath) {
+              fieldAstByPath[key] = p.type
+            }
           }
         }
       } else {
         if (S.AST.isObjects(typeToProcess)) {
           Object.assign(
             acc,
-            createMeta<T>({
-              parent: key,
-              propertySignatures: typeToProcess.propertySignatures,
-              meta: { required: isRequired, nullableOrUndefined }
-            })
+            createMeta<T>(
+              {
+                parent: key,
+                propertySignatures: typeToProcess.propertySignatures,
+                meta: { required: isRequired, nullableOrUndefined }
+              },
+              {},
+              fieldAstByPath
+            )
           )
         } else if (S.AST.isArrays(p.type)) {
           // Check if it has struct elements
@@ -708,6 +725,9 @@ export const createMeta = <T = any>(
                         }
                       })
                       acc[nestedKey as NestedKeyOf<T>] = nestedMeta as FieldMeta
+                      if (fieldAstByPath) {
+                        fieldAstByPath[nestedKey] = nestedProp.type
+                      }
                     }
                   } else {
                     // Array with primitive elements - create meta for the array itself
@@ -718,6 +738,9 @@ export const createMeta = <T = any>(
                       required: !isNullableOrUndefined(prop.type),
                       nullableOrUndefined: isNullableOrUndefined(prop.type)
                     } as FieldMeta
+                    if (fieldAstByPath) {
+                      fieldAstByPath[propKey] = prop.type
+                    }
                   }
                 } else {
                   const fieldMeta = createMeta<T>({
@@ -729,6 +752,9 @@ export const createMeta = <T = any>(
                     }
                   })
                   acc[propKey as NestedKeyOf<T>] = fieldMeta as FieldMeta
+                  if (fieldAstByPath) {
+                    fieldAstByPath[propKey] = prop.type
+                  }
                 }
               }
             }
@@ -741,6 +767,9 @@ export const createMeta = <T = any>(
               required: isRequired,
               nullableOrUndefined
             } as FieldMeta
+            if (fieldAstByPath) {
+              fieldAstByPath[key] = p.type
+            }
           }
         } else {
           const newMeta = createMeta<T>({
@@ -757,6 +786,9 @@ export const createMeta = <T = any>(
           })
 
           acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
+          if (fieldAstByPath) {
+            fieldAstByPath[key] = p.type
+          }
         }
       }
     }
@@ -861,11 +893,39 @@ const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = "")
 
 const metadataFromAst = <From, To>(
   schema: S.Codec<To, From, never>
-): { meta: MetaRecord<To>; defaultValues: Record<string, any>; unionMeta: Record<string, MetaRecord<To>> } => {
+): {
+  meta: MetaRecord<To>
+  defaultValues: Record<string, any>
+  unionMeta: Record<string, MetaRecord<To>>
+  fieldSchemas: Record<string, StandardSchemaV1<any, any>>
+} => {
   const ast = unwrapDeclaration(schema.ast)
   const newMeta: MetaRecord<To> = {}
   const defaultValues: Record<string, any> = {}
   const unionMeta: Record<string, MetaRecord<To>> = {}
+  const fieldAstByPath: Record<string, S.AST.AST> = {}
+
+  const toFieldStandardSchema = (
+    propertyAst: S.AST.AST,
+    required: boolean
+  ): StandardSchemaV1<any, any> => {
+    const base = S.make(propertyAst)
+    const fieldSchema = required ? base : S.NullishOr(base)
+    return S.toStandardSchemaV1(fieldSchema as any)
+  }
+
+  const toFieldSchemas = () => {
+    const result: Record<string, StandardSchemaV1<any, any>> = {}
+    for (const [key, fieldAst] of Object.entries(fieldAstByPath)) {
+      try {
+        const required = newMeta[key as NestedKeyOf<To>]?.required ?? true
+        result[key] = toFieldStandardSchema(fieldAst, required)
+      } catch {
+        result[key] = S.toStandardSchemaV1(S.Unknown)
+      }
+    }
+    return result
+  }
 
   // Handle root-level Union types (discriminated unions)
   if (S.AST.isUnion(ast)) {
@@ -910,9 +970,13 @@ const metadataFromAst = <From, To>(
           }
 
           // Create metadata for this member's properties
-          const memberMeta = createMeta<To>({
-            propertySignatures: memberType.propertySignatures
-          })
+          const memberMeta = createMeta<To>(
+            {
+              propertySignatures: memberType.propertySignatures
+            },
+            {},
+            fieldAstByPath
+          )
 
           // Store per-tag metadata for reactive lookup
           if (tagValue) {
@@ -933,17 +997,26 @@ const metadataFromAst = <From, To>(
         } as FieldMeta
       }
 
-      return { meta: newMeta, defaultValues, unionMeta }
+      return { meta: newMeta, defaultValues, unionMeta, fieldSchemas: toFieldSchemas() }
     }
   }
 
   if (S.AST.isObjects(ast)) {
-    const meta = createMeta<To>({
-      propertySignatures: ast.propertySignatures
-    })
+    const meta = createMeta<To>(
+      {
+        propertySignatures: ast.propertySignatures
+      },
+      {},
+      fieldAstByPath
+    )
 
     if (Object.values(meta).every((value) => value && "type" in value)) {
-      return { meta: meta as MetaRecord<To>, defaultValues, unionMeta }
+      return {
+        meta: meta as MetaRecord<To>,
+        defaultValues,
+        unionMeta,
+        fieldSchemas: toFieldSchemas()
+      }
     }
 
     const flattenObject = (
@@ -963,7 +1036,7 @@ const metadataFromAst = <From, To>(
     flattenObject(meta)
   }
 
-  return { meta: newMeta, defaultValues, unionMeta }
+  return { meta: newMeta, defaultValues, unionMeta, fieldSchemas: toFieldSchemas() }
 }
 
 /*
@@ -1042,10 +1115,11 @@ export const generateMetaFromSchema = <From, To>(
   schema: S.Codec<To, From, never>
   meta: MetaRecord<To>
   unionMeta: Record<string, MetaRecord<To>>
+  fieldSchemas: Record<string, StandardSchemaV1<any, any>>
 } => {
-  const { meta, unionMeta } = metadataFromAst(schema)
+  const { fieldSchemas, meta, unionMeta } = metadataFromAst(schema)
 
-  return { schema, meta, unionMeta }
+  return { schema, meta, unionMeta, fieldSchemas }
 }
 
 export const generateInputStandardSchemaFromFieldMeta = (

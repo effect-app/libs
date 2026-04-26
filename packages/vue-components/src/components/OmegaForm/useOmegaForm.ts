@@ -923,12 +923,20 @@ export const useOmegaForm = <
     })
   }
 
+  const hs = form.handleSubmit
+
+  const handleSubmit: typeof form.handleSubmit = async (meta?: Record<string, any>) => {
+    // workaround for not revealing all form errors on submit
+    await form.validateAllFields("blur")
+    return await hs(meta)
+  }
+
   const handleSubmitEffect_ = (meta?: Record<string, any>) =>
     Effect.currentSpan.pipe(
       Effect.option,
       Effect
         .flatMap((span) =>
-          Effect.promise(() => form.handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
+          Effect.promise(() => handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
         )
     )
 
@@ -946,8 +954,6 @@ export const useOmegaForm = <
         }
       })))
       : handleSubmitEffect_(options?.meta)
-
-  const handleSubmit = form.handleSubmit
 
   const fieldMap = ref(new Map<string, { label: string; id: string }>())
 

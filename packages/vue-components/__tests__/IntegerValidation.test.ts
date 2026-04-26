@@ -1,6 +1,6 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateInputStandardSchemaFromFieldMeta, generateMetaFromSchema, type NumberFieldMeta } from "../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema, type NumberFieldMeta, toLocalizedStandardSchemaV1 } from "../src/components/OmegaForm/OmegaFormStuff"
 
 // mock German translations
 const germanTranslations: Record<string, string> = {
@@ -38,7 +38,8 @@ describe("Integer validation with German translations", () => {
     })
 
     const { meta } = generateMetaFromSchema(TestSchema)
-    const schema = generateInputStandardSchemaFromFieldMeta(meta.value!, mockTrans)
+    expect(meta.value?.originalCodec).toBeDefined()
+    const schema = toLocalizedStandardSchemaV1(meta.value!.originalCodec!, mockTrans)
 
     // test with a decimal value
     const result = await schema["~standard"].validate(59.5)
@@ -54,7 +55,8 @@ describe("Integer validation with German translations", () => {
     })
 
     const { meta } = generateMetaFromSchema(TestSchema)
-    const schema = generateInputStandardSchemaFromFieldMeta(meta.value!, mockTrans)
+    expect(meta.value?.originalCodec).toBeDefined()
+    const schema = toLocalizedStandardSchemaV1(meta.value!.originalCodec!, mockTrans)
 
     // test with undefined value
     const result = await schema["~standard"].validate(undefined)
@@ -71,7 +73,8 @@ describe("Integer validation with German translations", () => {
     })
 
     const { meta } = generateMetaFromSchema(TestSchema)
-    const schema = generateInputStandardSchemaFromFieldMeta(meta.value!, mockTrans)
+    expect(meta.value?.originalCodec).toBeDefined()
+    const schema = toLocalizedStandardSchemaV1(meta.value!.originalCodec!, mockTrans)
 
     // test with a valid integer
     const result = await schema["~standard"].validate(59)

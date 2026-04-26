@@ -853,8 +853,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     const doc = specialJsonSchemaDocument(AppSchema.PositiveInt)
     expect(doc.definitions["PositiveInt"]).toStrictEqual({
       type: "integer",
-      exclusiveMinimum: 0,
-      title: "PositiveInt"
+      exclusiveMinimum: 0
     })
   })
 
@@ -863,8 +862,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     expect(doc.definitions["NonEmptyString255"]).toStrictEqual({
       type: "string",
       minLength: 1,
-      maxLength: 255,
-      title: "NonEmptyString255"
+      maxLength: 255
     })
   })
 
@@ -890,8 +888,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     expect(doc.definitions["NonEmptyString64k"]).toStrictEqual({
       type: "string",
       minLength: 1,
-      maxLength: 65536,
-      title: "NonEmptyString64k"
+      maxLength: 65536
     })
   })
 
@@ -899,8 +896,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     const doc = specialJsonSchemaDocument(AppSchema.NonNegativeInt)
     expect(doc.definitions["NonNegativeInt"]).toStrictEqual({
       type: "integer",
-      minimum: 0,
-      title: "NonNegativeInt"
+      minimum: 0
     })
   })
 

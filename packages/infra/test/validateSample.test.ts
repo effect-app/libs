@@ -28,7 +28,7 @@ describe("validateSample", () => {
 
         const result = yield* repo.validateSample({ percentage: 1.0 }) // 100%
 
-        expect(result).toBeInstanceOf(ValidationResult)
+        expect(S.is(ValidationResult)(result)).toBe(true)
         expect(result.total).toBe(3)
         expect(result.sampled).toBe(3)
         expect(result.valid).toBe(3)
@@ -62,7 +62,7 @@ describe("validateSample", () => {
 
         const result = yield* repo.validateSample({ percentage: 1.0 }) // 100%
 
-        expect(result).toBeInstanceOf(ValidationResult)
+        expect(S.is(ValidationResult)(result)).toBe(true)
         expect(result.total).toBe(3)
         expect(result.sampled).toBe(3)
         expect(result.valid).toBe(1)
@@ -70,7 +70,7 @@ describe("validateSample", () => {
 
         // verify error structure
         for (const error of result.errors) {
-          expect(error).toBeInstanceOf(ValidationError)
+          expect(S.is(ValidationError)(error)).toBe(true)
           expect(error.id).toBeDefined()
           expect(error.rawData).toBeDefined()
           expect(error.jitMResult).toBeDefined()

@@ -4,7 +4,7 @@ import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldV
 import { isObject } from "@vueuse/core"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type { Redacted } from "effect/Redacted"
-import { getTransformationFrom, useIntl } from "../../utils"
+import { getTransformationFrom } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
@@ -21,6 +21,8 @@ const isDevelopmentEnvironment = () => {
   const process = (globalThis as GlobalThisWithOptionalProcess).process
   return process?.env?.NODE_ENV !== "production"
 }
+
+type TransFn = (id: string, values?: Record<string, any>) => string
 
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
@@ -518,10 +520,14 @@ export const createMeta = <T = any>(
   }
 
   if (property && S.AST.isObjects(property)) {
-    return createMeta<T>({
-      meta,
-      propertySignatures: property.propertySignatures
-    })
+    return createMeta<T>(
+      {
+        meta,
+        propertySignatures: property.propertySignatures
+      },
+      acc,
+      fieldAstByPath
+    )
   }
 
   if (propertySignatures) {
@@ -558,11 +564,15 @@ export const createMeta = <T = any>(
         if (hasStructMembers) {
           // Only create parent meta for non-NullOr unions to avoid duplicates
           if (!nullableOrUndefined) {
-            const parentMeta = createMeta<T>({
-              parent: key,
-              property: p.type,
-              meta: { required: isRequired, nullableOrUndefined }
-            })
+            const parentMeta = createMeta<T>(
+              {
+                parent: key,
+                property: p.type,
+                meta: { required: isRequired, nullableOrUndefined }
+              },
+              {},
+              fieldAstByPath
+            )
             acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
           }
 
@@ -574,11 +584,15 @@ export const createMeta = <T = any>(
               // - All other fields maintain their normal required status based on their own types
               const isNullableDiscriminatedUnion = nullableOrUndefined && nonNullTypes.length > 1
 
-              const branchMeta = createMeta<T>({
-                parent: key,
-                propertySignatures: nonNullType.propertySignatures,
-                meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
-              })
+              const branchMeta = createMeta<T>(
+                {
+                  parent: key,
+                  propertySignatures: nonNullType.propertySignatures,
+                  meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
+                },
+                {},
+                fieldAstByPath
+              )
 
               // Merge branch metadata, combining select members for shared discriminator fields
               for (const [metaKey, metaValue] of Object.entries(branchMeta)) {
@@ -816,17 +830,21 @@ export const createMeta = <T = any>(
         && S.AST.isLiteral(nonNullTypes[0]!)
         && typeof nonNullTypes[0]!.literal === "boolean"
       ) {
-        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! })
+        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! }, acc, fieldAstByPath)
       }
 
       const nonNullType = nonNullTypes[0]!
 
       if (S.AST.isObjects(nonNullType)) {
-        return createMeta<T>({
-          propertySignatures: nonNullType.propertySignatures,
-          parent,
-          meta
-        })
+        return createMeta<T>(
+          {
+            propertySignatures: nonNullType.propertySignatures,
+            parent,
+            meta
+          },
+          acc,
+          fieldAstByPath
+        )
       }
 
       // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
@@ -1137,26 +1155,9 @@ export const generateMetaFromSchema = <From, To>(
 }
 
 export const makeStandardSchemaV1Hooks = (
-  trans?: ReturnType<typeof useIntl>["trans"]
+  trans: TransFn
 ) => {
-  const fallbackTranslate: ReturnType<typeof useIntl>["trans"] = (id, values) => {
-    if (!values) {
-      return id
-    }
-    return Object.entries(values).reduce(
-      (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
-      id
-    )
-  }
-
   const translate = trans
-    ?? (() => {
-      try {
-        return useIntl().trans
-      } catch {
-        return fallbackTranslate
-      }
-    })()
 
   return {
     leafHook: (issue: S.SchemaIssue.Leaf) => {
@@ -1291,7 +1292,7 @@ export const makeStandardSchemaV1Hooks = (
 
 export const toLocalizedStandardSchemaV1 = (
   schema: S.Decoder<unknown, never>,
-  trans?: ReturnType<typeof useIntl>["trans"]
+  trans: TransFn
 ): StandardSchemaV1<any, any> => S.toStandardSchemaV1(schema, makeStandardSchemaV1Hooks(trans))
 
 export type OmegaAutoGenMeta<

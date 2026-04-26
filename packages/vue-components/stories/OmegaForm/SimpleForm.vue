@@ -18,10 +18,16 @@
 import { S } from "effect-app"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 
+const addressNameLengthCheck = (max: number) =>
+  S.makeFilter((name: string) => {
+    const tooLong = name.split("\n").find((line) => line.length > max)
+    return tooLong !== undefined ? `Zeile "${tooLong}" überschreitet ${max} Zeichen` : undefined
+  })
+
 const form = useOmegaForm(
   S.Struct({
     number: S.Int.pipe(S.check(S.isBetween({ minimum: 1, maximum: 20 }))),
-    height: S.NonEmptyString100.pipe(S.check(S.isMinLength(10))),
+    height: S.NonEmptyString100.pipe(S.check(S.isMinLength(10)), S.check(addressNameLengthCheck(20))),
     width: S.NonEmptyString100.pipe(S.check(S.isMinLength(10))),
     z: S.optionalKey(S.Number)
   }),

@@ -688,7 +688,7 @@ export const useOmegaForm = <
   const standardSchema = S.toStandardSchemaV1(formCompatibleSchema)
   const decode = S.decodeUnknownEffect(formCompatibleSchema)
 
-  const { meta, unionMeta } = generateMetaFromSchema(schema)
+  const { meta, unionMeta } = generateMetaFromSchema(formCompatibleSchema)
 
   const persistencyKey = computed(() => {
     if (omegaConfig?.persistency?.id) {

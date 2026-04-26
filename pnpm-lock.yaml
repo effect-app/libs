@@ -53,8 +53,8 @@ importers:
         specifier: ^2.31.0
         version: 2.31.0(@types/node@25.6.0)
       '@effect-app/cli':
-        specifier: 2.1.0-beta.15
-        version: 2.1.0-beta.15(ioredis@5.9.3)
+        specifier: 2.1.0-beta.16
+        version: 2.1.0-beta.16(ioredis@5.9.3)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -125,8 +125,8 @@ importers:
         specifier: ^3.1.14
         version: 3.1.14
       npm-check-updates:
-        specifier: ^21.0.3
-        version: 21.0.3
+        specifier: ^22.0.1
+        version: 22.0.1
       oxlint:
         specifier: ^1.61.0
         version: 1.61.0
@@ -440,8 +440,8 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2
       pure-rand:
-        specifier: 7.0.1
-        version: 7.0.1
+        specifier: 8.4.0
+        version: 8.4.0
       query-string:
         specifier: ^9.3.1
         version: 9.3.1
@@ -1144,8 +1144,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@2.1.0-beta.15':
-    resolution: {integrity: sha512-GYBw6Hq1kWvamzt3Fd6dcN+/vGIpsQH3BGc7bexHmpGxHL3UkdHjSYq/27cCrU7ouw7wtxIXao8pnWiV7OEgFw==}
+  '@effect-app/cli@2.1.0-beta.16':
+    resolution: {integrity: sha512-A1L1gRIRsIpvIMXqGZZQ15bHbuLM0wikSGFjESKH+7Iqvm1wSPxunMdoIdT0IUwrFTKKeGZBKb5K+iIB0mBCQw==}
     hasBin: true
 
   '@effect/atom-vue@4.0.0-beta.57':
@@ -5337,8 +5337,8 @@ packages:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
 
-  npm-check-updates@21.0.3:
-    resolution: {integrity: sha512-8y0fqtxdo5JhwzxcS9rZd969tvPbSZ3MzQoG5Fj8eqL42t1Jsg5tjZCz8CYuXLE8LNbbyV+1xxR/f/T4AdPmdg==}
+  npm-check-updates@22.0.1:
+    resolution: {integrity: sha512-K8PDu7l9v7UKIwDSxLnqA9LHT76Mu4eCjGjp0JwSeSsyKWmX/YZY+AoBxw4oVdKwQLthWbzg1g+OKysHYGQCjQ==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0, npm: '>=10.0.0'}
     hasBin: true
 
@@ -5708,9 +5708,6 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
-
-  pure-rand@7.0.1:
-    resolution: {integrity: sha512-oTUZM/NAZS8p7ANR3SHh30kXB+zK2r2BPcEn/awJIbOvq82WoMN4p62AWWp3Hhw50G0xMsw1mhIBLqHw64EcNQ==}
 
   pure-rand@8.4.0:
     resolution: {integrity: sha512-IoM8YF/jY0hiugFo/wOWqfmarlE6J0wc6fDK1PhftMk7MGhVZl88sZimmqBBFomLOCSmcCCpsfj7wXASCpvK9A==}
@@ -7656,7 +7653,7 @@ snapshots:
   '@dprint/win32-x64@0.54.0':
     optional: true
 
-  '@effect-app/cli@2.1.0-beta.15(ioredis@5.9.3)':
+  '@effect-app/cli@2.1.0-beta.16(ioredis@5.9.3)':
     dependencies:
       '@effect/platform-node': 4.0.0-beta.56(effect@4.0.0-beta.56)(ioredis@5.9.3)
       effect: 4.0.0-beta.56
@@ -12061,7 +12058,7 @@ snapshots:
 
   normalize-path@3.0.0: {}
 
-  npm-check-updates@21.0.3: {}
+  npm-check-updates@22.0.1: {}
 
   npm-run-path@4.0.1:
     dependencies:
@@ -12508,8 +12505,6 @@ snapshots:
       once: 1.4.0
 
   punycode@2.3.1: {}
-
-  pure-rand@7.0.1: {}
 
   pure-rand@8.4.0: {}
 

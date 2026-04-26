@@ -12,7 +12,7 @@
     "jose": "^6.2.2",
     "path-parser": "^6.1.0",
     "proper-lockfile": "^4.1.2",
-    "pure-rand": "7.0.1",
+    "pure-rand": "8.4.0",
     "query-string": "^9.3.1"
   },
   "devDependencies": {

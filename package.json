@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
-    "@effect-app/cli": "2.1.0-beta.15",
+    "@effect-app/cli": "2.1.0-beta.16",
     "@effect-app/eslint-codegen-model": "workspace:*",
     "@effect-app/infra": "workspace:*",
     "@effect/language-service": "0.85.1",
@@ -85,7 +85,7 @@
     "madge": "^8.0.0",
     "module-alias": "^2.3.4",
     "nodemon": "^3.1.14",
-    "npm-check-updates": "^21.0.3",
+    "npm-check-updates": "^22.0.1",
     "oxlint": "^1.61.0",
     "ts-plugin-sort-import-suggestions": "^1.0.4",
     "ts-transform-paths": "^3.0.0",

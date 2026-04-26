@@ -12,7 +12,7 @@
       <OmegaInternalInput
         v-if="meta"
         v-bind="{ ...$attrs, ...$props, inputClass: computedClass }"
-        :field="field"
+        :field="field as any"
         :state="state"
         :register="form.registerField"
         :label="label ?? errori18n(propsName)"

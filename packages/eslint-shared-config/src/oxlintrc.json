@@ -1,0 +1,84 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "oxc", "eslint", "unicorn", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  // NOTE: oxlint does NOT merge ignorePatterns from extended configs — the child config's
+  // ignorePatterns completely replaces the base. Consumers must repeat these patterns
+  // and append their own. See: https://oxc.rs/docs/guide/usage/linter/config-file-reference#ignorePatterns
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.d.ts",
+    "**/*.js",
+    "**/*.jsx",
+    "**/vitest.config.ts",
+    "**/eslint.*.mjs",
+    "**/CHANGELOG.md"
+  ],
+  "rules": {
+    "typescript/consistent-type-imports": ["error", {
+      "fixStyle": "inline-type-imports"
+    }],
+    "import/no-duplicates": "error",
+    "import/no-self-import": "warn",
+    "import/no-empty-named-blocks": "error",
+    "eslint/no-restricted-imports": ["error", {
+      "paths": [
+        {
+          "name": ".",
+          "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
+        },
+        {
+          "name": "./",
+          "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
+        },
+        {
+          "name": "./index",
+          "message": "Please import from the specific file instead. Imports from index in the same directory are almost always wrong (circular)."
+        }
+      ]
+    }],
+    "eslint/object-shorthand": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-useless-empty-export": "error",
+    "eslint/no-var": "error",
+    "eslint/no-console": "off",
+    "oxc/misrefactored-assign-op": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/no-accessor-recursion": "error",
+    "oxc/no-map-spread": "off",
+    "eslint/no-unused-vars": "off",
+    "typescript/no-unused-vars": ["error", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_",
+      "ignoreRestSiblings": true
+    }],
+    "eslint/require-yield": "off",
+    "eslint/no-fallthrough": "off",
+    "eslint/no-await-in-loop": "off",
+    "eslint/no-shadow": "off",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-empty-interface": "off",
+    "typescript/ban-ts-comment": "off",
+    "typescript/no-namespace": "off",
+    "typescript/no-non-null-assertion": "off",
+    "typescript/no-dynamic-delete": "off",
+    "typescript/no-invalid-void-type": "off",
+    "typescript/no-unsafe-function-type": "off",
+    "typescript/unified-signatures": "off",
+    "typescript/no-empty-object-type": "off",
+    "typescript/no-confusing-non-null-assertion": "off",
+    "unicorn/no-new-array": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    "unicorn/require-post-message-target-origin": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/prefer-set-has": "off"
+  }
+}

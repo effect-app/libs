@@ -20,7 +20,8 @@
     },
     "./eslint.vue.config": {
       "default": "./src/eslint.vue.config.mjs"
-    }
+    },
+    "./oxlintrc.json": "./src/oxlintrc.json"
   },
   "dependencies": {
     "@effect-app/eslint-codegen-model": "workspace:*",

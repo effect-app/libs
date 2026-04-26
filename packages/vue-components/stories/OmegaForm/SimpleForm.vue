@@ -32,6 +32,9 @@ const form = useOmegaForm(
     z: S.optionalKey(S.Number)
   }),
   {
+    defaultValues: {
+      number: 25
+    },
     onSubmit: async ({ value }) => {
       console.log("Form submitted:", value)
     }

@@ -40,10 +40,10 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
-import { type DeepKeys } from "@tanstack/vue-form"
+import { type DeepKeys, type DeepValue, type StandardSchemaV1 } from "@tanstack/vue-form"
 import { computed, inject, type Ref, useAttrs } from "vue"
 import { useIntl } from "../../utils"
-import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
+import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase, toLocalizedStandardSchemaV1 } from "./OmegaFormStuff"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
 import { useErrorLabel } from "./useOmegaForm"
 
@@ -97,45 +97,16 @@ const fieldKey = computed(() => {
 // Call useIntl during setup to avoid issues when computed re-evaluates
 const { trans } = useIntl()
 
-const hasIssues = (result: any): boolean => Array.isArray(result?.issues) && result.issues.length > 0
-
-const composeStandardSchemas = (
-  omegaSchema: any,
-  originalSchema: any
-) => ({
-  "~standard": {
-    ...omegaSchema["~standard"],
-    validate: (value: unknown) => {
-      const omegaResult = omegaSchema["~standard"].validate(value)
-      if (omegaResult && typeof omegaResult.then === "function") {
-        return omegaResult.then((resolved: any) => {
-          if (hasIssues(resolved)) {
-            return resolved
-          }
-          return originalSchema["~standard"].validate(value)
-        })
-      }
-
-      if (hasIssues(omegaResult)) {
-        return omegaResult
-      }
-
-      return originalSchema["~standard"].validate(value)
-    }
-  }
-})
-
-const schema = computed(() => {
+const schema = computed<StandardSchemaV1<DeepValue<From, Name>, unknown>>(() => {
   if (!meta.value) {
     console.log(props.name, Object.keys(props.form.meta), props.form.meta)
     throw new Error("Meta is undefined")
   }
-  const omegaSchema = generateInputStandardSchemaFromFieldMeta(meta.value, trans)
-  const fieldSchema = meta.value.originalSchema
-  if (fieldSchema) {
-    return composeStandardSchemas(omegaSchema, fieldSchema)
+  const fieldCodec = meta.value.originalCodec
+  if (fieldCodec) {
+    return toLocalizedStandardSchemaV1(fieldCodec, trans)
   }
-  return omegaSchema
+  return generateInputStandardSchemaFromFieldMeta(meta.value, trans)
 })
 
 const errori18n = useErrorLabel(props.form)

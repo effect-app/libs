@@ -257,6 +257,7 @@ export type BaseFieldMeta = {
   required: boolean
   nullableOrUndefined?: false | "undefined" | "null"
   originalSchema?: StandardSchemaV1<any, any>
+  originalCodec?: S.Decoder<unknown, never>
   /**
    * True when the schema property is `S.optionalKey` (AST
    * `context.isOptional`) — i.e. the key should be ABSENT from the submitted
@@ -905,13 +906,12 @@ const metadataFromAst = <From, To>(
   const unionMeta: Record<string, MetaRecord<To>> = {}
   const fieldAstByPath: Record<string, S.AST.AST> = {}
 
-  const toFieldStandardSchema = (
+  const toFieldCodec = (
     propertyAst: S.AST.AST,
     required: boolean
-  ): StandardSchemaV1<any, any> => {
-    const base = S.make(propertyAst)
-    const fieldSchema = required ? base : S.NullishOr(base)
-    return S.toStandardSchemaV1(fieldSchema as any)
+  ): S.Decoder<unknown, never> => {
+    const base = S.make(propertyAst) as S.Decoder<unknown, never>
+    return required ? base : S.NullishOr(base)
   }
 
   const attachOriginalSchemas = (metaRecord: MetaRecord<To>) => {
@@ -922,13 +922,26 @@ const metadataFromAst = <From, To>(
       }
       try {
         const required = fieldMeta.required ?? true
+        const fieldCodec = toFieldCodec(fieldAst, required)
+        Object.defineProperty(fieldMeta, "originalCodec", {
+          value: fieldCodec,
+          enumerable: false,
+          configurable: true,
+          writable: true
+        })
         Object.defineProperty(fieldMeta, "originalSchema", {
-          value: toFieldStandardSchema(fieldAst, required),
+          value: S.toStandardSchemaV1(fieldCodec),
           enumerable: false,
           configurable: true,
           writable: true
         })
       } catch {
+        Object.defineProperty(fieldMeta, "originalCodec", {
+          value: S.Unknown,
+          enumerable: false,
+          configurable: true,
+          writable: true
+        })
         Object.defineProperty(fieldMeta, "originalSchema", {
           value: S.toStandardSchemaV1(S.Unknown),
           enumerable: false,
@@ -1136,6 +1149,114 @@ export const generateMetaFromSchema = <From, To>(
   return { schema, meta, unionMeta }
 }
 
+export const makeStandardSchemaV1Hooks = (
+  trans?: ReturnType<typeof useIntl>["trans"]
+) => {
+  const translate = trans ?? useIntl().trans
+
+  return {
+    leafHook: (issue: S.SchemaIssue.Leaf) => {
+      switch (issue._tag) {
+        case "MissingKey":
+          return translate("validation.empty")
+        case "InvalidType": {
+          const ast = issue.ast
+          if (S.AST.isString(ast)) {
+            return S.AST.resolveTitle(ast) === "Email"
+              ? translate("validation.email.invalid")
+              : translate("validation.empty")
+          }
+          if (S.AST.isNumber(ast)) {
+            return translate("validation.number.expected", { actualValue: "NaN" })
+          }
+          if (S.AST.isBoolean(ast)) {
+            return translate("validation.not_a_valid", { type: "boolean" })
+          }
+          if (S.AST.isObjects(ast)) {
+            return translate("validation.not_a_valid", { type: "object" })
+          }
+          return translate("validation.not_a_valid")
+        }
+        case "InvalidValue":
+        case "UnexpectedKey":
+        case "Forbidden":
+        case "OneOf":
+          return translate("validation.not_a_valid")
+      }
+    },
+    checkHook: (issue: S.SchemaIssue.Filter) => {
+      const meta = issue.filter.annotations?.meta
+      if (!meta || typeof meta !== "object") {
+        return undefined
+      }
+
+      const taggedMeta = meta as Record<string, unknown> & { _tag?: string }
+      switch (taggedMeta._tag) {
+        case "isMinLength": {
+          const minLength = taggedMeta.minLength
+          if (typeof minLength === "number") {
+            return minLength === 1
+              ? translate("validation.empty")
+              : translate("validation.string.minLength", { minLength })
+          }
+          return undefined
+        }
+        case "isMaxLength": {
+          const maxLength = taggedMeta.maxLength
+          return typeof maxLength === "number"
+            ? translate("validation.string.maxLength", { maxLength })
+            : undefined
+        }
+        case "isInt":
+          return translate("validation.integer.expected", { actualValue: "NaN" })
+        case "isGreaterThanOrEqualTo": {
+          const minimum = taggedMeta.minimum
+          return typeof minimum === "number"
+            ? translate(minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+              minimum,
+              isExclusive: true
+            })
+            : undefined
+        }
+        case "isGreaterThan": {
+          const minimum = taggedMeta.exclusiveMinimum
+          return typeof minimum === "number"
+            ? translate(minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+              minimum,
+              isExclusive: false
+            })
+            : undefined
+        }
+        case "isLessThanOrEqualTo": {
+          const maximum = taggedMeta.maximum
+          return typeof maximum === "number"
+            ? translate("validation.number.max", {
+              maximum,
+              isExclusive: true
+            })
+            : undefined
+        }
+        case "isLessThan": {
+          const maximum = taggedMeta.exclusiveMaximum
+          return typeof maximum === "number"
+            ? translate("validation.number.max", {
+              maximum,
+              isExclusive: false
+            })
+            : undefined
+        }
+        default:
+          return undefined
+      }
+    }
+  } as const
+}
+
+export const toLocalizedStandardSchemaV1 = (
+  schema: S.Decoder<unknown, never>,
+  trans?: ReturnType<typeof useIntl>["trans"]
+): StandardSchemaV1<any, any> => S.toStandardSchemaV1(schema, makeStandardSchemaV1Hooks(trans))
+
 export const generateInputStandardSchemaFromFieldMeta = (
   meta: FieldMeta,
   trans?: ReturnType<typeof useIntl>["trans"]
@@ -1271,7 +1392,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
   if (!meta.required) {
     schema = S.NullishOr(schema)
   }
-  const result = S.toStandardSchemaV1(schema as any)
+  const result = toLocalizedStandardSchemaV1(schema, trans)
   return result
 }
 

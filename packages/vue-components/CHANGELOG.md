@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.153
+
+### Patch Changes
+
+- bfeaef0: fix forms
+  - effect-app@4.0.0-beta.153
+  - @effect-app/vue@4.0.0-beta.153
+
 ## 4.0.0-beta.152
 
 ### Patch Changes

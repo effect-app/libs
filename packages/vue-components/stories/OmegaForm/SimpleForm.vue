@@ -33,7 +33,7 @@ const form = useOmegaForm(
   }),
   {
     defaultValues: {
-      number: 25
+      height: "dwqdwdqwdwqdwqdqwdqwdqdqwdqwdqwdqw"
     },
     onSubmit: async ({ value }) => {
       console.log("Form submitted:", value)

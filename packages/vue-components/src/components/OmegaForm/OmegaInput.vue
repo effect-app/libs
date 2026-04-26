@@ -4,9 +4,8 @@
     :key="fieldKey"
     :name="name"
     :validators="{
-      //     onChange: schema,
-      onBlur: schema,
-      ...validators
+      ...validators,
+      onSubmit: schema
     }"
   >
     <template #default="{ field, state }">

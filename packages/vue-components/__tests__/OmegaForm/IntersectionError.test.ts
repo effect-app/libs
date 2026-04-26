@@ -157,7 +157,6 @@ describe("OmegaForm Intersection/Union", () => {
 
     // Select "alpha" and submit without filling required field to trigger error
     await selectInput.setValue("alpha")
-    await wrapper.vm.$nextTick()
 
     const submitButton = wrapper.find("[data-testid='submit']")
     await submitButton.trigger("submit")

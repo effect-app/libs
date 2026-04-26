@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.151
+
+### Patch Changes
+
+- e091134: OmegaForm now runs field validation in ordered composition: OmegaForm-generated field rules first, then original schema checks. This makes custom schema filters (for example `S.makeFilter` checks) show during `onChange`/`onBlur` while preserving existing OmegaForm validation behavior and messages.
+  - effect-app@4.0.0-beta.151
+  - @effect-app/vue@4.0.0-beta.151
+
 ## 4.0.0-beta.150
 
 ### Patch Changes

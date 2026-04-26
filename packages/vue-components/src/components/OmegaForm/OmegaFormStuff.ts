@@ -573,7 +573,11 @@ export const createMeta = <T = any>(
               {},
               fieldAstByPath
             )
-            acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+            if (parentMeta && typeof parentMeta === "object" && "type" in parentMeta) {
+              acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+            } else {
+              Object.assign(acc, parentMeta as Partial<MetaRecord<T>>)
+            }
           }
 
           // Process each non-null type and merge their metadata

@@ -103,7 +103,7 @@ const schema = computed<StandardSchemaV1<DeepValue<From, Name>, unknown>>(() => 
     throw new Error("Meta is undefined")
   }
   const fieldCodec = meta.value.originalCodec
-  if (fieldCodec) {
+  if (fieldCodec && meta.value.hasCustomChecks) {
     return toLocalizedStandardSchemaV1(fieldCodec, trans)
   }
   return generateInputStandardSchemaFromFieldMeta(meta.value, trans)

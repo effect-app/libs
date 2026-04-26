@@ -258,6 +258,7 @@ export type BaseFieldMeta = {
   nullableOrUndefined?: false | "undefined" | "null"
   originalSchema?: StandardSchemaV1<any, any>
   originalCodec?: S.Decoder<unknown, never>
+  hasCustomChecks?: boolean
   /**
    * True when the schema property is `S.optionalKey` (AST
    * `context.isOptional`) — i.e. the key should be ABSENT from the submitted
@@ -445,6 +446,34 @@ const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {
 
     const meta = check.annotations?.meta
     return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
+  })
+}
+
+const builtInCheckMetaTags = new Set([
+  "isMinLength",
+  "isMaxLength",
+  "isInt",
+  "isGreaterThanOrEqualTo",
+  "isLessThanOrEqualTo",
+  "isBetween",
+  "isGreaterThan",
+  "isLessThan"
+])
+
+const hasCustomChecks = (property: S.AST.AST): boolean => {
+  const checks = property.checks ?? []
+  if (checks.length === 0) {
+    return false
+  }
+
+  const metas = getCheckMetas(property)
+  if (metas.length === 0) {
+    return true
+  }
+
+  return metas.some((meta) => {
+    const tag = meta._tag
+    return typeof tag !== "string" || !builtInCheckMetaTags.has(tag)
   })
 }
 
@@ -929,6 +958,12 @@ const metadataFromAst = <From, To>(
           configurable: true,
           writable: true
         })
+        Object.defineProperty(fieldMeta, "hasCustomChecks", {
+          value: hasCustomChecks(fieldAst),
+          enumerable: false,
+          configurable: true,
+          writable: true
+        })
         Object.defineProperty(fieldMeta, "originalSchema", {
           value: S.toStandardSchemaV1(fieldCodec),
           enumerable: false,
@@ -938,6 +973,12 @@ const metadataFromAst = <From, To>(
       } catch {
         Object.defineProperty(fieldMeta, "originalCodec", {
           value: S.Unknown,
+          enumerable: false,
+          configurable: true,
+          writable: true
+        })
+        Object.defineProperty(fieldMeta, "hasCustomChecks", {
+          value: false,
           enumerable: false,
           configurable: true,
           writable: true
@@ -1152,10 +1193,50 @@ export const generateMetaFromSchema = <From, To>(
 export const makeStandardSchemaV1Hooks = (
   trans?: ReturnType<typeof useIntl>["trans"]
 ) => {
-  const translate = trans ?? useIntl().trans
+  const fallbackTranslate: ReturnType<typeof useIntl>["trans"] = (id, values) => {
+    if (!values) {
+      return id
+    }
+    return Object.entries(values).reduce(
+      (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+      id
+    )
+  }
+
+  const translate = trans
+    ?? (() => {
+      try {
+        return useIntl().trans
+      } catch {
+        return fallbackTranslate
+      }
+    })()
 
   return {
     leafHook: (issue: S.SchemaIssue.Leaf) => {
+      const getAnnotationMessage = (): string | undefined => {
+        switch (issue._tag) {
+          case "InvalidValue":
+          case "Forbidden":
+            return typeof issue.annotations?.message === "string"
+              ? issue.annotations.message
+              : undefined
+          case "MissingKey":
+            return typeof issue.annotations?.messageMissingKey === "string"
+              ? issue.annotations.messageMissingKey
+              : undefined
+          case "UnexpectedKey":
+            return typeof issue.ast.annotations?.messageUnexpectedKey === "string"
+              ? issue.ast.annotations.messageUnexpectedKey
+              : undefined
+        }
+      }
+
+      const annotationMessage = getAnnotationMessage()
+      if (annotationMessage) {
+        return annotationMessage
+      }
+
       switch (issue._tag) {
         case "MissingKey":
           return translate("validation.empty")
@@ -1167,6 +1248,9 @@ export const makeStandardSchemaV1Hooks = (
               : translate("validation.empty")
           }
           if (S.AST.isNumber(ast)) {
+            if (Option.isNone(issue.actual) || (Option.isSome(issue.actual) && issue.actual.value === undefined)) {
+              return translate("validation.empty")
+            }
             return translate("validation.number.expected", { actualValue: "NaN" })
           }
           if (S.AST.isBoolean(ast)) {
@@ -1185,6 +1269,13 @@ export const makeStandardSchemaV1Hooks = (
       }
     },
     checkHook: (issue: S.SchemaIssue.Filter) => {
+      const defaultCheckMessage = S.SchemaIssue.defaultCheckHook(issue)
+      if (typeof defaultCheckMessage === "string") {
+        if (defaultCheckMessage.includes("length of at least 1")) {
+          return translate("validation.empty")
+        }
+      }
+
       const meta = issue.filter.annotations?.meta
       if (!meta || typeof meta !== "object") {
         return undefined

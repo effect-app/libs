@@ -17,8 +17,8 @@ describe("OmegaForm field schema custom checks", () => {
       )
     })
 
-    const { fieldSchemas } = generateMetaFromSchema(schema)
-    const heightSchema = fieldSchemas.height
+    const { meta } = generateMetaFromSchema(schema)
+    const heightSchema = meta.height?.originalSchema
 
     expect(heightSchema).toBeDefined()
 

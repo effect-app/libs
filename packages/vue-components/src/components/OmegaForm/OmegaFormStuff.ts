@@ -256,6 +256,7 @@ export type FieldValidators<T> = {
 export type BaseFieldMeta = {
   required: boolean
   nullableOrUndefined?: false | "undefined" | "null"
+  originalSchema?: StandardSchemaV1<any, any>
   /**
    * True when the schema property is `S.optionalKey` (AST
    * `context.isOptional`) — i.e. the key should be ABSENT from the submitted
@@ -897,7 +898,6 @@ const metadataFromAst = <From, To>(
   meta: MetaRecord<To>
   defaultValues: Record<string, any>
   unionMeta: Record<string, MetaRecord<To>>
-  fieldSchemas: Record<string, StandardSchemaV1<any, any>>
 } => {
   const ast = unwrapDeclaration(schema.ast)
   const newMeta: MetaRecord<To> = {}
@@ -914,17 +914,29 @@ const metadataFromAst = <From, To>(
     return S.toStandardSchemaV1(fieldSchema as any)
   }
 
-  const toFieldSchemas = () => {
-    const result: Record<string, StandardSchemaV1<any, any>> = {}
+  const attachOriginalSchemas = (metaRecord: MetaRecord<To>) => {
     for (const [key, fieldAst] of Object.entries(fieldAstByPath)) {
+      const fieldMeta = metaRecord[key as NestedKeyOf<To>]
+      if (!fieldMeta) {
+        continue
+      }
       try {
-        const required = newMeta[key as NestedKeyOf<To>]?.required ?? true
-        result[key] = toFieldStandardSchema(fieldAst, required)
+        const required = fieldMeta.required ?? true
+        Object.defineProperty(fieldMeta, "originalSchema", {
+          value: toFieldStandardSchema(fieldAst, required),
+          enumerable: false,
+          configurable: true,
+          writable: true
+        })
       } catch {
-        result[key] = S.toStandardSchemaV1(S.Unknown)
+        Object.defineProperty(fieldMeta, "originalSchema", {
+          value: S.toStandardSchemaV1(S.Unknown),
+          enumerable: false,
+          configurable: true,
+          writable: true
+        })
       }
     }
-    return result
   }
 
   // Handle root-level Union types (discriminated unions)
@@ -997,7 +1009,8 @@ const metadataFromAst = <From, To>(
         } as FieldMeta
       }
 
-      return { meta: newMeta, defaultValues, unionMeta, fieldSchemas: toFieldSchemas() }
+      attachOriginalSchemas(newMeta)
+      return { meta: newMeta, defaultValues, unionMeta }
     }
   }
 
@@ -1011,11 +1024,12 @@ const metadataFromAst = <From, To>(
     )
 
     if (Object.values(meta).every((value) => value && "type" in value)) {
+      const typedMeta = meta as MetaRecord<To>
+      attachOriginalSchemas(typedMeta)
       return {
-        meta: meta as MetaRecord<To>,
+        meta: typedMeta,
         defaultValues,
-        unionMeta,
-        fieldSchemas: toFieldSchemas()
+        unionMeta
       }
     }
 
@@ -1036,7 +1050,8 @@ const metadataFromAst = <From, To>(
     flattenObject(meta)
   }
 
-  return { meta: newMeta, defaultValues, unionMeta, fieldSchemas: toFieldSchemas() }
+  attachOriginalSchemas(newMeta)
+  return { meta: newMeta, defaultValues, unionMeta }
 }
 
 /*
@@ -1115,11 +1130,10 @@ export const generateMetaFromSchema = <From, To>(
   schema: S.Codec<To, From, never>
   meta: MetaRecord<To>
   unionMeta: Record<string, MetaRecord<To>>
-  fieldSchemas: Record<string, StandardSchemaV1<any, any>>
 } => {
-  const { fieldSchemas, meta, unionMeta } = metadataFromAst(schema)
+  const { meta, unionMeta } = metadataFromAst(schema)
 
-  return { schema, meta, unionMeta, fieldSchemas }
+  return { schema, meta, unionMeta }
 }
 
 export const generateInputStandardSchemaFromFieldMeta = (

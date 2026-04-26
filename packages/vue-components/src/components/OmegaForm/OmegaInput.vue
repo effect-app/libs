@@ -132,7 +132,7 @@ const schema = computed(() => {
     throw new Error("Meta is undefined")
   }
   const omegaSchema = generateInputStandardSchemaFromFieldMeta(meta.value, trans)
-  const fieldSchema = props.form.fieldSchemas[propsName.value as string]
+  const fieldSchema = meta.value.originalSchema
   if (fieldSchema) {
     return composeStandardSchemas(omegaSchema, fieldSchema)
   }

@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.14
+
+### Patch Changes
+
+- f58e58a: Add shared oxlintrc.json base config. Consumers extend via `"extends": ["./node_modules/@effect-app/eslint-shared-config/src/oxlintrc.json"]`. Note: oxlint does not merge `ignorePatterns` — repeat the base patterns and add project-specific ones.
+  - @effect-app/eslint-codegen-model@2.0.0-beta.9
+
 ## 0.6.0-beta.13
 
 ### Patch Changes

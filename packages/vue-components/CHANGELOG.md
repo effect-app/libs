@@ -1,5 +1,13 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.152
+
+### Patch Changes
+
+- 7fe9d97: omegaform: validate all fields on submit before delegating to tanstack handleSubmit, ensuring submit reveals all validation errors.
+  - effect-app@4.0.0-beta.152
+  - @effect-app/vue@4.0.0-beta.152
+
 ## 4.0.0-beta.151
 
 ### Patch Changes

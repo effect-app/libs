@@ -92,6 +92,7 @@ NodeRuntime.runMain(
 
         const packageJsonPath = "./package.json"
         const packageJsonContent = yield* fs.readFileString(packageJsonPath)
+        const trailingNewline = packageJsonContent.endsWith("\n") ? "\n" : ""
         const pj = JSON.parse(packageJsonContent)
 
         const resolutions = {
@@ -110,7 +111,7 @@ NodeRuntime.runMain(
 
         pj.resolutions = resolutions
 
-        yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
+        yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2) + trailingNewline)
         yield* Effect.logInfo("Updated package.json with local file resolutions")
 
         yield* runGetExitCode("pnpm i")
@@ -130,6 +131,7 @@ NodeRuntime.runMain(
 
         const packageJsonPath = "./package.json"
         const packageJsonContent = yield* fs.readFileString(packageJsonPath)
+        const trailingNewline = packageJsonContent.endsWith("\n") ? "\n" : ""
         const pj = JSON.parse(packageJsonContent)
 
         const filteredResolutions = Object.entries(pj.resolutions as Record<string, string>).reduce(
@@ -143,7 +145,7 @@ NodeRuntime.runMain(
 
         pj.resolutions = filteredResolutions
 
-        yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2))
+        yield* fs.writeFileString(packageJsonPath, JSON.stringify(pj, null, 2) + trailingNewline)
         yield* Effect.logInfo("Removed effect-app file resolutions from package.json")
 
         yield* runGetExitCode("pnpm i")
@@ -339,7 +341,9 @@ NodeRuntime.runMain(
               )
           }
 
-          const pkgJson = JSON.parse(yield* fs.readFileString(p + "/package.json", "utf-8"))
+          const pkgJsonContent = yield* fs.readFileString(p + "/package.json", "utf-8")
+          const trailingNewline = pkgJsonContent.endsWith("\n") ? "\n" : ""
+          const pkgJson = JSON.parse(pkgJsonContent)
 
           pkgJson.exports = packageExports
 
@@ -347,7 +351,7 @@ NodeRuntime.runMain(
 
           return yield* fs.writeFileString(
             p + "/package.json",
-            JSON.stringify(pkgJson, null, 2)
+            JSON.stringify(pkgJson, null, 2) + trailingNewline
           )
         }
       )

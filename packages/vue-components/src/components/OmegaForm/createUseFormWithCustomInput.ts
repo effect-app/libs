@@ -1,8 +1,8 @@
 import type { DeepKeys } from "@tanstack/vue-form"
 import { type Component, h } from "vue"
 import type { MergedInputProps } from "./InputProps"
-import { type DefaultTypeProps } from "./types"
 import OmegaInput from "./OmegaInput.vue"
+import { type DefaultTypeProps } from "./types"
 import { useOmegaForm } from "./useOmegaForm"
 
 export const createUseFormWithCustomInput = <

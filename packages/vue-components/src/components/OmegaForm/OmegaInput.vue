@@ -48,10 +48,10 @@ import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, inject, type Ref, useAttrs } from "vue"
 import { useIntl } from "../../utils"
 import { type FieldMeta } from "./meta/types"
-import { generateInputStandardSchemaFromFieldMeta } from "./validation/localized"
-import { type OmegaInputPropsBase } from "./types"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
+import { type OmegaInputPropsBase } from "./types"
 import { useErrorLabel } from "./useOmegaForm"
+import { generateInputStandardSchemaFromFieldMeta } from "./validation/localized"
 
 const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 

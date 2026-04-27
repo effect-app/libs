@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Array } from "effect-app"
 import { isObject } from "@vueuse/core"
+import { Array } from "effect-app"
 import { computed, type ComputedRef, onBeforeUnmount, onMounted, onUnmounted } from "vue"
 import { type MetaRecord } from "./meta/types"
 
@@ -146,7 +146,7 @@ export const usePersistency = <From>(opts: UsePersistencyOptions<From>): UsePers
       schema: schemaDefaultValues()
     }
 
-    return ([...(opts.defaultValuesPriority || ["tanstack", "persistency", "schema"] as const)]).reverse().reduce(
+    return [...(opts.defaultValuesPriority || ["tanstack", "persistency", "schema"] as const)].reverse().reduce(
       (acc: any, m: DefaultValuesPriorityUnion) => {
         if (!Object.keys(acc).length) {
           return defaults[m]

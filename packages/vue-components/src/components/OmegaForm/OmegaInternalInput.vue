@@ -28,8 +28,8 @@ import { type DeepKeys, useStore } from "@tanstack/vue-form"
 import { computed, type ComputedRef, getCurrentInstance, useAttrs, useId, useSlots } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
 import type { MetaRecord, NestedKeyOf } from "./meta/types"
-import type { FieldValidators, TypeOverride } from "./types"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
+import type { FieldValidators, TypeOverride } from "./types"
 
 defineOptions({
   inheritAttrs: false

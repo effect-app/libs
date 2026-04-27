@@ -3,13 +3,7 @@ import { type StandardSchemaV1 } from "@tanstack/vue-form"
 import { type Effect, type Record, S } from "effect-app"
 import { getTransformationFrom } from "../../../utils"
 import type { FieldMeta, MetaRecord, NestedKeyOf } from "./types"
-import {
-  classifyAndWalkUnion,
-  leafMetaForAst,
-  type ParentMeta,
-  walkStruct,
-  type WalkerContext
-} from "./walker"
+import { classifyAndWalkUnion, leafMetaForAst, type ParentMeta, type WalkerContext, walkStruct } from "./walker"
 
 export type FilterItems = {
   items: readonly [string, ...string[]]

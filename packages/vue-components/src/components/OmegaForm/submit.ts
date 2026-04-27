@@ -107,9 +107,7 @@ export const makeSubmitHandlers = <From, To>(
       Effect.option,
       Effect
         .flatMap((span) =>
-          Effect.promise(() =>
-            handleSubmitInner(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta)
-          )
+          Effect.promise(() => handleSubmitInner(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
         )
     )
 

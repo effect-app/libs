@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils"
 import { Effect, S } from "effect-app"
-import { defineComponent, nextTick } from "vue"
 import { describe, expect, it } from "vitest"
+import { defineComponent, nextTick } from "vue"
 import { createUseFormWithCustomInput } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
@@ -122,10 +122,8 @@ describe("RootLevelTaggedUnion behavior", () => {
     await nextTick()
 
     const select = wrapper.find("[data-testid=\"select-_tag\"]")
-    expect(select.exists()).toBe(true)
-
-    // Drive the change through the form API to mirror what the UI handler
-    // produces. setValue + change events on the bare <select> race with
+    expect(select.exists()).toBe(true) // Drive the change through the form API to mirror what the UI handler
+     // produces. setValue + change events on the bare <select> race with
     // tanstack-form's commit cycle in some environments; setFieldValue is the
     // canonical path the watcher in OmegaTaggedUnionInternal observes.
     ;(wrapper.vm as any).form.setFieldValue("_tag", "B")
@@ -159,7 +157,6 @@ describe("RootLevelTaggedUnion behavior", () => {
       received = v
     })
     await nextTick()
-
     ;(wrapper.vm as any).form.setFieldValue("_tag", "B")
     await flushAfterTagChange()
 
@@ -239,13 +236,11 @@ describe("FormTaggedUnion behavior (nested)", () => {
 
     const select = wrapper.find("[data-testid=\"select-union._tag\"]")
     expect(select.exists()).toBe(true)
-
     ;(wrapper.vm as any).form.setFieldValue("union._tag", "A")
     await flushAfterTagChange()
 
     expect(wrapper.find("[data-testid=\"input-union.a\"]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=\"input-union.b\"]").exists()).toBe(false)
-
     ;(wrapper.vm as any).form.setFieldValue("union._tag", "B")
     await flushAfterTagChange()
 

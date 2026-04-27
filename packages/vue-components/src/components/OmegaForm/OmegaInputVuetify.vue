@@ -207,8 +207,8 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { getInputType } from "./inputs"
 import type { VuetifyInputProps } from "./InputProps"
+import { getInputType } from "./inputs"
 
 defineProps<VuetifyInputProps<From, Name>>()
 

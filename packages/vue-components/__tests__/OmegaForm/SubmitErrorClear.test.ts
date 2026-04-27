@@ -1,10 +1,10 @@
 // __tests__/OmegaForm/SubmitErrorClear.test.ts
 import { mount } from "@vue/test-utils"
 import { S } from "effect-app"
-import { defineComponent, nextTick } from "vue"
 import { describe, expect, it } from "vitest"
-import OmegaIntlProvider from "../OmegaIntlProvider.vue"
+import { defineComponent, nextTick } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
+import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 const mountForm = <T>(setupForm: () => T): T => {
   let captured: T | undefined
@@ -30,9 +30,7 @@ describe("submit error redistribution (current behavior)", () => {
       a: S.String.pipe(S.check(S.isMinLength(2))),
       b: S.String.pipe(S.check(S.isMinLength(2)))
     })
-    const form = mountForm(() =>
-      useOmegaForm(schema, { defaultValues: { a: "", b: "" } })
-    )
+    const form = mountForm(() => useOmegaForm(schema, { defaultValues: { a: "", b: "" } }))
 
     await form.handleSubmit()
     await nextTick()

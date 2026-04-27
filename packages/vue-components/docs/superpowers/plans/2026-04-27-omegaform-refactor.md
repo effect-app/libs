@@ -7,6 +7,7 @@
 **Architecture:** Five sequential phases. Phase 0 writes characterization tests against current behavior. Phase 1 splits files by concern (no behavior change). Phase 2 slims `createMeta` and adopts the v4 `format` annotation for email detection. Phase 3 centralizes validation and deletes the per-field schema and the errorMap-clearing workaround. Phase 4 is independent cleanup. Each task makes one self-contained, atomically committable change.
 
 **Tech Stack:**
+
 - TypeScript, Vue 3 (`<script setup>` + `defineComponent`)
 - Effect 4.0.0-beta.56 (`effect-app/Schema`, `effect-app` runtime)
 - TanStack vue-form
@@ -16,6 +17,7 @@
 **Working tree note:** All work happens on branch `OmegaFormRefactor` in `/Users/davidedipumpo/Projects/effect-app/libs/packages/vue-components`. Run commands from that directory unless otherwise specified.
 
 **Key file paths (current code):**
+
 - `src/components/OmegaForm/OmegaFormStuff.ts` — 1422 lines, the meta + helper grab-bag.
 - `src/components/OmegaForm/useOmegaForm.ts` — 1022 lines, the composable.
 - `src/components/OmegaForm/OmegaInput.vue` — currently runs **two** localized per-field schemas via `composeStandardSchemas`.
@@ -28,16 +30,18 @@
 
 **Phase 0 discoveries that updated this plan (2026-04-27 execution):**
 
-1. `makeStandardSchemaV1Hooks` and `toLocalizedStandardSchemaV1` **do not exist** in the current source. The localization currently lives inline inside `generateInputStandardSchemaFromFieldMeta` (`OmegaFormStuff.ts:1139–1273`), which generates per-field schemas, not a single form-level localized schema. Task 1.6 was originally written as a pure extraction; it has been rewritten to *create* the new hook functions while still extracting the existing `generateInputStandardSchemaFromFieldMeta`. The form-level localization the plan intends only materializes in Phase 3 Task 3.1.
+1. `makeStandardSchemaV1Hooks` and `toLocalizedStandardSchemaV1` **do not exist** in the current source. The localization currently lives inline inside `generateInputStandardSchemaFromFieldMeta` (`OmegaFormStuff.ts:1139–1273`), which generates per-field schemas, not a single form-level localized schema. Task 1.6 was originally written as a pure extraction; it has been rewritten to _create_ the new hook functions while still extracting the existing `generateInputStandardSchemaFromFieldMeta`. The form-level localization the plan intends only materializes in Phase 3 Task 3.1.
 2. `unionMeta` is populated **only when the schema's root AST is a Union**. Unions nested inside struct fields (e.g. `S.Struct({ union: S.NullOr(S.Union([...])) })`) leave `unionMeta` empty. Phase 0's `TaggedUnionNested.test.ts` pins this state with `expect(unionMeta["A"]).toBeUndefined()`. Task 2.4 (the union-handling unification) is where this gap is intentionally closed; the Phase 0 assertions are expected to flip there.
 3. The legacy `_tag` deprecation warning in `metadataFromAst` is **dead code** — its guard `S.AST.isUnion(tagProp.type)` never matches `S.Struct({ _tag: S.Literal(...) })` in the current effect-app version (which produces a bare `Literal` AST, not a single-element Union). Phase 0's `TaggedUnionLegacyWarning.test.ts` pins the warning is never emitted. Task 1.2 still extracts the warning faithfully as dead code; new Task 4.5 audits and either fixes the guard or deletes the warning.
 
 **Test command** (from `packages/vue-components/`):
+
 ```bash
 pnpm test:run
 ```
 
 **Smoke-check stories** (manual after each phase):
+
 - `Components/OmegaForm/Meta`
 - `Components/OmegaForm/FormTaggedUnion`
 - `Components/OmegaForm/RootLevelTaggedUnion`
@@ -53,6 +57,7 @@ Each task adds one test file. They must all pass against the **current** code be
 ### Task 0.1: Meta extraction snapshot — port the Meta.vue story
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/Meta.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -93,8 +98,13 @@ describe("Meta story characterization", () => {
 
     for (const [key, value] of Object.entries(expectedSubMeta)) {
       expect(meta[key as keyof typeof meta], `root.${key}`).toMatchObject(value)
-      expect(meta[`struct.${key}` as keyof typeof meta], `struct.${key}`).toMatchObject(value)
-      expect(meta[`nullableStruct.${key}` as keyof typeof meta], `nullableStruct.${key}`).toMatchObject(value)
+      expect(meta[`struct.${key}` as keyof typeof meta], `struct.${key}`)
+        .toMatchObject(value)
+      expect(
+        meta[`nullableStruct.${key}` as keyof typeof meta],
+        `nullableStruct.${key}`
+      )
+        .toMatchObject(value)
     }
   })
 })
@@ -117,6 +127,7 @@ git commit -m "test(omegaform): characterize Meta story meta extraction"
 ### Task 0.2: defaultsValueFromSchema test
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/Defaults.values.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -137,7 +148,9 @@ describe("defaultsValueFromSchema", () => {
 
   it("extracts withDecodingDefault on optionalKey", () => {
     const schema = S.Struct({
-      flag: S.optionalKey(S.String).pipe(S.withDecodingDefault(Effect.succeed("on")))
+      flag: S.optionalKey(S.String).pipe(
+        S.withDecodingDefault(Effect.succeed("on"))
+      )
     })
     expect(defaultsValueFromSchema(schema)).toEqual({ flag: "on" })
   })
@@ -168,12 +181,17 @@ describe("defaultsValueFromSchema", () => {
 
   it("preserves values passed via the record argument", () => {
     const schema = S.Struct({ x: S.String, y: S.String })
-    expect(defaultsValueFromSchema(schema, { x: "preset" })).toEqual({ x: "preset", y: "" })
+    expect(defaultsValueFromSchema(schema, { x: "preset" })).toEqual({
+      x: "preset",
+      y: ""
+    })
   })
 
   it("merges fields across union members, picking explicit defaults", () => {
     const schema = S.Union([
-      S.TaggedStruct("A", { v: S.String.pipe(S.withConstructorDefault(Effect.succeed("a-default"))) }),
+      S.TaggedStruct("A", {
+        v: S.String.pipe(S.withConstructorDefault(Effect.succeed("a-default")))
+      }),
       S.TaggedStruct("B", { v: S.String, extra: S.String })
     ])
     const out = defaultsValueFromSchema(schema)
@@ -200,7 +218,8 @@ git commit -m "test(omegaform): characterize defaultsValueFromSchema"
 ### Task 0.3: Redacted form-schema rewrite test
 
 **Files:**
-- Modify: `__tests__/OmegaForm/RedactedMeta.test.ts` *(append cases — read it first to see the existing structure, do not duplicate)*
+
+- Modify: `__tests__/OmegaForm/RedactedMeta.test.ts` _(append cases — read it first to see the existing structure, do not duplicate)_
 
 - [ ] **Step 1: Read existing file**
 
@@ -209,33 +228,33 @@ Run: `cat __tests__/OmegaForm/RedactedMeta.test.ts`
 - [ ] **Step 2: Append the following cases inside the existing `describe(...)` block**
 
 ```ts
-  it("toFormSchema rewrites NullOr(Redacted)", () => {
-    const schema = S.Struct({
-      secret: S.NullOr(S.Redacted(S.String))
-    })
-    const formSchema = toFormSchema(schema)
-    // formSchema must accept a plain string (encoded side) for the secret field
-    const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
-    expect(decoded.secret).toBeDefined()
+it("toFormSchema rewrites NullOr(Redacted)", () => {
+  const schema = S.Struct({
+    secret: S.NullOr(S.Redacted(S.String))
   })
+  const formSchema = toFormSchema(schema)
+  // formSchema must accept a plain string (encoded side) for the secret field
+  const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
+  expect(decoded.secret).toBeDefined()
+})
 
-  it("toFormSchema rewrites UndefinedOr(Redacted)", () => {
-    const schema = S.Struct({
-      secret: S.UndefinedOr(S.Redacted(S.String))
-    })
-    const formSchema = toFormSchema(schema)
-    const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
-    expect(decoded.secret).toBeDefined()
+it("toFormSchema rewrites UndefinedOr(Redacted)", () => {
+  const schema = S.Struct({
+    secret: S.UndefinedOr(S.Redacted(S.String))
   })
+  const formSchema = toFormSchema(schema)
+  const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
+  expect(decoded.secret).toBeDefined()
+})
 
-  it("toFormSchema rewrites NullishOr(Redacted)", () => {
-    const schema = S.Struct({
-      secret: S.NullishOr(S.Redacted(S.String))
-    })
-    const formSchema = toFormSchema(schema)
-    const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
-    expect(decoded.secret).toBeDefined()
+it("toFormSchema rewrites NullishOr(Redacted)", () => {
+  const schema = S.Struct({
+    secret: S.NullishOr(S.Redacted(S.String))
   })
+  const formSchema = toFormSchema(schema)
+  const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
+  expect(decoded.secret).toBeDefined()
+})
 ```
 
 Make sure the file imports `toFormSchema` from `../../src/components/OmegaForm/OmegaFormStuff` (add to existing imports if not already).
@@ -257,6 +276,7 @@ git commit -m "test(omegaform): characterize toFormSchema for nullable/undefined
 ### Task 0.4: Validation localization hooks test
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/ValidationLocalization.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -265,11 +285,7 @@ git commit -m "test(omegaform): characterize toFormSchema for nullable/undefined
 // __tests__/OmegaForm/ValidationLocalization.test.ts
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import {
-  generateMetaFromSchema,
-  makeStandardSchemaV1Hooks,
-  toLocalizedStandardSchemaV1
-} from "../../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "../../src/components/OmegaForm/OmegaFormStuff"
 
 const trans = (id: string, values?: Record<string, unknown>) => {
   if (!values || Object.keys(values).length === 0) return id
@@ -295,7 +311,10 @@ describe("makeStandardSchemaV1Hooks — leaf hook", () => {
         ast: S.Finite.ast,
         actual: { _tag: "Some", value: NaN }
       } as any)
-    ).toBe(`validation.number.expected|${JSON.stringify({ actualValue: "NaN" })}`)
+    )
+      .toBe(
+        `validation.number.expected|${JSON.stringify({ actualValue: "NaN" })}`
+      )
   })
 
   it("translates InvalidType for boolean", () => {
@@ -304,23 +323,31 @@ describe("makeStandardSchemaV1Hooks — leaf hook", () => {
   })
 
   it("falls back for InvalidValue / Forbidden / OneOf", () => {
-    expect(leafHook({ _tag: "InvalidValue" } as any)).toBe("validation.not_a_valid")
-    expect(leafHook({ _tag: "Forbidden" } as any)).toBe("validation.not_a_valid")
+    expect(leafHook({ _tag: "InvalidValue" } as any)).toBe(
+      "validation.not_a_valid"
+    )
+    expect(leafHook({ _tag: "Forbidden" } as any)).toBe(
+      "validation.not_a_valid"
+    )
     expect(leafHook({ _tag: "OneOf" } as any)).toBe("validation.not_a_valid")
   })
 
   it("honors annotation override messages", () => {
     expect(
-      leafHook({ _tag: "InvalidValue", annotations: { message: "custom" } } as any)
-    ).toBe("custom")
+      leafHook(
+        { _tag: "InvalidValue", annotations: { message: "custom" } } as any
+      )
+    )
+      .toBe("custom")
   })
 })
 
 describe("makeStandardSchemaV1Hooks — check hook", () => {
   const { checkHook } = makeStandardSchemaV1Hooks(trans)
 
-  const filterIssue = (meta: Record<string, unknown>) =>
-    ({ _tag: "Filter", filter: { annotations: { meta } } } as any)
+  const filterIssue = (
+    meta: Record<string, unknown>
+  ) => ({ _tag: "Filter", filter: { annotations: { meta } } } as any)
 
   it("isMinLength === 1 → validation.empty", () => {
     expect(checkHook(filterIssue({ _tag: "isMinLength", minLength: 1 })))
@@ -339,32 +366,60 @@ describe("makeStandardSchemaV1Hooks — check hook", () => {
 
   it("isInt → validation.integer.expected", () => {
     expect(checkHook(filterIssue({ _tag: "isInt" })))
-      .toBe(`validation.integer.expected|${JSON.stringify({ actualValue: "NaN" })}`)
+      .toBe(
+        `validation.integer.expected|${JSON.stringify({ actualValue: "NaN" })}`
+      )
   })
 
   it("isGreaterThanOrEqualTo 0 → positive (inclusive)", () => {
-    expect(checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 0 })))
-      .toBe(`validation.number.positive|${JSON.stringify({ minimum: 0, isExclusive: true })}`)
+    expect(
+      checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 0 }))
+    )
+      .toBe(
+        `validation.number.positive|${
+          JSON.stringify({ minimum: 0, isExclusive: true })
+        }`
+      )
   })
 
   it("isGreaterThanOrEqualTo N → min (inclusive)", () => {
-    expect(checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 3 })))
-      .toBe(`validation.number.min|${JSON.stringify({ minimum: 3, isExclusive: true })}`)
+    expect(
+      checkHook(filterIssue({ _tag: "isGreaterThanOrEqualTo", minimum: 3 }))
+    )
+      .toBe(
+        `validation.number.min|${
+          JSON.stringify({ minimum: 3, isExclusive: true })
+        }`
+      )
   })
 
   it("isGreaterThan 0 → positive (exclusive)", () => {
-    expect(checkHook(filterIssue({ _tag: "isGreaterThan", exclusiveMinimum: 0 })))
-      .toBe(`validation.number.positive|${JSON.stringify({ minimum: 0, isExclusive: false })}`)
+    expect(
+      checkHook(filterIssue({ _tag: "isGreaterThan", exclusiveMinimum: 0 }))
+    )
+      .toBe(
+        `validation.number.positive|${
+          JSON.stringify({ minimum: 0, isExclusive: false })
+        }`
+      )
   })
 
   it("isLessThanOrEqualTo → max (inclusive)", () => {
     expect(checkHook(filterIssue({ _tag: "isLessThanOrEqualTo", maximum: 10 })))
-      .toBe(`validation.number.max|${JSON.stringify({ maximum: 10, isExclusive: true })}`)
+      .toBe(
+        `validation.number.max|${
+          JSON.stringify({ maximum: 10, isExclusive: true })
+        }`
+      )
   })
 
   it("isLessThan → max (exclusive)", () => {
     expect(checkHook(filterIssue({ _tag: "isLessThan", exclusiveMaximum: 10 })))
-      .toBe(`validation.number.max|${JSON.stringify({ maximum: 10, isExclusive: false })}`)
+      .toBe(
+        `validation.number.max|${
+          JSON.stringify({ maximum: 10, isExclusive: false })
+        }`
+      )
   })
 })
 
@@ -407,6 +462,7 @@ git commit -m "test(omegaform): characterize validation localization hooks"
 ### Task 0.5: Submit + Effect pipeline test
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/SubmitEffect.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -415,8 +471,8 @@ git commit -m "test(omegaform): characterize validation localization hooks"
 // __tests__/OmegaForm/SubmitEffect.test.ts
 import { mount } from "@vue/test-utils"
 import { Effect, Exit, S } from "effect-app"
-import { defineComponent } from "vue"
 import { describe, expect, it } from "vitest"
+import { defineComponent } from "vue"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 // FormErrors is currently exported from useOmegaForm.ts but not re-exported
 // via index.ts. Import directly. After Phase 1 Task 1.12 it will become a
@@ -574,6 +630,7 @@ git commit -m "test(omegaform): characterize handleSubmitEffect + Promise/Effect
 ### Task 0.6: Submit error redistribution / clear test
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/SubmitErrorClear.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -582,10 +639,10 @@ git commit -m "test(omegaform): characterize handleSubmitEffect + Promise/Effect
 // __tests__/OmegaForm/SubmitErrorClear.test.ts
 import { mount } from "@vue/test-utils"
 import { S } from "effect-app"
-import { defineComponent, nextTick } from "vue"
 import { describe, expect, it } from "vitest"
-import OmegaIntlProvider from "../OmegaIntlProvider.vue"
+import { defineComponent, nextTick } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
+import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 const mountForm = <T>(setupForm: () => T): T => {
   let captured: T | undefined
@@ -643,7 +700,7 @@ describe("submit error redistribution (current behavior)", () => {
 - [ ] **Step 2: Run and verify**
 
 Run: `pnpm test:run __tests__/OmegaForm/SubmitErrorClear.test.ts`
-Expected: passes against current code. If the assertion shape doesn't match TanStack's actual surface, simplify to "after value change, isFieldsValid is true" or similar — the goal is to capture *some* observable consequence of the workaround so Phase 3 can flip it deliberately.
+Expected: passes against current code. If the assertion shape doesn't match TanStack's actual surface, simplify to "after value change, isFieldsValid is true" or similar — the goal is to capture _some_ observable consequence of the workaround so Phase 3 can flip it deliberately.
 
 - [ ] **Step 3: Commit**
 
@@ -654,9 +711,10 @@ git commit -m "test(omegaform): characterize submit error clearing watcher"
 
 ---
 
-### Task 0.7: Default values priority test *(optional, recommended)*
+### Task 0.7: Default values priority test _(optional, recommended)_
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/DefaultValuesPriority.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -706,6 +764,7 @@ git commit -m "test(omegaform): characterize deepMerge behavior"
 ### Task 0.8: Nested tagged union characterization (FormTaggedUnion)
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/TaggedUnionNested.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -720,8 +779,14 @@ const schema = S.Struct({
   aString: S.NonEmptyString255,
   union: S.NullOr(
     S.Union([
-      S.TaggedStruct("A", { a: S.NonEmptyString255, common: S.NonEmptyString255 }),
-      S.TaggedStruct("B", { b: S.NonEmptyString255, common: S.NonEmptyString255 })
+      S.TaggedStruct("A", {
+        a: S.NonEmptyString255,
+        common: S.NonEmptyString255
+      }),
+      S.TaggedStruct("B", {
+        b: S.NonEmptyString255,
+        common: S.NonEmptyString255
+      })
     ])
   )
 })
@@ -785,6 +850,7 @@ git commit -m "test(omegaform): characterize FormTaggedUnion nested meta"
 ### Task 0.9: Root tagged union with divergent shared field (RootLevelTaggedUnion)
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/TaggedUnionRoot.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -793,10 +859,7 @@ git commit -m "test(omegaform): characterize FormTaggedUnion nested meta"
 // __tests__/OmegaForm/TaggedUnionRoot.test.ts
 import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import {
-  defaultsValueFromSchema,
-  generateMetaFromSchema
-} from "../../src/components/OmegaForm/OmegaFormStuff"
+import { defaultsValueFromSchema, generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
 
 const schema = S.Union([
   S.TaggedStruct("A", {
@@ -885,9 +948,10 @@ git commit -m "test(omegaform): characterize RootLevelTaggedUnion + divergent sh
 
 ---
 
-### Task 0.10: Legacy `_tag` deprecation warning *(optional)*
+### Task 0.10: Legacy `_tag` deprecation warning _(optional)_
 
 **Files:**
+
 - Create: `__tests__/OmegaForm/TaggedUnionLegacyWarning.test.ts`
 
 - [ ] **Step 1: Write the test**
@@ -975,6 +1039,7 @@ Always extract by **moving** code (the new file owns the canonical version) and 
 ### Task 1.1: Create `meta/types.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/meta/types.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 
@@ -995,6 +1060,7 @@ Move these exported type definitions from `OmegaFormStuff.ts` into `src/componen
 - `NestedKeyOf` and the `StripRedacted` helper it uses
 
 Imports needed:
+
 ```ts
 import type { DeepKeys, StandardSchemaV1 } from "@tanstack/vue-form"
 import type { S } from "effect-app"
@@ -1005,19 +1071,7 @@ import type { Redacted } from "effect/Redacted"
 
 ```ts
 // near the top of OmegaFormStuff.ts, replace the original definitions
-export {
-  type BaseFieldMeta,
-  type BooleanFieldMeta,
-  type DateFieldMeta,
-  type FieldMeta,
-  type MetaRecord,
-  type MultipleFieldMeta,
-  type NestedKeyOf,
-  type NumberFieldMeta,
-  type SelectFieldMeta,
-  type StringFieldMeta,
-  type UnknownFieldMeta
-} from "./meta/types"
+export { type BaseFieldMeta, type BooleanFieldMeta, type DateFieldMeta, type FieldMeta, type MetaRecord, type MultipleFieldMeta, type NestedKeyOf, type NumberFieldMeta, type SelectFieldMeta, type StringFieldMeta, type UnknownFieldMeta } from "./meta/types"
 ```
 
 - [ ] **Step 3: Run the test suite**
@@ -1037,6 +1091,7 @@ git commit -m "refactor(omegaform): extract field meta types into meta/types"
 ### Task 1.2: Create `meta/legacyWarning.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/meta/legacyWarning.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 
@@ -1071,6 +1126,7 @@ export const warnLegacyTag = (tagValue: string) => {
 Find the block in `metadataFromAst` that emits the warning and replace it with `warnLegacyTag(tagValue)`. Delete the now-unused `legacyTagWarningEmittedFor` set and `isDevelopmentEnvironment` from `OmegaFormStuff.ts`.
 
 Add to imports:
+
 ```ts
 import { warnLegacyTag } from "./meta/legacyWarning"
 ```
@@ -1092,6 +1148,7 @@ git commit -m "refactor(omegaform): extract legacy _tag warning"
 ### Task 1.3: Create `meta/redacted.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/meta/redacted.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 
@@ -1102,6 +1159,7 @@ Move the `isRedactedWithoutEncoding` helper and the `toFormSchema` function (cur
 - [ ] **Step 2: Replace with re-export**
 
 In `OmegaFormStuff.ts`, replace the moved code with:
+
 ```ts
 export { toFormSchema } from "./meta/redacted"
 ```
@@ -1123,6 +1181,7 @@ git commit -m "refactor(omegaform): extract toFormSchema into meta/redacted"
 ### Task 1.4: Create `meta/defaults.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/meta/defaults.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 
@@ -1153,6 +1212,7 @@ git commit -m "refactor(omegaform): extract defaultsValueFromSchema"
 ### Task 1.5: Create `meta/createMeta.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/meta/createMeta.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 - Modify: `src/components/OmegaForm/meta/defaults.ts` (point inter-module imports here once moved)
@@ -1165,14 +1225,14 @@ Move all of these into `meta/createMeta.ts`:
 - `getNullableOrUndefined`
 - `isNullableOrUndefined`
 - `getNonNullTypes`
-- `getJsonSchemaAnnotation` *(will be deleted in Phase 2 — leave it for now)*
+- `getJsonSchemaAnnotation` _(will be deleted in Phase 2 — leave it for now)_
 - `getCheckMetas`
 - `getFieldMetadataFromAst`
 - `createMeta`
 - `metadataFromAst`
 - `flattenMeta`
 - `generateMetaFromSchema`
-- `attachOriginalSchemas` and `toFieldStandardSchema` *(get deleted in Phase 3, but live in createMeta.ts now to keep the dependency graph clean)*
+- `attachOriginalSchemas` and `toFieldStandardSchema` _(get deleted in Phase 3, but live in createMeta.ts now to keep the dependency graph clean)_
 - `CreateMeta` type and `FilterItems` type if still co-located here
 
 Note: `extractDefaultFromLink` already moved with `defaultsValueFromSchema` in Task 1.4. Leave it in `meta/defaults.ts`. If `createMeta` needs default extraction, import from `meta/defaults.ts`.
@@ -1180,20 +1240,16 @@ Note: `extractDefaultFromLink` already moved with `defaultsValueFromSchema` in T
 - [ ] **Step 2: Replace with re-export in `OmegaFormStuff.ts`**
 
 ```ts
-export {
-  createMeta,
-  generateMetaFromSchema,
-  isNullableOrUndefined,
-  metadataFromAst
-} from "./meta/createMeta"
+export { createMeta, generateMetaFromSchema, isNullableOrUndefined, metadataFromAst } from "./meta/createMeta"
 export type { CreateMeta, FilterItems } from "./meta/createMeta"
 ```
 
 - [ ] **Step 3: Update `meta/defaults.ts` imports**
 
 Change any `import { unwrapDeclaration, isNullableOrUndefined } from "../OmegaFormStuff"` to:
+
 ```ts
-import { unwrapDeclaration, isNullableOrUndefined } from "./createMeta"
+import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"
 ```
 
 (Or, if the helpers are needed by both, hoist them into a `meta/ast.ts` mini-module. Use judgment: if `unwrapDeclaration` is only used in `createMeta` and `defaults`, a sibling import is fine.)
@@ -1215,10 +1271,11 @@ git commit -m "refactor(omegaform): extract createMeta + AST helpers into meta/c
 ### Task 1.6: Create `validation/localized.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/validation/localized.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 
-**Note (Phase 0 discovery):** the plan originally listed `makeStandardSchemaV1Hooks` and `toLocalizedStandardSchemaV1` among the moves. These functions **don't exist** in the current source — only `generateInputStandardSchemaFromFieldMeta` does. This task therefore both (a) **creates** the new hook functions and (b) **moves** the existing per-field generator. The new hooks are first *used* in Phase 3 Task 3.1, but they're built here so Phase 1 ends with a clean validation module ready to consume.
+**Note (Phase 0 discovery):** the plan originally listed `makeStandardSchemaV1Hooks` and `toLocalizedStandardSchemaV1` among the moves. These functions **don't exist** in the current source — only `generateInputStandardSchemaFromFieldMeta` does. This task therefore both (a) **creates** the new hook functions and (b) **moves** the existing per-field generator. The new hooks are first _used_ in Phase 3 Task 3.1, but they're built here so Phase 1 ends with a clean validation module ready to consume.
 
 - [ ] **Step 1: Create the new module**
 
@@ -1226,8 +1283,8 @@ Create `validation/localized.ts` with the following content. The hook implementa
 
 ```ts
 // src/components/OmegaForm/validation/localized.ts
-import { Effect, Option, S } from "effect-app"
 import type { StandardSchemaV1 } from "@tanstack/vue-form"
+import { Effect, Option, S } from "effect-app"
 import type { useIntl } from "../../../utils"
 import type { FieldMeta } from "../meta/types"
 
@@ -1238,7 +1295,9 @@ interface SchemaIssue {
   readonly ast?: S.AST.AST
   readonly actual?: Option.Option<unknown>
   readonly annotations?: { readonly message?: string }
-  readonly filter?: { readonly annotations?: { readonly meta?: Record<string, unknown> } }
+  readonly filter?: {
+    readonly annotations?: { readonly meta?: Record<string, unknown> }
+  }
 }
 
 export const makeStandardSchemaV1Hooks = (
@@ -1256,8 +1315,12 @@ export const makeStandardSchemaV1Hooks = (
       case "InvalidType": {
         const ast = issue.ast
         if (ast && S.AST.isStringKeyword(ast)) return trans("validation.empty")
-        if (ast && S.AST.isBooleanKeyword(ast)) return trans("validation.not_a_valid", { type: "boolean" })
-        if (ast && S.AST.isNumberKeyword(ast)) return trans("validation.number.expected", { actualValue: "NaN" })
+        if (ast && S.AST.isBooleanKeyword(ast)) {
+          return trans("validation.not_a_valid", { type: "boolean" })
+        }
+        if (ast && S.AST.isNumberKeyword(ast)) {
+          return trans("validation.number.expected", { actualValue: "NaN" })
+        }
         return trans("validation.not_a_valid")
       }
       default:
@@ -1267,30 +1330,45 @@ export const makeStandardSchemaV1Hooks = (
 
   const checkHook = (issue: SchemaIssue): string | undefined => {
     if (issue._tag !== "Filter") return undefined
-    const meta = (issue.filter?.annotations?.meta ?? {}) as Record<string, unknown>
+    const meta = (issue.filter?.annotations?.meta ?? {}) as Record<
+      string,
+      unknown
+    >
     switch (meta._tag) {
       case "isMinLength":
         return meta.minLength === 1
           ? trans("validation.empty")
           : trans("validation.string.minLength", { minLength: meta.minLength })
       case "isMaxLength":
-        return trans("validation.string.maxLength", { maxLength: meta.maxLength })
+        return trans("validation.string.maxLength", {
+          maxLength: meta.maxLength
+        })
       case "isInt":
         return trans("validation.integer.expected", { actualValue: "NaN" })
       case "isGreaterThanOrEqualTo":
         return trans(
-          meta.minimum === 0 ? "validation.number.positive" : "validation.number.min",
+          meta.minimum === 0
+            ? "validation.number.positive"
+            : "validation.number.min",
           { minimum: meta.minimum, isExclusive: true }
         )
       case "isGreaterThan":
         return trans(
-          meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min",
+          meta.exclusiveMinimum === 0
+            ? "validation.number.positive"
+            : "validation.number.min",
           { minimum: meta.exclusiveMinimum, isExclusive: false }
         )
       case "isLessThanOrEqualTo":
-        return trans("validation.number.max", { maximum: meta.maximum, isExclusive: true })
+        return trans("validation.number.max", {
+          maximum: meta.maximum,
+          isExclusive: true
+        })
       case "isLessThan":
-        return trans("validation.number.max", { maximum: meta.exclusiveMaximum, isExclusive: false })
+        return trans("validation.number.max", {
+          maximum: meta.exclusiveMaximum,
+          isExclusive: false
+        })
       default:
         return undefined
     }
@@ -1321,11 +1399,7 @@ Move the entire `generateInputStandardSchemaFromFieldMeta` function (currently i
 - [ ] **Step 3: Re-export from `OmegaFormStuff.ts`**
 
 ```ts
-export {
-  generateInputStandardSchemaFromFieldMeta,
-  makeStandardSchemaV1Hooks,
-  toLocalizedStandardSchemaV1
-} from "./validation/localized"
+export { generateInputStandardSchemaFromFieldMeta, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
 ```
 
 - [ ] **Step 4: Run tests**
@@ -1345,12 +1419,14 @@ git commit -m "refactor(omegaform): create localized validation hooks + extract 
 ### Task 1.7: Create `types.ts` (public type definitions)
 
 **Files:**
+
 - Create: `src/components/OmegaForm/types.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 
 - [ ] **Step 1: Move into the new file**
 
 Move these public type definitions from `OmegaFormStuff.ts` into `types.ts`:
+
 - `FieldPath`, `FieldPath_`
 - `BaseProps`
 - `TypesWithOptions`, `DefaultTypeProps`
@@ -1367,30 +1443,21 @@ Move these public type definitions from `OmegaFormStuff.ts` into `types.ts`:
 (`OmegaConfig` and `OmegaFormReturn` stay in `useOmegaForm.ts` since they reference its return shape.)
 
 Imports for the new file:
+
 ```ts
-import type {
-  DeepKeys, DeepValue, FieldAsyncValidateOrFn, FieldValidateOrFn,
-  FormApi, FormAsyncValidateOrFn, FormOptions, FormState,
-  FormValidateOrFn, StandardSchemaV1, VueFormApi
-} from "@tanstack/vue-form"
+import type { DeepKeys, DeepValue, FieldAsyncValidateOrFn, FieldValidateOrFn, FormApi, FormAsyncValidateOrFn, FormOptions, FormState, FormValidateOrFn, StandardSchemaV1, VueFormApi } from "@tanstack/vue-form"
 import type { Effect } from "effect-app"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type { Redacted } from "effect/Redacted"
-import type { OF } from "./useOmegaForm"
 import type { OmegaFieldInternalApi } from "./InputProps"
 import type { FieldMeta, MetaRecord } from "./meta/types"
+import type { OF } from "./useOmegaForm"
 ```
 
 - [ ] **Step 2: Re-export from `OmegaFormStuff.ts`**
 
 ```ts
-export type {
-  BaseProps, DefaultTypeProps, FieldPath, FieldPath_, FieldValidators,
-  FormComponent, FormProps, FormType, OmegaArrayProps, OmegaAutoGenMeta,
-  OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState,
-  OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, TypeOverride,
-  TypesWithOptions
-} from "./types"
+export type { BaseProps, DefaultTypeProps, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps, FormType, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, TypeOverride, TypesWithOptions } from "./types"
 ```
 
 - [ ] **Step 3: Run tests**
@@ -1410,6 +1477,7 @@ git commit -m "refactor(omegaform): extract public type definitions"
 ### Task 1.8: Create `persistency.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/persistency.ts`
 - Modify: `src/components/OmegaForm/useOmegaForm.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
@@ -1417,6 +1485,7 @@ git commit -m "refactor(omegaform): extract public type definitions"
 - [ ] **Step 1: Write the new module**
 
 Create `persistency.ts` with the following exports:
+
 - `Policies` type (`"local" | "session" | "querystring"`)
 - `defaultValuesPriorityUnion` type
 - `OmegaConfig`-shaped fragment for `persistency` (or just keep `OmegaConfig` in `useOmegaForm.ts` for now and import the helpers there)
@@ -1424,6 +1493,7 @@ Create `persistency.ts` with the following exports:
 - A `usePersistency(form, omegaConfig, persistencyKey)` composable that wraps the `defaultValues` computed, `persistData`, `saveDataInUrl`, `clearUrlParams`, `persistFilter`, `createNestedObjectFromPaths`, and the `onMounted` / `onBeforeUnmount` event listener wiring currently in `useOmegaForm.ts` (around lines 692–767, 819–884, 891–906).
 
 Suggested signature:
+
 ```ts
 import { computed, onBeforeUnmount, onMounted, onUnmounted, type Ref } from "vue"
 import { type MetaRecord } from "./meta/types"
@@ -1484,12 +1554,14 @@ git commit -m "refactor(omegaform): extract persistency composable"
 ### Task 1.9: Create `submit.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/submit.ts`
 - Modify: `src/components/OmegaForm/useOmegaForm.ts`
 
 - [ ] **Step 1: Write the new module**
 
 Move into `submit.ts`:
+
 - `FormErrors` (the `Data.TaggedError`)
 - The `wrapWithSpan` helper
 - A `makeSubmit(form, decode, runPromise)` factory that returns:
@@ -1498,6 +1570,7 @@ Move into `submit.ts`:
   - The transformation wrapper for `tanstackFormOptions.onSubmit` (the bit that detects Promise / Effect / Fiber and decodes the value first)
 
 Imports:
+
 ```ts
 import * as api from "@opentelemetry/api"
 import type { StandardSchemaV1Issue, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
@@ -1527,6 +1600,7 @@ git commit -m "refactor(omegaform): extract submit + handleSubmitEffect"
 ### Task 1.10: Create `errors.ts` and `hocs.ts`
 
 **Files:**
+
 - Create: `src/components/OmegaForm/errors.ts`
 - Create: `src/components/OmegaForm/hocs.ts`
 - Modify: `src/components/OmegaForm/useOmegaForm.ts`
@@ -1541,7 +1615,9 @@ import { type Component, type ConcreteComponent, h } from "vue"
 import type { OF } from "./useOmegaForm"
 
 export const fHoc = (form: OF<any, any>) => {
-  return function FormHoc<P>(WrappedComponent: Component<P>): ConcreteComponent<P> {
+  return function FormHoc<P>(
+    WrappedComponent: Component<P>
+  ): ConcreteComponent<P> {
     return {
       render() {
         return h(WrappedComponent, { form, ...this.$attrs } as any, this.$slots)
@@ -1554,23 +1630,29 @@ export const fHoc = (form: OF<any, any>) => {
 - [ ] **Step 2: Write `errors.ts`**
 
 Move into `errors.ts`:
+
 - `useErrorLabel` (depends on `useIntl` — adjust relative imports)
 - `eHoc` (the error HOC that wraps `OmegaErrorsInternal`)
 - The `fieldMap` registration glue (the `registerField` body and the `Map<string, {label, id}>` setup)
 
 Suggested signature for the registration helper:
+
 ```ts
-import { onUnmounted, ref, watch, type ComputedRef, type Ref } from "vue"
+import { type ComputedRef, onUnmounted, type Ref, ref, watch } from "vue"
 
 export const makeFieldMap = () => {
   const fieldMap = ref(new Map<string, { label: string; id: string }>())
-  const registerField = (field: ComputedRef<{ name: string; label: string; id: string }>) => {
+  const registerField = (
+    field: ComputedRef<{ name: string; label: string; id: string }>
+  ) => {
     watch(field, (f) => {
       fieldMap.value.set(f.name, { label: f.label, id: f.id })
     }, { immediate: true })
     onUnmounted(() => {
       const current = fieldMap.value.get(field.value.name)
-      if (current?.id === field.value.id) fieldMap.value.delete(field.value.name)
+      if (current?.id === field.value.id) {
+        fieldMap.value.delete(field.value.name)
+      }
     })
   }
   return { fieldMap, registerField }
@@ -1598,6 +1680,7 @@ git commit -m "refactor(omegaform): extract errors + HOC helpers"
 ### Task 1.11: Slim `useOmegaForm.ts`
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/useOmegaForm.ts`
 
 - [ ] **Step 1: Audit what's left**
@@ -1605,6 +1688,7 @@ git commit -m "refactor(omegaform): extract errors + HOC helpers"
 Run: `wc -l src/components/OmegaForm/useOmegaForm.ts`
 
 Target: < 300 lines. The composable should now contain only:
+
 - `OmegaConfig`, `OmegaFormReturn`, `OF` type definitions
 - `OmegaFormKey` symbol
 - The `useOmegaForm` function: orchestration only
@@ -1637,6 +1721,7 @@ git commit -m "refactor(omegaform): slim useOmegaForm to orchestration"
 ### Task 1.12: Delete `OmegaFormStuff.ts`
 
 **Files:**
+
 - Delete: `src/components/OmegaForm/OmegaFormStuff.ts`
 - Modify: `src/components/OmegaForm/index.ts`
 - Modify: every test file currently importing from `OmegaFormStuff` directly
@@ -1652,41 +1737,23 @@ Expected: a list of imports. They must all be updated.
 
 ```ts
 // src/components/OmegaForm/index.ts
-export type {
-  BaseProps, BaseFieldMeta, BooleanFieldMeta, DateFieldMeta, DefaultTypeProps,
-  FieldMeta, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps,
-  FormType, MetaRecord, MultipleFieldMeta, NestedKeyOf, NumberFieldMeta,
-  OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams,
-  OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth,
-  SelectFieldMeta, StringFieldMeta, TypeOverride, TypesWithOptions,
-  UnknownFieldMeta
-} from "./types"
-export {
-  createMeta, generateMetaFromSchema, isNullableOrUndefined, metadataFromAst
-} from "./meta/createMeta"
+export { useOnClose, usePreventClose } from "./blockDialog"
+export { createUseFormWithCustomInput } from "./createUseFormWithCustomInput"
+export { useErrorLabel } from "./errors"
+export { type ExtractTagValue, type ExtractUnionBranch, type InputProps, type MergedInputProps, type TaggedUnionOption, type TaggedUnionOptionsArray, type TaggedUnionProps } from "./InputProps"
+export { createMeta, generateMetaFromSchema, isNullableOrUndefined, metadataFromAst } from "./meta/createMeta"
+export { getInputType } from "./meta/createMeta" // or wherever it lands
 export { defaultsValueFromSchema } from "./meta/defaults"
 export { toFormSchema } from "./meta/redacted"
-export {
-  generateInputStandardSchemaFromFieldMeta,
-  makeStandardSchemaV1Hooks,
-  toLocalizedStandardSchemaV1
-} from "./validation/localized"
-export { deepMerge } from "./persistency"
-export { FormErrors } from "./submit"
-export { useErrorLabel } from "./errors"
-export { type OmegaConfig, type OmegaFormReturn, useOmegaForm, OmegaFormKey } from "./useOmegaForm"
-export {
-  type ExtractTagValue, type ExtractUnionBranch, type InputProps,
-  type MergedInputProps, type TaggedUnionOption, type TaggedUnionOptionsArray,
-  type TaggedUnionProps
-} from "./InputProps"
 export { default as OmegaInput } from "./OmegaInput.vue"
 export { default as OmegaVuetifyInput } from "./OmegaInternalInput.vue"
 export { default as OmegaTaggedUnion } from "./OmegaTaggedUnion.vue"
 export { default as OmegaTaggedUnionInternal } from "./OmegaTaggedUnionInternal.vue"
-export { useOnClose, usePreventClose } from "./blockDialog"
-export { getInputType } from "./meta/createMeta"  // or wherever it lands
-export { createUseFormWithCustomInput } from "./createUseFormWithCustomInput"
+export { deepMerge } from "./persistency"
+export { FormErrors } from "./submit"
+export type { BaseFieldMeta, BaseProps, BooleanFieldMeta, DateFieldMeta, DefaultTypeProps, FieldMeta, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps, FormType, MetaRecord, MultipleFieldMeta, NestedKeyOf, NumberFieldMeta, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, SelectFieldMeta, StringFieldMeta, TypeOverride, TypesWithOptions, UnknownFieldMeta } from "./types"
+export { type OmegaConfig, OmegaFormKey, type OmegaFormReturn, useOmegaForm } from "./useOmegaForm"
+export { generateInputStandardSchemaFromFieldMeta, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
 ```
 
 (Verify `getInputType` and `SupportedInputs` location — they're currently leaf utilities in `OmegaFormStuff.ts`. Decide between `meta/types.ts`, `validation/localized.ts`, or a new `inputs.ts`. Pick whatever yields the smallest diff.)
@@ -1694,11 +1761,13 @@ export { createUseFormWithCustomInput } from "./createUseFormWithCustomInput"
 - [ ] **Step 3: Update direct importers**
 
 For each file from Step 1's grep output, change:
+
 ```ts
 import { foo } from "./OmegaFormStuff"
 // or
 import { foo } from "../../src/components/OmegaForm/OmegaFormStuff"
 ```
+
 to import from the new specific module (e.g. `./meta/createMeta`, `./meta/defaults`, etc.). For test files, target the public package entry (`../../src/components/OmegaForm`) where possible.
 
 - [ ] **Step 4: Delete `OmegaFormStuff.ts`**
@@ -1735,6 +1804,7 @@ git tag omegaform-refactor-phase1-green
 ### Task 2.1: Switch email detection to `S.AST.resolveAt("format")`
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/meta/createMeta.ts`
 
 - [ ] **Step 1: Locate the current detection**
@@ -1778,6 +1848,7 @@ git commit -m "refactor(omegaform): use v4 format annotation for email detection
 ### Task 2.2: Drop `getJsonSchemaAnnotation`
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/meta/createMeta.ts`
 
 - [ ] **Step 1: Find and remove**
@@ -1785,10 +1856,15 @@ git commit -m "refactor(omegaform): use v4 format annotation for email detection
 Locate `getJsonSchemaAnnotation` (a small helper that reads `S.AST.resolve(property)?.jsonSchema`) and the line where it's spread into `meta`:
 
 ```ts
-meta = { ...getJsonSchemaAnnotation(property), ...getFieldMetadataFromAst(property), ...meta }
+meta = {
+  ...getJsonSchemaAnnotation(property),
+  ...getFieldMetadataFromAst(property),
+  ...meta
+}
 ```
 
 Change to:
+
 ```ts
 meta = { ...getFieldMetadataFromAst(property), ...meta }
 ```
@@ -1812,6 +1888,7 @@ git commit -m "refactor(omegaform): drop getJsonSchemaAnnotation"
 ### Task 2.3: Inline `unwrapNestedUnions` and consolidate union classification
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/meta/createMeta.ts`
 
 - [ ] **Step 1: Identify call sites**
@@ -1837,6 +1914,7 @@ git commit -m "refactor(omegaform): inline unwrapNestedUnions"
 ### Task 2.4: Unify root-level and nested union handling
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/meta/createMeta.ts`
 
 - [ ] **Step 1: Read the current shape**
@@ -1848,7 +1926,16 @@ git commit -m "refactor(omegaform): inline unwrapNestedUnions"
 Goal: one recursive entry that dispatches on AST kind. Implementation outline:
 
 ```ts
-const walk = (ast: S.AST.AST, parent: string, parentMeta: { required: boolean; nullableOrUndefined: false | "null" | "undefined" }, acc: MetaRecord, unionMeta: Record<string, MetaRecord>) => {
+const walk = (
+  ast: S.AST.AST,
+  parent: string,
+  parentMeta: {
+    required: boolean
+    nullableOrUndefined: false | "null" | "undefined"
+  },
+  acc: MetaRecord,
+  unionMeta: Record<string, MetaRecord>
+) => {
   ast = unwrapDeclaration(ast)
   if (S.AST.isObjects(ast)) {
     walkStruct(ast.propertySignatures, parent, parentMeta, acc, unionMeta)
@@ -1875,6 +1962,7 @@ Target: < 400 lines (down from ~600+ if you started here directly). Acceptable u
 
 Run: `pnpm test:run`
 Expected: green. **Two Phase 0 assertions are expected to flip here — these are deliberate outcomes of the unification, not regressions:**
+
 - `TaggedUnionNested.test.ts`: assertions 3 and 4 (`unionMeta["A"]` / `unionMeta["B"]` are `toBeUndefined()`) currently pin "nested unions don't populate unionMeta". After unification they become populated. Update these assertions to mirror `TaggedUnionRoot.test.ts`'s shape: `unionMeta["A"]?.a` defined, `?.b` undefined, etc.
 - `TaggedUnionRoot.test.ts`'s `flat meta.common reflects last-write-wins resolution` may resolve differently. If the new resolution is a deliberate improvement, update the test and add a code comment explaining the change. If it's an accident, fix the walker.
 
@@ -1894,6 +1982,7 @@ git commit -m "refactor(omegaform): unify root + nested union handling in create
 ### Task 2.5: Extract `meta/checks.ts` if `createMeta.ts` is still too large
 
 **Files:**
+
 - Create (conditional): `src/components/OmegaForm/meta/checks.ts`
 - Modify: `src/components/OmegaForm/meta/createMeta.ts`
 
@@ -1940,6 +2029,7 @@ git tag omegaform-refactor-phase2-green
 ### Task 3.1: Localize the form-level schema in `useOmegaForm`
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/useOmegaForm.ts`
 
 - [ ] **Step 1: Locate**
@@ -1953,16 +2043,22 @@ const standardSchema = S.toStandardSchemaV1(formCompatibleSchema)
 - [ ] **Step 2: Replace with localized version**
 
 Add (or move up if already in scope) `useIntl()`:
+
 ```ts
 const { trans } = useIntl()
 ```
 
 Replace the schema build:
+
 ```ts
-const standardSchema = toLocalizedStandardSchemaV1(formCompatibleSchema as any, trans)
+const standardSchema = toLocalizedStandardSchemaV1(
+  formCompatibleSchema as any,
+  trans
+)
 ```
 
 Add the import at the top:
+
 ```ts
 import { toLocalizedStandardSchemaV1 } from "./validation/localized"
 ```
@@ -1970,7 +2066,7 @@ import { toLocalizedStandardSchemaV1 } from "./validation/localized"
 - [ ] **Step 3: Run tests**
 
 Run: `pnpm test:run`
-Expected: green. Form-level validation now produces localized messages — verify by checking that the `IntegerValidationGerman` story still localizes correctly *after* later tasks (it currently localizes via the per-field schema, which is being deleted in Task 3.4).
+Expected: green. Form-level validation now produces localized messages — verify by checking that the `IntegerValidationGerman` story still localizes correctly _after_ later tasks (it currently localizes via the per-field schema, which is being deleted in Task 3.4).
 
 - [ ] **Step 4: Commit**
 
@@ -1984,6 +2080,7 @@ git commit -m "refactor(omegaform): localize form-level schema with useIntl tran
 ### Task 3.2: Delete the errorMap-clearing watcher
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/useOmegaForm.ts`
 
 - [ ] **Step 1: Find the watcher**
@@ -1999,7 +2096,10 @@ watch(formValues, () => {
   lastSubmitAttempts.value = submissionAttempts.value
   for (const info of Object.values(form.fieldInfo) as any[]) {
     if (info?.instance?.state.meta.errorMap?.onSubmit) {
-      info.instance.setMeta((prev: any) => ({ ...prev, errorMap: { ...prev.errorMap, onSubmit: undefined } }))
+      info.instance.setMeta((prev: any) => ({
+        ...prev,
+        errorMap: { ...prev.errorMap, onSubmit: undefined }
+      }))
     }
   }
 }, { deep: true })
@@ -2027,10 +2127,10 @@ Update the test to characterize the new behavior — TanStack revalidates the fo
 // __tests__/OmegaForm/SubmitErrorClear.test.ts
 import { mount } from "@vue/test-utils"
 import { S } from "effect-app"
-import { defineComponent, nextTick } from "vue"
 import { describe, expect, it } from "vitest"
-import OmegaIntlProvider from "../OmegaIntlProvider.vue"
+import { defineComponent, nextTick } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
+import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 const mountForm = <T>(setupForm: () => T): T => {
   let captured: T | undefined
@@ -2098,6 +2198,7 @@ git commit -m "refactor(omegaform): delete errorMap-clearing watcher; rely on Ta
 ### Task 3.3: Delete `errorMap.onSubmit` reset in `OmegaInternalInput.handleChange`
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/OmegaInternalInput.vue`
 
 - [ ] **Step 1: Locate**
@@ -2109,7 +2210,10 @@ Find this block in `handleChange` (currently around line 148–154):
 // not sure why this is not the case in tanstack form.
 // Skip when the field was deleted — its meta no longer exists in the form store.
 if (!fieldDeleted) {
-  props.field.setMeta((m) => ({ ...m, errorMap: { ...m.errorMap, onSubmit: undefined } }))
+  props.field.setMeta((m) => ({
+    ...m,
+    errorMap: { ...m.errorMap, onSubmit: undefined }
+  }))
 }
 ```
 
@@ -2134,6 +2238,7 @@ git commit -m "refactor(omegaform): drop per-change errorMap onSubmit reset"
 ### Task 3.4: Delete per-field schema in `OmegaInput.vue`
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/OmegaInput.vue`
 
 - [ ] **Step 1: Replace the file body**
@@ -2152,10 +2257,10 @@ Replace the script setup block in `OmegaInput.vue` with:
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, inject, type Ref, useAttrs } from "vue"
-import { type FieldMeta } from "./meta/types"
-import { type OmegaInputPropsBase } from "./types"
-import OmegaInternalInput from "./OmegaInternalInput.vue"
 import { useErrorLabel } from "./errors"
+import { type FieldMeta } from "./meta/types"
+import OmegaInternalInput from "./OmegaInternalInput.vue"
+import { type OmegaInputPropsBase } from "./types"
 
 const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 
@@ -2244,6 +2349,7 @@ git commit -m "refactor(omegaform): delete per-field schema and fieldKey re-moun
 ### Task 3.5: Delete `originalSchema` plumbing and `generateInputStandardSchemaFromFieldMeta`
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/meta/types.ts`
 - Modify: `src/components/OmegaForm/meta/createMeta.ts`
 - Modify: `src/components/OmegaForm/validation/localized.ts`
@@ -2257,6 +2363,7 @@ In `meta/types.ts`, remove the `originalSchema?: StandardSchemaV1<any, any>` fie
 - [ ] **Step 2: Delete the attachment plumbing**
 
 In `meta/createMeta.ts`, delete:
+
 - `attachOriginalSchemas`
 - `toFieldStandardSchema`
 - `fieldAstByPath` collection variable everywhere it's plumbed through `createMeta` / `walk`
@@ -2318,17 +2425,20 @@ These tasks can be done in any order or interleaved with bug-fix work; they don'
 ### Task 4.1: Translate the German confirm dialog
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/blockDialog.ts`
 - Modify: `stories/OmegaForm.stories.ts` (add the translation key to the German mock)
 
 - [ ] **Step 1: Modify `blockDialog.ts`**
 
 Find the line:
+
 ```ts
 if (!confirm("Es sind ungespeicherte Änderungen vorhanden. Wirklich schließen?")) {
 ```
 
 Replace with:
+
 ```ts
 const message = formatMessage({
   id: "form.unsaved_changes_confirm",
@@ -2338,6 +2448,7 @@ if (!confirm(message)) {
 ```
 
 You'll need to inject `useIntl` at the top of the function:
+
 ```ts
 import { useIntl } from "../../utils"
 ```
@@ -2347,6 +2458,7 @@ import { useIntl } from "../../utils"
 - [ ] **Step 2: Add the German translation in storybook decorator**
 
 In `stories/OmegaForm.stories.ts`, add to `germanTranslations`:
+
 ```ts
 "form.unsaved_changes_confirm": "Es sind ungespeicherte Änderungen vorhanden. Wirklich schließen?"
 ```
@@ -2364,15 +2476,17 @@ git commit -m "i18n(omegaform): translate unsaved changes confirm dialog"
 
 ---
 
-### Task 4.2: Drop deprecated string-typed fields *(conditional on consumer audit)*
+### Task 4.2: Drop deprecated string-typed fields _(conditional on consumer audit)_
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/types.ts` (formerly `OmegaFormStuff.ts`)
 - Modify: `src/components/OmegaForm/useOmegaForm.ts`
 
 - [ ] **Step 1: Audit consumer apps**
 
 Run from the repo root:
+
 ```bash
 grep -rn 'overrideDefaultValues\|"deprecated:' apps/ 2>/dev/null
 grep -rn 'defaultFromSchema' apps/ 2>/dev/null
@@ -2386,10 +2500,12 @@ If no matches: proceed.
 - [ ] **Step 2: Remove the deprecated string-typed fields**
 
 In `OmegaConfig` (in `useOmegaForm.ts` or wherever it landed):
+
 - Remove `overrideDefaultValues?: "deprecated: use defaultValuesPriority"`
 - Remove `defaultFromSchema?: "deprecated: use defaultValuesPriority"`
 
 In `OmegaArrayProps`:
+
 - Remove `items?: "please use \`defaultItems\` instead"`
 
 - [ ] **Step 3: Run tests + tsc**
@@ -2406,9 +2522,10 @@ git commit -m "refactor(omegaform): drop deprecated string-typed config fields"
 
 ---
 
-### Task 4.3: Drop legacy `field` slot in OmegaArray.vue *(conditional)*
+### Task 4.3: Drop legacy `field` slot in OmegaArray.vue _(conditional)_
 
 **Files:**
+
 - Modify: `src/components/OmegaForm/OmegaArray.vue`
 
 - [ ] **Step 1: Audit consumer apps**
@@ -2423,6 +2540,7 @@ If matches: skip.
 - [ ] **Step 2: Remove the legacy slot**
 
 In `OmegaArray.vue`, remove:
+
 ```vue
 <!-- TODO: legacy slot, remove this slot -->
 <slot
@@ -2450,7 +2568,8 @@ git commit -m "refactor(omegaform): drop legacy field slot from OmegaArray"
 ### Task 4.4: Audit and resolve dead legacy `_tag` warning
 
 **Files:**
-- Modify: `src/components/OmegaForm/meta/legacyWarning.ts` *(or `OmegaFormStuff.ts` if Phase 1 Task 1.2 was skipped)*
+
+- Modify: `src/components/OmegaForm/meta/legacyWarning.ts` _(or `OmegaFormStuff.ts` if Phase 1 Task 1.2 was skipped)_
 - Modify: `src/components/OmegaForm/meta/createMeta.ts` (the `metadataFromAst` caller)
 - Modify: `__tests__/OmegaForm/TaggedUnionLegacyWarning.test.ts`
 
@@ -2465,6 +2584,7 @@ Run a quick scratch test (or REPL) to confirm: do `S.Struct({ _tag: S.Literal("X
 **Path A — warning is obsolete (preferred if Step 1 shows AST equivalence):**
 
 Delete the warning entirely:
+
 - Remove the `if (...)` block that calls `warnLegacyTag` in `metadataFromAst`.
 - Delete `meta/legacyWarning.ts` (and remove the re-export from `OmegaFormStuff.ts` / wherever it landed).
 - Update `TaggedUnionLegacyWarning.test.ts`: replace it with a comment noting the warning was removed in Phase 4, OR delete the file entirely. Keep the file if you want a guard against the warning being re-introduced in the future.
@@ -2472,11 +2592,12 @@ Delete the warning entirely:
 **Path B — warning is still needed (Step 1 shows ASTs differ):**
 
 Fix the guard in `metadataFromAst`:
+
 ```ts
 // before
-if (S.AST.isUnion(tagProp.type)) { warnLegacyTag(tagValue) }
+if (S.AST.isUnion(tagProp.type)) warnLegacyTag(tagValue)
 // after
-if (S.AST.isLiteral(tagProp.type)) { warnLegacyTag(tagValue) }
+if (S.AST.isLiteral(tagProp.type)) warnLegacyTag(tagValue)
 ```
 
 Update `TaggedUnionLegacyWarning.test.ts`: flip the first assertion from `not.toHaveBeenCalled()` to `toHaveBeenCalled()`, and re-add a "warns once" check.
@@ -2510,6 +2631,7 @@ All five.
 Run: `wc -l src/components/OmegaForm/*.ts src/components/OmegaForm/meta/*.ts src/components/OmegaForm/validation/*.ts`
 
 Targets:
+
 - `useOmegaForm.ts`: < 300 lines
 - `meta/createMeta.ts`: < 400 lines
 - All other files: < 250 lines

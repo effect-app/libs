@@ -1,6 +1,19 @@
 const supportedInputs = [
-  "button", "checkbox", "color", "date", "email", "number", "password",
-  "radio", "range", "search", "submit", "tel", "text", "time", "url"
+  "button",
+  "checkbox",
+  "color",
+  "date",
+  "email",
+  "number",
+  "password",
+  "radio",
+  "range",
+  "search",
+  "submit",
+  "tel",
+  "text",
+  "time",
+  "url"
 ] as const
 
 export type SupportedInputs = typeof supportedInputs[number]

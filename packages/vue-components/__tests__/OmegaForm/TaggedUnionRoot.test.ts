@@ -1,10 +1,7 @@
 // __tests__/OmegaForm/TaggedUnionRoot.test.ts
 import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import {
-  defaultsValueFromSchema,
-  generateMetaFromSchema
-} from "../../src/components/OmegaForm"
+import { defaultsValueFromSchema, generateMetaFromSchema } from "../../src/components/OmegaForm"
 
 const schema = S.Union([
   S.TaggedStruct("A", {

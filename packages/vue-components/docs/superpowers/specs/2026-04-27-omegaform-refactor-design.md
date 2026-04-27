@@ -28,7 +28,7 @@ Decompose two oversized files (`OmegaFormStuff.ts` 1447 lines, `useOmegaForm.ts`
 These pin the current behavior so the refactor doesn't drift. Each test goes under `__tests__/OmegaForm/` unless noted.
 
 1. `Meta.test.ts` — port the schema from `stories/OmegaForm/Meta.vue`. Snapshot the full meta record (root + nested struct + nullable struct, all six combinations of `S.String` / `S.Finite` / `S.NullOr` / `S.UndefinedOr` / `S.NullishOr`).
-2. `test-defaults.test.ts` *(file at `__tests__/`)* — exercise `defaultsValueFromSchema`:
+2. `test-defaults.test.ts` _(file at `__tests__/`)_ — exercise `defaultsValueFromSchema`:
    - `withConstructorDefault(Effect.succeed(...))` extraction
    - `withDecodingDefault` on optional keys
    - Nullable → `null`, undefined → `undefined`, primitives → `""` / `false`
@@ -46,7 +46,7 @@ These pin the current behavior so the refactor doesn't drift. Each test goes und
    - `tanstackFormOptions.onSubmit` receives the **decoded** `To`, not raw `From` (assert via a transform-bearing schema)
    - `onSubmit` returning a `Promise`, an `Effect.Effect`, and a `Fiber` all complete to the same observable result
 6. `submit-error-clear.test.ts` — characterize the **current** errorMap-clearing watcher (lines 988–1004 of `useOmegaForm.ts`): submit with invalid union → both branch fields show errors → type into one field → both fields' `onSubmit` errors clear. **This test is rewritten in Phase 3** to reflect the new (TanStack-default) behavior; keeping it as a characterization test means the change is visible in the diff.
-7. `default-values-priority.test.ts` *(optional)* — assert the resolution order `tanstack > persistency > schema` and a custom `defaultValuesPriority` override; assert `deepMerge` treats arrays as values, not as merged.
+7. `default-values-priority.test.ts` _(optional)_ — assert the resolution order `tanstack > persistency > schema` and a custom `defaultValuesPriority` override; assert `deepMerge` treats arrays as values, not as merged.
 8. `tagged-union-nested.test.ts` — characterize `stories/OmegaForm/FormTaggedUnion.vue`:
    - `S.NullOr(S.Union([S.TaggedStruct("A", { a, common }), S.TaggedStruct("B", { b, common })]))` nested inside a parent struct
    - `meta["union._tag"]` = `{ type: "select", members: ["A", "B"], required: false }` (parent is nullable → `_tag` is non-required)
@@ -62,7 +62,7 @@ These pin the current behavior so the refactor doesn't drift. Each test goes und
    - `unionMeta["A"].b` undefined, `unionMeta["B"].a` undefined
    - Pin current flat `meta.common` resolution (last-write-wins via `Object.assign`)
    - `defaultsValueFromSchema(schema)` honors `withConstructorDefault(Effect.succeed(NonEmptyString255("aaaa")))` on branch A's `a`
-10. `tagged-union-legacy-warning.test.ts` *(optional)* — spy on `console.warn`, build a form with `S.Struct({ _tag: S.Literal("X"), ... })`, assert the deprecation warning fires exactly once. Build a second form with the same tag value, assert no second warning (the `legacyTagWarningEmittedFor` set is shared module state).
+10. `tagged-union-legacy-warning.test.ts` _(optional)_ — spy on `console.warn`, build a form with `S.Struct({ _tag: S.Literal("X"), ... })`, assert the deprecation warning fires exactly once. Build a second form with the same tag value, assert no second warning (the `legacyTagWarningEmittedFor` set is shared module state).
 
 **Test 6 will need updating in Phase 3.** Tests 1–5 and 7–10 must remain green through every later phase.
 
@@ -214,13 +214,13 @@ Unchanged. `index.ts` re-exports the same names from new module paths. Verified 
 
 ## Risks and how we catch them
 
-| Risk | Mitigation |
-|------|------------|
-| Phase 2 changes some edge case in meta shape | Tests 1, 8, 9 pin the most-used permutations. Storybook visual diff for the Meta, FormTaggedUnion, RootLevelTaggedUnion stories. |
-| Phase 3 changes how errors clear after submit | Test 6 is rewritten with the new behavior — change is deliberate and reviewed. |
+| Risk                                                                                              | Mitigation                                                                                                                         |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 2 changes some edge case in meta shape                                                      | Tests 1, 8, 9 pin the most-used permutations. Storybook visual diff for the Meta, FormTaggedUnion, RootLevelTaggedUnion stories.   |
+| Phase 3 changes how errors clear after submit                                                     | Test 6 is rewritten with the new behavior — change is deliberate and reviewed.                                                     |
 | Per-field schema deletion breaks an app that relied on TanStack's per-field `validators.onChange` | Per-field validators passed via `<form.Input :validators="...">` still work. Only the auto-injected `onSubmit: schema` is removed. |
-| Some app attached a `jsonSchema` annotation expecting it to flow into form behavior | Loud failure (constraint missing) rather than silent. Release note advising "move constraints onto the schema or use input props." |
-| Storybook stories depend on internal imports | Stories import from `../../src` (the package entry) — unaffected by internal moves. |
+| Some app attached a `jsonSchema` annotation expecting it to flow into form behavior               | Loud failure (constraint missing) rather than silent. Release note advising "move constraints onto the schema or use input props." |
+| Storybook stories depend on internal imports                                                      | Stories import from `../../src` (the package entry) — unaffected by internal moves.                                                |
 
 ## Order of operations
 

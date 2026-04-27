@@ -1,0 +1,4 @@
+import type { CreateRule } from "oxlint/plugins-dev";
+declare const codegenRule: CreateRule;
+export default codegenRule;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY29kZWdlbi5kLnRzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vc3JjL294bGludC9ydWxlcy9jb2RlZ2VuLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUNBLE9BQU8sS0FBSyxFQUFFLFVBQVUsRUFBRSxNQUFNLG9CQUFvQixDQUFBO0FBa0dwRCxRQUFBLE1BQU0sV0FBVyxFQUFFLFVBMkRsQixDQUFBO2VBRWMsV0FBVyJ9

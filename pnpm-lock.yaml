@@ -237,9 +237,6 @@ importers:
 
   packages/eslint-codegen-model:
     dependencies:
-      eslint-plugin-codegen:
-        specifier: 0.17.0
-        version: 0.17.0(patch_hash=c7a8546a270abdcd8317f0584f04f3bca89e9aeaab011d433623e3def2405058)
       glob:
         specifier: 8.1.0
         version: 8.1.0
@@ -277,6 +274,9 @@ importers:
       madge:
         specifier: 8.0.0
         version: 8.0.0(@typescript/native-preview@7.0.0-dev.20260421.2)
+      oxlint:
+        specifier: 1.61.0
+        version: 1.61.0
       typescript:
         specifier: npm:@typescript/native-preview@beta
         version: '@typescript/native-preview@7.0.0-dev.20260421.2'

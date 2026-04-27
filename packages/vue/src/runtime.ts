@@ -6,7 +6,7 @@ import { type Context } from "effect-app/Context"
 export const makeAppRuntime = Effect.fnUntraced(function*<A, E>(layer: Layer.Layer<A, E>) {
   const l = layer.pipe(
     Layer.provide(Logger.layer([Logger.consolePretty()]))
-  ) as Layer.Layer<A, never>
+  ) as Layer.Layer<A>
   const mrt = ManagedRuntime.make(l)
   yield* mrt.contextEffect
   return Object.assign(mrt, {
@@ -20,12 +20,12 @@ export const makeAppRuntime = Effect.fnUntraced(function*<A, E>(layer: Layer.Lay
   }) // as we initialise here, there is no more error left.
 })
 
-export function initializeSync<A, E>(layer: Layer.Layer<A, E, never>) {
+export function initializeSync<A, E>(layer: Layer.Layer<A, E>) {
   const runtime = Effect.runSync(makeAppRuntime(layer))
   return runtime
 }
 
-export function initializeAsync<A, E>(layer: Layer.Layer<A, E, never>) {
+export function initializeAsync<A, E>(layer: Layer.Layer<A, E>) {
   return Effect
     .runPromise(makeAppRuntime(layer))
 }

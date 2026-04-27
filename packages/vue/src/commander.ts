@@ -162,7 +162,7 @@ export declare namespace Commander {
     new(): {}
 
     /** click handlers */
-    handle: ((arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>, never>) & {
+    handle: ((arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>>) & {
       /** @deprecated don't exist */
       effect: (arg: Arg) => Effect.Effect<A, E, R>
     }
@@ -1722,7 +1722,7 @@ const renderErrorMaker = Effect.gen(function*() {
             return intl.formatMessage({ id: "validation.failed" })
           }
         }),
-        Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+        Match.orElse((e) => e.message ?? e._tag ?? e)
       )
     }
   )
@@ -1782,7 +1782,7 @@ export const CommanderStatic = {
 
   /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
   confirmOrInterrupt: Effect.fnUntraced(function*(
-    message: string | undefined = undefined
+    message?: string | undefined
   ) {
     const context = yield* CommandContext
     const { intl } = yield* I18n
@@ -1797,7 +1797,7 @@ export const CommanderStatic = {
   }),
   /** Version of @see confirm that automatically includes the action name in the default messages */
   confirm: Effect.fnUntraced(function*(
-    message: string | undefined = undefined
+    message?: string | undefined
   ) {
     const context = yield* CommandContext
     const { intl } = yield* I18n

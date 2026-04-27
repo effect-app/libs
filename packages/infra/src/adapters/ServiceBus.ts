@@ -52,7 +52,7 @@ export class Sender extends Context.Opaque<Sender, {
   sendMessages: (
     messages: ServiceBusMessage | ServiceBusMessage[] | ServiceBusMessageBatch,
     options?: Omit<OperationOptionsBase, "abortSignal">
-  ) => Effect.Effect<void, never, never>
+  ) => Effect.Effect<void, never>
 }>()("Sender", { make: makeSender }) {
   static readonly layer = (name: string) => this.toLayer(this.make(name))
 }

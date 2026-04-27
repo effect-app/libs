@@ -54,7 +54,7 @@ type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldVal
 
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
-export type Query<TFieldValues extends FieldValues> = QueryTogether<TFieldValues, TFieldValues, false, "initial">
+export type Query<TFieldValues extends FieldValues> = QueryTogether<TFieldValues, TFieldValues, false>
 export type QueryWhere<
   TFieldValues extends FieldValues,
   TFieldValuesRefined extends TFieldValues = TFieldValues,
@@ -1538,7 +1538,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     fb: (current: Query<TFieldValues>) => QueryWhere<TFieldValues, TFieldValuesRefined2, E2>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined2, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined2>
 
   <
     TFieldValues extends FieldValues,
@@ -1555,7 +1555,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined3, E3>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined3, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined3>
 
   <
     TFieldValues extends FieldValues,
@@ -1577,7 +1577,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined4, E4>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined4, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined4>
 
   <
     TFieldValues extends FieldValues,
@@ -1604,7 +1604,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined5, E5>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined5, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined5>
 
   <
     TFieldValues extends FieldValues,
@@ -1636,7 +1636,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined6, E6>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined6, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined6>
 
   <
     TFieldValues extends FieldValues,
@@ -1673,7 +1673,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined7, E7>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined7, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined7>
 
   <
     TFieldValues extends FieldValues,
@@ -1715,7 +1715,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined8, E8>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined2, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined2>
 
   <
     TFieldValues extends FieldValues,
@@ -1762,7 +1762,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined9, E9>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined9, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined9>
 
   <
     TFieldValues extends FieldValues,
@@ -1814,7 +1814,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined10, E10>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined10, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined10>
 
   <
     TFieldValues extends FieldValues,
@@ -1871,7 +1871,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined11, E11>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined11, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined11>
 
   <
     TFieldValues extends FieldValues,
@@ -1933,7 +1933,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined12, E12>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined12, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined12>
 
   <
     TFieldValues extends FieldValues,
@@ -2000,7 +2000,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined13, E13>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined13, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined13>
 
   <
     TFieldValues extends FieldValues,
@@ -2072,7 +2072,7 @@ export type NestedQueriesFreeDisjointRefinement = {
     ) => QueryWhere<TFieldValues, TFieldValuesRefined14, E14>
   ): (
     current: QueryWhere<TFieldValues, TFieldValuesRefined, E>
-  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined14, false>
+  ) => QueryWhere<TFieldValues, TFieldValuesRefined | TFieldValuesRefined14>
 }
 
 export type FilterWhere =
@@ -2099,12 +2099,12 @@ export type WhereEveryOrSome =
       subPath: TFieldName,
       dude: (
         current: Query<TFieldValues[TFieldName][number]>
-      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>,
+      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>,
       ...dudes: ((
-        current: QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>
-      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number], false>)[]
+        current: QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>
+      ) => QueryWhere<TFieldValues[TFieldName][number], TFieldValues[TFieldName][number]>)[]
     ): (
       current: Query<TFieldValues>
-    ) => QueryWhere<TFieldValues, TFieldValues, false>
+    ) => QueryWhere<TFieldValues, TFieldValues>
   }
   & FilterContinuationsWithSubpath

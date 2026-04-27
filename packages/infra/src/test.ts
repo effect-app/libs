@@ -16,7 +16,7 @@ export const createRandomInstance = <A extends object, I, R>(s: S.Codec<A, I, R>
 /**
  * Like `createRandomInstance`, but takes encoded values rather than decoded ones.
  */
-export const createRandomInstanceI = <A extends object, I>(s: S.Codec<A, I, never> & { fields: S.Struct.Fields }) => {
+export const createRandomInstanceI = <A extends object, I>(s: S.Codec<A, I> & { fields: S.Struct.Fields }) => {
   const gen = generate(S.toArbitrary(s))
   const encode = S.encodeSync(s)
   const decode = S.decodeSync(s)

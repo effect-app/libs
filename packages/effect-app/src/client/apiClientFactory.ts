@@ -211,7 +211,7 @@ const makeApiClientFactory = Effect
                   Effect.flatMap((svcs) =>
                     TheClient
                       .use((client) =>
-                        (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any, never>
+                        (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any>
                       )
                       .pipe(
                         Effect.provide(layers),
@@ -227,7 +227,7 @@ const makeApiClientFactory = Effect
                     Effect.flatMap((svcs) =>
                       TheClient
                         .use((client) =>
-                          (client as any)[requestAttr]!(Request.make(req)) as Effect.Effect<any, any, never>
+                          (client as any)[requestAttr]!(Request.make(req)) as Effect.Effect<any, any>
                         )
                         .pipe(
                           Effect.provide(layers),
@@ -249,7 +249,7 @@ const makeApiClientFactory = Effect
 
     const cacheL = new Map<any, Map<any, Client<any, any>>>()
 
-    function makeClientForCached(requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) {
+    function makeClientForCached(requestLevelLayers: Layer.Layer<never, never>, options?: ClientForOptions) {
       let cache = cacheL.get(requestLevelLayers)
       if (!cache) {
         cache = new Map<any, Client<any, any>>()
@@ -287,7 +287,7 @@ export class ApiClientFactory
   )
 
   static readonly makeFor =
-    (requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) =>
+    (requestLevelLayers: Layer.Layer<never, never>, options?: ClientForOptions) =>
     <M extends RequestsAny>(
       resource: M
     ) =>

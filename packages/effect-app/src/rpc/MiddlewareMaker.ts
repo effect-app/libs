@@ -347,8 +347,7 @@ const makeMiddlewareBasic = <Self>() =>
       MiddlewareMaker,
       middleware as Effect.Effect<
         any,
-        Effect.Error<typeof middleware>,
-        Effect.Services<typeof middleware>
+        Effect.Error<typeof middleware>
       >
     )
 

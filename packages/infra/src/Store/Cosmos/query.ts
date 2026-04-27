@@ -279,8 +279,7 @@ export function buildWhereCosmosQuery3(
     query: `
     SELECT ${
       select
-        ? `${
-          select
+        ? select
             .map((s) =>
               typeof s === "string"
                 ? dottedToAccess(s === idKey ? "f.id" : `f.${s}`) // x["y"} vs x.y, helps with reserved keywords like "value"
@@ -288,7 +287,6 @@ export function buildWhereCosmosQuery3(
                 FROM t in ${dottedToAccess(`f.${s.key}`)}) AS ${s.key}`
             )
             .join(", ")
-        }`
         : "f"
     }
     FROM ${name} f

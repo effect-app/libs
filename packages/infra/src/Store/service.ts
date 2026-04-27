@@ -202,7 +202,7 @@ export type PersistenceModelType<Encoded extends object> = Encoded & {
 }
 
 export interface StorageConfig {
-  url: Redacted.Redacted<string>
+  url: Redacted.Redacted
   prefix: string
   dbName: string
 }

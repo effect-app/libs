@@ -6,9 +6,9 @@ import { setRootParentSpan } from "./RequestFiberSet.js"
 
 const make = Effect.gen(function*() {
   const set = yield* FiberSet.make<unknown, never>()
-  const add = (...fibers: Fiber.Fiber<never, never>[]) =>
+  const add = (...fibers: Fiber.Fiber<never>[]) =>
     Effect.sync(() => fibers.forEach((_) => FiberSet.addUnsafe(set, _)))
-  const addAll = (fibers: readonly Fiber.Fiber<never, never>[]) =>
+  const addAll = (fibers: readonly Fiber.Fiber<never>[]) =>
     Effect.sync(() => fibers.forEach((_) => FiberSet.addUnsafe(set, _)))
   const join = FiberSet.size(set).pipe(
     Effect.andThen((count) => InfraLogger.logDebug(`Joining ${count} current fibers on the MainFiberSet`)),

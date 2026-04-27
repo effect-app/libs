@@ -92,8 +92,6 @@ export const makeSubmitHandlers = <From, To>(
   const hs = form.handleSubmit
 
   const handleSubmitInner: typeof form.handleSubmit = async (meta?: Record<string, any>) => {
-    // workaround for not revealing all form errors on submit
-    // await form.validateAllFields("blur")
     return await hs(meta)
   }
 

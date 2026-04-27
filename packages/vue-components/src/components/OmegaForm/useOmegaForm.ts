@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
+import {
+  type FormAsyncValidateOrFn,
+  type FormValidateOrFn,
+  revalidateLogic,
+  type StandardSchemaV1,
+  useForm
+} from "@tanstack/vue-form"
 import { Context, S } from "effect-app"
-import { type InjectionKey, ref, watch } from "vue"
+import { type InjectionKey, watch } from "vue"
 import { eHoc, makeFieldMap } from "./errors"
 import { fHoc } from "./hocs"
 import { generateMetaFromSchema } from "./meta/createMeta"
@@ -83,8 +89,9 @@ export const useOmegaForm = <
     Record<string, any> | undefined
   >({
     ...tanstackFormOptions,
+    validationLogic: revalidateLogic(),
     validators: {
-      onSubmit: standardSchema,
+      onDynamic: standardSchema,
       ...tanstackFormOptions?.validators
     },
     onSubmit: wrapOnSubmit<From, To>(tanstackFormOptions?.onSubmit, decode, runPromise),
@@ -131,24 +138,6 @@ export const useOmegaForm = <
     handleSubmitEffect,
     registerField
   })
-
-  // Clear all field onSubmit errors when any value changes after a failed submission.
-  // Form-level onSubmit validation (e.g. union schemas) distributes errors to individual fields.
-  // TanStack only clears the changed field's onSubmit error, leaving sibling fields with stale
-  // errors that keep isFieldsValid=false and block re-submission.
-  const lastSubmitAttempts = ref(0)
-  const submissionAttempts = form.useStore((s) => s.submissionAttempts)
-  const formValues = form.useStore((s) => s.values)
-  watch(formValues, () => {
-    if (lastSubmitAttempts.value === submissionAttempts.value) return
-    lastSubmitAttempts.value = submissionAttempts.value
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const info of Object.values(form.fieldInfo) as any[]) {
-      if (info?.instance?.state.meta.errorMap?.onSubmit) {
-        info.instance.setMeta((prev: any) => ({ ...prev, errorMap: { ...prev.errorMap, onSubmit: undefined } }))
-      }
-    }
-  }, { deep: true })
 
   const errorContext = { form: formWithExtras, fieldMap }
 

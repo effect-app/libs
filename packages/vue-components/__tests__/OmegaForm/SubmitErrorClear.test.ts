@@ -6,52 +6,54 @@ import { defineComponent, nextTick } from "vue"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
-const mountForm = <T>(setupForm: () => T): T => {
-  let captured: T | undefined
-  const Inner = defineComponent({
-    setup() {
-      captured = setupForm()
-      return {}
-    },
-    template: "<div></div>"
-  })
-  const Wrapper = defineComponent({
-    components: { OmegaIntlProvider, Inner },
-    template: "<OmegaIntlProvider><Inner /></OmegaIntlProvider>"
-  })
-  mount(Wrapper)
-  if (!captured) throw new Error("setupForm did not return")
-  return captured
-}
-
-describe("submit error redistribution (current behavior)", () => {
-  it("clears sibling onSubmit errors when any field changes after a failed submit", async () => {
+describe("post-submit revalidation (TanStack default)", () => {
+  it("revalidates the form-level schema on value change after a failed submit", async () => {
     const schema = S.Struct({
       a: S.String.pipe(S.check(S.isMinLength(2))),
       b: S.String.pipe(S.check(S.isMinLength(2)))
     })
-    const form = mountForm(() => useOmegaForm(schema, { defaultValues: { a: "", b: "" } }))
+
+    let captured: ReturnType<typeof useOmegaForm<any, any>> | undefined
+    const Inner = defineComponent({
+      setup() {
+        const form = useOmegaForm(schema, { defaultValues: { a: "", b: "" } })
+        captured = form as any
+        return { form }
+      },
+      // Render fields so they register with the form. Without mounted fields,
+      // setFieldValue cannot trigger validation (FormApi.validateField bails
+      // when fieldInfo[name].instance is undefined).
+      template: `
+        <component :is="form.Form">
+          <component :is="form.Input" name="a" />
+          <component :is="form.Input" name="b" />
+        </component>
+      `
+    })
+    const Wrapper = defineComponent({
+      components: { OmegaIntlProvider, Inner },
+      template: "<OmegaIntlProvider><Inner /></OmegaIntlProvider>"
+    })
+    mount(Wrapper)
+    if (!captured) throw new Error("setupForm did not return")
+    const form = captured
 
     await form.handleSubmit()
     await nextTick()
 
-    // both fields should have onSubmit errors
-    const aBefore = form.fieldInfo.a?.instance?.state.meta.errorMap?.onSubmit
-    const bBefore = form.fieldInfo.b?.instance?.state.meta.errorMap?.onSubmit
-    // Skip the assertion if TanStack didn't populate them in this version's
-    // surface — pin only the post-change behavior.
-
-    // mutate a single field
+    // After failed submit, fix only field a; field b should still fail validation
+    // because TanStack revalidates the entire form-level schema.
     form.setFieldValue("a", "ok")
     await nextTick()
     await nextTick()
 
-    // sibling field's onSubmit error should be cleared by the watcher
-    const bAfter = form.fieldInfo.b?.instance?.state.meta.errorMap?.onSubmit
-    expect(bAfter).toBeFalsy()
+    // canSubmit should still be false because b is still invalid
+    expect(form.store.state.canSubmit).toBe(false)
 
-    // tag the test result so Phase 3 rewrite is visible in the diff
-    void aBefore
-    void bBefore
+    // Now fix b too
+    form.setFieldValue("b", "ok")
+    await nextTick()
+    await nextTick()
+    expect(form.store.state.canSubmit).toBe(true)
   })
 })

@@ -52,8 +52,6 @@ describe("defaultsValueFromSchema", () => {
       S.TaggedStruct("A", { v: S.String.pipe(S.withConstructorDefault(Effect.succeed("a-default"))) }),
       S.TaggedStruct("B", { v: S.String, extra: S.String })
     ])
-    const out = defaultsValueFromSchema(schema)
-    expect(out.v).toBe("a-default")
-    expect("extra" in out).toBe(true)
+    expect(defaultsValueFromSchema(schema)).toEqual({ _tag: "A", v: "a-default", extra: "" })
   })
 })

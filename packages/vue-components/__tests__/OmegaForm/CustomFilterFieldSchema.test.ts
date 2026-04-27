@@ -1,6 +1,6 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema } from "../../src/components/OmegaForm"
 
 const maxLineLengthCheck = (max: number) =>
   S.makeFilter((value: string) => {

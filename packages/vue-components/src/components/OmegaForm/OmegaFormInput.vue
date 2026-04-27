@@ -21,7 +21,7 @@
 import { type DeepKeys } from "@tanstack/vue-form"
 import { inject } from "vue"
 import type { MergedInputProps } from "./InputProps"
-import type { BaseProps, DefaultTypeProps, OmegaInputProps } from "./OmegaFormStuff"
+import type { BaseProps, DefaultTypeProps, OmegaInputProps } from "./types"
 import OmegaInput from "./OmegaInput.vue"
 import { OmegaFormKey } from "./useOmegaForm"
 

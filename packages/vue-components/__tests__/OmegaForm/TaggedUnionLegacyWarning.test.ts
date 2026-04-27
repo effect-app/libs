@@ -1,6 +1,6 @@
 import { S } from "effect-app"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema } from "../../src/components/OmegaForm"
 
 let warnSpy: ReturnType<typeof vi.spyOn>
 

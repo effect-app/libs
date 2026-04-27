@@ -10,7 +10,7 @@
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, provide, ref, watch } from "vue"
 import { type TaggedUnionOption } from "./InputProps"
-import { type FieldPath } from "./OmegaFormStuff"
+import { type FieldPath } from "./types"
 import OmegaTaggedUnionInternal from "./OmegaTaggedUnionInternal.vue"
 import { type useOmegaForm } from "./useOmegaForm"
 

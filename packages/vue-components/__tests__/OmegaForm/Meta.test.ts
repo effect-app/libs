@@ -1,7 +1,7 @@
 // __tests__/OmegaForm/Meta.test.ts
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema } from "../../src/components/OmegaForm"
 
 const subStruct = {
   a: S.NullOr(S.String),

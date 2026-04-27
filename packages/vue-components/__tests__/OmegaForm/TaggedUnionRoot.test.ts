@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import {
   defaultsValueFromSchema,
   generateMetaFromSchema
-} from "../../src/components/OmegaForm/OmegaFormStuff"
+} from "../../src/components/OmegaForm"
 
 const schema = S.Union([
   S.TaggedStruct("A", {

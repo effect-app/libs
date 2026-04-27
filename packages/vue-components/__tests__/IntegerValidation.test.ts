@@ -1,6 +1,6 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateInputStandardSchemaFromFieldMeta, generateMetaFromSchema, type NumberFieldMeta } from "../src/components/OmegaForm/OmegaFormStuff"
+import { generateInputStandardSchemaFromFieldMeta, generateMetaFromSchema, type NumberFieldMeta } from "../src/components/OmegaForm"
 
 // mock German translations
 const germanTranslations: Record<string, string> = {

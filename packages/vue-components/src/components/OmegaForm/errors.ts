@@ -2,7 +2,7 @@
 
 import { type Component, computed, type ComputedRef, type ConcreteComponent, h, onUnmounted, type Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
-import { OmegaError } from "./OmegaFormStuff"
+import type { OmegaError } from "./types"
 import type { OF } from "./useOmegaForm"
 
 export const useErrorLabel = (form: OF<any, any>) => {

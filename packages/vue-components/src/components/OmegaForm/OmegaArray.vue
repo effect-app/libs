@@ -48,7 +48,7 @@
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, onMounted, provide } from "vue"
-import { type OmegaArrayProps } from "./OmegaFormStuff"
+import { type OmegaArrayProps } from "./types"
 
 const props = defineProps<OmegaArrayProps<From, To, Name>>()
 

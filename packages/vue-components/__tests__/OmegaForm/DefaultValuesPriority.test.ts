@@ -1,7 +1,7 @@
 // __tests__/OmegaForm/DefaultValuesPriority.test.ts
 import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { deepMerge } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { deepMerge } from "../../src/components/OmegaForm"
 
 describe("deepMerge", () => {
   it("treats arrays as values, not as merged structures", () => {

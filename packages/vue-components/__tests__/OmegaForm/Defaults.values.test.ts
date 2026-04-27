@@ -1,7 +1,7 @@
 // __tests__/OmegaForm/Defaults.values.test.ts
 import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { defaultsValueFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { defaultsValueFromSchema } from "../../src/components/OmegaForm"
 
 describe("defaultsValueFromSchema", () => {
   it("extracts withConstructorDefault values", () => {

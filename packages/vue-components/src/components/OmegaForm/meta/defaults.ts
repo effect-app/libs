@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Effect, Option, S } from "effect-app"
-import { isNullableOrUndefined, unwrapDeclaration } from "../OmegaFormStuff"
+import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"
 
 const extractDefaultFromLink = (link: any): unknown | undefined => {
   if (!link?.transformation?.decode?.run) return undefined

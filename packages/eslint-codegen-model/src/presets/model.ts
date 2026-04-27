@@ -66,9 +66,7 @@ export const model: PresetFn<{
     }
     const expectedContent = [
       "//",
-      `/* eslint-disable */`,
       ...them.flat().filter((x): x is string => !!x),
-      `/* eslint-enable */`,
       "//"
     ]
       .join("\n")

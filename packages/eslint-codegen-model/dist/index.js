@@ -1,4 +1,5 @@
 // codegen:start {preset: barrel, include: ./*/, nodir: false}
+export * from "./oxlint/index.js";
 export * from "./presets/index.js";
 // codegen:end
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmMvaW5kZXgudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsOERBQThEO0FBQzlELGNBQWMsb0JBQW9CLENBQUE7QUFDbEMsY0FBYyJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmMvaW5kZXgudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsOERBQThEO0FBQzlELGNBQWMsbUJBQW1CLENBQUE7QUFDakMsY0FBYyxvQkFBb0IsQ0FBQTtBQUNsQyxjQUFjIn0=

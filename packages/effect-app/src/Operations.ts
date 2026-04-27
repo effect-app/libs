@@ -37,7 +37,6 @@ export class Operation extends S.Opaque<Operation, Operation.Encoded>()(S.Struct
 
 // codegen:start {preset: model}
 //
-/* eslint-disable */
 export namespace OperationProgress {
   export interface Encoded extends S.StructNestedEncoded<typeof OperationProgress> {}
 }
@@ -50,6 +49,5 @@ export namespace OperationFailure {
 export namespace Operation {
   export interface Encoded extends S.StructNestedEncoded<typeof Operation> {}
 }
-/* eslint-enable */
 //
 // codegen:end

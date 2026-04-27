@@ -63,26 +63,29 @@ export const eHoc = (errorProps: {
             return acc
           }, [])
 
-          // Collect errors from errorMap.onSubmit ONLY for fields that are NOT registered
-          // (registered fields already have their errors in fieldMeta)
+          // Collect errors from errorMap.onDynamic / errorMap.onSubmit ONLY for fields that are NOT registered
+          // (registered fields already have their errors in fieldMeta).
+          // Our localized standard schema writes to onDynamic via validationLogic: revalidateLogic();
+          // caller-provided validators.onSubmit (via tanstackFormOptions spread) writes to onSubmit.
           const submitErrors: OmegaError[] = []
-          if (errorMap.value.onSubmit) {
-            for (const [_, issues] of Object.entries(errorMap.value.onSubmit)) {
+          const submitIssueMaps = [errorMap.value.onDynamic, errorMap.value.onSubmit].filter(Boolean) as Array<
+            Record<string, unknown>
+          >
+          const seenPaths = new Set<string>()
+          for (const issuesByPath of submitIssueMaps) {
+            for (const [_, issues] of Object.entries(issuesByPath)) {
               if (Array.isArray(issues) && issues.length) {
                 for (const issue of issues) {
                   const issAny: any = issue
                   if (issAny?.path && Array.isArray(issAny.path) && issAny.path.length) {
-                    // Use the path from the issue to identify the field
                     const fieldPath = issAny.path.join(".")
-                    // Only add errors for fields that are NOT registered (not in fieldMap)
-                    // Registered fields will already have their errors from fieldMeta
-                    if (!fieldMap.value.has(fieldPath)) {
+                    if (!fieldMap.value.has(fieldPath) && !seenPaths.has(fieldPath)) {
+                      seenPaths.add(fieldPath)
                       submitErrors.push({
                         label: errorLabel(fieldPath),
                         inputId: fieldPath,
                         errors: [issAny.message].filter(Boolean)
                       })
-                      // Only show first error per field, so break after adding
                       break
                     }
                   }

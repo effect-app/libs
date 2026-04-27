@@ -37,7 +37,6 @@ export class Operation extends S.Opaque<Operation, Operation.Encoded>()(S.Struct
 
 // codegen:start {preset: model}
 //
-/* eslint-disable */
 export namespace OperationProgress {
   export interface Encoded extends S.Struct.Encoded<typeof OperationProgress["fields"]> {}
 }
@@ -50,6 +49,5 @@ export namespace OperationFailure {
 export namespace Operation {
   export interface Encoded extends S.Struct.Encoded<typeof Operation["fields"]> {}
 }
-/* eslint-enable */
 //
 // codegen:end

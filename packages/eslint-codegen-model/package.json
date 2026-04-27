@@ -2,6 +2,7 @@
   "name": "@effect-app/eslint-codegen-model",
   "description": "Contains eslint helpers",
   "sideEffects": false,
+  "type": "module",
   "version": "2.0.0-beta.9",
   "bin": {
     "effect-app-codegen": "./dist/cli.js"
@@ -19,19 +20,16 @@
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "dependencies": {
-    "@babel/generator": "7.29.1",
-    "@babel/parser": "7.29.2",
     "@typescript-eslint/utils": "8.59.0",
     "eslint-plugin-codegen": "0.17.0",
     "glob": "8.1.0",
     "io-ts": "2.2.22",
     "io-ts-extra": "0.11.6",
     "js-yaml": "4.1.1",
-    "lodash": "4.18.1"
+    "lodash": "4.18.1",
+    "oxc-parser": "0.128.0"
   },
   "devDependencies": {
-    "@types/babel__generator": "7.27.0",
-    "@types/babel__traverse": "7.28.0",
     "@types/glob": "8.1.0",
     "@types/js-yaml": "4.0.9",
     "@types/lodash": "4.17.24",

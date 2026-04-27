@@ -2,12 +2,12 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 
-import * as glob from "glob"
-import * as yaml from "js-yaml"
+import glob from "glob"
+import yaml from "js-yaml"
 
-import { barrel } from "./presets/barrel"
-import { meta as metaPreset } from "./presets/meta"
-import { model } from "./presets/model"
+import { barrel } from "./presets/barrel.js"
+import { meta as metaPreset } from "./presets/meta.js"
+import { model } from "./presets/model.js"
 
 type CodegenMeta = {
   filename: string

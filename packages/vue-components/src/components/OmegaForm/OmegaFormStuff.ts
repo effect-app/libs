@@ -28,7 +28,7 @@ export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have array at the root
   : T extends ReadonlyArray<infer U> ? FieldPath_<U, `[${number}]`>
   : {
-    [K in keyof T]: FieldPath_<T[K], `${K & string}`>
+    [K in keyof T]: FieldPath_<T[K], K & string>
   }[keyof T]
 
 export type FieldPath_<T, Path extends string> = unknown extends T ? string
@@ -159,7 +159,7 @@ export type FormProps<From, To> =
       formApi: OmegaFormParams<From, To>
       meta: any
       value: To
-    }) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any, never>
+    }) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any>
   }
 
 export type OmegaFormParams<From, To> = FormApi<
@@ -323,7 +323,7 @@ export type FilterItems = {
   items: readonly [string, ...string[]]
   message:
     | string
-    | Effect.Effect<string, never, never>
+    | Effect.Effect<string>
     | { readonly message: string | Effect.Effect<string> }
 }
 
@@ -348,7 +348,7 @@ const unwrapDeclaration = (property: S.AST.AST): S.AST.AST => {
   let current = getTransformationFrom(property)
 
   while (S.AST.isDeclaration(current) && current.typeParameters.length > 0) {
-    current = getTransformationFrom(current.typeParameters[0]!)
+    current = getTransformationFrom(current.typeParameters[0])
   }
 
   return current
@@ -363,8 +363,8 @@ const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.
  * TODO: remove after manual _tag deprecation
  */
 const unwrapSingleLiteralUnion = (ast: S.AST.AST): S.AST.AST =>
-  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0]!)
-    ? ast.types[0]!
+  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0])
+    ? ast.types[0]
     : ast
 
 const getNullableOrUndefined = (property: S.AST.AST) =>
@@ -582,9 +582,9 @@ export const createMeta = <T = any>(
 
               // Merge branch metadata, combining select members for shared discriminator fields
               for (const [metaKey, metaValue] of Object.entries(branchMeta)) {
-                const existing = acc[metaKey as NestedKeyOf<T>] as FieldMeta | undefined
+                const existing = acc[metaKey as NestedKeyOf<T>]
                 if (
-                  existing && existing.type === "select" && (metaValue as any)?.type === "select"
+                  existing && existing.type === "select" && (metaValue)?.type === "select"
                 ) {
                   existing.members = [
                     ...existing.members,
@@ -616,7 +616,7 @@ export const createMeta = <T = any>(
 
             // If the array has struct elements, also create metadata for their properties
             if (arrayType.rest && arrayType.rest.length > 0) {
-              const restElement = unwrapDeclaration(arrayType.rest[0]!)
+              const restElement = unwrapDeclaration(arrayType.rest[0])
               if (S.AST.isObjects(restElement)) {
                 for (const prop of restElement.propertySignatures) {
                   const propKey = `${key}.${prop.name.toString()}`
@@ -632,7 +632,7 @@ export const createMeta = <T = any>(
 
                   // add to accumulator if valid
                   if (propMeta && typeof propMeta === "object" && "type" in propMeta) {
-                    acc[propKey as NestedKeyOf<T>] = propMeta as FieldMeta
+                    acc[propKey as NestedKeyOf<T>] = propMeta
                     if (fieldAstByPath) {
                       fieldAstByPath[propKey] = prop.type
                     }
@@ -642,7 +642,7 @@ export const createMeta = <T = any>(
                         .type
                         .rest && prop.type.rest.length > 0
                     ) {
-                      const nestedRestElement = unwrapDeclaration(prop.type.rest[0]!)
+                      const nestedRestElement = unwrapDeclaration(prop.type.rest[0])
                       if (S.AST.isObjects(nestedRestElement)) {
                         for (const nestedProp of nestedRestElement.propertySignatures) {
                           const nestedPropKey = `${propKey}.${nestedProp.name.toString()}`
@@ -658,7 +658,7 @@ export const createMeta = <T = any>(
 
                           // add to accumulator if valid
                           if (nestedPropMeta && typeof nestedPropMeta === "object" && "type" in nestedPropMeta) {
-                            acc[nestedPropKey as NestedKeyOf<T>] = nestedPropMeta as FieldMeta
+                            acc[nestedPropKey as NestedKeyOf<T>] = nestedPropMeta
                             if (fieldAstByPath) {
                               fieldAstByPath[nestedPropKey] = nestedProp.type
                             }
@@ -700,11 +700,11 @@ export const createMeta = <T = any>(
         } else if (S.AST.isArrays(p.type)) {
           // Check if it has struct elements
           const hasStructElements = p.type.rest.length > 0
-            && S.AST.isObjects(unwrapDeclaration(p.type.rest[0]!))
+            && S.AST.isObjects(unwrapDeclaration(p.type.rest[0]))
 
           if (hasStructElements) {
             // For arrays with struct elements, only create meta for nested fields, not the array itself
-            const elementType = unwrapDeclaration(p.type.rest[0]!)
+            const elementType = unwrapDeclaration(p.type.rest[0])
             if (S.AST.isObjects(elementType)) {
               // Process each property in the array element
               for (const prop of elementType.propertySignatures) {
@@ -712,7 +712,7 @@ export const createMeta = <T = any>(
 
                 // Check if the property is another array
                 if (S.AST.isArrays(prop.type) && prop.type.rest.length > 0) {
-                  const nestedElementType = unwrapDeclaration(prop.type.rest[0]!)
+                  const nestedElementType = unwrapDeclaration(prop.type.rest[0])
                   if (S.AST.isObjects(nestedElementType)) {
                     // Array with struct elements - process nested fields
                     for (const nestedProp of nestedElementType.propertySignatures) {
@@ -813,13 +813,13 @@ export const createMeta = <T = any>(
       // Don't unwrap string/number literals — they may be discriminator values in a union
       if (
         nonNullTypes.length === 1
-        && S.AST.isLiteral(nonNullTypes[0]!)
-        && typeof nonNullTypes[0]!.literal === "boolean"
+        && S.AST.isLiteral(nonNullTypes[0])
+        && typeof nonNullTypes[0].literal === "boolean"
       ) {
-        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! })
+        return createMeta<T>({ parent, meta, property: nonNullTypes[0] })
       }
 
-      const nonNullType = nonNullTypes[0]!
+      const nonNullType = nonNullTypes[0]
 
       if (S.AST.isObjects(nonNullType)) {
         return createMeta<T>({
@@ -893,7 +893,7 @@ const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = "")
 }
 
 const metadataFromAst = <From, To>(
-  schema: S.Codec<To, From, never>
+  schema: S.Codec<To, From>
 ): {
   meta: MetaRecord<To>
   defaultValues: Record<string, any>
@@ -1072,8 +1072,8 @@ const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean =>
  * plain values on the encoded side and wraps them in Redacted on decode.
  */
 export const toFormSchema = <From, To>(
-  schema: S.Codec<To, From, never>
-): S.Codec<To, From, never> => {
+  schema: S.Codec<To, From>
+): S.Codec<To, From> => {
   const ast = schema.ast
   const objAst = S.AST.isObjects(ast)
     ? ast
@@ -1089,14 +1089,14 @@ export const toFormSchema = <From, To>(
   for (const p of objAst.propertySignatures) {
     if (isRedactedWithoutEncoding(p.type)) {
       hasRedacted = true
-      const innerSchema = S.make((p.type as S.AST.Declaration).typeParameters[0]!)
+      const innerSchema = S.make((p.type as S.AST.Declaration).typeParameters[0])
       props[p.name as string] = S.RedactedFromValue(innerSchema)
     } else if (S.AST.isUnion(p.type)) {
       const types = p.type.types
       const redactedType = types.find(isRedactedWithoutEncoding)
       if (redactedType) {
         hasRedacted = true
-        const innerSchema = S.make((redactedType as S.AST.Declaration).typeParameters[0]!)
+        const innerSchema = S.make((redactedType as S.AST.Declaration).typeParameters[0])
         const hasNull = types.some(S.AST.isNull)
         const hasUndefined = types.some(S.AST.isUndefined)
         const base = S.RedactedFromValue(innerSchema)
@@ -1115,19 +1115,19 @@ export const toFormSchema = <From, To>(
     }
   }
 
-  return hasRedacted ? S.Struct(props) as unknown as S.Codec<To, From, never> : schema
+  return hasRedacted ? S.Struct(props) as unknown as S.Codec<To, From> : schema
 }
 
 export const duplicateSchema = <From, To>(
-  schema: S.Codec<To, From, never>
+  schema: S.Codec<To, From>
 ) => {
   return schema
 }
 
 export const generateMetaFromSchema = <From, To>(
-  schema: S.Codec<To, From, never>
+  schema: S.Codec<To, From>
 ): {
-  schema: S.Codec<To, From, never>
+  schema: S.Codec<To, From>
   meta: MetaRecord<To>
   unionMeta: Record<string, MetaRecord<To>>
 } => {
@@ -1271,7 +1271,7 @@ export const generateInputStandardSchemaFromFieldMeta = (
   if (!meta.required) {
     schema = S.NullishOr(schema)
   }
-  const result = S.toStandardSchemaV1(schema as any)
+  const result = S.toStandardSchemaV1(schema)
   return result
 }
 
@@ -1392,7 +1392,7 @@ export const defaultsValueFromSchema = (
       for (const prop of memberAst.propertySignatures) {
         const key = prop.name.toString()
         const fieldDefault = getDefaultFromAst(prop.type)
-        const existingDefault = mergedFields[key] ? getDefaultFromAst(mergedFields[key]!.ast) : undefined
+        const existingDefault = mergedFields[key] ? getDefaultFromAst(mergedFields[key].ast) : undefined
 
         if (!mergedFields[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
           mergedFields[key] = { ast: prop.type }

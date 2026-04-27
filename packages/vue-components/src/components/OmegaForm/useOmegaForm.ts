@@ -60,7 +60,7 @@ const fHoc = (form: OF<any, any>) => {
         return h(WrappedComponent, {
           form,
           ...this.$attrs
-        } as any, this.$slots)
+        }, this.$slots)
       }
     }
   }
@@ -166,7 +166,7 @@ const eHoc = (errorProps: {
           errors,
           generalErrors,
           ...this.$attrs
-        } as any, this.$slots)
+        }, this.$slots)
       }
     }
   }
@@ -398,7 +398,7 @@ export interface OmegaFormReturn<
   // Pre-computed type aliases - computed ONCE for performance
   _paths: FieldPath<From>
   _keys: NestedKeyOf<From>
-  _schema: S.Codec<To, From, never>
+  _schema: S.Codec<To, From>
 
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
   Input: <Name extends OmegaFormReturn<From, To, TypeProps>["_paths"]>(
@@ -679,7 +679,7 @@ export const useOmegaForm = <
   To extends Record<PropertyKey, any>,
   TypeProps = DefaultTypeProps
 >(
-  schema: S.Codec<To, From, never>,
+  schema: S.Codec<To, From>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {

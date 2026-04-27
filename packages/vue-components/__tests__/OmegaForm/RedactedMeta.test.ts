@@ -150,4 +150,32 @@ describe("toFormSchema — S.Redacted validation", () => {
 
     expect(Redacted.isRedacted(result.password)).toBe(true)
   })
+
+  it("toFormSchema rewrites NullOr(Redacted)", () => {
+    const schema = S.Struct({
+      secret: S.NullOr(S.Redacted(S.String))
+    })
+    const formSchema = toFormSchema(schema)
+    // formSchema must accept a plain string (encoded side) for the secret field
+    const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
+    expect(decoded.secret).toBeDefined()
+  })
+
+  it("toFormSchema rewrites UndefinedOr(Redacted)", () => {
+    const schema = S.Struct({
+      secret: S.UndefinedOr(S.Redacted(S.String))
+    })
+    const formSchema = toFormSchema(schema)
+    const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
+    expect(decoded.secret).toBeDefined()
+  })
+
+  it("toFormSchema rewrites NullishOr(Redacted)", () => {
+    const schema = S.Struct({
+      secret: S.NullishOr(S.Redacted(S.String))
+    })
+    const formSchema = toFormSchema(schema)
+    const decoded = S.decodeUnknownSync(formSchema)({ secret: "hello" })
+    expect(decoded.secret).toBeDefined()
+  })
 })

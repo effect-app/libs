@@ -120,7 +120,6 @@ const isFalsyButNotZero = (value: unknown): boolean => {
 // we remove value and errors when the field is empty and not required
 // convert nullish value to null or undefined based on schema
 const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) => {
-  let fieldDeleted = false
   if (isFalsyButNotZero(value) && props.meta?.type !== "boolean") {
     // Only convert to null/undefined if the field is actually nullable or optional
     if (props.meta?.nullableOrUndefined) {
@@ -137,20 +136,12 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
       // from `required: false`, which may also just mean "empty string
       // is valid" for unconstrained `S.String` fields.
       props.field.form.deleteField(props.field.name)
-      fieldDeleted = true
     } else {
       // Keep the actual value (e.g., empty string for S.String fields)
       props.field.handleChange(value)
     }
   } else {
     props.field.handleChange(value)
-  }
-
-  // whenever we change the field, regardless if we set it to null, we should reset onSubmit.
-  // not sure why this is not the case in tanstack form.
-  // Skip when the field was deleted — its meta no longer exists in the form store.
-  if (!fieldDeleted) {
-    props.field.setMeta((m) => ({ ...m, errorMap: { ...m.errorMap, onSubmit: undefined } }))
   }
 }
 

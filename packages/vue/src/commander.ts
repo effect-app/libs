@@ -1782,7 +1782,7 @@ export const CommanderStatic = {
 
   /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
   confirmOrInterrupt: Effect.fnUntraced(function*(
-    message?: string | undefined
+    message?: string  
   ) {
     const context = yield* CommandContext
     const { intl } = yield* I18n
@@ -1797,7 +1797,7 @@ export const CommanderStatic = {
   }),
   /** Version of @see confirm that automatically includes the action name in the default messages */
   confirm: Effect.fnUntraced(function*(
-    message?: string | undefined
+    message?: string  
   ) {
     const context = yield* CommandContext
     const { intl } = yield* I18n

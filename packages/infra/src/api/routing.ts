@@ -330,15 +330,13 @@ export const makeRouter = <
               ? Impl[K]["raw"] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends (...args: any[]) => Generator<
-                Yieldable<any, any, any, infer R>,
-                any
+                Yieldable<any, any, any, infer R>
               > ? R
               : never
               : Impl[K] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends (...args: any[]) => Generator<
-                Yieldable<any, any, any, infer R>,
-                any
+                Yieldable<any, any, any, infer R>
               > ? R
               : never,
             | GetEffectContext<RequestContextMap, Resource[K]["config"]>
@@ -582,16 +580,16 @@ export type MakeErrors<Make> = /*Make extends { readonly effect: (_: any) => Eff
   : Make extends { readonly effect: (_: any) => Effect.Effect<any, never, any> } ? never
   : */
   // v4: generators yield Yieldable with asEffect()
-  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, never, any>, any> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, infer E, any>, any> } ? E
+  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, never, any>> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, infer E, any>> } ? E
     : never
 
 export type MakeContext<Make> = /*Make extends { readonly effect: (_: any) => Effect.Effect<any, any, infer R> } ? R
   : Make extends { readonly effect: (_: any) => Effect.Effect<any, any, never> } ? never
   : */
   // v4: generators yield Yieldable with asEffect()
-  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any>, any> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any, infer R>, any> } ? R
+  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any>> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any, infer R>> } ? R
     : never
 
 export type MakeHandlers<Make, _Handlers extends Record<string, any>> = /*Make extends

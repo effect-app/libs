@@ -47,7 +47,7 @@ export const useOnClose = (close: () => void) => {
     if (evt.prevent) {
       if (typeof evt.prevent === "object" && "then" in evt.prevent) {
         evt.prevent.then((r) => {
-          if (r !== false) {
+          if (r) {
             close()
           }
         })

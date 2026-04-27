@@ -54,7 +54,7 @@ type ExtractFieldValuesRefined<T> = T extends QueryTogether<any, infer TFieldVal
 
 export type RelationDirection = "some" | "every"
 export type Relation = { relation: RelationDirection }
-export type Query<TFieldValues extends FieldValues> = QueryTogether<TFieldValues, TFieldValues, false>
+export type Query<TFieldValues extends FieldValues> = QueryTogether<TFieldValues, TFieldValues>
 export type QueryWhere<
   TFieldValues extends FieldValues,
   TFieldValuesRefined extends TFieldValues = TFieldValues,

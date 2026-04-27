@@ -50,8 +50,8 @@ importers:
         specifier: ^2.31.0
         version: 2.31.0(@types/node@25.6.0)
       '@effect-app/cli':
-        specifier: 2.1.0-beta.16
-        version: 2.1.0-beta.16(ioredis@5.9.3)
+        specifier: 2.1.0-beta.17
+        version: 2.1.0-beta.17(ioredis@5.9.3)
       '@effect-app/eslint-codegen-model':
         specifier: workspace:*
         version: link:packages/eslint-codegen-model
@@ -1095,8 +1095,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@effect-app/cli@2.1.0-beta.16':
-    resolution: {integrity: sha512-A1L1gRIRsIpvIMXqGZZQ15bHbuLM0wikSGFjESKH+7Iqvm1wSPxunMdoIdT0IUwrFTKKeGZBKb5K+iIB0mBCQw==}
+  '@effect-app/cli@2.1.0-beta.17':
+    resolution: {integrity: sha512-p05JKjh5z7labZRKT4lP7cWLeN59Kd+d6/toN26NcVyfvoJJ20piM27f/QpOMLtLrCQ1qMX0FIp16TdI20RJsQ==}
     hasBin: true
 
   '@effect/atom-vue@4.0.0-beta.57':
@@ -7583,7 +7583,7 @@ snapshots:
   '@dprint/win32-x64@0.54.0':
     optional: true
 
-  '@effect-app/cli@2.1.0-beta.16(ioredis@5.9.3)':
+  '@effect-app/cli@2.1.0-beta.17(ioredis@5.9.3)':
     dependencies:
       '@effect/platform-node': 4.0.0-beta.56(effect@4.0.0-beta.56)(ioredis@5.9.3)
       effect: 4.0.0-beta.56

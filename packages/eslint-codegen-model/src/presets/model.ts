@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import generate from "@babel/generator"
-import { parse } from "@babel/parser"
-import type { Preset } from "eslint-plugin-codegen"
 import * as fs from "fs"
+import { normaliseModule } from "../normalise.js"
 
-function parseModule(code: string) {
-  return parse(code, { sourceType: "module", plugins: ["typescript"] }) as any
-}
+type PresetFn<T = Record<string, unknown>> = (args: {
+  meta: { filename: string; existingContent: string }
+  options: T
+}, context?: unknown) => string
 
 // Detects `export class Foo` whose extends clause contains e.g. `Class<Foo,` or
 // `S.TaggedClass<Foo,` — the second generic signals an Encoded override and marks
@@ -42,25 +40,7 @@ function getExportedModelNames(code: string): Array<string> {
   return result
 }
 
-function normalise(str: string) {
-  try {
-    return generate(
-      parseModule(str)
-    )
-      .code
-    // .replace(/'/g, `"`)
-    // .replace(/\/index/g, "")
-    // .replace(/([\n\s]+ \|)/g, " |").replaceAll(": |", ":")
-    // .replaceAll(/[\s\n]+\|/g, " |")
-    // .replaceAll("\n", ";")
-    // .replaceAll(" ", "")
-    // TODO: remove all \n and whitespace?
-  } catch (e) {
-    return str
-  }
-}
-
-export const model: Preset<{
+export const model: PresetFn<{
   writeFullTypes?: boolean
 }> = ({ meta }) => {
   try {
@@ -86,15 +66,16 @@ export const model: Preset<{
     }
     const expectedContent = [
       "//",
-      `/* eslint-disable */`,
       ...them.flat().filter((x): x is string => !!x),
-      `/* eslint-enable */`,
       "//"
     ]
       .join("\n")
 
     // do not re-emit in a different style, or a loop will occur
-    if (normalise(meta.existingContent) === normalise(expectedContent)) {
+    if (
+      normaliseModule(meta.existingContent, meta.filename)
+        === normaliseModule(expectedContent, meta.filename)
+    ) {
       return meta.existingContent
     }
     return expectedContent

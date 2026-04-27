@@ -1,10 +1,13 @@
-import generate from "@babel/generator"
-import { parse } from "@babel/parser"
-import type { Preset } from "eslint-plugin-codegen"
-import * as glob from "glob"
+import glob from "glob"
 import { match } from "io-ts-extra"
-import * as lodash from "lodash"
+import lodash from "lodash"
 import * as path from "path"
+import { normaliseModuleForBarrel } from "../normalise.js"
+
+type PresetFn<T = Record<string, unknown>> = (args: {
+  meta: { filename: string; existingContent: string }
+  options: T
+}, context?: unknown) => string
 
 /**
  * Bundle several modules into a single convenient one.
@@ -30,7 +33,7 @@ import * as path from "path"
  * to `{name: someName, keys: path}` the relative file paths will be used as keys. Otherwise the file paths
  * will be camel-cased to make them valid js identifiers.
  */
-export const barrel: Preset<{
+export const barrel: PresetFn<{
   include?: string
   exclude?: string | string[]
   import?: "default" | "star"
@@ -57,7 +60,11 @@ export const barrel: Preset<{
         ? [".js", ".mjs", ".ts", ".tsx"].includes(path.extname(file))
         : true
     )
-    .map((f) => f.replace(/\.\w+$/, "").replace(/\/$/, ""))
+    .map((f) => {
+      const isDir = f.endsWith("/")
+      const cleaned = f.replace(/\.\w+$/, "").replace(/\/$/, "")
+      return isDir ? `${cleaned}/index` : cleaned
+    })
 
   function last<T>(list: readonly T[]) {
     return list[list.length - 1]
@@ -146,17 +153,11 @@ export const ${up}: ${up} = ${i.identifier}`
     })
     .get()
 
-  // ignore stylistic differences. babel generate deals with most
-  const normalise = (str: string) =>
-    generate(
-      parse(str, { sourceType: "module", plugins: ["typescript"] }) as any
-    )
-      .code
-      .replace(/'/g, `"`)
-      .replace(/\/index/g, "")
-
   try {
-    if (normalise(expectedContent) === normalise(meta.existingContent)) {
+    if (
+      normaliseModuleForBarrel(expectedContent, meta.filename)
+        === normaliseModuleForBarrel(meta.existingContent, meta.filename)
+    ) {
       return meta.existingContent
     }
   } catch {}

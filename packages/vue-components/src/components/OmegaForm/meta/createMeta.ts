@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Effect, type Record, S } from "effect-app"
-import { type DeepKeys, type StandardSchemaV1 } from "@tanstack/vue-form"
+import { type StandardSchemaV1 } from "@tanstack/vue-form"
 import { getTransformationFrom } from "../../../utils"
 import type {
   FieldMeta,
@@ -77,6 +77,8 @@ type ParentMeta = {
   nullableOrUndefined: false | "null" | "undefined"
   /** Set when iterating the members of a nullable discriminated union */
   isNullableDiscriminatedUnion?: boolean
+  /** Set when this property was declared with S.optionalKey */
+  isOptionalKey?: boolean
 }
 
 const leafMetaForAst = (
@@ -136,9 +138,8 @@ const walkStruct = <T>(
     walk(
       p.type,
       key,
-      { required: isRequired, nullableOrUndefined },
-      ctx,
-      isOptionalKey
+      { required: isRequired, nullableOrUndefined, isOptionalKey },
+      ctx
     )
   }
 }
@@ -195,8 +196,8 @@ const classifyAndWalkUnion = <T>(
 
       if (tagValue) {
         const existing = ctx.unionMeta[tagValue]
-        if (existing) Object.assign(existing, flattenMeta<T>(branchCtx.acc as MetaRecord<T>))
-        else ctx.unionMeta[tagValue] = flattenMeta<T>(branchCtx.acc as MetaRecord<T>)
+        if (existing) Object.assign(existing, branchCtx.acc as MetaRecord<T>)
+        else ctx.unionMeta[tagValue] = branchCtx.acc as MetaRecord<T>
       }
 
       for (const [metaKey, metaValue] of Object.entries(branchCtx.acc)) {
@@ -239,11 +240,15 @@ const classifyAndWalkUnion = <T>(
   // Literal / primitive union (e.g. legacy _tag pattern)
   const resolvedTypes = unwrappedTypes.map(unwrapSingleLiteralUnion)
   if (resolvedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
-    acc[key as NestedKeyOf<T>] = {
-      ...parentMeta,
+    const { required, nullableOrUndefined, isOptionalKey } = parentMeta
+    const leaf: FieldMeta = {
+      required,
+      nullableOrUndefined,
       type: "select",
       members: resolvedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
     } as FieldMeta
+    if (isOptionalKey) leaf.isOptionalKey = true
+    acc[key as NestedKeyOf<T>] = leaf
     if (fieldAstByPath) fieldAstByPath[key] = unionAst
     return
   }
@@ -257,8 +262,7 @@ const walk = <T>(
   ast: S.AST.AST,
   key: string,
   parentMeta: ParentMeta,
-  ctx: WalkerContext<T>,
-  isOptionalKey?: boolean
+  ctx: WalkerContext<T>
 ): void => {
   ast = unwrapDeclaration(ast)
   const { acc, fieldAstByPath } = ctx
@@ -289,34 +293,17 @@ const walk = <T>(
   }
 
   // Leaf primitive / literal / unknown
-  const { required, nullableOrUndefined } = parentMeta
+  const { required, nullableOrUndefined, isOptionalKey } = parentMeta
   const adjusted: ParentMeta = {
     required: required && (!S.AST.isString(ast) || !!getFieldMetadataFromAst(ast).minLength),
-    nullableOrUndefined,
-    ...(isOptionalKey ? {} : {})
+    nullableOrUndefined
   }
   const leaf = leafMetaForAst(ast, adjusted)
-  if (isOptionalKey) (leaf as any).isOptionalKey = true
+  if (isOptionalKey) leaf.isOptionalKey = true
   acc[key as NestedKeyOf<T>] = leaf
   if (fieldAstByPath) fieldAstByPath[key] = ast
 }
 
-const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = ""): MetaRecord<T> => {
-  const result: MetaRecord<T> = {}
-
-  for (const key in meta) {
-    const value = (meta as any)[key]
-    const newKey = parentKey ? `${parentKey}.${key}` : key
-
-    if (value && typeof value === "object" && "type" in value) {
-      result[newKey as DeepKeys<T>] = value as FieldMeta
-    } else if (value && typeof value === "object") {
-      Object.assign(result, flattenMeta<T>(value, newKey))
-    }
-  }
-
-  return result
-}
 
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
@@ -328,8 +315,7 @@ export const createMeta = <T = any>(
   if (propertySignatures) {
     const parentMeta: ParentMeta = {
       required: meta.required !== false,
-      nullableOrUndefined: meta.nullableOrUndefined ?? false,
-      isNullableDiscriminatedUnion: !!(meta as any)._isNullableDiscriminatedUnion
+      nullableOrUndefined: meta.nullableOrUndefined ?? false
     }
     walkStruct(propertySignatures, parent, parentMeta, ctx)
     return acc
@@ -419,14 +405,6 @@ export const metadataFromAst = <From, To>(
   if (S.AST.isUnion(ast)) {
     // Root-level discriminated union
     classifyAndWalkUnion(ast, "", { required: true, nullableOrUndefined: false }, ctx)
-
-    // classifyAndWalkUnion stores _tag at key "" + "._tag" which becomes "._tag"
-    // Fix: for root-level union, the _tag key should be just "_tag"
-    const badKey = "._tag" as NestedKeyOf<To>
-    if (newMeta[badKey]) {
-      newMeta["_tag" as NestedKeyOf<To>] = newMeta[badKey]
-      delete newMeta[badKey]
-    }
 
     attachOriginalSchemas(newMeta as MetaRecord<To>)
     return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }

@@ -9,7 +9,7 @@ const subStruct = {
   c: S.NullishOr(S.Finite),
   d: S.String,
   e: S.Finite,
-  f: S.Finite
+  f: S.Boolean
 }
 
 const schema = S.Struct({
@@ -24,7 +24,7 @@ const expectedSubMeta = {
   c: { required: false, nullableOrUndefined: "undefined", type: "number" },
   d: { type: "string", required: false, nullableOrUndefined: false },
   e: { type: "number", required: true, nullableOrUndefined: false },
-  f: { type: "number", required: true, nullableOrUndefined: false }
+  f: { type: "boolean", required: true, nullableOrUndefined: false }
 }
 
 describe("Meta story characterization", () => {

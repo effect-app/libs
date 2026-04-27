@@ -1,41 +1,24 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
-import { FlatCompat } from "@eslint/eslintrc"
 import js from "@eslint/js"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
-
-import codegen from "eslint-plugin-codegen"
+import tsParser from "@typescript-eslint/parser"
 import _import from "eslint-plugin-import"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
 import unusedImports from "eslint-plugin-unused-imports"
-import tsParser from "@typescript-eslint/parser"
 import effectAppPlugin from "./plugin-effect-app.mjs"
 
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all
-})
-
 /**
- * Minimal ESLint config. Most type-aware TS rules are handled by
- * `oxlint --type-aware` (powered by tsgolint). ESLint here runs the JS-based
- * plugins (codegen, import, unused-imports, sort-destructure-keys) plus the
- * local `@effect-app/no-await-effect` type-aware rule (no tsgolint equivalent),
+ * Minimal ESLint config. Type-aware TS rules and codegen are handled by
+ * `oxlint --type-aware` (powered by tsgolint + the `@effect-app/eslint-codegen-model/oxlint`
+ * JS plugin). ESLint here runs only what oxlint can't: JS-based plugins
+ * (import, unused-imports, sort-destructure-keys) plus the local
+ * `@effect-app/no-await-effect` type-aware rule (no tsgolint equivalent),
  * which activates when ESLINT_TS=1 (or `forceTS`).
  *
  * @param {string} dirName
  * @param {boolean} [forceTS=false]
- * @param {unknown} [_project] kept for backward compat; ignored
- * @param {boolean} [_enableOxlint=false] kept for backward compat; ignored
  * @returns {import("eslint").Linter.FlatConfig[]}
  */
-export function baseConfig(dirName, forceTS = false, _project = undefined, _enableOxlint = false) {
+export function baseConfig(dirName, forceTS = false) {
   // eslint-disable-next-line no-undef
   const enableTS = !!dirName && (forceTS || process.env["ESLINT_TS"])
   return [
@@ -72,7 +55,6 @@ export function baseConfig(dirName, forceTS = false, _project = undefined, _enab
         import: _import,
         "sort-destructure-keys": sortDestructureKeys,
         "unused-imports": unusedImports,
-        codegen,
         "@effect-app": effectAppPlugin
       },
       rules: {
@@ -101,30 +83,6 @@ export function baseConfig(dirName, forceTS = false, _project = undefined, _enab
         ...(enableTS && {
           "@effect-app/no-await-effect": "error"
         })
-      }
-    }
-  ]
-}
-
-/**
- * @param {string} dirName
- * @param {boolean} [forceTS=false]
- * @param {unknown} [project]
- * @param {boolean} [enableOxlint=false]
- * @returns {import("eslint").Linter.FlatConfig[]}
- */
-export function augmentedConfig(dirName, forceTS = false, project = undefined, enableOxlint = false) {
-  return [
-    ...baseConfig(dirName, forceTS, project, enableOxlint),
-    {
-      name: "augmented",
-      rules: {
-        "codegen/codegen": [
-          "error",
-          {
-            presets: "@effect-app/eslint-codegen-model/dist/presets/index.js"
-          }
-        ]
       }
     }
   ]

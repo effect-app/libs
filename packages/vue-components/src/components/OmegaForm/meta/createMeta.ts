@@ -73,19 +73,8 @@ export const isNullableOrUndefined = (property: false | S.AST.AST | undefined) =
 }
 
 // Helper function to recursively unwrap nested unions (e.g., S.NullOr(S.NullOr(X)) -> X)
-const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] => {
-  const result: S.AST.AST[] = []
-  for (const type of types) {
-    if (S.AST.isUnion(type)) {
-      // Recursively unwrap nested unions
-      const unwrapped = unwrapNestedUnions(type.types)
-      result.push(...unwrapped)
-    } else {
-      result.push(type)
-    }
-  }
-  return result
-}
+const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] =>
+  types.flatMap((type) => S.AST.isUnion(type) ? unwrapNestedUnions(type.types) : [type])
 
 const getNonNullTypes = (types: readonly S.AST.AST[]) =>
   unwrapNestedUnions(types)

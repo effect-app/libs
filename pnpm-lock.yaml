@@ -252,15 +252,6 @@ importers:
 
   packages/eslint-codegen-model:
     dependencies:
-      '@babel/generator':
-        specifier: 7.29.1
-        version: 7.29.1
-      '@babel/parser':
-        specifier: 7.29.2
-        version: 7.29.2
-      '@typescript-eslint/utils':
-        specifier: 8.59.1
-        version: 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
       eslint-plugin-codegen:
         specifier: 0.17.0
         version: 0.17.0(patch_hash=c7a8546a270abdcd8317f0584f04f3bca89e9aeaab011d433623e3def2405058)

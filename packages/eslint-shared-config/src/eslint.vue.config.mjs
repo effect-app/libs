@@ -1,5 +1,6 @@
 import formatjs from "eslint-plugin-formatjs"
 import pluginVue from "eslint-plugin-vue"
+import globals from "globals"
 import vueParser from "vue-eslint-parser"
 import tsParser from "@typescript-eslint/parser"
 import { baseConfig } from "./eslint.base.config.mjs"
@@ -24,6 +25,16 @@ export function vueConfig(dirName, forceTS = false) {
 
   return [
     ...baseConfig(dirName, forceTS),
+
+    {
+      name: "browser-globals",
+      files: ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts", "**/*.vue"],
+      languageOptions: {
+        globals: {
+          ...globals.browser
+        }
+      }
+    },
 
     ...pluginVue.configs["flat/recommended"],
     {

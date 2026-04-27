@@ -21,7 +21,6 @@
     "vue": "^3.5.33"
   },
   "devDependencies": {
-    "@effect-app/eslint-shared-config": "workspace:*",
     "@effect/vitest": "^4.0.0-beta.56",
     "@formatjs/icu-messageformat-parser": "^3.5.5",
     "@types/node": "25.6.0",
@@ -121,8 +120,8 @@
     "circular:src": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "circular:dist": "madge --circular --extensions js ./dist",
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsgo --noEmit",
-    "lint": "oxlint --type-aware ./src && NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src && pnpm exec dprint check --config ../../dprint.jsonc .",
-    "lint-fix": "oxlint --type-aware --fix ./src && NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint --fix ./src && pnpm exec dprint fmt --config ../../dprint.jsonc .",
+    "lint": "oxlint --type-aware ./src && pnpm exec dprint check --config ../../dprint.jsonc .",
+    "lint-fix": "oxlint --type-aware --fix ./src && pnpm exec dprint fmt --config ../../dprint.jsonc .",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

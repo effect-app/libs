@@ -289,6 +289,9 @@ importers:
       '@eslint/js':
         specifier: 10.0.1
         version: 10.0.1(eslint@10.2.1)
+      '@typescript-eslint/eslint-plugin':
+        specifier: 8.59.0
+        version: 8.59.0(@typescript-eslint/parser@8.59.0(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       '@typescript-eslint/parser':
         specifier: 8.59.0
         version: 8.59.0(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
@@ -319,6 +322,9 @@ importers:
       eslint-plugin-vue:
         specifier: 10.9.0
         version: 10.9.0(@typescript-eslint/parser@8.59.0(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1))
+      globals:
+        specifier: 14.0.0
+        version: 14.0.0
       jsonc-parser:
         specifier: 3.3.1
         version: 3.3.1
@@ -471,9 +477,6 @@ importers:
         specifier: ^3.5.33
         version: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
     devDependencies:
-      '@effect-app/eslint-shared-config':
-        specifier: workspace:*
-        version: link:../eslint-shared-config
       '@effect/vitest':
         specifier: ^4.0.0-beta.56
         version: 4.0.0-beta.56(effect@4.0.0-beta.56)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.0.2)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
@@ -8664,7 +8667,6 @@ snapshots:
       typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   '@typescript-eslint/parser@8.59.0(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))':
     dependencies:
@@ -8720,7 +8722,6 @@ snapshots:
       typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   '@typescript-eslint/types@8.59.0': {}
 
@@ -8764,7 +8765,6 @@ snapshots:
       typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   '@typescript-eslint/visitor-keys@8.59.0':
     dependencies:
@@ -10607,8 +10607,7 @@ snapshots:
 
   ignore@5.3.2: {}
 
-  ignore@7.0.5:
-    optional: true
+  ignore@7.0.5: {}
 
   immutable@5.1.5: {}
 

@@ -37,6 +37,8 @@
     "eslint-plugin-vue": "10.9.0",
     "vue-eslint-parser": "10.4.0",
     "@typescript-eslint/parser": "8.59.0",
+    "@typescript-eslint/eslint-plugin": "8.59.0",
+    "globals": "14.0.0",
     "dprint-plugin-malva": "0.15.3",
     "dprint-plugin-markup": "0.27.0",
     "dprint-plugin-yaml": "0.6.0",

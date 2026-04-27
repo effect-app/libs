@@ -18,8 +18,10 @@ import OmegaForm from "./OmegaWrapper.vue"
 import { usePersistency } from "./persistency"
 import { makeSubmitHandlers, wrapOnSubmit } from "./submit"
 import type { DefaultTypeProps, FormProps, OF, OmegaConfig, OmegaFormApi, OmegaFormReturn } from "./types"
+import { toLocalizedStandardSchemaV1 } from "./validation/localized"
 
 import { makeRunPromise } from "@effect-app/vue/runtime"
+import { useIntl } from "../../utils"
 
 export { useErrorLabel } from "./errors"
 export { FormErrors } from "./submit"
@@ -41,8 +43,12 @@ export const useOmegaForm = <
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
+  const { trans } = useIntl()
   const formCompatibleSchema = toFormSchema(schema)
-  const standardSchema = S.toStandardSchemaV1(formCompatibleSchema)
+  const standardSchema = toLocalizedStandardSchemaV1(
+    formCompatibleSchema as any,
+    trans
+  )
   const decode = S.decodeUnknownEffect(formCompatibleSchema)
 
   const { meta, unionMeta } = generateMetaFromSchema(formCompatibleSchema)

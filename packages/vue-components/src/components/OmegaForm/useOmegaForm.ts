@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import * as api from "@opentelemetry/api"
-import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Array, Context, Data, Effect, Fiber, Option, Order, S } from "effect-app"
-import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
+import { DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
+import { Array, Context, Effect, Order, S } from "effect-app"
+import { UnionToTuples } from "effect-app/utils"
 import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onUnmounted, Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
 import { MergedInputProps } from "./InputProps"
@@ -16,8 +15,11 @@ import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
 import { type defaultValuesPriorityUnion as PersistencyPriority, type Policies as PersistencyPolicies, usePersistency } from "./persistency"
+import { FormErrors, makeSubmitHandlers, wrapOnSubmit } from "./submit"
 
 import { makeRunPromise } from "@effect-app/vue/runtime"
+
+export { FormErrors } from "./submit"
 
 type keysRule<T> =
   | {
@@ -28,29 +30,6 @@ type keysRule<T> =
     keys?: "You should only use one of banKeys or keys, not both, moron"
     banKeys?: NestedKeyOf<T>[]
   }
-
-export class FormErrors<From> extends Data.TaggedError("FormErrors")<{
-  form: {
-    // TODO: error shapes seem off, with `undefined` etc..
-    errors: (Record<string, StandardSchemaV1Issue[]> | undefined)[]
-    errorMap: ValidationErrorMap<
-      undefined,
-      undefined,
-      Record<string, StandardSchemaV1Issue[]>,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    >
-  }
-  fields: Record<DeepKeys<From>, {
-    errors: ValidationError[]
-    errorMap: ValidationErrorMap
-  }>
-}> {}
 
 const fHoc = (form: OF<any, any>) => {
   return function FormHoc<P>(
@@ -687,10 +666,6 @@ export const useOmegaForm = <
 
   const { meta, unionMeta } = generateMetaFromSchema(formCompatibleSchema)
 
-  const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {
-    return span ? api.context.with(api.trace.setSpan(api.context.active(), span), toWrap) : toWrap()
-  }
-
   // Persistency must be created before `useForm` so its merged
   // `defaultValues` (tanstack + storage/querystring + schema) can flow into
   // the form. The `getForm` accessor is lazy because the form is constructed
@@ -725,28 +700,7 @@ export const useOmegaForm = <
       onSubmit: standardSchema,
       ...tanstackFormOptions?.validators
     },
-    onSubmit: tanstackFormOptions?.onSubmit
-      ? ({ formApi, meta, value }) =>
-        wrapWithSpan(meta?.currentSpan, async () => {
-          // validators only validate, they don't actually transform, so we have to do that manually here.
-          const parsedValue = await runPromise(decode(value))
-          const r = tanstackFormOptions.onSubmit!({
-            formApi: formApi as OmegaFormApi<From, To>,
-            meta,
-            value: parsedValue
-          })
-          if (Fiber.isFiber(r)) {
-            return await runtimeFiberAsPromise(r)
-          }
-          if (Effect.isEffect(r)) {
-            const effectResult = await runPromise(r)
-            return Fiber.isFiber(effectResult)
-              ? await runtimeFiberAsPromise(effectResult)
-              : effectResult
-          }
-          return r
-        })
-      : undefined,
+    onSubmit: wrapOnSubmit<From, To>(tanstackFormOptions?.onSubmit, decode, runPromise),
     defaultValues: persistency.defaultValues.value as any
   }) satisfies OmegaFormApi<To, From>
   formHolder.form = form
@@ -777,37 +731,7 @@ export const useOmegaForm = <
     })
   }
 
-  const hs = form.handleSubmit
-
-  const handleSubmit: typeof form.handleSubmit = async (meta?: Record<string, any>) => {
-    // workaround for not revealing all form errors on submit
-    // await form.validateAllFields("blur")
-    return await hs(meta)
-  }
-
-  const handleSubmitEffect_ = (meta?: Record<string, any>) =>
-    Effect.currentSpan.pipe(
-      Effect.option,
-      Effect
-        .flatMap((span) =>
-          Effect.promise(() => handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
-        )
-    )
-
-  const handleSubmitEffect: {
-    (options: { checkErrors: true; meta?: Record<string, any> }): Effect.Effect<void, FormErrors<From>>
-    (options?: { meta?: Record<string, any> }): Effect.Effect<void>
-  } = (
-    options?: { meta?: Record<string, any>; checkErrors?: true }
-  ): any =>
-    options?.checkErrors
-      ? handleSubmitEffect_(options?.meta).pipe(Effect.flatMap(Effect.fnUntraced(function*() {
-        const errors = form.getAllErrors()
-        if (Object.keys(errors.fields).length || errors.form.errors.length) {
-          return yield* Effect.fail(new FormErrors({ form: errors.form, fields: errors.fields }))
-        }
-      })))
-      : handleSubmitEffect_(options?.meta)
+  const { handleSubmit, handleSubmitEffect } = makeSubmitHandlers<From, To>(form)
 
   const fieldMap = ref(new Map<string, { label: string; id: string }>())
 
@@ -817,10 +741,7 @@ export const useOmegaForm = <
     meta,
     unionMeta,
     clear,
-    handleSubmit: (meta?: Record<string, any>) => {
-      const span = api.trace.getSpan(api.context.active())
-      return handleSubmit({ currentSpan: span, ...meta })
-    },
+    handleSubmit,
     // /** @experimental */
     handleSubmitEffect,
     registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {

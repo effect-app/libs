@@ -962,145 +962,6 @@ export const generateMetaFromSchema = <From, To>(
   return { schema, meta, unionMeta }
 }
 
-export const generateInputStandardSchemaFromFieldMeta = (
-  meta: FieldMeta,
-  trans?: ReturnType<typeof useIntl>["trans"]
-): StandardSchemaV1<any, any> => {
-  if (!trans) {
-    trans = useIntl().trans
-  }
-  let schema: any
-  switch (meta.type) {
-    case "string":
-      schema = meta.format === "email"
-        ? S.Email.annotate({
-          message: trans("validation.email.invalid")
-        })
-        : S.String.annotate({
-          message: trans("validation.empty")
-        })
-
-      if (meta.required) {
-        schema = schema.check(S.isMinLength(1, {
-          message: trans("validation.empty")
-        }))
-      }
-
-      if (typeof meta.maxLength === "number") {
-        schema = schema.check(S.isMaxLength(meta.maxLength, {
-          message: trans("validation.string.maxLength", {
-            maxLength: meta.maxLength
-          })
-        }))
-      }
-      if (typeof meta.minLength === "number") {
-        schema = schema.check(S.isMinLength(meta.minLength, {
-          message: trans("validation.string.minLength", {
-            minLength: meta.minLength
-          })
-        }))
-      }
-      break
-
-    case "number":
-      if (meta.refinement === "int") {
-        schema = S
-          .Number
-          .annotate({
-            message: trans("validation.empty")
-          })
-          .check(S.isInt({
-            message: trans("validation.integer.expected", { actualValue: "NaN" })
-          }))
-      } else {
-        schema = S.Finite.annotate({
-          message: trans("validation.number.expected", { actualValue: "NaN" })
-        })
-
-        if (meta.required) {
-          schema = schema.annotate({
-            message: trans("validation.empty")
-          })
-        }
-      }
-
-      if (typeof meta.minimum === "number") {
-        schema = schema.check(S.isGreaterThanOrEqualTo(meta.minimum, {
-          message: trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
-            minimum: meta.minimum,
-            isExclusive: true
-          })
-        }))
-      }
-      if (typeof meta.maximum === "number") {
-        schema = schema.check(S.isLessThanOrEqualTo(meta.maximum, {
-          message: trans("validation.number.max", {
-            maximum: meta.maximum,
-            isExclusive: true
-          })
-        }))
-      }
-      if (typeof meta.exclusiveMinimum === "number") {
-        schema = schema.check(S.isGreaterThan(meta.exclusiveMinimum, {
-          message: trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
-            minimum: meta.exclusiveMinimum,
-            isExclusive: false
-          })
-        }))
-      }
-      if (typeof meta.exclusiveMaximum === "number") {
-        schema = schema.check(S.isLessThan(meta.exclusiveMaximum, {
-          message: trans("validation.number.max", {
-            maximum: meta.exclusiveMaximum,
-            isExclusive: false
-          })
-        }))
-      }
-      break
-    case "select":
-      schema = S.Literals(meta.members as [any, ...any[]]).annotate({
-        message: trans("validation.not_a_valid", {
-          type: "select",
-          message: meta.members.join(", ")
-        })
-      })
-
-      break
-
-    case "multiple":
-      schema = S.Array(S.String).annotate({
-        message: trans("validation.not_a_valid", {
-          type: "multiple",
-          message: meta.members.join(", ")
-        })
-      })
-      break
-
-    case "boolean":
-      schema = S.Boolean
-      break
-
-    case "date":
-      schema = S.Date
-      break
-
-    case "unknown":
-      schema = S.Unknown
-      break
-
-    default:
-      // For any unhandled types, use Unknown schema to prevent undefined errors
-      console.warn(`Unhandled field type: ${meta}`)
-      schema = S.Unknown
-      break
-  }
-  if (!meta.required) {
-    schema = S.NullishOr(schema)
-  }
-  const result = S.toStandardSchemaV1(schema as any)
-  return result
-}
-
 export type OmegaAutoGenMeta<
   From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
@@ -1160,3 +1021,8 @@ export {
 } from "./meta/types"
 export { toFormSchema } from "./meta/redacted"
 export { defaultsValueFromSchema } from "./meta/defaults"
+export {
+  generateInputStandardSchemaFromFieldMeta,
+  makeStandardSchemaV1Hooks,
+  toLocalizedStandardSchemaV1
+} from "./validation/localized"

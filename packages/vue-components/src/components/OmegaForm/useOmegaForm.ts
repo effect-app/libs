@@ -698,7 +698,7 @@ export const useOmegaForm = <
   const formHolder: { form: any } = { form: undefined }
   const persistency = usePersistency<From>({
     meta,
-    persistency: omegaConfig?.persistency as any,
+    persistency: omegaConfig?.persistency,
     preventWindowExit: omegaConfig?.preventWindowExit,
     defaultValuesPriority: omegaConfig?.defaultValuesPriority,
     tanstackDefaultValues: tanstackFormOptions?.defaultValues,

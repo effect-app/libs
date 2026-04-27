@@ -86,7 +86,7 @@ export const usePersistency = <From>(opts: UsePersistencyOptions<From>): UsePers
       return persistency.id
     }
     const path = window.location.pathname
-    const keys = Object.keys(meta as any)
+    const keys = Object.keys(meta)
     return `${path}-${keys.join("-")}`
   })
 
@@ -178,7 +178,7 @@ export const usePersistency = <From>(opts: UsePersistencyOptions<From>): UsePers
       return createNestedObjectFromPaths(keys as string[])
     }
     if (Array.isArray(banKeys)) {
-      const subs = Object.keys(meta as any).filter((metakey) => (banKeys as ReadonlyArray<string>).includes(metakey))
+      const subs = Object.keys(meta).filter((metakey) => banKeys.includes(metakey))
       return createNestedObjectFromPaths(subs)
     }
     return getForm().store.state.values

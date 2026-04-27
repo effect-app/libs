@@ -1,5 +1,5 @@
-// codegen:start {preset: barrel, include: ./*.ts, jsExtensions: false}
-export * from "./barrel"
-export * from "./meta"
-export * from "./model"
+// codegen:start {preset: barrel, include: ./*.ts}
+export * from "./barrel.js"
+export * from "./meta.js"
+export * from "./model.js"
 // codegen:end

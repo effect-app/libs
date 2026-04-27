@@ -30,15 +30,17 @@ describe("FormTaggedUnion characterization", () => {
     expect(meta["union.common"]).toBeDefined()
   })
 
-  // Current behavior: unionMeta is only populated when the schema root IS a Union.
-  // When the union is nested inside a Struct field, unionMeta remains empty.
-  // These tests pin that actual current behavior.
-  it("unionMeta['A'] is undefined (nested union not tracked in unionMeta)", () => {
-    expect(unionMeta["A"]).toBeUndefined()
+  // After unification, nested unions also populate unionMeta (same as root unions).
+  it("unionMeta['A'] contains A-only field and shared field, but not B-only", () => {
+    expect(unionMeta["A"]?.["union.a"]).toBeDefined()
+    expect(unionMeta["A"]?.["union.common"]).toBeDefined()
+    expect(unionMeta["A"]?.["union.b"]).toBeUndefined()
   })
 
-  it("unionMeta['B'] is undefined (nested union not tracked in unionMeta)", () => {
-    expect(unionMeta["B"]).toBeUndefined()
+  it("unionMeta['B'] contains B-only field and shared field, but not A-only", () => {
+    expect(unionMeta["B"]?.["union.b"]).toBeDefined()
+    expect(unionMeta["B"]?.["union.common"]).toBeDefined()
+    expect(unionMeta["B"]?.["union.a"]).toBeUndefined()
   })
 
   it("sibling field aString is unaffected by the neighboring union", () => {

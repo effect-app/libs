@@ -170,9 +170,13 @@ describe("generateMetaFromSchema", () => {
       expect(meta["union.b"]?.type).toBe("number")
     })
 
-    it("nested non-nullable union does not generate unionMeta", () => {
+    it("nested union now populates unionMeta after unification (Phase 2.4)", () => {
+      // After unification of root + nested union handling, nested unions also
+      // populate unionMeta, mirroring root-level behavior.
       const { unionMeta } = generateMetaFromSchema(schema)
-      expect(Object.keys(unionMeta).length).toBe(0)
+      expect(Object.keys(unionMeta).length).toBe(2)
+      expect(unionMeta["A"]).toBeDefined()
+      expect(unionMeta["B"]).toBeDefined()
     })
   })
 

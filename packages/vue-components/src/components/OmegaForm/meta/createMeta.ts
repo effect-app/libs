@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Effect, type Record, S } from "effect-app"
+import { type Effect, type Record, S } from "effect-app"
 import { type DeepKeys, type StandardSchemaV1 } from "@tanstack/vue-form"
 import { getTransformationFrom } from "../../../utils"
 import type {
@@ -9,6 +9,7 @@ import type {
   SelectFieldMeta
 } from "./types"
 import { warnLegacyTag } from "./legacyWarning"
+import { getFieldMetadataFromAst } from "./checks"
 
 export type FilterItems = {
   items: readonly [string, ...string[]]
@@ -47,21 +48,11 @@ export const unwrapDeclaration = (property: S.AST.AST): S.AST.AST => {
 
 const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.AST.isNull(property)
 
-/**
- * Unwrap a single-element Union to its inner type if it's a Literal.
- * After AST.toType, S.Struct({ _tag: S.Literal("X") }) produces Union([Literal("X")])
- * instead of bare Literal("X") like S.TaggedStruct does.
- * TODO: remove after manual _tag deprecation
- */
+// TODO: remove after manual _tag deprecation — S.Struct({ _tag: S.Literal("X") }) wraps as Union([Literal("X")])
 const unwrapSingleLiteralUnion = (ast: S.AST.AST): S.AST.AST =>
   S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0]!)
     ? ast.types[0]!
     : ast
-
-const getNullableOrUndefined = (property: S.AST.AST) =>
-  S.AST.isUnion(property)
-    ? property.types.find((_) => isNullishType(_))
-    : false
 
 export const isNullableOrUndefined = (property: false | S.AST.AST | undefined) => {
   if (!property || !S.AST.isUnion(property)) return false
@@ -72,460 +63,244 @@ export const isNullableOrUndefined = (property: false | S.AST.AST | undefined) =
   return false
 }
 
-// Helper function to recursively unwrap nested unions (e.g., S.NullOr(S.NullOr(X)) -> X)
 const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] =>
   types.flatMap((type) => S.AST.isUnion(type) ? unwrapNestedUnions(type.types) : [type])
 
-const getNonNullTypes = (types: readonly S.AST.AST[]) =>
-  unwrapNestedUnions(types)
-    .map(unwrapDeclaration)
-    .filter((_) => !isNullishType(_))
-
-const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {
-  const checks = property.checks ?? []
-
-  return checks.flatMap((check) => {
-    if (check._tag === "FilterGroup") {
-      return check.checks.flatMap((inner) => {
-        const meta = inner.annotations?.meta
-        return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
-      })
-    }
-
-    const meta = check.annotations?.meta
-    return meta && typeof meta === "object" ? [meta as Record<string, any>] : []
-  })
-}
-
-const getFieldMetadataFromAst = (property: S.AST.AST) => {
-  const base: Partial<FieldMeta> & Record<string, unknown> = {
-    description: S.AST.resolveDescription(property)
-  }
-  const checks = getCheckMetas(property)
-
-  if (S.AST.isString(property)) {
-    base.type = "string"
-    for (const check of checks) {
-      switch (check._tag) {
-        case "isMinLength":
-          base.minLength = check.minLength
-          break
-        case "isMaxLength":
-          base.maxLength = check.maxLength
-          break
-      }
-    }
-
-    const format = property.annotations?.["format"]
-    if (format === "email") {
-      base.format = "email"
-    }
-  } else if (S.AST.isNumber(property)) {
-    base.type = "number"
-    for (const check of checks) {
-      switch (check._tag) {
-        case "isInt":
-          base.refinement = "int"
-          break
-        case "isGreaterThanOrEqualTo":
-          base.minimum = check.minimum
-          break
-        case "isLessThanOrEqualTo":
-          base.maximum = check.maximum
-          break
-        case "isBetween":
-          base.minimum = check.minimum
-          base.maximum = check.maximum
-          break
-        case "isGreaterThan":
-          base.exclusiveMinimum = check.exclusiveMinimum
-          break
-        case "isLessThan":
-          base.exclusiveMaximum = check.exclusiveMaximum
-          break
-      }
-    }
-  } else if (S.AST.isBoolean(property)) {
-    base.type = "boolean"
-  } else if (
-    S.AST.isDeclaration(property)
-    && (property.annotations as any)?.typeConstructor?._tag === "Date"
-  ) {
-    base.type = "date"
-  } else {
-    base.type = "unknown"
-  }
-
-  return base
-}
-
-export const createMeta = <T = any>(
-  { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
-  acc: Partial<MetaRecord<T>> = {},
+type WalkerContext<T> = {
+  acc: Partial<MetaRecord<T>>
+  unionMeta: Record<string, MetaRecord<T>>
   fieldAstByPath?: Record<string, S.AST.AST>
-): MetaRecord<T> | FieldMeta => {
-  if (property) {
-    property = unwrapDeclaration(property)
+}
+
+type ParentMeta = {
+  required: boolean
+  nullableOrUndefined: false | "null" | "undefined"
+  /** Set when iterating the members of a nullable discriminated union */
+  isNullableDiscriminatedUnion?: boolean
+}
+
+const leafMetaForAst = (
+  ast: S.AST.AST,
+  parentMeta: ParentMeta
+): FieldMeta => {
+  const { required, nullableOrUndefined } = parentMeta
+
+  if (S.AST.isArrays(ast)) {
+    return {
+      required,
+      nullableOrUndefined,
+      type: "multiple",
+      members: ast.elements,
+      rest: ast.rest
+    } as FieldMeta
   }
 
-  if (property && S.AST.isObjects(property)) {
-    return createMeta<T>({
-      meta,
-      propertySignatures: property.propertySignatures
-    })
+  if (S.AST.isLiteral(ast)) {
+    return {
+      required,
+      nullableOrUndefined,
+      type: "select",
+      members: [ast.literal]
+    } as FieldMeta
   }
 
-  if (propertySignatures) {
-    for (const p of propertySignatures) {
-      const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
-      const nullableOrUndefined = isNullableOrUndefined(p.type)
+  return {
+    ...getFieldMetadataFromAst(ast),
+    required,
+    nullableOrUndefined
+  } as FieldMeta
+}
 
-      const isOptionalKey = (p.type as any).context?.isOptional === true
+const walkStruct = <T>(
+  propertySignatures: readonly S.AST.PropertySignature[],
+  parent: string,
+  parentMeta: ParentMeta,
+  ctx: WalkerContext<T>
+): void => {
+  for (const p of propertySignatures) {
+    const key = parent ? `${parent}.${p.name.toString()}` : p.name.toString()
+    const nullableOrUndefined = isNullableOrUndefined(p.type)
+    const isOptionalKey = (p.type as any).context?.isOptional === true
 
-      // Determine if this field should be required:
-      // - For nullable discriminated unions, only _tag should be non-required
-      // - optionalKey fields are not required
-      // - All other fields should calculate their required status normally
-      let isRequired: boolean
-      if (meta._isNullableDiscriminatedUnion && p.name.toString() === "_tag") {
-        // _tag in a nullable discriminated union is not required
-        isRequired = false
-      } else if (meta.required === false) {
-        // Explicitly set to non-required (legacy behavior for backwards compatibility)
-        isRequired = false
-      } else if (isOptionalKey) {
-        isRequired = false
-      } else {
-        // Calculate from the property itself
-        isRequired = !nullableOrUndefined
+    let isRequired: boolean
+    if (parentMeta.isNullableDiscriminatedUnion && p.name.toString() === "_tag") {
+      isRequired = false
+    } else if (parentMeta.required === false) {
+      isRequired = false
+    } else if (isOptionalKey) {
+      isRequired = false
+    } else {
+      isRequired = !nullableOrUndefined
+    }
+
+    walk(
+      p.type,
+      key,
+      { required: isRequired, nullableOrUndefined },
+      ctx,
+      isOptionalKey
+    )
+  }
+}
+
+const classifyAndWalkUnion = <T>(
+  unionAst: S.AST.Union,
+  key: string,
+  parentMeta: ParentMeta,
+  ctx: WalkerContext<T>
+): void => {
+  const { acc, fieldAstByPath } = ctx
+  const unwrappedTypes = unwrapNestedUnions(unionAst.types).map(unwrapDeclaration)
+  const nonNullTypes = unwrappedTypes.filter((t) => !isNullishType(t))
+
+  // Boolean literal shortcut (single-value union wrapping a boolean literal)
+  if (nonNullTypes.length === 1 && S.AST.isLiteral(nonNullTypes[0]!) && typeof nonNullTypes[0]!.literal === "boolean") {
+    acc[key as NestedKeyOf<T>] = leafMetaForAst(nonNullTypes[0]!, parentMeta)
+    if (fieldAstByPath) fieldAstByPath[key] = unionAst
+    return
+  }
+
+  if (nonNullTypes.some(S.AST.isObjects)) {
+    const isNullableDiscriminatedUnion = !!parentMeta.nullableOrUndefined && nonNullTypes.length > 1
+
+    // Mixed union: also create a parent leaf entry from the first non-struct member
+    if (!parentMeta.nullableOrUndefined && key) {
+      const firstNonStruct = nonNullTypes.find((t) => !S.AST.isObjects(t))
+      if (firstNonStruct) {
+        acc[key as NestedKeyOf<T>] = leafMetaForAst(firstNonStruct, parentMeta)
+        if (fieldAstByPath) fieldAstByPath[key] = unionAst
+      }
+    }
+
+    const discriminatorValues: any[] = []
+    const branchParentMeta: ParentMeta = isNullableDiscriminatedUnion
+      ? { required: true, nullableOrUndefined: false, isNullableDiscriminatedUnion: true }
+      : { required: true, nullableOrUndefined: false }
+
+    for (const memberType of nonNullTypes) {
+      if (!S.AST.isObjects(memberType)) continue
+
+      const tagProp = memberType.propertySignatures.find((p) => p.name.toString() === "_tag")
+      const resolvedTagType = tagProp ? unwrapSingleLiteralUnion(tagProp.type) : null
+      let tagValue: string | null = null
+
+      if (resolvedTagType && S.AST.isLiteral(resolvedTagType)) {
+        tagValue = resolvedTagType.literal as string
+        if (!discriminatorValues.includes(tagValue)) discriminatorValues.push(tagValue)
+        if (tagProp && S.AST.isUnion(tagProp.type)) warnLegacyTag(tagValue)
       }
 
-      const typeToProcess = unwrapDeclaration(p.type)
-      if (S.AST.isUnion(p.type)) {
-        const nonNullTypes = getNonNullTypes(p.type.types)
+      const branchCtx: WalkerContext<T> = { acc: {}, unionMeta: ctx.unionMeta, fieldAstByPath }
+      walkStruct(memberType.propertySignatures, key, branchParentMeta, branchCtx)
 
-        const hasStructMembers = nonNullTypes.some(S.AST.isObjects)
+      if (tagValue) {
+        const existing = ctx.unionMeta[tagValue]
+        if (existing) Object.assign(existing, flattenMeta<T>(branchCtx.acc as MetaRecord<T>))
+        else ctx.unionMeta[tagValue] = flattenMeta<T>(branchCtx.acc as MetaRecord<T>)
+      }
 
-        if (hasStructMembers) {
-          // Only create parent meta for non-NullOr unions to avoid duplicates
-          if (!nullableOrUndefined) {
-            const parentMeta = createMeta<T>({
-              parent: key,
-              property: p.type,
-              meta: { required: isRequired, nullableOrUndefined }
-            })
-            acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
-          }
-
-          // Process each non-null type and merge their metadata
-          for (const nonNullType of nonNullTypes) {
-            if (S.AST.isObjects(nonNullType)) {
-              // For discriminated unions (multiple branches):
-              // - If the parent union is nullable, only _tag should be non-required
-              // - All other fields maintain their normal required status based on their own types
-              const isNullableDiscriminatedUnion = nullableOrUndefined && nonNullTypes.length > 1
-
-              const branchMeta = createMeta<T>({
-                parent: key,
-                propertySignatures: nonNullType.propertySignatures,
-                meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
-              })
-
-              // Merge branch metadata, combining select members for shared discriminator fields
-              for (const [metaKey, metaValue] of Object.entries(branchMeta)) {
-                const existing = acc[metaKey as NestedKeyOf<T>] as FieldMeta | undefined
-                if (
-                  existing && existing.type === "select" && (metaValue as any)?.type === "select"
-                ) {
-                  existing.members = [
-                    ...existing.members,
-                    ...(metaValue as SelectFieldMeta).members.filter(
-                      (m: any) => !existing.members.includes(m)
-                    )
-                  ]
-                } else {
-                  acc[metaKey as NestedKeyOf<T>] = metaValue as FieldMeta
-                }
-              }
-            }
-          }
+      for (const [metaKey, metaValue] of Object.entries(branchCtx.acc)) {
+        const existing = acc[metaKey as NestedKeyOf<T>] as FieldMeta | undefined
+        if (existing && existing.type === "select" && (metaValue as any)?.type === "select") {
+          existing.members = [
+            ...existing.members,
+            ...(metaValue as SelectFieldMeta).members.filter((m: any) => !existing.members.includes(m))
+          ]
         } else {
-          const arrayTypes = nonNullTypes.filter(S.AST.isArrays)
-          if (arrayTypes.length > 0) {
-            const arrayType = arrayTypes[0] // Take the first array type
-
-            acc[key as NestedKeyOf<T>] = {
-              type: "multiple",
-              members: arrayType.elements,
-              rest: arrayType.rest,
-              required: isRequired,
-              nullableOrUndefined
-            } as FieldMeta
-            if (fieldAstByPath) {
-              fieldAstByPath[key] = p.type
-            }
-
-            // If the array has struct elements, also create metadata for their properties
-            if (arrayType.rest && arrayType.rest.length > 0) {
-              const restElement = unwrapDeclaration(arrayType.rest[0]!)
-              if (S.AST.isObjects(restElement)) {
-                for (const prop of restElement.propertySignatures) {
-                  const propKey = `${key}.${prop.name.toString()}`
-
-                  const propMeta = createMeta<T>({
-                    parent: propKey,
-                    property: prop.type,
-                    meta: {
-                      required: !isNullableOrUndefined(prop.type),
-                      nullableOrUndefined: isNullableOrUndefined(prop.type)
-                    }
-                  })
-
-                  // add to accumulator if valid
-                  if (propMeta && typeof propMeta === "object" && "type" in propMeta) {
-                    acc[propKey as NestedKeyOf<T>] = propMeta as FieldMeta
-                    if (fieldAstByPath) {
-                      fieldAstByPath[propKey] = prop.type
-                    }
-
-                    if (
-                      propMeta.type === "multiple" && S.AST.isArrays(prop.type) && prop
-                        .type
-                        .rest && prop.type.rest.length > 0
-                    ) {
-                      const nestedRestElement = unwrapDeclaration(prop.type.rest[0]!)
-                      if (S.AST.isObjects(nestedRestElement)) {
-                        for (const nestedProp of nestedRestElement.propertySignatures) {
-                          const nestedPropKey = `${propKey}.${nestedProp.name.toString()}`
-
-                          const nestedPropMeta = createMeta<T>({
-                            parent: nestedPropKey,
-                            property: nestedProp.type,
-                            meta: {
-                              required: !isNullableOrUndefined(nestedProp.type),
-                              nullableOrUndefined: isNullableOrUndefined(nestedProp.type)
-                            }
-                          })
-
-                          // add to accumulator if valid
-                          if (nestedPropMeta && typeof nestedPropMeta === "object" && "type" in nestedPropMeta) {
-                            acc[nestedPropKey as NestedKeyOf<T>] = nestedPropMeta as FieldMeta
-                            if (fieldAstByPath) {
-                              fieldAstByPath[nestedPropKey] = nestedProp.type
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } else {
-            // If no struct members and no arrays, process as regular union
-            const newMeta = createMeta<T>({
-              parent: key,
-              property: p.type,
-              meta: { required: isRequired, nullableOrUndefined }
-            })
-            acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
-            if (fieldAstByPath) {
-              fieldAstByPath[key] = p.type
-            }
-          }
-        }
-      } else {
-        if (S.AST.isObjects(typeToProcess)) {
-          Object.assign(
-            acc,
-            createMeta<T>(
-              {
-                parent: key,
-                propertySignatures: typeToProcess.propertySignatures,
-                meta: { required: isRequired, nullableOrUndefined }
-              },
-              {},
-              fieldAstByPath
-            )
-          )
-        } else if (S.AST.isArrays(p.type)) {
-          // Check if it has struct elements
-          const hasStructElements = p.type.rest.length > 0
-            && S.AST.isObjects(unwrapDeclaration(p.type.rest[0]!))
-
-          if (hasStructElements) {
-            // For arrays with struct elements, only create meta for nested fields, not the array itself
-            const elementType = unwrapDeclaration(p.type.rest[0]!)
-            if (S.AST.isObjects(elementType)) {
-              // Process each property in the array element
-              for (const prop of elementType.propertySignatures) {
-                const propKey = `${key}.${prop.name.toString()}`
-
-                // Check if the property is another array
-                if (S.AST.isArrays(prop.type) && prop.type.rest.length > 0) {
-                  const nestedElementType = unwrapDeclaration(prop.type.rest[0]!)
-                  if (S.AST.isObjects(nestedElementType)) {
-                    // Array with struct elements - process nested fields
-                    for (const nestedProp of nestedElementType.propertySignatures) {
-                      const nestedKey = `${propKey}.${nestedProp.name.toString()}`
-                      const nestedMeta = createMeta<T>({
-                        parent: nestedKey,
-                        property: nestedProp.type,
-                        meta: {
-                          required: !isNullableOrUndefined(nestedProp.type),
-                          nullableOrUndefined: isNullableOrUndefined(nestedProp.type)
-                        }
-                      })
-                      acc[nestedKey as NestedKeyOf<T>] = nestedMeta as FieldMeta
-                      if (fieldAstByPath) {
-                        fieldAstByPath[nestedKey] = nestedProp.type
-                      }
-                    }
-                  } else {
-                    // Array with primitive elements - create meta for the array itself
-                    acc[propKey as NestedKeyOf<T>] = {
-                      type: "multiple",
-                      members: prop.type.elements,
-                      rest: prop.type.rest,
-                      required: !isNullableOrUndefined(prop.type),
-                      nullableOrUndefined: isNullableOrUndefined(prop.type)
-                    } as FieldMeta
-                    if (fieldAstByPath) {
-                      fieldAstByPath[propKey] = prop.type
-                    }
-                  }
-                } else {
-                  const fieldMeta = createMeta<T>({
-                    parent: propKey,
-                    property: prop.type,
-                    meta: {
-                      required: !isNullableOrUndefined(prop.type),
-                      nullableOrUndefined: isNullableOrUndefined(prop.type)
-                    }
-                  })
-                  acc[propKey as NestedKeyOf<T>] = fieldMeta as FieldMeta
-                  if (fieldAstByPath) {
-                    fieldAstByPath[propKey] = prop.type
-                  }
-                }
-              }
-            }
-          } else {
-            // For arrays with primitive elements, create the array meta
-            acc[key as NestedKeyOf<T>] = {
-              type: "multiple",
-              members: p.type.elements,
-              rest: p.type.rest,
-              required: isRequired,
-              nullableOrUndefined
-            } as FieldMeta
-            if (fieldAstByPath) {
-              fieldAstByPath[key] = p.type
-            }
-          }
-        } else {
-          const newMeta = createMeta<T>({
-            parent: key,
-            property: p.type,
-            meta: {
-              // an empty string is valid for a S.String field, so we should not mark it as required
-              // TODO: handle this better via the createMeta minLength parsing
-              required: isRequired
-                && (!S.AST.isString(typeToProcess) || !!getFieldMetadataFromAst(typeToProcess).minLength),
-              nullableOrUndefined,
-              ...(isOptionalKey ? { isOptionalKey: true } : {})
-            }
-          })
-
-          acc[key as NestedKeyOf<T>] = newMeta as FieldMeta
-          if (fieldAstByPath) {
-            fieldAstByPath[key] = p.type
-          }
+          acc[metaKey as NestedKeyOf<T>] = metaValue as FieldMeta
         }
       }
     }
-    return acc
-  }
 
-  if (property) {
-    const nullableOrUndefined = getNullableOrUndefined(property)
-    property = unwrapDeclaration(property)
-
-    if (!Object.hasOwnProperty.call(meta, "required")) {
-      meta["required"] = !nullableOrUndefined
-    }
-
-    if (S.AST.isUnion(property)) {
-      const unwrappedTypes = unwrapNestedUnions(property.types).map(unwrapDeclaration)
-      const nonNullTypes = unwrappedTypes.filter((t) => !isNullishType(t))
-
-      // Unwrap single-element unions when the literal is a boolean
-      // (effect-app's S.Literal wraps as S.Literals([x]) → Union([Literal(x)]))
-      // Don't unwrap string/number literals — they may be discriminator values in a union
-      if (
-        nonNullTypes.length === 1
-        && S.AST.isLiteral(nonNullTypes[0]!)
-        && typeof nonNullTypes[0]!.literal === "boolean"
-      ) {
-        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! })
-      }
-
-      const nonNullType = nonNullTypes[0]!
-
-      if (S.AST.isObjects(nonNullType)) {
-        return createMeta<T>({
-          propertySignatures: nonNullType.propertySignatures,
-          parent,
-          meta
-        })
-      }
-
-      // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
-      const resolvedTypes = unwrappedTypes.map(unwrapSingleLiteralUnion)
-      if (resolvedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
-        return {
-          ...meta,
+    if (discriminatorValues.length > 0) {
+      const tagKey = key ? `${key}._tag` : "_tag"
+      const existing = acc[tagKey as NestedKeyOf<T>] as FieldMeta | undefined
+      if (existing && existing.type === "select") {
+        for (const v of discriminatorValues) {
+          if (!existing.members.includes(v)) existing.members.push(v)
+        }
+      } else {
+        acc[tagKey as NestedKeyOf<T>] = {
           type: "select",
-          members: resolvedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
+          members: discriminatorValues,
+          required: !isNullableDiscriminatedUnion
         } as FieldMeta
       }
-
-      return {
-        ...meta,
-        ...createMeta<T>({
-          parent,
-          meta,
-          property: nonNullType
-        })
-      } as FieldMeta
     }
-
-    if (S.AST.isArrays(property)) {
-      return {
-        ...meta,
-        type: "multiple",
-        members: property.elements,
-        rest: property.rest
-      } as FieldMeta
-    }
-
-    if (S.AST.isLiteral(property)) {
-      return {
-        ...meta,
-        type: "select",
-        members: [property.literal]
-      } as FieldMeta
-    }
-
-    meta = { ...getFieldMetadataFromAst(property), ...meta }
-
-    return meta as FieldMeta
+    return
   }
 
-  return acc
+  if (nonNullTypes.some(S.AST.isArrays)) {
+    walk(nonNullTypes.find(S.AST.isArrays)!, key, parentMeta, ctx)
+    if (fieldAstByPath) fieldAstByPath[key] = unionAst
+    return
+  }
+
+  // Literal / primitive union (e.g. legacy _tag pattern)
+  const resolvedTypes = unwrappedTypes.map(unwrapSingleLiteralUnion)
+  if (resolvedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
+    acc[key as NestedKeyOf<T>] = {
+      ...parentMeta,
+      type: "select",
+      members: resolvedTypes.filter(S.AST.isLiteral).map((t) => t.literal)
+    } as FieldMeta
+    if (fieldAstByPath) fieldAstByPath[key] = unionAst
+    return
+  }
+
+  // Fallback: recurse into first non-null type
+  const nonNullType = nonNullTypes[0]
+  if (nonNullType) walk(nonNullType, key, parentMeta, ctx)
 }
 
-// Helper to flatten nested meta structure into dot-notation keys
+const walk = <T>(
+  ast: S.AST.AST,
+  key: string,
+  parentMeta: ParentMeta,
+  ctx: WalkerContext<T>,
+  isOptionalKey?: boolean
+): void => {
+  ast = unwrapDeclaration(ast)
+  const { acc, fieldAstByPath } = ctx
+
+  if (S.AST.isObjects(ast)) {
+    walkStruct(ast.propertySignatures, key, parentMeta, ctx)
+    return
+  }
+
+  if (S.AST.isUnion(ast)) {
+    classifyAndWalkUnion(ast, key, parentMeta, ctx)
+    return
+  }
+
+  if (S.AST.isArrays(ast)) {
+    const restElement = ast.rest.length > 0 ? unwrapDeclaration(ast.rest[0]!) : null
+    if (restElement && S.AST.isObjects(restElement)) {
+      // Array-of-struct: skip creating a meta entry for the array itself,
+      // recurse into the element struct's properties instead
+      walkStruct(restElement.propertySignatures, key, { required: true, nullableOrUndefined: false }, ctx)
+      return
+    }
+
+    // Primitive or tuple array
+    acc[key as NestedKeyOf<T>] = leafMetaForAst(ast, parentMeta)
+    if (fieldAstByPath) fieldAstByPath[key] = ast
+    return
+  }
+
+  // Leaf primitive / literal / unknown
+  const { required, nullableOrUndefined } = parentMeta
+  const adjusted: ParentMeta = {
+    required: required && (!S.AST.isString(ast) || !!getFieldMetadataFromAst(ast).minLength),
+    nullableOrUndefined,
+    ...(isOptionalKey ? {} : {})
+  }
+  const leaf = leafMetaForAst(ast, adjusted)
+  if (isOptionalKey) (leaf as any).isOptionalKey = true
+  acc[key as NestedKeyOf<T>] = leaf
+  if (fieldAstByPath) fieldAstByPath[key] = ast
+}
+
 const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = ""): MetaRecord<T> => {
   const result: MetaRecord<T> = {}
 
@@ -543,6 +318,55 @@ const flattenMeta = <T>(meta: MetaRecord<T> | FieldMeta, parentKey: string = "")
   return result
 }
 
+export const createMeta = <T = any>(
+  { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
+  acc: Partial<MetaRecord<T>> = {},
+  fieldAstByPath?: Record<string, S.AST.AST>
+): MetaRecord<T> | FieldMeta => {
+  const ctx: WalkerContext<T> = { acc, unionMeta: {}, fieldAstByPath }
+
+  if (propertySignatures) {
+    const parentMeta: ParentMeta = {
+      required: meta.required !== false,
+      nullableOrUndefined: meta.nullableOrUndefined ?? false,
+      isNullableDiscriminatedUnion: !!(meta as any)._isNullableDiscriminatedUnion
+    }
+    walkStruct(propertySignatures, parent, parentMeta, ctx)
+    return acc
+  }
+
+  if (property) {
+    const nullableOrUndefined = isNullableOrUndefined(property)
+    const unwrapped = unwrapDeclaration(property)
+    const required = !Object.hasOwnProperty.call(meta, "required")
+      ? !nullableOrUndefined
+      : (meta.required as boolean)
+
+    const parentMeta: ParentMeta = {
+      required,
+      nullableOrUndefined: (meta.nullableOrUndefined ?? nullableOrUndefined) as false | "null" | "undefined"
+    }
+
+    if (S.AST.isObjects(unwrapped)) {
+      walkStruct(unwrapped.propertySignatures, parent, parentMeta, ctx)
+      return acc
+    }
+
+    if (S.AST.isUnion(unwrapped)) {
+      // For property-mode, return a FieldMeta by running through classifyAndWalkUnion
+      // and then pulling out the result at `parent` key
+      const leafCtx: WalkerContext<T> = { acc: {}, unionMeta: {}, fieldAstByPath }
+      classifyAndWalkUnion(unwrapped, parent, parentMeta, leafCtx)
+      const result = (leafCtx.acc as any)[parent]
+      if (result) return result as FieldMeta
+    }
+
+    return leafMetaForAst(unwrapped, parentMeta)
+  }
+
+  return acc
+}
+
 export const metadataFromAst = <From, To>(
   schema: S.Codec<To, From, never>
 ): {
@@ -551,7 +375,7 @@ export const metadataFromAst = <From, To>(
   unionMeta: Record<string, MetaRecord<To>>
 } => {
   const ast = unwrapDeclaration(schema.ast)
-  const newMeta: MetaRecord<To> = {}
+  const newMeta: Partial<MetaRecord<To>> = {}
   const defaultValues: Record<string, any> = {}
   const unionMeta: Record<string, MetaRecord<To>> = {}
   const fieldAstByPath: Record<string, S.AST.AST> = {}
@@ -590,109 +414,34 @@ export const metadataFromAst = <From, To>(
     }
   }
 
-  // Handle root-level Union types (discriminated unions)
+  const ctx: WalkerContext<To> = { acc: newMeta, unionMeta, fieldAstByPath }
+
   if (S.AST.isUnion(ast)) {
-    // Filter out null/undefined types and unwrap transformations
-    const nonNullTypes = getNonNullTypes(ast.types)
+    // Root-level discriminated union
+    classifyAndWalkUnion(ast, "", { required: true, nullableOrUndefined: false }, ctx)
 
-    // Check if this is a discriminated union (all members are structs)
-    const allStructs = nonNullTypes.every(S.AST.isObjects)
-
-    if (allStructs && nonNullTypes.length > 0) {
-      // Extract discriminator values from each union member
-      const discriminatorValues: any[] = []
-
-      // Store metadata for each union member by its tag value
-      for (const memberType of nonNullTypes) {
-        if (S.AST.isObjects(memberType)) {
-          // Find the discriminator field (usually _tag)
-          const tagProp = memberType.propertySignatures.find(
-            (p) => p.name.toString() === "_tag"
-          )
-
-          let tagValue: string | null = null
-          // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
-          const resolvedTagType = tagProp ? unwrapSingleLiteralUnion(tagProp.type) : null
-          if (resolvedTagType && S.AST.isLiteral(resolvedTagType)) {
-            tagValue = resolvedTagType.literal as string
-            discriminatorValues.push(tagValue)
-            // Warn if the tag was wrapped in a single-element Union (legacy pattern)
-            if (tagProp && S.AST.isUnion(tagProp.type) && tagValue != null) {
-              warnLegacyTag(tagValue)
-            }
-          }
-
-          // Create metadata for this member's properties
-          const memberMeta = createMeta<To>(
-            {
-              propertySignatures: memberType.propertySignatures
-            },
-            {},
-            fieldAstByPath
-          )
-
-          // Store per-tag metadata for reactive lookup
-          if (tagValue) {
-            unionMeta[tagValue] = flattenMeta<To>(memberMeta)
-          }
-
-          // Merge into result (for backward compatibility)
-          Object.assign(newMeta, memberMeta)
-        }
-      }
-
-      // Create metadata for the discriminator field
-      if (discriminatorValues.length > 0) {
-        newMeta["_tag" as DeepKeys<To>] = {
-          type: "select",
-          members: discriminatorValues,
-          required: true
-        } as FieldMeta
-      }
-
-      attachOriginalSchemas(newMeta)
-      return { meta: newMeta, defaultValues, unionMeta }
+    // classifyAndWalkUnion stores _tag at key "" + "._tag" which becomes "._tag"
+    // Fix: for root-level union, the _tag key should be just "_tag"
+    const badKey = "._tag" as NestedKeyOf<To>
+    if (newMeta[badKey]) {
+      newMeta["_tag" as NestedKeyOf<To>] = newMeta[badKey]
+      delete newMeta[badKey]
     }
+
+    attachOriginalSchemas(newMeta as MetaRecord<To>)
+    return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
   }
 
   if (S.AST.isObjects(ast)) {
-    const meta = createMeta<To>(
-      {
-        propertySignatures: ast.propertySignatures
-      },
-      {},
-      fieldAstByPath
-    )
+    walkStruct(ast.propertySignatures, "", { required: true, nullableOrUndefined: false }, ctx)
 
-    if (Object.values(meta).every((value) => value && "type" in value)) {
-      const typedMeta = meta as MetaRecord<To>
-      attachOriginalSchemas(typedMeta)
-      return {
-        meta: typedMeta,
-        defaultValues,
-        unionMeta
-      }
-    }
-
-    const flattenObject = (
-      obj: Record<string, any>,
-      parentKey: string = ""
-    ) => {
-      for (const key in obj) {
-        const newKey = parentKey ? `${parentKey}.${key}` : key
-        if (obj[key] && typeof obj[key] === "object" && "type" in obj[key]) {
-          newMeta[newKey as DeepKeys<To>] = obj[key] as FieldMeta
-        } else if (obj[key] && typeof obj[key] === "object") {
-          flattenObject(obj[key], newKey)
-        }
-      }
-    }
-
-    flattenObject(meta)
+    const typedMeta = newMeta as MetaRecord<To>
+    attachOriginalSchemas(typedMeta)
+    return { meta: typedMeta, defaultValues, unionMeta }
   }
 
-  attachOriginalSchemas(newMeta)
-  return { meta: newMeta, defaultValues, unionMeta }
+  attachOriginalSchemas(newMeta as MetaRecord<To>)
+  return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
 }
 
 export const generateMetaFromSchema = <From, To>(

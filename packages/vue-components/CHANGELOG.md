@@ -1,5 +1,14 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.154
+
+### Patch Changes
+
+- 3200fa8: apply the remaining formatting and autofix cleanup across the vue packages
+- Updated dependencies [3200fa8]
+  - @effect-app/vue@4.0.0-beta.154
+  - effect-app@4.0.0-beta.154
+
 ## 4.0.0-beta.153
 
 ### Patch Changes

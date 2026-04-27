@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.15
+
+### Patch Changes
+
+- 16bbd9c: ship shared dprint config and wire oxlint and dprint into package lint scripts
+  - @effect-app/eslint-codegen-model@2.0.0-beta.9
+
 ## 0.6.0-beta.14
 
 ### Patch Changes

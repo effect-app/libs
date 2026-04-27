@@ -1,5 +1,11 @@
 # @effect-app/cli
 
+## 2.1.0-beta.17
+
+### Patch Changes
+
+- 8434b5f: preserve trailing newline when writing package.json files
+
 ## 2.1.0-beta.16
 
 ### Patch Changes

@@ -92,11 +92,6 @@ const getNonNullTypes = (types: readonly S.AST.AST[]) =>
     .map(unwrapDeclaration)
     .filter((_) => !isNullishType(_))
 
-const getJsonSchemaAnnotation = (property: S.AST.AST): Record<string, unknown> => {
-  const jsonSchema = S.AST.resolve(property)?.jsonSchema
-  return jsonSchema && typeof jsonSchema === "object" ? jsonSchema as Record<string, unknown> : {}
-}
-
 const getCheckMetas = (property: S.AST.AST): Array<Record<string, any>> => {
   const checks = property.checks ?? []
 
@@ -533,7 +528,7 @@ export const createMeta = <T = any>(
       } as FieldMeta
     }
 
-    meta = { ...getJsonSchemaAnnotation(property), ...getFieldMetadataFromAst(property), ...meta }
+    meta = { ...getFieldMetadataFromAst(property), ...meta }
 
     return meta as FieldMeta
   }

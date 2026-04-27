@@ -118,6 +118,8 @@ useOmegaForm.ts                  → all of the above
 
 Each non-`useOmegaForm.ts` file is < 250 lines as a hard target.
 
+**Waiver: `types.ts` exceeds the budget.** The post-Phase-1 `types.ts` lands at ~750 lines, dominated by Volar-expanded `__VLS_*` helper types and the cached `FieldApi` / `FieldState` aliases that work around Volar's deep-instantiation behavior on TanStack vue-form's generic-heavy types. Splitting was considered (e.g. `types/api.ts` for TanStack-derived types, `types/props.ts` for component props) and rejected: Volar's type resolution is sensitive to how files declare-merge with `.vue` SFCs, and a split risks regressing the cached-alias workaround. The file is mostly type passthrough — no logic, no runtime cost — so the readability concern the budget exists to address does not apply. Revisit only if the cached aliases become unnecessary (e.g. after a TanStack vue-form release that makes Volar happy without the workaround).
+
 **Public exports stay identical.** `index.ts` is the only file external code imports from. The internal `OmegaFormStuff` import that some tests use (`__tests__/test-union-meta.test.ts`, `__tests__/migration/schema-v4-migration.test.ts`) gets a one-line redirect to the new path or is updated to import from `./meta/createMeta` / `./meta/defaults` directly. Acceptable churn since these are local tests.
 
 ## Phase 2 — Slim `createMeta`

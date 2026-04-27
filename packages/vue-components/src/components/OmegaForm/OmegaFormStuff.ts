@@ -1,7 +1,6 @@
 import { Effect, Option, type Record, S } from "effect-app"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldValidateOrFn, type FormApi, type FormAsyncValidateOrFn, type FormOptions, type FormState, type FormValidateOrFn, type StandardSchemaV1, type VueFormApi } from "@tanstack/vue-form"
-import { isObject } from "@vueuse/core"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type { Redacted } from "effect/Redacted"
 import { getTransformationFrom, useIntl } from "../../utils"
@@ -50,23 +49,9 @@ export type SupportedInputs = typeof supportedInputs[number]
 export const getInputType = (input: string): SupportedInputs =>
   (supportedInputs as readonly string[]).includes(input) ? input as SupportedInputs : "text"
 
-export function deepMerge(target: any, source: any) {
-  const result = { ...target }
-  for (const key in source) {
-    if (Array.isArray(source[key])) {
-      // Arrays should be copied directly, not deep merged
-      result[key] = source[key]
-    } else if (source[key] && isObject(source[key])) {
-      result[key] = deepMerge(result[key], source[key])
-    } else {
-      result[key] = source[key]
-    }
-  }
-  return result
-}
-
-
 // === Re-exports for backward compatibility (see ./meta) ===
+export { deepMerge } from "./persistency"
+
 export {
   type BaseFieldMeta,
   type BooleanFieldMeta,

@@ -5,16 +5,17 @@ import * as api from "@opentelemetry/api"
 import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
 import { Array, Context, Data, Effect, Fiber, Option, Order, S } from "effect-app"
 import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
-import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
+import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onUnmounted, Ref, ref, watch } from "vue"
 import { useIntl } from "../../utils"
 import { MergedInputProps } from "./InputProps"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, toFormSchema } from "./OmegaFormStuff"
+import { BaseProps, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, toFormSchema } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
+import { type defaultValuesPriorityUnion as PersistencyPriority, type Policies as PersistencyPolicies, usePersistency } from "./persistency"
 
 import { makeRunPromise } from "@effect-app/vue/runtime"
 
@@ -172,12 +173,8 @@ const eHoc = (errorProps: {
   }
 }
 
-export type Policies = "local" | "session" | "querystring"
-export type defaultValuesPriorityUnion = "tanstack" | "persistency" | "schema"
-
-const includesPolicy = (arr: Policies[], policy: Policies) => {
-  return arr.includes(policy)
-}
+export type Policies = PersistencyPolicies
+export type defaultValuesPriorityUnion = PersistencyPriority
 
 export type OmegaConfig<T> = {
   i18nNamespace?: string
@@ -690,87 +687,24 @@ export const useOmegaForm = <
 
   const { meta, unionMeta } = generateMetaFromSchema(formCompatibleSchema)
 
-  const persistencyKey = computed(() => {
-    if (omegaConfig?.persistency?.id) {
-      return omegaConfig.persistency.id
-    }
-    const path = window.location.pathname
-    const keys = Object.keys(meta)
-    return `${path}-${keys.join("-")}`
-  })
-
-  const clearUrlParams = () => {
-    const params = new URLSearchParams(window.location.search)
-    params.delete(persistencyKey.value)
-    const url = new URL(window.location.href)
-    url.search = params.toString()
-    window.history.replaceState({}, "", url.toString())
-  }
-
-  const defaultValues = computed(() => {
-    // will contain what we get from querystring or local/session storage
-    let persistencyDefaultValues
-
-    const persistency = omegaConfig?.persistency
-
-    if (
-      // query string has higher priority than local/session storage
-      persistency?.policies
-      && !persistencyDefaultValues
-      && (includesPolicy(persistency.policies, "local")
-        || includesPolicy(persistency.policies, "session"))
-    ) {
-      const storage = includesPolicy(persistency.policies, "local")
-        ? localStorage
-        : sessionStorage
-      if (storage) {
-        try {
-          const value = JSON.parse(
-            storage.getItem(persistencyKey.value) || "{}"
-          )
-          storage.removeItem(persistencyKey.value)
-          persistencyDefaultValues = value
-        } catch (error) {
-          console.error(error)
-        }
-      }
-    }
-    if (persistency?.policies && includesPolicy(persistency.policies, "querystring")) {
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const value = params.get(persistencyKey.value)
-        clearUrlParams()
-        if (value) {
-          persistencyDefaultValues = deepMerge(persistencyDefaultValues || {}, JSON.parse(value))
-        }
-      } catch (error) {
-        console.error(error)
-      }
-    }
-
-    // to be sure we have a valid object at the end of the gathering process
-    persistencyDefaultValues ??= {}
-
-    const defaults: Record<defaultValuesPriorityUnion, any> = {
-      tanstack: tanstackFormOptions?.defaultValues || {},
-      persistency: persistencyDefaultValues,
-      schema: defaultsValueFromSchema(schema)
-    }
-
-    return (omegaConfig?.defaultValuesPriority || ["tanstack", "persistency", "schema"] as const).reverse().reduce(
-      (acc, m) => {
-        if (!Object.keys(acc).length) {
-          return defaults[m]
-        }
-        return deepMerge(acc, defaults[m])
-      },
-      {}
-    )
-  })
-
   const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {
     return span ? api.context.with(api.trace.setSpan(api.context.active(), span), toWrap) : toWrap()
   }
+
+  // Persistency must be created before `useForm` so its merged
+  // `defaultValues` (tanstack + storage/querystring + schema) can flow into
+  // the form. The `getForm` accessor is lazy because the form is constructed
+  // immediately after, and persistency's listeners only fire later.
+  const formHolder: { form: any } = { form: undefined }
+  const persistency = usePersistency<From>({
+    meta,
+    persistency: omegaConfig?.persistency as any,
+    preventWindowExit: omegaConfig?.preventWindowExit,
+    defaultValuesPriority: omegaConfig?.defaultValuesPriority,
+    tanstackDefaultValues: tanstackFormOptions?.defaultValues,
+    schemaDefaultValues: () => defaultsValueFromSchema(schema),
+    getForm: () => formHolder.form
+  })
 
   const form = useForm<
     From,
@@ -813,8 +747,9 @@ export const useOmegaForm = <
           return r
         })
       : undefined,
-    defaultValues: defaultValues.value as any
+    defaultValues: persistency.defaultValues.value as any
   }) satisfies OmegaFormApi<To, From>
+  formHolder.form = form
 
   const clear = () => {
     Object.keys(meta).forEach((key: any) => {
@@ -822,88 +757,7 @@ export const useOmegaForm = <
     })
   }
 
-  const createNestedObjectFromPaths = (paths: string[]) =>
-    paths.reduce((result, path) => {
-      const parts = path.split(".")
-      parts.reduce((acc, part, i) => {
-        if (i === parts.length - 1) {
-          acc[part] = form.getFieldValue(path as any)
-        } else {
-          acc[part] = acc[part] ?? {}
-        }
-        return acc[part]
-      }, result)
-      return result
-    }, {} as Record<string, any>)
-
-  const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
-    if (!persistency) return
-    const { banKeys, keys } = persistency
-    if (Array.isArray(keys)) {
-      return createNestedObjectFromPaths(keys as string[])
-    }
-    if (Array.isArray(banKeys)) {
-      const subs = Object.keys(meta).filter((metakey) => banKeys.includes(metakey as any))
-      return createNestedObjectFromPaths(subs)
-    }
-    return form.store.state.values
-  }
-
-  const persistData = () => {
-    const persistency = omegaConfig?.persistency
-    if (!persistency?.policies || persistency.policies.length === 0) {
-      return
-    }
-    if (
-      includesPolicy(persistency.policies, "local")
-      || includesPolicy(persistency.policies, "session")
-    ) {
-      const storage = includesPolicy(persistency.policies, "local")
-        ? localStorage
-        : sessionStorage
-      if (!storage) return
-      const values = persistFilter(persistency)
-      return storage.setItem(persistencyKey.value, JSON.stringify(values))
-    }
-  }
-
-  const saveDataInUrl = () => {
-    const persistency = omegaConfig?.persistency
-    if (!persistency?.policies || persistency.policies.length === 0) {
-      return
-    }
-    if (includesPolicy(persistency.policies, "querystring")) {
-      const values = persistFilter(persistency)
-      const searchParams = new URLSearchParams(window.location.search)
-      searchParams.set(persistencyKey.value, JSON.stringify(values))
-      const url = new URL(window.location.href)
-      url.search = searchParams.toString()
-      window.history.replaceState({}, "", url.toString())
-    }
-  }
-
-  const preventWindowExit = (e: BeforeUnloadEvent) => {
-    if (form.store.state.isDirty) {
-      e.preventDefault()
-    }
-  }
-
-  onUnmounted(persistData)
-
-  onMounted(() => {
-    window.addEventListener("beforeunload", persistData)
-    window.addEventListener("blur", saveDataInUrl)
-    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
-      window.addEventListener("beforeunload", preventWindowExit)
-    }
-  })
-  onBeforeUnmount(() => {
-    window.removeEventListener("beforeunload", persistData)
-    window.removeEventListener("blur", saveDataInUrl)
-    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
-      window.removeEventListener("beforeunload", preventWindowExit)
-    }
-  })
+  // (Persistency listener wiring + storage/querystring read/write lives in `usePersistency`.)
 
   // Watch for successful form submissions and auto-reset if prevent-and-reset is enabled
   // We put it as a side effect, so we don't overwhelm submit handler and we can support

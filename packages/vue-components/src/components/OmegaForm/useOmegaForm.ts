@@ -789,7 +789,7 @@ export const useOmegaForm = <
     ...tanstackFormOptions,
     validators: {
       onSubmit: standardSchema,
-      ...(tanstackFormOptions?.validators || {})
+      ...tanstackFormOptions?.validators
     },
     onSubmit: tanstackFormOptions?.onSubmit
       ? ({ formApi, meta, value }) =>

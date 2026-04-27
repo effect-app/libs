@@ -26,28 +26,29 @@ const fakeToastLayer = (toasts: any[] = []) =>
           toasts.splice(idx, 1)
         }
       }
-      const fakeToast = (type: "error" | "warning" | "success" | "info") => (message: string, options?: Toast.ToastOpts) => {
-        const id = options?.id ?? Math.random().toString(36).substring(2, 15)
-        console.log(`Toast [${type}][${id}]: ${message}`, options)
+      const fakeToast =
+        (type: "error" | "warning" | "success" | "info") => (message: string, options?: Toast.ToastOpts) => {
+          const id = options?.id ?? Math.random().toString(36).substring(2, 15)
+          console.log(`Toast [${type}][${id}]: ${message}`, options)
 
-        options = { ...options, id }
-        const idx = toasts.findIndex((_) => _.id === id)
-        if (idx > -1) {
-          const toast = toasts[idx]
-          clearTimeout(toast.timeoutId)
-          Object.assign(toast, { type, message, options })
-          toast.timeoutId = setTimeout(() => {
-            toasts.splice(idx, 1)
-          }, options?.timeout ?? 3000)
-        } else {
-          const toast: any = { id, type, message, options }
-          toast.timeoutId = setTimeout(() => {
-            toasts.splice(idx, 1)
-          }, options?.timeout ?? 3000)
-          toasts.push(toast)
+          options = { ...options, id }
+          const idx = toasts.findIndex((_) => _.id === id)
+          if (idx > -1) {
+            const toast = toasts[idx]
+            clearTimeout(toast.timeoutId)
+            Object.assign(toast, { type, message, options })
+            toast.timeoutId = setTimeout(() => {
+              toasts.splice(idx, 1)
+            }, options?.timeout ?? 3000)
+          } else {
+            const toast: any = { id, type, message, options }
+            toast.timeoutId = setTimeout(() => {
+              toasts.splice(idx, 1)
+            }, options?.timeout ?? 3000)
+            toasts.push(toast)
+          }
+          return id
         }
-        return id
-      }
       return Toast.Toast.of(Toast.wrap({
         error: fakeToast("error"),
         warning: fakeToast("warning"),

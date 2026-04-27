@@ -1,9 +1,11 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>,
+  generic="
+  From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From> | undefined = DeepKeys<From>"
+  Name extends DeepKeys<From> | undefined = DeepKeys<From>
+"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, provide, ref, watch } from "vue"

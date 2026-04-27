@@ -7,7 +7,7 @@
     ],
     "target": "ES2022",
     // inline source maps stay better in sync with the source, which should aid with watchers.
-    //"sourceMap": true,
+    // "sourceMap": true,
     "inlineSourceMap": true,
     "incremental": true,
     "composite": true,
@@ -40,7 +40,7 @@
       "**/.git",
       "**/.data",
       "**/.logs",
-      "**/.*",
+      "**/.*"
     ],
     "excludeFiles": [
       "**/*.tmp",

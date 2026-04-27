@@ -1,5 +1,5 @@
 import { createIntl, type IntlFormatters } from "@formatjs/intl"
-import type {} from "intl-messageformat"
+
 import { Cause, Exit, Option, pipe, S } from "effect-app"
 import type { Unbranded } from "effect-app/Schema/brand"
 import type { IsUnion } from "effect-app/utils"
@@ -268,7 +268,7 @@ function buildFieldInfo(
   const nullableOrUndefined = S.AST.isUnion(property.type)
     && (property.type.types.includes(S.Null.ast) || property.type.types.some((_) => _._tag === "Undefined"))
   const realSelf = nullableOrUndefined && S.AST.isUnion(property.type)
-    ? property.type.types.filter((_) => _ !== S.Null.ast && _._tag !== "Undefined")[0]!
+    ? property.type.types.find((_) => _ !== S.Null.ast && _._tag !== "Undefined")!
     : property.type
   const id = S.AST.resolveIdentifier(property.type)
   const id2 = S.AST.resolveIdentifier(realSelf)
@@ -452,7 +452,7 @@ export function getMetadataFromSchema(
 
   const nullable = S.AST.isUnion(ast) && ast.types.includes(S.Null.ast)
   const realSelf = nullable && S.AST.isUnion(ast)
-    ? ast.types.filter((_) => _ !== S.Null.ast)[0]!
+    ? ast.types.find((_) => _ !== S.Null.ast)!
     : ast
 
   let jschema: any
@@ -465,7 +465,7 @@ export function getMetadataFromSchema(
       const { $ref: _, ...rest } = jschema
       jschema = { ...defs[jschema["$ref"].replace("#/$defs/", "")], ...rest }
     }
-  } catch (_err) {
+  } catch {
     jschema = {}
   }
   // or we need to add these info directly in the refinement like the minimum

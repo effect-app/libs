@@ -12,9 +12,7 @@
         :is="form.Field"
         v-for="(_, i) of items"
         :key="`${name}[${Number(i)}]`"
-        :name="// eslint-disable-next-line
-          `${name}[${Number(i)}]` as DeepKeys<From>
-        "
+        :name="`${name}[${Number(i)}]` as DeepKeys<From>"
       >
         <template #default="{ field: subField, state: subState }">
           <slot
@@ -42,7 +40,11 @@
 <script
   setup
   lang="ts"
-  generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
+  generic="
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  Name extends DeepKeys<From>
+"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, onMounted, provide } from "vue"

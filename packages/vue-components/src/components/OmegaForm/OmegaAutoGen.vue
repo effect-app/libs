@@ -14,10 +14,11 @@
 <script
   setup
   lang="ts"
-  generic="// dprint-ignore
+  generic="
   From extends Record<PropertyKey, string>,
   To extends Record<PropertyKey, string>,
-  Name extends DeepKeys<From>"
+  Name extends DeepKeys<From>
+"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { Order } from "effect-app"

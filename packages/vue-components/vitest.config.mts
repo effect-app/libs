@@ -1,18 +1,18 @@
 /// <reference types="vitest" />
+import vue from "@vitejs/plugin-vue"
 import { defineConfig } from "vitest/config"
-import vue from '@vitejs/plugin-vue'
 import makeConfig from "../../vite.config.base"
 
 export default defineConfig({
   ...makeConfig(__dirname),
   plugins: [vue()],
   test: {
-    environment: 'jsdom',
-    include: ['src/**/*.test.{js,ts,jsx,tsx}', '**/__tests__/**/*.test.{js,ts,jsx,tsx}'],
-    exclude: ['node_modules/**', 'dist/**'],
+    environment: "jsdom",
+    include: ["src/**/*.test.{js,ts,jsx,tsx}", "**/__tests__/**/*.test.{js,ts,jsx,tsx}"],
+    exclude: ["node_modules/**", "dist/**"],
     globals: true
   },
   optimizeDeps: {
-    exclude: ['**/__tests__/**', '**/*.test.*']
+    exclude: ["**/__tests__/**", "**/*.test.*"]
   }
 })

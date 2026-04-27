@@ -7,6 +7,19 @@ import type { Redacted } from "effect/Redacted"
 import { getTransformationFrom, useIntl } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
+import type {
+  BaseFieldMeta,
+  BooleanFieldMeta,
+  DateFieldMeta,
+  FieldMeta,
+  MetaRecord,
+  MultipleFieldMeta,
+  NestedKeyOf,
+  NumberFieldMeta,
+  SelectFieldMeta,
+  StringFieldMeta,
+  UnknownFieldMeta
+} from "./meta/types"
 
 const legacyTagWarningEmittedFor = new Set<string>()
 type GlobalThisWithOptionalProcess = typeof globalThis & {
@@ -236,34 +249,6 @@ export type PrefixFromDepth<
   K extends string | number,
   _TDepth extends any[]
 > = K
-
-import type {
-  BaseFieldMeta,
-  BooleanFieldMeta,
-  DateFieldMeta,
-  FieldMeta,
-  MetaRecord,
-  MultipleFieldMeta,
-  NestedKeyOf,
-  NumberFieldMeta,
-  SelectFieldMeta,
-  StringFieldMeta,
-  UnknownFieldMeta
-} from "./meta/types"
-
-export {
-  type BaseFieldMeta,
-  type BooleanFieldMeta,
-  type DateFieldMeta,
-  type FieldMeta,
-  type MetaRecord,
-  type MultipleFieldMeta,
-  type NestedKeyOf,
-  type NumberFieldMeta,
-  type SelectFieldMeta,
-  type StringFieldMeta,
-  type UnknownFieldMeta
-} from "./meta/types"
 
 export type FieldValidators<T> = {
   onChangeAsync?: FieldAsyncValidateOrFn<T, any, any>
@@ -1373,3 +1358,18 @@ export const defaultsValueFromSchema = (
     }
   }
 }
+
+// === Re-exports for backward compatibility (see ./meta) ===
+export {
+  type BaseFieldMeta,
+  type BooleanFieldMeta,
+  type DateFieldMeta,
+  type FieldMeta,
+  type MetaRecord,
+  type MultipleFieldMeta,
+  type NestedKeyOf,
+  type NumberFieldMeta,
+  type SelectFieldMeta,
+  type StringFieldMeta,
+  type UnknownFieldMeta
+} from "./meta/types"

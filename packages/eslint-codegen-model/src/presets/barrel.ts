@@ -1,9 +1,13 @@
-import type { Preset } from "eslint-plugin-codegen"
 import glob from "glob"
 import { match } from "io-ts-extra"
 import lodash from "lodash"
 import * as path from "path"
 import { normaliseModuleForBarrel } from "../normalise.js"
+
+type PresetFn<T = Record<string, unknown>> = (args: {
+  meta: { filename: string; existingContent: string }
+  options: T
+}, context?: unknown) => string
 
 /**
  * Bundle several modules into a single convenient one.
@@ -29,7 +33,7 @@ import { normaliseModuleForBarrel } from "../normalise.js"
  * to `{name: someName, keys: path}` the relative file paths will be used as keys. Otherwise the file paths
  * will be camel-cased to make them valid js identifiers.
  */
-export const barrel: Preset<{
+export const barrel: PresetFn<{
   include?: string
   exclude?: string | string[]
   import?: "default" | "star"

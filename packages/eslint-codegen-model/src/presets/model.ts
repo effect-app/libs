@@ -1,6 +1,10 @@
-import type { Preset } from "eslint-plugin-codegen"
 import * as fs from "fs"
 import { normaliseModule } from "../normalise.js"
+
+type PresetFn<T = Record<string, unknown>> = (args: {
+  meta: { filename: string; existingContent: string }
+  options: T
+}, context?: unknown) => string
 
 // Detects `export class Foo` whose extends clause contains e.g. `Class<Foo,` or
 // `S.TaggedClass<Foo,` — the second generic signals an Encoded override and marks
@@ -36,7 +40,7 @@ function getExportedModelNames(code: string): Array<string> {
   return result
 }
 
-export const model: Preset<{
+export const model: PresetFn<{
   writeFullTypes?: boolean
 }> = ({ meta }) => {
   try {

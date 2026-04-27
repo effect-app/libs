@@ -14,11 +14,5 @@ export default [
       "**/*.d.ts",
       "node_modules/"
     ]
-  },
-  {
-    rules: {
-      "@typescript-eslint/no-empty-interface": "off",
-      "@typescript-eslint/no-explicit-any": "warn"
-    }
   }
 ]

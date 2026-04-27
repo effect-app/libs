@@ -1,41 +1,47 @@
 import formatjs from "eslint-plugin-formatjs"
 import pluginVue from "eslint-plugin-vue"
-import { defineConfigWithVueTs, vueTsConfigs } from "@vue/eslint-config-typescript"
-import tseslint from "typescript-eslint"
+import vueParser from "vue-eslint-parser"
+import tsParser from "@typescript-eslint/parser"
 import { baseConfig } from "./eslint.base.config.mjs"
+import effectAppPlugin from "./plugin-effect-app.mjs"
 
 /**
+ * Vue ESLint config. Most type-aware TS rules are handled by `oxlint --type-aware`
+ * (powered by tsgolint). ESLint here is retained because oxlint cannot lint
+ * `.vue` files; it runs `eslint-plugin-vue` for template/SFC checks, `formatjs`
+ * for ICU messages, and the local `@effect-app/no-await-effect` type-aware rule
+ * (which has no tsgolint equivalent). `@typescript-eslint/parser` is used as a
+ * parser so vue-eslint-parser can read `<script lang="ts">` blocks and so the
+ * effect-app plugin can access TypeScript program services.
+ *
  * @param {string} dirName
  * @param {boolean} [forceTS=false]
  * @returns {import("eslint").Linter.FlatConfig[]}
  */
 export function vueConfig(dirName, forceTS = false) {
-
+  // eslint-disable-next-line no-undef
   const enableTS = !!dirName && (forceTS || process.env["ESLINT_TS"])
 
   return [
     ...baseConfig(dirName, forceTS),
 
-    // ...ts.configs.recommended,
-    // this should set the vue parser as the parser plus some recommended rules
     ...pluginVue.configs["flat/recommended"],
-    ...defineConfigWithVueTs(vueTsConfigs.base),
     {
       name: "vue",
       files: ["*.vue", "**/*.vue"],
       languageOptions: {
+        parser: vueParser,
         parserOptions: {
-          // set a custom parser to parse <script> tags
           parser: {
-            "<template>": tseslint.parser,
-            "ts": tseslint.parser,
-            "js": tseslint.parser,
+            "<template>": tsParser,
+            "ts": tsParser,
+            "js": tsParser
           },
           tsconfigRootDir: dirName,
+          extraFileExtensions: [".vue"],
           ...(enableTS && {
-            projectService: true,
-          }),
-          extraFileExtensions: [".vue"]
+            projectService: true
+          })
         }
       },
       rules: {
@@ -46,14 +52,17 @@ export function vueConfig(dirName, forceTS = false) {
         "vue/valid-v-slot": [
           "error",
           {
-            allowModifiers: true,
-          },
-        ]
+            allowModifiers: true
+          }
+        ],
+        ...(enableTS && {
+          "@effect-app/no-await-effect": "error"
+        })
       },
       plugins: {
-        formatjs, // this is for ICU messages, so I'd say we need it here
-      },
-    },
-
+        formatjs,
+        "@effect-app": effectAppPlugin
+      }
+    }
   ]
 }

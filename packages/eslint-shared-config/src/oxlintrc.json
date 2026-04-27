@@ -6,6 +6,9 @@
     "suspicious": "error",
     "perf": "error"
   },
+  "options": {
+    "typeAware": true
+  },
   // NOTE: oxlint does NOT merge ignorePatterns from extended configs — the child config's
   // ignorePatterns completely replaces the base. Consumers must repeat these patterns
   // and append their own. See: https://oxc.rs/docs/guide/usage/linter/config-file-reference#ignorePatterns
@@ -79,6 +82,21 @@
     "unicorn/no-array-reverse": "off",
     "unicorn/require-post-message-target-origin": "off",
     "unicorn/prefer-add-event-listener": "off",
-    "unicorn/prefer-set-has": "off"
+    "unicorn/prefer-set-has": "off",
+
+    // Type-aware rules (powered by tsgolint via `oxlint --type-aware`).
+    // Mirrors the previous typescript-eslint rules from eslint.base.config.mjs.
+    "typescript/restrict-template-expressions": "warn",
+    "typescript/restrict-plus-operands": "off",
+    "typescript/no-unsafe-assignment": "warn",
+    "typescript/no-unsafe-call": "warn",
+    "typescript/no-unsafe-return": "warn",
+    "typescript/no-unsafe-argument": "warn",
+    "typescript/no-unsafe-member-access": "warn",
+    "typescript/no-misused-promises": "warn",
+    "typescript/unbound-method": "error",
+    "typescript/only-throw-error": "off",
+    "typescript/no-base-to-string": "warn",
+    "typescript/no-floating-promises": "error"
   }
 }

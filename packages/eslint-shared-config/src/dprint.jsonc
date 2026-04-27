@@ -16,12 +16,13 @@
   "toml": {},
   "malva": {},
   "markup": {
-    "printWidth": 120
+    "printWidth": 120,
   },
   "yaml": {},
+  // excludes overwrites (not merges) when extended — consumers must repeat these plus their own entries.
   "excludes": [
     "**/node_modules",
-    "**/*-lock.json"
+    "**/*-lock.json",
   ],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.95.11.wasm",
@@ -30,6 +31,6 @@
     "https://plugins.dprint.dev/toml-0.7.0.wasm",
     "https://plugins.dprint.dev/g-plane/malva-v0.14.3.wasm",
     "https://plugins.dprint.dev/g-plane/markup_fmt-v0.23.4.wasm",
-    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.5.1.wasm"
-  ]
+    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.5.1.wasm",
+  ],
 }

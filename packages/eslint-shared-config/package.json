@@ -21,7 +21,8 @@
     "./eslint.vue.config": {
       "default": "./src/eslint.vue.config.mjs"
     },
-    "./oxlintrc.json": "./src/oxlintrc.json"
+    "./oxlintrc.json": "./src/oxlintrc.json",
+    "./dprint.jsonc": "./src/dprint.jsonc"
   },
   "dependencies": {
     "@effect-app/eslint-codegen-model": "workspace:*",
@@ -34,7 +35,6 @@
     "eslint-plugin-codegen": "0.17.0",
     "eslint-plugin-sort-destructure-keys": "3.0.0",
     "eslint-plugin-unused-imports": "4.4.1",
-    "@ben_12/eslint-plugin-dprint": "1.17.0",
     "eslint-plugin-formatjs": "6.4.6",
     "@vue/eslint-config-typescript": "14.7.0",
     "typescript-eslint": "8.59.0",
@@ -52,13 +52,10 @@
     "@dprint/formatter": "~0.5.1",
     "jsonc-parser": "3.3.1"
   },
-  "bundledDependencies": [
-    "@ben_12/eslint-plugin-dprint"
-  ],
+  "bundledDependencies": [],
   "devDependencies": {},
   "peerDependencies": {
     "eslint": "^10.2.1",
-    "typescript": ">=6.0.3 <8",
-    "dprint": "^0.54.0"
+    "typescript": ">=6.0.3 <8"
   }
 }

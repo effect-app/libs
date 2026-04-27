@@ -12,12 +12,8 @@ import _import from "eslint-plugin-import"
 import oxlint from "eslint-plugin-oxlint"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
 import unusedImports from "eslint-plugin-unused-imports"
-
-
-import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import dprint from "@ben_12/eslint-plugin-dprint";
-import effectAppPlugin from "./plugin-effect-app.mjs";
+import tseslint from "typescript-eslint"
+import effectAppPlugin from "./plugin-effect-app.mjs"
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -56,7 +52,7 @@ export function baseConfig(dirName, forceTS = false, project = undefined, enable
     },
     js.configs.recommended,
     ...tseslint.config(
-      eslint.configs.recommended,
+      js.configs.recommended,
       tseslint.configs.recommended,
     ),
     ...(enableOxlint ? oxlint.configs["flat/recommended"] : []),
@@ -179,36 +175,7 @@ export function augmentedConfig(dirName, forceTS = false, project = undefined, e
     ...baseConfig(dirName, forceTS, project, enableOxlint),
     {
       name: "augmented",
-      plugins: {
-        "@ben_12/dprint": dprint
-      },
       rules: {
-        ...dprint.configs["typescript-recommended"].rules,
-        "@ben_12/dprint/typescript": [
-          "error",
-          {
-            // Use dprint JSON configuration file (default: "dprint.json")
-            // It may be created using `dprint init` command
-            // See also https://dprint.dev/config/
-            //configFile: "dprint.json",
-              // The TypeScript configuration of dprint
-              // See also https://dprint.dev/plugins/typescript/config/
-              config: {
-                // The TypeScript configuration of dprint
-                // See also https://dprint.dev/plugins/typescript/config/,
-                "indentWidth": 2,
-                "semiColons": "asi",
-                "quoteStyle": "alwaysDouble",
-                "trailingCommas": "never",
-                "arrowFunction.useParentheses": "force",
-                "memberExpression.linePerExpression": true,
-                "binaryExpression.linePerExpression": true,
-                "importDeclaration.forceSingleLine": true,
-                "exportDeclaration.forceSingleLine": true,
-                "lineWidth": 120,
-              }
-          },
-        ],
         "codegen/codegen": [
           "error",
           {

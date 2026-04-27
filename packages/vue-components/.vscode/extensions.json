@@ -1,3 +1,7 @@
 {
-  "recommendations": ["Vue.volar"]
+  "recommendations": [
+    "oxc.oxc-vscode",
+    "dprint.dprint",
+    "Vue.volar"
+  ]
 }

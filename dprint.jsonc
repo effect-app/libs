@@ -1,0 +1,6 @@
+{
+  "$schema": "https://dprint.dev/schemas/v0.json",
+  "extends": ["./packages/eslint-shared-config/src/dprint.jsonc"],
+  // excludes overwrites (not merges) the base — all standard patterns must be repeated here.
+  "excludes": ["**/node_modules", "**/*-lock.json", "repos/**"],
+}

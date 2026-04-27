@@ -1,22 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type {
-  DeepKeys,
-  DeepValue,
-  FieldAsyncValidateOrFn,
-  FieldValidateOrFn,
-  FormApi,
-  FormAsyncValidateOrFn,
-  FormOptions,
-  FormState,
-  FormValidateOrFn,
-  StandardSchemaV1,
-  VueFormApi
-} from "@tanstack/vue-form"
+import type { DeepKeys, DeepValue, FieldApi, FieldAsyncValidateOrFn, FieldState, FieldValidateOrFn, FormApi, FormAsyncValidateOrFn, FormOptions, FormState, FormValidateOrFn, StandardSchemaV1, VueFormApi } from "@tanstack/vue-form"
 import type { Effect, Order, S } from "effect-app"
 import type { UnionToTuples } from "effect-app/utils"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type { Redacted } from "effect/Redacted"
-import type { ComputedRef } from "vue"
+import type { AllowedComponentProps, ComponentCustomProps, ComputedRef, PublicProps, ShallowUnwrapRef, VNode, VNodeProps } from "vue"
 import type { MergedInputProps, OmegaFieldInternalApi, TaggedUnionOptionsArray } from "./InputProps"
 import type { MetaRecord, NestedKeyOf } from "./meta/types"
 import type { defaultValuesPriorityUnion as PersistencyPriority, Policies as PersistencyPolicies } from "./persistency"
@@ -332,144 +320,146 @@ type __VLS_PrettifyLocal<T> =
   & {}
 
 // Type aliases for Array component slots - using cached types for performance
-type CachedFieldApi<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldApi<
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CachedFieldApi<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, TypeProps = DefaultTypeProps> = FieldApi<
   From,
   OmegaFormReturn<From, To, TypeProps>["_keys"],
   DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
   Record<string, any> | undefined
 >
 
-type CachedFieldState<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldState<
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CachedFieldState<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, TypeProps = DefaultTypeProps> = FieldState<
   From,
   OmegaFormReturn<From, To, TypeProps>["_keys"],
   DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
+  | FieldValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
+  | FieldAsyncValidateOrFn<
     From,
     OmegaFormReturn<From, To, TypeProps>["_keys"],
     DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
   >
   | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
+  FormValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  StandardSchemaV1<From, To>,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined,
+  FormValidateOrFn<From> | undefined,
+  FormAsyncValidateOrFn<From> | undefined
 >
 
 export interface OmegaFormReturn<
@@ -493,7 +483,7 @@ export interface OmegaFormReturn<
           & Pick<
             & Partial<{}>
             & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              {} & VNodeProps & AllowedComponentProps & ComponentCustomProps,
               never
             >,
             never
@@ -502,8 +492,8 @@ export interface OmegaFormReturn<
           & Partial<{}>
         >
         & BaseProps<From, Name>
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+        & PublicProps
+      expose(exposed: ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
         default?(props: MergedInputProps<From, Name>): void
@@ -511,7 +501,7 @@ export interface OmegaFormReturn<
       }
       emit: {}
     }>
-  ) => import("vue").VNode & {
+  ) => VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
   Errors: (
@@ -524,22 +514,22 @@ export interface OmegaFormReturn<
           & Pick<
             & Partial<{}>
             & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              {} & VNodeProps & AllowedComponentProps & ComponentCustomProps,
               never
             >,
             never
           >
           & Partial<{}>
         >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+        & PublicProps
+      expose(exposed: ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
         default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => void
       }
       emit: {}
     }>
-  ) => import("vue").VNode & {
+  ) => VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
   TaggedUnion: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
@@ -552,7 +542,7 @@ export interface OmegaFormReturn<
           & Pick<
             & Partial<{}>
             & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              {} & VNodeProps & AllowedComponentProps & ComponentCustomProps,
               never
             >,
             never
@@ -566,13 +556,13 @@ export interface OmegaFormReturn<
           }
           & {}
         >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+        & PublicProps
+      expose(exposed: ShallowUnwrapRef<{}>): void
       attrs: any
       slots: Record<
         string,
         (props: {
-          field: import("@tanstack/vue-form").FieldApi<
+          field: FieldApi<
             From,
             Name,
             DeepValue<From, Name>,
@@ -597,7 +587,7 @@ export interface OmegaFormReturn<
             any,
             any
           >
-          state: import("@tanstack/vue-form").FieldState<
+          state: FieldState<
             From,
             Name,
             DeepValue<From, Name>,
@@ -624,7 +614,7 @@ export interface OmegaFormReturn<
       >
       emit: {}
     }>
-  ) => import("vue").VNode & {
+  ) => VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
   Array: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
@@ -637,7 +627,7 @@ export interface OmegaFormReturn<
           & Pick<
             & Partial<{}>
             & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              {} & VNodeProps & AllowedComponentProps & ComponentCustomProps,
               never
             >,
             never
@@ -645,8 +635,8 @@ export interface OmegaFormReturn<
           & (Omit<OmegaArrayProps<From, To, Name>, "form">)
           & {}
         >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+        & PublicProps
+      expose(exposed: ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
         "pre-array"?: (props: {
@@ -672,7 +662,7 @@ export interface OmegaFormReturn<
       }
       emit: {}
     }>
-  ) => import("vue").VNode & {
+  ) => VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
 
@@ -686,7 +676,7 @@ export interface OmegaFormReturn<
           Pick<
             & Partial<{}>
             & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              {} & VNodeProps & AllowedComponentProps & ComponentCustomProps,
               never
             >,
             never
@@ -703,8 +693,8 @@ export interface OmegaFormReturn<
             sort?: Order.Order<OmegaAutoGenMeta<From, To, Name>>
           } & {}
         >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+        & PublicProps
+      expose(exposed: ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
         default(props: {
@@ -713,7 +703,7 @@ export interface OmegaFormReturn<
       }
       emit: {}
     }>
-  ) => import("vue").VNode & {
+  ) => VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
 
@@ -727,7 +717,7 @@ export interface OmegaFormReturn<
           Pick<
             & Partial<{}>
             & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
+              {} & VNodeProps & AllowedComponentProps & ComponentCustomProps,
               never
             >,
             never
@@ -737,8 +727,8 @@ export interface OmegaFormReturn<
             subscribe?: K[]
           } & {}
         >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
+        & PublicProps
+      expose(exposed: ShallowUnwrapRef<{}>): void
       attrs: any
       slots: {
         default(props: {
@@ -747,7 +737,7 @@ export interface OmegaFormReturn<
       }
       emit: {}
     }>
-  ) => import("vue").VNode & {
+  ) => VNode & {
     __ctx?: Awaited<typeof __VLS_setup>
   }
 }

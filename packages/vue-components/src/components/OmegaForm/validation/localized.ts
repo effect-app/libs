@@ -77,7 +77,7 @@ export const toLocalizedStandardSchemaV1 = <To, From>(
   schema: S.Codec<To, From, never, never>,
   trans: TransFn
 ): StandardSchemaV1<From, To> => {
-  const { leafHook, checkHook } = makeStandardSchemaV1Hooks(trans)
+  const { checkHook, leafHook } = makeStandardSchemaV1Hooks(trans)
   return S.toStandardSchemaV1(schema, { leafHook, checkHook })
 }
 

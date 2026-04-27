@@ -1,53 +1,14 @@
-export type {
-  BaseFieldMeta,
-  BooleanFieldMeta,
-  DateFieldMeta,
-  FieldMeta,
-  MetaRecord,
-  MultipleFieldMeta,
-  NestedKeyOf,
-  NumberFieldMeta,
-  SelectFieldMeta,
-  StringFieldMeta,
-  UnknownFieldMeta
-} from "./meta/types"
-export type {
-  BaseProps,
-  DefaultTypeProps,
-  FieldPath,
-  FieldPath_,
-  FieldValidators,
-  FormComponent,
-  FormProps,
-  FormType,
-  OmegaArrayProps,
-  OmegaAutoGenMeta,
-  OmegaError,
-  OmegaFormApi,
-  OmegaFormParams,
-  OmegaFormState,
-  OmegaInputProps,
-  OmegaInputPropsBase,
-  PrefixFromDepth,
-  TypeOverride,
-  TypesWithOptions
-} from "./types"
-export {
-  createMeta,
-  generateMetaFromSchema,
-  isNullableOrUndefined,
-  metadataFromAst
-} from "./meta/createMeta"
+import type { S } from "effect-app"
+
+export { getInputType, type SupportedInputs } from "./inputs"
+export { createMeta, generateMetaFromSchema, isNullableOrUndefined, metadataFromAst } from "./meta/createMeta"
 export type { CreateMeta, FilterItems } from "./meta/createMeta"
 export { defaultsValueFromSchema } from "./meta/defaults"
 export { toFormSchema } from "./meta/redacted"
-export {
-  generateInputStandardSchemaFromFieldMeta,
-  makeStandardSchemaV1Hooks,
-  toLocalizedStandardSchemaV1
-} from "./validation/localized"
+export type { BaseFieldMeta, BooleanFieldMeta, DateFieldMeta, FieldMeta, MetaRecord, MultipleFieldMeta, NestedKeyOf, NumberFieldMeta, SelectFieldMeta, StringFieldMeta, UnknownFieldMeta } from "./meta/types"
 export { deepMerge } from "./persistency"
-export { getInputType, type SupportedInputs } from "./inputs"
+export type { BaseProps, DefaultTypeProps, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps, FormType, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, TypeOverride, TypesWithOptions } from "./types"
+export { generateInputStandardSchemaFromFieldMeta, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
 
 export { FormErrors, OmegaFormKey, useErrorLabel, useOmegaForm } from "./useOmegaForm"
 export type { defaultValuesPriorityUnion, OF, OmegaConfig, OmegaFormReturn, Policies } from "./useOmegaForm"
@@ -61,3 +22,5 @@ export { default as OmegaTaggedUnionInternal } from "./OmegaTaggedUnionInternal.
 export { useOnClose, usePreventClose } from "./blockDialog"
 
 export { createUseFormWithCustomInput } from "./createUseFormWithCustomInput"
+
+export const duplicateSchema = <From, To>(schema: S.Codec<To, From, never>) => schema

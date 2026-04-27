@@ -1,15 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type Effect, type Record, S } from "effect-app"
 import { type StandardSchemaV1 } from "@tanstack/vue-form"
+import { type Effect, type Record, S } from "effect-app"
 import { getTransformationFrom } from "../../../utils"
-import type {
-  FieldMeta,
-  MetaRecord,
-  NestedKeyOf,
-  SelectFieldMeta
-} from "./types"
-import { warnLegacyTag } from "./legacyWarning"
 import { getFieldMetadataFromAst } from "./checks"
+import { warnLegacyTag } from "./legacyWarning"
+import type { FieldMeta, MetaRecord, NestedKeyOf, SelectFieldMeta } from "./types"
 
 export type FilterItems = {
   items: readonly [string, ...string[]]
@@ -85,7 +80,7 @@ const leafMetaForAst = (
   ast: S.AST.AST,
   parentMeta: ParentMeta
 ): FieldMeta => {
-  const { required, nullableOrUndefined } = parentMeta
+  const { nullableOrUndefined, required } = parentMeta
 
   if (S.AST.isArrays(ast)) {
     return {
@@ -174,6 +169,7 @@ const classifyAndWalkUnion = <T>(
     }
 
     const discriminatorValues: any[] = []
+    const tagLiteralAsts: S.AST.AST[] = []
     const branchParentMeta: ParentMeta = isNullableDiscriminatedUnion
       ? { required: true, nullableOrUndefined: false, isNullableDiscriminatedUnion: true }
       : { required: true, nullableOrUndefined: false }
@@ -188,6 +184,9 @@ const classifyAndWalkUnion = <T>(
       if (resolvedTagType && S.AST.isLiteral(resolvedTagType)) {
         tagValue = resolvedTagType.literal as string
         if (!discriminatorValues.includes(tagValue)) discriminatorValues.push(tagValue)
+        if (!tagLiteralAsts.some((t) => S.AST.isLiteral(t) && t.literal === tagValue)) {
+          tagLiteralAsts.push(resolvedTagType)
+        }
         if (tagProp && S.AST.isUnion(tagProp.type)) warnLegacyTag(tagValue)
       }
 
@@ -227,6 +226,11 @@ const classifyAndWalkUnion = <T>(
           required: !isNullableDiscriminatedUnion
         } as FieldMeta
       }
+      if (fieldAstByPath && tagLiteralAsts.length > 0) {
+        fieldAstByPath[tagKey] = tagLiteralAsts.length === 1
+          ? tagLiteralAsts[0]!
+          : new S.AST.Union(tagLiteralAsts, "anyOf")
+      }
     }
     return
   }
@@ -240,7 +244,7 @@ const classifyAndWalkUnion = <T>(
   // Literal / primitive union (e.g. legacy _tag pattern)
   const resolvedTypes = unwrappedTypes.map(unwrapSingleLiteralUnion)
   if (resolvedTypes.every((_) => isNullishType(_) || S.AST.isLiteral(_))) {
-    const { required, nullableOrUndefined, isOptionalKey } = parentMeta
+    const { isOptionalKey, nullableOrUndefined, required } = parentMeta
     const leaf: FieldMeta = {
       required,
       nullableOrUndefined,
@@ -293,7 +297,7 @@ const walk = <T>(
   }
 
   // Leaf primitive / literal / unknown
-  const { required, nullableOrUndefined, isOptionalKey } = parentMeta
+  const { isOptionalKey, nullableOrUndefined, required } = parentMeta
   const adjusted: ParentMeta = {
     required: required && (!S.AST.isString(ast) || !!getFieldMetadataFromAst(ast).minLength),
     nullableOrUndefined
@@ -303,7 +307,6 @@ const walk = <T>(
   acc[key as NestedKeyOf<T>] = leaf
   if (fieldAstByPath) fieldAstByPath[key] = ast
 }
-
 
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,

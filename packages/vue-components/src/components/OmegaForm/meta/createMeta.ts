@@ -132,7 +132,8 @@ const getFieldMetadataFromAst = (property: S.AST.AST) => {
       }
     }
 
-    if (S.AST.resolveTitle(property) === "Email") {
+    const format = property.annotations?.["format"]
+    if (format === "email") {
       base.format = "email"
     }
   } else if (S.AST.isNumber(property)) {

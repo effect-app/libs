@@ -321,7 +321,11 @@ type __VLS_PrettifyLocal<T> =
 
 // Type aliases for Array component slots - using cached types for performance
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CachedFieldApi<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, TypeProps = DefaultTypeProps> = FieldApi<
+type CachedFieldApi<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  TypeProps = DefaultTypeProps
+> = FieldApi<
   From,
   OmegaFormReturn<From, To, TypeProps>["_keys"],
   DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
@@ -393,7 +397,11 @@ type CachedFieldApi<From extends Record<PropertyKey, any>, To extends Record<Pro
 >
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CachedFieldState<From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, TypeProps = DefaultTypeProps> = FieldState<
+type CachedFieldState<
+  From extends Record<PropertyKey, any>,
+  To extends Record<PropertyKey, any>,
+  TypeProps = DefaultTypeProps
+> = FieldState<
   From,
   OmegaFormReturn<From, To, TypeProps>["_keys"],
   DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,

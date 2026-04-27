@@ -1,13 +1,10 @@
 // __tests__/OmegaForm/SubmitEffect.test.ts
 import { mount } from "@vue/test-utils"
 import { Cause, Effect, Exit, S } from "effect-app"
-import { defineComponent } from "vue"
 import { describe, expect, it } from "vitest"
+import { defineComponent } from "vue"
+import { FormErrors, useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
-// FormErrors is currently exported from useOmegaForm.ts but not re-exported
-// via index.ts. Import directly. After Phase 1 Task 1.12 it will become a
-// public export.
-import { FormErrors, useOmegaForm } from "../../src/components/OmegaForm/useOmegaForm"
 
 const mountForm = <T>(setupForm: () => T): T => {
   let captured: T | undefined

@@ -1,5 +1,4 @@
 // __tests__/OmegaForm/DefaultValuesPriority.test.ts
-import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
 import { deepMerge } from "../../src/components/OmegaForm"
 
@@ -22,4 +21,3 @@ describe("deepMerge", () => {
 // `defaultValues` computed and isn't exported. A behavioral test would mount
 // a form. The deepMerge unit tests above pin the merge mechanic; the priority
 // resolution itself is exercised indirectly by the Meta and Defaults stories.
-void Effect

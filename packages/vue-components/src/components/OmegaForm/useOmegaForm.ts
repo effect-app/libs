@@ -92,8 +92,6 @@ export const useOmegaForm = <
     })
   }
 
-  // (Persistency listener wiring + storage/querystring read/write lives in `usePersistency`.)
-
   // Watch for successful form submissions and auto-reset if prevent-and-reset is enabled
   // We put it as a side effect, so we don't overwhelm submit handler and we can support
   // effects submission more freely

@@ -26,6 +26,12 @@
 
 **Naming note:** Earlier-session reads of the codebase reflected `originalCodec` / `attachOriginalCodecs` / `toFieldCodec`. The codebase has since renamed these to `originalSchema` / `attachOriginalSchemas` / `toFieldStandardSchema` and added `generateInputStandardSchemaFromFieldMeta` + a `composeStandardSchemas` wrapper in `OmegaInput.vue`. **All of this is what gets deleted in Phase 3.**
 
+**Phase 0 discoveries that updated this plan (2026-04-27 execution):**
+
+1. `makeStandardSchemaV1Hooks` and `toLocalizedStandardSchemaV1` **do not exist** in the current source. The localization currently lives inline inside `generateInputStandardSchemaFromFieldMeta` (`OmegaFormStuff.ts:1139–1273`), which generates per-field schemas, not a single form-level localized schema. Task 1.6 was originally written as a pure extraction; it has been rewritten to *create* the new hook functions while still extracting the existing `generateInputStandardSchemaFromFieldMeta`. The form-level localization the plan intends only materializes in Phase 3 Task 3.1.
+2. `unionMeta` is populated **only when the schema's root AST is a Union**. Unions nested inside struct fields (e.g. `S.Struct({ union: S.NullOr(S.Union([...])) })`) leave `unionMeta` empty. Phase 0's `TaggedUnionNested.test.ts` pins this state with `expect(unionMeta["A"]).toBeUndefined()`. Task 2.4 (the union-handling unification) is where this gap is intentionally closed; the Phase 0 assertions are expected to flip there.
+3. The legacy `_tag` deprecation warning in `metadataFromAst` is **dead code** — its guard `S.AST.isUnion(tagProp.type)` never matches `S.Struct({ _tag: S.Literal(...) })` in the current effect-app version (which produces a bare `Literal` AST, not a single-element Union). Phase 0's `TaggedUnionLegacyWarning.test.ts` pins the warning is never emitted. Task 1.2 still extracts the warning faithfully as dead code; new Task 4.5 audits and either fixes the guard or deletes the warning.
+
 **Test command** (from `packages/vue-components/`):
 ```bash
 pnpm test:run
@@ -1212,25 +1218,107 @@ git commit -m "refactor(omegaform): extract createMeta + AST helpers into meta/c
 - Create: `src/components/OmegaForm/validation/localized.ts`
 - Modify: `src/components/OmegaForm/OmegaFormStuff.ts`
 
-- [ ] **Step 1: Move into the new file**
+**Note (Phase 0 discovery):** the plan originally listed `makeStandardSchemaV1Hooks` and `toLocalizedStandardSchemaV1` among the moves. These functions **don't exist** in the current source — only `generateInputStandardSchemaFromFieldMeta` does. This task therefore both (a) **creates** the new hook functions and (b) **moves** the existing per-field generator. The new hooks are first *used* in Phase 3 Task 3.1, but they're built here so Phase 1 ends with a clean validation module ready to consume.
 
-Move into `validation/localized.ts`:
-- `makeStandardSchemaV1Hooks`
-- `toLocalizedStandardSchemaV1`
-- `generateInputStandardSchemaFromFieldMeta` *(deleted in Phase 3 along with its caller; live here for now)*
-- The `TransFn` type alias
+- [ ] **Step 1: Create the new module**
 
-Imports needed:
+Create `validation/localized.ts` with the following content. The hook implementations are derived from the per-issue `trans()` calls already inlined in `generateInputStandardSchemaFromFieldMeta` (`OmegaFormStuff.ts:1139–1273`) — the message keys, NaN-actual sentinel for `isInt`, and zero-vs-nonzero branching for `isGreaterThan*` are preserved verbatim from there.
+
 ```ts
+// src/components/OmegaForm/validation/localized.ts
 import { Effect, Option, S } from "effect-app"
 import type { StandardSchemaV1 } from "@tanstack/vue-form"
 import type { useIntl } from "../../../utils"
 import type { FieldMeta } from "../meta/types"
+
+export type TransFn = ReturnType<typeof useIntl>["trans"]
+
+interface SchemaIssue {
+  readonly _tag: string
+  readonly ast?: S.AST.AST
+  readonly actual?: Option.Option<unknown>
+  readonly annotations?: { readonly message?: string }
+  readonly filter?: { readonly annotations?: { readonly meta?: Record<string, unknown> } }
+}
+
+export const makeStandardSchemaV1Hooks = (
+  trans: TransFn
+): {
+  leafHook: (issue: SchemaIssue) => string
+  checkHook: (issue: SchemaIssue) => string | undefined
+} => {
+  const leafHook = (issue: SchemaIssue): string => {
+    const override = issue.annotations?.message
+    if (override !== undefined) return String(override)
+    switch (issue._tag) {
+      case "MissingKey":
+        return trans("validation.empty")
+      case "InvalidType": {
+        const ast = issue.ast
+        if (ast && S.AST.isStringKeyword(ast)) return trans("validation.empty")
+        if (ast && S.AST.isBooleanKeyword(ast)) return trans("validation.not_a_valid", { type: "boolean" })
+        if (ast && S.AST.isNumberKeyword(ast)) return trans("validation.number.expected", { actualValue: "NaN" })
+        return trans("validation.not_a_valid")
+      }
+      default:
+        return trans("validation.not_a_valid")
+    }
+  }
+
+  const checkHook = (issue: SchemaIssue): string | undefined => {
+    if (issue._tag !== "Filter") return undefined
+    const meta = (issue.filter?.annotations?.meta ?? {}) as Record<string, unknown>
+    switch (meta._tag) {
+      case "isMinLength":
+        return meta.minLength === 1
+          ? trans("validation.empty")
+          : trans("validation.string.minLength", { minLength: meta.minLength })
+      case "isMaxLength":
+        return trans("validation.string.maxLength", { maxLength: meta.maxLength })
+      case "isInt":
+        return trans("validation.integer.expected", { actualValue: "NaN" })
+      case "isGreaterThanOrEqualTo":
+        return trans(
+          meta.minimum === 0 ? "validation.number.positive" : "validation.number.min",
+          { minimum: meta.minimum, isExclusive: true }
+        )
+      case "isGreaterThan":
+        return trans(
+          meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min",
+          { minimum: meta.exclusiveMinimum, isExclusive: false }
+        )
+      case "isLessThanOrEqualTo":
+        return trans("validation.number.max", { maximum: meta.maximum, isExclusive: true })
+      case "isLessThan":
+        return trans("validation.number.max", { maximum: meta.exclusiveMaximum, isExclusive: false })
+      default:
+        return undefined
+    }
+  }
+
+  return { leafHook, checkHook }
+}
+
+export const toLocalizedStandardSchemaV1 = <From, To>(
+  schema: S.Schema<To, From, never>,
+  trans: TransFn
+): StandardSchemaV1<From, To> => {
+  const { leafHook, checkHook } = makeStandardSchemaV1Hooks(trans)
+  // The exact wiring for hooks depends on effect-app's `S.toStandardSchemaV1`
+  // signature in the current version. Verify before committing: the function
+  // may accept `{ leafHook, checkHook }` directly or require wrapping issues
+  // through a `messages` option. Adjust as needed.
+  return S.toStandardSchemaV1(schema as any, { leafHook, checkHook }) as any
+}
 ```
 
-(Adjust the relative path for `useIntl` based on the new file's depth.)
+(Adjust the relative path for `useIntl` based on the new file's depth. If `S.toStandardSchemaV1` doesn't accept a hook-options object in this effect-app version, post-process the validation result to rewrite messages — escalate if unclear.)
 
-- [ ] **Step 2: Re-export from `OmegaFormStuff.ts`**
+- [ ] **Step 2: Move `generateInputStandardSchemaFromFieldMeta`**
+
+Move the entire `generateInputStandardSchemaFromFieldMeta` function (currently in `OmegaFormStuff.ts:1139–1273`) into `validation/localized.ts`. Update the file header imports as needed. This function is **deleted in Phase 3** along with its caller (`OmegaInput.vue`'s `composeStandardSchemas`); it lives here for now.
+
+- [ ] **Step 3: Re-export from `OmegaFormStuff.ts`**
 
 ```ts
 export {
@@ -1240,16 +1328,16 @@ export {
 } from "./validation/localized"
 ```
 
-- [ ] **Step 3: Run tests**
+- [ ] **Step 4: Run tests**
 
 Run: `pnpm test:run`
-Expected: green, including `ValidationLocalization.test.ts`.
+Expected: green. There are currently no tests calling `makeStandardSchemaV1Hooks` or `toLocalizedStandardSchemaV1` directly (the Phase 0 task that would have exercised them was reduced to S.Email-only because the functions didn't exist yet); they'll first be exercised in Phase 3 Task 3.1.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/components/OmegaForm/validation/localized.ts src/components/OmegaForm/OmegaFormStuff.ts
-git commit -m "refactor(omegaform): extract validation localization hooks"
+git commit -m "refactor(omegaform): create localized validation hooks + extract per-field generator"
 ```
 
 ---
@@ -1786,9 +1874,9 @@ Target: < 400 lines (down from ~600+ if you started here directly). Acceptable u
 - [ ] **Step 4: Run full test suite**
 
 Run: `pnpm test:run`
-Expected: green. **If `TaggedUnionRoot.test.ts`'s `flat meta.common reflects last-write-wins resolution` test fails because the new walker resolves differently, decide deliberately:**
-- If the new resolution is a deliberate improvement, update the test and add a code comment explaining the change.
-- If it's an accident, fix the walker.
+Expected: green. **Two Phase 0 assertions are expected to flip here — these are deliberate outcomes of the unification, not regressions:**
+- `TaggedUnionNested.test.ts`: assertions 3 and 4 (`unionMeta["A"]` / `unionMeta["B"]` are `toBeUndefined()`) currently pin "nested unions don't populate unionMeta". After unification they become populated. Update these assertions to mirror `TaggedUnionRoot.test.ts`'s shape: `unionMeta["A"]?.a` defined, `?.b` undefined, etc.
+- `TaggedUnionRoot.test.ts`'s `flat meta.common reflects last-write-wins resolution` may resolve differently. If the new resolution is a deliberate improvement, update the test and add a code comment explaining the change. If it's an accident, fix the walker.
 
 - [ ] **Step 5: Smoke-check Storybook**
 
@@ -2359,7 +2447,55 @@ git commit -m "refactor(omegaform): drop legacy field slot from OmegaArray"
 
 ---
 
-### Task 4.4: Final green-bar tag
+### Task 4.4: Audit and resolve dead legacy `_tag` warning
+
+**Files:**
+- Modify: `src/components/OmegaForm/meta/legacyWarning.ts` *(or `OmegaFormStuff.ts` if Phase 1 Task 1.2 was skipped)*
+- Modify: `src/components/OmegaForm/meta/createMeta.ts` (the `metadataFromAst` caller)
+- Modify: `__tests__/OmegaForm/TaggedUnionLegacyWarning.test.ts`
+
+**Context:** Phase 0 found that the legacy `_tag` deprecation warning is dead code. The guard in `metadataFromAst` checks `S.AST.isUnion(tagProp.type)`, but in current effect-app, `S.Struct({ _tag: S.Literal("X") })` produces a bare `Literal` AST for `_tag`, not a single-element Union. The warning therefore never fires. `TaggedUnionLegacyWarning.test.ts` pins this with `expect(warnSpy).not.toHaveBeenCalled()`.
+
+- [ ] **Step 1: AST equivalence check**
+
+Run a quick scratch test (or REPL) to confirm: do `S.Struct({ _tag: S.Literal("X"), a: S.String })` and `S.TaggedStruct("X", { a: S.String })` produce structurally equivalent ASTs in current effect-app? If yes, there is no behavioral difference between the patterns, and no migration to nudge users toward — the warning is genuinely obsolete. If no, the guard is just wrong and can be fixed.
+
+- [ ] **Step 2: Decide based on the audit**
+
+**Path A — warning is obsolete (preferred if Step 1 shows AST equivalence):**
+
+Delete the warning entirely:
+- Remove the `if (...)` block that calls `warnLegacyTag` in `metadataFromAst`.
+- Delete `meta/legacyWarning.ts` (and remove the re-export from `OmegaFormStuff.ts` / wherever it landed).
+- Update `TaggedUnionLegacyWarning.test.ts`: replace it with a comment noting the warning was removed in Phase 4, OR delete the file entirely. Keep the file if you want a guard against the warning being re-introduced in the future.
+
+**Path B — warning is still needed (Step 1 shows ASTs differ):**
+
+Fix the guard in `metadataFromAst`:
+```ts
+// before
+if (S.AST.isUnion(tagProp.type)) { warnLegacyTag(tagValue) }
+// after
+if (S.AST.isLiteral(tagProp.type)) { warnLegacyTag(tagValue) }
+```
+
+Update `TaggedUnionLegacyWarning.test.ts`: flip the first assertion from `not.toHaveBeenCalled()` to `toHaveBeenCalled()`, and re-add a "warns once" check.
+
+- [ ] **Step 3: Run tests + tsc**
+
+Run: `pnpm test:run && pnpm check`
+Expected: green.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add -A src/components/OmegaForm/ __tests__/OmegaForm/TaggedUnionLegacyWarning.test.ts
+git commit -m "refactor(omegaform): <delete obsolete | fix guard for> legacy _tag warning"
+```
+
+---
+
+### Task 4.5: Final green-bar tag
 
 - [ ] **Step 1: Full check**
 

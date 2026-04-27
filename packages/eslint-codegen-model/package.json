@@ -20,7 +20,6 @@
     "postpublish": "mv -f ./tsconfig.json.bak ./tsconfig.json && rm -f tsplus.config.json"
   },
   "dependencies": {
-    "@typescript-eslint/utils": "8.59.0",
     "eslint-plugin-codegen": "0.17.0",
     "glob": "8.1.0",
     "io-ts": "2.2.22",

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Preset } from "eslint-plugin-codegen"
 import * as fs from "fs"
 import { normaliseModule } from "../normalise.js"

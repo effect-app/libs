@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { StandardSchemaV1 } from "@tanstack/vue-form"
 import { Option, S } from "effect-app"
-import { useIntl } from "../../../utils"
+import type { useIntl } from "../../../utils"
 
 export type TransFn = ReturnType<typeof useIntl>["trans"]
 

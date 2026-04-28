@@ -43,6 +43,7 @@ import { type OmegaInputPropsBase } from "./types"
 
 const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 
+// downgrade to *as* DeepKeys<From> to avoid useless and possible infinite recursion in TS
 const propsName = computed(() => props.name as DeepKeys<From>)
 
 defineSlots<{

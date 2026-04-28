@@ -1,13 +1,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import {
-  type FormAsyncValidateOrFn,
-  type FormValidateOrFn,
-  revalidateLogic,
-  type StandardSchemaV1,
-  useForm
-} from "@tanstack/vue-form"
+import { type FormAsyncValidateOrFn, type FormValidateOrFn, revalidateLogic, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
 import { Context, S } from "effect-app"
 import { type InjectionKey, watch } from "vue"
 import { eHoc, makeFieldMap } from "./errors"
@@ -91,7 +85,8 @@ export const useOmegaForm = <
     ...tanstackFormOptions,
     validationLogic: revalidateLogic(),
     validators: {
-      onDynamic: standardSchema,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onDynamic: standardSchema as any,
       ...tanstackFormOptions?.validators
     },
     onSubmit: wrapOnSubmit<From, To>(tanstackFormOptions?.onSubmit, decode, runPromise),

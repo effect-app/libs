@@ -68,7 +68,9 @@ export const eHoc = (errorProps: {
           // Our localized standard schema writes to onDynamic via validationLogic: revalidateLogic();
           // caller-provided validators.onSubmit (via tanstackFormOptions spread) writes to onSubmit.
           const submitErrors: OmegaError[] = []
-          const submitIssueMaps = [errorMap.value.onDynamic, errorMap.value.onSubmit].filter(Boolean) as Array<
+          const submitIssueMaps = [errorMap.value.onDynamic, errorMap.value.onSubmit].filter(
+            Boolean
+          ) as unknown as Array<
             Record<string, unknown>
           >
           const seenPaths = new Set<string>()

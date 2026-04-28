@@ -489,69 +489,6 @@ export const makeClient = <RT_, RTHooks>(
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
 
-  const runSync = <A>(effect: Effect.Effect<A, any, any>) => getBaseMrt().runSync(effect as any)
-
-  const encodeWithSchema = (schema: S.Top, value: unknown) => runSync(S.encodeEffect(schema as any)(value as any))
-  const decodeWithSchema = (schema: S.Top, value: unknown) => runSync(S.decodeEffect(schema as any)(value as any))
-
-  const toEncodedQueryHandler = (handler: any) => ({
-    ...handler,
-    handler: mapHandler(
-      handler.handler,
-      (self) => self.pipe(Effect.flatMap((a) => S.encodeEffect(handler.Request.success)(a)))
-    )
-  })
-
-  const withDecodedSelect = (schema: S.Top, options?: any) => {
-    const userSelect = options?.select
-    const select = (encoded: unknown) => {
-      const decoded = decodeWithSchema(schema, encoded)
-      return typeof userSelect === "function" ? userSelect(decoded) : decoded
-    }
-    if (!options) {
-      return { select }
-    }
-
-    const next: any = { ...options, select }
-    if (options.initialData !== undefined) {
-      next.initialData = typeof options.initialData === "function"
-        ? () => encodeWithSchema(schema, options.initialData())
-        : encodeWithSchema(schema, options.initialData)
-    }
-    if (options.placeholderData !== undefined) {
-      if (typeof options.placeholderData === "function") {
-        const placeholder = options.placeholderData
-        next.placeholderData = (...args: any[]) => {
-          const previous = args[0]
-          const decodedPrevious = previous === undefined ? undefined : decodeWithSchema(schema, previous)
-          const output = placeholder(decodedPrevious, ...args.slice(1))
-          return output === undefined ? undefined : encodeWithSchema(schema, output)
-        }
-      } else {
-        next.placeholderData = encodeWithSchema(schema, options.placeholderData)
-      }
-    }
-
-    return next
-  }
-
-  const makeDecodedQueryFns = (handler: any, schema: S.Top) => {
-    const baseQuery: any = useQuery(handler)
-    const baseSuspense: any = useSuspenseQuery(handler)
-
-    if (Effect.isEffect(handler.handler)) {
-      return {
-        query: (options?: any) => baseQuery(withDecodedSelect(schema, options)),
-        suspense: (options?: any) => baseSuspense(withDecodedSelect(schema, options))
-      }
-    }
-
-    return {
-      query: (arg: any, options?: any) => baseQuery(arg, withDecodedSelect(schema, options)),
-      suspense: (arg: any, options?: any) => baseSuspense(arg, withDecodedSelect(schema, options))
-    }
-  }
-
   const mapQuery = <M extends RequestsAny>(
     client: ClientFrom<M>
   ) => {
@@ -560,12 +497,10 @@ export const makeClient = <RT_, RTHooks>(
         if (client[key].Request.type !== "query") {
           return acc
         }
-        const encodedHandler = toEncodedQueryHandler(client[key])
-        const decodedQueryFns = makeDecodedQueryFns(encodedHandler, client[key].Request.success)
-        ;(acc as any)[camelCase(key) + "Query"] = Object.assign(decodedQueryFns.query, {
+        ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
           id: client[key].id
         })
-        ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(decodedQueryFns.suspense, {
+        ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(client[key] as any), {
           id: client[key].id
         })
         return acc
@@ -681,7 +616,6 @@ export const makeClient = <RT_, RTHooks>(
         const requestType = client[key].Request.type
         const fn = Command.fn(client[key].id)
         const h_ = client[key].handler
-        const encodedHandler = requestType === "query" ? toEncodedQueryHandler(client[key]) : undefined
         const wrapInput = Effect.isEffect(h_)
           ? () => h_
           : (...args: [any]) => h_(...args)
@@ -691,14 +625,21 @@ export const makeClient = <RT_, RTHooks>(
             ? {
               ...client[key],
               request,
-              ...makeDecodedQueryFns(encodedHandler, client[key].Request.success),
+              query: useQuery(client[key] as any),
+              suspense: useSuspenseQuery(client[key] as any),
               project: (projectionSchema: any) => {
                 const successSchema = client[key].Request.success
                 const projected = projectHandler(h_ as any, successSchema, projectionSchema)
-                const projectedQueries = makeDecodedQueryFns(encodedHandler, projectionSchema)
+                const fakeHandler = {
+                  handler: projected,
+                  id: client[key].id,
+                  Request: client[key].Request,
+                  options: client[key].options
+                }
                 return {
                   request: projected,
-                  ...projectedQueries
+                  query: useQuery(fakeHandler as any),
+                  suspense: useSuspenseQuery(fakeHandler as any)
                 }
               }
             }

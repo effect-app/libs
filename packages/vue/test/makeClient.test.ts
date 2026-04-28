@@ -104,8 +104,17 @@ it.skip("works", () => {
   // aka, when we project, we skip decoding with the original codec, and instead use the provided one
   // we have to make sure the Encoded shape of the provided projection schema matches the Encoded Shape of the original codec.
   const projected = client.GetSomething2.project(S.String)
+  // @ts-expect-error encoded type mismatch: original encodes to string, S.Number encodes to number
+  const _projectedBad = client.GetSomething2.project(S.Number)
   const p0 = projected.request(null as any)
-  // and we have to make sure that for query or suspense the R of the projection schema is not more than what the client was built with, otherwise they should have the MissingDependencies like in the other test cases
+
+  // struct example: success schema encodes to { a: string | null }
+  // good: projection schema also expects { a: string | null } on the encoded side
+  const projectedStruct = client.GetStructNullable.project(S.Struct({ a: S.NullOr(S.String) }))
+  // bad: { a: S.String } has encoded type { a: string } — does not accept null
+  // @ts-expect-error encoded type mismatch: original encodes to { a: string | null }, projection expects { a: string }
+  const _projectedStructBad = client.GetStructNullable.project(S.Struct({ a: S.String }))
+
   const p00 = projected.query(null as any)
   const p = projected.suspense(null as any)
 
@@ -134,6 +143,7 @@ it.skip("works", () => {
     h,
     p0,
     p00,
-    p
+    p,
+    projectedStruct
   })
 })

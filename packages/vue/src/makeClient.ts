@@ -133,7 +133,8 @@ export interface MutationExtWithInput<
   I,
   A,
   E,
-  R
+  R,
+  EA = unknown
 > extends MutationExtensions<RT, Id, I, A, E, R> {
   /**
    * Send the request to the endpoint and return the raw Effect response.
@@ -145,14 +146,15 @@ export interface MutationExtWithInput<
   (i: I): Effect.Effect<A, E, R>
 
   project: <ProjSchema extends S.Top>(
-    schema: ProjSchema
+    schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
   ) => MutationExtWithInput<
     RT,
     Id,
     I,
     S.Schema.Type<ProjSchema>,
     E | S.SchemaError,
-    R | S.Codec.DecodingServices<ProjSchema>
+    R | S.Codec.DecodingServices<ProjSchema>,
+    S.Codec.Encoded<ProjSchema>
   >
 }
 
@@ -168,23 +170,26 @@ export interface MutationExt<
   Id extends string,
   A,
   E,
-  R
+  R,
+  EA = unknown
 > extends MutationExtensions<RT, Id, void, A, E, R>, Effect.Effect<A, E, R> {
   project: <ProjSchema extends S.Top>(
-    schema: ProjSchema
+    schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
   ) => MutationExt<
     RT,
     Id,
     S.Schema.Type<ProjSchema>,
     E | S.SchemaError,
-    R | S.Codec.DecodingServices<ProjSchema>
+    R | S.Codec.DecodingServices<ProjSchema>,
+    S.Codec.Encoded<ProjSchema>
   >
 }
 
 export type MutationWithExtensions<RT, Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
-  ? MutationExtWithInput<RT, Id, I, A, E, R>
-  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? MutationExt<RT, Id, A, E, R>
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? MutationExtWithInput<RT, Id, I, A, E, R, S.Codec.Encoded<Request["success"]>>
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? MutationExt<RT, Id, A, E, R, S.Codec.Encoded<Request["success"]>>
   : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
@@ -205,7 +210,7 @@ export type QueryProjection<RT, HandlerReq> = HandlerReq extends
   RequestHandlerWithInput<infer I, infer _A, infer E, infer R, infer Request, infer Id>
   ? Request["type"] extends "query" ? {
       project: <ProjSchema extends S.Top>(
-        schema: ProjSchema
+        schema: S.Codec.Encoded<Request["success"]> extends ProjSchema["Encoded"] ? ProjSchema : never
       ) => ProjectResult<
         RT,
         I,
@@ -220,7 +225,7 @@ export type QueryProjection<RT, HandlerReq> = HandlerReq extends
   : HandlerReq extends RequestHandler<infer _A, infer E, infer R, infer Request, infer Id>
     ? Request["type"] extends "query" ? {
         project: <ProjSchema extends S.Top>(
-          schema: ProjSchema
+          schema: S.Codec.Encoded<Request["success"]> extends ProjSchema["Encoded"] ? ProjSchema : never
         ) => ProjectResult<
           RT,
           void,

@@ -117,10 +117,16 @@ class SomethingDoSomething extends SomethingCommand<SomethingDoSomething>()("DoS
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
+// success schema has encoded shape { a: string | null } — used to test projection constraints
+class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullable>()("GetStructNullable", {}, {
+  success: S.Struct({ a: S.NullOr(S.String) })
+}) {}
+
 export const Something = {
   GetSomething2: SomethingGetSomething2,
   GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
-  DoSomething: SomethingDoSomething
+  DoSomething: SomethingDoSomething,
+  GetStructNullable: SomethingGetStructNullable
 }
 
 export const SomethingElseReq = TaggedRequestFor("SomethingElse")

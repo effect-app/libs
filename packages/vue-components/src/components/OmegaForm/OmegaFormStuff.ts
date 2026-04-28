@@ -4,7 +4,7 @@ import { type DeepKeys, type DeepValue, type FieldAsyncValidateOrFn, type FieldV
 import { isObject } from "@vueuse/core"
 import type { Fiber as EffectFiber } from "effect/Fiber"
 import type { Redacted } from "effect/Redacted"
-import { getTransformationFrom, useIntl } from "../../utils"
+import { getTransformationFrom } from "../../utils"
 import { type OmegaFieldInternalApi } from "./InputProps"
 import { type OF, type OmegaFormReturn } from "./useOmegaForm"
 
@@ -21,6 +21,8 @@ const isDevelopmentEnvironment = () => {
   const process = (globalThis as GlobalThisWithOptionalProcess).process
   return process?.env?.NODE_ENV !== "production"
 }
+
+type TransFn = (id: string, values?: Record<string, any>) => string
 
 export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have primitive at the root
@@ -256,7 +258,7 @@ export type FieldValidators<T> = {
 export type BaseFieldMeta = {
   required: boolean
   nullableOrUndefined?: false | "undefined" | "null"
-  originalSchema?: StandardSchemaV1<any, any>
+  originalCodec: S.Decoder<unknown, never>
   /**
    * True when the schema property is `S.optionalKey` (AST
    * `context.isOptional`) — i.e. the key should be ABSENT from the submitted
@@ -518,10 +520,14 @@ export const createMeta = <T = any>(
   }
 
   if (property && S.AST.isObjects(property)) {
-    return createMeta<T>({
-      meta,
-      propertySignatures: property.propertySignatures
-    })
+    return createMeta<T>(
+      {
+        meta,
+        propertySignatures: property.propertySignatures
+      },
+      acc,
+      fieldAstByPath
+    )
   }
 
   if (propertySignatures) {
@@ -558,12 +564,20 @@ export const createMeta = <T = any>(
         if (hasStructMembers) {
           // Only create parent meta for non-NullOr unions to avoid duplicates
           if (!nullableOrUndefined) {
-            const parentMeta = createMeta<T>({
-              parent: key,
-              property: p.type,
-              meta: { required: isRequired, nullableOrUndefined }
-            })
-            acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+            const parentMeta = createMeta<T>(
+              {
+                parent: key,
+                property: p.type,
+                meta: { required: isRequired, nullableOrUndefined }
+              },
+              {},
+              fieldAstByPath
+            )
+            if (parentMeta && typeof parentMeta === "object" && "type" in parentMeta) {
+              acc[key as NestedKeyOf<T>] = parentMeta as FieldMeta
+            } else {
+              Object.assign(acc, parentMeta as Partial<MetaRecord<T>>)
+            }
           }
 
           // Process each non-null type and merge their metadata
@@ -574,11 +588,15 @@ export const createMeta = <T = any>(
               // - All other fields maintain their normal required status based on their own types
               const isNullableDiscriminatedUnion = nullableOrUndefined && nonNullTypes.length > 1
 
-              const branchMeta = createMeta<T>({
-                parent: key,
-                propertySignatures: nonNullType.propertySignatures,
-                meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
-              })
+              const branchMeta = createMeta<T>(
+                {
+                  parent: key,
+                  propertySignatures: nonNullType.propertySignatures,
+                  meta: isNullableDiscriminatedUnion ? { _isNullableDiscriminatedUnion: true } : {}
+                },
+                {},
+                fieldAstByPath
+              )
 
               // Merge branch metadata, combining select members for shared discriminator fields
               for (const [metaKey, metaValue] of Object.entries(branchMeta)) {
@@ -816,17 +834,21 @@ export const createMeta = <T = any>(
         && S.AST.isLiteral(nonNullTypes[0]!)
         && typeof nonNullTypes[0]!.literal === "boolean"
       ) {
-        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! })
+        return createMeta<T>({ parent, meta, property: nonNullTypes[0]! }, acc, fieldAstByPath)
       }
 
       const nonNullType = nonNullTypes[0]!
 
       if (S.AST.isObjects(nonNullType)) {
-        return createMeta<T>({
-          propertySignatures: nonNullType.propertySignatures,
-          parent,
-          meta
-        })
+        return createMeta<T>(
+          {
+            propertySignatures: nonNullType.propertySignatures,
+            parent,
+            meta
+          },
+          acc,
+          fieldAstByPath
+        )
       }
 
       // TODO: remove after manual _tag deprecation — unwrap legacy S.Struct({ _tag: S.Literal("X") }) pattern
@@ -905,16 +927,15 @@ const metadataFromAst = <From, To>(
   const unionMeta: Record<string, MetaRecord<To>> = {}
   const fieldAstByPath: Record<string, S.AST.AST> = {}
 
-  const toFieldStandardSchema = (
+  const toFieldCodec = (
     propertyAst: S.AST.AST,
     required: boolean
-  ): StandardSchemaV1<any, any> => {
-    const base = S.make(propertyAst)
-    const fieldSchema = required ? base : S.NullishOr(base)
-    return S.toStandardSchemaV1(fieldSchema as any)
+  ): S.Decoder<unknown, never> => {
+    const base = S.make(propertyAst) as S.Decoder<unknown, never>
+    return required ? base : S.NullishOr(base)
   }
 
-  const attachOriginalSchemas = (metaRecord: MetaRecord<To>) => {
+  const attachOriginalCodecs = (metaRecord: MetaRecord<To>) => {
     for (const [key, fieldAst] of Object.entries(fieldAstByPath)) {
       const fieldMeta = metaRecord[key as NestedKeyOf<To>]
       if (!fieldMeta) {
@@ -922,15 +943,17 @@ const metadataFromAst = <From, To>(
       }
       try {
         const required = fieldMeta.required ?? true
-        Object.defineProperty(fieldMeta, "originalSchema", {
-          value: toFieldStandardSchema(fieldAst, required),
+        const fieldCodec = toFieldCodec(fieldAst, required)
+        Object.defineProperty(fieldMeta, "originalCodec", {
+          value: fieldCodec,
           enumerable: false,
           configurable: true,
           writable: true
         })
-      } catch {
-        Object.defineProperty(fieldMeta, "originalSchema", {
-          value: S.toStandardSchemaV1(S.Unknown),
+      } catch (error) {
+        console.warn(error)
+        Object.defineProperty(fieldMeta, "originalCodec", {
+          value: S.Unknown,
           enumerable: false,
           configurable: true,
           writable: true
@@ -1009,7 +1032,7 @@ const metadataFromAst = <From, To>(
         } as FieldMeta
       }
 
-      attachOriginalSchemas(newMeta)
+      attachOriginalCodecs(newMeta)
       return { meta: newMeta, defaultValues, unionMeta }
     }
   }
@@ -1025,7 +1048,7 @@ const metadataFromAst = <From, To>(
 
     if (Object.values(meta).every((value) => value && "type" in value)) {
       const typedMeta = meta as MetaRecord<To>
-      attachOriginalSchemas(typedMeta)
+      attachOriginalCodecs(typedMeta)
       return {
         meta: typedMeta,
         defaultValues,
@@ -1050,7 +1073,7 @@ const metadataFromAst = <From, To>(
     flattenObject(meta)
   }
 
-  attachOriginalSchemas(newMeta)
+  attachOriginalCodecs(newMeta)
   return { meta: newMeta, defaultValues, unionMeta }
 }
 
@@ -1136,144 +1159,146 @@ export const generateMetaFromSchema = <From, To>(
   return { schema, meta, unionMeta }
 }
 
-export const generateInputStandardSchemaFromFieldMeta = (
-  meta: FieldMeta,
-  trans?: ReturnType<typeof useIntl>["trans"]
-): StandardSchemaV1<any, any> => {
-  if (!trans) {
-    trans = useIntl().trans
-  }
-  let schema: any
-  switch (meta.type) {
-    case "string":
-      schema = meta.format === "email"
-        ? S.Email.annotate({
-          message: trans("validation.email.invalid")
-        })
-        : S.String.annotate({
-          message: trans("validation.empty")
-        })
+export const makeStandardSchemaV1Hooks = (
+  trans: TransFn
+) => {
+  const translate = trans
 
-      if (meta.required) {
-        schema = schema.check(S.isMinLength(1, {
-          message: trans("validation.empty")
-        }))
-      }
-
-      if (typeof meta.maxLength === "number") {
-        schema = schema.check(S.isMaxLength(meta.maxLength, {
-          message: trans("validation.string.maxLength", {
-            maxLength: meta.maxLength
-          })
-        }))
-      }
-      if (typeof meta.minLength === "number") {
-        schema = schema.check(S.isMinLength(meta.minLength, {
-          message: trans("validation.string.minLength", {
-            minLength: meta.minLength
-          })
-        }))
-      }
-      break
-
-    case "number":
-      if (meta.refinement === "int") {
-        schema = S
-          .Number
-          .annotate({
-            message: trans("validation.empty")
-          })
-          .check(S.isInt({
-            message: trans("validation.integer.expected", { actualValue: "NaN" })
-          }))
-      } else {
-        schema = S.Finite.annotate({
-          message: trans("validation.number.expected", { actualValue: "NaN" })
-        })
-
-        if (meta.required) {
-          schema = schema.annotate({
-            message: trans("validation.empty")
-          })
+  return {
+    leafHook: (issue: S.SchemaIssue.Leaf) => {
+      const getAnnotationMessage = (): string | undefined => {
+        switch (issue._tag) {
+          case "InvalidValue":
+          case "Forbidden":
+            return typeof issue.annotations?.message === "string"
+              ? issue.annotations.message
+              : undefined
+          case "MissingKey":
+            return typeof issue.annotations?.messageMissingKey === "string"
+              ? issue.annotations.messageMissingKey
+              : undefined
+          case "UnexpectedKey":
+            return typeof issue.ast.annotations?.messageUnexpectedKey === "string"
+              ? issue.ast.annotations.messageUnexpectedKey
+              : undefined
         }
       }
 
-      if (typeof meta.minimum === "number") {
-        schema = schema.check(S.isGreaterThanOrEqualTo(meta.minimum, {
-          message: trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
-            minimum: meta.minimum,
-            isExclusive: true
-          })
-        }))
+      const annotationMessage = getAnnotationMessage()
+      if (annotationMessage) {
+        return annotationMessage
       }
-      if (typeof meta.maximum === "number") {
-        schema = schema.check(S.isLessThanOrEqualTo(meta.maximum, {
-          message: trans("validation.number.max", {
-            maximum: meta.maximum,
-            isExclusive: true
-          })
-        }))
+
+      switch (issue._tag) {
+        case "MissingKey":
+          return translate("validation.empty")
+        case "InvalidType": {
+          const ast = issue.ast
+          if (S.AST.isString(ast)) {
+            return S.AST.resolveTitle(ast) === "Email"
+              ? translate("validation.email.invalid")
+              : translate("validation.empty")
+          }
+          if (S.AST.isNumber(ast)) {
+            if (Option.isNone(issue.actual) || (Option.isSome(issue.actual) && issue.actual.value === undefined)) {
+              return translate("validation.empty")
+            }
+            return translate("validation.number.expected", { actualValue: "NaN" })
+          }
+          if (S.AST.isBoolean(ast)) {
+            return translate("validation.not_a_valid", { type: "boolean" })
+          }
+          if (S.AST.isObjects(ast)) {
+            return translate("validation.not_a_valid", { type: "object" })
+          }
+          return translate("validation.not_a_valid")
+        }
+        case "InvalidValue":
+        case "UnexpectedKey":
+        case "Forbidden":
+        case "OneOf":
+          return translate("validation.not_a_valid")
       }
-      if (typeof meta.exclusiveMinimum === "number") {
-        schema = schema.check(S.isGreaterThan(meta.exclusiveMinimum, {
-          message: trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
-            minimum: meta.exclusiveMinimum,
-            isExclusive: false
-          })
-        }))
+    },
+    checkHook: (issue: S.SchemaIssue.Filter) => {
+      const defaultCheckMessage = S.SchemaIssue.defaultCheckHook(issue)
+      if (typeof defaultCheckMessage === "string") {
+        if (defaultCheckMessage.includes("length of at least 1")) {
+          return translate("validation.empty")
+        }
       }
-      if (typeof meta.exclusiveMaximum === "number") {
-        schema = schema.check(S.isLessThan(meta.exclusiveMaximum, {
-          message: trans("validation.number.max", {
-            maximum: meta.exclusiveMaximum,
-            isExclusive: false
-          })
-        }))
+
+      const meta = issue.filter.annotations?.meta
+      if (!meta || typeof meta !== "object") {
+        return defaultCheckMessage
       }
-      break
-    case "select":
-      schema = S.Literals(meta.members as [any, ...any[]]).annotate({
-        message: trans("validation.not_a_valid", {
-          type: "select",
-          message: meta.members.join(", ")
-        })
-      })
 
-      break
-
-    case "multiple":
-      schema = S.Array(S.String).annotate({
-        message: trans("validation.not_a_valid", {
-          type: "multiple",
-          message: meta.members.join(", ")
-        })
-      })
-      break
-
-    case "boolean":
-      schema = S.Boolean
-      break
-
-    case "date":
-      schema = S.Date
-      break
-
-    case "unknown":
-      schema = S.Unknown
-      break
-
-    default:
-      // For any unhandled types, use Unknown schema to prevent undefined errors
-      console.warn(`Unhandled field type: ${meta}`)
-      schema = S.Unknown
-      break
-  }
-  if (!meta.required) {
-    schema = S.NullishOr(schema)
-  }
-  const result = S.toStandardSchemaV1(schema as any)
-  return result
+      const taggedMeta = meta as Record<string, unknown> & { _tag?: string }
+      switch (taggedMeta._tag) {
+        case "isMinLength": {
+          const minLength = taggedMeta.minLength
+          if (typeof minLength === "number") {
+            return minLength === 1
+              ? translate("validation.empty")
+              : translate("validation.string.minLength", { minLength })
+          }
+          return undefined
+        }
+        case "isMaxLength": {
+          const maxLength = taggedMeta.maxLength
+          return typeof maxLength === "number"
+            ? translate("validation.string.maxLength", { maxLength })
+            : undefined
+        }
+        case "isInt":
+          return translate("validation.integer.expected", { actualValue: "NaN" })
+        case "isGreaterThanOrEqualTo": {
+          const minimum = taggedMeta.minimum
+          return typeof minimum === "number"
+            ? translate(minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+              minimum,
+              isExclusive: true
+            })
+            : undefined
+        }
+        case "isGreaterThan": {
+          const minimum = taggedMeta.exclusiveMinimum
+          return typeof minimum === "number"
+            ? translate(minimum === 0 ? "validation.number.positive" : "validation.number.min", {
+              minimum,
+              isExclusive: false
+            })
+            : undefined
+        }
+        case "isLessThanOrEqualTo": {
+          const maximum = taggedMeta.maximum
+          return typeof maximum === "number"
+            ? translate("validation.number.max", {
+              maximum,
+              isExclusive: true
+            })
+            : undefined
+        }
+        case "isLessThan": {
+          const maximum = taggedMeta.exclusiveMaximum
+          return typeof maximum === "number"
+            ? translate("validation.number.max", {
+              maximum,
+              isExclusive: false
+            })
+            : undefined
+        }
+        default:
+          return defaultCheckMessage
+      }
+    }
+  } as const
 }
+
+export const toLocalizedStandardSchemaV1 = (
+  schema: S.Decoder<unknown, never>,
+  trans: TransFn
+): StandardSchemaV1<any, any> => S.toStandardSchemaV1(schema, makeStandardSchemaV1Hooks(trans))
 
 export type OmegaAutoGenMeta<
   From extends Record<PropertyKey, any>,

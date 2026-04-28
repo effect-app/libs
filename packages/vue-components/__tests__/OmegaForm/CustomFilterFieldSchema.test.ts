@@ -1,6 +1,16 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema, toLocalizedStandardSchemaV1 } from "../../src/components/OmegaForm/OmegaFormStuff"
+
+const identityTrans: Parameters<typeof toLocalizedStandardSchemaV1>[1] = (id, values) => {
+  if (!values) {
+    return id
+  }
+  return Object.entries(values).reduce(
+    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+    id
+  )
+}
 
 const maxLineLengthCheck = (max: number) =>
   S.makeFilter((value: string) => {
@@ -18,7 +28,7 @@ describe("OmegaForm field schema custom checks", () => {
     })
 
     const { meta } = generateMetaFromSchema(schema)
-    const heightSchema = meta.height?.originalSchema
+    const heightSchema = toLocalizedStandardSchemaV1(meta.height!.originalCodec, identityTrans)
 
     expect(heightSchema).toBeDefined()
 

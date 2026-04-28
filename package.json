@@ -43,7 +43,7 @@
     "build": "cd packages/eslint-shared-config && pnpm build && cd ../.. && cd packages/cli && pnpm build && cd .. && pnpm build:tsc && cd vue-components && pnpm build",
     "rbuild": "pnpm clean && pnpm build",
     "nnm": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && pnpm i",
-    "prepare": "node -e \"const v=require('typescript/package.json').version;if(v.startsWith('6.')){require('child_process').execSync('effect-language-service patch',{stdio:'inherit'})}else{console.log('Skipping effect-language-service patch for TypeScript '+v)}\"",
+    "prepare": "node -e \"let v;try{v=require('typescript/package.json').version}catch{console.log('Skipping effect-language-service patch: TypeScript not installed');process.exit(0)}if(v.startsWith('6.')){try{require('child_process').execSync('effect-language-service patch',{stdio:'inherit'})}catch(error){console.log('Skipping effect-language-service patch:',error&&error.message?error.message:error)}}else{console.log('Skipping effect-language-service patch for TypeScript '+v)}\"",
     "subtree:effect": "node scripts/sync-effect-subtree.js"
   },
   "resolutions": {

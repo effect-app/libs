@@ -98,3 +98,89 @@ export const toLocalizedStandardSchemaV1 = <To, From>(
   const { checkHook, leafHook } = makeStandardSchemaV1Hooks(trans)
   return S.toStandardSchemaV1(schema, { leafHook, checkHook })
 }
+
+/*
+ * Effect's Standard Schema formatter handles `AnyOf` issues (produced by
+ * `S.Literals(...)` failures and by `S.Array` of literal unions when the
+ * top-level value isn't an array) by generating the message directly via
+ * `getExpectedMessage(...)` — *without* invoking `leafHook` / `checkHook`.
+ * The only override path is `findMessage(issue)`, which reads the AST's
+ * `message` annotation. So we walk the schema AST once at form setup and
+ * stamp a localized `message` annotation on:
+ *   - Union AST whose every member is a Literal      → "select"
+ *   - Arrays AST whose `rest` is a Union of Literals → "multiple"
+ * Existing `message` annotations are preserved.
+ */
+export const annotateLiteralUnionMessages = <T extends S.Codec<any, any, never, never>>(
+  schema: T,
+  trans: TransFn
+): T => {
+  const newAst = walkAst(schema.ast, trans)
+  return (newAst === schema.ast ? schema : S.make(newAst)) as T
+}
+
+const isLiteralUnion = (ast: S.AST.AST): ast is S.AST.Union<S.AST.Literal> =>
+  S.AST.isUnion(ast) && ast.types.every(S.AST.isLiteral)
+
+const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
+  if (isLiteralUnion(ast)) {
+    if (ast.annotations?.message !== undefined) return ast
+    const members = ast.types.map((t) => (t as S.AST.Literal).literal)
+    return new S.AST.Union(
+      ast.types,
+      ast.mode,
+      {
+        ...ast.annotations,
+        message: trans("validation.not_a_valid", { type: "select", message: members.join(", ") })
+      },
+      ast.checks,
+      ast.encoding,
+      ast.context
+    )
+  }
+  if (S.AST.isArrays(ast)) {
+    const newRest = ast.rest.map((e) => walkAst(e, trans))
+    const newElements = ast.elements.map((e) => walkAst(e, trans))
+    let annotations = ast.annotations
+    if (
+      ast.annotations?.message === undefined
+      && ast.rest.length === 1
+      && isLiteralUnion(ast.rest[0]!)
+    ) {
+      const members = (ast.rest[0]! as S.AST.Union<S.AST.Literal>).types.map((t) => t.literal)
+      annotations = {
+        ...ast.annotations,
+        message: trans("validation.not_a_valid", { type: "multiple", message: members.join(", ") })
+      }
+    }
+    const restChanged = newRest.some((r, i) => r !== ast.rest[i])
+    const elemsChanged = newElements.some((e, i) => e !== ast.elements[i])
+    if (!restChanged && !elemsChanged && annotations === ast.annotations) return ast
+    return new S.AST.Arrays(
+      ast.isMutable,
+      newElements,
+      newRest,
+      annotations,
+      ast.checks,
+      ast.encoding,
+      ast.context
+    )
+  }
+  if (S.AST.isObjects(ast)) {
+    const newProps = ast.propertySignatures.map((p) => {
+      const newType = walkAst(p.type, trans)
+      return newType === p.type ? p : new S.AST.PropertySignature(p.name, newType)
+    })
+    const changed = newProps.some((p, i) => p !== ast.propertySignatures[i])
+    if (!changed) return ast
+    return new S.AST.Objects(
+      newProps,
+      ast.indexSignatures,
+      ast.annotations,
+      ast.checks,
+      ast.encoding,
+      ast.context
+    )
+  }
+  return ast
+}

@@ -18,7 +18,7 @@ import OmegaForm from "./OmegaWrapper.vue"
 import { usePersistency } from "./persistency"
 import { makeSubmitHandlers, wrapOnSubmit } from "./submit"
 import type { DefaultTypeProps, FormProps, OF, OmegaConfig, OmegaFormApi, OmegaFormReturn } from "./types"
-import { toLocalizedStandardSchemaV1 } from "./validation/localized"
+import { annotateLiteralUnionMessages, toLocalizedStandardSchemaV1 } from "./validation/localized"
 
 import { makeRunPromise } from "@effect-app/vue/runtime"
 import { useIntl } from "../../utils"
@@ -45,8 +45,13 @@ export const useOmegaForm = <
   if (!schema) throw new Error("Schema is required")
   const { trans } = useIntl()
   const formCompatibleSchema = toFormSchema(schema)
+  // Effect's Standard Schema formatter emits `Expected X | Y, got Z` for
+  // `AnyOf` issues without consulting our hooks. Pre-annotate literal-union
+  // (select) and literal-array (multiple) AST nodes with a localized
+  // `message` so the formatter picks them up via `findMessage`.
+  const localizedSchema = annotateLiteralUnionMessages(formCompatibleSchema, trans)
   const standardSchema = toLocalizedStandardSchemaV1(
-    formCompatibleSchema as any,
+    localizedSchema as any,
     trans
   )
   const decode = S.decodeUnknownEffect(formCompatibleSchema)

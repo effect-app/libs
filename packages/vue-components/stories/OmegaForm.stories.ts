@@ -52,7 +52,8 @@ const germanTranslations: Record<string, string> = {
   "fieldNames.lange": "Länge",
   "fieldNames.breite": "Breite",
   "fieldNames.hohe": "Höhe",
-  "fieldNames.gewicht": "Gewicht"
+  "fieldNames.gewicht": "Gewicht",
+  "form.unsaved_changes_confirm": "Es sind ungespeicherte Änderungen vorhanden. Wirklich schließen?"
 }
 
 const mockIntl = {

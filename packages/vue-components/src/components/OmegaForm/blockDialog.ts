@@ -1,5 +1,6 @@
 import mitt from "mitt"
 import { inject, type InjectionKey, provide, type Ref } from "vue"
+import { useIntl } from "../../utils"
 import { onMountedWithCleanup } from "./onMountedWithCleanup"
 
 export type DialogClosing = { prevent?: boolean | Promise<boolean> }
@@ -19,11 +20,16 @@ export const usePreventClose = (mkIsDirty: () => Ref<boolean>) => {
   if (!bus) {
     return
   }
+  const { formatMessage } = useIntl()
   const isDirty = mkIsDirty()
   onMountedWithCleanup(() => {
     const onDialogClosing = (evt: DialogClosing) => {
       if (isDirty.value) {
-        if (!confirm("Es sind ungespeicherte Änderungen vorhanden. Wirklich schließen?")) {
+        const message = formatMessage({
+          id: "form.unsaved_changes_confirm",
+          defaultMessage: "There are unsaved changes. Are you sure you want to close?"
+        })
+        if (!confirm(message)) {
           evt.prevent = true
         }
       }

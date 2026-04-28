@@ -23,7 +23,7 @@ export class OperationFailure
   }))
 {}
 
-export const OperationResult = S.TaggedUnion(OperationSuccess, OperationFailure)
+export const OperationResult = S.TaggedUnion([OperationSuccess, OperationFailure])
 export type OperationResult = S.Schema.Type<typeof OperationResult>
 
 export class Operation extends S.Opaque<Operation, Operation.Encoded>()(S.Struct({

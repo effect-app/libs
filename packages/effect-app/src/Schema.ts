@@ -324,4 +324,4 @@ export const ExtendTaggedUnion = <Members extends TaggedUnionMembers>(
 
 export const TaggedUnion = <
   Members extends TaggedUnionMembers
->(...a: Members): TaggedUnionWithTags<Members> => extendTaggedUnionWithTags(S.Union(a))
+>(members: Members): TaggedUnionWithTags<Members> => extendTaggedUnionWithTags(S.Union(members))

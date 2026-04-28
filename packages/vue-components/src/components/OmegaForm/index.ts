@@ -8,7 +8,7 @@ export { toFormSchema } from "./meta/redacted"
 export type { BaseFieldMeta, BooleanFieldMeta, DateFieldMeta, FieldMeta, MetaRecord, MultipleFieldMeta, NestedKeyOf, NumberFieldMeta, SelectFieldMeta, StringFieldMeta, UnknownFieldMeta } from "./meta/types"
 export { deepMerge } from "./persistency"
 export type { BaseProps, DefaultTypeProps, FieldPath, FieldPath_, FieldValidators, FormComponent, FormProps, FormType, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, OmegaFormApi, OmegaFormParams, OmegaFormState, OmegaInputProps, OmegaInputPropsBase, PrefixFromDepth, TypeOverride, TypesWithOptions } from "./types"
-export { generateInputStandardSchemaFromFieldMeta, makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
+export { makeStandardSchemaV1Hooks, toLocalizedStandardSchemaV1 } from "./validation/localized"
 
 export { FormErrors, OmegaFormKey, useErrorLabel, useOmegaForm } from "./useOmegaForm"
 export type { defaultValuesPriorityUnion, OF, OmegaConfig, OmegaFormReturn, Policies } from "./useOmegaForm"

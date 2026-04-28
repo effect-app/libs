@@ -1,6 +1,14 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema } from "../../src/components/OmegaForm"
+import { toLocalizedStandardSchemaV1 } from "../../src/components/OmegaForm"
+
+const identityTrans = (id: string, values?: Record<string, any>) => {
+  if (!values) return id
+  return Object.entries(values).reduce(
+    (acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)),
+    id
+  )
+}
 
 const maxLineLengthCheck = (max: number) =>
   S.makeFilter((value: string) => {
@@ -8,8 +16,8 @@ const maxLineLengthCheck = (max: number) =>
     return tooLong !== undefined ? `Line "${tooLong}" exceeds ${max} chars` : undefined
   })
 
-describe("OmegaForm field schema custom checks", () => {
-  it("includes custom filter checks in field-level standard schema", async () => {
+describe("OmegaForm form-level schema custom checks", () => {
+  it("includes custom filter checks in the form-level localized schema", async () => {
     const schema = S.Struct({
       height: S.NonEmptyString100.pipe(
         S.check(S.isMinLength(10)),
@@ -17,15 +25,13 @@ describe("OmegaForm field schema custom checks", () => {
       )
     })
 
-    const { meta } = generateMetaFromSchema(schema)
-    const heightSchema = meta.height?.originalSchema
-
-    expect(heightSchema).toBeDefined()
-
+    const standardSchema = toLocalizedStandardSchemaV1(schema as any, identityTrans)
     const invalid = "1234567890\n123456789012345678901"
-    const result = await heightSchema["~standard"].validate(invalid)
+    const result = await standardSchema["~standard"].validate({ height: invalid })
 
     expect(result.issues).toBeDefined()
-    expect(result.issues?.[0]?.message).toContain("exceeds 20 chars")
+    const issue = result.issues?.find((i: any) => i.path?.[0] === "height")
+    expect(issue).toBeDefined()
+    expect(issue?.message).toContain("exceeds 20 chars")
   })
 })

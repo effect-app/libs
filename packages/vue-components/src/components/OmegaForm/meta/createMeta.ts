@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type StandardSchemaV1 } from "@tanstack/vue-form"
 import { type Effect, type Record, S } from "effect-app"
 import { getTransformationFrom } from "../../../utils"
-import type { FieldMeta, MetaRecord, NestedKeyOf } from "./types"
+import type { FieldMeta, MetaRecord } from "./types"
 import { classifyAndWalkUnion, leafMetaForAst, type ParentMeta, type WalkerContext, walkStruct } from "./walker"
 
 export type FilterItems = {
@@ -51,10 +50,9 @@ export const isNullableOrUndefined = (property: false | S.AST.AST | undefined) =
 
 export const createMeta = <T = any>(
   { meta = {}, parent = "", property, propertySignatures }: CreateMeta,
-  acc: Partial<MetaRecord<T>> = {},
-  fieldAstByPath?: Record<string, S.AST.AST>
+  acc: Partial<MetaRecord<T>> = {}
 ): MetaRecord<T> | FieldMeta => {
-  const ctx: WalkerContext<T> = { acc, unionMeta: {}, fieldAstByPath }
+  const ctx: WalkerContext<T> = { acc, unionMeta: {} }
 
   if (propertySignatures) {
     const parentMeta: ParentMeta = {
@@ -85,7 +83,7 @@ export const createMeta = <T = any>(
     if (S.AST.isUnion(unwrapped)) {
       // For property-mode, return a FieldMeta by running through classifyAndWalkUnion
       // and then pulling out the result at `parent` key
-      const leafCtx: WalkerContext<T> = { acc: {}, unionMeta: {}, fieldAstByPath }
+      const leafCtx: WalkerContext<T> = { acc: {}, unionMeta: {} }
       classifyAndWalkUnion(unwrapped, parent, parentMeta, leafCtx)
       const result = (leafCtx.acc as any)[parent]
       if (result) return result as FieldMeta
@@ -108,61 +106,22 @@ export const metadataFromAst = <From, To>(
   const newMeta: Partial<MetaRecord<To>> = {}
   const defaultValues: Record<string, any> = {}
   const unionMeta: Record<string, MetaRecord<To>> = {}
-  const fieldAstByPath: Record<string, S.AST.AST> = {}
 
-  const toFieldStandardSchema = (
-    propertyAst: S.AST.AST,
-    required: boolean
-  ): StandardSchemaV1<any, any> => {
-    const base = S.make(propertyAst)
-    const fieldSchema = required ? base : S.NullishOr(base)
-    return S.toStandardSchemaV1(fieldSchema as any)
-  }
-
-  const attachOriginalSchemas = (metaRecord: MetaRecord<To>) => {
-    for (const [key, fieldAst] of Object.entries(fieldAstByPath)) {
-      const fieldMeta = metaRecord[key as NestedKeyOf<To>]
-      if (!fieldMeta) {
-        continue
-      }
-      try {
-        const required = fieldMeta.required ?? true
-        Object.defineProperty(fieldMeta, "originalSchema", {
-          value: toFieldStandardSchema(fieldAst, required),
-          enumerable: false,
-          configurable: true,
-          writable: true
-        })
-      } catch {
-        Object.defineProperty(fieldMeta, "originalSchema", {
-          value: S.toStandardSchemaV1(S.Unknown),
-          enumerable: false,
-          configurable: true,
-          writable: true
-        })
-      }
-    }
-  }
-
-  const ctx: WalkerContext<To> = { acc: newMeta, unionMeta, fieldAstByPath }
+  const ctx: WalkerContext<To> = { acc: newMeta, unionMeta }
 
   if (S.AST.isUnion(ast)) {
     // Root-level discriminated union
     classifyAndWalkUnion(ast, "", { required: true, nullableOrUndefined: false }, ctx)
 
-    attachOriginalSchemas(newMeta as MetaRecord<To>)
     return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
   }
 
   if (S.AST.isObjects(ast)) {
     walkStruct(ast.propertySignatures, "", { required: true, nullableOrUndefined: false }, ctx)
 
-    const typedMeta = newMeta as MetaRecord<To>
-    attachOriginalSchemas(typedMeta)
-    return { meta: typedMeta, defaultValues, unionMeta }
+    return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
   }
 
-  attachOriginalSchemas(newMeta as MetaRecord<To>)
   return { meta: newMeta as MetaRecord<To>, defaultValues, unionMeta }
 }
 

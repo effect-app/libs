@@ -19,7 +19,6 @@ const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] =
 export type WalkerContext<T> = {
   acc: Partial<MetaRecord<T>>
   unionMeta: Record<string, MetaRecord<T>>
-  fieldAstByPath?: Record<string, S.AST.AST>
 }
 
 export type ParentMeta = {
@@ -100,14 +99,13 @@ export const classifyAndWalkUnion = <T>(
   parentMeta: ParentMeta,
   ctx: WalkerContext<T>
 ): void => {
-  const { acc, fieldAstByPath } = ctx
+  const { acc } = ctx
   const unwrappedTypes = unwrapNestedUnions(unionAst.types).map(unwrapDeclaration)
   const nonNullTypes = unwrappedTypes.filter((t) => !isNullishType(t))
 
   // Boolean literal shortcut (single-value union wrapping a boolean literal)
   if (nonNullTypes.length === 1 && S.AST.isLiteral(nonNullTypes[0]!) && typeof nonNullTypes[0]!.literal === "boolean") {
     acc[key as NestedKeyOf<T>] = leafMetaForAst(nonNullTypes[0]!, parentMeta)
-    if (fieldAstByPath) fieldAstByPath[key] = unionAst
     return
   }
 
@@ -119,12 +117,10 @@ export const classifyAndWalkUnion = <T>(
       const firstNonStruct = nonNullTypes.find((t) => !S.AST.isObjects(t))
       if (firstNonStruct) {
         acc[key as NestedKeyOf<T>] = leafMetaForAst(firstNonStruct, parentMeta)
-        if (fieldAstByPath) fieldAstByPath[key] = unionAst
       }
     }
 
     const discriminatorValues: any[] = []
-    const tagLiteralAsts: S.AST.AST[] = []
     const branchParentMeta: ParentMeta = isNullableDiscriminatedUnion
       ? { required: true, nullableOrUndefined: false, isNullableDiscriminatedUnion: true }
       : { required: true, nullableOrUndefined: false }
@@ -139,13 +135,10 @@ export const classifyAndWalkUnion = <T>(
       if (resolvedTagType && S.AST.isLiteral(resolvedTagType)) {
         tagValue = resolvedTagType.literal as string
         if (!discriminatorValues.includes(tagValue)) discriminatorValues.push(tagValue)
-        if (!tagLiteralAsts.some((t) => S.AST.isLiteral(t) && t.literal === tagValue)) {
-          tagLiteralAsts.push(resolvedTagType)
-        }
         if (tagProp && S.AST.isUnion(tagProp.type)) warnLegacyTag(tagValue)
       }
 
-      const branchCtx: WalkerContext<T> = { acc: {}, unionMeta: ctx.unionMeta, fieldAstByPath }
+      const branchCtx: WalkerContext<T> = { acc: {}, unionMeta: ctx.unionMeta }
       walkStruct(memberType.propertySignatures, key, branchParentMeta, branchCtx)
 
       if (tagValue) {
@@ -181,18 +174,12 @@ export const classifyAndWalkUnion = <T>(
           required: !isNullableDiscriminatedUnion
         } as FieldMeta
       }
-      if (fieldAstByPath && tagLiteralAsts.length > 0) {
-        fieldAstByPath[tagKey] = tagLiteralAsts.length === 1
-          ? tagLiteralAsts[0]!
-          : new S.AST.Union(tagLiteralAsts, "anyOf")
-      }
     }
     return
   }
 
   if (nonNullTypes.some(S.AST.isArrays)) {
     walk(nonNullTypes.find(S.AST.isArrays)!, key, parentMeta, ctx)
-    if (fieldAstByPath) fieldAstByPath[key] = unionAst
     return
   }
 
@@ -208,7 +195,6 @@ export const classifyAndWalkUnion = <T>(
     } as FieldMeta
     if (isOptionalKey) leaf.isOptionalKey = true
     acc[key as NestedKeyOf<T>] = leaf
-    if (fieldAstByPath) fieldAstByPath[key] = unionAst
     return
   }
 
@@ -224,7 +210,7 @@ export const walk = <T>(
   ctx: WalkerContext<T>
 ): void => {
   ast = unwrapDeclaration(ast)
-  const { acc, fieldAstByPath } = ctx
+  const { acc } = ctx
 
   if (S.AST.isObjects(ast)) {
     walkStruct(ast.propertySignatures, key, parentMeta, ctx)
@@ -247,7 +233,6 @@ export const walk = <T>(
 
     // Primitive or tuple array
     acc[key as NestedKeyOf<T>] = leafMetaForAst(ast, parentMeta)
-    if (fieldAstByPath) fieldAstByPath[key] = ast
     return
   }
 
@@ -260,5 +245,4 @@ export const walk = <T>(
   const leaf = leafMetaForAst(ast, adjusted)
   if (isOptionalKey) leaf.isOptionalKey = true
   acc[key as NestedKeyOf<T>] = leaf
-  if (fieldAstByPath) fieldAstByPath[key] = ast
 }

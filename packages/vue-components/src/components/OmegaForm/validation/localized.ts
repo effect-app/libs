@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { StandardSchemaV1 } from "@tanstack/vue-form"
-import { S } from "effect-app"
+import { Option, S } from "effect-app"
 import { useIntl } from "../../../utils"
-import type { FieldMeta } from "../meta/types"
 
 export type TransFn = ReturnType<typeof useIntl>["trans"]
 
@@ -30,6 +29,10 @@ export const makeStandardSchemaV1Hooks = (
         return trans("validation.empty")
       case "InvalidType": {
         const ast = issue.ast
+        // Detect undefined/missing actual values across required leaves and return a uniform empty message.
+        const actualUndefined = Option.isNone(issue.actual)
+          || (Option.isSome(issue.actual) && issue.actual.value === undefined)
+        if (actualUndefined) return trans("validation.empty")
         if (S.AST.isString(ast)) return trans("validation.empty")
         if (S.AST.isBoolean(ast)) return trans("validation.not_a_valid", { type: "boolean" })
         if (S.AST.isNumber(ast)) return trans("validation.number.expected", { actualValue: "NaN" })
@@ -66,7 +69,11 @@ export const makeStandardSchemaV1Hooks = (
       case "isLessThan":
         return trans("validation.number.max", { maximum: meta.exclusiveMaximum, isExclusive: false })
       default:
-        return undefined
+        // Fall back to the default check hook so custom S.makeFilter messages
+        // (which surface as InvalidValue.annotations.message on issue.issue)
+        // are returned verbatim instead of getting the generic
+        // "Expected <filter>, got <actual>" formatter output.
+        return S.SchemaIssue.defaultCheckHook(issue)
     }
   }
 
@@ -79,143 +86,4 @@ export const toLocalizedStandardSchemaV1 = <To, From>(
 ): StandardSchemaV1<From, To> => {
   const { checkHook, leafHook } = makeStandardSchemaV1Hooks(trans)
   return S.toStandardSchemaV1(schema, { leafHook, checkHook })
-}
-
-export const generateInputStandardSchemaFromFieldMeta = (
-  meta: FieldMeta,
-  trans?: ReturnType<typeof useIntl>["trans"]
-): StandardSchemaV1<any, any> => {
-  if (!trans) {
-    trans = useIntl().trans
-  }
-  let schema: any
-  switch (meta.type) {
-    case "string":
-      schema = meta.format === "email"
-        ? S.Email.annotate({
-          message: trans("validation.email.invalid")
-        })
-        : S.String.annotate({
-          message: trans("validation.empty")
-        })
-
-      if (meta.required) {
-        schema = schema.check(S.isMinLength(1, {
-          message: trans("validation.empty")
-        }))
-      }
-
-      if (typeof meta.maxLength === "number") {
-        schema = schema.check(S.isMaxLength(meta.maxLength, {
-          message: trans("validation.string.maxLength", {
-            maxLength: meta.maxLength
-          })
-        }))
-      }
-      if (typeof meta.minLength === "number") {
-        schema = schema.check(S.isMinLength(meta.minLength, {
-          message: trans("validation.string.minLength", {
-            minLength: meta.minLength
-          })
-        }))
-      }
-      break
-
-    case "number":
-      if (meta.refinement === "int") {
-        schema = S
-          .Number
-          .annotate({
-            message: trans("validation.empty")
-          })
-          .check(S.isInt({
-            message: trans("validation.integer.expected", { actualValue: "NaN" })
-          }))
-      } else {
-        schema = S.Finite.annotate({
-          message: trans("validation.number.expected", { actualValue: "NaN" })
-        })
-
-        if (meta.required) {
-          schema = schema.annotate({
-            message: trans("validation.empty")
-          })
-        }
-      }
-
-      if (typeof meta.minimum === "number") {
-        schema = schema.check(S.isGreaterThanOrEqualTo(meta.minimum, {
-          message: trans(meta.minimum === 0 ? "validation.number.positive" : "validation.number.min", {
-            minimum: meta.minimum,
-            isExclusive: true
-          })
-        }))
-      }
-      if (typeof meta.maximum === "number") {
-        schema = schema.check(S.isLessThanOrEqualTo(meta.maximum, {
-          message: trans("validation.number.max", {
-            maximum: meta.maximum,
-            isExclusive: true
-          })
-        }))
-      }
-      if (typeof meta.exclusiveMinimum === "number") {
-        schema = schema.check(S.isGreaterThan(meta.exclusiveMinimum, {
-          message: trans(meta.exclusiveMinimum === 0 ? "validation.number.positive" : "validation.number.min", {
-            minimum: meta.exclusiveMinimum,
-            isExclusive: false
-          })
-        }))
-      }
-      if (typeof meta.exclusiveMaximum === "number") {
-        schema = schema.check(S.isLessThan(meta.exclusiveMaximum, {
-          message: trans("validation.number.max", {
-            maximum: meta.exclusiveMaximum,
-            isExclusive: false
-          })
-        }))
-      }
-      break
-    case "select":
-      schema = S.Literals(meta.members as [any, ...any[]]).annotate({
-        message: trans("validation.not_a_valid", {
-          type: "select",
-          message: meta.members.join(", ")
-        })
-      })
-
-      break
-
-    case "multiple":
-      schema = S.Array(S.String).annotate({
-        message: trans("validation.not_a_valid", {
-          type: "multiple",
-          message: meta.members.join(", ")
-        })
-      })
-      break
-
-    case "boolean":
-      schema = S.Boolean
-      break
-
-    case "date":
-      schema = S.Date
-      break
-
-    case "unknown":
-      schema = S.Unknown
-      break
-
-    default:
-      // For any unhandled types, use Unknown schema to prevent undefined errors
-      console.warn(`Unhandled field type: ${meta}`)
-      schema = S.Unknown
-      break
-  }
-  if (!meta.required) {
-    schema = S.NullishOr(schema)
-  }
-  const result = S.toStandardSchemaV1(schema as any)
-  return result
 }

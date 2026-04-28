@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { DeepKeys, StandardSchemaV1 } from "@tanstack/vue-form"
+import type { DeepKeys } from "@tanstack/vue-form"
 import type { S } from "effect-app"
 import type { Redacted } from "effect/Redacted"
 
@@ -15,7 +15,6 @@ export type NestedKeyOf<T> = DeepKeys<StripRedacted<T>>
 export type BaseFieldMeta = {
   required: boolean
   nullableOrUndefined?: false | "undefined" | "null"
-  originalSchema?: StandardSchemaV1<any, any>
   /**
    * True when the schema property is `S.optionalKey` (AST
    * `context.isOptional`) — i.e. the key should be ABSENT from the submitted

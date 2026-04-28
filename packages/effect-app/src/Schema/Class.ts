@@ -25,7 +25,7 @@ type HasFields<Fields extends S.Struct.Fields> = {
 }
 
 type ClassOptions = {
-  readonly strict?: false
+  readonly strict?: boolean
 }
 
 declare const ExtendedSchemaNoEncoded: unique symbol
@@ -54,36 +54,18 @@ export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, 
 >
 
 /**
- * Return a new Declaration with `parseOptions.concurrency = "unbounded"` merged
- * into its annotations, preserving any existing parseOptions set by the caller.
- */
-function withConcurrencyUnbounded(ast: SchemaAST.Declaration): SchemaAST.Declaration {
-  const existingParseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
-  return new SchemaAST.Declaration(
-    ast.typeParameters,
-    ast.run,
-    {
-      ...ast.annotations,
-      parseOptions: { concurrency: "unbounded" as const, ...existingParseOptions }
-    },
-    ast.checks,
-    ast.encoding,
-    ast.context
-  )
-}
-
-/**
  * Build a modified Declaration that accepts struct-matching values during
  * encoding, given the original Declaration and the class's fields.
- * Expects `ast` to already carry the desired annotations (including parseOptions).
  */
 function makeRelaxedDeclaration(
   ast: SchemaAST.Declaration,
   fields: Schema.Struct.Fields,
   cls: any
 ): SchemaAST.Declaration {
-  const structSchema = Schema.Struct(fields).annotate(concurrencyUnbounded)
-  const decodeStruct = SchemaParser.decodeUnknownEffect(S.toType(structSchema))
+  const parseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
+  const structSchema = Schema.Struct(fields)
+  const annotatedStruct = parseOptions ? S.toType(structSchema).annotate({ parseOptions }) : S.toType(structSchema)
+  const decodeStruct = SchemaParser.decodeUnknownEffect(annotatedStruct)
   return new SchemaAST.Declaration(
     ast.typeParameters,
     () => (input: unknown, self: SchemaAST.Declaration, options: SchemaAST.ParseOptions) => {
@@ -139,7 +121,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
     // Build the original Schema.Class
-    const Base = (S.Class as any)(identifier)(fields, annotations)
+    const Base = (S.Class as any)(identifier)(fields, { ...concurrencyUnbounded, ...annotations })
     // Get the original ast getter from the base class
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
 
@@ -161,8 +143,8 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
         if (cached !== undefined) return cached
         // Call the original getter with `this` bound to the actual user class,
         // so getClassSchema(this) creates a schema that uses `new this(...)`.
-        const annotatedAst = withConcurrencyUnbounded(originalAstDescriptor.get!.call(this) as SchemaAST.Declaration)
-        cached = relaxed ? makeRelaxedDeclaration(annotatedAst, Base.fields, this) : annotatedAst
+        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
         astCache.set(this, cached)
         return cached
       }
@@ -206,7 +188,7 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
     {}
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.TaggedClass as any)(identifier)(tag, fields, annotations)
+    const Base = (S.TaggedClass as any)(identifier)(tag, fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -223,8 +205,8 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
       static get ast(): SchemaAST.Declaration {
         let cached = astCache.get(this)
         if (cached !== undefined) return cached
-        const annotatedAst = withConcurrencyUnbounded(originalAstDescriptor.get!.call(this) as SchemaAST.Declaration)
-        cached = relaxed ? makeRelaxedDeclaration(annotatedAst, Base.fields, this) : annotatedAst
+        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
         astCache.set(this, cached)
         return cached
       }
@@ -251,7 +233,7 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
     Cause.YieldableError & Brand
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.ErrorClass as any)(identifier)(fields, annotations)
+    const Base = (S.ErrorClass as any)(identifier)(fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -268,8 +250,8 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
       static get ast(): SchemaAST.Declaration {
         let cached = astCache.get(this)
         if (cached !== undefined) return cached
-        const annotatedAst = withConcurrencyUnbounded(originalAstDescriptor.get!.call(this) as SchemaAST.Declaration)
-        cached = relaxed ? makeRelaxedDeclaration(annotatedAst, Base.fields, this) : annotatedAst
+        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
         astCache.set(this, cached)
         return cached
       }
@@ -297,7 +279,7 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
     Cause.YieldableError & Brand
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.TaggedErrorClass as any)(identifier)(tag, fields, annotations)
+    const Base = (S.TaggedErrorClass as any)(identifier)(tag, fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -314,8 +296,8 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
       static get ast(): SchemaAST.Declaration {
         let cached = astCache.get(this)
         if (cached !== undefined) return cached
-        const annotatedAst = withConcurrencyUnbounded(originalAstDescriptor.get!.call(this) as SchemaAST.Declaration)
-        cached = relaxed ? makeRelaxedDeclaration(annotatedAst, Base.fields, this) : annotatedAst
+        const originalAst = originalAstDescriptor.get!.call(this) as SchemaAST.Declaration
+        cached = relaxed ? makeRelaxedDeclaration(originalAst, Base.fields, this) : originalAst
         astCache.set(this, cached)
         return cached
       }

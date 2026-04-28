@@ -12,7 +12,7 @@ afterEach(() => {
   warnSpy.mockRestore()
 })
 
-describe("legacy _tag deprecation warning (current state: dead code)", () => {
+describe("legacy _tag deprecation warning (removed in Phase 4; regression guard)", () => {
   it("does NOT warn for the legacy S.Struct({_tag: S.Literal(...)}) pattern", () => {
     const schema = S.Union([
       S.Struct({ _tag: S.Literal("Legacy"), x: S.String })

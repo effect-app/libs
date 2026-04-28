@@ -3,7 +3,6 @@
 import { S } from "effect-app"
 import { getFieldMetadataFromAst } from "./checks"
 import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"
-import { warnLegacyTag } from "./legacyWarning"
 import type { FieldMeta, MetaRecord, NestedKeyOf, SelectFieldMeta } from "./types"
 
 const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.AST.isNull(property)
@@ -136,7 +135,6 @@ export const classifyAndWalkUnion = <T>(
       if (resolvedTagType && S.AST.isLiteral(resolvedTagType)) {
         tagValue = resolvedTagType.literal as string
         if (!discriminatorValues.includes(tagValue)) discriminatorValues.push(tagValue)
-        if (tagProp && S.AST.isUnion(tagProp.type)) warnLegacyTag(tagValue)
       }
 
       const branchCtx: WalkerContext<T> = { acc: {}, unionMeta: ctx.unionMeta }

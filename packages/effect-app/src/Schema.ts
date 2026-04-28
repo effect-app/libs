@@ -126,6 +126,16 @@ export declare namespace Struct {
   export type Iso<F extends S.Struct.Fields> = S.Struct.Iso<F>
 }
 
+export type StructNestedEncodedError<T> = {
+  readonly _tag: "StructNestedEncodedError"
+  readonly message: "Expected a Struct schema or a schema with from.Encoded"
+  readonly schema: T
+}
+
+export type StructNestedEncoded<T> = T extends { fields: infer Fields extends S.Struct.Fields } ? Struct.Encoded<Fields>
+  : T extends { readonly from: { readonly Encoded: infer Encoded } } ? Encoded
+  : StructNestedEncodedError<T>
+
 export function NonEmptyArray<Value extends S.Top>(value: Value): S.NonEmptyArray<Value> {
   return S.NonEmptyArray(value).annotate(concurrencyUnbounded)
 }

@@ -55,7 +55,7 @@ export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace">
 //
 /* eslint-disable */
 export namespace RequestContext {
-  export interface Encoded extends S.Struct.Encoded<typeof RequestContext["fields"]> {}
+  export interface Encoded extends S.StructNestedEncoded<typeof RequestContext> {}
 }
 /* eslint-enable */
 //

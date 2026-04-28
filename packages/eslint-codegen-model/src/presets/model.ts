@@ -55,7 +55,7 @@ function normalise(str: string) {
     // .replaceAll("\n", ";")
     // .replaceAll(" ", "")
     // TODO: remove all \n and whitespace?
-  } catch (e) {
+  } catch {
     return str
   }
 }
@@ -80,7 +80,7 @@ export const model: Preset<{
 
       them.push([
         `export namespace ${modelName} {`,
-        `  export interface Encoded extends S.Struct.Encoded<typeof ${modelName}["fields"]> {}`,
+        `  export interface Encoded extends S.StructNestedEncoded<typeof ${modelName}> {}`,
         "}"
       ])
     }

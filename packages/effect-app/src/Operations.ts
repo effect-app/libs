@@ -39,16 +39,16 @@ export class Operation extends S.Opaque<Operation, Operation.Encoded>()(S.Struct
 //
 /* eslint-disable */
 export namespace OperationProgress {
-  export interface Encoded extends S.Struct.Encoded<typeof OperationProgress["fields"]> {}
+  export interface Encoded extends S.StructNestedEncoded<typeof OperationProgress> {}
 }
 export namespace OperationSuccess {
-  export interface Encoded extends S.Struct.Encoded<typeof OperationSuccess["fields"]> {}
+  export interface Encoded extends S.StructNestedEncoded<typeof OperationSuccess> {}
 }
 export namespace OperationFailure {
-  export interface Encoded extends S.Struct.Encoded<typeof OperationFailure["fields"]> {}
+  export interface Encoded extends S.StructNestedEncoded<typeof OperationFailure> {}
 }
 export namespace Operation {
-  export interface Encoded extends S.Struct.Encoded<typeof Operation["fields"]> {}
+  export interface Encoded extends S.StructNestedEncoded<typeof Operation> {}
 }
 /* eslint-enable */
 //

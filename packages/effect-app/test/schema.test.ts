@@ -107,6 +107,21 @@ test("Struct.make accepts void when all fields are optional", () => {
   expectTypeOf(made).toEqualTypeOf<{ readonly a?: string | undefined; readonly b?: number | undefined }>()
 })
 
+test("StructNestedEncoded resolves Struct and from.Encoded", () => {
+  const plain = S.Struct({ a: S.String, b: S.NullOr(S.String) })
+  const encodedKeys = plain.pipe(S.encodeKeys({ b: "b_encoded" }))
+
+  expectTypeOf<S.StructNestedEncoded<typeof plain>>().toEqualTypeOf<{
+    readonly a: string
+    readonly b: string | null
+  }>()
+
+  expectTypeOf<S.StructNestedEncoded<typeof encodedKeys>>().toEqualTypeOf<{
+    readonly a: string
+    readonly b_encoded: string | null
+  }>()
+})
+
 test("TaggedStruct.make accepts void when only constructor-default fields exist", () => {
   const schema = S.TaggedStruct("OnlyTag", {})
 

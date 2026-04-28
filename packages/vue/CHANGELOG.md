@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- 2e4c018: feat: add client projection
+- Updated dependencies [c215db8]
+  - effect-app@4.0.0-beta.155
+
 ## 4.0.0-beta.154
 
 ### Patch Changes

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any -- AST walker interops with Effect Schema generics */
+/* eslint-disable @typescript-eslint/no-use-before-define -- mutual recursion between walk and helpers (handleStruct/handleUnion/etc.) */
 import { S } from "effect-app"
 import { getFieldMetadataFromAst } from "./checks"
 import { isNullableOrUndefined, unwrapDeclaration } from "./createMeta"

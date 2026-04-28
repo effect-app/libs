@@ -7,6 +7,7 @@ import { S } from "effect-app"
  */
 const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean =>
   S.AST.isDeclaration(ast)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Effect Schema AST annotations are loosely typed
   && (ast.annotations as any)?.typeConstructor?._tag === "effect/Redacted"
   && !ast.encoding
 

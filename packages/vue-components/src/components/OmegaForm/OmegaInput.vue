@@ -14,8 +14,14 @@
         :label="label ?? errori18n(propsName)"
         :meta="meta"
       >
-        <template v-if="$slots.label" #label="labelProps">
-          <slot name="label" v-bind="labelProps" />
+        <template
+          v-if="$slots.label"
+          #label="labelProps"
+        >
+          <slot
+            name="label"
+            v-bind="labelProps"
+          />
         </template>
         <template #default="inputProps">
           <slot v-bind="inputProps" />
@@ -34,6 +40,7 @@
   Name extends DeepKeys<From>
 "
 >
+/* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form Field generic interop and slot prop typing */
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, inject, type Ref, useAttrs } from "vue"
 import { useErrorLabel } from "./errors"

@@ -32,6 +32,7 @@ watch(
   () => {
     const path = tagPath.value
     // Navigate to the nested value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- traversing arbitrary nested values
     return path.split(".").reduce((acc: any, key) => acc?.[key], formValues.value) as string | null
   },
   (newTag) => {

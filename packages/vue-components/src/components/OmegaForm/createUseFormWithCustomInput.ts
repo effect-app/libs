@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form / Vue render-fn slot interop */
 import type { DeepKeys } from "@tanstack/vue-form"
 import { type Component, h } from "vue"
 import type { MergedInputProps } from "./InputProps"

@@ -24,6 +24,7 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
+/* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form / Vue attrs interop */
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
 import { computed, type ComputedRef, getCurrentInstance, useAttrs, useId, useSlots } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
@@ -85,7 +86,8 @@ const id = useId()
 
 const fieldApi = props.field
 
-const fieldState = useStore(fieldApi.store, (state) => state)
+// Subscribed for side-effect: keeps component reactive to fieldApi.store changes
+const _fieldState = useStore(fieldApi.store, (state) => state)
 
 // Get errors from form-level fieldMeta (persists across Field re-mounts)
 const formFieldMeta = useStore(fieldApi.form.store, (state) => state.fieldMeta)

@@ -59,6 +59,7 @@ export const useCommand = (messages: {}) => {
 }
 
 /** borrowing the idea from Families in Effect Atom */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic family helper for arbitrary maker fns
 export const makeFamily = <Maker extends (input: any) => any>(maker: Maker) => {
   type K = Parameters<Maker>[0]
   const map = new Map<K, ReturnType<typeof maker>>()

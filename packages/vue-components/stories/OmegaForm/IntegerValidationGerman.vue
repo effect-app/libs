@@ -84,6 +84,7 @@ const form = useOmegaForm(PackageSchema, {
   onSubmit: ({ value }) => {
     console.log("Form submitted with values:", value)
     alert(`Packen erfolgreich!\n${JSON.stringify(value, null, 2)}`)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- onSubmit return-type interop
     return undefined as any
   }
 })

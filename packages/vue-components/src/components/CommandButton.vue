@@ -41,7 +41,9 @@ const handleClick = () => {
   const input = ("input" in props && props.input
     ? props.input
     : undefined) as unknown as I
-  ;(props.command.handle as any)(input)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- command.handle has a generic signature mismatched by erased input type
+  const handle = props.command.handle as any
+  handle(input)
 }
 </script>
 <script lang="ts">

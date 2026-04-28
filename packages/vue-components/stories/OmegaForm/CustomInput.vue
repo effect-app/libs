@@ -39,6 +39,7 @@ defineEmits<{
 }>()
 
 defineSlots<{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vue slot return type is unconstrained
   label?: (props: { required: boolean; id: string; label: string }) => any
 }>()
 

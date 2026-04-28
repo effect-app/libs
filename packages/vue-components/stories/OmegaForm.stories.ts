@@ -92,6 +92,7 @@ const mockIntlGerman = {
 
 const meta: StoryMeta<typeof OmegaForm> = {
   title: "Components/OmegaForm",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Storybook component generic interop
   component: OmegaForm as any,
   argTypes: {
     schema: { control: "object" },

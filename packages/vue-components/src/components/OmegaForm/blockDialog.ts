@@ -20,15 +20,17 @@ export const usePreventClose = (mkIsDirty: () => Ref<boolean>) => {
   if (!bus) {
     return
   }
-  const { formatMessage } = useIntl()
+  const { formatMessage, trans } = useIntl()
   const isDirty = mkIsDirty()
+  const defaultMessage = "There are unsaved changes. Are you sure you want to close?"
   onMountedWithCleanup(() => {
     const onDialogClosing = (evt: DialogClosing) => {
       if (isDirty.value) {
-        const message = formatMessage({
-          id: "form.unsaved_changes_confirm",
-          defaultMessage: "There are unsaved changes. Are you sure you want to close?"
-        })
+        // Mirror the guard pattern in errors.ts: a custom `useIntl` mock may
+        // only provide `trans`, so fall back through trans → defaultMessage.
+        const message = formatMessage
+          ? formatMessage({ id: "form.unsaved_changes_confirm", defaultMessage })
+          : trans?.("form.unsaved_changes_confirm" as any) ?? defaultMessage
         if (!confirm(message)) {
           evt.prevent = true
         }

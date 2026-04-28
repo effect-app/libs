@@ -47,6 +47,12 @@ export const makeStandardSchemaV1Hooks = (
   }
 
   const checkHook: S.SchemaIssue.CheckHook = (issue) => {
+    // S.Email's `refine(isValidEmail, ...)` has no `meta._tag` but carries
+    // `identifier: "Email"`. Localize it explicitly — otherwise the
+    // formatter falls back to the generic "Expected <filter>, got <actual>".
+    if (issue.filter.annotations?.identifier === "Email") {
+      return trans("validation.email.invalid")
+    }
     const meta = (issue.filter.annotations?.meta ?? {}) as FilterMeta
     switch (meta._tag) {
       case "isMinLength":

@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.156
+
+### Patch Changes
+
+- 4bc4a27: Constrain `project` schema to require matching `Encoded` type with original success schema
+  - effect-app@4.0.0-beta.156
+
 ## 4.0.0-beta.155
 
 ### Patch Changes

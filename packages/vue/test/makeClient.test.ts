@@ -107,6 +107,9 @@ it.skip("works", () => {
   const p0 = projected.request(null as any)
   // and we have to make sure that for query or suspense the R of the projection schema is not more than what the client was built with, otherwise they should have the MissingDependencies like in the other test cases
   const p00 = projected.query(null as any)
+  const [, p01] = projected.query(null as any, { select: (s) => s.length })
+  const p010 = p01.value
+  expectTypeOf(p010).toEqualTypeOf<number | undefined>()
   const p = projected.suspense(null as any)
 
   expect(true).toBe(true)

@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- c215db8: align TaggedUnion with array arg
+
 ## 4.0.0-beta.154
 
 ## 4.0.0-beta.153

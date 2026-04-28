@@ -54,6 +54,50 @@ describe("select / multiple validation messages carry localized payload", () => 
     expect(msg, `got: ${msg}`).toBe("validation.not_a_valid_translated")
   })
 
+  it("S.NullOr(S.Literals) — invalid member emits localized select message", async () => {
+    const schema = S.Struct({ color: S.NullOr(S.Literals(["red", "blue", "green"])) })
+    const form = mountForm(() =>
+      useOmegaForm(schema, {
+        defaultValues: { color: "purple" } as any,
+        onSubmit: async () => undefined
+      })
+    )
+    await Effect.runPromise(form.handleSubmitEffect())
+    const msg = firstFieldError(form, "color")
+    expect(msg, `got: ${msg}`).toBe("validation.not_a_valid_translated")
+  })
+
+  it("S.UndefinedOr(S.Literals) — invalid member emits localized select message", async () => {
+    const schema = S.Struct({ color: S.UndefinedOr(S.Literals(["red", "blue", "green"])) })
+    const form = mountForm(() =>
+      useOmegaForm(schema, {
+        defaultValues: { color: "purple" } as any,
+        onSubmit: async () => undefined
+      })
+    )
+    await Effect.runPromise(form.handleSubmitEffect())
+    const msg = firstFieldError(form, "color")
+    expect(msg, `got: ${msg}`).toBe("validation.not_a_valid_translated")
+  })
+
+  it("user-supplied .annotate({ message }) on S.Literals is preserved", async () => {
+    const schema = S.Struct({
+      color: S.Literals(["red", "blue", "green"]).annotate({
+        message: "user.custom.message"
+      })
+    })
+    const form = mountForm(() =>
+      useOmegaForm(schema, {
+        defaultValues: { color: "purple" } as any,
+        onSubmit: async () => undefined
+      })
+    )
+    await Effect.runPromise(form.handleSubmitEffect())
+    const msg = firstFieldError(form, "color")
+    // User annotation wins — verbatim, not piped through trans.
+    expect(msg).toBe("user.custom.message")
+  })
+
   it("empty value on a required select also emits the localized 'select' message (matches main)", async () => {
     // Main's `generateInputStandardSchemaFromFieldMeta` annotated the entire
     // S.Literals schema with a `validation.not_a_valid` message, so any

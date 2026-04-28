@@ -138,6 +138,22 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
       ast.context
     )
   }
+  // Mixed unions (e.g. `S.NullOr(S.Literals(...))` → Union<Null, Union<Literals>>)
+  // need recursion so the inner literal-union still gets annotated. We don't
+  // touch the outer mixed Union's own annotations.
+  if (S.AST.isUnion(ast)) {
+    const newTypes = ast.types.map((t) => walkAst(t, trans))
+    const changed = newTypes.some((t, i) => t !== ast.types[i])
+    if (!changed) return ast
+    return new S.AST.Union(
+      newTypes,
+      ast.mode,
+      ast.annotations,
+      ast.checks,
+      ast.encoding,
+      ast.context
+    )
+  }
   if (S.AST.isArrays(ast)) {
     const newRest = ast.rest.map((e) => walkAst(e, trans))
     const newElements = ast.elements.map((e) => walkAst(e, trans))

@@ -99,7 +99,8 @@ const exampleForm = useOmegaForm(
   {
     defaultValues: {
       aString: "",
-      aNumberMin2Max4Nullable: null
+      aNumberMin2Max4Nullable: null,
+      aSelect: "purple" as any
     },
     onSubmit: async ({
       value

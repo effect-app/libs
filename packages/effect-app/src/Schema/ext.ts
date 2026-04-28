@@ -15,6 +15,15 @@ type ProvidedCodec<Self extends S.Top, R> = S.Codec<
   Exclude<Self["EncodingServices"], R>
 >
 
+export const NonEmptyArrayAsTuple: typeof S.NonEmptyArray = S.NonEmptyArray
+export type NonEmptyArrayAsTuple<ValueSchema extends S.Top> = S.NonEmptyArray<ValueSchema>
+
+/**
+ * An array that is non empty. Non emptyness is confirmed on the container, not as the first element (unlike on tuples)
+ */
+export const NonEmptyArray = <ValueSchema extends S.Top>(valueSchema: ValueSchema) =>
+  S.Array(valueSchema).pipe(S.check(S.isMinLength(1)), S.decodeTo(S.toType(S.NonEmptyArray(valueSchema))))
+
 // TODO: v4 migration - Date is no longer by default encoded to string.
 
 const DateString = S.String.annotate({

@@ -1,8 +1,7 @@
 import { mount } from "@vue/test-utils"
 import { S, SchemaGetter } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { createUseFormWithCustomInput, useOmegaForm } from "../../src/components/OmegaForm"
-import { generateMetaFromSchema, type NumberFieldMeta } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { createUseFormWithCustomInput, generateMetaFromSchema, type NumberFieldMeta, useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 const CustomNumberInput = {

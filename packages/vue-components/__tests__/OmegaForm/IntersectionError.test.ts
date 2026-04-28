@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils"
+import { flushPromises, mount } from "@vue/test-utils"
 import { S } from "effect-app"
 import { beforeEach, describe, expect, it } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
@@ -161,6 +161,7 @@ describe("OmegaForm Intersection/Union", () => {
     const submitButton = wrapper.find("[data-testid='submit']")
     await submitButton.trigger("submit")
     await wrapper.vm.$nextTick()
+    await flushPromises()
 
     // Verify error exists for alpha field
     const errorDiv = wrapper.find(".mock-omega-errors")

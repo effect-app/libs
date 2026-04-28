@@ -10,8 +10,8 @@
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, provide, ref, watch } from "vue"
 import { type TaggedUnionOption } from "./InputProps"
-import { type FieldPath } from "./OmegaFormStuff"
 import OmegaTaggedUnionInternal from "./OmegaTaggedUnionInternal.vue"
+import { type FieldPath } from "./types"
 import { type useOmegaForm } from "./useOmegaForm"
 
 const props = defineProps<{
@@ -32,6 +32,7 @@ watch(
   () => {
     const path = tagPath.value
     // Navigate to the nested value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- traversing arbitrary nested values
     return path.split(".").reduce((acc: any, key) => acc?.[key], formValues.value) as string | null
   },
   (newTag) => {

@@ -1,674 +1,33 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import * as api from "@opentelemetry/api"
-import { type DeepKeys, DeepValue, type FormAsyncValidateOrFn, type FormValidateOrFn, type StandardSchemaV1, StandardSchemaV1Issue, useForm, ValidationError, ValidationErrorMap } from "@tanstack/vue-form"
-import { Array, Context, Data, Effect, Fiber, Option, Order, S } from "effect-app"
-import { runtimeFiberAsPromise, UnionToTuples } from "effect-app/utils"
-import { Component, computed, ComputedRef, ConcreteComponent, h, type InjectionKey, onBeforeUnmount, onMounted, onUnmounted, Ref, ref, watch } from "vue"
-import { useIntl } from "../../utils"
-import { MergedInputProps } from "./InputProps"
+import { type FormAsyncValidateOrFn, type FormValidateOrFn, revalidateLogic, type StandardSchemaV1, useForm } from "@tanstack/vue-form"
+import { Context, S } from "effect-app"
+import { type InjectionKey, watch } from "vue"
+import { eHoc, makeFieldMap } from "./errors"
+import { fHoc } from "./hocs"
+import { generateMetaFromSchema } from "./meta/createMeta"
+import { defaultsValueFromSchema } from "./meta/defaults"
+import { toFormSchema } from "./meta/redacted"
 import OmegaArray from "./OmegaArray.vue"
 import OmegaAutoGen from "./OmegaAutoGen.vue"
 import OmegaErrorsInternal from "./OmegaErrorsInternal.vue"
-import { BaseProps, deepMerge, defaultsValueFromSchema, DefaultTypeProps, FieldPath, type FormProps, generateMetaFromSchema, type MetaRecord, type NestedKeyOf, OmegaArrayProps, OmegaAutoGenMeta, OmegaError, type OmegaFormApi, OmegaFormState, toFormSchema } from "./OmegaFormStuff"
 import OmegaInput from "./OmegaInput.vue"
 import OmegaTaggedUnion from "./OmegaTaggedUnion.vue"
 import OmegaForm from "./OmegaWrapper.vue"
+import { usePersistency } from "./persistency"
+import { makeSubmitHandlers, wrapOnSubmit } from "./submit"
+import type { DefaultTypeProps, FormProps, OF, OmegaConfig, OmegaFormApi, OmegaFormReturn } from "./types"
+import { annotateLiteralUnionMessages, toLocalizedStandardSchemaV1 } from "./validation/localized"
 
 import { makeRunPromise } from "@effect-app/vue/runtime"
+import { useIntl } from "../../utils"
 
-type keysRule<T> =
-  | {
-    keys?: NestedKeyOf<T>[]
-    banKeys?: "You should only use one of banKeys or keys, not both, moron"
-  }
-  | {
-    keys?: "You should only use one of banKeys or keys, not both, moron"
-    banKeys?: NestedKeyOf<T>[]
-  }
-
-export class FormErrors<From> extends Data.TaggedError("FormErrors")<{
-  form: {
-    // TODO: error shapes seem off, with `undefined` etc..
-    errors: (Record<string, StandardSchemaV1Issue[]> | undefined)[]
-    errorMap: ValidationErrorMap<
-      undefined,
-      undefined,
-      Record<string, StandardSchemaV1Issue[]>,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    >
-  }
-  fields: Record<DeepKeys<From>, {
-    errors: ValidationError[]
-    errorMap: ValidationErrorMap
-  }>
-}> {}
-
-const fHoc = (form: OF<any, any>) => {
-  return function FormHoc<P>(
-    WrappedComponent: Component<P>
-  ): ConcreteComponent<P> {
-    return {
-      render() {
-        return h(WrappedComponent, {
-          form,
-          ...this.$attrs
-        } as any, this.$slots)
-      }
-    }
-  }
-}
-
-export const useErrorLabel = (form: OF<any, any>) => {
-  const { formatMessage } = useIntl()
-  const humanize = (str: string) => {
-    return str
-      .replace(/([A-Z])/g, " $1") // Add space before capital letters
-      .replace(/^./, (char) => char.toUpperCase()) // Capitalize the first letter
-      .trim() // Remove leading/trailing spaces
-  }
-  const fallback = (propsName: string) =>
-    formatMessage
-      ? formatMessage({ id: `general.fields.${propsName}`, defaultMessage: humanize(propsName) })
-      : humanize(propsName)
-  const i18n = (propsName: string) =>
-    form.i18nNamespace
-      ? formatMessage({ id: `${form.i18nNamespace}.fields.${propsName}`, defaultMessage: fallback(propsName) })
-      : fallback(propsName)
-
-  return i18n
-}
-
-const eHoc = (errorProps: {
-  form: OF<any, any>
-  fieldMap: Ref<Map<string, { id: string; label: string }>>
-}) => {
-  return function FormHoc<P>(
-    WrappedComponent: Component<P>
-  ): ConcreteComponent<P> {
-    return {
-      setup() {
-        const { fieldMap, form } = errorProps
-        const generalErrors = form.useStore((state) => state.errors)
-        const fieldMeta = form.useStore((state) => state.fieldMeta)
-        const errorMap = form.useStore((state) => state.errorMap)
-
-        const errorLabel = useErrorLabel(form)
-
-        const errors = computed(() => {
-          // Collect errors from fieldMeta (field-level errors for registered fields)
-          const fieldErrors = Object.entries(fieldMeta.value).reduce<OmegaError[]>((acc, [key, m]) => {
-            const fieldErrors = (m as { errors?: Array<{ message?: string }> } | undefined)?.errors ?? []
-            if (!fieldErrors.length) {
-              return acc
-            }
-
-            const fieldInfo = fieldMap.value.get(key)
-            if (!fieldInfo) {
-              return acc
-            }
-
-            acc.push({
-              label: fieldInfo.label,
-              inputId: fieldInfo.id,
-              errors: [fieldErrors[0]?.message].filter(Boolean) as string[]
-            })
-
-            return acc
-          }, [])
-
-          // Collect errors from errorMap.onSubmit ONLY for fields that are NOT registered
-          // (registered fields already have their errors in fieldMeta)
-          const submitErrors: OmegaError[] = []
-          if (errorMap.value.onSubmit) {
-            for (const [_, issues] of Object.entries(errorMap.value.onSubmit)) {
-              if (Array.isArray(issues) && issues.length) {
-                for (const issue of issues) {
-                  const issAny: any = issue
-                  if (issAny?.path && Array.isArray(issAny.path) && issAny.path.length) {
-                    // Use the path from the issue to identify the field
-                    const fieldPath = issAny.path.join(".")
-                    // Only add errors for fields that are NOT registered (not in fieldMap)
-                    // Registered fields will already have their errors from fieldMeta
-                    if (!fieldMap.value.has(fieldPath)) {
-                      submitErrors.push({
-                        label: errorLabel(fieldPath),
-                        inputId: fieldPath,
-                        errors: [issAny.message].filter(Boolean)
-                      })
-                      // Only show first error per field, so break after adding
-                      break
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          // Combine both error sources (no need to check for duplicates since they're mutually exclusive)
-          return [...fieldErrors, ...submitErrors]
-        })
-
-        return {
-          generalErrors,
-          errors
-        }
-      },
-      render({ errors, generalErrors }: any) {
-        return h(WrappedComponent, {
-          errors,
-          generalErrors,
-          ...this.$attrs
-        } as any, this.$slots)
-      }
-    }
-  }
-}
-
-export type Policies = "local" | "session" | "querystring"
-export type defaultValuesPriorityUnion = "tanstack" | "persistency" | "schema"
-
-const includesPolicy = (arr: Policies[], policy: Policies) => {
-  return arr.includes(policy)
-}
-
-export type OmegaConfig<T> = {
-  i18nNamespace?: string
-
-  persistency?: {
-    /** Order of importance:
-     * - "querystring": Highest priority when persisting
-     * - "local" and then "session": Lower priority storage options
-     */
-    policies?: UnionToTuples<Policies>
-    overrideDefaultValues?: "deprecated: use defaultValuesPriority"
-    id?: string
-  } & keysRule<T>
-
-  ignorePreventCloseEvents?: boolean
-
-  /**
-   * Prevents browser window/tab exit when form has unsaved changes.
-   * Shows native browser "Leave site?" dialog.
-   *
-   * @remarks
-   * - Opt-in only: Must explicitly enable
-   * - Independent from data persistence feature
-   */
-  preventWindowExit?: "prevent" | "prevent-and-reset" | "nope"
-
-  input?: any
-
-  /**
-   * Default values order is: Tanstack default values passed as second parameter to useOmegaForm, then persistency
-   * default values from querystring or local/session storage, then defaults from schema
-   * You can customize the order and  with omegaConfig.defaultValuesPriority
-   * default value = ['tanstack', 'persistency', 'schema']
-   */
-  defaultValuesPriority?: UnionToTuples<defaultValuesPriorityUnion>
-
-  defaultFromSchema?: "deprecated: use defaultValuesPriority"
-}
-
-export interface OF<From, To> extends OmegaFormApi<From, To> {
-  meta: MetaRecord<From>
-  unionMeta: Record<string, MetaRecord<From>>
-  clear: () => void
-  i18nNamespace?: string
-  ignorePreventCloseEvents?: boolean
-  registerField: (
-    field: ComputedRef<{
-      name: string
-      label: string
-      id: string
-    }>
-  ) => void
-  /** @experimental */
-  handleSubmitEffect: {
-    /**
-     * when `checkErrors` is true, the Effect will fail with `FormErrors<From>` when there are validation errors
-     * @experimental */
-    (options: { checkErrors: true; meta?: Record<string, any> }): Effect.Effect<void, FormErrors<From>>
-    /** @experimental */
-    (options?: { meta?: Record<string, any> }): Effect.Effect<void>
-  }
-}
+export { useErrorLabel } from "./errors"
+export { FormErrors } from "./submit"
+export type { defaultValuesPriorityUnion, OF, OmegaConfig, OmegaFormReturn, Policies } from "./types"
 
 export const OmegaFormKey = Symbol("OmegaForm") as InjectionKey<OF<any, any>>
-
-type __VLS_PrettifyLocal<T> =
-  & {
-    [K in keyof T]: T[K]
-  }
-  & {}
-
-// Type aliases for Array component slots - using cached types for performance
-type CachedFieldApi<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldApi<
-  From,
-  OmegaFormReturn<From, To, TypeProps>["_keys"],
-  DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  Record<string, any> | undefined
->
-
-type CachedFieldState<From, To, TypeProps = DefaultTypeProps> = import("@tanstack/vue-form").FieldState<
-  From,
-  OmegaFormReturn<From, To, TypeProps>["_keys"],
-  DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  | import("@tanstack/vue-form").FieldAsyncValidateOrFn<
-    From,
-    OmegaFormReturn<From, To, TypeProps>["_keys"],
-    DeepValue<From, OmegaFormReturn<From, To, TypeProps>["_keys"]>
-  >
-  | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").StandardSchemaV1<From, To>,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormValidateOrFn<From> | undefined,
-  import("@tanstack/vue-form").FormAsyncValidateOrFn<From> | undefined
->
-
-export interface OmegaFormReturn<
-  From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  TypeProps = DefaultTypeProps
-> extends OF<From, To> {
-  // Pre-computed type aliases - computed ONCE for performance
-  _paths: FieldPath<From>
-  _keys: NestedKeyOf<From>
-  _schema: S.Codec<To, From, never>
-
-  // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
-  Input: <Name extends OmegaFormReturn<From, To, TypeProps>["_paths"]>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & TypeProps
-          & Partial<{}>
-        >
-        & BaseProps<From, Name>
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default?(props: MergedInputProps<From, Name>): void
-        label?: (props: { required: boolean; id: string; label: string }) => void
-      }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
-  Errors: (
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & Partial<{}>
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default: (props: { errors: readonly OmegaError[]; showedGeneralErrors: string[] }) => void
-      }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
-  TaggedUnion: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & {
-            name?: Name
-            type?: "select" | "radio"
-            options: import("./InputProps").TaggedUnionOptionsArray<From, Name>
-            _debugName?: [NoInfer<Name>]
-            label?: string
-          }
-          & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: Record<
-        string,
-        (props: {
-          field: import("@tanstack/vue-form").FieldApi<
-            From,
-            Name,
-            DeepValue<From, Name>,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any
-          >
-          state: import("@tanstack/vue-form").FieldState<
-            From,
-            Name,
-            DeepValue<From, Name>,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any,
-            any
-          >
-        }) => any
-      >
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
-  Array: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          & Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          >
-          & (Omit<OmegaArrayProps<From, To, Name>, "form">)
-          & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        "pre-array"?: (props: {
-          field: CachedFieldApi<From, To, TypeProps>
-          state: CachedFieldState<From, To, TypeProps>
-        }) => any
-      } & {
-        default?: (props: {
-          subField: CachedFieldApi<From, To, TypeProps>
-          subState: CachedFieldState<From, To, TypeProps>
-          index: number
-          field: CachedFieldApi<From, To, TypeProps>
-        }) => any
-      } & {
-        "post-array"?: (props: {
-          field: CachedFieldApi<From, To, TypeProps>
-          state: CachedFieldState<From, To, TypeProps>
-        }) => any
-      } & {
-        field?: (props: {
-          field: CachedFieldApi<From, To, TypeProps>
-        }) => any
-      }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
-
-  AutoGen: <Name extends OmegaFormReturn<From, To, TypeProps>["_keys"]>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          > & {
-            // form: OmegaInputProps<From, To>["form"]
-            pick?: OmegaFormReturn<From, To, TypeProps>["_keys"][]
-            omit?: OmegaFormReturn<From, To, TypeProps>["_keys"][]
-            labelMap?: (key: OmegaFormReturn<From, To, TypeProps>["_keys"]) => string | undefined
-            filterMap?: <M extends OmegaAutoGenMeta<From, To, Name>>(
-              key: OmegaFormReturn<From, To, TypeProps>["_keys"],
-              meta: M
-            ) => boolean | M
-            order?: OmegaFormReturn<From, To, TypeProps>["_keys"][]
-            sort?: Order.Order<OmegaAutoGenMeta<From, To, Name>>
-          } & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default(props: {
-          child: OmegaAutoGenMeta<From, To, Name>
-        }): void
-      }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
-
-  Form: <K extends keyof OmegaFormState<To, From>>(
-    __VLS_props: NonNullable<Awaited<typeof __VLS_setup>>["props"],
-    __VLS_ctx?: __VLS_PrettifyLocal<Pick<NonNullable<Awaited<typeof __VLS_setup>>, "attrs" | "emit" | "slots">>,
-    __VLS_expose?: NonNullable<Awaited<typeof __VLS_setup>>["expose"],
-    __VLS_setup?: Promise<{
-      props:
-        & __VLS_PrettifyLocal<
-          Pick<
-            & Partial<{}>
-            & Omit<
-              {} & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps,
-              never
-            >,
-            never
-          > & {
-            // form: OmegaFormReturn<From, To, Props>
-            disabled?: boolean
-            subscribe?: K[]
-          } & {}
-        >
-        & import("vue").PublicProps
-      expose(exposed: import("vue").ShallowUnwrapRef<{}>): void
-      attrs: any
-      slots: {
-        default(props: {
-          subscribedValues: K[] extends undefined[] ? Record<string, never> : Pick<OmegaFormState<From, To>, K>
-        }): void
-      }
-      emit: {}
-    }>
-  ) => import("vue").VNode & {
-    __ctx?: Awaited<typeof __VLS_setup>
-  }
-}
 
 const runPromise = makeRunPromise(Context.empty())
 
@@ -684,93 +43,35 @@ export const useOmegaForm = <
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {
   if (!schema) throw new Error("Schema is required")
+  const { trans } = useIntl()
   const formCompatibleSchema = toFormSchema(schema)
-  const standardSchema = S.toStandardSchemaV1(formCompatibleSchema)
+  // Effect's Standard Schema formatter emits `Expected X | Y, got Z` for
+  // `AnyOf` issues without consulting our hooks. Pre-annotate literal-union
+  // (select) and literal-array (multiple) AST nodes with a localized
+  // `message` so the formatter picks them up via `findMessage`.
+  const localizedSchema = annotateLiteralUnionMessages(formCompatibleSchema, trans)
+  const standardSchema = toLocalizedStandardSchemaV1(
+    localizedSchema as any,
+    trans
+  )
   const decode = S.decodeUnknownEffect(formCompatibleSchema)
 
   const { meta, unionMeta } = generateMetaFromSchema(formCompatibleSchema)
 
-  const persistencyKey = computed(() => {
-    if (omegaConfig?.persistency?.id) {
-      return omegaConfig.persistency.id
-    }
-    const path = window.location.pathname
-    const keys = Object.keys(meta)
-    return `${path}-${keys.join("-")}`
+  // Persistency must be created before `useForm` so its merged
+  // `defaultValues` (tanstack + storage/querystring + schema) can flow into
+  // the form. The `getForm` accessor is lazy because the form is constructed
+  // immediately after, and persistency's listeners only fire later.
+  const formHolder: { form: any } = { form: undefined }
+  const persistency = usePersistency<From>({
+    meta,
+    persistency: omegaConfig?.persistency,
+    preventWindowExit: omegaConfig?.preventWindowExit,
+    defaultValuesPriority: omegaConfig?.defaultValuesPriority,
+    tanstackDefaultValues: tanstackFormOptions?.defaultValues,
+    schemaDefaultValues: () => defaultsValueFromSchema(schema),
+    getForm: () => formHolder.form
   })
-
-  const clearUrlParams = () => {
-    const params = new URLSearchParams(window.location.search)
-    params.delete(persistencyKey.value)
-    const url = new URL(window.location.href)
-    url.search = params.toString()
-    window.history.replaceState({}, "", url.toString())
-  }
-
-  const defaultValues = computed(() => {
-    // will contain what we get from querystring or local/session storage
-    let persistencyDefaultValues
-
-    const persistency = omegaConfig?.persistency
-
-    if (
-      // query string has higher priority than local/session storage
-      persistency?.policies
-      && !persistencyDefaultValues
-      && (includesPolicy(persistency.policies, "local")
-        || includesPolicy(persistency.policies, "session"))
-    ) {
-      const storage = includesPolicy(persistency.policies, "local")
-        ? localStorage
-        : sessionStorage
-      if (storage) {
-        try {
-          const value = JSON.parse(
-            storage.getItem(persistencyKey.value) || "{}"
-          )
-          storage.removeItem(persistencyKey.value)
-          persistencyDefaultValues = value
-        } catch (error) {
-          console.error(error)
-        }
-      }
-    }
-    if (persistency?.policies && includesPolicy(persistency.policies, "querystring")) {
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const value = params.get(persistencyKey.value)
-        clearUrlParams()
-        if (value) {
-          persistencyDefaultValues = deepMerge(persistencyDefaultValues || {}, JSON.parse(value))
-        }
-      } catch (error) {
-        console.error(error)
-      }
-    }
-
-    // to be sure we have a valid object at the end of the gathering process
-    persistencyDefaultValues ??= {}
-
-    const defaults: Record<defaultValuesPriorityUnion, any> = {
-      tanstack: tanstackFormOptions?.defaultValues || {},
-      persistency: persistencyDefaultValues,
-      schema: defaultsValueFromSchema(schema)
-    }
-
-    return (omegaConfig?.defaultValuesPriority || ["tanstack", "persistency", "schema"] as const).reverse().reduce(
-      (acc, m) => {
-        if (!Object.keys(acc).length) {
-          return defaults[m]
-        }
-        return deepMerge(acc, defaults[m])
-      },
-      {}
-    )
-  })
-
-  const wrapWithSpan = (span: api.Span | undefined, toWrap: () => any) => {
-    return span ? api.context.with(api.trace.setSpan(api.context.active(), span), toWrap) : toWrap()
-  }
 
   const form = useForm<
     From,
@@ -787,123 +88,22 @@ export const useOmegaForm = <
     Record<string, any> | undefined
   >({
     ...tanstackFormOptions,
+    validationLogic: revalidateLogic(),
     validators: {
-      onSubmit: standardSchema,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onDynamic: standardSchema as any,
       ...tanstackFormOptions?.validators
     },
-    onSubmit: tanstackFormOptions?.onSubmit
-      ? ({ formApi, meta, value }) =>
-        wrapWithSpan(meta?.currentSpan, async () => {
-          // validators only validate, they don't actually transform, so we have to do that manually here.
-          const parsedValue = await runPromise(decode(value))
-          const r = tanstackFormOptions.onSubmit!({
-            formApi: formApi as OmegaFormApi<From, To>,
-            meta,
-            value: parsedValue
-          })
-          if (Fiber.isFiber(r)) {
-            return await runtimeFiberAsPromise(r)
-          }
-          if (Effect.isEffect(r)) {
-            const effectResult = await runPromise(r)
-            return Fiber.isFiber(effectResult)
-              ? await runtimeFiberAsPromise(effectResult)
-              : effectResult
-          }
-          return r
-        })
-      : undefined,
-    defaultValues: defaultValues.value as any
+    onSubmit: wrapOnSubmit<From, To>(tanstackFormOptions?.onSubmit, decode, runPromise),
+    defaultValues: persistency.defaultValues.value as any
   }) satisfies OmegaFormApi<To, From>
+  formHolder.form = form
 
   const clear = () => {
     Object.keys(meta).forEach((key: any) => {
       form.setFieldValue(key, undefined as any)
     })
   }
-
-  const createNestedObjectFromPaths = (paths: string[]) =>
-    paths.reduce((result, path) => {
-      const parts = path.split(".")
-      parts.reduce((acc, part, i) => {
-        if (i === parts.length - 1) {
-          acc[part] = form.getFieldValue(path as any)
-        } else {
-          acc[part] = acc[part] ?? {}
-        }
-        return acc[part]
-      }, result)
-      return result
-    }, {} as Record<string, any>)
-
-  const persistFilter = (persistency: OmegaConfig<From>["persistency"]) => {
-    if (!persistency) return
-    const { banKeys, keys } = persistency
-    if (Array.isArray(keys)) {
-      return createNestedObjectFromPaths(keys as string[])
-    }
-    if (Array.isArray(banKeys)) {
-      const subs = Object.keys(meta).filter((metakey) => banKeys.includes(metakey as any))
-      return createNestedObjectFromPaths(subs)
-    }
-    return form.store.state.values
-  }
-
-  const persistData = () => {
-    const persistency = omegaConfig?.persistency
-    if (!persistency?.policies || persistency.policies.length === 0) {
-      return
-    }
-    if (
-      includesPolicy(persistency.policies, "local")
-      || includesPolicy(persistency.policies, "session")
-    ) {
-      const storage = includesPolicy(persistency.policies, "local")
-        ? localStorage
-        : sessionStorage
-      if (!storage) return
-      const values = persistFilter(persistency)
-      return storage.setItem(persistencyKey.value, JSON.stringify(values))
-    }
-  }
-
-  const saveDataInUrl = () => {
-    const persistency = omegaConfig?.persistency
-    if (!persistency?.policies || persistency.policies.length === 0) {
-      return
-    }
-    if (includesPolicy(persistency.policies, "querystring")) {
-      const values = persistFilter(persistency)
-      const searchParams = new URLSearchParams(window.location.search)
-      searchParams.set(persistencyKey.value, JSON.stringify(values))
-      const url = new URL(window.location.href)
-      url.search = searchParams.toString()
-      window.history.replaceState({}, "", url.toString())
-    }
-  }
-
-  const preventWindowExit = (e: BeforeUnloadEvent) => {
-    if (form.store.state.isDirty) {
-      e.preventDefault()
-    }
-  }
-
-  onUnmounted(persistData)
-
-  onMounted(() => {
-    window.addEventListener("beforeunload", persistData)
-    window.addEventListener("blur", saveDataInUrl)
-    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
-      window.addEventListener("beforeunload", preventWindowExit)
-    }
-  })
-  onBeforeUnmount(() => {
-    window.removeEventListener("beforeunload", persistData)
-    window.removeEventListener("blur", saveDataInUrl)
-    if (omegaConfig?.preventWindowExit && omegaConfig.preventWindowExit !== "nope") {
-      window.removeEventListener("beforeunload", preventWindowExit)
-    }
-  })
 
   // Watch for successful form submissions and auto-reset if prevent-and-reset is enabled
   // We put it as a side effect, so we don't overwhelm submit handler and we can support
@@ -923,39 +123,9 @@ export const useOmegaForm = <
     })
   }
 
-  const hs = form.handleSubmit
+  const { handleSubmit, handleSubmitEffect } = makeSubmitHandlers<From, To>(form)
 
-  const handleSubmit: typeof form.handleSubmit = async (meta?: Record<string, any>) => {
-    // workaround for not revealing all form errors on submit
-    // await form.validateAllFields("blur")
-    return await hs(meta)
-  }
-
-  const handleSubmitEffect_ = (meta?: Record<string, any>) =>
-    Effect.currentSpan.pipe(
-      Effect.option,
-      Effect
-        .flatMap((span) =>
-          Effect.promise(() => handleSubmit(Option.isSome(span) ? { currentSpan: span.value, ...meta } : meta))
-        )
-    )
-
-  const handleSubmitEffect: {
-    (options: { checkErrors: true; meta?: Record<string, any> }): Effect.Effect<void, FormErrors<From>>
-    (options?: { meta?: Record<string, any> }): Effect.Effect<void>
-  } = (
-    options?: { meta?: Record<string, any>; checkErrors?: true }
-  ): any =>
-    options?.checkErrors
-      ? handleSubmitEffect_(options?.meta).pipe(Effect.flatMap(Effect.fnUntraced(function*() {
-        const errors = form.getAllErrors()
-        if (Object.keys(errors.fields).length || errors.form.errors.length) {
-          return yield* Effect.fail(new FormErrors({ form: errors.form, fields: errors.fields }))
-        }
-      })))
-      : handleSubmitEffect_(options?.meta)
-
-  const fieldMap = ref(new Map<string, { label: string; id: string }>())
+  const { fieldMap, registerField } = makeFieldMap()
 
   const formWithExtras: OF<From, To> = Object.assign(form, {
     i18nNamespace: omegaConfig?.i18nNamespace,
@@ -963,45 +133,11 @@ export const useOmegaForm = <
     meta,
     unionMeta,
     clear,
-    handleSubmit: (meta?: Record<string, any>) => {
-      const span = api.trace.getSpan(api.context.active())
-      return handleSubmit({ currentSpan: span, ...meta })
-    },
+    handleSubmit,
     // /** @experimental */
     handleSubmitEffect,
-    registerField: (field: ComputedRef<{ name: string; label: string; id: string }>) => {
-      watch(field, (f) => {
-        fieldMap.value.set(f.name, { label: f.label, id: f.id })
-      }, { immediate: true })
-      onUnmounted(() => {
-        // Only delete if we still own this entry (id matches)
-        // This prevents old components from deleting entries registered by new components
-        // during re-mount transitions (e.g., when :key changes)
-        const currentEntry = fieldMap.value.get(field.value.name)
-        if (currentEntry?.id === field.value.id) {
-          fieldMap.value.delete(field.value.name)
-        }
-      })
-    }
+    registerField
   })
-
-  // Clear all field onSubmit errors when any value changes after a failed submission.
-  // Form-level onSubmit validation (e.g. union schemas) distributes errors to individual fields.
-  // TanStack only clears the changed field's onSubmit error, leaving sibling fields with stale
-  // errors that keep isFieldsValid=false and block re-submission.
-  const lastSubmitAttempts = ref(0)
-  const submissionAttempts = form.useStore((s) => s.submissionAttempts)
-  const formValues = form.useStore((s) => s.values)
-  watch(formValues, () => {
-    if (lastSubmitAttempts.value === submissionAttempts.value) return
-    lastSubmitAttempts.value = submissionAttempts.value
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const info of Object.values(form.fieldInfo) as any[]) {
-      if (info?.instance?.state.meta.errorMap?.onSubmit) {
-        info.instance.setMeta((prev: any) => ({ ...prev, errorMap: { ...prev.errorMap, onSubmit: undefined } }))
-      }
-    }
-  }, { deep: true })
 
   const errorContext = { form: formWithExtras, fieldMap }
 

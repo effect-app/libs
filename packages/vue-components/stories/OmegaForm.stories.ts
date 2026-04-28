@@ -59,8 +59,23 @@ const germanTranslations: Record<string, string> = {
 const mockIntl = {
   locale: ref("en"),
   trans: (id: string) => id,
+  formatMessage: (msg: { id: string; defaultMessage?: string }) => msg.defaultMessage ?? msg.id,
   intl: ref({ formatMessage: (msg: { id: string }) => msg.id })
 } as unknown as ReturnType<ReturnType<typeof makeIntl<string>>["useIntl"]>
+
+const formatMessageGerman = (
+  msg: { id: string; defaultMessage?: string },
+  values?: Record<string, string | number | boolean | null | undefined>
+) => {
+  let text = germanTranslations[msg.id] || msg.defaultMessage || msg.id
+  // simple parameter replacement
+  if (values) {
+    Object.entries(values).forEach(([key, value]) => {
+      text = text.replace(`{${key}}`, String(value))
+    })
+  }
+  return text
+}
 
 const mockIntlGerman = {
   locale: ref("de"),
@@ -74,21 +89,8 @@ const mockIntlGerman = {
     }
     return text
   },
-  intl: ref({
-    formatMessage: (
-      msg: { id: string; defaultMessage?: string },
-      values?: Record<string, string | number | boolean | null | undefined>
-    ) => {
-      let text = germanTranslations[msg.id] || msg.defaultMessage || msg.id
-      // simple parameter replacement
-      if (values) {
-        Object.entries(values).forEach(([key, value]) => {
-          text = text.replace(`{${key}}`, String(value))
-        })
-      }
-      return text
-    }
-  })
+  formatMessage: formatMessageGerman,
+  intl: ref({ formatMessage: formatMessageGerman })
 } as unknown as ReturnType<ReturnType<typeof makeIntl<string>>["useIntl"]>
 
 const meta: StoryMeta<typeof OmegaForm> = {
@@ -291,6 +293,10 @@ export const SetErrorOnSubmit: Story = {
 export const DialogBlockingExamples: Story = {
   render: () => ({
     components: { DialogBlockingExamplesComponent },
+    setup() {
+      provideIntl(() => mockIntlGerman)
+      return {}
+    },
     template: "<DialogBlockingExamplesComponent />"
   })
 }

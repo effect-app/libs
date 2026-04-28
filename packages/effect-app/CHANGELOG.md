@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- 3c1f52d: improve: class strictness enabled by default again, allow `strict: false` as opt out for now.
+- 6ae3050: Preserve class annotation parseOptions in relaxed declaration struct decoding so custom parse options (including concurrency defaults) are applied consistently.
+
 ## 4.0.0-beta.157
 
 ### Patch Changes

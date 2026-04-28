@@ -100,6 +100,7 @@ const exampleForm = useOmegaForm(
     defaultValues: {
       aString: "",
       aNumberMin2Max4Nullable: null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- demo: out-of-range value to exercise localized 'select' message
       aSelect: "purple" as any
     },
     onSubmit: async ({

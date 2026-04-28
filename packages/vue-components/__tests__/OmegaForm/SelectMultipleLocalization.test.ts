@@ -8,7 +8,13 @@ import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 const mountForm = <T>(setup: () => T): T => {
   let captured: T | undefined
-  const Inner = defineComponent({ setup() { captured = setup(); return {} }, template: "<div></div>" })
+  const Inner = defineComponent({
+    setup() {
+      captured = setup()
+      return {}
+    },
+    template: "<div></div>"
+  })
   mount(defineComponent({
     components: { OmegaIntlProvider, Inner },
     template: "<OmegaIntlProvider><Inner /></OmegaIntlProvider>"

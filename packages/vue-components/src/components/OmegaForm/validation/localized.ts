@@ -111,14 +111,6 @@ export const toLocalizedStandardSchemaV1 = <To, From>(
  *   - Arrays AST whose `rest` is a Union of Literals → "multiple"
  * Existing `message` annotations are preserved.
  */
-export const annotateLiteralUnionMessages = <T extends S.Codec<any, any, never, never>>(
-  schema: T,
-  trans: TransFn
-): T => {
-  const newAst = walkAst(schema.ast, trans)
-  return (newAst === schema.ast ? schema : S.make(newAst)) as T
-}
-
 const isLiteralUnion = (ast: S.AST.AST): ast is S.AST.Union<S.AST.Literal> =>
   S.AST.isUnion(ast) && ast.types.every(S.AST.isLiteral)
 
@@ -199,4 +191,12 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
     )
   }
   return ast
+}
+
+export const annotateLiteralUnionMessages = <To, From>(
+  schema: S.Codec<To, From, never, never>,
+  trans: TransFn
+): S.Codec<To, From, never, never> => {
+  const newAst = walkAst(schema.ast, trans)
+  return newAst === schema.ast ? schema : S.make(newAst) as S.Codec<To, From, never, never>
 }

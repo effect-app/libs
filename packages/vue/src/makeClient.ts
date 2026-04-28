@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
-import { type Context, Effect, Exit, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
+import { type Context, Effect, Exit, Hash, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestsAny } from "effect-app/client/clientFor"
 import { type Fiber } from "effect/Fiber"
@@ -30,6 +30,8 @@ const projectHandler = (
       Effect.flatMap((a) => S.encodeEffect(successSchema)(a)),
       Effect.flatMap((encoded) => S.decodeEffect(projectionSchema)(encoded))
     ))
+
+const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
 
 export interface CommandRequestExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
@@ -629,12 +631,14 @@ export const makeClient = <RT_, RTHooks>(
               suspense: useSuspenseQuery(client[key] as any),
               project: (projectionSchema: any) => {
                 const successSchema = client[key].Request.success
+                const projectionHash = projectionSchemaHash(projectionSchema)
                 const projected = projectHandler(h_ as any, successSchema, projectionSchema)
                 const fakeHandler = {
                   handler: projected,
                   id: client[key].id,
                   Request: client[key].Request,
-                  options: client[key].options
+                  options: client[key].options,
+                  queryKeyProjectionHash: projectionHash
                 }
                 return {
                   request: projected,

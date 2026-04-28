@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { isObject } from "@vueuse/core"
-import { Array } from "effect-app"
 import { computed, type ComputedRef, onBeforeUnmount, onMounted, onUnmounted } from "vue"
 import { type MetaRecord } from "./meta/types"
 

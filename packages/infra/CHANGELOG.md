@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- 6fff09c: unify encoded function for when you use encodedKeys
+- Updated dependencies [6fff09c]
+  - effect-app@4.0.0-beta.157
+
 ## 4.0.0-beta.156
 
 ### Patch Changes

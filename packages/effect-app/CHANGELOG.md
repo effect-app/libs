@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- 6fff09c: unify encoded function for when you use encodedKeys
+
 ## 4.0.0-beta.156
 
 ## 4.0.0-beta.155

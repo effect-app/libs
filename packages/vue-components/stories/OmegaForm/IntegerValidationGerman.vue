@@ -8,8 +8,8 @@
       <li>Geben Sie <code>59</code> ein → Sollte akzeptiert werden ✓</li>
     </ul>
 
-    <form.Form :subscribe="['values', 'errors']">
-      <template #default="{ subscribedValues: { values, errors } }">
+    <form.Form :subscribe="['values']">
+      <template #default="{ subscribedValues: { values } }">
         <div style="margin-bottom: 20px">
           <form.Input
             name="lange"
@@ -52,14 +52,6 @@
         <div style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px">
           <strong>Aktuelle Werte:</strong>
           <pre>{{ JSON.stringify(values, null, 2) }}</pre>
-        </div>
-
-        <div
-          v-if="errors && Object.keys(errors).length > 0"
-          style="margin-top: 20px; padding: 10px; background: #ffebee; border-radius: 4px; border-left: 4px solid #f44336"
-        >
-          <strong>Fehler:</strong>
-          <pre>{{ JSON.stringify(errors, null, 2) }}</pre>
         </div>
 
         <form.Errors />

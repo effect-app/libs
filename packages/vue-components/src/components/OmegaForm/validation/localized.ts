@@ -35,7 +35,10 @@ export const makeStandardSchemaV1Hooks = (
         if (actualUndefined) return trans("validation.empty")
         if (S.AST.isString(ast)) return trans("validation.empty")
         if (S.AST.isBoolean(ast)) return trans("validation.not_a_valid", { type: "boolean" })
-        if (S.AST.isNumber(ast)) return trans("validation.number.expected", { actualValue: "NaN" })
+        if (S.AST.isNumber(ast)) {
+          const actual = Option.isSome(issue.actual) ? String(issue.actual.value) : "NaN"
+          return trans("validation.number.expected", { actualValue: actual })
+        }
         return trans("validation.not_a_valid")
       }
       default:
@@ -52,8 +55,10 @@ export const makeStandardSchemaV1Hooks = (
           : trans("validation.string.minLength", { minLength: meta.minLength })
       case "isMaxLength":
         return trans("validation.string.maxLength", { maxLength: meta.maxLength })
-      case "isInt":
-        return trans("validation.integer.expected", { actualValue: "NaN" })
+      case "isInt": {
+        const actual = issue.actual !== undefined ? String(issue.actual) : "NaN"
+        return trans("validation.integer.expected", { actualValue: actual })
+      }
       case "isGreaterThanOrEqualTo":
         return trans(
           meta.minimum === 0 ? "validation.number.positive" : "validation.number.min",

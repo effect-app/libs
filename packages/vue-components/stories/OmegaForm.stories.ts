@@ -21,6 +21,7 @@ import FormTaggedUnionComponent from "./OmegaForm/FormTaggedUnion.vue"
 import IntegerValidationGermanComponent from "./OmegaForm/IntegerValidationGerman.vue"
 import IntersectionExampleComponent from "./OmegaForm/IntersectionExample.vue"
 import MetaFormComponent from "./OmegaForm/Meta.vue"
+import NonEmptyArrayMessageComponent from "./OmegaForm/NonEmptyArrayMessage.vue"
 import NullComponent from "./OmegaForm/Null.vue"
 import NullableComponent from "./OmegaForm/Nullable.vue"
 import OptionalKeyComponent from "./OmegaForm/OptionalKey.vue"
@@ -249,6 +250,21 @@ export const Array: Story = {
     components: { ArrayComponent },
     template: "<ArrayComponent />"
   })
+}
+
+export const NonEmptyArrayMessage: Story = {
+  render: () => ({
+    components: { NonEmptyArrayMessageComponent },
+    template: "<NonEmptyArrayMessageComponent />"
+  }),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates that `S.NonEmptyArray(X)` is implemented as a tuple-rest `[X, ...Array<X>]` in Schema v4, so an empty array produces a missing-element error at `items[0]` rather than a container-level error — meaning `.annotate({ message })` on the field never fires. The adjacent form uses `S.Array(X).check(S.isMinLength(1))` with the same annotation and produces the expected container-level message."
+      }
+    }
+  }
 }
 
 export const Tanstack: Story = {

@@ -118,7 +118,7 @@ function get<TObject, TPath extends string, TDefault = GetFieldType<TObject, TPa
   defaultValue: TDefault
 ): Exclude<GetFieldType<TObject, TPath>, null | undefined> | TDefault
 function get(object: any, path: PropertyPath, defaultValue?: any): any
-function get(obj: any, path: any, defaultValue = undefined) {
+function get(obj: any, path: any, defaultValue?: any) {
   // https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore?tab=readme-ov-file#_get
   const travel = (regexp: any) =>
     String
@@ -1006,5 +1006,5 @@ const genConstructor = (function*() {}).constructor
  * @category predicates
  * @since 3.11.0
  */
-export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any, any, any> =>
+export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any> =>
   isObject(u) && u.constructor === genConstructor

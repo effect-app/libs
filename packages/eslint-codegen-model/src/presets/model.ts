@@ -60,7 +60,7 @@ export const model: PresetFn<{
 
       them.push([
         `export namespace ${modelName} {`,
-        `  export interface Encoded extends S.StructNestedEncoded<typeof ${modelName}> {}`,
+        `  export interface Encoded extends S.Struct.Encoded<typeof ${modelName}["fields"]> {}`,
         "}"
       ])
     }

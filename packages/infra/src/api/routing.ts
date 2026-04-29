@@ -330,17 +330,13 @@ export const makeRouter = <
               ? Impl[K]["raw"] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends (...args: any[]) => Generator<
-                Yieldable<any, any, any, infer R>,
-                any,
-                any
+                Yieldable<any, any, any, infer R>
               > ? R
               : never
               : Impl[K] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends (...args: any[]) => Generator<
-                Yieldable<any, any, any, infer R>,
-                any,
-                any
+                Yieldable<any, any, any, infer R>
               > ? R
               : never,
             | GetEffectContext<RequestContextMap, Resource[K]["config"]>
@@ -369,7 +365,7 @@ export const makeRouter = <
         match: any
       ) =>
         | Effect.Effect<THandlers, MakeE, MakeR>
-        | Generator<Yieldable<any, any, MakeE, MakeR>, THandlers, any>
+        | Generator<Yieldable<any, any, MakeE, MakeR>, THandlers>
     ) => {
       const dependenciesL = (dependencies ? Layer.mergeAll(...dependencies as any) : Layer.empty) as Layer.Layer<
         LayerUtils.GetLayersSuccess<MakeDependencies>,
@@ -493,8 +489,7 @@ export const makeRouter = <
               any,
               any
             >,
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any
+            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> }
           >
           /** @deprecated */
           readonly ಠ_ಠ: never
@@ -525,8 +520,7 @@ export const makeRouter = <
           // v4: generators yield Yieldable with asEffect()
           effect: (match: typeof router3) => Generator<
             Yieldable<any, any, any, any>,
-            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> },
-            any
+            { [K in keyof FilterRequestModules<Resource>]: AnyHandler<Resource[K]> }
           >
         }
       >(
@@ -586,23 +580,23 @@ export type MakeErrors<Make> = /*Make extends { readonly effect: (_: any) => Eff
   : Make extends { readonly effect: (_: any) => Effect.Effect<any, never, any> } ? never
   : */
   // v4: generators yield Yieldable with asEffect()
-  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, never, any>, any, any> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, infer E, any>, any, any> } ? E
+  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, never, any>> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, infer E, any>> } ? E
     : never
 
 export type MakeContext<Make> = /*Make extends { readonly effect: (_: any) => Effect.Effect<any, any, infer R> } ? R
   : Make extends { readonly effect: (_: any) => Effect.Effect<any, any, never> } ? never
   : */
   // v4: generators yield Yieldable with asEffect()
-  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any, never>, any, any> } ? never
-    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any, infer R>, any, any> } ? R
+  Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any>> } ? never
+    : Make extends { readonly effect: (_: any) => Generator<Yieldable<any, any, any, infer R>> } ? R
     : never
 
 export type MakeHandlers<Make, _Handlers extends Record<string, any>> = /*Make extends
   { readonly effect: (_: any) => Effect.Effect<{ [K in keyof Handlers]: AnyHandler<Handlers[K]> }, any, any> }
   ? Effect.Success<ReturnType<Make["effect"]>>
   : */
-  Make extends { readonly effect: (_: any) => Generator<any, infer S, any> } ? S
+  Make extends { readonly effect: (_: any) => Generator<any, infer S> } ? S
     : never
 
 export type MakeDepsE<Make> = Layer.Error<MakeDeps<Make>>

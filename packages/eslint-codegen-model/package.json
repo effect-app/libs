@@ -32,7 +32,7 @@
     "@types/js-yaml": "4.0.9",
     "@types/lodash": "4.17.24",
     "madge": "8.0.0",
-    "oxlint": "1.61.0",
+    "oxlint": "1.62.0",
     "typescript": "npm:@typescript/native-preview@beta",
     "effect-app": "workspace:*",
     "@effect-app/eslint-shared-config": "workspace:*"

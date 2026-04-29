@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as Record from "effect/Record"
-import type * as Request from "effect/Request"
 import type { Path } from "path-parser"
 import qs from "query-string"
 import type * as Effect from "../Effect.js"
@@ -74,9 +73,6 @@ export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
 type IsEmpty<T> = keyof T extends never ? true
   : false
 
-// v4: Request.RequestTypeId, S.symbolSerializable, S.symbolWithResult removed — use keyof Request to filter internal props
-type Cruft = "_tag" | keyof Request.Request<any, any, any>
-
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
 }
@@ -98,9 +94,11 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
 
+export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
+  [infer A, ...ReadonlyArray<any>] ? A : void
+
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
-    ? RequestHandler<
+  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<RequestInputFromMake<M[K]>> extends true ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["error"]> | E,
       R | ReqDecodingServices<M[K]>,
@@ -108,7 +106,7 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
       `${ModuleName}.${K & string}`
     >
     : RequestHandlerWithInput<
-      Omit<S.Schema.Type<M[K]>, Cruft>,
+      RequestInputFromMake<M[K]>,
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["error"]> | E,
       R | ReqDecodingServices<M[K]>,

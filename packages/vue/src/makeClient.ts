@@ -28,7 +28,7 @@ const projectHandler = (
   mapHandler(handler, (self) =>
     self.pipe(
       Effect.flatMap((a) => S.encodeEffect(successSchema)(a)),
-      Effect.flatMap((encoded) => S.decodeEffect(projectionSchema)(encoded))
+      Effect.flatMap((encoded) => S.decodeEffectConcurrently(projectionSchema)(encoded))
     ))
 
 const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))

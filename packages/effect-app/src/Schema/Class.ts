@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Cause, Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
 import * as S from "effect/Schema"
-import * as SchemaParser from "effect/SchemaParser"
+import * as SchemaParser from "./SchemaParser.js"
 import { copyOrigin } from "../utils.js"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
@@ -64,7 +64,7 @@ function makeRelaxedDeclaration(
   const parseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
   const structSchema = Schema.Struct(fields)
   const annotatedStruct = parseOptions ? S.toType(structSchema).annotate({ parseOptions }) : S.toType(structSchema)
-  const decodeStruct = SchemaParser.decodeUnknownEffect(annotatedStruct)
+  const decodeStruct = SchemaParser.decodeUnknownEffectConcurrently(annotatedStruct)
 
   return new SchemaAST.Declaration(
     ast.typeParameters,

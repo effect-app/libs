@@ -254,7 +254,7 @@ class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
 
             const entries = yield* pipe(
               cacheContent,
-              Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
+              Schema.decodeUnknownEffectConcurrently(Schema.fromJsonString(Schema.toCodecJson(GistCacheEntries))),
               Effect.orDie
             )
 
@@ -631,7 +631,7 @@ export class GistHandler extends Context.Service<GistHandler>()("GistHandler", {
               }
             })
           ),
-          Effect.andThen(Schema.decodeUnknownEffect(GistYAML))
+          Effect.andThen(Schema.decodeUnknownEffectConcurrently(GistYAML))
         )
 
         // load GitHub token securely from environment variable

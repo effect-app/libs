@@ -17,6 +17,17 @@ type ProvidedCodec<Self extends S.Top, R> = S.Codec<
 
 export const DefaultParseOptions: SchemaAST.ParseOptions = { concurrency: "unbounded" }
 
+type DecodeLike = (schema: any) => (input: any, options?: SchemaAST.ParseOptions) => any
+
+export const withDefaultParseOptions = <Decode extends DecodeLike>(
+  decode: Decode,
+  defaultParseOptions: SchemaAST.ParseOptions = DefaultParseOptions
+): Decode =>
+  ((schema: any) => {
+    const run = decode(schema)
+    return (input: any, options?: SchemaAST.ParseOptions) => run(input, { ...defaultParseOptions, ...options })
+  }) as Decode
+
 // TODO: v4 migration - Date is no longer by default encoded to string.
 
 const DateString = S.String.annotate({

@@ -3,7 +3,7 @@ import * as S from "effect/Schema"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import { fakerArb } from "./faker.js"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
-import { withDefaultMake } from "./Schema/ext.js"
+import { withDefaultMake, withDefaultParseOptions } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
 import { copy, extendM, type StructuralCopyOrigin } from "./utils.js"
 
@@ -28,7 +28,12 @@ export * from "./Schema/strings.js"
 export { NonEmptyString } from "./Schema/strings.js"
 
 export * as SchemaIssue from "effect/SchemaIssue"
-export * as SchemaParser from "effect/SchemaParser"
+
+export const decodeEffectConcurrently: typeof S.decodeEffect = withDefaultParseOptions(S.decodeEffect)
+export const decodeUnknownEffectConcurrently: typeof S.decodeUnknownEffect = withDefaultParseOptions(
+  S.decodeUnknownEffect
+)
+export * as SchemaParser from "./Schema/SchemaParser.js"
 
 export { Void as Void_ } from "effect/Schema"
 

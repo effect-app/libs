@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.162
+
+### Patch Changes
+
+- b52b424: restore annotations for now
+
 ## 4.0.0-beta.161
 
 ## 4.0.0-beta.160

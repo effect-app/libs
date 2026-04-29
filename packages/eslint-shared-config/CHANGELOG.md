@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.18
+
+### Patch Changes
+
+- 16b1cf9: update oxlint rule
+  - @effect-app/eslint-codegen-model@2.0.0-beta.11
+
 ## 0.6.0-beta.17
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- Updated dependencies [505bfa9]
+  - effect-app@4.0.0-beta.160
+  - @effect-app/vue@4.0.0-beta.160
+
 ## 4.0.0-beta.159
 
 ### Patch Changes

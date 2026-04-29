@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.163
+
+### Patch Changes
+
+- b952f19: bye cruft
+- Updated dependencies [b952f19]
+  - effect-app@4.0.0-beta.163
+
 ## 4.0.0-beta.162
 
 ### Patch Changes

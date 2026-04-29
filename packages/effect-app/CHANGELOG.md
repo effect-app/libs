@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.163
+
+### Patch Changes
+
+- b952f19: bye cruft
+
 ## 4.0.0-beta.162
 
 ### Patch Changes

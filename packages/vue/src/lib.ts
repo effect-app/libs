@@ -85,3 +85,46 @@ export const mapHandler: {
     ? (i: any) => map(self.handler as (i: any) => Effect.Effect<any, any, any>)(i)
     : map(self.handler)
 })
+
+import { isProxy, isReactive, isRef, toRaw } from "vue"
+
+export function deepToRaw<T>(sourceObj: T): T {
+  const objectIterator = (input: any): any => {
+    if (isRef(input)) {
+      return objectIterator(input.value)
+    }
+
+    const rawInput = isReactive(input) || isProxy(input)
+      ? toRaw(input)
+      : input
+
+    if (Array.isArray(rawInput)) {
+      return rawInput.map((item) => objectIterator(item))
+    }
+
+    if (rawInput instanceof Map) {
+      return new Map(
+        Array.from(rawInput.entries(), ([key, value]) => [objectIterator(key), objectIterator(value)])
+      )
+    }
+
+    if (rawInput instanceof Set) {
+      return new Set(Array.from(rawInput.values(), (value) => objectIterator(value)))
+    }
+
+    if (rawInput instanceof Date) {
+      return new Date(rawInput)
+    }
+
+    if (rawInput && typeof rawInput === "object") {
+      return Object.keys(rawInput).reduce((acc, key) => {
+        acc[key] = objectIterator(rawInput[key])
+        return acc
+      }, {} as Record<string, unknown>)
+    }
+
+    return rawInput
+  }
+
+  return objectIterator(sourceObj)
+}

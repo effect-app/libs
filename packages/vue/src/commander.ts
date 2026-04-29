@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { asResult, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
+import { asResult, deepToRaw, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
@@ -2156,7 +2156,7 @@ export class CommanderImpl<RT, RTHooks> {
         const runFork = Effect.runForkWith(rt)
 
         const handle = Object.assign((arg: Arg) => {
-          arg = toRaw(arg) // always remove all the vue proxy bs
+          arg = toRaw(arg) // remove outside vue proxy bs
           // we capture the call site stack here
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
@@ -2187,15 +2187,17 @@ export class CommanderImpl<RT, RTHooks> {
             }
           }
 
-          const command = currentState.pipe(Effect.flatMap((state) =>
-            Effect.withSpan(
+          const command = currentState.pipe(Effect.flatMap((state) => {
+            const rawArg = deepToRaw(arg)
+            const rawState = deepToRaw(state)
+            return Effect.withSpan(
               exec(arg, { ...context.value, state } as any),
               id,
               {
                 captureStackTrace,
                 attributes: {
-                  input: arg,
-                  state,
+                  input: rawArg,
+                  state: rawState,
                   action: initialContext.action,
                   label: initialContext.label,
                   id: initialContext.id,
@@ -2203,7 +2205,7 @@ export class CommanderImpl<RT, RTHooks> {
                 }
               }
             )
-          ))
+          }))
 
           return runFork(command)
         }, { action, label })

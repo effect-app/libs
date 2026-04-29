@@ -16,6 +16,14 @@ type ProvidedCodec<Self extends S.Top, R> = S.Codec<
 >
 
 export const DefaultParseOptions: SchemaAST.ParseOptions = { concurrency: "unbounded" }
+/**
+ * Parse-options annotation used on schema constructors for decode paths where callers
+ * cannot currently pass parse options (notably some RPC / HttpApi integration paths).
+ *
+ * Keep this annotation in place so those framework-managed decodes still run with
+ * unbounded concurrency by default.
+ */
+export const concurrencyUnbounded = { parseOptions: DefaultParseOptions } as const
 
 type DecodeLike = (schema: any) => (input: any, options?: SchemaAST.ParseOptions) => any
 
@@ -125,7 +133,7 @@ export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.Litera
  */
 export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
   return pipe(
-    S.Array(value),
+    S.Array(value).annotate(concurrencyUnbounded),
     (s) =>
       Object.assign(s, {
         withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
@@ -140,7 +148,7 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
   const from = S
     .Array(value)
-    .annotate({ expected: "an array of unique items that will be decoded as a ReadonlySet" })
+    .annotate({ ...concurrencyUnbounded, expected: "an array of unique items that will be decoded as a ReadonlySet" })
   const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
   const schema = from.pipe(
     S.decodeTo(
@@ -163,7 +171,10 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
 }) => {
   const from = S
     .Array(S.Tuple([pair.key, pair.value]))
-    .annotate({ expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
+    .annotate({
+      ...concurrencyUnbounded,
+      expected: "an array of key-value tuples that will be decoded as a ReadonlyMap"
+    })
   const to = S.instanceOf(Map) as S.instanceOf<
     ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
   >

@@ -3,7 +3,7 @@ import * as S from "effect/Schema"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import { fakerArb } from "./faker.js"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
-import { withDefaultMake, withDefaultParseOptions } from "./Schema/ext.js"
+import { concurrencyUnbounded, withDefaultMake, withDefaultParseOptions } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
 import { copy, extendM, type StructuralCopyOrigin } from "./utils.js"
 
@@ -53,7 +53,7 @@ type OptionalMakeInput<Fields extends S.Struct.Fields> = {} extends S.Struct.Mak
 export function Struct<const Fields extends S.Struct.Fields>(
   fields: Fields
 ): Struct<Fields> & OptionalMakeInput<Fields> {
-  const result = S.Struct(fields)
+  const result = S.Struct(fields).annotate(concurrencyUnbounded)
   const allowVoidMake = (schema: any): any => {
     // Normalize omitted input to an empty object so optional/default-only structs can be constructed with make().
     const origMake: any = schema.make
@@ -92,7 +92,7 @@ export function Struct<const Fields extends S.Struct.Fields>(
   }
   ;(result as any).mapFields = function(this: any, f: any, options?: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    const mapped = origMapFields.call(this, f, options)
+    const mapped = origMapFields.call(this, f, options).annotate(concurrencyUnbounded)
     return preserveCopyAndMethods(mapped)
   }
   ;(result as any).annotate = function(this: any, annotations?: any) {
@@ -142,7 +142,7 @@ export type StructNestedEncoded<T> = T extends { fields: infer Fields extends S.
   : StructNestedEncodedError<T>
 
 export function NonEmptyArray<Value extends S.Top>(value: Value): S.NonEmptyArray<Value> {
-  return S.NonEmptyArray(value)
+  return S.NonEmptyArray(value).annotate(concurrencyUnbounded)
 }
 
 export function TaggedStruct<const Tag extends SchemaAST.LiteralValue, const Fields extends S.Struct.Fields>(
@@ -161,7 +161,7 @@ export function Record<Key extends S.Record.Key, Value extends S.Top>(
   key: Key,
   value: Value
 ): S.$Record<Key, Value> {
-  return S.Record(key, value)
+  return S.Record(key, value).annotate(concurrencyUnbounded)
 }
 export declare namespace Record {
   export type Key = S.Record.Key

@@ -2,6 +2,7 @@
 import { type Cause, Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
 import * as S from "effect/Schema"
 import { copyOrigin } from "../utils.js"
+import { concurrencyUnbounded } from "./ext.js"
 import * as SchemaParser from "./SchemaParser.js"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
@@ -121,7 +122,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
     // Build the original Schema.Class
-    const Base = (S.Class as any)(identifier)(fields, annotations)
+    const Base = (S.Class as any)(identifier)(fields, { ...concurrencyUnbounded, ...annotations })
     // Get the original ast getter from the base class
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
 
@@ -149,7 +150,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options)
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
       }
     } as any
   }
@@ -188,7 +189,7 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
     {}
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.TaggedClass as any)(identifier)(tag, fields, annotations)
+    const Base = (S.TaggedClass as any)(identifier)(tag, fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -211,7 +212,7 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options)
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
       }
     } as any
   }
@@ -233,7 +234,7 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
     Cause.YieldableError & Brand
   > = (identifier) => (fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.ErrorClass as any)(identifier)(fields, annotations)
+    const Base = (S.ErrorClass as any)(identifier)(fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -256,7 +257,7 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options)
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
       }
     } as any
   }
@@ -279,7 +280,7 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
     Cause.YieldableError & Brand
   > = (identifier) => (tag, fields, annotations, options) => {
     const relaxed = options?.strict === false
-    const Base = (S.TaggedErrorClass as any)(identifier)(tag, fields, annotations)
+    const Base = (S.TaggedErrorClass as any)(identifier)(tag, fields, { ...concurrencyUnbounded, ...annotations })
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
     const copyCache = new WeakMap<any, ReturnType<typeof copyOrigin>>()
@@ -302,7 +303,7 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options)
+        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
       }
     } as any
   }

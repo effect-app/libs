@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/html-closing-bracket-newline -- dprint wraps long inline-tag prose; let dprint own layout -->
 <template>
   <div>
     <div style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px; border-left: 4px solid #e65100">

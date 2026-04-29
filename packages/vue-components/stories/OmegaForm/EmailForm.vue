@@ -1,11 +1,11 @@
 <template>
   <form.Form>
-    <OmegaInput
+    <form.Input
       label="email"
       name="email"
       :form="form"
     />
-    <OmegaInput
+    <form.Input
       label="confirm"
       name="confirm"
       :form="form"
@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import { S } from "effect-app"
-import { OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
+import { useOmegaForm } from "../../src/components/OmegaForm"
 
 const schema = S
   .Struct({
@@ -27,14 +27,9 @@ const schema = S
     confirm: S.Email
   })
   .pipe(
-    // You can also return a plain string: return "Email and confirmation must match!"
-    // Using { path, message } targets the error at a specific field.
     S.check(S.makeFilter((form) => {
       if (form.email !== form.confirm) {
-        return {
-          path: ["confirm"],
-          message: "Email and confirmation must match!"
-        }
+        return "Email and confirmation must match!"
       }
     }))
   )

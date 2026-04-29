@@ -1,5 +1,64 @@
 # @effect-app/vue
 
+## 4.0.0-beta.161
+
+### Patch Changes
+
+- aa5ef5c: Improve `deepToRaw` to support any root input type, correctly unwrap refs/computed values, and preserve collection/date shapes (`Array`, `Map`, `Set`, `Date`) while deeply removing Vue reactivity wrappers.
+  - effect-app@4.0.0-beta.161
+
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- Updated dependencies [505bfa9]
+  - effect-app@4.0.0-beta.160
+
+## 4.0.0-beta.159
+
+### Patch Changes
+
+- c1e73de:
+- Updated dependencies [c1e73de]
+  - effect-app@4.0.0-beta.159
+
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [3c1f52d]
+- Updated dependencies [6ae3050]
+  - effect-app@4.0.0-beta.158
+
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- Updated dependencies [6fff09c]
+  - effect-app@4.0.0-beta.157
+
+## 4.0.0-beta.156
+
+### Patch Changes
+
+- 4bc4a27: Constrain `project` schema to require matching `Encoded` type with original success schema
+  - effect-app@4.0.0-beta.156
+
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- 2e4c018: feat: add client projection
+- Updated dependencies [c215db8]
+  - effect-app@4.0.0-beta.155
+
 ## 4.0.0-beta.154
 
 ### Patch Changes

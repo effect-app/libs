@@ -1,5 +1,62 @@
 # @effect-app/infra
 
+## 4.0.0-beta.161
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.161
+
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- Updated dependencies [505bfa9]
+  - effect-app@4.0.0-beta.160
+
+## 4.0.0-beta.159
+
+### Patch Changes
+
+- c1e73de:
+- Updated dependencies [c1e73de]
+  - effect-app@4.0.0-beta.159
+
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [3c1f52d]
+- Updated dependencies [6ae3050]
+  - effect-app@4.0.0-beta.158
+
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- 6fff09c: unify encoded function for when you use encodedKeys
+- Updated dependencies [6fff09c]
+  - effect-app@4.0.0-beta.157
+
+## 4.0.0-beta.156
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.156
+
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [c215db8]
+  - effect-app@4.0.0-beta.155
+
 ## 4.0.0-beta.154
 
 ### Patch Changes

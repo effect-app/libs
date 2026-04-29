@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, type QueryObserverResult, type RefetchOptions, type UseQueryReturnType } from "@tanstack/vue-query"
 import { camelCase } from "change-case"
-import { type Context, Effect, Exit, type Layer, type ManagedRuntime, Struct } from "effect-app"
+import { type Context, Effect, Exit, Hash, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
 import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestsAny } from "effect-app/client/clientFor"
-import { extendM } from "effect-app/utils"
 import { type Fiber } from "effect/Fiber"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
@@ -20,6 +19,23 @@ const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
+
+// TODO: optimize - work from encoded shape directly
+const projectHandler = (
+  handler: Effect.Effect<any, any, any> | ((i: any) => Effect.Effect<any, any, any>),
+  successSchema: S.Top,
+  projectionSchema: S.Top
+) => {
+  const encode = S.encodeEffect(successSchema)
+  const decode = S.decodeEffectConcurrently(projectionSchema)
+  return mapHandler(handler, (self) =>
+    self.pipe(
+      Effect.flatMap(encode),
+      Effect.flatMap(decode)
+    ))
+}
+
+const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
 
 export interface CommandRequestExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
@@ -121,7 +137,8 @@ export interface MutationExtWithInput<
   I,
   A,
   E,
-  R
+  R,
+  EA = unknown
 > extends MutationExtensions<RT, Id, I, A, E, R> {
   /**
    * Send the request to the endpoint and return the raw Effect response.
@@ -131,6 +148,18 @@ export interface MutationExtWithInput<
    * Override invalidation in client options via `queryInvalidation`.
    */
   (i: I): Effect.Effect<A, E, R>
+
+  project: <ProjSchema extends S.Top>(
+    schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
+  ) => MutationExtWithInput<
+    RT,
+    Id,
+    I,
+    S.Schema.Type<ProjSchema>,
+    E | S.SchemaError,
+    R | S.Codec.DecodingServices<ProjSchema>,
+    S.Codec.Encoded<ProjSchema>
+  >
 }
 
 /**
@@ -145,14 +174,26 @@ export interface MutationExt<
   Id extends string,
   A,
   E,
-  R
+  R,
+  EA = unknown
 > extends MutationExtensions<RT, Id, void, A, E, R>, Effect.Effect<A, E, R> {
+  project: <ProjSchema extends S.Top>(
+    schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
+  ) => MutationExt<
+    RT,
+    Id,
+    S.Schema.Type<ProjSchema>,
+    E | S.SchemaError,
+    R | S.Codec.DecodingServices<ProjSchema>,
+    S.Codec.Encoded<ProjSchema>
+  >
 }
 
 export type MutationWithExtensions<RT, Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
-  ? MutationExtWithInput<RT, Id, I, A, E, R>
-  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? MutationExt<RT, Id, A, E, R>
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? MutationExtWithInput<RT, Id, I, A, E, R, S.Codec.Encoded<Request["success"]>>
+  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? MutationExt<RT, Id, A, E, R, S.Codec.Encoded<Request["success"]>>
   : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
@@ -160,6 +201,47 @@ export type MutationWithExtensions<RT, Req> = Req extends
 declare const useQuery_: QueryImpl<any>["useQuery"]
 // eslint-disable-next-line unused-imports/no-unused-vars
 declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
+
+export interface ProjectResult<RT, I, B, E, R, Request extends Req, Id extends string> {
+  request: (i: I) => Effect.Effect<B, E, R>
+  query: Exclude<R, RT> extends never ? ReturnType<typeof useQuery_<I, E, B, Request, Id>>
+    : MissingDependencies<RT, R> & {}
+  suspense: Exclude<R, RT> extends never ? ReturnType<typeof useSuspenseQuery_<I, E, B, Request, Id>>
+    : MissingDependencies<RT, R> & {}
+}
+
+export type QueryProjection<RT, HandlerReq> = HandlerReq extends
+  RequestHandlerWithInput<infer I, infer _A, infer E, infer R, infer Request, infer Id>
+  ? Request["type"] extends "query" ? {
+      project: <ProjSchema extends S.Top>(
+        schema: S.Codec.Encoded<Request["success"]> extends ProjSchema["Encoded"] ? ProjSchema : never
+      ) => ProjectResult<
+        RT,
+        I,
+        S.Schema.Type<ProjSchema>,
+        E | S.SchemaError,
+        R | S.Codec.DecodingServices<ProjSchema>,
+        Request,
+        Id
+      >
+    }
+  : {}
+  : HandlerReq extends RequestHandler<infer _A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "query" ? {
+        project: <ProjSchema extends S.Top>(
+          schema: S.Codec.Encoded<Request["success"]> extends ProjSchema["Encoded"] ? ProjSchema : never
+        ) => ProjectResult<
+          RT,
+          void,
+          S.Schema.Type<ProjSchema>,
+          E | S.SchemaError,
+          R | S.Codec.DecodingServices<ProjSchema>,
+          Request,
+          Id
+        >
+      }
+    : {}
+  : {}
 
 export interface QueriesWithInput<Request extends Req, Id extends string, I, A, E> {
   /**
@@ -499,9 +581,21 @@ export const makeClient = <RT_, RTHooks>(
         if (client[key].Request.type !== "command") {
           return acc
         }
-        const mut: any = mutation(client[key] as any)
-        const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
-        ;(acc as any)[camelCase(key) + "Mutation"] = Object.assign(mut, { wrap })
+        const makeProjectedMutation = (handler: any): any => {
+          const mut: any = mutation(handler)
+          const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
+          return Object.assign(mut, {
+            wrap,
+            project: (projectionSchema: any) => {
+              const projected = {
+                ...handler,
+                handler: projectHandler(handler.handler, client[key].Request.success, projectionSchema)
+              }
+              return makeProjectedMutation(projected)
+            }
+          })
+        }
+        ;(acc as any)[camelCase(key) + "Mutation"] = makeProjectedMutation(client[key] as any)
         return acc
       },
       {} as {
@@ -543,25 +637,51 @@ export const makeClient = <RT_, RTHooks>(
               ...client[key],
               request,
               query: useQuery(client[key] as any),
-              suspense: useSuspenseQuery(client[key] as any)
+              suspense: useSuspenseQuery(client[key] as any),
+              project: (projectionSchema: any) => {
+                const successSchema = client[key].Request.success
+                const projectionHash = projectionSchemaHash(projectionSchema)
+                const projected = projectHandler(h_ as any, successSchema, projectionSchema)
+                const fakeHandler = {
+                  handler: projected,
+                  id: client[key].id,
+                  Request: client[key].Request,
+                  options: client[key].options,
+                  queryKeyProjectionHash: projectionHash
+                }
+                return {
+                  request: projected,
+                  query: useQuery(fakeHandler as any),
+                  suspense: useSuspenseQuery(fakeHandler as any)
+                }
+              }
             }
             : {
-              mutate: extendM(
-                mutation(
-                  client[key] as any,
-                  invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
-                ),
-                (mutate) =>
-                  Object.assign(
+              mutate: ((handler: any) => {
+                const makeProjectedMutation = (h: any): any => {
+                  const mutate = mutation(
+                    h,
+                    invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
+                  ) as any
+                  return Object.assign(
                     mutate,
                     {
                       wrap: Command.wrap({
                         mutate: Effect.isEffect(mutate) ? () => mutate : mutate,
                         id: client[key].id
-                      })
+                      }),
+                      project: (projectionSchema: any) => {
+                        const projected = {
+                          ...h,
+                          handler: projectHandler(h.handler, client[key].Request.success, projectionSchema)
+                        }
+                        return makeProjectedMutation(projected)
+                      }
                     }
                   )
-              ),
+                }
+                return makeProjectedMutation(handler)
+              })(client[key] as any),
               ...client[key],
               ...fn, // to get the i18n key etc.
               request,
@@ -577,7 +697,8 @@ export const makeClient = <RT_, RTHooks>(
           & (QueryHandler<typeof client[Key]> extends never ? {}
             :
               & QueryRequestWithExtensions<QueryHandler<typeof client[Key]>>
-              & Queries<RT, QueryHandler<typeof client[Key]>>)
+              & Queries<RT, QueryHandler<typeof client[Key]>>
+              & QueryProjection<RT, QueryHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}

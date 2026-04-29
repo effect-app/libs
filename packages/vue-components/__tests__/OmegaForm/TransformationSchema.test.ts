@@ -1,8 +1,7 @@
 import { mount } from "@vue/test-utils"
 import { S, SchemaGetter } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema, useOmegaForm } from "../../src/components/OmegaForm"
-import { defaultsValueFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { defaultsValueFromSchema, generateMetaFromSchema, useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
 describe("OmegaForm TransformationSchema", () => {

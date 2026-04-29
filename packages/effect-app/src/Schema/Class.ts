@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Cause, Effect, Option, Schema, SchemaAST, SchemaIssue } from "effect"
 import * as S from "effect/Schema"
-import * as SchemaParser from "effect/SchemaParser"
 import { copyOrigin } from "../utils.js"
-import { concurrencyUnbounded } from "./ext.js"
+import * as SchemaParser from "./SchemaParser.js"
 
 type ClassAnnotations<Self> = S.Annotations.Declaration<Self, readonly [any]>
 
@@ -62,13 +61,11 @@ function makeRelaxedDeclaration(
   fields: Schema.Struct.Fields,
   cls: any
 ): SchemaAST.Declaration {
+  const parseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
   const structSchema = Schema.Struct(fields)
-  const decodeStruct = SchemaParser.decodeUnknownEffect(S.toType(structSchema))
-  const existingParseOptions = ast.annotations?.["parseOptions"] as SchemaAST.ParseOptions | undefined
-  const annotations = {
-    ...ast.annotations,
-    parseOptions: { ...existingParseOptions, concurrency: "unbounded" as const }
-  }
+  const annotatedStruct = parseOptions ? S.toType(structSchema).annotate({ parseOptions }) : S.toType(structSchema)
+  const decodeStruct = SchemaParser.decodeUnknownEffect(annotatedStruct)
+
   return new SchemaAST.Declaration(
     ast.typeParameters,
     () => (input: unknown, self: SchemaAST.Declaration, options: SchemaAST.ParseOptions) => {
@@ -80,7 +77,7 @@ function makeRelaxedDeclaration(
       }
       return Effect.fail(new SchemaIssue.InvalidType(self, Option.some(input)))
     },
-    annotations,
+    ast.annotations,
     ast.checks,
     ast.encoding,
     ast.context
@@ -122,7 +119,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
     ExtendedSchema<S.Struct<Fields>, Encoded>,
     {}
   > = (identifier) => (fields, annotations, options) => {
-    const relaxed = !(options?.strict ?? false)
+    const relaxed = options?.strict === false
     // Build the original Schema.Class
     const Base = (S.Class as any)(identifier)(fields, annotations)
     // Get the original ast getter from the base class
@@ -152,7 +149,7 @@ export const Class: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
+        return Base.mapFields(f, options)
       }
     } as any
   }
@@ -190,7 +187,7 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
     ExtendedSchema<S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>, Encoded>,
     {}
   > = (identifier) => (tag, fields, annotations, options) => {
-    const relaxed = !(options?.strict ?? false)
+    const relaxed = options?.strict === false
     const Base = (S.TaggedClass as any)(identifier)(tag, fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
@@ -214,7 +211,7 @@ export const TaggedClass: <Self = never, Encoded = ExtendedSchemaNoEncoded>(
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
+        return Base.mapFields(f, options)
       }
     } as any
   }
@@ -235,7 +232,7 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
     ExtendedSchema<S.Struct<Fields>, Encoded>,
     Cause.YieldableError & Brand
   > = (identifier) => (fields, annotations, options) => {
-    const relaxed = !(options?.strict ?? false)
+    const relaxed = options?.strict === false
     const Base = (S.ErrorClass as any)(identifier)(fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
@@ -259,7 +256,7 @@ export const ErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded, Brand
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
+        return Base.mapFields(f, options)
       }
     } as any
   }
@@ -281,7 +278,7 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
     ExtendedSchema<S.Struct<{ readonly _tag: S.tag<Tag> } & Fields>, Encoded>,
     Cause.YieldableError & Brand
   > = (identifier) => (tag, fields, annotations, options) => {
-    const relaxed = !(options?.strict ?? false)
+    const relaxed = options?.strict === false
     const Base = (S.TaggedErrorClass as any)(identifier)(tag, fields, annotations)
     const originalAstDescriptor = Object.getOwnPropertyDescriptor(Base, "ast")!
     const astCache = new WeakMap<any, SchemaAST.Declaration>()
@@ -305,7 +302,7 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
         return cached
       }
       static mapFields(f: any, options?: any) {
-        return Base.mapFields(f, options).annotate(concurrencyUnbounded)
+        return Base.mapFields(f, options)
       }
     } as any
   }

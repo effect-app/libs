@@ -1030,7 +1030,9 @@ it("find with transformed id", () =>
             decode: Effect.fnUntraced(function*(value) {
               const values = value.split("_")
               const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
-              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(
+                values.join("_")
+              )
               return new PreconfigurationId({ configuratorId, label })
             }),
             encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
@@ -1086,7 +1088,9 @@ it("find with transformed id in tagged union", () =>
             decode: Effect.fnUntraced(function*(value) {
               const values = value.split("_")
               const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
-              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(
+                values.join("_")
+              )
               return new PreconfigurationId({ configuratorId, label })
             }),
             encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))

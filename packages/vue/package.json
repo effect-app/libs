@@ -1,6 +1,6 @@
 {
   "name": "@effect-app/vue",
-  "version": "4.0.0-beta.154",
+  "version": "4.0.0-beta.161",
   "license": "MIT",
   "type": "module",
   "homepage": "https://github.com/effect-ts-app/libs/tree/main/packages/vue",
@@ -14,14 +14,14 @@
     "query-string": "^9.3.1"
   },
   "peerDependencies": {
-    "@effect/atom-vue": "^4.0.0-beta.57",
-    "@effect/platform-browser": "^4.0.0-beta.56",
+    "@effect/atom-vue": "^4.0.0-beta.59",
+    "@effect/platform-browser": "^4.0.0-beta.59",
     "@sentry/browser": "^10.50.0",
-    "effect": "^4.0.0-beta.56",
+    "effect": "^4.0.0-beta.59",
     "vue": "^3.5.33"
   },
   "devDependencies": {
-    "@effect/vitest": "^4.0.0-beta.56",
+    "@effect/vitest": "^4.0.0-beta.59",
     "@formatjs/icu-messageformat-parser": "^3.5.5",
     "@types/node": "25.6.0",
     "@vitejs/plugin-vue": "^6.0.6",

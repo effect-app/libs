@@ -48,6 +48,9 @@
       ]
     }],
     "eslint/object-shorthand": "error",
+    "eslint/no-underscore-dangle": ["warn", {
+      "allow": ["_tag", "_etag"]
+    }],
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-type-constraint": "error",
     "typescript/no-useless-empty-export": "error",

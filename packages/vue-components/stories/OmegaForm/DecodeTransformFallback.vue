@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/html-closing-bracket-newline -- dprint wraps long inline-tag prose; let dprint own layout -->
 <template>
   <form.Form :subscribe="['values', 'errors']">
     <template #default="{ subscribedValues: { values, errors } }">

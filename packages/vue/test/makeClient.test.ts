@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { S } from "effect-app"
 import { makeQueryKey } from "../src/lib.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
@@ -78,6 +79,7 @@ it.skip("works", () => {
   const e0 = client.GetSomething2WithDependencies.wrap
   // @ts-expect-error query request does not match Command.wrap mutation signature
   const e000 = Command.wrap(client.GetSomething2WithDependencies)
+  const e00 = client.GetSomething2WithDependencies.request(null as any)
   // @ts-expect-error dependencies required that are not provided
   const e1 = client.GetSomething2WithDependencies.suspense(null as any)
   // @ts-expect-error dependencies required that are not provided
@@ -87,8 +89,34 @@ it.skip("works", () => {
 
   const g0 = client.DoSomething.wrap(null as any)
   const g = client.DoSomething.mutate.wrap(null as any)
+  const g1 = client.DoSomething.mutate.project(S.String)
+  const g2 = g1(null as any)
+  const g3 = g1.wrap(null as any)
+  const g4 = client.helpers.doSomethingMutation.project(S.String)
+  const g5 = g4(null as any)
+  const g6 = g4.wrap(null as any)
   // @ts-expect-error mutate no longer exposes fn, use client.DoSomething.fn
   const h = client.DoSomething.mutate.fn(null as any)
+
+  // projection
+  // GetSomething2 uses FiniteFromString, that means Codec is String -> Number
+  // when we project that to S.String, it should work as the encoded shapes are identical
+  // aka, when we project, we skip decoding with the original codec, and instead use the provided one
+  // we have to make sure the Encoded shape of the provided projection schema matches the Encoded Shape of the original codec.
+  const projected = client.GetSomething2.project(S.String)
+  // @ts-expect-error encoded type mismatch: original encodes to string, S.Number encodes to number
+  const _projectedBad = client.GetSomething2.project(S.Number)
+  const p0 = projected.request(null as any)
+
+  // struct example: success schema encodes to { a: string | null }
+  // good: projection schema also expects { a: string | null } on the encoded side
+  const projectedStruct = client.GetStructNullable.project(S.Struct({ a: S.NullOr(S.String) }))
+  // bad: { a: S.String } has encoded type { a: string } — does not accept null
+  // @ts-expect-error encoded type mismatch: original encodes to { a: string | null }, projection expects { a: string }
+  const _projectedStructBad = client.GetStructNullable.project(S.Struct({ a: S.String }))
+
+  const p00 = projected.query(null as any)
+  const p = projected.suspense(null as any)
 
   expect(true).toBe(true)
   console.log({
@@ -98,6 +126,7 @@ it.skip("works", () => {
     b,
     e,
     e0,
+    e00,
     e000,
     e1,
     e2,
@@ -105,6 +134,16 @@ it.skip("works", () => {
     f0,
     g0,
     g,
-    h
+    g1,
+    g2,
+    g3,
+    g4,
+    g5,
+    g6,
+    h,
+    p0,
+    p00,
+    p,
+    projectedStruct
   })
 })

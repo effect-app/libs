@@ -1,6 +1,6 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema } from "../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema } from "../src/components/OmegaForm"
 
 // Test schema from Array.vue story
 const schema = S.Struct({

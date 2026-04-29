@@ -1,5 +1,77 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.161
+
+### Patch Changes
+
+- Updated dependencies [aa5ef5c]
+  - @effect-app/vue@4.0.0-beta.161
+  - effect-app@4.0.0-beta.161
+
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- Updated dependencies [505bfa9]
+  - effect-app@4.0.0-beta.160
+  - @effect-app/vue@4.0.0-beta.160
+
+## 4.0.0-beta.159
+
+### Patch Changes
+
+- c1e73de:
+- 6eb0e52: Refactor `OmegaForm` into focused modules and switch validation to a form-level `onDynamic` validator with `revalidateLogic()` so cross-field checks re-validate on every input change. `OmegaFormStuff.ts` is gone, split into `meta/{types,checks,createMeta,walker,defaults,redacted}.ts`, `validation/localized.ts`, `errors.ts`, `hocs.ts`, `inputs.ts`, `submit.ts`, `persistency.ts`, and `types.ts`; `useOmegaForm.ts` is orchestration-only.
+
+  Restored localization parity for `S.Email` (matched via the refine's `identifier` annotation) and for `S.Literals` / `S.Array(S.Literals(...))` (via an AST pre-pass that stamps `validation.not_a_valid` so Effect's formatter — which bypasses both hooks for `AnyOf` issues — picks them up through `findMessage`).
+
+  Behavior tweaks worth noting: per-field standard-schema validators are removed in favor of one form-level dynamic validator; `OmegaInput`'s `:key="fieldKey"` re-mount is gone; the post-change `errorMap.onSubmit` reset is gone (relies on TanStack revalidation); JSON-schema-derived annotations are no longer merged into `FieldMeta`. Public exports are preserved.
+
+- Updated dependencies [c1e73de]
+  - effect-app@4.0.0-beta.159
+  - @effect-app/vue@4.0.0-beta.159
+
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [3c1f52d]
+- Updated dependencies [6ae3050]
+  - effect-app@4.0.0-beta.158
+  - @effect-app/vue@4.0.0-beta.158
+
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- Updated dependencies [6fff09c]
+  - effect-app@4.0.0-beta.157
+  - @effect-app/vue@4.0.0-beta.157
+
+## 4.0.0-beta.156
+
+### Patch Changes
+
+- Updated dependencies [4bc4a27]
+  - @effect-app/vue@4.0.0-beta.156
+  - effect-app@4.0.0-beta.156
+
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [2e4c018]
+- Updated dependencies [c215db8]
+  - @effect-app/vue@4.0.0-beta.155
+  - effect-app@4.0.0-beta.155
+
 ## 4.0.0-beta.154
 
 ### Patch Changes

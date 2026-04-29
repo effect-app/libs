@@ -3,7 +3,7 @@
   "description": "Contains eslint helpers",
   "sideEffects": false,
   "type": "module",
-  "version": "2.0.0-beta.9",
+  "version": "2.0.0-beta.11",
   "bin": {
     "effect-app-codegen": "./dist/cli.js"
   },
@@ -32,7 +32,7 @@
     "@types/js-yaml": "4.0.9",
     "@types/lodash": "4.17.24",
     "madge": "8.0.0",
-    "oxlint": "1.61.0",
+    "oxlint": "1.62.0",
     "typescript": "npm:@typescript/native-preview@beta"
   },
   "main": "index.js",

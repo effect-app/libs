@@ -136,6 +136,8 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       })
       : ref(arg)
     const queryKey = makeQueryKey(q)
+    const projectionHash = (q as { queryKeyProjectionHash?: string }).queryKeyProjectionHash
+    const baseQueryKey = projectionHash === undefined ? queryKey : [...queryKey, projectionHash]
     const handler = q.handler
 
     const defaultOptions = {
@@ -162,7 +164,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
 
             return retryCount < 5
           },
-          queryKey,
+          queryKey: baseQueryKey,
           queryFn: ({ meta, signal }) =>
             runPromise(
               handler
@@ -186,7 +188,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
 
             return retryCount < 5
           },
-          queryKey: [...queryKey, req],
+          queryKey: projectionHash === undefined ? [...queryKey, req] : [...queryKey, req, projectionHash],
           queryFn: ({ meta, signal }) =>
             runPromise(
               handler(req.value)

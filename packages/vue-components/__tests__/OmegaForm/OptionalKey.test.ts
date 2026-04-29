@@ -1,6 +1,6 @@
 import { Effect, S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema } from "../../src/components/OmegaForm"
 
 describe("optionalKey required handling", () => {
   it("should mark optionalKey fields as not required", () => {

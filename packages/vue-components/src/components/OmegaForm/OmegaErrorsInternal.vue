@@ -102,7 +102,7 @@
 import type { StandardSchemaV1Issue } from "@tanstack/vue-form"
 import { computed, getCurrentInstance } from "vue"
 import { useIntl } from "../../utils"
-import { type OmegaError } from "./OmegaFormStuff"
+import { type OmegaError } from "./types"
 
 const instance = getCurrentInstance()
 const vuetified = instance?.appContext.components["VAlert"]

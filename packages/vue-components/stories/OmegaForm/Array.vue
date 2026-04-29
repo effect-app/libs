@@ -57,6 +57,7 @@ import { S } from "effect-app"
 import { onMounted, ref } from "vue"
 import { OmegaInput, useOmegaForm } from "../../src/components/OmegaForm"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic debounce helper for arbitrary fns
 const debounce = <T extends (...args: any[]) => any>(
   func: T,
   delay: number

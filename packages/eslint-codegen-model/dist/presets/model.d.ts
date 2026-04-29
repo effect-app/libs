@@ -1,12 +1,5 @@
-type PresetFn<T = Record<string, unknown>> = (args: {
-    meta: {
-        filename: string;
-        existingContent: string;
-    };
-    options: T;
-}, context?: unknown) => string;
-export declare const model: PresetFn<{
+import type { Preset } from "eslint-plugin-codegen";
+export declare const model: Preset<{
     writeFullTypes?: boolean;
 }>;
-export {};
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibW9kZWwuZC50cyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy9wcmVzZXRzL21vZGVsLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLEtBQUssUUFBUSxDQUFDLENBQUMsR0FBRyxNQUFNLENBQUMsTUFBTSxFQUFFLE9BQU8sQ0FBQyxJQUFJLENBQUMsSUFBSSxFQUFFO0lBQ2xELElBQUksRUFBRTtRQUFFLFFBQVEsRUFBRSxNQUFNLENBQUM7UUFBQyxlQUFlLEVBQUUsTUFBTSxDQUFBO0tBQUUsQ0FBQTtJQUNuRCxPQUFPLEVBQUUsQ0FBQyxDQUFBO0NBQ1gsRUFBRSxPQUFPLENBQUMsRUFBRSxPQUFPLEtBQUssTUFBTSxDQUFBO0FBc0MvQixlQUFPLE1BQU0sS0FBSyxFQUFFLFFBQVEsQ0FBQztJQUMzQixjQUFjLENBQUMsRUFBRSxPQUFPLENBQUE7Q0FDekIsQ0ErQ0EsQ0FBQSJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibW9kZWwuZC50cyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy9wcmVzZXRzL21vZGVsLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUdBLE9BQU8sS0FBSyxFQUFFLE1BQU0sRUFBRSxNQUFNLHVCQUF1QixDQUFBO0FBMkRuRCxlQUFPLE1BQU0sS0FBSyxFQUFFLE1BQU0sQ0FBQztJQUN6QixjQUFjLENBQUMsRUFBRSxPQUFPLENBQUE7Q0FDekIsQ0E0Q0EsQ0FBQSJ9

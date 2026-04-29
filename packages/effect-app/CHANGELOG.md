@@ -1,5 +1,45 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.161
+
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+## 4.0.0-beta.159
+
+### Patch Changes
+
+- c1e73de:
+
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- 3c1f52d: improve: class strictness enabled by default again, allow `strict: false` as opt out for now.
+- 6ae3050: Preserve class annotation parseOptions in relaxed declaration struct decoding so custom parse options (including concurrency defaults) are applied consistently.
+
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- 6fff09c: unify encoded function for when you use encodedKeys
+
+## 4.0.0-beta.156
+
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- c215db8: align TaggedUnion with array arg
+
 ## 4.0.0-beta.154
 
 ## 4.0.0-beta.153

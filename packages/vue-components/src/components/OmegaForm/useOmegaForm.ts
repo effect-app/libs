@@ -54,7 +54,7 @@ export const useOmegaForm = <
     localizedSchema as any,
     trans
   )
-  const decode = S.decodeUnknownEffect(formCompatibleSchema)
+  const decode = S.decodeUnknownEffectConcurrently(formCompatibleSchema)
 
   const { meta, unionMeta } = generateMetaFromSchema(formCompatibleSchema)
 

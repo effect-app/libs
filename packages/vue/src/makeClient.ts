@@ -20,16 +20,20 @@ const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
 ) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
 
+// TODO: optimize - work from encoded shape directly
 const projectHandler = (
   handler: Effect.Effect<any, any, any> | ((i: any) => Effect.Effect<any, any, any>),
   successSchema: S.Top,
   projectionSchema: S.Top
-) =>
-  mapHandler(handler, (self) =>
+) => {
+  const encode = S.encodeEffect(successSchema)
+  const decode = S.decodeEffectConcurrently(projectionSchema)
+  return mapHandler(handler, (self) =>
     self.pipe(
-      Effect.flatMap((a) => S.encodeEffect(successSchema)(a)),
-      Effect.flatMap((encoded) => S.decodeEffect(projectionSchema)(encoded))
+      Effect.flatMap(encode),
+      Effect.flatMap(decode)
     ))
+}
 
 const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
 

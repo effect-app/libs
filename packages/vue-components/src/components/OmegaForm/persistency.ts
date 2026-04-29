@@ -62,7 +62,7 @@ export interface UsePersistencyOptions<From> {
 }
 
 export interface UsePersistencyReturn {
-  defaultValues: ComputedRef<any>
+  defaultValues: ComputedRef
   persistencyKey: ComputedRef<string>
   persistData: () => void
   saveDataInUrl: () => void

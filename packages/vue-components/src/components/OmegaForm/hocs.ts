@@ -12,7 +12,7 @@ export const fHoc = (form: OF<any, any>) => {
         return h(WrappedComponent, {
           form,
           ...this.$attrs
-        } as any, this.$slots)
+        }, this.$slots)
       }
     }
   }

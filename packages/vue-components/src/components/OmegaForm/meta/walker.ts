@@ -9,8 +9,8 @@ const isNullishType = (property: S.AST.AST) => S.AST.isUndefined(property) || S.
 
 // TODO: remove after manual _tag deprecation — S.Struct({ _tag: S.Literal("X") }) wraps as Union([Literal("X")])
 const unwrapSingleLiteralUnion = (ast: S.AST.AST): S.AST.AST =>
-  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0]!)
-    ? ast.types[0]!
+  S.AST.isUnion(ast) && ast.types.length === 1 && S.AST.isLiteral(ast.types[0])
+    ? ast.types[0]
     : ast
 
 const unwrapNestedUnions = (types: readonly S.AST.AST[]): readonly S.AST.AST[] =>
@@ -76,7 +76,7 @@ export const walkStruct = <T>(
     let isRequired: boolean
     if (parentMeta.isNullableDiscriminatedUnion && p.name.toString() === "_tag") {
       isRequired = false
-    } else if (parentMeta.required === false) {
+    } else if (!parentMeta.required) {
       isRequired = false
     } else if (isOptionalKey) {
       isRequired = false
@@ -104,8 +104,8 @@ export const classifyAndWalkUnion = <T>(
   const nonNullTypes = unwrappedTypes.filter((t) => !isNullishType(t))
 
   // Boolean literal shortcut (single-value union wrapping a boolean literal)
-  if (nonNullTypes.length === 1 && S.AST.isLiteral(nonNullTypes[0]!) && typeof nonNullTypes[0]!.literal === "boolean") {
-    acc[key as NestedKeyOf<T>] = leafMetaForAst(nonNullTypes[0]!, parentMeta)
+  if (nonNullTypes.length === 1 && S.AST.isLiteral(nonNullTypes[0]) && typeof nonNullTypes[0].literal === "boolean") {
+    acc[key as NestedKeyOf<T>] = leafMetaForAst(nonNullTypes[0], parentMeta)
     return
   }
 
@@ -147,7 +147,7 @@ export const classifyAndWalkUnion = <T>(
       }
 
       for (const [metaKey, metaValue] of Object.entries(branchCtx.acc)) {
-        const existing = acc[metaKey as NestedKeyOf<T>] as FieldMeta | undefined
+        const existing = acc[metaKey as NestedKeyOf<T>]
         if (existing && existing.type === "select" && (metaValue as any)?.type === "select") {
           existing.members = [
             ...existing.members,
@@ -161,7 +161,7 @@ export const classifyAndWalkUnion = <T>(
 
     if (discriminatorValues.length > 0) {
       const tagKey = key ? `${key}._tag` : "_tag"
-      const existing = acc[tagKey as NestedKeyOf<T>] as FieldMeta | undefined
+      const existing = acc[tagKey as NestedKeyOf<T>]
       if (existing && existing.type === "select") {
         for (const v of discriminatorValues) {
           if (!existing.members.includes(v)) existing.members.push(v)
@@ -222,7 +222,7 @@ export const walk = <T>(
   }
 
   if (S.AST.isArrays(ast)) {
-    const restElement = ast.rest.length > 0 ? unwrapDeclaration(ast.rest[0]!) : null
+    const restElement = ast.rest.length > 0 ? unwrapDeclaration(ast.rest[0]) : null
     if (restElement && S.AST.isObjects(restElement)) {
       // Array-of-struct: skip creating a meta entry for the array itself,
       // recurse into the element struct's properties instead

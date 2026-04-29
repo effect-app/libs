@@ -54,7 +54,7 @@ export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace">
 // codegen:start {preset: model}
 //
 export namespace RequestContext {
-  export interface Encoded extends S.StructNestedEncoded<typeof RequestContext> {}
+  export interface Encoded extends S.Struct.Encoded<typeof RequestContext["fields"]> {}
 }
 //
 // codegen:end

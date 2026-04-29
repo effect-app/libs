@@ -92,7 +92,7 @@ export const makeStandardSchemaV1Hooks = (
 }
 
 export const toLocalizedStandardSchemaV1 = <To, From>(
-  schema: S.Codec<To, From, never, never>,
+  schema: S.Codec<To, From>,
   trans: TransFn
 ): StandardSchemaV1<From, To> => {
   const { checkHook, leafHook } = makeStandardSchemaV1Hooks(trans)
@@ -117,7 +117,7 @@ const isLiteralUnion = (ast: S.AST.AST): ast is S.AST.Union<S.AST.Literal> =>
 const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
   if (isLiteralUnion(ast)) {
     if (ast.annotations?.message !== undefined) return ast
-    const members = ast.types.map((t) => (t as S.AST.Literal).literal)
+    const members = ast.types.map((t) => t.literal)
     return new S.AST.Union(
       ast.types,
       ast.mode,
@@ -153,9 +153,9 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
     if (
       ast.annotations?.message === undefined
       && ast.rest.length === 1
-      && isLiteralUnion(ast.rest[0]!)
+      && isLiteralUnion(ast.rest[0])
     ) {
-      const members = (ast.rest[0]! as S.AST.Union<S.AST.Literal>).types.map((t) => t.literal)
+      const members = ast.rest[0].types.map((t) => t.literal)
       annotations = {
         ...ast.annotations,
         message: trans("validation.not_a_valid", { type: "multiple", message: members.join(", ") })
@@ -194,9 +194,9 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
 }
 
 export const annotateLiteralUnionMessages = <To, From>(
-  schema: S.Codec<To, From, never, never>,
+  schema: S.Codec<To, From, never>,
   trans: TransFn
-): S.Codec<To, From, never, never> => {
+): S.Codec<To, From, never> => {
   const newAst = walkAst(schema.ast, trans)
-  return newAst === schema.ast ? schema : S.make(newAst) as S.Codec<To, From, never, never>
+  return newAst === schema.ast ? schema : S.make(newAst)
 }

@@ -23,4 +23,4 @@ export { useOnClose, usePreventClose } from "./blockDialog"
 
 export { createUseFormWithCustomInput } from "./createUseFormWithCustomInput"
 
-export const duplicateSchema = <From, To>(schema: S.Codec<To, From, never>) => schema
+export const duplicateSchema = <From, To>(schema: S.Codec<To, From>) => schema

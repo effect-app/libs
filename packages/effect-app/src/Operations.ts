@@ -38,16 +38,16 @@ export class Operation extends S.Opaque<Operation, Operation.Encoded>()(S.Struct
 // codegen:start {preset: model}
 //
 export namespace OperationProgress {
-  export interface Encoded extends S.StructNestedEncoded<typeof OperationProgress> {}
+  export interface Encoded extends S.Struct.Encoded<typeof OperationProgress["fields"]> {}
 }
 export namespace OperationSuccess {
-  export interface Encoded extends S.StructNestedEncoded<typeof OperationSuccess> {}
+  export interface Encoded extends S.Struct.Encoded<typeof OperationSuccess["fields"]> {}
 }
 export namespace OperationFailure {
-  export interface Encoded extends S.StructNestedEncoded<typeof OperationFailure> {}
+  export interface Encoded extends S.Struct.Encoded<typeof OperationFailure["fields"]> {}
 }
 export namespace Operation {
-  export interface Encoded extends S.StructNestedEncoded<typeof Operation> {}
+  export interface Encoded extends S.Struct.Encoded<typeof Operation["fields"]> {}
 }
 //
 // codegen:end

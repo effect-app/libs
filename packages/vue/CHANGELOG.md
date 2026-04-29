@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.161
+
+### Patch Changes
+
+- aa5ef5c: Improve `deepToRaw` to support any root input type, correctly unwrap refs/computed values, and preserve collection/date shapes (`Array`, `Map`, `Set`, `Date`) while deeply removing Vue reactivity wrappers.
+  - effect-app@4.0.0-beta.161
+
 ## 4.0.0-beta.160
 
 ### Patch Changes

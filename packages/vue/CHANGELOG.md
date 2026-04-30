@@ -1,5 +1,16 @@
 # @effect-app/vue
 
+## 4.0.0-beta.164
+
+### Minor Changes
+
+- 8cb3de4: Add command invalidation helpers that preserve query-only resource types and pass mutation input and `Exit` results into invalidation callbacks. Update Vue `clientFor` to merge request-level invalidation config with call-site invalidation and require matching invalidation resources.
+
+### Patch Changes
+
+- Updated dependencies [8cb3de4]
+  - effect-app@4.0.0-beta.164
+
 ## 4.0.0-beta.163
 
 ### Patch Changes

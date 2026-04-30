@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Config, Effect, Layer, Option, Ref, Schema } from "effect"
+import * as Array from "effect/Array"
 import {
   ConfigureInterruptibilityMiddleware,
   DevMode,
@@ -150,11 +151,16 @@ export const InvalidationMiddlewareLive = Layer.succeed(
       const result = yield* Effect.provideService(effect, Invalidation.InvalidationSet, service)
 
       const keys = yield* Ref.get(keysRef)
-      if (keys.length > 0) {
+      if (Array.isArrayNonEmpty(keys)) {
         const maybeRequest = yield* Effect.serviceOption(HttpServerRequest)
         if (Option.isSome(maybeRequest)) {
-          appendPreResponseHandlerUnsafe(maybeRequest.value, (_req, res) =>
-            Effect.succeed(HttpServerResponse.setHeader(res, "x-invalidate", JSON.stringify(keys))))
+          appendPreResponseHandlerUnsafe(maybeRequest.value, (_req, res) => {
+            try {
+              return Effect.succeed(HttpServerResponse.setHeader(res, "x-invalidate", JSON.stringify(keys)))
+            } catch {
+              return Effect.succeed(res)
+            }
+          })
         }
       }
 

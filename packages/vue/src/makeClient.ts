@@ -573,23 +573,7 @@ export const makeClient = <RT_, RTHooks>(
     if (!resources) {
       return {} as Record<string, Record<string, unknown>>
     }
-
-    return Struct.keys(resources).reduce((acc, resourceName) => {
-      const resource = resources[resourceName]!
-      ;(acc as any)[resourceName] = Struct.keys(resource).reduce((moduleAcc, requestName) => {
-        const request = resource[requestName]!
-        if (
-          typeof request === "object"
-          && request !== null
-          && "type" in request
-          && (request as { readonly type?: unknown }).type === "query"
-        ) {
-          ;(moduleAcc as any)[requestName] = request
-        }
-        return moduleAcc
-      }, {} as Record<string, unknown>)
-      return acc
-    }, {} as Record<string, Record<string, unknown>>)
+    return resources as Record<string, Record<string, unknown>>
   }
 
   const mapQuery = <M extends RequestsAny>(

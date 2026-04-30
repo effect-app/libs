@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.173
+
+### Patch Changes
+
+- 4149577: fix queryresources
+  - effect-app@4.0.0-beta.173
+
 ## 4.0.0-beta.172
 
 ### Patch Changes

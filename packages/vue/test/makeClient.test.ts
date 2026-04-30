@@ -7,7 +7,8 @@ import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, us
 const somethingInvalidationResources = {
   Something: {
     GetSomething2: Something.GetSomething2,
-    GetSomething2WithDependencies: Something.GetSomething2WithDependencies
+    GetSomething2WithDependencies: Something.GetSomething2WithDependencies,
+    GetSomething3: Something.GetSomething3
   }
 }
 
@@ -180,6 +181,8 @@ it.skip("works", () => {
   const a = client.GetSomething2.suspense(null as any)
   const b = client.GetSomething2.query(null as any)
 
+  const de = client.GetSomething3.handler(null as any)
+
   // @ts-expect-error query requests no longer expose command helpers
   const e = client.GetSomething2.wrap(null as any)
   // @ts-expect-error query requests no longer expose command helpers
@@ -235,6 +238,7 @@ it.skip("works", () => {
     a00,
     b,
     e,
+    de,
     e0,
     e00,
     e000,

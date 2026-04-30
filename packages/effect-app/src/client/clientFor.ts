@@ -107,8 +107,10 @@ type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS
 export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
   [infer A, ...ReadonlyArray<any>] ? A : void
 
+type RequestFields<I> = I extends { readonly fields: infer F extends S.Struct.Fields } ? F : never
+
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<RequestInputFromMake<M[K]>> extends true ? RequestHandler<
+  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<RequestFields<M[K]>> extends true ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["error"]> | E,
       R | ReqDecodingServices<M[K]>,

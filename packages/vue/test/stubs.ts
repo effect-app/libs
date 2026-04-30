@@ -104,6 +104,10 @@ class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("G
   id: S.String
 }, { success: S.FiniteFromString }) {}
 
+class SomethingGetSomething3 extends SomethingQuery<SomethingGetSomething3>()("GetSomething3", {
+  id: S.NullOr(S.String).withDefault
+}, { success: S.FiniteFromString }) {}
+
 class SomethingGetSomething2WithDependencies
   extends SomethingQuery<SomethingGetSomething2WithDependencies>()("GetSomething2", {
     id: S.String
@@ -117,6 +121,7 @@ class SomethingGetSomething2WithDependencies
 type SomethingInvalidationResources = {
   GetSomething2: typeof SomethingGetSomething2
   GetSomething2WithDependencies: typeof SomethingGetSomething2WithDependencies
+  GetSomething3: typeof SomethingGetSomething3
 }
 
 class SomethingDoSomething extends SomethingCommand<
@@ -149,6 +154,7 @@ class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullab
 export const Something = {
   GetSomething2: SomethingGetSomething2,
   GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
+  GetSomething3: SomethingGetSomething3,
   DoSomething: SomethingDoSomething,
   GetStructNullable: SomethingGetStructNullable
 }

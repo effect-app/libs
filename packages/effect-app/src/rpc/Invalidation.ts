@@ -26,11 +26,16 @@ export const CommandResponseWithMetaData = <S extends S.Top>(success: S) =>
 
 /**
  * Context annotation for declaring static cache invalidation keys on an Rpc definition.
+ * These keys are always included in the command response metadata, regardless of the handler logic.
  *
  * @example
  * ```ts
- * class CheckinCart extends Rpc.make("CheckinCart", { ... })
- *   .annotate(Invalidates, [["$Something", "GetMe"], ["$Cart", "GetCartStats"]]) {}
+ * import { Rpc } from "effect/unstable/rpc"
+ * import { Invalidation } from "effect-app/rpc"
+ *
+ * // Statically declare which queries to invalidate whenever this command runs:
+ * class UpdateProfile extends Rpc.make("UpdateProfile", { ... })
+ *   .annotate(Invalidation.Invalidates, [["$User", "GetMe"], ["$User", "GetProfile"]]) {}
  * ```
  */
 export const Invalidates = Context.Reference<ReadonlyArray<InvalidationKey>>(
@@ -46,9 +51,36 @@ export interface InvalidationSetService {
 }
 
 /**
- * Request-scoped service for accumulating invalidation keys.
+ * Request-scoped service for accumulating invalidation keys dynamically inside a handler.
  * Provided by `InvalidationMiddlewareLive` for every RPC call; has a no-op default so it is
  * safe to use even when the HTTP middleware is absent (tests, workers, etc.).
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Invalidation } from "effect-app/rpc"
+ *
+ * // In a controller, add invalidation keys based on runtime logic:
+ * const handler = Effect.fnUntraced(function*(req: UpdateCartRequest) {
+ *   // ... perform the command ...
+ *   const updatedCart = yield* CartRepo.save(req.cart)
+ *
+ *   // Stage 1 – add a key after a specific operation:
+ *   const invalidation = yield* Invalidation.InvalidationSet
+ *   yield* invalidation.add(["$Cart", "GetCart", req.userId])
+ *
+ *   // Stage 2 – conditionally add more keys:
+ *   if (updatedCart.isCheckedOut) {
+ *     yield* invalidation.add(["$Cart", "GetCartStats"])
+ *   }
+ *
+ *   return updatedCart
+ * })
+ * ```
+ *
+ * You can combine static (`Invalidates` annotation) and dynamic (`InvalidationSet.add`) keys:
+ * the annotation pre-populates the set before the handler runs; dynamic additions accumulate
+ * throughout the handler. All keys are included in the command response metadata.
  */
 export const InvalidationSet = Context.Reference<InvalidationSetService>(
   "effect-app/rpc/InvalidationSet",

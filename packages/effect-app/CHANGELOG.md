@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.165
+
+### Minor Changes
+
+- f88ea34: Move `makeQueryKey` into `effect-app/client` and update Vue source and tests to import it from the shared client module. Vue still re-exports `makeQueryKey` from `src/lib` for compatibility.
+
 ## 4.0.0-beta.164
 
 ### Minor Changes

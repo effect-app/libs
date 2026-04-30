@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.165
+
+### Patch Changes
+
+- f88ea34: Move `makeQueryKey` into `effect-app/client` and update Vue source and tests to import it from the shared client module. Vue still re-exports `makeQueryKey` from `src/lib` for compatibility.
+- 66fd718: Require `clientFor` invalidation resources when any command in the client configures them.
+- Updated dependencies [f88ea34]
+  - effect-app@4.0.0-beta.165
+
 ## 4.0.0-beta.164
 
 ### Minor Changes

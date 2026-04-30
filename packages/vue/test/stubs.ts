@@ -108,6 +108,10 @@ class SomethingGetSomething3 extends SomethingQuery<SomethingGetSomething3>()("G
   id: S.NullOr(S.String).withDefault
 }, { success: S.FiniteFromString }) {}
 
+class SomethingGetSomething4
+  extends SomethingQuery<SomethingGetSomething4>()("GetSomething4", {}, { success: S.FiniteFromString })
+{}
+
 class SomethingGetSomething2WithDependencies
   extends SomethingQuery<SomethingGetSomething2WithDependencies>()("GetSomething2", {
     id: S.String
@@ -155,6 +159,7 @@ export const Something = {
   GetSomething2: SomethingGetSomething2,
   GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
   GetSomething3: SomethingGetSomething3,
+  GetSomething4: SomethingGetSomething4,
   DoSomething: SomethingDoSomething,
   GetStructNullable: SomethingGetStructNullable
 }

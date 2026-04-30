@@ -8,7 +8,8 @@ const somethingInvalidationResources = {
   Something: {
     GetSomething2: Something.GetSomething2,
     GetSomething2WithDependencies: Something.GetSomething2WithDependencies,
-    GetSomething3: Something.GetSomething3
+    GetSomething3: Something.GetSomething3,
+    GetSomething4: Something.GetSomething4
   }
 }
 
@@ -46,6 +47,9 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
     undefined,
     somethingInvalidationResources
   )
+
+  // only queries, no commands, and no commands who require resources; shouldn't require invalidation resources args!
+  clientFor({ GetSomething: Something.GetSomething2 })
 
   // @ts-expect-error invalidation resources should be required when any command configures them
   clientFor(Something)
@@ -119,8 +123,7 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   }) {}
   void TypeInferenceResourceFiltering
 
-  type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries>
-  // @ts-expect-error input should be required when command payload is non-empty
+  type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries> // @ts-expect-error input should be required when command payload is non-empty
   ;((_queryKey, _resources) => []) satisfies WithSuccessInvalidation
 })
 
@@ -185,6 +188,10 @@ it.skip("works", () => {
   const de = client.GetSomething3.handler(null as any)
   const de2 = client.GetSomething3.handler({ id: null })
 
+  // @ts-expect-error not callable as it requires no input
+  const de3 = client.GetSomething4.handler(null as any)
+  void client.GetSomething4.handler
+
   // @ts-expect-error query requests no longer expose command helpers
   const e = client.GetSomething2.wrap(null as any)
   // @ts-expect-error query requests no longer expose command helpers
@@ -242,6 +249,7 @@ it.skip("works", () => {
     e,
     de,
     de2,
+    de3,
     e0,
     e00,
     e000,

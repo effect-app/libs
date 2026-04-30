@@ -3,17 +3,18 @@ import { TaggedErrorClass } from "effect-app/Schema"
 import * as Cause from "effect/Cause"
 import * as S from "../Schema.js"
 
-export const tryToJson = (error: { toJSON(): unknown; toString(): string }) => {
+export const tryToJson = (error: unknown) => {
   try {
-    return error.toJSON()
+    const errorJson = (error as any).toJSON()
+    return errorJson && typeof errorJson === "object" ? errorJson as Record<string, unknown> : { error }
   } catch {
     try {
-      return error.toString()
+      return { error: (error as any).toString() }
     } catch (err) {
       try {
-        return `Failed to convert error: ${err}`
+        return { error: `Failed to convert error: ${err}` }
       } catch {
-        return `Failed to convert error: unknown failure`
+        return { error: `Failed to convert error: unknown failure` }
       }
     }
   }
@@ -247,17 +248,17 @@ export class CauseException<E> extends Error {
   }
 }
 
-export const tryToReport = (error: { toReport(): unknown; toString(): string }) => {
+export const tryToReport = (error: { toReport(): Record<string, unknown>; toString(): string }) => {
   try {
     return error.toReport()
   } catch {
     try {
-      return error.toString()
+      return { error: error.toString() }
     } catch (err) {
       try {
-        return `Failed to convert error: ${err}`
+        return { error: `Failed to convert error: ${err}` }
       } catch {
-        return `Failed to convert error: unknown failure`
+        return { error: `Failed to convert error: unknown failure` }
       }
     }
   }

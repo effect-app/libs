@@ -60,8 +60,10 @@ function reportSentry(
     scope.setLevel(level)
     if (context) scope.setContext("context", { ...context })
     if (extras) scope.setContext("extras", extras)
-    scope.setContext("error", { data: tryToReport(error) })
-    scope.setContext("cause", { data: tryToJson(error.originalCause) })
+    const squashed = Cause.squash(error.originalCause)
+    scope.setContext("mainError", tryToJson(squashed))
+    scope.setContext("error", tryToReport(error))
+    scope.setContext("cause", tryToJson(error.originalCause))
     Sentry.captureException(error, scope)
   }))
 }

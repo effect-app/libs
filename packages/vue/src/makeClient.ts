@@ -505,6 +505,13 @@ type InvalidationResourcesFor<M extends RequestsAny> = [InvalidationResourcesFor
   : UnionToIntersection<InvalidationResourcesForUnion<M>> extends infer R ? R extends InvalidationResources ? R
     : never
   : never
+
+type QueryInvalidationFactory<M extends RequestsAny> = (client: ClientFrom<M>) => QueryInvalidation<M>
+
+type ClientForArgs<M extends RequestsAny> = [InvalidationResourcesFor<M>] extends [never]
+  ? [queryInvalidation?: QueryInvalidationFactory<M>, invalidationResources?: InvalidationResourcesFor<M>]
+  : [queryInvalidation: QueryInvalidationFactory<M> | undefined, invalidationResources: InvalidationResourcesFor<M>]
+
 export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
@@ -807,7 +814,7 @@ export const makeClient = <RT_, RTHooks>(
   // TODO; invalidateQueries should perhaps be configured in the Request impl themselves?
   const clientFor__ = <M extends RequestsAny>(
     m: M,
-    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
+    queryInvalidation?: QueryInvalidationFactory<M>,
     invalidationResources?: InvalidationResourcesFor<M>
   ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation, invalidationResources))))
 
@@ -816,9 +823,12 @@ export const makeClient = <RT_, RTHooks>(
   // until we are at a place where it is available..
   const clientFor = <M extends RequestsAny>(
     m: M,
-    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
-    invalidationResources?: InvalidationResourcesFor<M>
+    ...args: ClientForArgs<M>
   ) => {
+    const [queryInvalidation, invalidationResources] = args as [
+      QueryInvalidationFactory<M> | undefined,
+      InvalidationResourcesFor<M> | undefined
+    ]
     type Client = ReturnType<typeof clientFor__<M>>
     let client: Client | undefined = undefined
     const getOrMakeClient = () => (client ??= clientFor__(m, queryInvalidation, invalidationResources))

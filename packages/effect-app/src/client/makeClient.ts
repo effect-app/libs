@@ -65,14 +65,17 @@ type InvalidationConfigForCommand<
 >
 
 export const configureInvalidation = <Resources>() =>
-<Input = unknown, Success = unknown, Failure = unknown>(
-  invalidatesQueries: InvalidationCallback<Resources, Input, Success, Failure>
+<Input, Success, Failure>(
+  invalidatesQueries: InvalidationCallback<Resources, NoInfer<Input>, NoInfer<Success>, NoInfer<Failure>>
 ): InvalidationConfig<Resources, Input, Success, Failure> => ({ invalidatesQueries })
 
 export const configureInvalidationCallback = <Resources>() =>
-<Input = unknown, Success = unknown, Failure = unknown>(
-  invalidatesQueries: InvalidationCallback<Resources, Input, Success, Failure>
+<Input, Success, Failure>(
+  invalidatesQueries: InvalidationCallback<Resources, NoInfer<Input>, NoInfer<Success>, NoInfer<Failure>>
 ): InvalidationCallback<Resources, Input, Success, Failure> => invalidatesQueries
+
+export const configureInvalidationResources = <Resources>() =>
+  ({}) as Pick<InvalidationConfig<Resources>, "invalidationResources">
 
 type TaggedRequestForResult<
   Self,

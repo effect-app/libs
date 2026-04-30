@@ -4,6 +4,13 @@ import { configureInvalidation, makeQueryKey } from "effect-app/client"
 import * as Exit from "effect/Exit"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
+const somethingInvalidationResources = {
+  Something: {
+    GetSomething2: Something.GetSomething2,
+    GetSomething2WithDependencies: Something.GetSomething2WithDependencies
+  }
+}
+
 it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   expectTypeOf(SomethingReq.moduleName).toEqualTypeOf<"Something">()
   expectTypeOf(SomethingElseReq.moduleName).toEqualTypeOf<"SomethingElse">()
@@ -33,26 +40,23 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   })
 
   const { clientFor } = useClient()
-  const invalidationResources = {
-    Something: {
-      GetSomething2: Something.GetSomething2,
-      GetSomething2WithDependencies: Something.GetSomething2WithDependencies
-    }
-  }
   const client = clientFor(
     Something,
     undefined,
-    invalidationResources
+    somethingInvalidationResources
   )
 
+  // @ts-expect-error invalidation resources should be required when any command configures them
+  clientFor(Something)
+
   // @ts-expect-error invalidation resources for this module reject extra top-level resources
-  clientFor(Something, undefined, { ...invalidationResources, SomethingElse })
+  clientFor(Something, undefined, { ...somethingInvalidationResources, SomethingElse })
 
   const doSomethingInvalidation = client.DoSomething.Request.config.invalidatesQueries
   if (doSomethingInvalidation) {
     const entries = doSomethingInvalidation(
       ["$Something"],
-      invalidationResources,
+      somethingInvalidationResources,
       { id: "abc" },
       Exit.succeed(123)
     )
@@ -92,19 +96,23 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
 
 it.skip("query type tests", () => {
   const { clientFor } = useClient()
-  const client = clientFor(Something, () => ({
-    GetSomething2WithDependencies: (queryKey) => [
-      { filters: { queryKey } },
-      {
-        filters: {
-          queryKey: makeQueryKey(
-            SomethingElse
-              .GetSomething2
-          )
+  const client = clientFor(
+    Something,
+    () => ({
+      GetSomething2WithDependencies: (queryKey) => [
+        { filters: { queryKey } },
+        {
+          filters: {
+            queryKey: makeQueryKey(
+              SomethingElse
+                .GetSomething2
+            )
+          }
         }
-      }
-    ]
-  }))
+      ]
+    }),
+    somethingInvalidationResources
+  )
 
   const q = client.GetSomething2.query
 
@@ -135,7 +143,7 @@ it.skip("query type tests", () => {
 
 it.skip("works", () => {
   const { clientFor } = useClient()
-  const client = clientFor(Something)
+  const client = clientFor(Something, undefined, somethingInvalidationResources)
   const Command = useExperimental()
 
   // just for jsdoc / type testing.

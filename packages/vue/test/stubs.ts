@@ -2,7 +2,7 @@
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
 import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
-import { ApiClientFactory, configureInvalidation, makeRpcClient } from "effect-app/client"
+import { ApiClientFactory, configureInvalidationResources, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
 import * as Exit from "effect/Exit"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
@@ -123,11 +123,8 @@ class SomethingDoSomething extends SomethingCommand<SomethingDoSomething>()("DoS
   id: S.String
 }, {
   success: S.FiniteFromString,
-  ...configureInvalidation<{ Something: SomethingInvalidationResources }>()<
-    { readonly id: string },
-    number,
-    never
-  >((queryKey, { Something }, input, output) => {
+  ...configureInvalidationResources<{ Something: SomethingInvalidationResources }>(),
+  invalidatesQueries: (queryKey, { Something }, input, output) => {
     return [
       { filters: { queryKey } },
       {
@@ -140,7 +137,7 @@ class SomethingDoSomething extends SomethingCommand<SomethingDoSomething>()("DoS
         }
       }
     ]
-  })
+  }
 }) {}
 
 // success schema has encoded shape { a: string | null } — used to test projection constraints

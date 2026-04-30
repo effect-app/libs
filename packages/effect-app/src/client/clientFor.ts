@@ -70,9 +70,6 @@ export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
   : T extends unknown ? void
   : never
 
-type IsEmpty<T> = keyof T extends never ? true
-  : false
-
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
 }
@@ -95,7 +92,10 @@ export interface RequestHandler<A, E, R, Request extends Req, Id extends string>
 }
 
 export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
-  handler: (i: I) => Effect.Effect<A, E, R>
+  // Some generated make signatures include _tag in input; accept both tagged and untagged forms.
+  handler: [Extract<I, void>] extends [never]
+    ? (i: Exclude<I, void> | UntagRequestInput<Exclude<I, void>>) => Effect.Effect<A, E, R>
+    : (i?: Exclude<I, void> | UntagRequestInput<Exclude<I, void>>) => Effect.Effect<A, E, R>
   id: Id
   options?: ClientForOptions
   Request: Request
@@ -107,10 +107,27 @@ type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS
 export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
   [infer A, ...ReadonlyArray<any>] ? A : void
 
+type UntagRequestInput<I> = I extends { _tag: any } ? Omit<I, "_tag">
+  : I extends { readonly _tag: any } ? Omit<I, "_tag">
+  : I
+
 type RequestFields<I> = I extends { readonly fields: infer F extends S.Struct.Fields } ? F : never
 
+type RequestInputFromFields<I> = RequestFields<I> extends infer F extends S.Struct.Fields
+  ? keyof F extends never ? never
+  : S.Schema.Type<S.Struct<F>>
+  : never
+
+type RequestInput<I extends { readonly make: (...args: any[]) => any }> =
+  | UntagRequestInput<RequestInputFromMake<I>>
+  | RequestInputFromFields<I>
+  | void
+
+type IsVoidOnly<T> = [Exclude<T, void>] extends [never] ? true
+  : false
+
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<RequestFields<M[K]>> extends true ? RequestHandler<
+  [K in keyof M as M[K] extends Req ? K : never]: IsVoidOnly<RequestInput<M[K]>> extends true ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["error"]> | E,
       R | ReqDecodingServices<M[K]>,
@@ -118,7 +135,7 @@ export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends stri
       `${ModuleName}.${K & string}`
     >
     : RequestHandlerWithInput<
-      RequestInputFromMake<M[K]>,
+      RequestInput<M[K]>,
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["error"]> | E,
       R | ReqDecodingServices<M[K]>,

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- Updated dependencies [140e192]
+  - effect-app@4.0.0-beta.167
+
 ## 4.0.0-beta.166
 
 ### Patch Changes

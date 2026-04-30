@@ -14,9 +14,13 @@ export class LoggerMiddleware extends RpcMiddleware.Tag<LoggerMiddleware>()("Log
 
 export class DevModeMiddleware extends RpcMiddleware.Tag<DevModeMiddleware>()("DevModeMiddleware") {}
 
+/** RPC middleware that reads the `Invalidates` annotation and populates `InvalidationSet` before the handler runs. */
+export class InvalidationMiddleware extends RpcMiddleware.Tag<InvalidationMiddleware>()("InvalidationMiddleware") {}
+
 export const DefaultGenericMiddlewares = [
   RequestCacheMiddleware,
   ConfigureInterruptibilityMiddleware,
   LoggerMiddleware,
-  DevModeMiddleware
+  DevModeMiddleware,
+  InvalidationMiddleware
 ] as const

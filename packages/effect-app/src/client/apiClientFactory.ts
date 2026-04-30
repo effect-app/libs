@@ -14,6 +14,7 @@ import * as Option from "../Option.js"
 import type * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, ExtractModuleName, RequestsAny } from "./clientFor.js"
+import { InvalidationKeysFromServer } from "./InvalidationKeys.js"
 
 export interface ApiConfig {
   url: string
@@ -64,7 +65,22 @@ export const HttpClientLayer = (config: ApiConfig) =>
                 HttpClientRequest.appendUrlParam("action", ctx.requestName),
                 HttpClientRequest.appendUrl("/" + ctx.moduleName)
               )(req))
-          )
+          ),
+          HttpClient.tap((response) => {
+            const header = response.headers["x-invalidate"]
+            if (!header) return Effect.void
+            return Effect.gen(function*() {
+              const invalidationKeys = yield* InvalidationKeysFromServer
+              try {
+                const keys = JSON.parse(header) as ReadonlyArray<ReadonlyArray<string>>
+                if (Array.isArray(keys)) {
+                  yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+                }
+              } catch {
+                // ignore malformed header
+              }
+            })
+          })
         )
         return client
       })

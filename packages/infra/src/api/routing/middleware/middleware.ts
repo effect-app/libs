@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Config, Effect, Layer, Schema } from "effect"
-import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
-import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
+import {
+  ConfigureInterruptibilityMiddleware,
+  DevMode,
+  DevModeMiddleware,
+  InvalidationMiddleware,
+  LoggerMiddleware,
+  RequestCacheMiddleware
+} from "effect-app/middleware"
+import { Invalidation, RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
 import * as Context from "effect/Context"
 import { type Rpc } from "effect/unstable/rpc"
@@ -121,11 +128,29 @@ export const DevModeMiddlewareLive = Layer
   )
   .pipe(Layer.provide(DevModeLive))
 
+/**
+ * RPC middleware that reads the `Invalidates` annotation and adds the declared keys to
+ * `InvalidationSet` before the handler runs.
+ */
+export const InvalidationMiddlewareLive = Layer.succeed(
+  InvalidationMiddleware,
+  (effect, { rpc }) => {
+    const keys = Context.get(rpc.annotations, Invalidation.Invalidates)
+    if (!keys.length) return effect
+    return Effect.gen(function*() {
+      const set = yield* Invalidation.InvalidationSet
+      yield* Effect.forEach(keys, (key) => set.add(key), { discard: true })
+      return yield* effect
+    })
+  }
+)
+
 export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
   RequestCacheMiddlewareLive,
   ConfigureInterruptibilityMiddlewareLive,
   LoggerMiddlewareLive,
-  DevModeMiddlewareLive
+  DevModeMiddlewareLive,
+  InvalidationMiddlewareLive
 )
 
 /**

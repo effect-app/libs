@@ -1,17 +1,30 @@
 import * as Sentry from "@sentry/node"
-import { Cause, Effect, type LogLevel } from "effect-app"
+import { Cause, Effect, ErrorReporter, type LogLevel } from "effect-app"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
-import { getRC } from "./api/setupRequest.js"
-import { CauseException, tryToJson, tryToReport } from "./errors.js"
+import { LocaleRef } from "./RequestContext.js"
+import { storeId } from "./Store/Memory.js"
+import { tryToJson } from "./errors.js"
 import { InfraLogger } from "./logger.js"
 
-const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): CauseException<E> => {
-  try {
-    return new CauseException(cause, name)
-  } catch {
-    return new CauseException(Cause.die(new Error("Failed to create CauseException")), name)
+/**
+ * An `ErrorReporter` that forwards failures to Sentry (Node.js).
+ *
+ * Register it via `ErrorReporter.layer([makeSentryReporter])` in your runtime layer.
+ * Interrupt-skipping and per-error `ignore`/`severity`/`attributes` annotations
+ * are handled automatically by `ErrorReporter.make`.
+ */
+export const makeSentryReporter = ErrorReporter.make(({ attributes, cause, error, fiber, severity }) => {
+  const scope = new Sentry.Scope()
+  scope.setLevel(LogLevelToSentry(severity))
+  const locale = fiber.getRef(LocaleRef)
+  const namespace = fiber.getRef(storeId)
+  scope.setContext("context", { locale, namespace })
+  if (Object.keys(attributes).length > 0) {
+    scope.setContext("attributes", attributes)
   }
-}
+  scope.setContext("cause", { pretty: Cause.pretty(cause) })
+  Sentry.captureException(error, scope)
+})
 
 export function reportError(name: string) {
   return Effect.fnUntraced(
@@ -24,23 +37,19 @@ export function reportError(name: string) {
         yield* InfraLogger.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
         return
       }
-      const error = tryCauseException(cause, name)
 
-      yield* reportSentry(error, extras, LogLevelToSentry(level))
+      yield* ErrorReporter.report(cause)
       yield* InfraLogger
         .logWithLevel(level, "Reporting error", cause)
         .pipe(
           Effect.annotateLogs(dropUndefined({
             extras,
-            error: tryToReport(error),
             cause: tryToJson(cause),
             __error_name__: name
           })),
           Effect.catchCause((cause) => InfraLogger.logWarning("Failed to log error", cause)),
           Effect.catchCause(() => InfraLogger.logFatal("Failed to log error cause"))
         )
-
-      return error
     },
     (effect) =>
       Effect.tapCause(effect, (cause) =>
@@ -48,24 +57,6 @@ export function reportError(name: string) {
           Effect.tapCause(() => InfraLogger.logFatal("Failed to log error cause"))
         ))
   )
-}
-
-function reportSentry(
-  error: CauseException<unknown>,
-  extras: Record<string, unknown> | undefined,
-  level: Sentry.SeverityLevel = "error"
-) {
-  return getRC.pipe(Effect.map((context) => {
-    const scope = new Sentry.Scope()
-    scope.setLevel(level)
-    if (context) scope.setContext("context", { ...context })
-    if (extras) scope.setContext("extras", extras)
-    const squashed = Cause.squash(error.originalCause)
-    scope.setContext("mainError", tryToJson(squashed))
-    scope.setContext("error", tryToReport(error))
-    scope.setContext("cause", tryToJson(error.originalCause))
-    Sentry.captureException(error, scope)
-  }))
 }
 
 export function logError<E>(name: string) {
@@ -88,9 +79,10 @@ export function logError<E>(name: string) {
 }
 
 export const reportMessage = Effect.fnUntraced(function*(message: string, extras?: Record<string, unknown>) {
-  const context = yield* getRC
+  const locale = yield* LocaleRef
+  const namespace = yield* storeId
   const scope = new Sentry.Scope()
-  if (context) scope.setContext("context", { ...context })
+  scope.setContext("context", { locale, namespace })
   if (extras) scope.setContext("extras", extras)
   Sentry.captureMessage(message, scope)
 

@@ -1,6 +1,7 @@
 /** @effect-diagnostics overriddenSchemaConstructor:skip-file */
 import { TaggedErrorClass } from "effect-app/Schema"
 import * as Cause from "effect/Cause"
+import { ignore } from "effect/ErrorReporter"
 import * as S from "../Schema.js"
 
 export const tryToJson = (error: unknown) => {
@@ -26,6 +27,7 @@ export class NotFoundError<ItemType = string> extends TaggedErrorClass<NotFoundE
   type: S.String,
   id: S.Unknown
 }) {
+  override readonly [ignore] = true
   constructor(
     props: { type: string; id: unknown; cause?: unknown },
     disableValidation?: boolean
@@ -46,6 +48,7 @@ const messageFallback = (messageOrObject?: string | { message: string }) =>
 export class InvalidStateError extends TaggedErrorClass<InvalidStateError>()("InvalidStateError", {
   message: S.String
 }) {
+  override readonly [ignore] = true
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(
       typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject },
@@ -60,6 +63,7 @@ export class InvalidStateError extends TaggedErrorClass<InvalidStateError>()("In
 export class ServiceUnavailableError extends TaggedErrorClass<ServiceUnavailableError>()("ServiceUnavailableError", {
   message: S.String
 }) {
+  override readonly [ignore] = true
   constructor(messageOrObject: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(
       typeof messageOrObject === "object" ? messageOrObject : { message: messageOrObject },
@@ -74,6 +78,7 @@ export class ServiceUnavailableError extends TaggedErrorClass<ServiceUnavailable
 export class ValidationError extends TaggedErrorClass<ValidationError>()("ValidationError", {
   errors: S.Array(S.Unknown)
 }) {
+  override readonly [ignore] = true
   constructor(
     props: { errors: ReadonlyArray<unknown>; cause?: unknown },
     disableValidation?: boolean
@@ -91,6 +96,7 @@ export class ValidationError extends TaggedErrorClass<ValidationError>()("Valida
 export class NotLoggedInError extends TaggedErrorClass<NotLoggedInError>()("NotLoggedInError", {
   message: S.String
 }) {
+  override readonly [ignore] = true
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(messageFallback(messageOrObject), disableValidation as any)
   }
@@ -105,6 +111,7 @@ export class NotLoggedInError extends TaggedErrorClass<NotLoggedInError>()("NotL
 export class LoginError extends TaggedErrorClass<LoginError>()("NotLoggedInError", {
   message: S.String
 }) {
+  override readonly [ignore] = true
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(messageFallback(messageOrObject), disableValidation as any)
   }
@@ -116,6 +123,7 @@ export class LoginError extends TaggedErrorClass<LoginError>()("NotLoggedInError
 export class UnauthorizedError extends TaggedErrorClass<UnauthorizedError>()("UnauthorizedError", {
   message: S.String
 }) {
+  override readonly [ignore] = true
   constructor(messageOrObject?: string | { message: string; cause?: unknown }, disableValidation?: boolean) {
     super(messageFallback(messageOrObject), disableValidation as any)
   }
@@ -136,6 +144,7 @@ export class OptimisticConcurrencyException extends TaggedErrorClass<OptimisticC
   "OptimisticConcurrencyException",
   { message: S.String }
 ) {
+  override readonly [ignore] = true
   readonly details?: OptimisticConcurrencyDetails
   readonly raw?: unknown
   constructor(

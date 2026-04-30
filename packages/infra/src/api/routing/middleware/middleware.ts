@@ -5,12 +5,11 @@ import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
 import * as Context from "effect/Context"
 import { type Rpc } from "effect/unstable/rpc"
-import { logError, reportError } from "../../../errorReporter.js"
+import { logError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { WithNsTransaction } from "../../../Store/SQL.js"
 
 const logRequestError = logError("Request")
-const reportRequestError = reportError("Request")
 
 // TODO: do we need this as middleware or just as layer?
 export const DevModeLive = Layer.effect(
@@ -83,28 +82,15 @@ export const LoggerMiddlewareLive = Layer
             // TODO: support SchemaError if the error channel of the request allows it.. but who would want that?
             Effect.catch((_) => Schema.isSchemaError(_) ? Effect.die(_) : Effect.fail(_)),
             Effect.tapCause((cause) => Cause.hasFails(cause) ? logRequestError(cause) : Effect.void),
+            Effect.withErrorReporting({ defectsOnly: true }),
             Effect.tapCauseIf(Cause.hasDies, (cause) =>
-              Effect
-                .all([
-                  reportRequestError(cause, {
-                    action: rpc._tag
-                  }),
-                  InfraLogger
-                    .logError("Finished request", cause)
-                    .pipe(Effect.annotateLogs({
-                      action: rpc._tag,
-                      req: pretty(payload),
-                      headers: pretty(headers)
-                      // resHeaders: pretty(
-                      //   Object
-                      //     .entries(headers)
-                      //     .reduce((prev, [key, value]) => {
-                      //       prev[key] = value && typeof value === "string" ? snipString(value) : value
-                      //       return prev
-                      //     }, {} as Record<string, any>)
-                      // )
-                    }))
-                ])),
+              InfraLogger
+                .logError("Finished request", cause)
+                .pipe(Effect.annotateLogs({
+                  action: rpc._tag,
+                  req: pretty(payload),
+                  headers: pretty(headers)
+                }))),
             devMode ? (_) => _ : Effect.catchDefect(() => Effect.die("Internal Server Error"))
           )
     })

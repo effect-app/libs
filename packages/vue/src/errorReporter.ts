@@ -1,17 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as Sentry from "@sentry/browser"
-import { Cause, Effect, type LogLevel } from "effect-app"
-import { CauseException, tryToJson, tryToReport } from "effect-app/client/errors"
+import { Cause, Effect, ErrorReporter, type LogLevel } from "effect-app"
+import { tryToJson } from "effect-app/client/errors"
 import { dropUndefined, LogLevelToSentry } from "effect-app/utils"
 
-export const tryCauseException = <E>(cause: Cause.Cause<E>, name: string): CauseException<E> => {
-  try {
-    return new CauseException(cause, name)
-  } catch {
-    return new CauseException(Cause.die(new Error("Failed to create CauseException")), name)
+/**
+ * An `ErrorReporter` that forwards failures to Sentry (browser).
+ *
+ * Register it via `ErrorReporter.layer([makeSentryReporter])` in your runtime layer.
+ * Interrupt-skipping and per-error `ignore`/`severity`/`attributes` annotations
+ * are handled automatically by `ErrorReporter.make`.
+ */
+export const makeSentryReporter = ErrorReporter.make(({ cause, error, severity, attributes }) => {
+  const scope = new Sentry.Scope()
+  scope.setLevel(LogLevelToSentry(severity))
+  if (Object.keys(attributes).length > 0) {
+    scope.setContext("attributes", attributes as Record<string, unknown>)
   }
-}
+  scope.setContext("cause", { pretty: Cause.pretty(cause) })
+  Sentry.captureException(error, scope)
+})
 
 export function reportError(name: string) {
   return Effect.fnUntraced(
@@ -22,25 +30,21 @@ export function reportError(name: string) {
     ) {
       if (Cause.hasInterruptsOnly(cause)) {
         yield* Effect.logDebug("Interrupted").pipe(Effect.annotateLogs("extras", JSON.stringify(extras ?? {})))
-        return Cause.squash(cause)
+        return
       }
 
-      const error = tryCauseException(cause, name)
-      yield* reportSentry(error, extras, LogLevelToSentry(level))
+      yield* ErrorReporter.report(cause)
       yield* Effect
         .logWithLevel(level)("Reporting error", cause)
         .pipe(
           Effect.annotateLogs(dropUndefined({
             extras,
-            error: tryToReport(error),
             cause: tryToJson(cause),
             __error_name__: name
           })),
           Effect.catchCause((cause) => Effect.logWarning("Failed to log error", cause)),
           Effect.catchCause(() => Effect.logFatal("Failed to log error cause"))
         )
-
-      return error
     },
     (effect) =>
       Effect.tapCause(effect, (cause) =>
@@ -48,21 +52,6 @@ export function reportError(name: string) {
           Effect.tapCause(() => Effect.logFatal("Failed to log error cause"))
         ))
   )
-}
-
-function reportSentry(
-  error: CauseException<unknown>,
-  extras: Record<string, unknown> | undefined,
-  level: Sentry.SeverityLevel = "error"
-) {
-  return Effect.sync(() => {
-    const scope = new Sentry.Scope()
-    scope.setLevel(level)
-    if (extras) scope.setContext("extras", extras)
-    scope.setContext("error", tryToReport(error) as any)
-    scope.setContext("cause", tryToJson(error.originalCause) as any)
-    Sentry.captureException(error, scope)
-  })
 }
 
 export function logError<E>(name: string) {

@@ -52,7 +52,7 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   // @ts-expect-error invalidation resources for this module reject extra top-level resources
   clientFor(Something, undefined, { ...somethingInvalidationResources, SomethingElse })
 
-  const doSomethingInvalidation = client.DoSomething.Request.config.invalidatesQueries
+  const doSomethingInvalidation = client.DoSomething.Request.config["invalidatesQueries"]
   if (doSomethingInvalidation) {
     const entries = doSomethingInvalidation(
       ["$Something"],
@@ -68,25 +68,25 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   class TypeInferenceWithSuccess extends SomethingCommand<TypeInferenceWithSuccess>()("TypeInferenceWithSuccess", {
     id: S.String
   }, {
-    success: S.FiniteFromString,
-    invalidatesQueries: (_queryKey, _resources, input, result) => {
-      expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
-      expectTypeOf(result).toEqualTypeOf<Exit.Exit<number, never>>()
-      return []
-    }
+    success: S.FiniteFromString
+  }, (_queryKey, _resources, input, result) => {
+    expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
+    expectTypeOf(result).toEqualTypeOf<Exit.Exit<number, never>>()
+    return []
   }) {}
 
-  class TypeInferenceWithoutSuccess
-    extends SomethingCommand<TypeInferenceWithoutSuccess>()("TypeInferenceWithoutSuccess", {
+  class TypeInferenceWithoutSuccess extends SomethingCommand<TypeInferenceWithoutSuccess>()(
+    "TypeInferenceWithoutSuccess",
+    {
       id: S.String
-    }, {
-      invalidatesQueries: (_queryKey, _resources, input, result) => {
-        expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
-        expectTypeOf(result).toEqualTypeOf<Exit.Exit<void, never>>()
-        return []
-      }
-    })
-  {}
+    },
+    {},
+    (_queryKey, _resources, input, result) => {
+      expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
+      expectTypeOf(result).toEqualTypeOf<Exit.Exit<void, never>>()
+      return []
+    }
+  ) {}
   void TypeInferenceWithoutSuccess
 
   type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries>

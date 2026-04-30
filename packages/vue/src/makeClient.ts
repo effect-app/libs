@@ -490,11 +490,17 @@ type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) ext
 
 type CommandInvalidationResources<Req> = Req extends {
   readonly type: "command"
-  readonly config?: infer Config
-} ? Config extends {
-    readonly invalidationResources?: infer Resources
-  } ? Resources extends InvalidationResources ? Resources : never
-  : never
+  readonly "~invalidationResources"?: infer Resources
+} ? NonNullable<Resources> extends InvalidationResources ? NonNullable<Resources> : never
+  : Req extends {
+    readonly config?: infer Config
+  } ? Config extends {
+      readonly invalidationResources?: infer LegacyResources
+    } ? NonNullable<LegacyResources> extends InvalidationResources ? NonNullable<LegacyResources> : never
+    : Config extends {
+      readonly invalidatesQueries?: InvalidationCallback<infer LegacyResources, any, any, any>
+    } ? NonNullable<LegacyResources> extends InvalidationResources ? NonNullable<LegacyResources> : never
+    : never
   : never
 
 type InvalidationResourcesForUnion<M extends RequestsAny> = {
@@ -508,9 +514,28 @@ type InvalidationResourcesFor<M extends RequestsAny> = [InvalidationResourcesFor
 
 type QueryInvalidationFactory<M extends RequestsAny> = (client: ClientFrom<M>) => QueryInvalidation<M>
 
-type ClientForArgs<M extends RequestsAny> = [InvalidationResourcesFor<M>] extends [never]
-  ? [queryInvalidation?: QueryInvalidationFactory<M>, invalidationResources?: InvalidationResourcesFor<M>]
-  : [queryInvalidation: QueryInvalidationFactory<M> | undefined, invalidationResources: InvalidationResourcesFor<M>]
+type StrictResourcesArg<Shape, Actual extends Shape = Shape> =
+  & Actual
+  & Record<Exclude<keyof Actual, keyof Shape>, never>
+
+type ClientForArgs<
+  M extends RequestsAny,
+  Resources extends InvalidationResourcesFor<M> = InvalidationResourcesFor<M>
+> = [InvalidationResourcesFor<M>] extends [never]
+  ? [
+    queryInvalidation?: QueryInvalidationFactory<M>,
+    invalidationResources?: StrictResourcesArg<
+      InvalidationResourcesFor<M>,
+      Resources
+    >
+  ]
+  : [
+    queryInvalidation: QueryInvalidationFactory<M> | undefined,
+    invalidationResources: StrictResourcesArg<
+      InvalidationResourcesFor<M>,
+      Resources
+    >
+  ]
 
 export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
@@ -821,9 +846,12 @@ export const makeClient = <RT_, RTHooks>(
   // delay client creation until first access
   // the idea is that we don't need the useNuxtApp().$runtime (only available at later initialisation stage)
   // until we are at a place where it is available..
-  const clientFor = <M extends RequestsAny>(
+  const clientFor = <
+    M extends RequestsAny,
+    Resources extends InvalidationResourcesFor<M> = InvalidationResourcesFor<M>
+  >(
     m: M,
-    ...args: ClientForArgs<M>
+    ...args: ClientForArgs<M, Resources>
   ) => {
     const [queryInvalidation, invalidationResources] = args as [
       QueryInvalidationFactory<M> | undefined,

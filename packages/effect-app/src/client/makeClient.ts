@@ -35,6 +35,8 @@ type InputFromPayload<Payload extends S.Struct.Fields> = keyof Payload extends n
 
 type OutputFromSuccess<Success extends S.Top> = Success extends typeof ForceVoid ? void : S.Schema.Type<Success>
 
+type InvalidationResources = Record<string, Record<string, { readonly type: "command" | "query" }>>
+
 export type InvalidateQueryInstruction = {
   readonly filters?: Record<string, unknown>
   readonly options?: Record<string, unknown>
@@ -85,7 +87,8 @@ type TaggedRequestForResult<
   Error extends S.Top,
   Config,
   ModuleName extends string,
-  Type extends "command" | "query"
+  Type extends "command" | "query",
+  Resources = never
 > =
   & S.EnhancedClass<Self, TaggedRequestSchema<Tag, Payload>, {}>
   & {
@@ -98,6 +101,7 @@ type TaggedRequestForResult<
     readonly id: `${ModuleName}.${Tag}`
     readonly moduleName: ModuleName
     readonly type: Type
+    readonly "~invalidationResources"?: Resources
   }
 
 export const makeRpcClient = <
@@ -120,7 +124,7 @@ export const makeRpcClient = <
   // TODO: filter errors based on config + take care of inversion
   const errorSchemas = Object.values(rcs.config).map((_) => _.error)
 
-  function makeRequestClass<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
+  function makeRequestClass<Tag extends string, Fields extends S.Struct.Fields, C extends Partial<ServiceMap>>(
     tag: Tag,
     fields: Fields,
     config?: C
@@ -150,28 +154,25 @@ export const makeRpcClient = <
     moduleName: ModuleName,
     type: Type
   ) {
-    function TaggedRequestWithMeta<Self>(): {
+    function TaggedRequestWithMeta<Self, Resources extends InvalidationResources = never>(): {
       <
         Tag extends string,
         Payload extends S.Struct.Fields,
         Success extends S.Top | S.Struct.Fields,
         Error extends S.Top | S.Struct.Fields,
-        C extends RequestConfig & Record<string, any>,
-        Resources extends Record<string, unknown> = Record<string, any>
+        C extends RequestConfig & Record<string, any>
       >(
         tag: Tag,
         fields: Payload,
         config:
-          & C
-          & { success: Success; error: Error }
-          & Partial<
-            InvalidationConfigForCommand<
-              Resources,
-              Payload,
-              SchemaOrFields<Success>,
-              ErrorResult<C & { success: Success; error: Error }>
-            >
-          >
+          & Omit<C, "invalidatesQueries">
+          & { success: Success; error: Error },
+        invalidatesQueries?: InvalidationCallback<
+          Resources,
+          InputFromPayload<Payload>,
+          OutputFromSuccess<SchemaOrFields<Success>>,
+          S.Schema.Type<ErrorResult<C & { success: Success; error: Error }>>
+        >
       ): TaggedRequestForResult<
         Self,
         Tag,
@@ -179,8 +180,11 @@ export const makeRpcClient = <
         SchemaOrFields<Success>,
         ErrorResult<C & { success: Success; error: Error }>,
         Omit<
-          & C
-          & { success: Success; error: Error }
+          & Omit<C, "invalidatesQueries">
+          & {
+            success: Success
+            error: Error
+          }
           & Partial<
             InvalidationConfigForCommand<
               Resources,
@@ -192,28 +196,26 @@ export const makeRpcClient = <
           "success" | "error"
         >,
         ModuleName,
-        Type
+        Type,
+        Resources
       >
       <
         Tag extends string,
         Payload extends S.Struct.Fields,
         Success extends S.Top | S.Struct.Fields,
-        C extends RequestConfig & Record<string, any> & { error?: never },
-        Resources extends Record<string, unknown> = Record<string, any>
+        C extends RequestConfig & Record<string, any> & { error?: never }
       >(
         tag: Tag,
         fields: Payload,
         config:
-          & C
-          & { success: Success }
-          & Partial<
-            InvalidationConfigForCommand<
-              Resources,
-              Payload,
-              SchemaOrFields<Success>,
-              ErrorResult<C & { success: Success }>
-            >
-          >
+          & Omit<C, "invalidatesQueries">
+          & { success: Success },
+        invalidatesQueries?: InvalidationCallback<
+          Resources,
+          InputFromPayload<Payload>,
+          OutputFromSuccess<SchemaOrFields<Success>>,
+          S.Schema.Type<ErrorResult<C & { success: Success }>>
+        >
       ): TaggedRequestForResult<
         Self,
         Tag,
@@ -221,8 +223,10 @@ export const makeRpcClient = <
         SchemaOrFields<Success>,
         ErrorResult<C & { success: Success }>,
         Omit<
-          & C
-          & { success: Success }
+          & Omit<C, "invalidatesQueries">
+          & {
+            success: Success
+          }
           & Partial<
             InvalidationConfigForCommand<
               Resources,
@@ -234,28 +238,26 @@ export const makeRpcClient = <
           "success" | "error"
         >,
         ModuleName,
-        Type
+        Type,
+        Resources
       >
       <
         Tag extends string,
         Payload extends S.Struct.Fields,
         Error extends S.Top | S.Struct.Fields,
-        C extends RequestConfig & Record<string, any> & { success?: never },
-        Resources extends Record<string, unknown> = Record<string, any>
+        C extends RequestConfig & Record<string, any> & { success?: never }
       >(
         tag: Tag,
         fields: Payload,
         config:
-          & C
-          & { error: Error }
-          & Partial<
-            InvalidationConfigForCommand<
-              Resources,
-              Payload,
-              typeof ForceVoid,
-              ErrorResult<C & { error: Error }>
-            >
-          >
+          & Omit<C, "invalidatesQueries">
+          & { error: Error },
+        invalidatesQueries?: InvalidationCallback<
+          Resources,
+          InputFromPayload<Payload>,
+          void,
+          S.Schema.Type<ErrorResult<C & { error: Error }>>
+        >
       ): TaggedRequestForResult<
         Self,
         Tag,
@@ -263,8 +265,10 @@ export const makeRpcClient = <
         typeof ForceVoid,
         ErrorResult<C & { error: Error }>,
         Omit<
-          & C
-          & { error: Error }
+          & Omit<C, "invalidatesQueries">
+          & {
+            error: Error
+          }
           & Partial<
             InvalidationConfigForCommand<
               Resources,
@@ -276,17 +280,23 @@ export const makeRpcClient = <
           "success" | "error"
         >,
         ModuleName,
-        Type
+        Type,
+        Resources
       >
       <
         Tag extends string,
         Payload extends S.Struct.Fields,
-        C extends RequestConfig & Record<string, any> & { success?: never; error?: never },
-        Resources extends Record<string, unknown> = Record<string, any>
+        C extends RequestConfig & Record<string, any> & { success?: never; error?: never }
       >(
         tag: Tag,
         fields: Payload,
-        config: C & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>
+        config: Omit<C, "invalidatesQueries">,
+        invalidatesQueries?: InvalidationCallback<
+          Resources,
+          InputFromPayload<Payload>,
+          void,
+          S.Schema.Type<ErrorResult<C>>
+        >
       ): TaggedRequestForResult<
         Self,
         Tag,
@@ -294,11 +304,13 @@ export const makeRpcClient = <
         typeof ForceVoid,
         ErrorResult<C>,
         Omit<
-          C & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>,
+          & Omit<C, "invalidatesQueries">
+          & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>,
           "success" | "error"
         >,
         ModuleName,
-        Type
+        Type,
+        Resources
       >
       <Tag extends string, Payload extends S.Struct.Fields>(
         tag: Tag,
@@ -317,9 +329,11 @@ export const makeRpcClient = <
       return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
         tag: Tag,
         fields: Fields,
-        config?: C
+        config?: C,
+        invalidatesQueries?: InvalidationCallback<Resources, unknown, unknown, unknown>
       ) => {
-        const cls = makeRequestClass(tag, fields, config)
+        const requestConfig = invalidatesQueries === undefined ? config : { ...config, invalidatesQueries }
+        const cls = makeRequestClass(tag, fields, requestConfig)
         Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName, type })
         return cls
       }) as any

@@ -92,10 +92,8 @@ export interface RequestHandler<A, E, R, Request extends Req, Id extends string>
 }
 
 export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
-  // Some generated make signatures include _tag in input; accept both tagged and untagged forms.
-  handler: [Extract<I, void>] extends [never]
-    ? (i: Exclude<I, void> | UntagRequestInput<Exclude<I, void>>) => Effect.Effect<A, E, R>
-    : (i?: Exclude<I, void> | UntagRequestInput<Exclude<I, void>>) => Effect.Effect<A, E, R>
+  handler: undefined extends I ? (i?: Exclude<I, undefined>) => Effect.Effect<A, E, R>
+    : (i: I) => Effect.Effect<A, E, R>
   id: Id
   options?: ClientForOptions
   Request: Request
@@ -104,30 +102,33 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
 
-export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
-  [infer A, ...ReadonlyArray<any>] ? A : void
-
-type UntagRequestInput<I> = I extends { _tag: any } ? Omit<I, "_tag">
-  : I extends { readonly _tag: any } ? Omit<I, "_tag">
-  : I
-
 type RequestFields<I> = I extends { readonly fields: infer F extends S.Struct.Fields } ? F : never
 
-type RequestInputFromFields<I> = RequestFields<I> extends infer F extends S.Struct.Fields
-  ? keyof F extends never ? never
-  : S.Schema.Type<S.Struct<F>>
-  : never
+type RequestInputFromFields<I> = [RequestFields<I>] extends [never] ? never
+  : keyof RequestFields<I> extends never ? void
+  : S.Schema.Type<S.Struct<RequestFields<I>>>
 
-type RequestInput<I extends { readonly make: (...args: any[]) => any }> =
-  | UntagRequestInput<RequestInputFromMake<I>>
-  | RequestInputFromFields<I>
-  | void
+type RequestInputFromOverloadedMake<I extends { readonly make: (...args: any[]) => any }> =
+  Parameters<I["make"]> extends [] ? void
+    : Parameters<I["make"]>[0]
 
-type IsVoidOnly<T> = [Exclude<T, void>] extends [never] ? true
+export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> =
+  [RequestInputFromFields<I>] extends [never] ? RequestInputFromOverloadedMake<I>
+    : RequestInputFromFields<I>
+
+type NormalizedRequestInput<T> = Omit<Exclude<T, undefined>, "_tag">
+
+// If make's first param has only an optional _tag property, treat as no-input handler.
+type IsTagOnly<T> = [Exclude<T, undefined>] extends [never] ? true
+  : [keyof NormalizedRequestInput<T>] extends [never] ? true
   : false
 
+type RequestInput<I extends { readonly make: (...args: any[]) => any }> = NormalizedRequestInput<
+  RequestInputFromMake<I>
+>
+
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsVoidOnly<RequestInput<M[K]>> extends true ? RequestHandler<
+  [K in keyof M as M[K] extends Req ? K : never]: IsTagOnly<RequestInputFromMake<M[K]>> extends true ? RequestHandler<
       S.Schema.Type<M[K]["success"]>,
       S.Schema.Type<M[K]["error"]> | E,
       R | ReqDecodingServices<M[K]>,

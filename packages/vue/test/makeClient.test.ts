@@ -36,7 +36,7 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   expectTypeOf(invalidates.invalidatesQueries).toBeFunction()
   configureInvalidation<{ Something: typeof Something }>()((_queryKey, { Something }) => {
     // @ts-expect-error commands are intentionally excluded from configured resources
-    const _invalid = Something.DoSomething
+    void Something.DoSomething
     return []
   })
 
@@ -75,6 +75,7 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
     expectTypeOf(result).toEqualTypeOf<Exit.Exit<number, never>>()
     return []
   }) {}
+  void TypeInferenceWithSuccess
 
   class TypeInferenceWithoutSuccess extends SomethingCommand<TypeInferenceWithoutSuccess>()(
     "TypeInferenceWithoutSuccess",
@@ -110,9 +111,9 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
     expectTypeOf(resources.Misc.GetSomething2).toEqualTypeOf<typeof Something.GetSomething2>()
 
     // @ts-expect-error commands must be filtered from invalidation resources
-    const _ = resources.Something.DoSomething
+    void resources.Something.DoSomething
     // @ts-expect-error non-query values must be filtered from invalidation resources
-    const _b = resources.Misc.value
+    void resources.Misc.value
 
     return []
   }) {}
@@ -120,7 +121,7 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
 
   type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries>
   // @ts-expect-error input should be required when command payload is non-empty
-  const _missingInputArg: WithSuccessInvalidation = (_queryKey, _resources) => []
+  ;((_queryKey, _resources) => []) satisfies WithSuccessInvalidation
 })
 
 it.skip("query type tests", () => {
@@ -219,7 +220,7 @@ it.skip("works", () => {
   // we have to make sure the Encoded shape of the provided projection schema matches the Encoded Shape of the original codec.
   const projected = client.GetSomething2.project(S.String)
   // @ts-expect-error encoded type mismatch: original encodes to string, S.Number encodes to number
-  const _projectedBad = client.GetSomething2.project(S.Number)
+  client.GetSomething2.project(S.Number)
   const p0 = projected.request(null as any)
 
   // struct example: success schema encodes to { a: string | null }
@@ -227,7 +228,7 @@ it.skip("works", () => {
   const projectedStruct = client.GetStructNullable.project(S.Struct({ a: S.NullOr(S.String) }))
   // bad: { a: S.String } has encoded type { a: string } — does not accept null
   // @ts-expect-error encoded type mismatch: original encodes to { a: string | null }, projection expects { a: string }
-  const _projectedStructBad = client.GetStructNullable.project(S.Struct({ a: S.String }))
+  client.GetStructNullable.project(S.Struct({ a: S.String }))
 
   const p00 = projected.query(null as any)
   const p = projected.suspense(null as any)

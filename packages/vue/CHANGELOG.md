@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- 140e192: Relax invalidation resource value constraints to allow arbitrary values while preserving query-only filtering in invalidation handling.
+- Updated dependencies [140e192]
+  - effect-app@4.0.0-beta.167
+
 ## 4.0.0-beta.166
 
 ### Patch Changes

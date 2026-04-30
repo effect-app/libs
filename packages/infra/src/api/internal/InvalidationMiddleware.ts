@@ -17,12 +17,12 @@ import { HttpMiddleware, HttpServerResponse } from "effect-app/http"
  */
 export const InvalidationSetMiddleware = HttpMiddleware.make((app) =>
   Effect.gen(function*() {
-    const ref = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
-    const service = Invalidation.makeInvalidationSet(ref)
+    const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
+    const service = Invalidation.makeInvalidationSet(keysRef)
 
     const res = yield* Effect.provideService(app, Invalidation.InvalidationSet, service)
 
-    const keys = yield* Ref.get(ref)
+    const keys = yield* Ref.get(keysRef)
     if (!keys.length) return res
     return HttpServerResponse.setHeader(res, "x-invalidate", JSON.stringify(keys))
   })

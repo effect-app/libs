@@ -204,7 +204,7 @@ export const invalidateQueries = (
             if (Array.isArrayNonEmpty(serverKeys)) {
               yield* Effect.forEach(
                 serverKeys,
-                (key) => invalidateQueries({ queryKey: key as ReadonlyArray<string> }),
+                (key) => invalidateQueries({ queryKey: key }),
                 { discard: true, concurrency: "inherit" }
               )
             }

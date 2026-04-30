@@ -2,6 +2,7 @@
 import { flow } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
+import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 import * as Struct from "effect/Struct"
@@ -10,8 +11,8 @@ import * as Config from "../Config.js"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
-import * as Option from "../Option.js"
-import type * as S from "../Schema.js"
+import { Invalidation } from "../rpc.js"
+import * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, ExtractModuleName, RequestsAny } from "./clientFor.js"
 import { InvalidationKeysFromServer } from "./InvalidationKeys.js"
@@ -71,13 +72,15 @@ export const HttpClientLayer = (config: ApiConfig) =>
             if (!header) return Effect.void
             return Effect.gen(function*() {
               const invalidationKeys = yield* InvalidationKeysFromServer
+              let parsed: unknown
               try {
-                const keys = JSON.parse(header) as ReadonlyArray<ReadonlyArray<string>>
-                if (Array.isArray(keys)) {
-                  yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
-                }
+                parsed = JSON.parse(header)
               } catch {
-                // ignore malformed header
+                return // ignore malformed JSON
+              }
+              const decoded = S.decodeUnknownOption(Invalidation.InvalidationKeys)(parsed)
+              if (Option.isSome(decoded)) {
+                yield* Effect.forEach(decoded.value, (key) => invalidationKeys.add(key), { discard: true })
               }
             })
           })

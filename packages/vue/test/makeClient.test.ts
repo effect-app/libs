@@ -89,6 +89,34 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
   ) {}
   void TypeInferenceWithoutSuccess
 
+  type MixedResources = {
+    Something: typeof Something
+    Misc: {
+      value: number
+      GetSomething2: typeof Something.GetSomething2
+    }
+  }
+
+  class TypeInferenceResourceFiltering extends SomethingCommand<
+    TypeInferenceResourceFiltering,
+    MixedResources
+  >()("TypeInferenceResourceFiltering", {
+    id: S.String
+  }, {
+    success: S.FiniteFromString
+  }, (_queryKey, resources, _input, _result) => {
+    expectTypeOf(resources.Something.GetSomething2).toEqualTypeOf<typeof Something.GetSomething2>()
+    expectTypeOf(resources.Misc.GetSomething2).toEqualTypeOf<typeof Something.GetSomething2>()
+
+    // @ts-expect-error commands must be filtered from invalidation resources
+    const _ = resources.Something.DoSomething
+    // @ts-expect-error non-query values must be filtered from invalidation resources
+    const _b = resources.Misc.value
+
+    return []
+  }) {}
+  void TypeInferenceResourceFiltering
+
   type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries>
   // @ts-expect-error input should be required when command payload is non-empty
   const _missingInputArg: WithSuccessInvalidation = (_queryKey, _resources) => []

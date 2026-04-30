@@ -484,7 +484,7 @@ const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt
 type Base = I18n | Toast
 type Mix = ApiClientFactory | Commander | Base
 
-type InvalidationResources = Record<string, Record<string, { readonly type: "command" | "query" }>>
+type InvalidationResources = Record<string, Record<string, unknown>>
 type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) extends ((arg: infer I) => void) ? I
   : never
 
@@ -578,7 +578,12 @@ export const makeClient = <RT_, RTHooks>(
       const resource = resources[resourceName]!
       ;(acc as any)[resourceName] = Struct.keys(resource).reduce((moduleAcc, requestName) => {
         const request = resource[requestName]!
-        if (request.type === "query") {
+        if (
+          typeof request === "object"
+          && request !== null
+          && "type" in request
+          && (request as { readonly type?: unknown }).type === "query"
+        ) {
           ;(moduleAcc as any)[requestName] = request
         }
         return moduleAcc

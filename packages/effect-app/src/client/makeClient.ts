@@ -35,7 +35,7 @@ type InputFromPayload<Payload extends S.Struct.Fields> = keyof Payload extends n
 
 type OutputFromSuccess<Success extends S.Top> = Success extends typeof ForceVoid ? void : S.Schema.Type<Success>
 
-type InvalidationResources = Record<string, Record<string, { readonly type: "command" | "query" }>>
+type InvalidationResources = Record<string, Record<string, unknown>>
 
 export type InvalidateQueryInstruction = {
   readonly filters?: Record<string, unknown>

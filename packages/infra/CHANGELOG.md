@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.172
+
+### Patch Changes
+
+- improve sentry
+  - effect-app@4.0.0-beta.172
+
 ## 4.0.0-beta.171
 
 ### Patch Changes

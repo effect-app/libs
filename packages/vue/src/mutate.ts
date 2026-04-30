@@ -72,7 +72,7 @@ export interface MutationOptionsBase {
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
    * This can be overridden by providing a function that returns an array of filters and options.
    */
-  queryInvalidation?: (defaultKey: string[], name: string) => {
+  queryInvalidation?: (defaultKey: string[], name: string, input?: unknown, output?: Exit.Exit<unknown, unknown>) => {
     filters?: InvalidateQueryFilters | undefined
     options?: InvalidateOptions | undefined
   }[]
@@ -158,40 +158,49 @@ export const invalidateQueries = (
       )
     )
 
-  const invalidateCache = Effect.suspend(() => {
-    const queryKey = getQueryKey(self)
+  const invalidateCache = (input: unknown, output: Exit.Exit<unknown, unknown>) =>
+    Effect.suspend(() => {
+      const queryKey = getQueryKey(self)
 
-    if (options) {
-      const opts = options(queryKey, self.id)
-      if (!opts.length) {
-        return Effect.void
+      if (options) {
+        const opts = options(queryKey, self.id, input, output)
+        if (!opts.length) {
+          return Effect.void
+        }
+        return Effect
+          .andThen(
+            Effect.annotateCurrentSpan({ queryKey, opts }),
+            Effect.forEach(opts, (_) => invalidateQueries(_.filters, _.options), { concurrency: "inherit" })
+          )
+          .pipe(Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false }))
       }
+
+      if (!queryKey) return Effect.void
+
       return Effect
         .andThen(
-          Effect.annotateCurrentSpan({ queryKey, opts }),
-          Effect.forEach(opts, (_) => invalidateQueries(_.filters, _.options), { concurrency: "inherit" })
+          Effect.annotateCurrentSpan({ queryKey }),
+          invalidateQueries({ queryKey })
         )
-        .pipe(Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false }))
-    }
+        .pipe(
+          Effect.tap(
+            // hand over control back to the event loop so that state can be updated..
+            // TODO: should we do this in general on any mutation, regardless of invalidation?
+            Effect.sleep(0)
+          ),
+          Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
+        )
+    })
 
-    if (!queryKey) return Effect.void
-
-    return Effect
-      .andThen(
-        Effect.annotateCurrentSpan({ queryKey }),
-        invalidateQueries({ queryKey })
+  const handle = <A, E, R>(self: Effect.Effect<A, E, R>, input?: unknown) =>
+    self.pipe(
+      Effect.onExit((exit) =>
+        invalidateCache(
+          input,
+          exit
+        )
       )
-      .pipe(
-        Effect.tap(
-          // hand over control back to the event loop so that state can be updated..
-          // TODO: should we do this in general on any mutation, regardless of invalidation?
-          Effect.sleep(0)
-        ),
-        Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
-      )
-  })
-
-  const handle = <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.ensuring(self, invalidateCache)
+    )
 
   return handle
 }
@@ -221,7 +230,7 @@ export const makeMutation = () => {
     const queryClient = useQueryClient()
     const handle = invalidateQueries(queryClient, self, options?.queryInvalidation)
     const handler = self.handler
-    const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i))
+    const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
 
     return Object.assign(r, { id: self.id }) as any
   }
@@ -255,7 +264,7 @@ export const useMakeMutation = () => {
   ) => {
     const handle = invalidateQueries(queryClient, self, options?.queryInvalidation)
     const handler = self.handler
-    const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i))
+    const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
 
     return Object.assign(r, { id: self.id }) as any
   }

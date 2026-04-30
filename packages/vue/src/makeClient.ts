@@ -3,7 +3,9 @@ import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, 
 import { camelCase } from "change-case"
 import { type Context, Effect, Exit, Hash, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
-import type { RequestInputFromMake, ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestsAny } from "effect-app/client/clientFor"
+import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestInputFromMake, RequestsAny } from "effect-app/client/clientFor"
+import type { InvalidationCallback } from "effect-app/client/makeClient"
+import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
@@ -481,6 +483,28 @@ const managedRuntimeRt = <A, E>(mrt: ManagedRuntime.ManagedRuntime<A, E>) => mrt
 
 type Base = I18n | Toast
 type Mix = ApiClientFactory | Commander | Base
+
+type InvalidationResources = Record<string, Record<string, { readonly type: "command" | "query" }>>
+type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) extends ((arg: infer I) => void) ? I
+  : never
+
+type CommandInvalidationResources<Req> = Req extends {
+  readonly type: "command"
+  readonly config?: infer Config
+} ? Config extends {
+    readonly invalidationResources?: infer Resources
+  } ? Resources extends InvalidationResources ? Resources : never
+  : never
+  : never
+
+type InvalidationResourcesForUnion<M extends RequestsAny> = {
+  [K in keyof M]: CommandInvalidationResources<M[K]>
+}[keyof M]
+
+type InvalidationResourcesFor<M extends RequestsAny> = [InvalidationResourcesForUnion<M>] extends [never] ? never
+  : UnionToIntersection<InvalidationResourcesForUnion<M>> extends infer R ? R extends InvalidationResources ? R
+    : never
+  : never
 export const makeClient = <RT_, RTHooks>(
   // global, but only accessible after startup has completed
   getBaseMrt: () => ManagedRuntime.ManagedRuntime<RT_ | Mix, never>,
@@ -499,6 +523,37 @@ export const makeClient = <RT_, RTHooks>(
   const query = new QueryImpl(getBaseRt)
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
+
+  const mergeInvalidation = (
+    a?: MutationOptionsBase["queryInvalidation"],
+    b?: MutationOptionsBase["queryInvalidation"]
+  ): MutationOptionsBase["queryInvalidation"] | undefined => {
+    if (!a && !b) {
+      return undefined
+    }
+    return (defaultKey, name, input, output) => [
+      ...(a?.(defaultKey, name, input, output) ?? []),
+      ...(b?.(defaultKey, name, input, output) ?? [])
+    ]
+  }
+
+  const makeQueryResources = <Resources extends InvalidationResources>(resources: Resources | undefined) => {
+    if (!resources) {
+      return {} as Record<string, Record<string, unknown>>
+    }
+
+    return Struct.keys(resources).reduce((acc, resourceName) => {
+      const resource = resources[resourceName]!
+      ;(acc as any)[resourceName] = Struct.keys(resource).reduce((moduleAcc, requestName) => {
+        const request = resource[requestName]!
+        if (request.type === "query") {
+          ;(moduleAcc as any)[requestName] = request
+        }
+        return moduleAcc
+      }, {} as Record<string, unknown>)
+      return acc
+    }, {} as Record<string, Record<string, unknown>>)
+  }
 
   const mapQuery = <M extends RequestsAny>(
     client: ClientFrom<M>
@@ -572,17 +627,35 @@ export const makeClient = <RT_, RTHooks>(
   }
 
   const mapMutation = <M extends RequestsAny>(
-    client: ClientFrom<M>
+    client: ClientFrom<M>,
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
+    invalidationResources?: InvalidationResourcesFor<M>
   ) => {
     const Command = useCommand()
     const mutation = useMutation()
+    const invalidation = queryInvalidation?.(client)
+    const queryResources = makeQueryResources(invalidationResources)
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
         if (client[key].Request.type !== "command") {
           return acc
         }
+        const fromRequestConfig = client[key].Request.config?.invalidatesQueries as
+          | InvalidationCallback<InvalidationResourcesFor<M>>
+          | undefined
+        const fromRequest = fromRequestConfig
+          ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
+            fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((entry) => ({
+              filters: entry.filters as InvalidateQueryFilters | undefined,
+              options: entry.options as InvalidateOptions | undefined
+            })))
+          : undefined
+        const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
-          const mut: any = mutation(handler)
+          const mut: any = mutation(
+            handler,
+            mergedInvalidation ? { queryInvalidation: mergedInvalidation } : undefined
+          )
           const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
           return Object.assign(mut, {
             wrap,
@@ -614,7 +687,8 @@ export const makeClient = <RT_, RTHooks>(
   // make available .query, .suspense and .mutate for each operation
   // and a .helpers with all mutations and queries
   const mapClient = <M extends RequestsAny>(
-    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
+    invalidationResources?: InvalidationResourcesFor<M>
   ) =>
   (
     client: ClientFrom<M>
@@ -622,6 +696,7 @@ export const makeClient = <RT_, RTHooks>(
     const Command = useCommand()
     const mutation = useMutation()
     const invalidation = queryInvalidation?.(client)
+    const queryResources = makeQueryResources(invalidationResources)
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
         const requestType = client[key].Request.type
@@ -658,10 +733,23 @@ export const makeClient = <RT_, RTHooks>(
             }
             : {
               mutate: ((handler: any) => {
+                const fromRequestConfig = client[key].Request.config?.invalidatesQueries as
+                  | InvalidationCallback<InvalidationResourcesFor<M>>
+                  | undefined
+                const fromRequest = fromRequestConfig
+                  ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
+                    fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((
+                      entry
+                    ) => ({
+                      filters: entry.filters as InvalidateQueryFilters | undefined,
+                      options: entry.options as InvalidateOptions | undefined
+                    })))
+                  : undefined
+                const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
                 const makeProjectedMutation = (h: any): any => {
                   const mutate = mutation(
                     h,
-                    invalidation?.[key] ? { queryInvalidation: invalidation[key] } : undefined
+                    mergedInvalidation ? { queryInvalidation: mergedInvalidation } : undefined
                   ) as any
                   return Object.assign(
                     mutate,
@@ -706,26 +794,34 @@ export const makeClient = <RT_, RTHooks>(
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }
     )
-    return Object.assign(extended, { helpers: { ...mapRequest(client), ...mapMutation(client), ...mapQuery(client) } })
+    return Object.assign(extended, {
+      helpers: {
+        ...mapRequest(client),
+        ...mapMutation(client, queryInvalidation, invalidationResources),
+        ...mapQuery(client)
+      }
+    })
   }
 
   // TODO: Clean up this delay initialisation messs
   // TODO; invalidateQueries should perhaps be configured in the Request impl themselves?
   const clientFor__ = <M extends RequestsAny>(
     m: M,
-    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
-  ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation))))
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
+    invalidationResources?: InvalidationResourcesFor<M>
+  ) => getBaseMrt().runSync(clientFor_(m).pipe(Effect.map(mapClient(queryInvalidation, invalidationResources))))
 
   // delay client creation until first access
   // the idea is that we don't need the useNuxtApp().$runtime (only available at later initialisation stage)
   // until we are at a place where it is available..
   const clientFor = <M extends RequestsAny>(
     m: M,
-    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
+    invalidationResources?: InvalidationResourcesFor<M>
   ) => {
     type Client = ReturnType<typeof clientFor__<M>>
     let client: Client | undefined = undefined
-    const getOrMakeClient = () => (client ??= clientFor__(m, queryInvalidation))
+    const getOrMakeClient = () => (client ??= clientFor__(m, queryInvalidation, invalidationResources))
 
     // initialize on first use..
     const proxy = Struct.keys(m).concat(["helpers"]).reduce((acc, key) => {
@@ -762,7 +858,12 @@ export const makeClient = <RT_, RTHooks>(
 }
 
 export type QueryInvalidation<M> = {
-  [K in keyof M]?: (defaultKey: string[], name: string) => {
+  [K in keyof M]?: (
+    defaultKey: string[],
+    name: string,
+    input?: unknown,
+    output?: ExitResult.Exit<unknown, unknown>
+  ) => {
     filters?: InvalidateQueryFilters | undefined
     options?: InvalidateOptions | undefined
   }[]

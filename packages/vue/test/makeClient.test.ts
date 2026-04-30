@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { S } from "effect-app"
+import { configureInvalidation } from "effect-app/client"
+import * as Exit from "effect/Exit"
 import { makeQueryKey } from "../src/lib.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
@@ -14,6 +16,79 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
 
   expectTypeOf(SomethingElse.GetSomething2.moduleName).toEqualTypeOf<"SomethingElse">()
   expectTypeOf(SomethingElse.GetSomething2.id).toEqualTypeOf<"SomethingElse.GetSomething2">()
+
+  const invalidates = configureInvalidation<{
+    Something: typeof Something
+    SomethingElse: typeof SomethingElse
+  }>()((queryKey, { Something, SomethingElse }) => [
+    { filters: { queryKey } },
+    { filters: { queryKey: makeQueryKey(Something.GetSomething2) } },
+    { filters: { queryKey: makeQueryKey(SomethingElse.GetSomething2) } }
+  ])
+
+  expectTypeOf(invalidates.invalidatesQueries).toBeFunction()
+  configureInvalidation<{ Something: typeof Something }>()((_queryKey, { Something }) => {
+    // @ts-expect-error commands are intentionally excluded from configured resources
+    const _invalid = Something.DoSomething
+    return []
+  })
+
+  const { clientFor } = useClient()
+  const invalidationResources = {
+    Something: {
+      GetSomething2: Something.GetSomething2,
+      GetSomething2WithDependencies: Something.GetSomething2WithDependencies
+    }
+  }
+  const client = clientFor(
+    Something,
+    undefined,
+    invalidationResources
+  )
+
+  // @ts-expect-error invalidation resources for this module reject extra top-level resources
+  clientFor(Something, undefined, { ...invalidationResources, SomethingElse })
+
+  const doSomethingInvalidation = client.DoSomething.Request.config.invalidatesQueries
+  if (doSomethingInvalidation) {
+    const entries = doSomethingInvalidation(
+      ["$Something"],
+      invalidationResources,
+      { id: "abc" },
+      Exit.succeed(123)
+    )
+    expect(Array.isArray(entries)).toBe(true)
+  }
+
+  const SomethingCommand = SomethingReq.Command
+
+  class TypeInferenceWithSuccess extends SomethingCommand<TypeInferenceWithSuccess>()("TypeInferenceWithSuccess", {
+    id: S.String
+  }, {
+    success: S.FiniteFromString,
+    invalidatesQueries: (_queryKey, _resources, input, result) => {
+      expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
+      expectTypeOf(result).toEqualTypeOf<Exit.Exit<number, never>>()
+      return []
+    }
+  }) {}
+
+  class TypeInferenceWithoutSuccess
+    extends SomethingCommand<TypeInferenceWithoutSuccess>()("TypeInferenceWithoutSuccess", {
+      id: S.String
+    }, {
+      invalidatesQueries: (_queryKey, _resources, input, result) => {
+        expectTypeOf(input).toEqualTypeOf<{ readonly id: string }>()
+        expectTypeOf(result).toEqualTypeOf<Exit.Exit<void, never>>()
+        return []
+      }
+    })
+  {}
+  void TypeInferenceWithoutSuccess
+
+  type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries>
+  // @ts-expect-error input should be required when command payload is non-empty
+  const _missingInputArg: WithSuccessInvalidation = (_queryKey, _resources) => []
 })
 
 it.skip("query type tests", () => {

@@ -2,8 +2,9 @@
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
 import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
-import { ApiClientFactory, makeRpcClient } from "effect-app/client"
+import { ApiClientFactory, configureInvalidation, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
+import * as Exit from "effect/Exit"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import { ref } from "vue"
 import { Commander } from "../src/commander.js"
@@ -113,9 +114,34 @@ class SomethingGetSomething2WithDependencies
   })
 {}
 
+type SomethingInvalidationResources = {
+  GetSomething2: typeof SomethingGetSomething2
+  GetSomething2WithDependencies: typeof SomethingGetSomething2WithDependencies
+}
+
 class SomethingDoSomething extends SomethingCommand<SomethingDoSomething>()("DoSomething", {
   id: S.String
-}, { success: S.FiniteFromString }) {}
+}, {
+  success: S.FiniteFromString,
+  ...configureInvalidation<{ Something: SomethingInvalidationResources }>()<
+    { readonly id: string },
+    number,
+    never
+  >((queryKey, { Something }, input, output) => {
+    return [
+      { filters: { queryKey } },
+      {
+        filters: {
+          queryKey: [
+            Something["GetSomething2"].id,
+            input.id,
+            Exit.isSuccess(output) ? output.value.toString() : "failed"
+          ]
+        }
+      }
+    ]
+  })
+}) {}
 
 // success schema has encoded shape { a: string | null } — used to test projection constraints
 class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullable>()("GetStructNullable", {}, {

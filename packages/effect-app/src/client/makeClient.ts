@@ -1,4 +1,5 @@
 import { SchemaTransformation } from "effect"
+import type * as Exit from "effect/Exit"
 import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
@@ -20,6 +21,64 @@ type SchemaOrFields<T> = T extends S.Top ? T : T extends S.Struct.Fields ? S.Str
 type TaggedRequestSchema<Tag extends string, Payload extends S.Struct.Fields> = S.Struct<
   { readonly _tag: S.tag<Tag> } & Payload
 >
+
+type QueryOnlyRequests<Resource> = {
+  [K in keyof Resource as Resource[K] extends { readonly type: "query" } ? K : never]: Resource[K]
+}
+
+type QueryOnlyResources<Resources> = {
+  [K in keyof Resources]: QueryOnlyRequests<Resources[K]>
+}
+
+type InputFromPayload<Payload extends S.Struct.Fields> = keyof Payload extends never ? void
+  : S.Schema.Type<S.Struct<Payload>>
+
+type OutputFromSuccess<Success extends S.Top> = Success extends typeof ForceVoid ? void : S.Schema.Type<Success>
+
+export type InvalidateQueryInstruction = {
+  readonly filters?: Record<string, unknown>
+  readonly options?: Record<string, unknown>
+}
+
+export type InvalidationCallback<Resources, Input = unknown, Success = unknown, Failure = unknown> = (
+  queryKey: readonly string[],
+  resources: QueryOnlyResources<Resources>,
+  ...args: [Input] extends [void] ? [exit: Exit.Exit<Success, Failure>]
+    : [input: Input, exit: Exit.Exit<Success, Failure>]
+) => ReadonlyArray<InvalidateQueryInstruction>
+
+export type InvalidationConfig<Resources, Input = unknown, Success = unknown, Failure = unknown> = {
+  readonly invalidatesQueries: InvalidationCallback<Resources, Input, Success, Failure>
+  readonly invalidationResources?: Resources
+}
+
+type InvalidationConfigForCommand<
+  Resources,
+  Payload extends S.Struct.Fields,
+  Success extends S.Top,
+  Error extends S.Top
+> = InvalidationConfig<
+  Resources,
+  InputFromPayload<Payload>,
+  OutputFromSuccess<Success>,
+  S.Schema.Type<Error>
+>
+
+export const configureInvalidation = <Resources>() =>
+<Input = unknown, Success = unknown, Failure = unknown>(
+  invalidatesQueries: InvalidationCallback<Resources, Input, Success, Failure>
+): InvalidationConfig<Resources, Input, Success, Failure> =>
+  ({ invalidatesQueries }) as InvalidationConfig<
+    Resources,
+    Input,
+    Success,
+    Failure
+  >
+
+export const configureInvalidationCallback = <Resources>() =>
+<Input = unknown, Success = unknown, Failure = unknown>(
+  invalidatesQueries: InvalidationCallback<Resources, Input, Success, Failure>
+): InvalidationCallback<Resources, Input, Success, Failure> => invalidatesQueries
 
 type TaggedRequestForResult<
   Self,
@@ -95,59 +154,152 @@ export const makeRpcClient = <
     type: Type
   ) {
     function TaggedRequestWithMeta<Self>(): {
-      <Tag extends string, Payload extends S.Struct.Fields, C extends ServiceMap>(
+      <
+        Tag extends string,
+        Payload extends S.Struct.Fields,
+        Success extends S.Top | S.Struct.Fields,
+        Error extends S.Top | S.Struct.Fields,
+        C extends RequestConfig & Record<string, any>,
+        Resources extends Record<string, unknown> = Record<string, any>
+      >(
         tag: Tag,
         fields: Payload,
-        config: RequestConfig & C
+        config:
+          & C
+          & { success: Success; error: Error }
+          & Partial<
+            InvalidationConfigForCommand<
+              Resources,
+              Payload,
+              SchemaOrFields<Success>,
+              ErrorResult<C & { success: Success; error: Error }>
+            >
+          >
       ): TaggedRequestForResult<
         Self,
         Tag,
         Payload,
-        SchemaOrFields<C["success"]>,
-        ErrorResult<C>,
-        Omit<C, "success" | "error">,
+        SchemaOrFields<Success>,
+        ErrorResult<C & { success: Success; error: Error }>,
+        Omit<
+          & C
+          & { success: Success; error: Error }
+          & Partial<
+            InvalidationConfigForCommand<
+              Resources,
+              Payload,
+              SchemaOrFields<Success>,
+              ErrorResult<C & { success: Success; error: Error }>
+            >
+          >,
+          "success" | "error"
+        >,
         ModuleName,
         Type
       >
-      <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "success">>(
+      <
+        Tag extends string,
+        Payload extends S.Struct.Fields,
+        Success extends S.Top | S.Struct.Fields,
+        C extends RequestConfig & Record<string, any> & { error?: never },
+        Resources extends Record<string, unknown> = Record<string, any>
+      >(
         tag: Tag,
         fields: Payload,
-        config: RequestConfig & C
+        config:
+          & C
+          & { success: Success }
+          & Partial<
+            InvalidationConfigForCommand<
+              Resources,
+              Payload,
+              SchemaOrFields<Success>,
+              ErrorResult<C & { success: Success }>
+            >
+          >
       ): TaggedRequestForResult<
         Self,
         Tag,
         Payload,
-        SchemaOrFields<C["success"]>,
-        ErrorResult<C>,
-        Omit<C, "success" | "error">,
+        SchemaOrFields<Success>,
+        ErrorResult<C & { success: Success }>,
+        Omit<
+          & C
+          & { success: Success }
+          & Partial<
+            InvalidationConfigForCommand<
+              Resources,
+              Payload,
+              SchemaOrFields<Success>,
+              ErrorResult<C & { success: Success }>
+            >
+          >,
+          "success" | "error"
+        >,
         ModuleName,
         Type
       >
-      <Tag extends string, Payload extends S.Struct.Fields, C extends Pick<ServiceMap, "error">>(
+      <
+        Tag extends string,
+        Payload extends S.Struct.Fields,
+        Error extends S.Top | S.Struct.Fields,
+        C extends RequestConfig & Record<string, any> & { success?: never },
+        Resources extends Record<string, unknown> = Record<string, any>
+      >(
         tag: Tag,
         fields: Payload,
-        config: RequestConfig & C
+        config:
+          & C
+          & { error: Error }
+          & Partial<
+            InvalidationConfigForCommand<
+              Resources,
+              Payload,
+              typeof ForceVoid,
+              ErrorResult<C & { error: Error }>
+            >
+          >
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<C & { error: Error }>,
+        Omit<
+          & C
+          & { error: Error }
+          & Partial<
+            InvalidationConfigForCommand<
+              Resources,
+              Payload,
+              typeof ForceVoid,
+              ErrorResult<C & { error: Error }>
+            >
+          >,
+          "success" | "error"
+        >,
+        ModuleName,
+        Type
+      >
+      <
+        Tag extends string,
+        Payload extends S.Struct.Fields,
+        C extends RequestConfig & Record<string, any> & { success?: never; error?: never },
+        Resources extends Record<string, unknown> = Record<string, any>
+      >(
+        tag: Tag,
+        fields: Payload,
+        config: C & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>
       ): TaggedRequestForResult<
         Self,
         Tag,
         Payload,
         typeof ForceVoid,
         ErrorResult<C>,
-        Omit<C, "success" | "error">,
-        ModuleName,
-        Type
-      >
-      <Tag extends string, Payload extends S.Struct.Fields, C extends Record<string, any>>(
-        tag: Tag,
-        fields: Payload,
-        config: C & RequestConfig
-      ): TaggedRequestForResult<
-        Self,
-        Tag,
-        Payload,
-        typeof ForceVoid,
-        ErrorResult<C>,
-        Omit<C, "success" | "error">,
+        Omit<
+          C & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>,
+          "success" | "error"
+        >,
         ModuleName,
         Type
       >

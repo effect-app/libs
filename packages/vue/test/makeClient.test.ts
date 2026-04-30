@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { S } from "effect-app"
-import { configureInvalidation } from "effect-app/client"
+import { configureInvalidation, makeQueryKey } from "effect-app/client"
 import * as Exit from "effect/Exit"
-import { makeQueryKey } from "../src/lib.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
 it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {

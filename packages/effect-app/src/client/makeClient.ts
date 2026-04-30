@@ -67,13 +67,7 @@ type InvalidationConfigForCommand<
 export const configureInvalidation = <Resources>() =>
 <Input = unknown, Success = unknown, Failure = unknown>(
   invalidatesQueries: InvalidationCallback<Resources, Input, Success, Failure>
-): InvalidationConfig<Resources, Input, Success, Failure> =>
-  ({ invalidatesQueries }) as InvalidationConfig<
-    Resources,
-    Input,
-    Success,
-    Failure
-  >
+): InvalidationConfig<Resources, Input, Success, Failure> => ({ invalidatesQueries })
 
 export const configureInvalidationCallback = <Resources>() =>
 <Input = unknown, Success = unknown, Failure = unknown>(

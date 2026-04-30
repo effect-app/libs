@@ -77,6 +77,16 @@ export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
 }
 
+// $Project/$Configuration.Index
+// -> "$Project", "$Configuration", "Index"
+export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForOptions }) =>
+  id
+    .split("/")
+    .filter((segment: string) => !options || !options.skipQueryKey?.includes(segment))
+    .map((segment: string) => "$" + segment)
+    .join(".")
+    .split(".")
+
 export interface RequestHandler<A, E, R, Request extends Req, Id extends string> {
   handler: Effect.Effect<A, E, R>
   id: Id

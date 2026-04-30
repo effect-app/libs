@@ -1,7 +1,9 @@
-import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
-import { Cause, type Effect, pipe } from "effect-app"
-import { type Req } from "effect-app/client"
-import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
+import { useIntervalFn } from "@vueuse/core"
+import type { Pausable, UseIntervalFnOptions } from "@vueuse/core"
+import { Cause } from "effect-app"
+import type { Effect } from "effect-app"
+import type { Req } from "effect-app/client"
+import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import type { MaybeRefOrGetter } from "vue"
 import { reportError } from "./errorReporter.js"
@@ -31,15 +33,7 @@ const determineLevel = (cause: Cause.Cause<unknown>) => {
 export const reportRuntimeError = (cause: Cause.Cause<unknown>, extras?: Record<string, unknown>) =>
   reportRuntimeError_(cause, extras, determineLevel(cause))
 
-// $Project/$Configuration.Index
-// -> "$Project", "$Configuration", "Index"
-export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForOptions }) =>
-  pipe(
-    id.split("/"),
-    (split) => split.filter((_) => !options || !options?.skipQueryKey?.includes(_)).map((_) => "$" + _)
-  )
-    .join(".")
-    .split(".")
+export { makeQueryKey } from "effect-app/client"
 
 export function pauseWhileProcessing(
   iv: Pausable,

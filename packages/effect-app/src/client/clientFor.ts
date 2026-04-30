@@ -92,8 +92,7 @@ export interface RequestHandler<A, E, R, Request extends Req, Id extends string>
 }
 
 export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
-  handler: undefined extends I ? (i?: Exclude<I, undefined>) => Effect.Effect<A, E, R>
-    : (i: I) => Effect.Effect<A, E, R>
+  handler: (i: I) => Effect.Effect<A, E, R>
   id: Id
   options?: ClientForOptions
   Request: Request

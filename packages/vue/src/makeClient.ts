@@ -493,6 +493,7 @@ type CommandInvalidationResources<Req> = Req extends {
   readonly "~invalidationResources"?: infer Resources
 } ? NonNullable<Resources> extends InvalidationResources ? NonNullable<Resources> : never
   : Req extends {
+    readonly type: "command"
     readonly config?: infer Config
   } ? Config extends {
       readonly invalidationResources?: infer LegacyResources
@@ -521,8 +522,7 @@ type StrictResourcesArg<Shape, Actual extends Shape = Shape> =
 type ClientForArgs<
   M extends RequestsAny,
   Resources extends InvalidationResourcesFor<M> = InvalidationResourcesFor<M>
-> = [InvalidationResourcesFor<M>] extends [never]
-  ? [
+> = [InvalidationResourcesFor<M>] extends [never] ? [
     queryInvalidation?: QueryInvalidationFactory<M>,
     invalidationResources?: StrictResourcesArg<
       InvalidationResourcesFor<M>,

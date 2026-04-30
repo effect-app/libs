@@ -34,7 +34,7 @@ export interface InvalidationSetService {
 
 /**
  * Request-scoped service for accumulating invalidation keys.
- * Provided by `InvalidationSetMiddleware` for every HTTP request; has a no-op default so it is
+ * Provided by `InvalidationMiddlewareLive` for every RPC call; has a no-op default so it is
  * safe to use even when the HTTP middleware is absent (tests, workers, etc.).
  */
 export const InvalidationSet = Context.Reference<InvalidationSetService>(

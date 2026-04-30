@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Config, Effect, Layer, Option, Ref, Schema } from "effect"
+import { Cause, Config, Effect, Layer, Ref, Schema } from "effect"
 import * as Array from "effect/Array"
 import {
   ConfigureInterruptibilityMiddleware,
@@ -12,9 +12,6 @@ import {
 import { Invalidation, RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
 import * as Context from "effect/Context"
-import { appendPreResponseHandlerUnsafe } from "effect/unstable/http/HttpEffect"
-import { HttpServerRequest } from "effect/unstable/http/HttpServerRequest"
-import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 import { type Rpc } from "effect/unstable/rpc"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
@@ -136,9 +133,8 @@ export const DevModeMiddlewareLive = Layer
  * RPC middleware that:
  * 1. Reads the `Invalidates` annotation and pre-populates `InvalidationSet` with static keys.
  * 2. Creates a request-scoped `InvalidationSet` backed by a `Ref` and provides it to the handler.
- * 3. After the handler resolves, collects accumulated keys and registers an HTTP pre-response
- *    handler (via `appendPreResponseHandlerUnsafe`) that writes them to the `x-invalidate`
- *    response header. This encoding only happens when the server is running over HTTP.
+ * 3. For commands: wraps the result in `{ payload, metadata: { invalidateQueries } }` so that
+ *    accumulated invalidation keys reach the client via the RPC response body.
  */
 export const InvalidationMiddlewareLive = Layer.succeed(
   InvalidationMiddleware,
@@ -146,25 +142,14 @@ export const InvalidationMiddlewareLive = Layer.succeed(
     Effect.gen(function*() {
       const staticKeys = Context.get(rpc.annotations, Invalidation.Invalidates)
       const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>(staticKeys)
-      const service = Invalidation.makeInvalidationSet(keysRef)
 
-      const result = yield* Effect.provideService(effect, Invalidation.InvalidationSet, service)
+      const result = yield* Effect.provideService(effect, Invalidation.InvalidationSet, Invalidation.makeInvalidationSet(keysRef))
+
+      const requestType = Context.get(rpc.annotations, RequestType)
+      if (requestType !== "command") return result
 
       const keys = yield* Ref.get(keysRef)
-      if (Array.isArrayNonEmpty(keys)) {
-        const maybeRequest = yield* Effect.serviceOption(HttpServerRequest)
-        if (Option.isSome(maybeRequest)) {
-          appendPreResponseHandlerUnsafe(maybeRequest.value, (_req, res) => {
-            try {
-              return Effect.succeed(HttpServerResponse.setHeader(res, "x-invalidate", JSON.stringify(keys)))
-            } catch {
-              return Effect.succeed(res)
-            }
-          })
-        }
-      }
-
-      return result
+      return { payload: result, metadata: { invalidateQueries: keys } } as any
     })
 )
 

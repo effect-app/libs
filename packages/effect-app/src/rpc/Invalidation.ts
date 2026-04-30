@@ -11,6 +11,19 @@ export type InvalidationKey = S.Schema.Type<typeof InvalidationKey>
 export const InvalidationKeys = S.Array(InvalidationKey)
 export type InvalidationKeys = S.Schema.Type<typeof InvalidationKeys>
 
+/** Metadata included in every command response for server-driven cache invalidation. */
+export const CommandMetaData = S.Struct({ invalidateQueries: InvalidationKeys })
+export type CommandMetaData = S.Schema.Type<typeof CommandMetaData>
+
+/**
+ * Wraps a command's success schema so that the wire format carries both the `payload`
+ * (the handler's actual return value) and `metadata` (server-driven cache invalidation keys).
+ * Transparent to users: the server handler returns the plain payload and the client receives
+ * the plain payload — wrapping/unwrapping is handled internally by the routing layer.
+ */
+export const CommandResponseWithMetaData = <S extends S.Top>(success: S) =>
+  S.Struct({ payload: success, metadata: CommandMetaData })
+
 /**
  * Context annotation for declaring static cache invalidation keys on an Rpc definition.
  *

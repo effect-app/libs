@@ -12,7 +12,7 @@ import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
 import { Invalidation } from "../rpc.js"
-import * as S from "../Schema.js"
+import type * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, ExtractModuleName, RequestsAny } from "./clientFor.js"
 import { InvalidationKeysFromServer } from "./InvalidationKeys.js"
@@ -122,7 +122,13 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
   const rpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
-        return Rpc.make((_ as any)._tag, { payload: _ as any, success: (_ as any).success, error: (_ as any).error })
+        return Rpc.make((_ as any)._tag, {
+          payload: _ as any,
+          success: (_ as any).type === "command"
+            ? Invalidation.CommandResponseWithMetaData((_ as any).success)
+            : (_ as any).success,
+          error: (_ as any).error
+        })
       })
     )
     .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<
@@ -169,27 +175,7 @@ const makeApiClientFactory = Effect
         Layer.provide(Layer.succeed(ApiClientFactory, makeClientForCached as any)),
         Layer.provide(
           RpcClient
-            .layerProtocolHttp({
-              url: "", // why not here set meta.moduleName as root?
-              transformClient: (client) =>
-                HttpClient.tap(client, (response) => {
-                  const header = response.headers["x-invalidate"]
-                  if (!header) return Effect.void
-                  return Effect.gen(function*() {
-                    const invalidationKeys = yield* InvalidationKeysFromServer
-                    let parsed: unknown
-                    try {
-                      parsed = JSON.parse(header)
-                    } catch {
-                      return // ignore malformed JSON
-                    }
-                    const decoded = S.decodeUnknownOption(Invalidation.InvalidationKeys)(parsed)
-                    if (Option.isSome(decoded)) {
-                      yield* Effect.forEach(decoded.value, (key) => invalidationKeys.add(key), { discard: true })
-                    }
-                  })
-                })
-            })
+            .layerProtocolHttp({ url: "" }) // why not here set meta.moduleName as root?
             .pipe(
               Layer.provideMerge(Layer.succeedContext(ctx))
             )
@@ -198,6 +184,19 @@ const makeApiClientFactory = Effect
       const mr = ManagedRuntime.make(clientLayer)
 
       const filtered = getFiltered(resource)
+
+      const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
+        eff.pipe(
+          Effect.flatMap((result: any) =>
+            Effect.gen(function*() {
+              const keys: ReadonlyArray<Invalidation.InvalidationKey> = result?.metadata?.invalidateQueries ?? []
+              const invalidationKeys = yield* InvalidationKeysFromServer
+              yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+              return result.payload
+            })
+          )
+        )
+
       return {
         mr,
         client: typedKeysOf(filtered)
@@ -224,12 +223,13 @@ const makeApiClientFactory = Effect
 
             const fields = Struct.omit(Request.fields, ["_tag"] as const)
             const requestAttr = `${meta.moduleName}.${h._tag}`
+            const isCommand = h.type === "command"
             // @ts-expect-error doc
             prev[cur] = Object.keys(fields).length === 0
               ? {
                 handler: mr.contextEffect.pipe(
-                  Effect.flatMap((svcs) =>
-                    TheClient
+                  Effect.flatMap((svcs) => {
+                    const rpcEffect = TheClient
                       .use((client) =>
                         (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any, never>
                       )
@@ -237,15 +237,16 @@ const makeApiClientFactory = Effect
                         Effect.provide(layers),
                         Effect.provide(svcs)
                       )
-                  )
+                    return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
+                  })
                 ),
                 ...requestMeta
               }
               : {
                 handler: (req: any) =>
                   mr.contextEffect.pipe(
-                    Effect.flatMap((svcs) =>
-                      TheClient
+                    Effect.flatMap((svcs) => {
+                      const rpcEffect = TheClient
                         .use((client) =>
                           (client as any)[requestAttr]!(Request.make(req)) as Effect.Effect<any, any, never>
                         )
@@ -253,7 +254,8 @@ const makeApiClientFactory = Effect
                           Effect.provide(layers),
                           Effect.provide(svcs)
                         )
-                    )
+                      return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
+                    })
                   ),
 
                 ...requestMeta

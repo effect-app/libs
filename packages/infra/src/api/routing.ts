@@ -5,6 +5,7 @@
 import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, type Scope } from "effect-app"
 import { getMeta } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
+import { Invalidation } from "effect-app/rpc"
 import { type GetEffectContext, type GetEffectError, type RpcContextMap } from "effect-app/rpc/RpcContextMap"
 import { type TypeTestId } from "effect-app/TypeTest"
 import { typedKeysOf, typedValuesOf } from "effect-app/utils"
@@ -429,7 +430,13 @@ export const makeRouter = <
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
                 return Rpc
-                  .make(resource._tag, { payload: resource, success: resource.success, error: resource.error })
+                  .make(resource._tag, {
+                    payload: resource,
+                    success: resource.type === "command"
+                      ? Invalidation.CommandResponseWithMetaData(resource.success)
+                      : resource.success,
+                    error: resource.error
+                  })
                   .annotate(middleware.requestContext, resource.config ?? {})
                   .annotate(RequestTypeAnnotation, resource.type)
               })

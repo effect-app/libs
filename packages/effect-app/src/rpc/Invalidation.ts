@@ -25,18 +25,28 @@ export const CommandResponseWithMetaData = <S extends S.Top>(success: S) =>
   S.Struct({ payload: success, metadata: CommandMetaData })
 
 /**
- * Context annotation for declaring static cache invalidation keys on an Rpc definition.
+ * Context annotation for declaring static cache invalidation keys on a low-level `Rpc` definition.
  * These keys are always included in the command response metadata, regardless of the handler logic.
  *
- * @example
- * ```ts
- * import { Rpc } from "effect/unstable/rpc"
- * import { Invalidation } from "effect-app/rpc"
+ * Prefer using `makeQueryKey` over raw string arrays to stay in sync with the actual query
+ * definitions without manual string maintenance:
  *
- * // Statically declare which queries to invalidate whenever this command runs:
+ * ```ts
+ * import { makeQueryKey } from "effect-app/client"
+ * import { Invalidation } from "effect-app/rpc"
+ * import * as UserRsc from "../User/index.js"  // separate module to avoid circular deps
+ *
  * class UpdateProfile extends Rpc.make("UpdateProfile", { ... })
- *   .annotate(Invalidation.Invalidates, [["$User", "GetMe"], ["$User", "GetProfile"]]) {}
+ *   .annotate(Invalidation.Invalidates, [makeQueryKey(UserRsc.GetMe), makeQueryKey(UserRsc.GetProfile)]) {}
  * ```
+ *
+ * **Circular dependency note:** if mutations and queries live in the same file you may hit a
+ * circular reference at evaluation time. The idiomatic fix is to move mutations into their own
+ * module (e.g. `User/mutations.ts`) that directly imports the relevant query classes rather than
+ * re-exporting them through a barrel.
+ *
+ * For the higher-level `Command`/`Query` builders from `makeRpcClient`, use the
+ * `invalidatesQueries` callback argument instead (it receives the same query keys at runtime).
  */
 export const Invalidates = Context.Reference<ReadonlyArray<InvalidationKey>>(
   "effect-app/rpc/Invalidates",
@@ -55,30 +65,35 @@ export interface InvalidationSetService {
  * Provided by `InvalidationMiddlewareLive` for every RPC call; has a no-op default so it is
  * safe to use even when the HTTP middleware is absent (tests, workers, etc.).
  *
- * @example
+ * Use `InvalidationSet.use(_ => _.add(key))` (or `.useSync` for non-Effect callbacks) as a
+ * shorthand instead of yielding the service manually.
+ *
+ * Prefer `makeQueryKey` over raw string arrays so invalidation keys stay in sync with the
+ * actual query definitions automatically:
+ *
  * ```ts
+ * import { makeQueryKey } from "effect-app/client"
  * import { Effect } from "effect"
  * import { Invalidation } from "effect-app/rpc"
+ * import * as CartRsc from "../Cart/queries.js"
+ * import * as UserRsc from "../User/queries.js"
  *
- * // In a controller, add invalidation keys based on runtime logic:
  * const handler = Effect.fnUntraced(function*(req: UpdateCartRequest) {
- *   // ... perform the command ...
- *   const updatedCart = yield* CartRepo.save(req.cart)
+ *   const cart = yield* CartRepo.save(req.cart)
  *
- *   // Stage 1 – add a key after a specific operation:
- *   const invalidation = yield* Invalidation.InvalidationSet
- *   yield* invalidation.add(["$Cart", "GetCart", req.userId])
+ *   // Stage 1 – unconditional: always invalidate after saving
+ *   yield* Invalidation.InvalidationSet.use(_ => _.add(makeQueryKey(UserRsc.GetMe)))
  *
- *   // Stage 2 – conditionally add more keys:
- *   if (updatedCart.isCheckedOut) {
- *     yield* invalidation.add(["$Cart", "GetCartStats"])
+ *   // Stage 2 – conditional: only if the cart changed state
+ *   if (cart.isCheckedOut) {
+ *     yield* Invalidation.InvalidationSet.use(_ => _.add(makeQueryKey(CartRsc.GetCartStats)))
  *   }
  *
- *   return updatedCart
+ *   return cart
  * })
  * ```
  *
- * You can combine static (`Invalidates` annotation) and dynamic (`InvalidationSet.add`) keys:
+ * You can combine static (`Invalidates` annotation) and dynamic (`InvalidationSet.use`) keys:
  * the annotation pre-populates the set before the handler runs; dynamic additions accumulate
  * throughout the handler. All keys are included in the command response metadata.
  */

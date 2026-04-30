@@ -182,6 +182,7 @@ it.skip("works", () => {
   const b = client.GetSomething2.query(null as any)
 
   const de = client.GetSomething3.handler(null as any)
+  const de2 = client.GetSomething3.handler({ id: null })
 
   // @ts-expect-error query requests no longer expose command helpers
   const e = client.GetSomething2.wrap(null as any)
@@ -239,6 +240,7 @@ it.skip("works", () => {
     b,
     e,
     de,
+    de2,
     e0,
     e00,
     e000,

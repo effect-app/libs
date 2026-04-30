@@ -3,6 +3,7 @@ import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import type { InvalidationKey } from "../rpc/Invalidation.js"
 
+export type { InvalidationKey }
 /** Shape of the per-mutation service that accumulates server-provided invalidation keys. */
 export interface InvalidationKeysService {
   readonly add: (key: InvalidationKey) => Effect.Effect<void>

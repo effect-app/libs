@@ -3,8 +3,28 @@ import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import * as S from "../Schema.js"
 
-/** Schema for a single invalidation key – an array of strings matching the shape returned by `makeQueryKey`. */
-export const InvalidationKey = S.Array(S.String)
+/**
+ * Primitive segment types allowed inside an `InvalidationKey`:
+ * strings, finite numbers, and booleans.
+ */
+export const InvalidationKeyPrimitive = S.Union([S.String, S.Finite, S.Boolean])
+export type InvalidationKeyPrimitive = S.Schema.Type<typeof InvalidationKeyPrimitive>
+
+/**
+ * A single segment within an `InvalidationKey` array.
+ * May be a primitive, an array of primitives, or a record of primitives.
+ */
+export const InvalidationKeySegment = S.Union([
+  S.String,
+  S.Finite,
+  S.Boolean,
+  S.Array(InvalidationKeyPrimitive),
+  S.Record(S.String, InvalidationKeyPrimitive)
+])
+export type InvalidationKeySegment = S.Schema.Type<typeof InvalidationKeySegment>
+
+/** Schema for a single invalidation key – an array of segments compatible with TanStack Query `queryKey`. */
+export const InvalidationKey = S.Array(InvalidationKeySegment)
 export type InvalidationKey = S.Schema.Type<typeof InvalidationKey>
 
 /** Schema for the full set of invalidation keys – an array of `InvalidationKey`. */

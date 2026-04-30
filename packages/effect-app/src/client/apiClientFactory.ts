@@ -67,23 +67,6 @@ export const HttpClientLayer = (config: ApiConfig) =>
                 HttpClientRequest.appendUrl("/" + ctx.moduleName)
               )(req))
           ),
-          HttpClient.tap((response) => {
-            const header = response.headers["x-invalidate"]
-            if (!header) return Effect.void
-            return Effect.gen(function*() {
-              const invalidationKeys = yield* InvalidationKeysFromServer
-              let parsed: unknown
-              try {
-                parsed = JSON.parse(header)
-              } catch {
-                return // ignore malformed JSON
-              }
-              const decoded = S.decodeUnknownOption(Invalidation.InvalidationKeys)(parsed)
-              if (Option.isSome(decoded)) {
-                yield* Effect.forEach(decoded.value, (key) => invalidationKeys.add(key), { discard: true })
-              }
-            })
-          })
         )
         return client
       })
@@ -187,7 +170,25 @@ const makeApiClientFactory = Effect
         Layer.provide(
           RpcClient
             .layerProtocolHttp({
-              url: "" // why not here set meta.moduleName as root?
+              url: "", // why not here set meta.moduleName as root?
+              transformClient: (client) =>
+                HttpClient.tap(client, (response) => {
+                  const header = response.headers["x-invalidate"]
+                  if (!header) return Effect.void
+                  return Effect.gen(function*() {
+                    const invalidationKeys = yield* InvalidationKeysFromServer
+                    let parsed: unknown
+                    try {
+                      parsed = JSON.parse(header)
+                    } catch {
+                      return // ignore malformed JSON
+                    }
+                    const decoded = S.decodeUnknownOption(Invalidation.InvalidationKeys)(parsed)
+                    if (Option.isSome(decoded)) {
+                      yield* Effect.forEach(decoded.value, (key) => invalidationKeys.add(key), { discard: true })
+                    }
+                  })
+                })
             })
             .pipe(
               Layer.provideMerge(Layer.succeedContext(ctx))

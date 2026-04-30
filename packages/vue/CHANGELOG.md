@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.166
+
+### Patch Changes
+
+- dbcc53b: Refactor command invalidation typing: declare resources via `Command<Self, Resources>()`, pass `invalidatesQueries` as the optional 4th argument, and enforce exact `clientFor` invalidation resources when required.
+- Updated dependencies [dbcc53b]
+  - effect-app@4.0.0-beta.166
+
 ## 4.0.0-beta.165
 
 ### Patch Changes

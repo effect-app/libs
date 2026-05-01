@@ -208,15 +208,17 @@ export const useClient = (
     queryClient: new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   })
 
-  const clientFor: typeof rawClient.clientFor = (...args: any[]) => {
-    const proxy = (rawClient.clientFor as any)(...args)
-    // Wrap every property access in the Vue app context so that lazy hook
-    // initialisation (useMutation / useQueryClient) finds an injection context.
-    return new Proxy(proxy as any, {
-      get(target, key) {
-        return vueApp.runWithContext(() => (target as any)[key])
-      }
-    }) as any
+  const origClientFor = rawClient.clientFor
+  const clientFor: typeof origClientFor = function(m, ...args) {
+    const proxy = origClientFor(m, ...args)
+    // Warm up lazy mutation-hook initialisation inside the Vue injection context.
+    // After the first property access, useMutation() is cached and subsequent
+    // accesses outside the context succeed.
+    const firstKey = Object.keys(m)[0]
+    if (firstKey !== undefined) {
+      vueApp.runWithContext(() => { void (proxy as Record<string, unknown>)[firstKey] })
+    }
+    return proxy
   }
 
   return { ...rawClient, clientFor }

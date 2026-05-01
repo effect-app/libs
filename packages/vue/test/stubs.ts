@@ -204,9 +204,8 @@ export const useClient = (
   // Provide a Vue injection context so that composition-API hooks (e.g. useQueryClient)
   // called during client initialisation work outside a component setup() function.
   const vueApp = createApp({})
-  vueApp.use(VueQueryPlugin, {
-    queryClient: new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  })
+  const testQueryClientConfig = { defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }
+  vueApp.use(VueQueryPlugin, { queryClient: new QueryClient(testQueryClientConfig) })
 
   const origClientFor = rawClient.clientFor
   const clientFor: typeof origClientFor = function(m, ...args) {
@@ -214,9 +213,9 @@ export const useClient = (
     // Warm up lazy mutation-hook initialisation inside the Vue injection context.
     // After the first property access, useMutation() is cached and subsequent
     // accesses outside the context succeed.
-    const firstKey = Object.keys(m)[0]
-    if (firstKey !== undefined) {
-      vueApp.runWithContext(() => { void (proxy as Record<string, unknown>)[firstKey] })
+    const firstPropertyName = Object.keys(m)[0]
+    if (firstPropertyName !== undefined) {
+      vueApp.runWithContext(() => { void (proxy as Record<string, unknown>)[firstPropertyName] })
     }
     return proxy
   }

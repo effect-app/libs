@@ -236,11 +236,8 @@ export const invalidateQueries = (
   const handle = <A, E, R>(eff: Effect.Effect<A, E, R>, input?: unknown) =>
     Effect.gen(function*() {
       const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
-      const base = eff.pipe(
-        Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef))
-      )
-      const withSelect = select ? base.pipe(Effect.tap(select)) : base
-      return yield* withSelect.pipe(
+      const result = yield* eff.pipe(
+        Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef)),
         Effect.onExit((exit) =>
           Effect.gen(function*() {
             const serverKeys = yield* Ref.get(keysRef)
@@ -248,6 +245,17 @@ export const invalidateQueries = (
           })
         )
       )
+      if (select) {
+        yield* select(result).pipe(
+          Effect.onExit((exit) =>
+            Effect.gen(function*() {
+              const serverKeys = yield* Ref.get(keysRef)
+              yield* invalidateCache(input, exit, serverKeys)
+            })
+          )
+        )
+      }
+      return result
     })
 
   return handle

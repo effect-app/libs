@@ -263,7 +263,7 @@ export const invalidateQueries = (
         )
       )
       if (select) {
-        yield* select(result).pipe(
+        return yield* select(result).pipe(
           Effect.onExit((exit) =>
             Effect.gen(function*() {
               const serverKeys = yield* Ref.get(keysRef)

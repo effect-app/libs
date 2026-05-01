@@ -667,8 +667,8 @@ export const makeClient = <RT_, RTHooks>(
         const fromRequest = fromRequestConfig
           ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
             fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((entry) => ({
-              filters: entry.filters as InvalidateQueryFilters | undefined,
-              options: entry.options as InvalidateOptions | undefined
+              filters: entry.filters,
+              options: entry.options
             })))
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
@@ -762,8 +762,8 @@ export const makeClient = <RT_, RTHooks>(
                     fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((
                       entry
                     ) => ({
-                      filters: entry.filters as InvalidateQueryFilters | undefined,
-                      options: entry.options as InvalidateOptions | undefined
+                      filters: entry.filters,
+                      options: entry.options
                     })))
                   : undefined
                 const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])

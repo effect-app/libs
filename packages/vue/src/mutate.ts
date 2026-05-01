@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
-import { Array, type Cause, Effect, type Exit, Option } from "effect-app"
+import { type Cause, Effect, type Exit, Option } from "effect-app"
 import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
@@ -147,6 +147,11 @@ export const invalidateQueries = (
   self: { id: string; options?: ClientForOptions },
   options?: MutationOptionsBase["queryInvalidation"]
 ) => {
+  type InvalidationTarget = {
+    readonly filters: InvalidateQueryFilters | undefined
+    readonly options: InvalidateOptions | undefined
+  }
+
   const invalidateQueries = (
     filters?: InvalidateQueryFilters,
     options?: InvalidateOptions
@@ -158,29 +163,49 @@ export const invalidateQueries = (
       )
     )
 
-  const invalidateCache = (input: unknown, output: Exit.Exit<unknown, unknown>) =>
+  const getClientInvalidationTargets = (
+    input: unknown,
+    output: Exit.Exit<unknown, unknown>
+  ): ReadonlyArray<InvalidationTarget> => {
+    const queryKey = getQueryKey(self)
+
+    if (options) {
+      return options(queryKey, self.id, input, output).map((_) => ({
+        filters: _.filters,
+        options: _.options
+      }))
+    }
+
+    if (!queryKey) {
+      return []
+    }
+
+    return [{ filters: { queryKey }, options: undefined }]
+  }
+
+  const invalidateCache = (
+    input: unknown,
+    output: Exit.Exit<unknown, unknown>,
+    serverKeys: ReadonlyArray<InvalidationKey>
+  ) =>
     Effect.suspend(() => {
-      const queryKey = getQueryKey(self)
+      const clientTargets = getClientInvalidationTargets(input, output)
+      const serverTargets: ReadonlyArray<InvalidationTarget> = serverKeys.map((queryKey) => ({
+        filters: { queryKey },
+        options: undefined
+      }))
+      const allTargets: ReadonlyArray<InvalidationTarget> = [...clientTargets, ...serverTargets]
 
-      if (options) {
-        const opts = options(queryKey, self.id, input, output)
-        if (!opts.length) {
-          return Effect.void
-        }
-        return Effect
-          .andThen(
-            Effect.annotateCurrentSpan({ queryKey, opts }),
-            Effect.forEach(opts, (_) => invalidateQueries(_.filters, _.options), { concurrency: "inherit" })
-          )
-          .pipe(Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false }))
-      }
-
-      if (!queryKey) return Effect.void
+      if (!allTargets.length) return Effect.void
 
       return Effect
         .andThen(
-          Effect.annotateCurrentSpan({ queryKey }),
-          invalidateQueries({ queryKey })
+          Effect.annotateCurrentSpan({ clientTargets, serverKeys }),
+          Effect.forEach(
+            allTargets,
+            (target) => invalidateQueries(target.filters, target.options),
+            { discard: true, concurrency: "inherit" }
+          )
         )
         .pipe(
           Effect.tap(
@@ -199,15 +224,8 @@ export const invalidateQueries = (
         Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef)),
         Effect.onExit((exit) =>
           Effect.gen(function*() {
-            yield* invalidateCache(input, exit)
             const serverKeys = yield* Ref.get(keysRef)
-            if (Array.isReadonlyArrayNonEmpty(serverKeys)) {
-              yield* Effect.forEach(
-                serverKeys,
-                (key) => invalidateQueries({ queryKey: key }),
-                { discard: true, concurrency: "inherit" }
-              )
-            }
+            yield* invalidateCache(input, exit, serverKeys)
           })
         )
       )

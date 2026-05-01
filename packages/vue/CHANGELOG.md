@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.177
+
+### Patch Changes
+
+- Updated dependencies [89d8b3a]
+  - effect-app@4.0.0-beta.177
+
 ## 4.0.0-beta.176
 
 ### Patch Changes
@@ -21,8 +28,8 @@
 
   ```ts
   useMutation(startExportCommand, {
-    select: (result) => pollUntilDone(result.jobId)
-  })
+    select: (result) => pollUntilDone(result.jobId),
+  });
   ```
 
 ### Patch Changes

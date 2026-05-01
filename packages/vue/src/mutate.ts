@@ -239,7 +239,7 @@ export const invalidateQueries = (
       const base = eff.pipe(
         Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef))
       )
-      const withSelect = select ? base.pipe(Effect.tap((result) => select(result))) : base
+      const withSelect = select ? base.pipe(Effect.tap(select)) : base
       return yield* withSelect.pipe(
         Effect.onExit((exit) =>
           Effect.gen(function*() {

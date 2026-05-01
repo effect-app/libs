@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { matchQuery } from "@tanstack/query-core"
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, type Exit, Option } from "effect-app"
 import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
@@ -88,17 +89,6 @@ export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> exte
    */
   mapHandler?: (handler: Effect.Effect<A, E, R>, input: I) => Effect.Effect<A2, E2, R2>
 }
-
-// TODO: more efficient invalidation, including args etc
-// return Effect.promise(() => queryClient.invalidateQueries({
-//   predicate: (_) => nses.includes(_.queryKey.filter((_) => _.startsWith("$")).join("/"))
-// }))
-/*
-            // const nses: string[] = []`
-                // for (let i = 0; i < ns.length; i++) {
-                //   nses.push(ns.slice(0, i + 1).join("/"))
-                // }
-                */
 
 export const asResult: {
   <A, E, R>(
@@ -198,12 +188,35 @@ export const invalidateQueries = (
 
       if (!allTargets.length) return Effect.void
 
+      // Group targets by refetchType + options so each group can be merged into a single
+      // invalidateQueries call using a predicate, reducing N calls to 1 in the common case.
+      const groups = new Map<
+        string,
+        { targets: ReadonlyArray<InvalidationTarget>; refetchType: string | undefined; options: InvalidateOptions | undefined }
+      >()
+      for (const target of allTargets) {
+        const key = JSON.stringify({ refetchType: target.filters?.refetchType, options: target.options ?? null })
+        const existing = groups.get(key)
+        if (existing) {
+          groups.set(key, { ...existing, targets: [...existing.targets, target] })
+        } else {
+          groups.set(key, { targets: [target], refetchType: target.filters?.refetchType, options: target.options })
+        }
+      }
+
       return Effect
         .andThen(
           Effect.annotateCurrentSpan({ clientTargets, serverKeys }),
           Effect.forEach(
-            allTargets,
-            (target) => invalidateQueries(target.filters, target.options),
+            groups.values(),
+            ({ targets, refetchType, options }) =>
+              invalidateQueries(
+                {
+                  refetchType,
+                  predicate: (query) => targets.some((t) => t.filters ? matchQuery(t.filters, query) : true)
+                },
+                options
+              ),
             { discard: true, concurrency: "inherit" }
           )
         )

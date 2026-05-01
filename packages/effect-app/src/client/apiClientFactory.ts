@@ -5,6 +5,7 @@ import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
 import * as Config from "../Config.js"
@@ -41,7 +42,7 @@ export type Req = S.Top & {
   config?: Record<string, any>
   readonly id: string
   readonly moduleName: string
-  readonly type: "command" | "query"
+  readonly type: "command" | "query" | "stream"
   readonly "~decodingServices"?: unknown
 }
 
@@ -122,12 +123,15 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
   const rpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
-        return Rpc.make((_ as any)._tag, {
-          payload: _ as any,
-          success: (_ as any).type === "command"
-            ? Invalidation.CommandResponseWithMetaData((_ as any).success)
-            : (_ as any).success,
-          error: (_ as any).error
+        const r = _ as any
+        const isStream = r.type === "stream"
+        return Rpc.make(r._tag, {
+          payload: r,
+          success: r.type === "command"
+            ? Invalidation.CommandResponseWithMetaData(r.success)
+            : r.success,
+          error: r.error,
+          ...isStream ? { stream: true as const } : {}
         })
       })
     )
@@ -224,40 +228,52 @@ const makeApiClientFactory = Effect
             const fields = Struct.omit(Request.fields, ["_tag"] as const)
             const requestAttr = `${meta.moduleName}.${h._tag}`
             const isCommand = h.type === "command"
+            const isStream = h.type === "stream"
+
+            const buildEffect = (input: any) =>
+              mr.contextEffect.pipe(
+                Effect.flatMap((svcs) => {
+                  const rpcEffect = TheClient
+                    .use((client) =>
+                      (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any, never>
+                    )
+                    .pipe(
+                      Effect.provide(layers),
+                      Effect.provide(svcs)
+                    )
+                  return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
+                })
+              )
+
+            const buildStream = (input: any) =>
+              Stream.unwrap(
+                mr.contextEffect.pipe(
+                  Effect.flatMap((svcs) =>
+                    TheClient
+                      .useSync((client) => {
+                        const rpcStream = (client as any)[requestAttr]!(
+                          Request.make(input)
+                        ) as Stream.Stream<any, any, any>
+                        return rpcStream.pipe(
+                          Stream.provide(layers),
+                          Stream.provide(svcs)
+                        )
+                      })
+                      .pipe(Effect.provide(svcs))
+                  )
+                )
+              )
+
             // @ts-expect-error doc
             prev[cur] = Object.keys(fields).length === 0
               ? {
-                handler: mr.contextEffect.pipe(
-                  Effect.flatMap((svcs) => {
-                    const rpcEffect = TheClient
-                      .use((client) =>
-                        (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any, never>
-                      )
-                      .pipe(
-                        Effect.provide(layers),
-                        Effect.provide(svcs)
-                      )
-                    return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
-                  })
-                ),
+                handler: isStream ? buildStream({}) : buildEffect({}),
                 ...requestMeta
               }
               : {
-                handler: (req: any) =>
-                  mr.contextEffect.pipe(
-                    Effect.flatMap((svcs) => {
-                      const rpcEffect = TheClient
-                        .use((client) =>
-                          (client as any)[requestAttr]!(Request.make(req)) as Effect.Effect<any, any, never>
-                        )
-                        .pipe(
-                          Effect.provide(layers),
-                          Effect.provide(svcs)
-                        )
-                      return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
-                    })
-                  ),
-
+                handler: isStream
+                  ? (req: any) => buildStream(req)
+                  : (req: any) => buildEffect(req),
                 ...requestMeta
               }
 

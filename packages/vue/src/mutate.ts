@@ -68,7 +68,7 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
-export interface MutationOptionsBase<A = unknown, B = A> {
+export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never> {
   /**
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
    * This can be overridden by providing a function that returns an array of filters and options.
@@ -92,18 +92,7 @@ export interface MutationOptionsBase<A = unknown, B = A> {
    * })
    * ```
    */
-  select?: (result: A) => Effect.Effect<B, unknown, never>
-}
-
-/** @deprecated prefer more basic @see MutationOptionsBase and separate useMutation from Command.fn */
-export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> extends MutationOptionsBase<A> {
-  /**
-   * Map the handler; cache invalidation is already done in this handler.
-   * This is useful for e.g navigating, as you know caches have already updated.
-   *
-   * @deprecated use `Command.fn` instead of `useMutation*` with `mapHandler` option.
-   */
-  mapHandler?: (handler: Effect.Effect<A, E, R>, input: I) => Effect.Effect<A2, E2, R2>
+  select?: (result: A) => Effect.Effect<B, E2, R2>
 }
 
 export const asResult: {
@@ -286,24 +275,24 @@ export const makeMutation = () => {
      * Pass a function that returns an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <I, E, A, R, Request extends Req, Id extends string, B = A>(
+    <I, E, A, R, Request extends Req, Id extends string, B = A, E2 = never, R2 = never>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Id>,
-      options?: MutationOptionsBase<A, B>
-    ): ((i: I) => Effect.Effect<B, E, R>) & { readonly id: Id }
+      options?: MutationOptionsBase<A, B, E2, R2>
+    ): ((i: I) => Effect.Effect<B, E | E2, R | R2>) & { readonly id: Id }
     /**
      * Pass an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <E, A, R, Request extends Req, Id extends string, B = A>(
+    <E, A, R, Request extends Req, Id extends string, B = A, E2 = never, R2 = never>(
       self: RequestHandler<A, E, R, Request, Id>,
-      options?: MutationOptionsBase<A, B>
-    ): Effect.Effect<B, E, R> & { readonly id: Id }
-  } = <I, E, A, R, Request extends Req, Id extends string>(
+      options?: MutationOptionsBase<A, B, E2, R2>
+    ): Effect.Effect<B, E | E2, R | R2> & { readonly id: Id }
+  } = <I, E, A, R, Request extends Req, Id extends string, B = A, E2 = never, R2 = never>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
-    options?: MutationOptionsBase
+    options?: MutationOptionsBase<A, B, E2, R2>
   ) => {
     const queryClient = useQueryClient()
-    const handle = invalidateQueries(queryClient, self, options)
+    const handle = invalidateQueries(queryClient, self, options as any)
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
 
@@ -321,23 +310,23 @@ export const useMakeMutation = () => {
      * Pass a function that returns an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <I, E, A, R, Request extends Req, Id extends string, B = A>(
+    <I, E, A, R, Request extends Req, Id extends string, B = A, E2 = never, R2 = never>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Id>,
-      options?: MutationOptionsBase<A, B>
-    ): ((i: I) => Effect.Effect<B, E, R>) & { readonly id: Id }
+      options?: MutationOptionsBase<A, B, E2, R2>
+    ): ((i: I) => Effect.Effect<B, E | E2, R | R2>) & { readonly id: Id }
     /**
      * Pass an Effect, e.g from a client action
      * Executes query cache invalidation based on default rules or provided option.
      */
-    <E, A, R, Request extends Req, Id extends string, B = A>(
+    <E, A, R, Request extends Req, Id extends string, B = A, E2 = never, R2 = never>(
       self: RequestHandler<A, E, R, Request, Id>,
-      options?: MutationOptionsBase<A, B>
-    ): Effect.Effect<B, E, R> & { readonly id: Id }
-  } = <I, E, A, R, Request extends Req, Id extends string>(
+      options?: MutationOptionsBase<A, B, E2, R2>
+    ): Effect.Effect<B, E | E2, R | R2> & { readonly id: Id }
+  } = <I, E, A, R, Request extends Req, Id extends string, B = A, E2 = never, R2 = never>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
-    options?: MutationOptionsBase
+    options?: MutationOptionsBase<A, B, E2, R2>
   ) => {
-    const handle = invalidateQueries(queryClient, self, options)
+    const handle = invalidateQueries(queryClient, self, options as any)
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
 

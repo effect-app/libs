@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * E2E tests for commands and queries using in-memory RPC transport.
  *
@@ -94,14 +93,25 @@ const E2eImplLayer = E2eRpcs.toLayer({
 
 const E2eTestLayer = Layer.merge(E2eImplLayer, InvalidationMiddlewareLive)
 
-// Helper: cast the runtime-wrapped command result to verify payload + keys.
+// Helper: validates that the runtime-wrapped command result has the expected shape.
 // `RpcTest` skips codec encoding/decoding, so the value in the client IS the
-// wrapped object even when the declared schema is the plain type.
-type CommandResult<Payload> = {
-  payload: Payload
-  metadata: { invalidateQueries: ReadonlyArray<Invalidation.InvalidationKey> }
+// wrapped object produced by `InvalidationMiddlewareLive`, even when the declared
+// schema is the plain type.
+type CommandResult = { payload: unknown; metadata: { invalidateQueries: ReadonlyArray<Invalidation.InvalidationKey> } }
+
+const isCommandResult = (value: unknown): value is CommandResult =>
+  typeof value === "object"
+  && value !== null
+  && "payload" in value
+  && "metadata" in value
+  && typeof (value as Record<string, unknown>)["metadata"] === "object"
+  && (value as Record<string, unknown>)["metadata"] !== null
+  && "invalidateQueries" in ((value as Record<string, unknown>)["metadata"] as object)
+
+const asCommand = (value: unknown): CommandResult => {
+  if (!isCommandResult(value)) throw new Error(`Expected a wrapped command result, got: ${JSON.stringify(value)}`)
+  return value
 }
-const asCommand = <A>(value: A): CommandResult<unknown> => value as any
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -120,10 +130,9 @@ it.live(
   "query result is NOT wrapped in CommandResponseWithMetaData",
   Effect.fnUntraced(function*() {
     const client = yield* RpcTest.makeClient(E2eRpcs)
-    const result: unknown = yield* client.getGreeting({ name: "Check" })
+    const result = yield* client.getGreeting({ name: "Check" })
     expect(typeof result).toBe("string")
-    expect(result as any).not.toHaveProperty("payload")
-    expect(result as any).not.toHaveProperty("metadata")
+    expect(isCommandResult(result)).toBe(false)
   }, Effect.provide(E2eTestLayer))
 )
 

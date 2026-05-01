@@ -2,12 +2,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { streamedQuery } from "@tanstack/query-core"
 import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
-import { Array, Cause, type Context, Effect, Option, S } from "effect-app"
+import { Array, Cause, type Context, Effect, Exit, Option, S } from "effect-app"
 import { makeQueryKey, type Req } from "effect-app/client"
-import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
+import type { RequestHandler, RequestHandlerWithInput, RequestStreamHandler, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
 import { type Span } from "effect/Tracer"
+import * as Channel from "effect/Channel"
+import * as Pull from "effect/Pull"
+import * as Scope from "effect/Scope"
+import type * as Stream from "effect/Stream"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
@@ -73,6 +79,64 @@ export interface CustomDefinedPlaceholderQueryOptions<
   placeholderData:
     | NonFunctionGuard<TQueryData>
     | PlaceholderDataFunction<NonFunctionGuard<TQueryData>, TError, NonFunctionGuard<TQueryData>, TQueryKey>
+}
+
+function swrToQuery<E, A>(r: {
+  error: CauseException<E> | undefined
+  data: A | undefined
+  isValidating: boolean
+}): AsyncResult.AsyncResult<A, E> {
+  if (r.error !== undefined) {
+    return AsyncResult.failureWithPrevious(
+      r.error.originalCause,
+      {
+        previous: r.data === undefined ? Option.none() : Option.some(AsyncResult.success(r.data)),
+        waiting: r.isValidating
+      }
+    )
+  }
+  if (r.data !== undefined) {
+    return AsyncResult.success<A, E>(r.data, { waiting: r.isValidating })
+  }
+
+  return AsyncResult.initial(r.isValidating)
+}
+
+function streamToAsyncIterableWithCauseException<A, E, R>(
+  self: Stream.Stream<A, E, R>,
+  context: Context.Context<R>,
+  id: string
+): AsyncIterable<A> {
+  return {
+    [Symbol.asyncIterator]() {
+      const runPromise = Effect.runPromiseWith(context)
+      const runPromiseExit = Effect.runPromiseExitWith(context)
+      const scope = Scope.makeUnsafe()
+      let pull: any
+      let currentIter: Iterator<A> | undefined
+      return {
+        async next(): Promise<IteratorResult<A>> {
+          if (currentIter) {
+            const next = currentIter.next()
+            if (!next.done) return next
+            currentIter = undefined
+          }
+          pull ??= await runPromise(Channel.toPullScoped((self as any).channel, scope))
+          const exit = await runPromiseExit(pull)
+          if (Exit.isSuccess(exit)) {
+            currentIter = (exit.value as any)[Symbol.iterator]()
+            return currentIter!.next()!
+          } else if (Pull.isDoneCause((exit as any).cause)) {
+            return { done: true, value: undefined }
+          }
+          throw new CauseException((exit as any).cause, id)
+        },
+        return(_) {
+          return runPromise(Effect.as(Scope.close(scope, Exit.void), { done: true, value: undefined }) as any)
+        }
+      }
+    }
+  }
 }
 
 export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
@@ -228,27 +292,6 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     ] as any
   }
 
-  function swrToQuery<E, A>(r: {
-    error: CauseException<E> | undefined
-    data: A | undefined
-    isValidating: boolean
-  }): AsyncResult.AsyncResult<A, E> {
-    if (r.error !== undefined) {
-      return AsyncResult.failureWithPrevious(
-        r.error.originalCause,
-        {
-          previous: r.data === undefined ? Option.none() : Option.some(AsyncResult.success(r.data)),
-          waiting: r.isValidating
-        }
-      )
-    }
-    if (r.data !== undefined) {
-      return AsyncResult.success<A, E>(r.data, { waiting: r.isValidating })
-    }
-
-    return AsyncResult.initial(r.isValidating)
-  }
-
   const useQuery: {
     /**
      * Effect results are passed to the caller, including errors.
@@ -350,6 +393,86 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
+
+export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) =>
+<I, A, E, Request extends Req, Name extends string>(
+  q:
+    | RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+    | RequestStreamHandler<A, E, R, Request, Name>
+) =>
+(
+  arg: I | WatchSource<I> | undefined,
+  options?: any
+) => {
+  const context = getRuntime()
+  const arr = arg
+  const req: { value: I } = !arg
+    ? undefined as any
+    : typeof arr === "function"
+    ? ({
+      get value() {
+        return (arr as any)()
+      }
+    })
+    : ref(arg)
+  const queryKey = makeQueryKey(q)
+  const handler = q.handler
+  const isWithInput = typeof handler === "function"
+
+  const defaultOptions = {
+    throwOnError: false
+  }
+
+  const retry = (retryCount: number, error: unknown) => {
+    if (error instanceof CauseException) {
+      if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
+        return false
+      }
+    }
+    return retryCount < 5
+  }
+
+  const r = useTanstackQuery<A[], CauseException<E>, A[]>(
+    {
+      ...defaultOptions,
+      ...options,
+      retry,
+      queryKey: isWithInput ? [...queryKey, req] : queryKey,
+      queryFn: streamedQuery({
+        streamFn: () => {
+          const stream = isWithInput
+            ? (handler as any)(req.value)
+            : handler
+          return streamToAsyncIterableWithCauseException(stream, context, q.id)
+        }
+      })
+    }
+  )
+
+  const latestSuccess = shallowRef<A[]>()
+  const result = computed((): AsyncResult.AsyncResult<A[], E> =>
+    swrToQuery({
+      error: r.error.value ?? undefined,
+      data: r.data.value === undefined ? latestSuccess.value : r.data.value,
+      isValidating: r.isFetching.value
+    })
+  )
+  watch(result, (value) => latestSuccess.value = Option.getOrUndefined(AsyncResult.value(value)), { immediate: true })
+
+  return [
+    result,
+    computed(() => latestSuccess.value),
+    (options?: RefetchOptions) =>
+      Effect.currentSpan.pipe(
+        Effect.orElseSucceed(() => null),
+        Effect.flatMap((span) => Effect.promise(() => r.refetch({ ...options, updateMeta: { span } })))
+      ),
+    r
+  ] as any
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface MakeStreamQuery2<R> extends ReturnType<typeof makeStreamQuery<R>> {}
 
 function orPrevious<E, A>(result: AsyncResult.AsyncResult<A, E>) {
   return AsyncResult.isFailure(result) && Option.isSome(result.previousSuccess)

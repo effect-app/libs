@@ -10,7 +10,7 @@
  * Transport is in-memory via `RpcTest.makeClient`, so no HTTP server is needed.
  */
 import { expect, it } from "@effect/vitest"
-import { Effect, Layer, Ref } from "effect"
+import { Effect, Layer, Ref, Stream } from "effect"
 import { S } from "effect-app"
 import { makeInvalidationKeysService } from "effect-app/client"
 import { InvalidationMiddleware } from "effect-app/middleware"
@@ -67,6 +67,23 @@ const E2eRpcs = RpcGroup.make(
     .make("doWithBothKeys", { success: S.Number })
     .annotate(RequestType, "command")
     .annotate(Invalidation.Invalidates, [StaticKey])
+    .middleware(InvalidationMiddleware),
+  // Stream — no input
+  Rpc
+    .make("streamTicks", {
+      success: S.Number,
+      stream: true
+    })
+    .annotate(RequestType, "query")
+    .middleware(InvalidationMiddleware),
+  // Stream — with input payload
+  Rpc
+    .make("streamCountTo", {
+      payload: S.Struct({ to: S.Number }),
+      success: S.Number,
+      stream: true
+    })
+    .annotate(RequestType, "query")
     .middleware(InvalidationMiddleware)
 )
 
@@ -89,7 +106,9 @@ const E2eImplLayer = E2eRpcs.toLayer({
   doWithBothKeys: Effect.fnUntraced(function*() {
     yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
     return 99
-  })
+  }),
+  streamTicks: () => Stream.fromIterable([1, 2, 3]),
+  streamCountTo: ({ to }) => Stream.range(1, to)
 })
 
 const E2eTestLayer = Layer.merge(E2eImplLayer, InvalidationMiddlewareLive)
@@ -173,6 +192,24 @@ it.live(
     const result = asCommand(yield* client.doWithBothKeys())
     expect(result.payload).toBe(99)
     expect(result.metadata.invalidateQueries).toStrictEqual([StaticKey, DynamicKey])
+  }, Effect.provide(E2eTestLayer))
+)
+
+it.live(
+  "stream RPC without input emits all values",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(E2eRpcs)
+    const values = yield* Stream.runCollect(client.streamTicks())
+    expect(values).toStrictEqual([1, 2, 3])
+  }, Effect.provide(E2eTestLayer))
+)
+
+it.live(
+  "stream RPC with input emits values driven by payload",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(E2eRpcs)
+    const values = yield* Stream.runCollect(client.streamCountTo({ to: 4 }))
+    expect(values).toStrictEqual([1, 2, 3, 4])
   }, Effect.provide(E2eTestLayer))
 )
 

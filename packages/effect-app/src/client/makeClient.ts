@@ -87,7 +87,7 @@ type TaggedRequestForResult<
   Error extends S.Top,
   Config,
   ModuleName extends string,
-  Type extends "command" | "query",
+  Type extends "command" | "query" | "stream",
   Resources = never
 > =
   & S.EnhancedClass<Self, TaggedRequestSchema<Tag, Payload>, {}>
@@ -150,7 +150,7 @@ export const makeRpcClient = <
     return RequestClass
   }
 
-  function makeTaggedRequestWithMeta<ModuleName extends string, Type extends "command" | "query">(
+  function makeTaggedRequestWithMeta<ModuleName extends string, Type extends "command" | "query" | "stream">(
     moduleName: ModuleName,
     type: Type
   ) {
@@ -344,6 +344,7 @@ export const makeRpcClient = <
   function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
     const Query = makeTaggedRequestWithMeta(moduleName, "query")
     const Command = makeTaggedRequestWithMeta(moduleName, "command")
+    const Stream = makeTaggedRequestWithMeta(moduleName, "stream")
 
     return {
       moduleName,
@@ -356,7 +357,13 @@ export const makeRpcClient = <
        * Create command request classes for this module.
        * Commands mutate state and should avoid returning complex read models.
        */
-      Command
+      Command,
+      /**
+       * Create stream request classes for this module.
+       * Streams produce a Stream of `success` values, may also fail with `error`.
+       * Handlers must return an `Effect`-compatible Stream rather than an Effect.
+       */
+      Stream
     } as const
   }
 

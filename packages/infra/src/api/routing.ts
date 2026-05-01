@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, type Scope } from "effect-app"
+import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, type Scope, Stream } from "effect-app"
 import { getMeta } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { Invalidation } from "effect-app/rpc"
@@ -25,7 +25,7 @@ export const applyRequestTypeInterruptibility = <A, E, R>(
 // it's a schema plus some metadata
 export type AnyRequestModule = S.Top & {
   _tag: string // unique identifier for the request module
-  type: "command" | "query"
+  type: "command" | "query" | "stream"
   config: any // ?
   success: S.Top // validates the success response
   error: S.Top // validates the failure response
@@ -73,7 +73,10 @@ interface HandlerBase<Action extends AnyRequestModule, RT extends RequestType, A
   new(): {}
   _tag: RT
   stack: string
-  handler: (req: S.Schema.Type<Action>, headers: HttpHeaders.Headers) => Effect.Effect<A, E, R>
+  handler: (
+    req: S.Schema.Type<Action>,
+    headers: HttpHeaders.Headers
+  ) => Effect.Effect<A, E, R> | Stream.Stream<A, E, R>
 }
 
 export interface Handler<Action extends AnyRequestModule, RT extends RequestType, R> extends
@@ -126,6 +129,28 @@ type Match<
 
   <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
     f: (req: S.Schema.Type<Resource[Key]>) => Effect.Effect<A, E, R2>
+  ): Handler<
+    Resource[Key],
+    RT,
+    Exclude<
+      Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
+      Scope.Scope
+    >
+  >
+
+  <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
+    f: Stream.Stream<A, E, R2>
+  ): Handler<
+    Resource[Key],
+    RT,
+    Exclude<
+      Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
+      Scope.Scope
+    >
+  >
+
+  <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
+    f: (req: S.Schema.Type<Resource[Key]>) => Stream.Stream<A, E, R2>
   ): Handler<
     Resource[Key],
     RT,
@@ -237,10 +262,32 @@ export const makeRouter = <
       GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
     >
 
+    type HandlerWithInputStream<
+      Action extends AnyRequestModule,
+      RT extends RequestType
+    > = (
+      req: S.Schema.Type<Action>
+    ) => Stream.Stream<
+      GetSuccessShape<Action, RT>,
+      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
+      GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
+    >
+
+    type HandlerStream<
+      Action extends AnyRequestModule,
+      RT extends RequestType
+    > = Stream.Stream<
+      GetSuccessShape<Action, RT>,
+      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
+      GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
+    >
+
     type Handlers<Action extends AnyRequestModule, RT extends RequestType> =
       | HandlerWithInputGen<Action, RT>
       | HandlerWithInputEff<Action, RT>
       | HandlerEff<Action, RT>
+      | HandlerWithInputStream<Action, RT>
+      | HandlerStream<Action, RT>
 
     type HandlersDecoded<Action extends AnyRequestModule> = Handlers<Action, RequestTypes.DECODED>
 
@@ -248,6 +295,8 @@ export const makeRouter = <
       | { raw: HandlerWithInputGen<Action, RequestTypes.RAW> }
       | { raw: HandlerWithInputEff<Action, RequestTypes.RAW> }
       | { raw: HandlerEff<Action, RequestTypes.RAW> }
+      | { raw: HandlerWithInputStream<Action, RequestTypes.RAW> }
+      | { raw: HandlerStream<Action, RequestTypes.RAW> }
 
     type AnyHandlers<Action extends AnyRequestModule> = HandlersRaw<Action> | HandlersDecoded<Action>
 
@@ -267,7 +316,8 @@ export const makeRouter = <
           // handlerImpl is the actual handler implementation
           if (handlerImpl[Symbol.toStringTag] === "GeneratorFunction") handlerImpl = Effect.fnUntraced(handlerImpl)
           const stack = new Error().stack?.split("\n").slice(2).join("\n")
-          return Effect.isEffect(handlerImpl)
+          const isValueShape = Effect.isEffect(handlerImpl) || Stream.isStream(handlerImpl)
+          return isValueShape
             // oxlint-disable-next-line typescript/no-extraneous-class
             ? class {
               static request = rsc[cur]
@@ -292,7 +342,8 @@ export const makeRouter = <
             (handlerImpl: any) => {
               if (handlerImpl[Symbol.toStringTag] === "GeneratorFunction") handlerImpl = Effect.fnUntraced(handlerImpl)
               const stack = new Error().stack?.split("\n").slice(2).join("\n")
-              return Effect.isEffect(handlerImpl)
+              const isValueShape = Effect.isEffect(handlerImpl) || Stream.isStream(handlerImpl)
+              return isValueShape
                 // oxlint-disable-next-line typescript/no-extraneous-class
                 ? class {
                   static request = rsc[cur]
@@ -330,6 +381,8 @@ export const makeRouter = <
             Impl[K] extends { raw: any }
               ? Impl[K]["raw"] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K]["raw"] extends Effect.Effect<any, any, infer R> ? R
+              : Impl[K]["raw"] extends (...args: any[]) => Stream.Stream<any, any, infer R> ? R
+              : Impl[K]["raw"] extends Stream.Stream<any, any, infer R> ? R
               : Impl[K]["raw"] extends (...args: any[]) => Generator<
                 Yieldable<any, any, any, infer R>,
                 any,
@@ -338,6 +391,8 @@ export const makeRouter = <
               : never
               : Impl[K] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
               : Impl[K] extends Effect.Effect<any, any, infer R> ? R
+              : Impl[K] extends (...args: any[]) => Stream.Stream<any, any, infer R> ? R
+              : Impl[K] extends Stream.Stream<any, any, infer R> ? R
               : Impl[K] extends (...args: any[]) => Generator<
                 Yieldable<any, any, any, infer R>,
                 any,
@@ -398,7 +453,12 @@ export const makeRouter = <
                 } as any
                 : resource,
               (payload: any, headers: any) => {
-                const effect = (handler.handler(payload, headers) as Effect.Effect<unknown, unknown, unknown>).pipe(
+                const result = handler.handler(payload, headers)
+                if (Stream.isStream(result)) {
+                  // RpcServer adds its own span via spanPrefix; pass the Stream through.
+                  return result
+                }
+                const effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {}, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
@@ -429,13 +489,15 @@ export const makeRouter = <
           const rpcs = RpcGroup
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
+                const isStream = resource.type === "stream"
                 return Rpc
                   .make(resource._tag, {
                     payload: resource,
                     success: resource.type === "command"
                       ? Invalidation.CommandResponseWithMetaData(resource.success)
                       : resource.success,
-                    error: resource.error
+                    error: resource.error,
+                    ...isStream ? { stream: true as const } : {}
                   })
                   .annotate(middleware.requestContext, resource.config ?? {})
                   .annotate(RequestTypeAnnotation, resource.type)

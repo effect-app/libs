@@ -697,7 +697,7 @@ export const makeClient = <RT_, RTHooks>(
         if (client[key].Request.type !== "command") {
           return acc
         }
-        const fromRequestConfig = client[key].Request.config?.invalidatesQueries as
+        const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
           | InvalidationCallback<InvalidationResourcesFor<M>>
           | undefined
         const fromRequest = fromRequestConfig
@@ -788,7 +788,7 @@ export const makeClient = <RT_, RTHooks>(
             }
             : {
               mutate: ((handler: any) => {
-                const fromRequestConfig = client[key].Request.config?.invalidatesQueries as
+                const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
                   | InvalidationCallback<InvalidationResourcesFor<M>>
                   | undefined
                 const fromRequest = fromRequestConfig

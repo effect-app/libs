@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as Record from "effect/Record"
+import type * as Stream from "effect/Stream"
 import type { Path } from "path-parser"
 import qs from "query-string"
 import type * as Effect from "../Effect.js"
@@ -98,6 +99,20 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
   Request: Request
 }
 
+export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends string> {
+  handler: Stream.Stream<A, E, R>
+  id: Id
+  options?: ClientForOptions
+  Request: Request
+}
+
+export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
+  handler: (i: I) => Stream.Stream<A, E, R>
+  id: Id
+  options?: ClientForOptions
+  Request: Request
+}
+
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
 
@@ -126,20 +141,40 @@ type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Normal
   RequestInputFromMake<I>
 >
 
+type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] extends "stream"
+  ? IsTagOnly<RequestInputFromMake<T>> extends true ? RequestStreamHandler<
+      S.Schema.Type<T["success"]>,
+      S.Schema.Type<T["error"]> | E,
+      R | ReqDecodingServices<T>,
+      T,
+      Id
+    >
+  : RequestStreamHandlerWithInput<
+    RequestInput<T>,
+    S.Schema.Type<T["success"]>,
+    S.Schema.Type<T["error"]> | E,
+    R | ReqDecodingServices<T>,
+    T,
+    Id
+  >
+  : IsTagOnly<RequestInputFromMake<T>> extends true ? RequestHandler<
+      S.Schema.Type<T["success"]>,
+      S.Schema.Type<T["error"]> | E,
+      R | ReqDecodingServices<T>,
+      T,
+      Id
+    >
+  : RequestHandlerWithInput<
+    RequestInput<T>,
+    S.Schema.Type<T["success"]>,
+    S.Schema.Type<T["error"]> | E,
+    R | ReqDecodingServices<T>,
+    T,
+    Id
+  >
+
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsTagOnly<RequestInputFromMake<M[K]>> extends true ? RequestHandler<
-      S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["error"]> | E,
-      R | ReqDecodingServices<M[K]>,
-      M[K],
-      `${ModuleName}.${K & string}`
-    >
-    : RequestHandlerWithInput<
-      RequestInput<M[K]>,
-      S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["error"]> | E,
-      R | ReqDecodingServices<M[K]>,
-      M[K],
-      `${ModuleName}.${K & string}`
-    >
+  [K in keyof M as M[K] extends Req ? K : never]: Extract<M[K], Req> extends infer T extends Req
+    ? RequestHandlerFor<R, E, T, `${ModuleName}.${K & string}`>
+    : never
 }

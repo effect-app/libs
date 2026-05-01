@@ -215,7 +215,9 @@ export const useClient = (
     // accesses outside the context succeed.
     const firstPropertyName = Object.keys(m)[0]
     if (firstPropertyName !== undefined) {
-      vueApp.runWithContext(() => { void (proxy as Record<string, unknown>)[firstPropertyName] })
+      vueApp.runWithContext(() => {
+        void (proxy as Record<string, unknown>)[firstPropertyName]
+      })
     }
     return proxy
   }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { Array, type Cause, Effect, type Exit, Option } from "effect-app"
-import { InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type InvalidationKey, type Req } from "effect-app/client"
+import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
 import * as Ref from "effect/Ref"

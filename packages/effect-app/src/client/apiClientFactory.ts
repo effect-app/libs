@@ -66,7 +66,7 @@ export const HttpClientLayer = (config: ApiConfig) =>
                 HttpClientRequest.appendUrlParam("action", ctx.requestName),
                 HttpClientRequest.appendUrl("/" + ctx.moduleName)
               )(req))
-          ),
+          )
         )
         return client
       })

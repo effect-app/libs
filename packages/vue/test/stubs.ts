@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
 import * as Exit from "effect/Exit"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
-import { ref } from "vue"
+import { createApp, ref } from "vue"
 import { Commander } from "../src/commander.js"
 import { I18n } from "../src/intl.js"
 import { makeClient } from "../src/makeClient.js"
@@ -198,5 +199,25 @@ export const useClient = (
   const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api)
 
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
-  return makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
+  const rawClient = makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
+
+  // Provide a Vue injection context so that composition-API hooks (e.g. useQueryClient)
+  // called during client initialisation work outside a component setup() function.
+  const vueApp = createApp({})
+  vueApp.use(VueQueryPlugin, {
+    queryClient: new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  })
+
+  const clientFor: typeof rawClient.clientFor = (...args: any[]) => {
+    const proxy = (rawClient.clientFor as any)(...args)
+    // Wrap every property access in the Vue app context so that lazy hook
+    // initialisation (useMutation / useQueryClient) finds an injection context.
+    return new Proxy(proxy as any, {
+      get(target, key) {
+        return vueApp.runWithContext(() => (target as any)[key])
+      }
+    }) as any
+  }
+
+  return { ...rawClient, clientFor }
 }

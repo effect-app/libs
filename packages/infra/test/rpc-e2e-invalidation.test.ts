@@ -10,8 +10,9 @@
  * Transport is in-memory via `RpcTest.makeClient`, so no HTTP server is needed.
  */
 import { expect, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Ref } from "effect"
 import { S } from "effect-app"
+import { makeInvalidationKeysService } from "effect-app/client"
 import { InvalidationMiddleware } from "effect-app/middleware"
 import { Invalidation } from "effect-app/rpc"
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc"
@@ -184,5 +185,62 @@ it.live(
     // Each call must have exactly one key — no accumulation from prior calls
     expect(r1.metadata.invalidateQueries).toStrictEqual([DynamicKey])
     expect(r2.metadata.invalidateQueries).toStrictEqual([DynamicKey])
+  }, Effect.provide(E2eTestLayer))
+)
+
+// ---------------------------------------------------------------------------
+// Client-side consumption tests
+//
+// These tests verify the full roundtrip for cache invalidation:
+//   1. The server wraps command results in `{ payload, metadata: { invalidateQueries } }`.
+//   2. The client-side `unwrapCommand` logic (as implemented in `apiClientFactory`) extracts
+//      the payload and forwards each key to `InvalidationKeysFromServer.add()`.
+//
+// `runAndCapture` replicates that logic using a fresh `Ref`-backed service so the test
+// can inspect which keys the client received after the command completes.
+// ---------------------------------------------------------------------------
+
+/**
+ * Replicates `apiClientFactory`'s `unwrapCommand` + `InvalidationKeysFromServer` pattern:
+ *   - Unwraps the `CommandResponseWithMetaData` result
+ *   - Calls `svc.add(key)` for every key in `metadata.invalidateQueries`
+ *   - Returns `{ payload, keys }` for assertion
+ */
+const runAndCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
+  Effect.gen(function*() {
+    const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
+    const svc = makeInvalidationKeysService(keysRef)
+    const cmd = asCommand(yield* eff)
+    yield* Effect.forEach(cmd.metadata.invalidateQueries, svc.add, { discard: true })
+    return { payload: cmd.payload, keys: yield* Ref.get(keysRef) }
+  })
+
+it.live(
+  "client consumes static key: payload unwrapped and key forwarded to InvalidationKeysFromServer",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(E2eRpcs)
+    const { payload, keys } = yield* runAndCapture(client.doWithStaticKey())
+    expect(payload).toStrictEqual({ count: 42 })
+    expect(keys).toStrictEqual([StaticKey])
+  }, Effect.provide(E2eTestLayer))
+)
+
+it.live(
+  "client consumes dynamic key: payload unwrapped and key forwarded to InvalidationKeysFromServer",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(E2eRpcs)
+    const { payload, keys } = yield* runAndCapture(client.doWithDynamicKey())
+    expect(payload).toBe("done")
+    expect(keys).toStrictEqual([DynamicKey])
+  }, Effect.provide(E2eTestLayer))
+)
+
+it.live(
+  "client consumes combined static+dynamic keys: all keys forwarded to InvalidationKeysFromServer",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(E2eRpcs)
+    const { payload, keys } = yield* runAndCapture(client.doWithBothKeys())
+    expect(payload).toBe(99)
+    expect(keys).toStrictEqual([StaticKey, DynamicKey])
   }, Effect.provide(E2eTestLayer))
 )

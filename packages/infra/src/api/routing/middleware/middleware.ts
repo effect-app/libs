@@ -1,16 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Cause, Config, Effect, Layer, Ref, Schema } from "effect"
-import * as Array from "effect/Array"
-import {
-  ConfigureInterruptibilityMiddleware,
-  DevMode,
-  DevModeMiddleware,
-  InvalidationMiddleware,
-  LoggerMiddleware,
-  RequestCacheMiddleware
-} from "effect-app/middleware"
+import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, InvalidationMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
 import { Invalidation, RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
+import * as Array from "effect/Array"
 import * as Context from "effect/Context"
 import { type Rpc } from "effect/unstable/rpc"
 import { logError, reportError } from "../../../errorReporter.js"
@@ -143,7 +136,11 @@ export const InvalidationMiddlewareLive = Layer.succeed(
       const staticKeys = Context.get(rpc.annotations, Invalidation.Invalidates)
       const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>(staticKeys)
 
-      const result = yield* Effect.provideService(effect, Invalidation.InvalidationSet, Invalidation.makeInvalidationSet(keysRef))
+      const result = yield* Effect.provideService(
+        effect,
+        Invalidation.InvalidationSet,
+        Invalidation.makeInvalidationSet(keysRef)
+      )
 
       const requestType = Context.get(rpc.annotations, RequestType)
       if (requestType !== "command") return result

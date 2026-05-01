@@ -67,7 +67,7 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
   return tuple(result, latestSuccess, execute)
 }
 
-export interface MutationOptionsBase {
+export interface MutationOptionsBase<A = unknown> {
   /**
    * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
    * This can be overridden by providing a function that returns an array of filters and options.
@@ -76,10 +76,24 @@ export interface MutationOptionsBase {
     filters?: InvalidateQueryFilters | undefined
     options?: InvalidateOptions | undefined
   }[]
+  /**
+   * Run an additional Effect after the mutation succeeds and before query cache
+   * invalidation takes place. Useful for long-running operations where you want to
+   * wait for downstream effects (e.g. a background job) to finish before the cache
+   * is refreshed.
+   *
+   * @example
+   * ```ts
+   * useMutation(startExportCommand, {
+   *   select: (result) => pollUntilDone(result.jobId)
+   * })
+   * ```
+   */
+  select?: (result: A) => Effect.Effect<unknown, unknown, never>
 }
 
 /** @deprecated prefer more basic @see MutationOptionsBase and separate useMutation from Command.fn */
-export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> extends MutationOptionsBase {
+export interface MutationOptions<A, E, R, A2 = A, E2 = E, R2 = R, I = void> extends MutationOptionsBase<A> {
   /**
    * Map the handler; cache invalidation is already done in this handler.
    * This is useful for e.g navigating, as you know caches have already updated.
@@ -145,7 +159,7 @@ export const asResult: {
 export const invalidateQueries = (
   queryClient: QueryClient,
   self: { id: string; options?: ClientForOptions },
-  options?: MutationOptionsBase["queryInvalidation"]
+  options?: MutationOptionsBase
 ) => {
   type InvalidationTarget = {
     readonly filters: InvalidateQueryFilters | undefined
@@ -169,8 +183,8 @@ export const invalidateQueries = (
   ): ReadonlyArray<InvalidationTarget> => {
     const queryKey = getQueryKey(self)
 
-    if (options) {
-      return options(queryKey, self.id, input, output).map((_) => ({
+    if (options?.queryInvalidation) {
+      return options.queryInvalidation(queryKey, self.id, input, output).map((_) => ({
         filters: _.filters,
         options: _.options
       }))
@@ -217,11 +231,16 @@ export const invalidateQueries = (
         )
     })
 
+  const select = options?.select
+
   const handle = <A, E, R>(eff: Effect.Effect<A, E, R>, input?: unknown) =>
     Effect.gen(function*() {
       const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
-      return yield* eff.pipe(
-        Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef)),
+      const base = eff.pipe(
+        Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef))
+      )
+      const withSelect = select ? base.pipe(Effect.tap((result) => select(result))) : base
+      return yield* withSelect.pipe(
         Effect.onExit((exit) =>
           Effect.gen(function*() {
             const serverKeys = yield* Ref.get(keysRef)
@@ -242,7 +261,7 @@ export const makeMutation = () => {
      */
     <I, E, A, R, Request extends Req, Id extends string>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Id>,
-      options?: MutationOptionsBase
+      options?: MutationOptionsBase<A>
     ): ((i: I) => Effect.Effect<A, E, R>) & { readonly id: Id }
     /**
      * Pass an Effect, e.g from a client action
@@ -250,14 +269,14 @@ export const makeMutation = () => {
      */
     <E, A, R, Request extends Req, Id extends string>(
       self: RequestHandler<A, E, R, Request, Id>,
-      options?: MutationOptionsBase
+      options?: MutationOptionsBase<A>
     ): Effect.Effect<A, E, R> & { readonly id: Id }
   } = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
     options?: MutationOptionsBase
   ) => {
     const queryClient = useQueryClient()
-    const handle = invalidateQueries(queryClient, self, options?.queryInvalidation)
+    const handle = invalidateQueries(queryClient, self, options)
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
 
@@ -277,7 +296,7 @@ export const useMakeMutation = () => {
      */
     <I, E, A, R, Request extends Req, Id extends string>(
       self: RequestHandlerWithInput<I, A, E, R, Request, Id>,
-      options?: MutationOptionsBase
+      options?: MutationOptionsBase<A>
     ): ((i: I) => Effect.Effect<A, E, R>) & { readonly id: Id }
     /**
      * Pass an Effect, e.g from a client action
@@ -285,13 +304,13 @@ export const useMakeMutation = () => {
      */
     <E, A, R, Request extends Req, Id extends string>(
       self: RequestHandler<A, E, R, Request, Id>,
-      options?: MutationOptionsBase
+      options?: MutationOptionsBase<A>
     ): Effect.Effect<A, E, R> & { readonly id: Id }
   } = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>,
     options?: MutationOptionsBase
   ) => {
-    const handle = invalidateQueries(queryClient, self, options?.queryInvalidation)
+    const handle = invalidateQueries(queryClient, self, options)
     const handler = self.handler
     const r = Effect.isEffect(handler) ? handle(handler) : (i: I) => handle(handler(i), i)
 

@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
 import * as Exit from "effect/Exit"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
-import { ref } from "vue"
+import { createApp, ref } from "vue"
 import { Commander } from "../src/commander.js"
 import { I18n } from "../src/intl.js"
 import { makeClient } from "../src/makeClient.js"
@@ -198,5 +199,28 @@ export const useClient = (
   const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api)
 
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
-  return makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
+  const rawClient = makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
+
+  // Provide a Vue injection context so that composition-API hooks (e.g. useQueryClient)
+  // called during client initialisation work outside a component setup() function.
+  const vueApp = createApp({})
+  const testQueryClientConfig = { defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }
+  vueApp.use(VueQueryPlugin, { queryClient: new QueryClient(testQueryClientConfig) })
+
+  const origClientFor = rawClient.clientFor
+  const clientFor: typeof origClientFor = function(m, ...args) {
+    const proxy = origClientFor(m, ...args)
+    // Warm up lazy mutation-hook initialisation inside the Vue injection context.
+    // After the first property access, useMutation() is cached and subsequent
+    // accesses outside the context succeed.
+    const firstPropertyName = Object.keys(m)[0]
+    if (firstPropertyName !== undefined) {
+      vueApp.runWithContext(() => {
+        void (proxy as Record<string, unknown>)[firstPropertyName]
+      })
+    }
+    return proxy
+  }
+
+  return { ...rawClient, clientFor }
 }

@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
-import { type Cause, Effect, type Exit, Option } from "effect-app"
-import { makeQueryKey, type Req } from "effect-app/client"
+import { Array, type Cause, Effect, type Exit, Option } from "effect-app"
+import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
+import * as Ref from "effect/Ref"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, shallowRef } from "vue"
 
@@ -191,15 +192,26 @@ export const invalidateQueries = (
         )
     })
 
-  const handle = <A, E, R>(self: Effect.Effect<A, E, R>, input?: unknown) =>
-    self.pipe(
-      Effect.onExit((exit) =>
-        invalidateCache(
-          input,
-          exit
+  const handle = <A, E, R>(eff: Effect.Effect<A, E, R>, input?: unknown) =>
+    Effect.gen(function*() {
+      const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
+      return yield* eff.pipe(
+        Effect.provideService(InvalidationKeysFromServer, makeInvalidationKeysService(keysRef)),
+        Effect.onExit((exit) =>
+          Effect.gen(function*() {
+            yield* invalidateCache(input, exit)
+            const serverKeys = yield* Ref.get(keysRef)
+            if (Array.isReadonlyArrayNonEmpty(serverKeys)) {
+              yield* Effect.forEach(
+                serverKeys,
+                (key) => invalidateQueries({ queryKey: key }),
+                { discard: true, concurrency: "inherit" }
+              )
+            }
+          })
         )
       )
-    )
+    })
 
   return handle
 }

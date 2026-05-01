@@ -148,8 +148,15 @@ export interface MutationExtWithInput<
    * Namespace invalidation targets parent namespace keys
    * (for example `$project/$configuration.get` invalidates `$project`).
    * Override invalidation in client options via `queryInvalidation`.
+   *
+   * Pass `options` to attach a `select` Effect that runs after the mutation
+   * succeeds (its output is returned to the caller) and/or override the default
+   * `queryInvalidation`.
    */
-  (i: I): Effect.Effect<A, E, R>
+  <B = A, E2 = never, R2 = never>(
+    input: I,
+    options?: MutationOptionsBase<A, B, E2, R2>
+  ): Effect.Effect<B, E | E2, R | R2>
 
   project: <ProjSchema extends S.Top>(
     schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
@@ -178,7 +185,19 @@ export interface MutationExt<
   E,
   R,
   EA = unknown
-> extends MutationExtensions<RT, Id, void, A, E, R>, Effect.Effect<A, E, R> {
+> extends MutationExtensions<RT, Id, void, A, E, R> {
+  /**
+   * Send the request to the endpoint and return the raw Effect response.
+   * Also invalidates query caches using the request namespace by default.
+   *
+   * Pass `options` to attach a `select` Effect that runs after the mutation
+   * succeeds (its output is returned to the caller) and/or override the default
+   * `queryInvalidation`.
+   */
+  <B = A, E2 = never, R2 = never>(
+    options?: MutationOptionsBase<A, B, E2, R2>
+  ): Effect.Effect<B, E | E2, R | R2>
+
   project: <ProjSchema extends S.Top>(
     schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
   ) => MutationExt<
@@ -295,32 +314,33 @@ export type Queries<RT, Req> = Req extends
 
 const _useMutation = makeMutation()
 
+const wrapWithSpan = (self: { id: string; handler: any }, mut: any) => {
+  const span = (eff: Effect.Effect<any, any, any>) =>
+    Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })(eff)
+  return Effect.isEffect(self.handler)
+    ? (options?: MutationOptionsBase) => span(mut(options))
+    : (input: any, options?: MutationOptionsBase) => span(mut(input, options))
+}
+
 /**
  * Pass an Effect or a function that returns an Effect, e.g from a client action
  * Executes query cache invalidation based on default rules or provided option.
  * adds a span with the mutation id
  */
-export const useMutation: typeof _useMutation = <
+export const useMutation: typeof _useMutation = (<
   I,
   E,
   A,
   R,
   Request extends Req,
-  Name extends string,
-  B = A,
-  E2 = never,
-  R2 = never
+  Name extends string
 >(
-  self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
-  options?: MutationOptionsBase<A, B, E2, R2>
+  self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
 ) =>
   Object.assign(
-    mapHandler(
-      _useMutation(self as any, options),
-      Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })
-    ) as any,
+    wrapWithSpan(self, _useMutation(self as any)),
     { id: self.id }
-  )
+  )) as any
 
 /**
  * Pass an Effect or a function that returns an Effect, e.g from a client action
@@ -329,27 +349,20 @@ export const useMutation: typeof _useMutation = <
  */
 export const useMutationInt = (): typeof _useMutation => {
   const _useMutation = useMakeMutation()
-  return <
+  return (<
     I,
     E,
     A,
     R,
     Request extends Req,
-    Name extends string,
-    B = A,
-    E2 = never,
-    R2 = never
+    Name extends string
   >(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
-    options?: MutationOptionsBase<A, B, E2, R2>
+    self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
   ) =>
     Object.assign(
-      mapHandler(
-        _useMutation(self as any, options),
-        Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })
-      ) as any,
+      wrapWithSpan(self, _useMutation(self as any)),
       { id: self.id }
-    )
+    )) as any
 }
 
 export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M, ExtractModuleName<M>>
@@ -575,6 +588,23 @@ export const makeClient = <RT_, RTHooks>(
     ]
   }
 
+  const withDefaultInvalidation = (
+    mut: any,
+    isWithInput: boolean,
+    defaultInvalidation?: MutationOptionsBase["queryInvalidation"]
+  ) => {
+    if (!defaultInvalidation) return mut
+    const apply = (callerOpts?: MutationOptionsBase) => ({
+      ...callerOpts,
+      queryInvalidation: callerOpts?.queryInvalidation
+        ? mergeInvalidation(defaultInvalidation, callerOpts.queryInvalidation)
+        : defaultInvalidation
+    })
+    return isWithInput
+      ? (input: any, callerOpts?: MutationOptionsBase) => mut(input, apply(callerOpts))
+      : (callerOpts?: MutationOptionsBase) => mut(apply(callerOpts))
+  }
+
   const makeQueryResources = <Resources extends InvalidationResources>(resources: Resources | undefined) => {
     if (!resources) {
       return {} as Record<string, Record<string, unknown>>
@@ -679,11 +709,9 @@ export const makeClient = <RT_, RTHooks>(
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
-          const mut: any = mutation(
-            handler,
-            mergedInvalidation ? { queryInvalidation: mergedInvalidation } : undefined
-          )
-          const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
+          const isWithInput = !Effect.isEffect(handler.handler)
+          const mut: any = withDefaultInvalidation(mutation(handler), isWithInput, mergedInvalidation)
+          const wrap = Command.wrap({ mutate: mut, id: client[key].id })
           return Object.assign(mut, {
             wrap,
             project: (projectionSchema: any) => {
@@ -774,15 +802,13 @@ export const makeClient = <RT_, RTHooks>(
                   : undefined
                 const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
                 const makeProjectedMutation = (h: any): any => {
-                  const mutate = mutation(
-                    h,
-                    mergedInvalidation ? { queryInvalidation: mergedInvalidation } : undefined
-                  ) as any
+                  const isWithInput = !Effect.isEffect(h.handler)
+                  const mutate = withDefaultInvalidation(mutation(h), isWithInput, mergedInvalidation)
                   return Object.assign(
                     mutate,
                     {
                       wrap: Command.wrap({
-                        mutate: Effect.isEffect(mutate) ? () => mutate : mutate,
+                        mutate,
                         id: client[key].id
                       }),
                       project: (projectionSchema: any) => {

@@ -190,15 +190,13 @@ export const invalidateQueries = (
 
       // Group targets by refetchType + options so each group can be merged into a single
       // invalidateQueries call using a predicate, reducing N calls to 1 in the common case.
-      const groups = new Map<
-        string,
-        { targets: ReadonlyArray<InvalidationTarget>; refetchType: string | undefined; options: InvalidateOptions | undefined }
-      >()
+      type Group = { targets: Array<InvalidationTarget>; refetchType: string | undefined; options: InvalidateOptions | undefined }
+      const groups = new Map<string, Group>()
       for (const target of allTargets) {
-        const key = JSON.stringify({ refetchType: target.filters?.refetchType, options: target.options ?? null })
+        const key = `${target.filters?.refetchType ?? ""}|${target.options?.cancelRefetch ?? ""}|${target.options?.throwOnError?.toString() ?? ""}`
         const existing = groups.get(key)
         if (existing) {
-          groups.set(key, { ...existing, targets: [...existing.targets, target] })
+          existing.targets.push(target)
         } else {
           groups.set(key, { targets: [target], refetchType: target.filters?.refetchType, options: target.options })
         }

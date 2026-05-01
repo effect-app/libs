@@ -1,5 +1,24 @@
 # @effect-app/vue
 
+## 4.0.0-beta.174
+
+### Minor Changes
+
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+### Patch Changes
+
+- 1b38043: Fix lint: use typescript ~6.0.3 instead of native-preview for ESLint compatibility; keep tsgo for compilation
+- b241ae5: Merge client and server-driven cache invalidation keys into a single `Effect.forEach` pass so server keys always run regardless of whether client targets are empty or custom invalidation options are used.
+- Updated dependencies [821468d]
+  - effect-app@4.0.0-beta.174
+
 ## 4.0.0-beta.173
 
 ### Patch Changes

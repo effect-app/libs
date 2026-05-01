@@ -1,5 +1,27 @@
 # @effect-app/vue
 
+## 4.0.0-beta.175
+
+### Minor Changes
+
+- 28777c1: Add `select` option to `MutationOptionsBase` for a second cache invalidation after long-running operations.
+
+  When `select` is provided, cache invalidation fires twice:
+
+  1. Immediately when the mutation completes (existing behaviour).
+  2. Again after the `select` effect finishes — useful for polling or waiting for a background job before refreshing data.
+
+  ```ts
+  useMutation(startExportCommand, {
+    select: (result) => pollUntilDone(result.jobId),
+  });
+  ```
+
+### Patch Changes
+
+- 37089ea: Consolidate multiple `invalidateQueries` calls into a single call per group using a `predicate`, reducing the number of TanStack Query invalidation calls in the common case from N to 1.
+  - effect-app@4.0.0-beta.175
+
 ## 4.0.0-beta.174
 
 ### Minor Changes

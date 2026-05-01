@@ -190,10 +190,16 @@ export const invalidateQueries = (
 
       // Group targets by refetchType + options so each group can be merged into a single
       // invalidateQueries call using a predicate, reducing N calls to 1 in the common case.
-      type Group = { targets: Array<InvalidationTarget>; refetchType: string | undefined; options: InvalidateOptions | undefined }
+      type Group = {
+        targets: Array<InvalidationTarget>
+        refetchType: InvalidateQueryFilters["refetchType"]
+        options: InvalidateOptions | undefined
+      }
       const groups = new Map<string, Group>()
       for (const target of allTargets) {
-        const key = `${target.filters?.refetchType ?? ""}|${target.options?.cancelRefetch ?? ""}|${target.options?.throwOnError?.toString() ?? ""}`
+        const key = `${target.filters?.refetchType ?? ""}|${target.options?.cancelRefetch ?? ""}|${
+          target.options?.throwOnError?.toString() ?? ""
+        }`
         const existing = groups.get(key)
         if (existing) {
           existing.targets.push(target)
@@ -207,10 +213,10 @@ export const invalidateQueries = (
           Effect.annotateCurrentSpan({ clientTargets, serverKeys }),
           Effect.forEach(
             groups.values(),
-            ({ targets, refetchType, options }) =>
+            ({ options, refetchType, targets }) =>
               invalidateQueries(
                 {
-                  refetchType,
+                  ...(refetchType !== undefined ? { refetchType } : {}),
                   predicate: (query) => targets.some((t) => t.filters ? matchQuery(t.filters, query) : true)
                 },
                 options

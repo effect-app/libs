@@ -306,10 +306,11 @@ export const useMutation: typeof _useMutation = <
   A,
   R,
   Request extends Req,
-  Name extends string
+  Name extends string,
+  B = A
 >(
   self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
-  options?: MutationOptionsBase<A>
+  options?: MutationOptionsBase<A, B>
 ) =>
   Object.assign(
     mapHandler(
@@ -332,10 +333,11 @@ export const useMutationInt = (): typeof _useMutation => {
     A,
     R,
     Request extends Req,
-    Name extends string
+    Name extends string,
+    B = A
   >(
     self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>,
-    options?: MutationOptionsBase<A>
+    options?: MutationOptionsBase<A, B>
   ) =>
     Object.assign(
       mapHandler(

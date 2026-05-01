@@ -21,8 +21,8 @@
 
   ```ts
   useMutation(startExportCommand, {
-    select: (result) => pollUntilDone(result.jobId),
-  });
+    select: (result) => pollUntilDone(result.jobId)
+  })
   ```
 
 ### Patch Changes

@@ -32,9 +32,15 @@ const props = defineProps<
 
 const isDisabled = computed(() => props.command.blocked || props.disabled)
 
-const loading = computed<boolean | string>(() => {
-  if (!props.command.waiting) return false
-  return props.command.progressText ?? true
+const progressText = computed(() => {
+  const p = props.command.progress
+  if (p === undefined) return undefined
+  return typeof p === "string" ? p : p.text
+})
+
+const progressPercentage = computed(() => {
+  const p = props.command.progress
+  return typeof p === "object" && p !== null ? p.percentage : undefined
 })
 
 const handleClick = () => {
@@ -61,14 +67,26 @@ export default {
   <v-btn
     v-if="command.allowed && !empty"
     v-bind="$attrs"
-    :loading="loading"
+    :loading="command.waiting"
     :aria-disabled="isDisabled"
     :title="title ?? command.action"
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
   >
+    <template
+      v-if="progressText !== undefined"
+      #loader
+    >
+      <v-progress-circular
+        :indeterminate="progressPercentage === undefined"
+        :model-value="progressPercentage"
+        size="20"
+        width="2"
+      />
+      <span class="ml-2">{{ progressText }}</span>
+    </template>
     <slot
-      :loading="loading"
+      :loading="command.waiting"
       :disabled="isDisabled"
       :label="command.label"
       :title="title ?? command.action"
@@ -79,10 +97,23 @@ export default {
   <v-btn
     v-else-if="command.allowed"
     v-bind="$attrs"
-    :loading="loading"
+    :loading="command.waiting"
     :aria-disabled="isDisabled"
     :title="title ?? command.action"
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
-  />
+  >
+    <template
+      v-if="progressText !== undefined"
+      #loader
+    >
+      <v-progress-circular
+        :indeterminate="progressPercentage === undefined"
+        :model-value="progressPercentage"
+        size="20"
+        width="2"
+      />
+      <span class="ml-2">{{ progressText }}</span>
+    </template>
+  </v-btn>
 </template>

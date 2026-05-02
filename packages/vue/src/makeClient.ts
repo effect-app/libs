@@ -9,7 +9,7 @@ import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
-import { type Commander, CommanderStatic } from "./commander.js"
+import { type Commander, CommanderStatic, type Progress } from "./commander.js"
 import { type I18n } from "./intl.js"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
 import { makeMutation, makeStreamMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
@@ -227,12 +227,12 @@ export type MutationWithExtensions<RT, Req> = Req extends
 /**
  * Options for invoking a `mutateStream` factory. Supplying `progress` produces
  * a tuple-with-id that carries `running` (the live AsyncResult ref) and
- * `progressText` (a `ComputedRef<string | undefined>` formatted from each value),
+ * `progress` (a `ComputedRef<Progress | undefined>` formatted from each value),
  * which `Command.fn` / `Command.wrapStream` surface as the command's `running`
- * and `progressText`. When omitted, the resulting command exposes neither.
+ * and `progress`. When omitted, the resulting command exposes neither.
  */
 export type MutateStreamCallOptions<A, E> = {
-  progress?: (result: AsyncResult.AsyncResult<A, E>) => string | undefined
+  progress?: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined
 }
 
 /**
@@ -252,7 +252,7 @@ export type StreamMutationWithExtensions<Req> = Req extends
       & {
         readonly id: Id
         readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
-        readonly progressText?: ComputedRef<string | undefined>
+        readonly progress?: ComputedRef<Progress | undefined>
       })
     & { readonly id: Id }
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
@@ -261,7 +261,7 @@ export type StreamMutationWithExtensions<Req> = Req extends
         & {
           readonly id: Id
           readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
-          readonly progressText?: ComputedRef<string | undefined>
+          readonly progress?: ComputedRef<Progress | undefined>
         })
       & { readonly id: Id }
   : never
@@ -840,17 +840,17 @@ export const makeClient = <RT_, RTHooks>(
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const smFactory = Object.assign(
-          (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => string | undefined }) => {
+          (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined }) => {
             const tuple = streamMutation(client[key] as any, mergedInvalidation)
             const extras: {
               id: string
               running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
-              progressText?: ComputedRef<string | undefined>
+              progress?: ComputedRef<Progress | undefined>
             } = { id: client[key].id }
             if (opts?.progress) {
               const fmt = opts.progress
               extras.running = tuple[0]
-              extras.progressText = computed(() => fmt(tuple[0].value))
+              extras.progress = computed(() => fmt(tuple[0].value))
             }
             return Object.assign(tuple, extras)
           },
@@ -937,17 +937,17 @@ export const makeClient = <RT_, RTHooks>(
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
               const streamMutFactory = Object.assign(
-                (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => string | undefined }) => {
+                (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined }) => {
                   const tuple = streamMutation(client[key] as any, mergedInvalidation)
                   const extras: {
                     id: string
                     running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
-                    progressText?: ComputedRef<string | undefined>
+                    progress?: ComputedRef<Progress | undefined>
                   } = { id: client[key].id }
                   if (opts?.progress) {
                     const fmt = opts.progress
                     extras.running = tuple[0]
-                    extras.progressText = computed(() => fmt(tuple[0].value))
+                    extras.progress = computed(() => fmt(tuple[0].value))
                   }
                   return Object.assign(tuple, extras)
                 },
@@ -1123,8 +1123,8 @@ export interface CommandBase<I = void, A = void> {
   allowed: boolean
   action: string
   label: string
-  /** formatted text for current `running` state, when `progressText` was supplied */
-  progressText?: string | undefined
+  /** formatted progress info for current `running` state, when `progress` was supplied */
+  progress?: Progress | undefined
 }
 
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>> {}

@@ -16,13 +16,19 @@ import { WithToast } from "./withToast.js"
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
 
 /**
+ * Progress information surfaced by a stream command. Either a plain text label
+ * or a `{ text, percentage }` pair when concrete progress is known.
+ */
+export type Progress = string | { readonly text: string; readonly percentage: number }
+
+/**
  * Options accepted when calling a stream mutation factory.
  * Supplying `progress` causes the resulting command to expose `running`
- * (the live AsyncResult ref) and `progressText` (formatted loading text).
+ * (the live AsyncResult ref) and `progress` (formatted loading info).
  * When omitted, neither is exposed on the command.
  */
 export type StreamMutationCallOptions<A, E> = {
-  progress?: (result: AsyncResult.AsyncResult<A, E>) => string | undefined
+  progress?: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined
 }
 
 type StreamMutationTuple<Id extends string, Arg, A, E, R> =
@@ -33,7 +39,7 @@ type StreamMutationTuple<Id extends string, Arg, A, E, R> =
   & {
     readonly id: Id
     readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
-    readonly progressText?: ComputedRef<string | undefined>
+    readonly progress?: ComputedRef<Progress | undefined>
   }
 
 type StreamMutationFactory<Id extends string, Arg, A, E, R> =
@@ -176,11 +182,11 @@ export declare namespace Commander {
      */
     running: AsyncResult.AsyncResult<any, any> | undefined
     /**
-     * reactive – formatted progress text computed from `running` via the
-     * `progressText` option. Useful as the loading text on a `CommandButton`.
-     * Undefined when no `progressText` formatter was supplied.
+     * reactive – formatted progress info computed from `running` via the
+     * `progress` option. Useful as the loading state on a `CommandButton`.
+     * Undefined when no `progress` formatter was supplied.
      */
-    progressText: string | undefined
+    progress: Progress | undefined
     /** reactive */
     waiting: boolean
     /** reactive */
@@ -2089,7 +2095,7 @@ export class CommanderImpl<RT, RTHooks> {
     errorDef?: Error,
     streamMeta?: {
       running?: ComputedRef<AsyncResult.AsyncResult<RunningA, RunningE>> | undefined
-      progressText?: ComputedRef<string | undefined> | undefined
+      progress?: ComputedRef<Progress | undefined> | undefined
     }
   ) => {
     const id = typeof id_ === "string" ? id_ : id_.id
@@ -2278,9 +2284,9 @@ export class CommanderImpl<RT, RTHooks> {
           /** reactive – live AsyncResult of the underlying stream, exposed only when
            * the stream factory was called with a `progress` formatter */
           running: streamMeta?.running,
-          /** reactive – formatted text for current `running` state, when `progress`
+          /** reactive – formatted progress info for current `running` state, when `progress`
            * formatter was supplied to the stream factory */
-          progressText: streamMeta?.progressText,
+          progress: streamMeta?.progress,
           /** reactive */
           waiting,
           /** reactive */
@@ -2402,17 +2408,17 @@ export class CommanderImpl<RT, RTHooks> {
     const resolveStreamMeta = ():
       | {
         running?: ComputedRef<AsyncResult.AsyncResult<RunningA, RunningE>> | undefined
-        progressText?: ComputedRef<string | undefined> | undefined
+        progress?: ComputedRef<Progress | undefined> | undefined
       }
       | undefined =>
     {
       if (isStreamTuple) {
         const t = id as StreamMutationTuple<Id, any, RunningA, RunningE, any>
-        return { running: t.running, progressText: t.progressText }
+        return { running: t.running, progress: t.progress }
       }
       if (isStreamFactory) {
-        const t = (id as StreamMutationFactory<Id, any, RunningA, RunningE, any>)()
-        return { running: t.running, progressText: t.progressText }
+        const t = id()
+        return { running: t.running, progress: t.progress }
       }
       return undefined
     }
@@ -2661,8 +2667,7 @@ export class CommanderImpl<RT, RTHooks> {
       mutation !== null && typeof mutation === "object" && "mutateStream" in mutation
         ? (mutation.mutateStream as any)
         : (mutation as any)
-    const resolveTuple = (): StreamMutationTuple<Id, Arg, A, E, R> =>
-      (typeof source === "function" ? source() : source)
+    const resolveTuple = (): StreamMutationTuple<Id, Arg, A, E, R> => (typeof source === "function" ? source() : source)
     return Object.assign(
       (...combinators: any[]): any => {
         // we capture the definition stack here, so we can append it to later stack traces
@@ -2672,14 +2677,14 @@ export class CommanderImpl<RT, RTHooks> {
         Error.stackTraceLimit = limit
 
         // Fresh per build: call the factory once per command instance so each
-        // wrap call gets its own ComputedRef + execute pair. `running`/`progressText`
+        // wrap call gets its own ComputedRef + execute pair. `running`/`progress`
         // are only surfaced when the factory was called with a `progress` formatter.
         const tuple = resolveTuple()
         const [, executeRaw] = tuple
         const mutate: (_arg: Arg) => Effect.Effect<any, never, R> = Effect.isEffect(executeRaw)
           ? (_arg: Arg) => executeRaw
           : executeRaw
-        const streamMeta = { running: tuple.running, progressText: tuple.progressText }
+        const streamMeta = { running: tuple.running, progress: tuple.progress }
 
         return this.makeCommand(id, options, errorDef, streamMeta)(
           Effect.fnUntraced(

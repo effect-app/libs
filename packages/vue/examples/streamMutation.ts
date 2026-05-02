@@ -4,6 +4,11 @@
  * The server streams a tagged union of progress updates and a final result.
  * The Vue ref is updated for every emitted value; `AsyncResult` stays in the
  * `waiting` state until the stream ends.
+ *
+ * When using `makeClient` / `clientFor`, stream-type requests are exposed as
+ * `mutateStream` on the client object (and as `XxxStream` in `.helpers`).
+ * The example below shows both the low-level `asStreamResult` API and how the
+ * same functionality appears on the generated client.
  */
 import { Effect, S, Stream } from "effect-app"
 import { asStreamResult } from "../src/mutate.js"
@@ -37,30 +42,42 @@ export type ExportEvent = OperationProgress | ExportComplete
 const makeExportStream = (total: S.NonNegativeInt): Stream.Stream<ExportEvent> =>
   Stream.concat(
     Stream.range(1, total).pipe(
-      Stream.map((completed) =>
-        new OperationProgress({ completed: S.NonNegativeInt(completed), total })
-      ),
+      Stream.map((completed) => new OperationProgress({ completed: S.NonNegativeInt(completed), total })),
       Stream.tap(() => Effect.sleep("50 millis"))
     ),
     Stream.make(new ExportComplete({ fileUrl: S.NonEmptyString("https://example.com/export.csv") }))
   )
 
 // ---------------------------------------------------------------------------
-// Vue composable — call this inside a `setup()` function
+// Option A: low-level `asStreamResult` (call inside a `setup()` function)
 // ---------------------------------------------------------------------------
 
 export const useExportMutation = () => {
   /**
-   * `result`   – reactive ref, always reflects the latest stream event.
+   * `result`   - reactive ref, always reflects the latest stream event.
    *              `AsyncResult` tag:
-   *                • Initial (waiting=true)  → operation in progress
-   *                • Success (waiting=true)  → progress update received, still running
-   *                • Success (waiting=false) → final result, operation complete
-   *                • Failure                 → operation failed
+   *                - Initial (waiting=true)  - operation in progress
+   *                - Success (waiting=true)  - progress update received, still running
+   *                - Success (waiting=false) - final result, operation complete
+   *                - Failure                 - operation failed
    *
-   * `execute`  – call with the desired `total` to kick off the stream.
+   * `execute`  - call with the desired `total` to kick off the stream.
    */
   const [result, execute] = asStreamResult((total: S.NonNegativeInt) => makeExportStream(total))
 
   return { result, execute }
 }
+
+// ---------------------------------------------------------------------------
+// Option B: via `makeClient` / `clientFor` (stream requests -> `mutateStream`)
+//
+// When a request schema has `type: "stream"`, `clientFor` exposes:
+//
+//   client.exportData.mutateStream
+//   // -> [ComputedRef<AsyncResult<ExportEvent, E>>, (input: I) => Effect<void, never, R>]
+//
+// which is equivalent to calling `asStreamResult(client.exportData.handler)`.
+//
+// The `.helpers` object also includes `exportDataStream` (the camelCase key
+// plus "Stream" suffix) with the same [ref, execute] tuple.
+// ---------------------------------------------------------------------------

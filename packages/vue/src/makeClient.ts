@@ -3,7 +3,7 @@ import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, 
 import { camelCase } from "change-case"
 import { type Context, Effect, Exit, Hash, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
-import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestInputFromMake, RequestsAny } from "effect-app/client/clientFor"
+import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestInputFromMake, RequestsAny, RequestStreamHandler, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
@@ -12,7 +12,7 @@ import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic } from "./commander.js"
 import { type I18n } from "./intl.js"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
-import { makeMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
+import { asStreamResult, makeMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
 import { type CustomUndefinedInitialQueryOptions, makeQuery } from "./query.js"
 import { makeRunPromise } from "./runtime.js"
 import { type Toast } from "./toast.js"
@@ -125,6 +125,13 @@ type CommandHandler<Req> = Req extends
     ? Request["type"] extends "command" ? RequestHandler<A, E, R, Request, Id> : never
   : never
 
+type StreamHandler<Req> = Req extends
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
+  ? Request["type"] extends "stream" ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id> : never
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id>
+    ? Request["type"] extends "stream" ? RequestStreamHandler<A, E, R, Request, Id> : never
+  : never
+
 export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
@@ -215,6 +222,17 @@ export type MutationWithExtensions<RT, Req> = Req extends
   ? MutationExtWithInput<RT, Id, I, A, E, R, S.Codec.Encoded<Request["success"]>>
   : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
     ? MutationExt<RT, Id, A, E, R, S.Codec.Encoded<Request["success"]>>
+  : never
+
+/**
+ * The `mutateStream` tuple for a stream-type request handler:
+ * `[resultRef, execute]` where `execute` updates the ref live with each emitted value.
+ */
+export type StreamMutationWithExtensions<Req> = Req extends
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id>
+  ? readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<void, never, R>]
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer _Id>
+    ? readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<void, never, R>]
   : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
@@ -739,6 +757,25 @@ export const makeClient = <RT_, RTHooks>(
     return mutations
   }
 
+  const mapStreamMutation = <M extends RequestsAny>(client: ClientFrom<M>) => {
+    const streams = Struct.keys(client).reduce(
+      (acc, key) => {
+        if (client[key].Request.type !== "stream") {
+          return acc
+        }
+        ;(acc as any)[camelCase(key) + "Stream"] = asStreamResult(client[key].handler as any)
+        return acc
+      },
+      {} as {
+        [
+          Key in keyof typeof client as StreamHandler<typeof client[Key]> extends never ? never
+            : `${ToCamel<string & Key>}Stream`
+        ]: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+      }
+    )
+    return streams
+  }
+
   // make available .query, .suspense and .mutate for each operation
   // and a .helpers with all mutations and queries
   const mapClient = <M extends RequestsAny>(
@@ -785,6 +822,12 @@ export const makeClient = <RT_, RTHooks>(
                   suspense: useSuspenseQuery(fakeHandler as any)
                 }
               }
+            }
+            : requestType === "stream"
+            ? {
+              ...client[key],
+              request: h_,
+              mutateStream: asStreamResult(h_ as any)
             }
             : {
               mutate: ((handler: any) => {
@@ -844,6 +887,8 @@ export const makeClient = <RT_, RTHooks>(
             : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
+          & (StreamHandler<typeof client[Key]> extends never ? {}
+            : { mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>> })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }
     )
@@ -851,6 +896,7 @@ export const makeClient = <RT_, RTHooks>(
       helpers: {
         ...mapRequest(client),
         ...mapMutation(client, queryInvalidation, invalidationResources),
+        ...mapStreamMutation(client),
         ...mapQuery(client)
       }
     })

@@ -39,7 +39,8 @@ export const CommandResponseWithMetaData = <S extends S.Top>(success: S) =>
  * Transparent to users: the server handler fails with the plain error and the client receives
  * the plain error — wrapping/unwrapping is handled internally by the routing layer.
  */
-export const CommandFailureWithMetaData = <E extends S.Top>(error: E) => S.Struct({ error, metadata: CommandMetaData })
+export const CommandFailureWithMetaData = <E extends S.Top>(error: E) =>
+  S.Struct({ _tag: S.Literal("CommandFailureWithMetaData"), error, metadata: CommandMetaData })
 
 /**
  * Stream chunk schema for stream responses with metadata.

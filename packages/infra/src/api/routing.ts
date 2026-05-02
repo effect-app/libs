@@ -457,12 +457,28 @@ export const makeRouter = <
                 if (Stream.isStream(result)) {
                   // Wrap stream items as { _tag: "value", value } and append a final
                   // { _tag: "done", metadata } chunk carrying accumulated invalidation keys.
+                  // V2: on failure, convert to { _tag: "error", error, metadata } chunk so
+                  // clients can invalidate queries even when the stream fails.
                   const keysRef = Ref.makeUnsafe<ReadonlyArray<Invalidation.InvalidationKey>>([])
                   const invalidationSet = Invalidation.makeInvalidationSet(keysRef)
                   return Stream.concat(
                     (result as Stream.Stream<any, any, any>).pipe(
                       Stream.map((item: any) => ({ _tag: "value" as const, value: item })),
-                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet)
+                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
+                      // V2: catch stream failures and embed them in the stream as an error chunk
+                      Stream.catch((err: any) =>
+                        Stream.fromEffect(
+                          Ref.get(keysRef).pipe(
+                            Effect.flatMap((keys) =>
+                              Effect.fail({
+                                _tag: "error" as const,
+                                error: err,
+                                metadata: { invalidateQueries: keys }
+                              })
+                            )
+                          )
+                        )
+                      )
                     ),
                     Stream.fromEffect(
                       Ref.get(keysRef).pipe(
@@ -511,7 +527,11 @@ export const makeRouter = <
                       : isStream
                       ? Invalidation.StreamResponseChunk(resource.success)
                       : resource.success,
-                    error: resource.error,
+                    error: resource.type === "command"
+                      ? Invalidation.CommandFailureWithMetaData(resource.error)
+                      : isStream
+                      ? Invalidation.StreamFailureChunk(resource.error)
+                      : resource.error,
                     ...isStream ? { stream: true as const } : {}
                   })
                   .annotate(middleware.requestContext, resource.config ?? {})

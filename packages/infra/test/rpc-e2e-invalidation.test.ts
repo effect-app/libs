@@ -68,6 +68,15 @@ const E2eRpcs = RpcGroup.make(
     .annotate(RequestType, "command")
     .annotate(Invalidation.Invalidates, [StaticKey])
     .middleware(InvalidationMiddleware),
+  // Command — fails, V2: failure should include accumulated keys
+  Rpc
+    .make("doAndFail", {
+      success: S.Void,
+      error: S.Struct({ message: S.String })
+    })
+    .annotate(RequestType, "command")
+    .annotate(Invalidation.Invalidates, [StaticKey])
+    .middleware(InvalidationMiddleware),
   // Stream — no input
   Rpc
     .make("streamTicks", {
@@ -106,6 +115,11 @@ const E2eImplLayer = E2eRpcs.toLayer({
   doWithBothKeys: Effect.fnUntraced(function*() {
     yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
     return 99
+  }),
+  // V2: command that fails — middleware wraps the failure with accumulated keys
+  doAndFail: Effect.fnUntraced(function*() {
+    yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
+    return yield* Effect.fail({ message: "intentional failure" })
   }),
   streamTicks: () => Stream.fromIterable([1, 2, 3]),
   streamCountTo: ({ to }) => Stream.range(1, to)
@@ -382,4 +396,112 @@ it.live(
     expect(values).toStrictEqual([1, 2, 3])
     expect(keys).toStrictEqual([StreamKey])
   }, Effect.provide(StreamMetaTestLayer))
+)
+
+// ---------------------------------------------------------------------------
+// V2 tests — invalidation keys included in failures
+// ---------------------------------------------------------------------------
+
+it.live(
+  "V2: command failure includes accumulated keys in CommandFailureWithMetaData",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(E2eRpcs)
+    const exit = yield* Effect.exit(client.doAndFail())
+    // Should fail with CommandFailureWithMetaData wrapping the original error
+    if (exit._tag === "Success") throw new Error("Expected failure")
+    const err = (exit.cause as any).reasons?.[0]?.error
+    expect(err?._tag).toBe("CommandFailureWithMetaData")
+    expect(err?.error).toStrictEqual({ message: "intentional failure" })
+    expect(err?.metadata?.invalidateQueries).toStrictEqual([StaticKey, DynamicKey])
+  }, Effect.provide(E2eTestLayer))
+)
+
+it.live(
+  "V2: client unwraps CommandFailureWithMetaData — re-fails with original error and forwards keys",
+  Effect.fnUntraced(function*() {
+    const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
+    const svc = makeInvalidationKeysService(keysRef)
+    const client = yield* RpcTest.makeClient(E2eRpcs)
+
+    // Simulate apiClientFactory unwrapCommand: catch CommandFailureWithMetaData,
+    // forward keys, re-fail with the original error.
+    const exit = yield* Effect.exit(
+      client.doAndFail().pipe(
+        Effect.catch((err: any) =>
+          err?._tag === "CommandFailureWithMetaData"
+            ? Effect
+              .forEach(
+                (err.metadata?.invalidateQueries ?? []) as ReadonlyArray<Invalidation.InvalidationKey>,
+                svc.add,
+                { discard: true }
+              )
+              .pipe(Effect.flatMap(() => Effect.fail(err.error)))
+            : Effect.fail(err)
+        ),
+        Effect.provideService(InvalidationKeysFromServer, svc)
+      )
+    )
+
+    const keys = yield* Ref.get(keysRef)
+    if (exit._tag === "Success") throw new Error("Expected failure")
+    const originalErr = (exit.cause as any).reasons?.[0]?.error
+    expect(originalErr).toStrictEqual({ message: "intentional failure" })
+    expect(keys).toStrictEqual([StaticKey, DynamicKey])
+  }, Effect.provide(E2eTestLayer))
+)
+
+const StreamMetaV2Rpcs = RpcGroup.make(
+  // Stream with pre-wrapped failure chunk — simulates routing.ts V2 failure output
+  Rpc
+    .make("streamWithFailure", {
+      success: Invalidation.StreamResponseChunk(S.Number),
+      error: Invalidation.StreamFailureChunk(S.Struct({ msg: S.String })),
+      stream: true
+    })
+    .annotate(RequestType, "query")
+    .middleware(InvalidationMiddleware)
+)
+
+const StreamV2Key: Invalidation.InvalidationKey = ["stream-v2", "key"]
+
+const StreamMetaV2ImplLayer = StreamMetaV2Rpcs.toLayer({
+  // Emits two values then fails with a StreamFailureChunk — simulates routing.ts wrapping
+  streamWithFailure: () =>
+    Stream.concat(
+      Stream.fromIterable([
+        { _tag: "value" as const, value: 1 },
+        { _tag: "value" as const, value: 2 }
+      ]),
+      Stream.fromEffect(
+        Effect.fail({
+          _tag: "error" as const,
+          error: { msg: "stream error" },
+          metadata: { invalidateQueries: [StreamV2Key] }
+        })
+      )
+    )
+})
+
+const StreamMetaV2TestLayer = Layer.merge(StreamMetaV2ImplLayer, InvalidationMiddlewareLive)
+
+it.live(
+  "V2: stream failure chunk carries accumulated keys and original error",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(StreamMetaV2Rpcs)
+    const chunks: Array<any> = []
+    const exit = yield* Effect.exit(
+      Stream.runForEach(client.streamWithFailure(), (item) =>
+        Effect.sync(() => {
+          chunks.push(item)
+        }))
+    )
+    // Two value chunks should have been seen before the failure
+    expect(chunks.map((c: any) => c.value)).toStrictEqual([1, 2])
+    // The stream should fail with the StreamFailureChunk
+    if (exit._tag === "Success") throw new Error("Expected failure")
+    const err = (exit.cause as any).reasons?.[0]?.error
+    expect(err?._tag).toBe("error")
+    expect(err?.error).toStrictEqual({ msg: "stream error" })
+    expect(err?.metadata?.invalidateQueries).toStrictEqual([StreamV2Key])
+  }, Effect.provide(StreamMetaV2TestLayer))
 )

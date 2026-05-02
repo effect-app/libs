@@ -341,10 +341,10 @@ export interface StreamQueriesWithoutInput<Request extends Req, Id extends strin
 export type StreamQueries<RT, HandlerReq> = HandlerReq extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
   ? Exclude<R, RT> extends never ? StreamQueriesWithInput<Request, Id, I, A, E>
-    : { streamQuery: MissingDependencies<RT, R> & {} }
+  : { streamQuery: MissingDependencies<RT, R> & {} }
   : HandlerReq extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id>
     ? Exclude<R, RT> extends never ? StreamQueriesWithoutInput<Request, Id, A, E>
-      : { streamQuery: MissingDependencies<RT, R> & {} }
+    : { streamQuery: MissingDependencies<RT, R> & {} }
   : never
 
 const _useMutation = makeMutation()

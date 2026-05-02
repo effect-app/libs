@@ -3,17 +3,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { streamedQuery } from "@tanstack/query-core"
-import { type DefaultError, type Enabled, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
+import { type DefaultError, type Enabled, experimental_streamedQuery as streamedQuery, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, type Context, Effect, Exit, Option, S } from "effect-app"
 import { makeQueryKey, type Req } from "effect-app/client"
 import type { RequestHandler, RequestHandlerWithInput, RequestStreamHandler, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
-import { type Span } from "effect/Tracer"
 import * as Channel from "effect/Channel"
 import * as Pull from "effect/Pull"
 import * as Scope from "effect/Scope"
 import type * as Stream from "effect/Stream"
+import { type Span } from "effect/Tracer"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, type MaybeRefOrGetter, ref, shallowRef, watch, type WatchSource } from "vue"
@@ -125,7 +124,7 @@ function streamToAsyncIterableWithCauseException<A, E, R>(
           const exit = await runPromiseExit(pull)
           if (Exit.isSuccess(exit)) {
             currentIter = (exit.value as any)[Symbol.iterator]()
-            return currentIter!.next()!
+            return currentIter!.next()
           } else if (Pull.isDoneCause((exit as any).cause)) {
             return { done: true, value: undefined }
           }
@@ -394,81 +393,83 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
 
-export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) =>
-<I, A, E, Request extends Req, Name extends string>(
-  q:
-    | RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
-    | RequestStreamHandler<A, E, R, Request, Name>
-) =>
-(
-  arg: I | WatchSource<I> | undefined,
-  options?: any
-) => {
-  const context = getRuntime()
-  const arr = arg
-  const req: { value: I } = !arg
-    ? undefined as any
-    : typeof arr === "function"
-    ? ({
-      get value() {
-        return (arr as any)()
-      }
-    })
-    : ref(arg)
-  const queryKey = makeQueryKey(q)
-  const handler = q.handler
-  const isWithInput = typeof handler === "function"
+type StreamQueryResult<A, E> = readonly [
+  ComputedRef<AsyncResult.AsyncResult<A[], E>>,
+  ComputedRef<A[] | undefined>,
+  (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A[], CauseException<E>>, never, never>,
+  UseQueryReturnType<any, any>
+]
 
-  const defaultOptions = {
-    throwOnError: false
-  }
-
-  const retry = (retryCount: number, error: unknown) => {
-    if (error instanceof CauseException) {
-      if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
-        return false
-      }
-    }
-    return retryCount < 5
-  }
-
-  const r = useTanstackQuery<A[], CauseException<E>, A[]>(
-    {
-      ...defaultOptions,
-      ...options,
-      retry,
-      queryKey: isWithInput ? [...queryKey, req] : queryKey,
-      queryFn: streamedQuery({
-        streamFn: () => {
-          const stream = isWithInput
-            ? (handler as any)(req.value)
-            : handler
-          return streamToAsyncIterableWithCauseException(stream, context, q.id)
+export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
+  const streamQuery_: {
+    <E, A, Request extends Req, Name extends string>(
+      q: RequestStreamHandler<A, E, R, Request, Name>
+    ): () => StreamQueryResult<A, E>
+    <Arg, E, A, Request extends Req, Name extends string>(
+      q: RequestStreamHandlerWithInput<Arg, A, E, R, Request, Name>
+    ): (arg: Arg | WatchSource<Arg>) => StreamQueryResult<A, E>
+  } = (q: any) => (arg?: any) => {
+    const context = getRuntime()
+    const arr = arg
+    const req: { value: any } = !arg
+      ? undefined as any
+      : typeof arr === "function"
+      ? ({
+        get value() {
+          return arr()
         }
       })
-    }
-  )
+      : ref(arg)
+    const queryKey = makeQueryKey(q)
+    const handler = q.handler
+    const isWithInput = typeof handler === "function"
 
-  const latestSuccess = shallowRef<A[]>()
-  const result = computed((): AsyncResult.AsyncResult<A[], E> =>
-    swrToQuery({
-      error: r.error.value ?? undefined,
-      data: r.data.value === undefined ? latestSuccess.value : r.data.value,
-      isValidating: r.isFetching.value
-    })
-  )
-  watch(result, (value) => latestSuccess.value = Option.getOrUndefined(AsyncResult.value(value)), { immediate: true })
+    const r = useTanstackQuery<any[], CauseException<any>, any[]>(
+      {
+        throwOnError: false,
+        retry: (retryCount: number, error: unknown) => {
+          if (error instanceof CauseException) {
+            if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
+              return false
+            }
+          }
+          return retryCount < 5
+        },
+        queryKey: isWithInput ? [...queryKey, req] : queryKey,
+        queryFn: streamedQuery({
+          streamFn: () => {
+            const stream = isWithInput
+              ? handler(req.value)
+              : handler
+            return streamToAsyncIterableWithCauseException(stream, context, q.id)
+          }
+        })
+      }
+    )
 
-  return [
-    result,
-    computed(() => latestSuccess.value),
-    (options?: RefetchOptions) =>
-      Effect.currentSpan.pipe(
-        Effect.orElseSucceed(() => null),
-        Effect.flatMap((span) => Effect.promise(() => r.refetch({ ...options, updateMeta: { span } })))
-      ),
-    r
-  ] as any
+    const latestSuccess = shallowRef<any[]>()
+    const result = computed((): AsyncResult.AsyncResult<any[], any> =>
+      swrToQuery({
+        error: r.error.value ?? undefined,
+        data: r.data.value === undefined ? latestSuccess.value : r.data.value,
+        isValidating: r.isFetching.value
+      })
+    )
+    watch(result, (value) => latestSuccess.value = Option.getOrUndefined(AsyncResult.value(value)), { immediate: true })
+
+    return [
+      result,
+      computed(() => latestSuccess.value),
+      (options?: RefetchOptions) =>
+        Effect.currentSpan.pipe(
+          Effect.orElseSucceed(() => null),
+          Effect.flatMap((span) => Effect.promise(() => r.refetch({ ...options, updateMeta: { span } })))
+        ),
+      r
+    ] as any
+  }
+
+  return streamQuery_
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

@@ -2538,8 +2538,12 @@ export class CommanderImpl<RT, RTHooks> {
     const baseLabel = computed(() => context.value.label)
     const label = computed(() => {
       const current = streamRef.value
+      // A Success with waiting:true is the normal streaming pattern: the stream has emitted
+      // an intermediate value (e.g. OperationProgress) while still running.
       if (current.waiting && AsyncResult.isSuccess(current)) {
         const val: unknown = current.value
+        // S.is returns a type-narrowing boolean; if the emitted value is not an OperationProgress
+        // we simply fall through and return the base label unchanged.
         if (S.is(OperationProgress)(val)) {
           return `${baseLabel.value} (${val.completed}/${val.total})`
         }

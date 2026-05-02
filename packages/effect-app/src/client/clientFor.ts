@@ -99,7 +99,7 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
   Request: Request
 }
 
-export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = void> {
+export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> {
   handler: Stream.Stream<A, E, R>
   id: Id
   options?: ClientForOptions
@@ -114,7 +114,7 @@ export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends s
   readonly "~final"?: Final
 }
 
-export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, Id extends string, Final = void> {
+export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, Id extends string, Final = A> {
   handler: (i: I) => Stream.Stream<A, E, R>
   id: Id
   options?: ClientForOptions
@@ -157,9 +157,9 @@ type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Normal
   RequestInputFromMake<I>
 >
 
-/** Extracts the final-value type from a stream request. Defaults to `void` when no `final` schema is set. */
+/** Extracts the final-value type from a stream request. Defaults to the success type when no `final` schema is set. */
 type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
-  : void
+  : S.Schema.Type<T["success"]>
 
 type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] extends "stream"
   ? IsTagOnly<RequestInputFromMake<T>> extends true ? RequestStreamHandler<

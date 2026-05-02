@@ -228,7 +228,7 @@ export type MutationWithExtensions<RT, Req> = Req extends
  * The `mutateStream` tuple for a stream-type request handler:
  * `[resultRef, execute]` where `execute` updates the ref live with each emitted value.
  * When the request declares a `final` schema, `execute` resolves with the last emitted value
- * typed as `Final`; otherwise it resolves with `void`.
+ * typed as `Final`; otherwise it resolves with the success type.
  */
 export type StreamMutationWithExtensions<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?

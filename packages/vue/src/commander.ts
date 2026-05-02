@@ -2500,6 +2500,10 @@ export class CommanderImpl<RT, RTHooks> {
     if (Array.isArray(mutation) && "id" in mutation) {
       return this.wrapStream(mutation as any, options) as any
     }
+    // At this point mutation is either { mutate, id } or (fn & { id })
+    const callMutation = mutation as
+      | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
+      | (((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id })
     return Object.assign(
       (
         ...combinators: any[]
@@ -2509,11 +2513,11 @@ export class CommanderImpl<RT, RTHooks> {
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
-        const mutate = "mutate" in mutation
-          ? mutation.mutate
-          : mutation as (arg: Arg) => Effect.Effect<A, E, R>
+        const mutate = "mutate" in callMutation
+          ? callMutation.mutate
+          : callMutation
 
-        return this.makeCommand(mutation.id, options, errorDef)(
+        return this.makeCommand(callMutation.id, options, errorDef)(
           Effect.fnUntraced(
             // fnUntraced only supports generators as first arg, so we convert to generator if needed
             isGeneratorFunction(mutate) ? mutate : function*(arg: Arg) {
@@ -2523,10 +2527,10 @@ export class CommanderImpl<RT, RTHooks> {
           ) as any
         )
       },
-      makeBaseInfo(mutation.id, options),
+      makeBaseInfo(callMutation.id, options),
       {
         state: Context.Service<`Commander.Command.${Id}.state`, State>(
-          `Commander.Command.${mutation.id}.state`
+          `Commander.Command.${callMutation.id}.state`
         )
       }
     )

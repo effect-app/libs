@@ -4,13 +4,18 @@
 "@effect-app/vue": minor
 ---
 
-V1: stream requests now include metadata in the final response chunk
+V1/V2/V3: stream and command requests carry invalidation metadata
 
-Similar to how command success responses carry `{ payload, metadata: { invalidateQueries } }`,
-stream responses now wrap each emitted value as `{ _tag: "value", value }` and append a
-final `{ _tag: "done", metadata: { invalidateQueries } }` chunk at the end of the stream.
+**V1** – stream final response includes metadata
+- `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
 
-- `Invalidation.StreamResponseChunk` — new schema wrapping each stream item
-- `routing.ts` — server-side handler wraps stream items and appends the "done" chunk with accumulated keys
-- `apiClientFactory.ts` — client-side `buildStream` transparently unwraps items and forwards invalidation keys to `InvalidationKeysFromServer`
-- `mutate.ts` — `makeStreamMutation` now provides `InvalidationKeysFromServer` to the stream and uses accumulated keys for query cache invalidation after the stream completes
+**V2** – invalidation keys included in failures
+- `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+- `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+- `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+**V3** – mid-stream metadata chunks
+- `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+- After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+- `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+- `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.

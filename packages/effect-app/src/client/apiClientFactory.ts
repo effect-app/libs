@@ -275,7 +275,7 @@ const makeApiClientFactory = Effect
                         return rpcStream.pipe(
                           // Collect server invalidation keys from the "done" chunk, then discard it.
                           Stream.tap((item: any) =>
-                            item._tag === "done"
+                            item._tag === "done" || item._tag === "metadata"
                               ? InvalidationKeysFromServer.use((svc) =>
                                 Effect.forEach(
                                   (item.metadata as Invalidation.CommandMetaData).invalidateQueries,

@@ -44,21 +44,25 @@ export const CommandFailureWithMetaData = <E extends S.Top>(error: E) =>
 
 /**
  * Stream chunk schema for stream responses with metadata.
- * Each item is either a data value or a final "done" signal carrying cache invalidation metadata.
+ * Each item is either a data value, an intermediate "metadata" signal carrying cache
+ * invalidation keys accumulated since the previous drain, or a final "done" signal.
  * Transparent to users: stream handlers return plain values and clients receive plain values —
  * wrapping/unwrapping is handled internally by the routing layer.
  *
- * The "done" chunk is always the last item in the stream and carries the invalidation keys
- * accumulated during the stream's execution.
+ * The "done" chunk is always the last item in the stream and carries any remaining invalidation
+ * keys. An optional "metadata" chunk may appear after any "value" chunk and carries keys
+ * accumulated since the last drain (V3: mid-stream invalidation).
  */
 export const StreamResponseChunk = <S extends S.Top>(success: S) =>
   S.Union([
     S.Struct({ _tag: S.Literal("value"), value: success }),
+    S.Struct({ _tag: S.Literal("metadata"), metadata: CommandMetaData }),
     S.Struct({ _tag: S.Literal("done"), metadata: CommandMetaData })
   ])
 
 export type StreamResponseChunk<A> =
   | { readonly _tag: "value"; readonly value: A }
+  | { readonly _tag: "metadata"; readonly metadata: CommandMetaData }
   | { readonly _tag: "done"; readonly metadata: CommandMetaData }
 
 /**
@@ -105,6 +109,12 @@ export type Invalidates = typeof Invalidates
 export interface InvalidationSetService {
   readonly add: (key: InvalidationKey) => Effect.Effect<void>
   readonly get: Effect.Effect<ReadonlyArray<InvalidationKey>>
+  /**
+   * V3: Reads all currently accumulated keys and resets the bucket to empty.
+   * Used by the stream routing layer to emit intermediate "metadata" chunks
+   * without re-sending keys that have already been forwarded to the client.
+   */
+  readonly drain: Effect.Effect<ReadonlyArray<InvalidationKey>>
 }
 
 /**
@@ -149,7 +159,8 @@ export const InvalidationSet = Context.Reference<InvalidationSetService>(
   {
     defaultValue: () => ({
       add: (_key: InvalidationKey) => Effect.void,
-      get: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
+      get: Effect.succeed([] as ReadonlyArray<InvalidationKey>),
+      drain: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
     })
   }
 )
@@ -158,5 +169,6 @@ export type InvalidationSet = typeof InvalidationSet
 /** Creates a fresh `InvalidationSet` implementation backed by a `Ref`. */
 export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>): InvalidationSetService => ({
   add: (key) => Ref.update(ref, (keys) => [...keys, key]),
-  get: Ref.get(ref)
+  get: Ref.get(ref),
+  drain: Ref.getAndSet(ref, [])
 })

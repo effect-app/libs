@@ -34,11 +34,11 @@ export type ExportEvent = OperationProgress | ExportComplete
  * Produces `total` progress updates followed by a single `ExportComplete`.
  * Each step is separated by a 50 ms delay to simulate real async work.
  */
-const makeExportStream = (total: number): Stream.Stream<ExportEvent> =>
+const makeExportStream = (total: S.NonNegativeInt): Stream.Stream<ExportEvent> =>
   Stream.concat(
     Stream.range(1, total).pipe(
       Stream.map((completed) =>
-        new OperationProgress({ completed: S.NonNegativeInt(completed), total: S.NonNegativeInt(total) })
+        new OperationProgress({ completed: S.NonNegativeInt(completed), total })
       ),
       Stream.tap(() => Effect.sleep("50 millis"))
     ),
@@ -60,7 +60,7 @@ export const useExportMutation = () => {
    *
    * `execute`  – call with the desired `total` to kick off the stream.
    */
-  const [result, execute] = asStreamResult((total: number) => makeExportStream(total))
+  const [result, execute] = asStreamResult((total: S.NonNegativeInt) => makeExportStream(total))
 
   return { result, execute }
 }

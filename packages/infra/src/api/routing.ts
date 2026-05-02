@@ -469,18 +469,20 @@ export const makeRouter = <
                       // chunk if any keys were collected since the last drain. This lets clients
                       // invalidate queries mid-stream without waiting for the "done" chunk.
                       Stream.flatMap((valueChunk: any) =>
-                        Stream.fromEffect(
-                          Ref.getAndSet(keysRef, []).pipe(
-                            Effect.map((keys) =>
-                              keys.length > 0
-                                ? [
-                                  valueChunk,
-                                  { _tag: "metadata" as const, metadata: { invalidateQueries: keys } }
-                                ]
-                                : [valueChunk]
+                        Stream
+                          .fromEffect(
+                            Ref.getAndSet(keysRef, []).pipe(
+                              Effect.map((keys) =>
+                                keys.length > 0
+                                  ? [
+                                    valueChunk,
+                                    { _tag: "metadata" as const, metadata: { invalidateQueries: keys } }
+                                  ]
+                                  : [valueChunk]
+                              )
                             )
                           )
-                        ).pipe(Stream.flatMap(Stream.fromIterable))
+                          .pipe(Stream.flatMap(Stream.fromIterable))
                       ),
                       // V2: catch stream failures and embed them in the stream as an error chunk
                       Stream.catch((err: any) =>

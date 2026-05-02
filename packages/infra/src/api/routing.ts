@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, type Scope, Stream } from "effect-app"
+import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Ref, S, type Scope, Stream } from "effect-app"
 import { getMeta } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { Invalidation } from "effect-app/rpc"
@@ -455,8 +455,21 @@ export const makeRouter = <
               (payload: any, headers: any) => {
                 const result = handler.handler(payload, headers)
                 if (Stream.isStream(result)) {
-                  // RpcServer adds its own span via spanPrefix; pass the Stream through.
-                  return result
+                  // Wrap stream items as { _tag: "value", value } and append a final
+                  // { _tag: "done", metadata } chunk carrying accumulated invalidation keys.
+                  const keysRef = Ref.makeUnsafe<ReadonlyArray<Invalidation.InvalidationKey>>([])
+                  const invalidationSet = Invalidation.makeInvalidationSet(keysRef)
+                  return Stream.concat(
+                    (result as Stream.Stream<any, any, any>).pipe(
+                      Stream.map((item: any) => ({ _tag: "value" as const, value: item })),
+                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet)
+                    ),
+                    Stream.fromEffect(
+                      Ref.get(keysRef).pipe(
+                        Effect.map((keys) => ({ _tag: "done" as const, metadata: { invalidateQueries: keys } }))
+                      )
+                    )
+                  )
                 }
                 const effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {}, {
@@ -495,6 +508,8 @@ export const makeRouter = <
                     payload: resource,
                     success: resource.type === "command"
                       ? Invalidation.CommandResponseWithMetaData(resource.success)
+                      : isStream
+                      ? Invalidation.StreamResponseChunk(resource.success)
                       : resource.success,
                     error: resource.error,
                     ...isStream ? { stream: true as const } : {}

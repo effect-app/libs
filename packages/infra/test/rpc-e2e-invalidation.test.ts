@@ -12,7 +12,7 @@
 import { expect, it } from "@effect/vitest"
 import { Effect, Layer, Ref, Stream } from "effect"
 import { S } from "effect-app"
-import { makeInvalidationKeysService } from "effect-app/client"
+import { InvalidationKeysFromServer, makeInvalidationKeysService } from "effect-app/client"
 import { InvalidationMiddleware } from "effect-app/middleware"
 import { Invalidation } from "effect-app/rpc"
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc"
@@ -280,4 +280,106 @@ it.live(
     expect(payload).toBe(99)
     expect(keys).toStrictEqual([StaticKey, DynamicKey])
   }, Effect.provide(E2eTestLayer))
+)
+
+// ---------------------------------------------------------------------------
+// Stream metadata tests (V1)
+//
+// These tests verify the stream chunk wrapping: the routing layer wraps each
+// emitted value as `{ _tag: "value", value }` and appends a final
+// `{ _tag: "done", metadata: { invalidateQueries } }` chunk.  The client
+// side filters out "done" chunks (accumulating keys) and maps "value" chunks
+// to extract the payload.  The tests below exercise both layers independently
+// using an RPC group whose success schema is `StreamResponseChunk(S.Number)`.
+// ---------------------------------------------------------------------------
+
+const StreamMetaRpcs = RpcGroup.make(
+  // Stream that emits plain numbers — the server wraps them as StreamResponseChunk items
+  Rpc
+    .make("streamWithMeta", {
+      success: Invalidation.StreamResponseChunk(S.Number),
+      stream: true
+    })
+    .annotate(RequestType, "query")
+    .middleware(InvalidationMiddleware)
+)
+
+const StreamKey: Invalidation.InvalidationKey = ["stream", "key"]
+
+const StreamMetaImplLayer = StreamMetaRpcs.toLayer({
+  // Handler returns pre-wrapped chunks: simulates what routing.ts produces
+  streamWithMeta: () =>
+    Stream.fromIterable([
+      { _tag: "value" as const, value: 1 },
+      { _tag: "value" as const, value: 2 },
+      { _tag: "value" as const, value: 3 },
+      { _tag: "done" as const, metadata: { invalidateQueries: [StreamKey] } }
+    ])
+})
+
+const StreamMetaTestLayer = Layer.merge(StreamMetaImplLayer, InvalidationMiddlewareLive)
+
+it.live(
+  "stream: client-side unwrapping delivers plain values and discards 'done' chunk",
+  Effect.fnUntraced(function*() {
+    const client = yield* RpcTest.makeClient(StreamMetaRpcs)
+    const raw = yield* Stream.runCollect(client.streamWithMeta())
+    // Client must filter out the "done" chunk and extract only values
+    const values = raw
+      .filter((item: any) => item._tag === "value")
+      .map((item: any) => item.value)
+    expect(values).toStrictEqual([1, 2, 3])
+  }, Effect.provide(StreamMetaTestLayer))
+)
+
+it.live(
+  "stream: client-side invalidation keys are collected from the 'done' chunk",
+  Effect.fnUntraced(function*() {
+    const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
+    const svc = makeInvalidationKeysService(keysRef)
+    const client = yield* RpcTest.makeClient(StreamMetaRpcs)
+    const raw = yield* Stream.runCollect(client.streamWithMeta())
+    // Simulate what buildStream does: tap "done" items to accumulate keys
+    for (const item of raw) {
+      if ((item as any)._tag === "done") {
+        const meta = (item as any).metadata as Invalidation.CommandMetaData
+        yield* Effect.forEach(meta.invalidateQueries, svc.add, { discard: true })
+      }
+    }
+    const keys = yield* Ref.get(keysRef)
+    expect(keys).toStrictEqual([StreamKey])
+  }, Effect.provide(StreamMetaTestLayer))
+)
+
+it.live(
+  "stream: InvalidationKeysFromServer receives keys from 'done' chunk via buildStream-style tap",
+  Effect.fnUntraced(function*() {
+    const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
+    const invKeys = makeInvalidationKeysService(keysRef)
+    const client = yield* RpcTest.makeClient(StreamMetaRpcs)
+    // Replicate the buildStream processing pipeline: tap must run in the same fiber
+    // context as the InvalidationKeysFromServer provider, so we use Effect.provideService
+    // (fiber-level) rather than Stream.provideService (element-level) to ensure the
+    // tap's Effect.use call resolves invKeys.
+    const values = yield* client.streamWithMeta().pipe(
+      Stream.tap((item: any) =>
+        item._tag === "done"
+          ? InvalidationKeysFromServer.use((s) =>
+            Effect.forEach(
+              (item.metadata as Invalidation.CommandMetaData).invalidateQueries,
+              s.add,
+              { discard: true }
+            )
+          )
+          : Effect.void
+      ),
+      Stream.filter((item: any) => item._tag === "value"),
+      Stream.map((item: any) => item.value),
+      Stream.runCollect,
+      Effect.provideService(InvalidationKeysFromServer, invKeys)
+    )
+    const keys = yield* Ref.get(keysRef)
+    expect(values).toStrictEqual([1, 2, 3])
+    expect(keys).toStrictEqual([StreamKey])
+  }, Effect.provide(StreamMetaTestLayer))
 )

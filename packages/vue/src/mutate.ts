@@ -436,6 +436,8 @@ export const makeStreamMutation = () => {
 
     const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<void, never, any> => {
       const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
+      const keysRef = Ref.makeUnsafe<ReadonlyArray<InvalidationKey>>([])
+      const invKeys = makeInvalidationKeysService(keysRef)
       return Effect
         .sync(() => {
           state.value = AsyncResult.initial(true)
@@ -443,6 +445,7 @@ export const makeStreamMutation = () => {
         .pipe(
           Effect.andThen(
             stream.pipe(
+              Stream.provideService(InvalidationKeysFromServer, invKeys),
               Stream.runForEach((value) =>
                 Effect.sync(() => {
                   state.value = AsyncResult.success(value, { waiting: true })
@@ -467,7 +470,8 @@ export const makeStreamMutation = () => {
                 const current = state.value
                 const lastValue = AsyncResult.isSuccess(current) ? current.value : undefined
                 const invExit = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
-                return invCache(input, invExit, [])
+                const serverKeys = Ref.getUnsafe(keysRef)
+                return invCache(input, invExit, serverKeys)
               }),
               Effect.asVoid
             )

@@ -129,6 +129,8 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
           payload: r,
           success: r.type === "command"
             ? Invalidation.CommandResponseWithMetaData(r.success)
+            : isStream
+            ? Invalidation.StreamResponseChunk(r.success)
             : r.success,
           error: r.error,
           ...isStream ? { stream: true as const } : {}
@@ -255,6 +257,20 @@ const makeApiClientFactory = Effect
                           Request.make(input)
                         ) as Stream.Stream<any, any, any>
                         return rpcStream.pipe(
+                          // Collect server invalidation keys from the "done" chunk, then discard it.
+                          Stream.tap((item: any) =>
+                            item._tag === "done"
+                              ? InvalidationKeysFromServer.use((svc) =>
+                                Effect.forEach(
+                                  (item.metadata as Invalidation.CommandMetaData).invalidateQueries,
+                                  svc.add,
+                                  { discard: true }
+                                )
+                              )
+                              : Effect.void
+                          ),
+                          Stream.filter((item: any) => item._tag === "value"),
+                          Stream.map((item: any) => item.value),
                           Stream.provide(layers),
                           Stream.provide(svcs)
                         )

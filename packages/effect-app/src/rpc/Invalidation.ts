@@ -33,6 +33,44 @@ export const CommandResponseWithMetaData = <S extends S.Top>(success: S) =>
   S.Struct({ payload: success, metadata: CommandMetaData })
 
 /**
+ * Wraps a command's failure schema so that the wire format carries both the `error`
+ * (the handler's actual failure value) and `metadata` (server-driven cache invalidation keys
+ * accumulated thus far before the failure occurred).
+ * Transparent to users: the server handler fails with the plain error and the client receives
+ * the plain error — wrapping/unwrapping is handled internally by the routing layer.
+ */
+export const CommandFailureWithMetaData = <E extends S.Top>(error: E) => S.Struct({ error, metadata: CommandMetaData })
+
+/**
+ * Stream chunk schema for stream responses with metadata.
+ * Each item is either a data value or a final "done" signal carrying cache invalidation metadata.
+ * Transparent to users: stream handlers return plain values and clients receive plain values —
+ * wrapping/unwrapping is handled internally by the routing layer.
+ *
+ * The "done" chunk is always the last item in the stream and carries the invalidation keys
+ * accumulated during the stream's execution.
+ */
+export const StreamResponseChunk = <S extends S.Top>(success: S) =>
+  S.Union([
+    S.Struct({ _tag: S.Literal("value"), value: success }),
+    S.Struct({ _tag: S.Literal("done"), metadata: CommandMetaData })
+  ])
+
+export type StreamResponseChunk<A> =
+  | { readonly _tag: "value"; readonly value: A }
+  | { readonly _tag: "done"; readonly metadata: CommandMetaData }
+
+/**
+ * Stream chunk schema for stream failures with metadata.
+ * Used to signal a stream failure while still carrying cache invalidation keys
+ * accumulated thus far.
+ */
+export const StreamFailureChunk = <E extends S.Top>(error: E) =>
+  S.Struct({ _tag: S.Literal("error"), error, metadata: CommandMetaData })
+
+export type StreamFailureChunk<E> = { readonly _tag: "error"; readonly error: E; readonly metadata: CommandMetaData }
+
+/**
  * Context annotation for declaring static cache invalidation keys on a low-level `Rpc` definition.
  * These keys are always included in the command response metadata, regardless of the handler logic.
  *

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [583393f]
+  - effect-app@4.0.0-beta.181
+
 ## 4.0.0-beta.180
 
 ### Minor Changes

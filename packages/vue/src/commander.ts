@@ -14,6 +14,17 @@ import { I18n } from "./intl.js"
 import { WithToast } from "./withToast.js"
 
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
+
+type StreamMutationTuple<Id extends string, Arg, A, E, R> =
+  & readonly [
+    ComputedRef<AsyncResult.AsyncResult<A, E>>,
+    ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
+  ]
+  & { readonly id: Id }
+
+type StreamMutationFactory<Id extends string, Arg, A, E, R> =
+  & (() => StreamMutationTuple<Id, Arg, A, E, R>)
+  & { readonly id: Id }
 type FnOptions<Id extends string, I18nCustomKey extends string, State extends IntlRecord | undefined> = {
   i18nCustomKey?: I18nCustomKey
   /**
@@ -2340,12 +2351,30 @@ export class CommanderImpl<RT, RTHooks> {
     const State extends IntlRecord = IntlRecord,
     const I18nKey extends string = Id
   >(
-    id: Id | { id: Id },
+    id:
+      | Id
+      | { id: Id }
+      | StreamMutationTuple<Id, any, any, any, any>
+      | StreamMutationFactory<Id, any, any, any, any>,
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> & Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
     state: Context.Service<`Commander.Command.${Id}.state`, State>
-  } =>
-    Object.assign(
+  } => {
+    // Resolve id and (optionally) a per-build progress source from a mutateStream input.
+    const resolvedId: Id = typeof id === "string" ? id : (id as { id: Id }).id
+    const isStreamFactory = typeof id === "function" && "id" in id && (id as any).length === 0
+    const isStreamTuple = Array.isArray(id) && "id" in id
+    const streamSource = isStreamFactory
+      ? (id as StreamMutationFactory<Id, any, any, any, any>)
+      : isStreamTuple
+      ? (id as StreamMutationTuple<Id, any, any, any, any>)
+      : undefined
+    const resolveProgress = (): ComputedRef<AsyncResult.AsyncResult<any, any>> | undefined => {
+      if (!streamSource) return options?.progress
+      const tuple = typeof streamSource === "function" ? streamSource() : streamSource
+      return tuple[0]
+    }
+    return Object.assign(
       (
         fn: any,
         ...combinators: any[]
@@ -2356,7 +2385,13 @@ export class CommanderImpl<RT, RTHooks> {
         const errorDef = new Error()
         Error.stackTraceLimit = limit
 
-        return this.makeCommand(id, options, errorDef)(
+        let mergedOptions = options
+        if (streamSource) {
+          const progress = resolveProgress()
+          mergedOptions = progress ? { ...options, progress } : options
+        }
+
+        return this.makeCommand(resolvedId, mergedOptions, errorDef)(
           Effect.fnUntraced(
             // fnUntraced only supports generators as first arg, so we convert to generator if needed
             isGeneratorFunction(fn) ? fn : function*(...args) {
@@ -2366,13 +2401,14 @@ export class CommanderImpl<RT, RTHooks> {
           ) as any
         )
       },
-      makeBaseInfo(typeof id === "string" ? id : id.id, options),
+      makeBaseInfo(resolvedId, options),
       {
         state: Context.Service<`Commander.Command.${Id}.state`, State>(
-          `Commander.Command.${typeof id === "string" ? id : id.id}.state`
+          `Commander.Command.${resolvedId}.state`
         )
       }
     )
+  }
 
   /** @deprecated */
   alt2: <
@@ -2478,26 +2514,23 @@ export class CommanderImpl<RT, RTHooks> {
     mutation:
       | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
       | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id }
+      | StreamMutationFactory<Id, Arg, A, E, R>
       | {
         id: Id
-        mutateStream: readonly [
-          ComputedRef<AsyncResult.AsyncResult<A, E>>,
-          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
-        ]
+        mutateStream:
+          | StreamMutationFactory<Id, Arg, A, E, R>
+          | StreamMutationTuple<Id, Arg, A, E, R>
       }
-      | (
-        & readonly [
-          ComputedRef<AsyncResult.AsyncResult<A, E>>,
-          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
-        ]
-        & { readonly id: Id }
-      ),
+      | StreamMutationTuple<Id, Arg, A, E, R>,
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     if (mutation !== null && typeof mutation === "object" && "mutateStream" in mutation) {
       return this.wrapStream(mutation as any, options) as any
     }
     if (Array.isArray(mutation) && "id" in mutation) {
+      return this.wrapStream(mutation as any, options) as any
+    }
+    if (typeof mutation === "function" && "id" in mutation && (mutation as any).length === 0) {
       return this.wrapStream(mutation as any, options) as any
     }
     // At this point mutation is either { mutate, id } or (fn & { id })
@@ -2537,23 +2570,31 @@ export class CommanderImpl<RT, RTHooks> {
   }
 
   /**
-   * Define a Command from a stream-type mutation (`mutateStream` tuple).
+   * Define a Command from a stream-type mutation (`mutateStream` factory).
    * The stream's reactive `AsyncResult` ref is exposed as `running` for independent progress tracking.
    * The command's own `result` reflects the execution outcome of the `execute` function.
    * Supports the same combinator pipeline as `wrap` (e.g. `withDefaultToast`).
    *
+   * Each invocation of the resulting wrap call produces a fresh `[ref, execute]` pair
+   * (the `mutateStream` factory is called once per build), so independent commands
+   * don't share progress state.
+   *
    * Accepts either:
-   * - An object with `id` and `mutateStream: [resultRef, execute]` (e.g. a client entry)
-   * - The `mutateStream` tuple directly, when it carries an `id` property
+   * - An object with `id` and `mutateStream` factory (e.g. a client entry)
+   * - The `mutateStream` factory directly (callable, with `id`)
+   * - An already-called factory result (`[resultRef, execute] & { id }`) — shared ref across builds
    *
    * @example
    * ```ts
    * // Via client entry (recommended):
    * const exportCmd = Command.wrapStream(client.myExport)()
-   * // exportCmd.running reflects live stream progress; exportCmd.result tracks execution
    *
-   * // Via augmented tuple (when id is attached):
+   * // Via factory directly:
    * const exportCmd = Command.wrapStream(client.myExport.mutateStream)()
+   *
+   * // Via already-called factory (shared ref):
+   * const stream = client.myExport.mutateStream()
+   * const exportCmd = Command.wrapStream(stream)()
    * ```
    */
   wrapStream = <
@@ -2568,28 +2609,24 @@ export class CommanderImpl<RT, RTHooks> {
     mutation:
       | {
         id: Id
-        mutateStream: readonly [
-          ComputedRef<AsyncResult.AsyncResult<A, E>>,
-          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
-        ]
+        mutateStream:
+          | StreamMutationFactory<Id, Arg, A, E, R>
+          | StreamMutationTuple<Id, Arg, A, E, R>
       }
-      | (
-        & readonly [
-          ComputedRef<AsyncResult.AsyncResult<A, E>>,
-          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
-        ]
-        & { readonly id: Id }
-      ),
+      | StreamMutationFactory<Id, Arg, A, E, R>
+      | StreamMutationTuple<Id, Arg, A, E, R>,
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     const id = mutation.id
-    const [streamRef, executeRaw] = "mutateStream" in mutation ? mutation.mutateStream : mutation
-    const mutate: (_arg: Arg) => Effect.Effect<any, never, R> = Effect.isEffect(executeRaw)
-      ? (_arg: Arg) => executeRaw
-      : executeRaw
-    // Pass streamRef as `progress` so it surfaces as `running` on the resulting command.
-    // The command's own `result` is always the asResult-wrapped execute function outcome.
-    const mergedOptions = { ...options, progress: streamRef }
+    // Resolve `source` to the factory or already-called tuple.
+    const source: StreamMutationFactory<Id, Arg, A, E, R> | StreamMutationTuple<Id, Arg, A, E, R> =
+      mutation !== null && typeof mutation === "object" && "mutateStream" in mutation
+        ? (mutation.mutateStream as any)
+        : (mutation as any)
+    const resolveTuple = (): readonly [
+      ComputedRef<AsyncResult.AsyncResult<A, E>>,
+      ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
+    ] => (typeof source === "function" ? source() : source)
     return Object.assign(
       (...combinators: any[]): any => {
         // we capture the definition stack here, so we can append it to later stack traces
@@ -2597,6 +2634,15 @@ export class CommanderImpl<RT, RTHooks> {
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
+
+        // Fresh per build: call the factory once per command instance so each
+        // wrap call gets its own ComputedRef + execute pair.
+        const [streamRef, executeRaw] = resolveTuple()
+        const mutate: (_arg: Arg) => Effect.Effect<any, never, R> = Effect.isEffect(executeRaw)
+          ? (_arg: Arg) => executeRaw
+          : executeRaw
+        // Pass streamRef as `progress` so it surfaces as `running` on the resulting command.
+        const mergedOptions = { ...options, progress: streamRef }
 
         return this.makeCommand(id, mergedOptions, errorDef)(
           Effect.fnUntraced(

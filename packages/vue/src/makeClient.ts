@@ -225,17 +225,24 @@ export type MutationWithExtensions<RT, Req> = Req extends
   : never
 
 /**
- * The `mutateStream` tuple for a stream-type request handler:
- * `[resultRef, execute]` where `execute` updates the ref live with each emitted value.
- * When the request declares a `final` schema, `execute` resolves with the last emitted value
- * typed as `Final`; otherwise it resolves with the success type.
+ * The `mutateStream` factory for a stream-type request handler. Always invoke `()`
+ * to get a fresh `[resultRef, execute]` tuple — each call produces a new
+ * `ComputedRef` + execute pair so independent invocations don't share state.
+ * `execute` updates the ref live with each emitted value. When the request declares
+ * a `final` schema, `execute` resolves with the last emitted value typed as `Final`;
+ * otherwise it resolves with the success type. The factory itself carries the
+ * request `id` so it can be passed to `Command.fn` / `Command.wrapStream` directly.
  */
 export type StreamMutationWithExtensions<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
-    & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<Final, never, R>]
+    & (() =>
+      & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<Final, never, R>]
+      & { readonly id: Id })
     & { readonly id: Id }
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
-      & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
+      & (() =>
+        & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
+        & { readonly id: Id })
       & { readonly id: Id }
   : never
 
@@ -812,9 +819,14 @@ export const makeClient = <RT_, RTHooks>(
             })))
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
-        const sm = streamMutation(client[key] as any, mergedInvalidation)
-        ;(acc as any)[camelCase(key) + "Stream"] = Object.assign(sm, {
-          id: client[key].id,
+        const smFactory = Object.assign(
+          () =>
+            Object.assign(streamMutation(client[key] as any, mergedInvalidation), {
+              id: client[key].id
+            }),
+          { id: client[key].id }
+        )
+        ;(acc as any)[camelCase(key) + "Stream"] = Object.assign(smFactory, {
           fn: Command.fn(client[key].id)
         })
         return acc
@@ -894,14 +906,18 @@ export const makeClient = <RT_, RTHooks>(
                   })))
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
-              const streamMut = Object.assign(streamMutation(client[key] as any, mergedInvalidation), {
-                id: client[key].id
-              })
+              const streamMutFactory = Object.assign(
+                () =>
+                  Object.assign(streamMutation(client[key] as any, mergedInvalidation), {
+                    id: client[key].id
+                  }),
+                { id: client[key].id }
+              )
               return {
                 ...client[key],
                 request: h_,
-                mutateStream: streamMut,
-                wrapStream: Command.wrapStream(streamMut),
+                mutateStream: streamMutFactory,
+                wrapStream: Command.wrapStream(streamMutFactory),
                 fn: Command.fn(client[key].id)
               }
             })()

@@ -2,31 +2,35 @@
 "@effect-app/vue": minor
 ---
 
-Add `wrapStream` support to `Command` with a `running` prop exposing the live stream state.
+Add `wrapStream` support to `Command` with separate `result` and `running` props.
+
+**Key design:**
+- `result` is always the command's own execution outcome (from `asResult`)
+- `running` holds the stream's live `AsyncResult` ref for progress tracking
 
 **New behaviour:**
-- `CommanderImpl.wrapStream(mutation)` now returns a callable like `wrap` — call it (optionally with combinators) to get the `CommandOut`.
-- The command's `result` is driven by the stream's `AsyncResult` ref; the same ref is exposed as `running` for independent progress inspection.
-- `Command.wrap` now accepts `{ mutateStream: [...], id }` and delegates to `wrapStream`.
-- `FnOptions.progress` — pass a `ComputedRef<AsyncResult>` to any `fn`-created command and it is exposed as `running`.
-- Stream client entries (e.g. `client.myAction`) now expose `wrapStream` (callable), `fn`, and `mutateStream`.
-- Stream mutation helpers (`.helpers.myActionStream`) now also carry a `.fn` property.
+- `CommanderImpl.wrapStream(mutation)` returns a callable like `wrap` — `wrapStream(mutation)()` gives `CommandOut`.
+- Accepts either `{ id, mutateStream: [...] }` or the augmented tuple directly (when `.id` is attached).
+- `Command.wrap` now accepts `{ mutateStream, id }` and the augmented tuple — both delegate to `wrapStream`.
+- `FnOptions.progress` — pass a `ComputedRef<AsyncResult>` to any `fn`-created command; surfaces as `running`.
+- `StreamMutationWithExtensions` now includes `.id` on the tuple.
+- Stream client entries expose `wrapStream` (callable), `fn`, and `mutateStream` (with `.id`).
+- Stream mutation helpers also carry `.fn` and `.id`.
 
 ```ts
-// Callable like wrap:
+// Via client entry:
 const exportCmd = Command.wrapStream(client.myExport)()
-// exportCmd.running reflects the live stream state
+// exportCmd.result = own execution result; exportCmd.running = live stream AsyncResult
 
-// With a combinator:
-const exportCmd = Command.wrapStream(client.myExport)(CommanderStatic.withDefaultToast())
+// Via mutateStream tuple (id is attached):
+const exportCmd = Command.wrapStream(client.myExport.mutateStream)()
 
-// Via pre-built client entry:
-const { running, waiting, handle } = client.myExport.wrapStream()
+// wrap also accepts the tuple:
+const exportCmd = Command.wrap(client.myExport.mutateStream)()
 
 // fn with external progress:
-const [running, execute] = client.myExport.mutateStream
-const cmd = Command.fn({ id: "myExport", progress: running })(function*(arg) {
-  yield* execute(arg)
-})
-// cmd.running === running (live stream state)
+const cmd = Command.fn({ id: "myExport", progress: client.myExport.mutateStream[0] })(
+  function*(arg) { yield* client.myExport.mutateStream[1](arg) }
+)
+// cmd.running === the stream AsyncResult ref
 ```

@@ -231,10 +231,12 @@ export type MutationWithExtensions<RT, Req> = Req extends
  * typed as `Final`; otherwise it resolves with `void`.
  */
 export type StreamMutationWithExtensions<Req> = Req extends
-  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id, infer Final>
-  ? readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<Final, never, R>]
-  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer _Id, infer Final>
-    ? readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
+    & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<Final, never, R>]
+    & { readonly id: Id }
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
+      & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
+      & { readonly id: Id }
   : never
 
 /**
@@ -812,6 +814,7 @@ export const makeClient = <RT_, RTHooks>(
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const sm = streamMutation(client[key] as any, mergedInvalidation)
         ;(acc as any)[camelCase(key) + "Stream"] = Object.assign(sm, {
+          id: client[key].id,
           fn: Command.fn(client[key].id)
         })
         return acc
@@ -891,12 +894,14 @@ export const makeClient = <RT_, RTHooks>(
                   })))
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
-              const streamMut = streamMutation(client[key] as any, mergedInvalidation)
+              const streamMut = Object.assign(streamMutation(client[key] as any, mergedInvalidation), {
+                id: client[key].id
+              })
               return {
                 ...client[key],
                 request: h_,
                 mutateStream: streamMut,
-                wrapStream: Command.wrapStream({ id: client[key].id, mutateStream: streamMut }),
+                wrapStream: Command.wrapStream(streamMut),
                 fn: Command.fn(client[key].id)
               }
             })()

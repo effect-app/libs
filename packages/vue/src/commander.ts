@@ -2050,9 +2050,7 @@ export class CommanderImpl<RT, RTHooks> {
   >(
     id_: Id | { id: Id },
     options?: FnOptions<Id, I18nKey, State>,
-    errorDef?: Error,
-    /** When provided, overrides the internally-created AsyncResult ref (used by wrapStream). */
-    resultOverride?: ComputedRef<AsyncResult.AsyncResult<any, any>>
+    errorDef?: Error
   ) => {
     const id = typeof id_ === "string" ? id_ : id_.id
     const state = getStateValues(options)
@@ -2133,8 +2131,7 @@ export class CommanderImpl<RT, RTHooks> {
         const waitId = options?.waitKey ? options.waitKey(id) : undefined
         const blockId = options?.blockKey ? options.blockKey(id) : undefined
 
-        const [internalResult, exec_] = asResult(theHandler)
-        const result = resultOverride ?? internalResult
+        const [result, exec_] = asResult(theHandler)
 
         const exec = Effect
           .fnUntraced(
@@ -2239,7 +2236,7 @@ export class CommanderImpl<RT, RTHooks> {
           /** reactive */
           result,
           /** reactive */
-          running: resultOverride ?? options?.progress,
+          running: options?.progress,
           /** reactive */
           waiting,
           /** reactive */
@@ -2487,10 +2484,20 @@ export class CommanderImpl<RT, RTHooks> {
           ComputedRef<AsyncResult.AsyncResult<A, E>>,
           ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
         ]
-      },
+      }
+      | (
+        & readonly [
+          ComputedRef<AsyncResult.AsyncResult<A, E>>,
+          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
+        ]
+        & { readonly id: Id }
+      ),
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     if (mutation !== null && typeof mutation === "object" && "mutateStream" in mutation) {
+      return this.wrapStream(mutation as any, options) as any
+    }
+    if (Array.isArray(mutation) && "id" in mutation) {
       return this.wrapStream(mutation as any, options) as any
     }
     return Object.assign(
@@ -2502,7 +2509,9 @@ export class CommanderImpl<RT, RTHooks> {
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
-        const mutate = "mutate" in mutation ? mutation.mutate : mutation
+        const mutate = "mutate" in mutation
+          ? mutation.mutate
+          : mutation as (arg: Arg) => Effect.Effect<A, E, R>
 
         return this.makeCommand(mutation.id, options, errorDef)(
           Effect.fnUntraced(
@@ -2525,22 +2534,22 @@ export class CommanderImpl<RT, RTHooks> {
 
   /**
    * Define a Command from a stream-type mutation (`mutateStream` tuple).
-   * The stream's reactive `AsyncResult` ref is used as the command's `result` and
-   * exposed as `running`, so callers can inspect progress independently.
+   * The stream's reactive `AsyncResult` ref is exposed as `running` for independent progress tracking.
+   * The command's own `result` reflects the execution outcome of the `execute` function.
    * Supports the same combinator pipeline as `wrap` (e.g. `withDefaultToast`).
    *
-   * @param mutation An object with `id` and `mutateStream: [resultRef, execute]`.
-   *   Typically pass the client entry directly: `Command.wrapStream(client.myAction)`.
-   * @param options Optional configuration (same as `fn` / `wrap`).
+   * Accepts either:
+   * - An object with `id` and `mutateStream: [resultRef, execute]` (e.g. a client entry)
+   * - The `mutateStream` tuple directly, when it carries an `id` property
    *
    * @example
    * ```ts
-   * // Basic usage – call the returned function to get the CommandOut:
+   * // Via client entry (recommended):
    * const exportCmd = Command.wrapStream(client.myExport)()
-   * // exportCmd.running reflects the live stream state (progress, final value)
+   * // exportCmd.running reflects live stream progress; exportCmd.result tracks execution
    *
-   * // With a combinator:
-   * const exportCmd = Command.wrapStream(client.myExport)(CommanderStatic.withDefaultToast())
+   * // Via augmented tuple (when id is attached):
+   * const exportCmd = Command.wrapStream(client.myExport.mutateStream)()
    * ```
    */
   wrapStream = <
@@ -2552,19 +2561,31 @@ export class CommanderImpl<RT, RTHooks> {
     const State extends IntlRecord = IntlRecord,
     const I18nKey extends string = Id
   >(
-    mutation: {
-      id: Id
-      mutateStream: readonly [
-        ComputedRef<AsyncResult.AsyncResult<A, E>>,
-        ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
-      ]
-    },
+    mutation:
+      | {
+        id: Id
+        mutateStream: readonly [
+          ComputedRef<AsyncResult.AsyncResult<A, E>>,
+          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
+        ]
+      }
+      | (
+        & readonly [
+          ComputedRef<AsyncResult.AsyncResult<A, E>>,
+          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
+        ]
+        & { readonly id: Id }
+      ),
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
-    const [streamRef, executeRaw] = mutation.mutateStream
+    const id = mutation.id
+    const [streamRef, executeRaw] = "mutateStream" in mutation ? mutation.mutateStream : mutation
     const mutate: (_arg: Arg) => Effect.Effect<any, never, R> = Effect.isEffect(executeRaw)
       ? (_arg: Arg) => executeRaw
       : executeRaw
+    // Pass streamRef as `progress` so it surfaces as `running` on the resulting command.
+    // The command's own `result` is always the asResult-wrapped execute function outcome.
+    const mergedOptions = { ...options, progress: streamRef }
     return Object.assign(
       (...combinators: any[]): any => {
         // we capture the definition stack here, so we can append it to later stack traces
@@ -2573,7 +2594,7 @@ export class CommanderImpl<RT, RTHooks> {
         const errorDef = new Error()
         Error.stackTraceLimit = limit
 
-        return this.makeCommand(mutation.id, options, errorDef, streamRef)(
+        return this.makeCommand(id, mergedOptions, errorDef)(
           Effect.fnUntraced(
             isGeneratorFunction(mutate) ? mutate : function*(arg: Arg) {
               return yield* mutate(arg)
@@ -2582,10 +2603,10 @@ export class CommanderImpl<RT, RTHooks> {
           ) as any
         )
       },
-      makeBaseInfo(mutation.id, options),
+      makeBaseInfo(id, options),
       {
         state: Context.Service<`Commander.Command.${Id}.state`, State>(
-          `Commander.Command.${mutation.id}.state`
+          `Commander.Command.${id}.state`
         )
       }
     )

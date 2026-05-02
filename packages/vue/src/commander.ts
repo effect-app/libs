@@ -3,10 +3,10 @@ import { asResult, deepToRaw, type MissingDependencies, reportRuntimeError } fro
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
-import { OperationFailure, OperationSuccess } from "effect-app/Operations"
+import { OperationFailure, OperationProgress, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
-import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
 import { Confirm } from "./confirm.js"
@@ -139,7 +139,7 @@ export declare namespace Commander {
     /** reactive */
     label: string
     /** reactive */
-    result: AsyncResult<A, E>
+    result: AsyncResult.AsyncResult<A, E>
     /** reactive */
     waiting: boolean
     /** reactive */
@@ -2495,6 +2495,139 @@ export class CommanderImpl<RT, RTHooks> {
         )
       }
     )
+
+  /**
+   * Define a Command from a stream-type mutation (`mutateStream` tuple).
+   * The reactive `result` ref from the stream is used directly, so progress is reflected
+   * live as the stream emits values.
+   *
+   * When the stream is `waiting` and the current value is an `OperationProgress`,
+   * the command's `label` is automatically augmented with `(completed/total)` progress info.
+   *
+   * @param mutation An object with `id` and `mutateStream: [resultRef, execute]`.
+   *   Typically pass the client entry directly: `Command.wrapStream(client.myAction)`.
+   * @param options Optional configuration (same as `fn` / `wrap`).
+   */
+  wrapStream = <
+    const Id extends string,
+    Arg,
+    A,
+    E,
+    R,
+    const State extends IntlRecord = IntlRecord,
+    const I18nKey extends string = Id
+  >(
+    mutation: {
+      id: Id
+      mutateStream: readonly [
+        ComputedRef<AsyncResult.AsyncResult<A, E>>,
+        ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
+      ]
+    },
+    options?: FnOptions<Id, I18nKey, State>
+  ): Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State> => {
+    const id = mutation.id
+    const [streamRef, executeRaw] = mutation.mutateStream
+    const state = getStateValues(options)
+
+    const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
+    const initialContext = makeContext_()
+    const context = computed(() => makeContext_())
+    const action = computed(() => context.value.action)
+
+    const baseLabel = computed(() => context.value.label)
+    const label = computed(() => {
+      const current = streamRef.value
+      if (current.waiting && AsyncResult.isSuccess(current)) {
+        const val: unknown = current.value
+        if (S.is(OperationProgress)(val)) {
+          return `${baseLabel.value} (${val.completed}/${val.total})`
+        }
+      }
+      return baseLabel.value
+    })
+
+    const currentState = Effect.sync(() => state.value)
+
+    const execute = (Effect.isEffect(executeRaw)
+      ? (_arg: Arg) => executeRaw
+      : executeRaw) as (arg: Arg) => Effect.Effect<any, never, R>
+
+    const waitId = options?.waitKey ? options.waitKey(id) : undefined
+    const blockId = options?.blockKey ? options.blockKey(id) : undefined
+
+    const exec = Effect.fnUntraced(
+      function*(arg: Arg, _ctx: any) {
+        if (waitId !== undefined) registerWait(waitId)
+        if (blockId !== undefined && blockId !== waitId) {
+          registerWait(blockId)
+        }
+        return yield* execute(arg)
+      },
+      Effect.onExit(() =>
+        Effect.sync(() => {
+          if (waitId !== undefined) unregisterWait(waitId)
+          if (blockId !== undefined && blockId !== waitId) {
+            unregisterWait(blockId)
+          }
+        })
+      )
+    )
+
+    const result = streamRef
+
+    const waiting = waitId !== undefined
+      ? computed(() => result.value.waiting || (waitState.value[waitId] ?? 0) > 0)
+      : computed(() => result.value.waiting)
+
+    const blocked = blockId !== undefined
+      ? computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
+      : computed(() => waiting.value)
+
+    const computeAllowed = options?.allowed
+    const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
+
+    const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
+    const runFork = Effect.runForkWith(rt)
+
+    const handle = Object.assign((arg: Arg) => {
+      arg = toRaw(arg)
+
+      const command = currentState.pipe(Effect.flatMap((state) =>
+        Effect.withSpan(
+          exec(arg, { ...context.value, state } as any),
+          id,
+          {
+            attributes: {
+              input: deepToRaw(arg),
+              state: deepToRaw(state),
+              action: initialContext.action,
+              label: initialContext.label,
+              id: initialContext.id,
+              i18nKey: initialContext.i18nKey
+            }
+          }
+        )
+      ))
+
+      return runFork(command as any)
+    }, { action, label })
+
+    return reactive({
+      id,
+      i18nKey: initialContext.i18nKey,
+      namespace: initialContext.namespace,
+      namespaced: initialContext.namespaced,
+      result,
+      waiting,
+      blocked,
+      allowed,
+      action,
+      label,
+      state,
+      handle
+    }) as unknown as Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State>
+  }
 }
 
 // @effect-diagnostics-next-line missingEffectServiceDependency:off

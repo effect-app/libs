@@ -237,6 +237,19 @@ export type StreamMutationWithExtensions<Req> = Req extends
     ? readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
   : never
 
+/**
+ * The pre-built `wrapStream` Command for a stream-type request handler.
+ * The command's `result` is the live stream ref; the `label` is augmented with
+ * `(completed/total)` progress when the stream is waiting and the current value
+ * is an `OperationProgress`.
+ */
+export type StreamCommandWithExtensions<Req> = Req extends
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
+  ? Commander.CommandOut<I, A, E, R, Id, Id, undefined>
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
+    ? Commander.CommandOut<void, A, E, R, Id, Id, undefined>
+  : never
+
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
 // eslint-disable-next-line unused-imports/no-unused-vars
 declare const useQuery_: QueryImpl<any>["useQuery"]
@@ -862,10 +875,12 @@ export const makeClient = <RT_, RTHooks>(
                   })))
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+              const streamMut = streamMutation(client[key] as any, mergedInvalidation)
               return {
                 ...client[key],
                 request: h_,
-                mutateStream: streamMutation(client[key] as any, mergedInvalidation)
+                mutateStream: streamMut,
+                wrapStream: Command.wrapStream({ id: client[key].id, mutateStream: streamMut })
               }
             })()
             : {
@@ -927,7 +942,10 @@ export const makeClient = <RT_, RTHooks>(
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
           & (StreamHandler<typeof client[Key]> extends never ? {}
-            : { mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>> })
+            : {
+              mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+              wrapStream: StreamCommandWithExtensions<StreamHandler<typeof client[Key]>>
+            })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }
     )
@@ -988,6 +1006,7 @@ export const makeClient = <RT_, RTHooks>(
       // delay initialisation until first use...
       fn: (...args: [any]) => useCommand().fn(...args),
       wrap: (...args: [any]) => useCommand().wrap(...args),
+      wrapStream: (...args: [any]) => useCommand().wrapStream(...args),
       alt: (...args: [any]) => useCommand().alt(...args),
       alt2: (...args: [any]) => useCommand().alt2(...args)
     } as ReturnType<typeof useCommand>,

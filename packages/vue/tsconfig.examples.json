@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": [
+    "examples"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.src.json"
+    }
+  ],
+  "compilerOptions": {
+    "lib": [
+      "esnext",
+      "DOM"
+    ],
+    "tsBuildInfoFile": ".tsbuildinfo/examples.tsbuildinfo",
+    "rootDir": "examples",
+    "moduleResolution": "Node16"
+  }
+}

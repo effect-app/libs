@@ -2465,8 +2465,8 @@ export class CommanderImpl<RT, RTHooks> {
         const streamErrorReporter = <A, E, R>(self: Stream.Stream<A, E, R>) =>
           self.pipe(
             Stream.tapCause(
-              Effect.fnUntraced(function*(cause: Cause.Cause<E>) {
-                if (Cause.hasInterruptsOnly(cause as Cause.Cause<never>)) {
+              Effect.fnUntraced(function*(cause) {
+                if (Cause.hasInterruptsOnly(cause)) {
                   console.info(`Interrupted while trying to ${id}`)
                   return
                 }
@@ -2653,7 +2653,10 @@ export class CommanderImpl<RT, RTHooks> {
 
     const toStreamHandler = (fn: any): (arg: any, ctx: any) => Stream.Stream<any, any, any> => {
       if (isGeneratorFunction(fn)) {
-        return (arg: any, ctx: any) => Stream.unwrap(Effect.fnUntraced(fn)(arg, ctx))
+        const genFn = Effect.fnUntraced(function*(arg: any, ctx: any) {
+          return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>, any>)(arg, ctx)
+        })
+        return (arg: any, ctx: any) => Stream.unwrap(genFn(arg, ctx))
       }
       return (arg: any, ctx: any) => {
         const result = fn(arg, ctx)

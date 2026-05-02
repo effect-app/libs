@@ -40,9 +40,11 @@ export const makeInvalidationKeysService = (
   ref: Ref.Ref<ReadonlyArray<InvalidationKey>>,
   onAdded?: (key: InvalidationKey) => Effect.Effect<void>
 ): InvalidationKeysService => ({
+  // When onAdded is set, fire it immediately without accumulating in the ref —
+  // the key is handled on arrival and must not be re-processed at stream end.
   add: (key) =>
     onAdded
-      ? Effect.flatMap(Ref.update(ref, (keys) => [...keys, key]), () => onAdded(key))
+      ? onAdded(key)
       : Ref.update(ref, (keys) => [...keys, key]),
   get: Ref.get(ref)
 })

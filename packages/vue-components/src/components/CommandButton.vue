@@ -32,6 +32,17 @@ const props = defineProps<
 
 const isDisabled = computed(() => props.command.blocked || props.disabled)
 
+const progressText = computed(() => {
+  const p = props.command.progress
+  if (p === undefined) return undefined
+  return typeof p === "string" ? p : p.text
+})
+
+const progressPercentage = computed(() => {
+  const p = props.command.progress
+  return typeof p === "object" && p !== null ? p.percentage : undefined
+})
+
 const handleClick = () => {
   // Block execution if button is disabled
   if (isDisabled.value) {
@@ -62,6 +73,18 @@ export default {
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
   >
+    <template
+      v-if="progressText !== undefined"
+      #loader
+    >
+      <v-progress-circular
+        :indeterminate="progressPercentage === undefined"
+        :model-value="progressPercentage"
+        size="20"
+        width="2"
+      />
+      <span class="ml-2">{{ progressText }}</span>
+    </template>
     <slot
       :loading="command.waiting"
       :disabled="isDisabled"
@@ -79,5 +102,18 @@ export default {
     :title="title ?? command.action"
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
-  />
+  >
+    <template
+      v-if="progressText !== undefined"
+      #loader
+    >
+      <v-progress-circular
+        :indeterminate="progressPercentage === undefined"
+        :model-value="progressPercentage"
+        size="20"
+        width="2"
+      />
+      <span class="ml-2">{{ progressText }}</span>
+    </template>
+  </v-btn>
 </template>

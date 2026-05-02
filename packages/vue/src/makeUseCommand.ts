@@ -5,7 +5,7 @@ type X<X> = X
 
 // helps retain JSDoc
 export interface CommanderResolved<RT, RTHooks>
-  extends X<typeof CommanderStatic>, Pick<CommanderImpl<RT, RTHooks>, "fn" | "wrap" | "alt" | "alt2">
+  extends X<typeof CommanderStatic>, Pick<CommanderImpl<RT, RTHooks>, "fn" | "wrap" | "wrapStream" | "alt" | "alt2">
 {
 }
 

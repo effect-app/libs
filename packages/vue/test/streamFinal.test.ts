@@ -5,7 +5,7 @@
  * the last emitted stream element is.  When present, the execute effect returned
  * by `mutateStream` resolves with that final value instead of `void`.
  */
-import { it } from "@effect/vitest"
+import { expect, it } from "@effect/vitest"
 import { Effect, S } from "effect-app"
 import * as Stream from "effect/Stream"
 import { asStreamResult } from "../src/mutate.js"
@@ -47,12 +47,12 @@ it.skip("mutateStream without final: execute resolves void (type-level)", () => 
   const { clientFor } = useClient()
   const client = clientFor(Something, undefined, somethingInvalidationResources)
 
-  const [_ref, execute] = client.StreamWithoutFinal.mutateStream
+  const [_ref, execute] = client.StreamWithoutFinal.mutateStream()
 
   // execute returns void — assigning to ExportComplete Effect should fail
   const result = execute({ id: "test" })
   // @ts-expect-error result should be void-typed, not ExportComplete
-  const _bad: import("effect").Effect.Effect<ExportComplete, never, never> = result
+  const _bad: Effect.Effect<ExportComplete, never, never> = result
   void _bad
 })
 
@@ -64,11 +64,11 @@ it.skip("mutateStream with final: execute resolves with ExportComplete (type-lev
   const { clientFor } = useClient()
   const client = clientFor(Something, undefined, somethingInvalidationResources)
 
-  const [_ref, execute] = client.StreamWithFinal.mutateStream
+  const [_ref, execute] = client.StreamWithFinal.mutateStream()
 
   // execute returns ExportComplete — assignment should compile cleanly
   const result = execute({ id: "test" })
-  const _ok: import("effect").Effect.Effect<ExportComplete, never, never> = result
+  const _ok: Effect.Effect<ExportComplete, never, never> = result
   void _ok
 })
 

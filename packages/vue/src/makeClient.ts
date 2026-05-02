@@ -7,6 +7,7 @@ import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandler
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
+import type * as StreamType from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic } from "./commander.js"
@@ -763,7 +764,9 @@ export const makeClient = <RT_, RTHooks>(
         if (client[key].Request.type !== "stream") {
           return acc
         }
-        ;(acc as any)[camelCase(key) + "Stream"] = asStreamResult(client[key].handler as any)
+        ;(acc as any)[camelCase(key) + "Stream"] = asStreamResult(
+          (client[key].handler as unknown) as StreamType.Stream<any, any, any>
+        )
         return acc
       },
       {} as {
@@ -827,7 +830,9 @@ export const makeClient = <RT_, RTHooks>(
             ? {
               ...client[key],
               request: h_,
-              mutateStream: asStreamResult(h_ as any)
+              mutateStream: asStreamResult(
+                (h_ as unknown) as StreamType.Stream<any, any, any>
+              )
             }
             : {
               mutate: ((handler: any) => {

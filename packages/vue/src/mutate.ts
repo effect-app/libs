@@ -421,6 +421,7 @@ export const useMakeMutation = () => {
  *
  * When the request declares a `final` schema, `execute` resolves with the last emitted value
  * typed as `Final`; otherwise it resolves with the last emitted value typed as the success type.
+ * Stream failures bubble through the execute effect's typed error channel `E`.
  *
  * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */
@@ -437,7 +438,7 @@ export const makeStreamMutation = () => {
   ) => {
     const state = shallowRef<AsyncResult.AsyncResult<any, any>>(AsyncResult.initial())
 
-    const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<any, never, any> => {
+    const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<any, any, any> => {
       const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
       const keysRef = Ref.makeUnsafe<ReadonlyArray<InvalidationKey>>([])
       // V3: pass onAdded so each mid-stream metadata chunk triggers query
@@ -476,11 +477,14 @@ export const makeStreamMutation = () => {
                 const lastValue = AsyncResult.isSuccess(current) ? current.value : undefined
                 const invExit = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
                 const serverKeys = Ref.getUnsafe(keysRef)
-                // Note: when the stream fails, `lastValue` is undefined. The failure is
-                // communicated via the reactive `state` ref (AsyncResult.failure). The
-                // execute effect always resolves successfully; callers should inspect the
-                // ref to distinguish success from failure.
-                return invCache(input, invExit, serverKeys).pipe(Effect.as(lastValue))
+                // Stream failures bubble through the execute effect's typed error
+                // channel. The reactive `state` ref still mirrors the failure as
+                // `AsyncResult.failure` for live progress UI.
+                return invCache(input, invExit, serverKeys).pipe(
+                  Effect.flatMap(() =>
+                    exit._tag === "Success" ? Effect.succeed(lastValue) : Effect.failCause(exit.cause)
+                  )
+                )
               })
             )
           )

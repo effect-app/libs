@@ -213,6 +213,7 @@
     "stale-papers-join",
     "store-effect-cached",
     "store-seed-uninterruptible",
+    "stream-callable-progress",
     "stream-final-default-success",
     "stream-final-type",
     "stream-metadata-v1",

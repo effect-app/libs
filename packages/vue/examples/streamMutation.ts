@@ -74,11 +74,15 @@ export const useExportMutation = () => {
 // When a request schema has `type: "stream"`, `clientFor` exposes:
 //
 //   client.exportData.mutateStream
-//   // -> () => [ComputedRef<AsyncResult<ExportEvent, E>>, (input: I) => Effect<void, never, R>] & { id }
-//   // Always invoke `()` to get a fresh ref+execute pair (per-call state).
-//   const [ref, execute] = client.exportData.mutateStream()
+//   // -> (options?) => ((input: I) => Effect<Final, never, R>) & { id, running?, progress? }
+//   // Always invoke `()` (optionally with `{ progress }`) to get a fresh callable.
+//   const execute = client.exportData.mutateStream()
+//   const executeWithProgress = client.exportData.mutateStream({
+//     progress: (r) => r._tag === "Success" ? `${r.value.completed}/${r.value.total}` : undefined
+//   })
+//   // The callable can also be passed directly to Command.fn / Command.wrap / Command.wrapStream.
 //
-// which is equivalent to calling `asStreamResult(client.exportData.handler)`.
+// which wraps `asStreamResult(client.exportData.handler)` internally.
 //
 // The `.helpers` object also includes `exportDataStream` (the camelCase key
 // plus "Stream" suffix) with the same factory shape.

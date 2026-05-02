@@ -47,7 +47,7 @@ it.skip("mutateStream without final: execute resolves void (type-level)", () => 
   const { clientFor } = useClient()
   const client = clientFor(Something, undefined, somethingInvalidationResources)
 
-  const [_ref, execute] = client.StreamWithoutFinal.mutateStream()
+  const execute = client.StreamWithoutFinal.mutateStream()
 
   // execute returns void — assigning to ExportComplete Effect should fail
   const result = execute({ id: "test" })
@@ -64,7 +64,7 @@ it.skip("mutateStream with final: execute resolves with ExportComplete (type-lev
   const { clientFor } = useClient()
   const client = clientFor(Something, undefined, somethingInvalidationResources)
 
-  const [_ref, execute] = client.StreamWithFinal.mutateStream()
+  const execute = client.StreamWithFinal.mutateStream()
 
   // execute returns ExportComplete — assignment should compile cleanly
   const result = execute({ id: "test" })

@@ -278,8 +278,8 @@ it.skip("stream final type tests", () => {
   const { clientFor } = useClient()
   const client = clientFor(Something, undefined, somethingInvalidationResources)
 
-  const [_refNoFinal, execNoFinal] = client.StreamWithoutFinal.mutateStream()
-  const [_refWithFinal, execWithFinal] = client.StreamWithFinal.mutateStream()
+  const execNoFinal = client.StreamWithoutFinal.mutateStream()
+  const execWithFinal = client.StreamWithFinal.mutateStream()
 
   // Without `final`: execute input is {id: string} and resolves with void
   const _execNoFinalResult: ReturnType<typeof execNoFinal> = execNoFinal({ id: "test" })

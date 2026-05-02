@@ -237,33 +237,36 @@ export type MutateStreamCallOptions<A, E> = {
 
 /**
  * The `mutateStream` factory for a stream-type request handler. Always invoke
- * (optionally with `{ progress }`) to get a fresh `[resultRef, execute]` tuple —
- * each call produces a new `ComputedRef` + execute pair so independent invocations
- * don't share state. `execute` updates the ref live with each emitted value.
- * When the request declares a `final` schema, `execute` resolves with the last
- * emitted value typed as `Final`; otherwise it resolves with the success type.
- * The factory itself carries the request `id` so it can be passed to
- * `Command.fn` / `Command.wrapStream` directly.
+ * (optionally with `{ progress }`) to get a fresh callable `execute` — each call
+ * produces a new state + execute pair so independent invocations don't share
+ * state. The callable updates its underlying ref live with each emitted value
+ * and carries `id`, plus `running` and `progress` when the factory was called
+ * with a `progress` formatter. When the request declares a `final` schema,
+ * the callable resolves with the last emitted value typed as `Final`; otherwise
+ * it resolves with the success type. The factory itself carries the request
+ * `id` so it can be passed to `Command.fn` / `Command.wrapStream` directly.
  */
 export type StreamMutationWithExtensions<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
     & ((options?: MutateStreamCallOptions<A, E>) =>
-      & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<Final, never, R>]
+      & ((input: I) => Effect.Effect<Final, E, R>)
       & {
         readonly id: Id
+        readonly _streamCallable: true
         readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
         readonly progress?: ComputedRef<Progress | undefined>
       })
-    & { readonly id: Id }
+    & { readonly id: Id; readonly _streamFactory: true }
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
       & ((options?: MutateStreamCallOptions<A, E>) =>
-        & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
+        & Effect.Effect<Final, E, R>
         & {
           readonly id: Id
+          readonly _streamCallable: true
           readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
           readonly progress?: ComputedRef<Progress | undefined>
         })
-      & { readonly id: Id }
+      & { readonly id: Id; readonly _streamFactory: true }
   : never
 
 /**
@@ -887,20 +890,21 @@ export const makeClient = <RT_, RTHooks>(
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const smFactory = Object.assign(
           (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined }) => {
-            const tuple = streamMutation(client[key] as any, mergedInvalidation)
+            const [resultRef, execute] = streamMutation(client[key] as any, mergedInvalidation)
             const extras: {
               id: string
+              _streamCallable: true
               running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
               progress?: ComputedRef<Progress | undefined>
-            } = { id: client[key].id }
+            } = { id: client[key].id, _streamCallable: true }
             if (opts?.progress) {
               const fmt = opts.progress
-              extras.running = tuple[0]
-              extras.progress = computed(() => fmt(tuple[0].value))
+              extras.running = resultRef
+              extras.progress = computed(() => fmt(resultRef.value))
             }
-            return Object.assign(tuple, extras)
+            return Object.assign(execute, extras)
           },
-          { id: client[key].id }
+          { id: client[key].id, _streamFactory: true as const }
         )
         ;(acc as any)[camelCase(key) + "Stream"] = Object.assign(smFactory, {
           fn: Command.fn(client[key].id)
@@ -984,20 +988,21 @@ export const makeClient = <RT_, RTHooks>(
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
               const streamMutFactory = Object.assign(
                 (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined }) => {
-                  const tuple = streamMutation(client[key] as any, mergedInvalidation)
+                  const [resultRef, execute] = streamMutation(client[key] as any, mergedInvalidation)
                   const extras: {
                     id: string
+                    _streamCallable: true
                     running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
                     progress?: ComputedRef<Progress | undefined>
-                  } = { id: client[key].id }
+                  } = { id: client[key].id, _streamCallable: true }
                   if (opts?.progress) {
                     const fmt = opts.progress
-                    extras.running = tuple[0]
-                    extras.progress = computed(() => fmt(tuple[0].value))
+                    extras.running = resultRef
+                    extras.progress = computed(() => fmt(resultRef.value))
                   }
-                  return Object.assign(tuple, extras)
+                  return Object.assign(execute, extras)
                 },
-                { id: client[key].id }
+                { id: client[key].id, _streamFactory: true as const }
               )
               return {
                 ...client[key],

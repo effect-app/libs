@@ -100,6 +100,7 @@ export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 export const SomethingReq = TaggedRequestFor("Something")
 const SomethingQuery = SomethingReq.Query
 const SomethingCommand = SomethingReq.Command
+const SomethingStream = SomethingReq.Stream
 
 class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("GetSomething2", {
   id: S.String
@@ -156,13 +157,41 @@ class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullab
   success: S.Struct({ a: S.NullOr(S.String) })
 }) {}
 
+/** Stream event: intermediate progress update. */
+export class OperationProgress extends S.TaggedClass<OperationProgress>()("OperationProgress", {
+  completed: S.NonNegativeInt,
+  total: S.NonNegativeInt
+}) {}
+
+/** Stream event: final completion result. */
+export class ExportComplete extends S.TaggedClass<ExportComplete>()("ExportComplete", {
+  fileUrl: S.NonEmptyString
+}) {}
+
+/** Stream with no `final` schema — execute resolves with `void`. */
+class SomethingStreamWithoutFinal extends SomethingStream<SomethingStreamWithoutFinal>()("StreamWithoutFinal", {
+  id: S.String
+}, {
+  success: S.Union([OperationProgress, ExportComplete])
+}) {}
+
+/** Stream with a `final` schema — execute resolves with `ExportComplete`. */
+class SomethingStreamWithFinal extends SomethingStream<SomethingStreamWithFinal>()("StreamWithFinal", {
+  id: S.String
+}, {
+  success: S.Union([OperationProgress, ExportComplete]),
+  final: ExportComplete
+}) {}
+
 export const Something = {
   GetSomething2: SomethingGetSomething2,
   GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
   GetSomething3: SomethingGetSomething3,
   GetSomething4: SomethingGetSomething4,
   DoSomething: SomethingDoSomething,
-  GetStructNullable: SomethingGetStructNullable
+  GetStructNullable: SomethingGetStructNullable,
+  StreamWithoutFinal: SomethingStreamWithoutFinal,
+  StreamWithFinal: SomethingStreamWithFinal
 }
 
 export const SomethingElseReq = TaggedRequestFor("SomethingElse")

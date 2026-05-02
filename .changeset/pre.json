@@ -12,6 +12,7 @@
   },
   "changesets": [
     "add-oxlint-integration",
+    "add-stream-mutation",
     "all-phones-dream",
     "amber-garlics-sing",
     "batch-dual-options",
@@ -212,6 +213,9 @@
     "stale-papers-join",
     "store-effect-cached",
     "store-seed-uninterruptible",
+    "stream-final-default-success",
+    "stream-final-type",
+    "stream-metadata-v1",
     "strong-dots-sin",
     "struct-pick-omit",
     "sweet-humans-ring",
@@ -255,6 +259,7 @@
     "wild-wombats-nail",
     "wise-items-warn",
     "wise-stamps-crash",
-    "witty-bats-return"
+    "witty-bats-return",
+    "wrap-stream-command"
   ]
 }

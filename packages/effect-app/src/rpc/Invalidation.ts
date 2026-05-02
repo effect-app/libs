@@ -33,6 +33,49 @@ export const CommandResponseWithMetaData = <S extends S.Top>(success: S) =>
   S.Struct({ payload: success, metadata: CommandMetaData })
 
 /**
+ * Wraps a command's failure schema so that the wire format carries both the `error`
+ * (the handler's actual failure value) and `metadata` (server-driven cache invalidation keys
+ * accumulated thus far before the failure occurred).
+ * Transparent to users: the server handler fails with the plain error and the client receives
+ * the plain error — wrapping/unwrapping is handled internally by the routing layer.
+ */
+export const CommandFailureWithMetaData = <E extends S.Top>(error: E) =>
+  S.Struct({ _tag: S.Literal("CommandFailureWithMetaData"), error, metadata: CommandMetaData })
+
+/**
+ * Stream chunk schema for stream responses with metadata.
+ * Each item is either a data value, an intermediate "metadata" signal carrying cache
+ * invalidation keys accumulated since the previous drain, or a final "done" signal.
+ * Transparent to users: stream handlers return plain values and clients receive plain values —
+ * wrapping/unwrapping is handled internally by the routing layer.
+ *
+ * The "done" chunk is always the last item in the stream and carries any remaining invalidation
+ * keys. An optional "metadata" chunk may appear after any "value" chunk and carries keys
+ * accumulated since the last drain (V3: mid-stream invalidation).
+ */
+export const StreamResponseChunk = <S extends S.Top>(success: S) =>
+  S.Union([
+    S.Struct({ _tag: S.Literal("value"), value: success }),
+    S.Struct({ _tag: S.Literal("metadata"), metadata: CommandMetaData }),
+    S.Struct({ _tag: S.Literal("done"), metadata: CommandMetaData })
+  ])
+
+export type StreamResponseChunk<A> =
+  | { readonly _tag: "value"; readonly value: A }
+  | { readonly _tag: "metadata"; readonly metadata: CommandMetaData }
+  | { readonly _tag: "done"; readonly metadata: CommandMetaData }
+
+/**
+ * Stream chunk schema for stream failures with metadata.
+ * Used to signal a stream failure while still carrying cache invalidation keys
+ * accumulated thus far.
+ */
+export const StreamFailureChunk = <E extends S.Top>(error: E) =>
+  S.Struct({ _tag: S.Literal("error"), error, metadata: CommandMetaData })
+
+export type StreamFailureChunk<E> = { readonly _tag: "error"; readonly error: E; readonly metadata: CommandMetaData }
+
+/**
  * Context annotation for declaring static cache invalidation keys on a low-level `Rpc` definition.
  * These keys are always included in the command response metadata, regardless of the handler logic.
  *
@@ -66,6 +109,12 @@ export type Invalidates = typeof Invalidates
 export interface InvalidationSetService {
   readonly add: (key: InvalidationKey) => Effect.Effect<void>
   readonly get: Effect.Effect<ReadonlyArray<InvalidationKey>>
+  /**
+   * V3: Reads all currently accumulated keys and resets the bucket to empty.
+   * Used by the stream routing layer to emit intermediate "metadata" chunks
+   * without re-sending keys that have already been forwarded to the client.
+   */
+  readonly drain: Effect.Effect<ReadonlyArray<InvalidationKey>>
 }
 
 /**
@@ -110,7 +159,8 @@ export const InvalidationSet = Context.Reference<InvalidationSetService>(
   {
     defaultValue: () => ({
       add: (_key: InvalidationKey) => Effect.void,
-      get: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
+      get: Effect.succeed([] as ReadonlyArray<InvalidationKey>),
+      drain: Effect.succeed([] as ReadonlyArray<InvalidationKey>)
     })
   }
 )
@@ -119,5 +169,6 @@ export type InvalidationSet = typeof InvalidationSet
 /** Creates a fresh `InvalidationSet` implementation backed by a `Ref`. */
 export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>): InvalidationSetService => ({
   add: (key) => Ref.update(ref, (keys) => [...keys, key]),
-  get: Ref.get(ref)
+  get: Ref.get(ref),
+  drain: Ref.getAndSet(ref, [])
 })

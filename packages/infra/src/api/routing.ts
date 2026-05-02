@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, S, type Scope, Stream } from "effect-app"
+import { Config, Effect, Layer, type NonEmptyReadonlyArray, Predicate, Ref, S, type Scope, Stream } from "effect-app"
 import { getMeta } from "effect-app/client"
 import { type HttpHeaders } from "effect-app/http"
 import { Invalidation } from "effect-app/rpc"
@@ -455,8 +455,56 @@ export const makeRouter = <
               (payload: any, headers: any) => {
                 const result = handler.handler(payload, headers)
                 if (Stream.isStream(result)) {
-                  // RpcServer adds its own span via spanPrefix; pass the Stream through.
-                  return result
+                  // Wrap stream items as { _tag: "value", value } and append a final
+                  // { _tag: "done", metadata } chunk carrying accumulated invalidation keys.
+                  // V2: on failure, convert to { _tag: "error", error, metadata } chunk so
+                  // clients can invalidate queries even when the stream fails.
+                  const keysRef = Ref.makeUnsafe<ReadonlyArray<Invalidation.InvalidationKey>>([])
+                  const invalidationSet = Invalidation.makeInvalidationSet(keysRef)
+                  return Stream.concat(
+                    (result as Stream.Stream<any, any, any>).pipe(
+                      Stream.map((item: any) => ({ _tag: "value" as const, value: item })),
+                      Stream.provideService(Invalidation.InvalidationSet, invalidationSet),
+                      // V3: after each value chunk, drain accumulated keys and emit a "metadata"
+                      // chunk if any keys were collected since the last drain. This lets clients
+                      // invalidate queries mid-stream without waiting for the "done" chunk.
+                      Stream.flatMap((valueChunk: any) =>
+                        Stream
+                          .fromEffect(
+                            Ref.getAndSet(keysRef, []).pipe(
+                              Effect.map((keys) =>
+                                keys.length > 0
+                                  ? [
+                                    valueChunk,
+                                    { _tag: "metadata" as const, metadata: { invalidateQueries: keys } }
+                                  ]
+                                  : [valueChunk]
+                              )
+                            )
+                          )
+                          .pipe(Stream.flatMap(Stream.fromIterable))
+                      ),
+                      // V2: catch stream failures and embed them in the stream as an error chunk
+                      Stream.catch((err: any) =>
+                        Stream.fromEffect(
+                          Ref.get(keysRef).pipe(
+                            Effect.flatMap((keys) =>
+                              Effect.fail({
+                                _tag: "error" as const,
+                                error: err,
+                                metadata: { invalidateQueries: keys }
+                              })
+                            )
+                          )
+                        )
+                      )
+                    ),
+                    Stream.fromEffect(
+                      Ref.get(keysRef).pipe(
+                        Effect.map((keys) => ({ _tag: "done" as const, metadata: { invalidateQueries: keys } }))
+                      )
+                    )
+                  )
                 }
                 const effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {}, {
@@ -495,8 +543,14 @@ export const makeRouter = <
                     payload: resource,
                     success: resource.type === "command"
                       ? Invalidation.CommandResponseWithMetaData(resource.success)
+                      : isStream
+                      ? Invalidation.StreamResponseChunk(resource.success)
                       : resource.success,
-                    error: resource.error,
+                    error: resource.type === "command"
+                      ? Invalidation.CommandFailureWithMetaData(resource.error)
+                      : isStream
+                      ? Invalidation.StreamFailureChunk(resource.error)
+                      : resource.error,
                     ...isStream ? { stream: true as const } : {}
                   })
                   .annotate(middleware.requestContext, resource.config ?? {})

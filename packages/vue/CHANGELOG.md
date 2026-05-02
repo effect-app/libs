@@ -1,5 +1,120 @@
 # @effect-app/vue
 
+## 4.0.0-beta.181
+
+### Minor Changes
+
+- 4bbeb19: Add `wrapStream` support to `Command` with separate `result` and `running` props.
+
+  **Key design:**
+
+  - `result` is always the command's own execution outcome (from `asResult`)
+  - `running` holds the stream's live `AsyncResult` ref for progress tracking
+
+  **New behaviour:**
+
+  - `CommanderImpl.wrapStream(mutation)` returns a callable like `wrap` — `wrapStream(mutation)()` gives `CommandOut`.
+  - Accepts either `{ id, mutateStream: [...] }` or the augmented tuple directly (when `.id` is attached).
+  - `Command.wrap` now accepts `{ mutateStream, id }` and the augmented tuple — both delegate to `wrapStream`.
+  - `FnOptions.progress` — pass a `ComputedRef<AsyncResult>` to any `fn`-created command; surfaces as `running`.
+  - `StreamMutationWithExtensions` now includes `.id` on the tuple.
+  - Stream client entries expose `wrapStream` (callable), `fn`, and `mutateStream` (with `.id`).
+  - Stream mutation helpers also carry `.fn` and `.id`.
+
+  ```ts
+  // Via client entry:
+  const exportCmd = Command.wrapStream(client.myExport)();
+  // exportCmd.result = own execution result; exportCmd.running = live stream AsyncResult
+
+  // Via mutateStream tuple (id is attached):
+  const exportCmd = Command.wrapStream(client.myExport.mutateStream)();
+
+  // wrap also accepts the tuple:
+  const exportCmd = Command.wrap(client.myExport.mutateStream)();
+
+  // fn with external progress:
+  const cmd = Command.fn({
+    id: "myExport",
+    progress: client.myExport.mutateStream[0],
+  })(function* (arg) {
+    yield* client.myExport.mutateStream[1](arg);
+  });
+  // cmd.running === the stream AsyncResult ref
+  ```
+
+### Patch Changes
+
+- 583393f: Default the stream `mutateStream` execute resolved value to the request's success type when no `final` schema is declared.
+
+  Previously the type defaulted to `void`, but the runtime already resolves with the last emitted value. Types now match runtime behaviour: `execute` returns `Final` if a `final` schema is set, otherwise the success type.
+
+- Updated dependencies [583393f]
+  - effect-app@4.0.0-beta.181
+
+## 4.0.0-beta.180
+
+### Minor Changes
+
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+### Patch Changes
+
+- Updated dependencies [7fa3045]
+  - effect-app@4.0.0-beta.180
+
+## 4.0.0-beta.179
+
+### Minor Changes
+
+- 828d264: Stream requests now support an optional `final` schema that models the final success type of the stream. When declared, `mutateStream`'s execute effect resolves with the last emitted value typed as `Final` instead of `void`.
+
+  ```ts
+  class MyStream extends SomethingStream<MyStream>()(
+    "MyStream",
+    { id: S.String },
+    {
+      success: S.Union([OperationProgress, ExportComplete]),
+      final: ExportComplete, // execute now resolves with ExportComplete
+    }
+  ) {}
+  ```
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - effect-app@4.0.0-beta.179
+
+## 4.0.0-beta.178
+
+### Minor Changes
+
+- 07dd7b9: Add `asStreamResult` utility and stream-based mutation example.
+
+  `asStreamResult` mirrors `asResult` but accepts a `Stream<A, E, R>` (or a factory function that returns one). The reactive ref is updated with each emitted value (`waiting: true`) and finalised once the stream ends (`waiting: false`). Errors surface as `AsyncResult.failure`.
+
+  The included example (`examples/streamMutation.ts`) shows how to model a long-running export operation that streams `OperationProgress | ExportComplete` events into a readonly Vue ref.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.178
+
 ## 4.0.0-beta.177
 
 ### Patch Changes

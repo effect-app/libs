@@ -128,26 +128,50 @@ export const DevModeMiddlewareLive = Layer
  * 2. Creates a request-scoped `InvalidationSet` backed by a `Ref` and provides it to the handler.
  * 3. For commands: wraps the result in `{ payload, metadata: { invalidateQueries } }` so that
  *    accumulated invalidation keys reach the client via the RPC response body.
+ * 4. For commands (V2): also wraps failures in `CommandFailureWithMetaData` so clients can
+ *    invalidate queries even when a command fails.
  */
 export const InvalidationMiddlewareLive = Layer.succeed(
   InvalidationMiddleware,
   (effect, { rpc }) =>
-    Effect.gen(function*() {
-      const staticKeys = Context.get(rpc.annotations, Invalidation.Invalidates)
-      const keysRef = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>(staticKeys)
-
-      const result = yield* Effect.provideService(
-        effect,
-        Invalidation.InvalidationSet,
-        Invalidation.makeInvalidationSet(keysRef)
+    Ref
+      .make<ReadonlyArray<Invalidation.InvalidationKey>>(
+        Context.get(rpc.annotations, Invalidation.Invalidates)
       )
+      .pipe(
+        Effect.flatMap((keysRef): Effect.Effect<any, any, any> => {
+          const requestType = Context.get(rpc.annotations, RequestType)
+          const isCommand = requestType === "command"
+          const withSet = Effect.provideService(
+            effect,
+            Invalidation.InvalidationSet,
+            Invalidation.makeInvalidationSet(keysRef)
+          )
 
-      const requestType = Context.get(rpc.annotations, RequestType)
-      if (requestType !== "command") return result
+          if (!isCommand) return withSet
 
-      const keys = yield* Ref.get(keysRef)
-      return { payload: result, metadata: { invalidateQueries: keys } } as any
-    })
+          return withSet.pipe(
+            Effect.flatMap((value) =>
+              Ref.get(keysRef).pipe(
+                Effect.map((keys) => ({ payload: value, metadata: { invalidateQueries: keys } }) as any)
+              )
+            ),
+            // V2: wrap command failures with metadata so the client can invalidate
+            // queries even when the command fails.
+            Effect.catch((err: any) =>
+              Ref.get(keysRef).pipe(
+                Effect.flatMap((keys) =>
+                  Effect.fail({
+                    _tag: "CommandFailureWithMetaData" as const,
+                    error: err,
+                    metadata: { invalidateQueries: keys }
+                  })
+                )
+              )
+            )
+          )
+        })
+      ) as any
 )
 
 export const DefaultGenericMiddlewaresLive = Layer.mergeAll(

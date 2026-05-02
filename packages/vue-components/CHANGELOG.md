@@ -1,5 +1,38 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [583393f]
+- Updated dependencies [4bbeb19]
+  - effect-app@4.0.0-beta.181
+  - @effect-app/vue@4.0.0-beta.181
+
+## 4.0.0-beta.180
+
+### Patch Changes
+
+- Updated dependencies [7fa3045]
+  - effect-app@4.0.0-beta.180
+  - @effect-app/vue@4.0.0-beta.180
+
+## 4.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - @effect-app/vue@4.0.0-beta.179
+  - effect-app@4.0.0-beta.179
+
+## 4.0.0-beta.178
+
+### Patch Changes
+
+- Updated dependencies [07dd7b9]
+  - @effect-app/vue@4.0.0-beta.178
+  - effect-app@4.0.0-beta.178
+
 ## 4.0.0-beta.177
 
 ### Patch Changes

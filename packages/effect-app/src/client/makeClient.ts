@@ -88,7 +88,8 @@ type TaggedRequestForResult<
   Config,
   ModuleName extends string,
   Type extends "command" | "query" | "stream",
-  Resources = never
+  Resources = never,
+  Final extends S.Top = never
 > =
   & S.EnhancedClass<Self, TaggedRequestSchema<Tag, Payload>, {}>
   & {
@@ -103,6 +104,7 @@ type TaggedRequestForResult<
     readonly type: Type
     readonly "~invalidationResources"?: Resources
   }
+  & ([Final] extends [never] ? {} : { readonly final: Final })
 
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
@@ -112,6 +114,7 @@ export const makeRpcClient = <
   type ServiceMap = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     error: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
+    final?: S.Top | S.Struct.Fields // optional final-value schema for stream requests
   }
 
   type RequestConfig = GetContextConfig<RequestContextMap["config"]>
@@ -139,11 +142,15 @@ export const makeRpcClient = <
         : S.Struct(config.success)
       : ForceVoid
 
+    const finalConfig = (config as any)?.final
+    const finalSchema = finalConfig && S.isSchema(finalConfig) ? finalConfig : undefined
+
     const RequestClass = S.TaggedClass<any>()(tag, fields)
     Object.assign(RequestClass, {
       _tag: tag,
       success: successSchema,
       error: failureSchema,
+      ...(finalSchema !== undefined ? { final: finalSchema } : {}),
       config
     })
 
@@ -160,13 +167,14 @@ export const makeRpcClient = <
         Payload extends S.Struct.Fields,
         Success extends S.Top | S.Struct.Fields,
         Error extends S.Top | S.Struct.Fields,
-        C extends RequestConfig & Record<string, any>
+        Final extends S.Top | S.Struct.Fields = never,
+        C extends RequestConfig & Record<string, any> = RequestConfig & Record<string, any>
       >(
         tag: Tag,
         fields: Payload,
         config:
           & Omit<C, "invalidatesQueries">
-          & { success: Success; error: Error },
+          & { success: Success; error: Error; final?: Final },
         invalidatesQueries?: InvalidationCallback<
           Resources,
           InputFromPayload<Payload>,
@@ -197,19 +205,23 @@ export const makeRpcClient = <
         >,
         ModuleName,
         Type,
-        Resources
+        Resources,
+        [Final] extends [never] ? never : SchemaOrFields<Final>
       >
       <
         Tag extends string,
         Payload extends S.Struct.Fields,
         Success extends S.Top | S.Struct.Fields,
-        C extends RequestConfig & Record<string, any> & { error?: never }
+        Final extends S.Top | S.Struct.Fields = never,
+        C extends RequestConfig & Record<string, any> & { error?: never } = RequestConfig & Record<string, any> & {
+          error?: never
+        }
       >(
         tag: Tag,
         fields: Payload,
         config:
           & Omit<C, "invalidatesQueries">
-          & { success: Success },
+          & { success: Success; final?: Final },
         invalidatesQueries?: InvalidationCallback<
           Resources,
           InputFromPayload<Payload>,
@@ -239,7 +251,8 @@ export const makeRpcClient = <
         >,
         ModuleName,
         Type,
-        Resources
+        Resources,
+        [Final] extends [never] ? never : SchemaOrFields<Final>
       >
       <
         Tag extends string,

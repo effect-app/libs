@@ -419,6 +419,9 @@ export const useMakeMutation = () => {
  * stream element. Queries are invalidated once when the stream finishes, regardless of
  * success or failure.
  *
+ * When the request declares a `final` schema, `execute` resolves with the last emitted value
+ * typed as `Final`; otherwise it resolves with `void`.
+ *
  * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */
 export const makeStreamMutation = () => {
@@ -434,7 +437,7 @@ export const makeStreamMutation = () => {
   ) => {
     const state = shallowRef<AsyncResult.AsyncResult<any, any>>(AsyncResult.initial())
 
-    const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<void, never, any> => {
+    const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<any, never, any> => {
       const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
       return Effect
         .sync(() => {
@@ -463,13 +466,12 @@ export const makeStreamMutation = () => {
                   }
                 })
               ),
-              Effect.tap((exit) => {
+              Effect.flatMap((exit) => {
                 const current = state.value
                 const lastValue = AsyncResult.isSuccess(current) ? current.value : undefined
                 const invExit = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
-                return invCache(input, invExit, [])
-              }),
-              Effect.asVoid
+                return invCache(input, invExit, []).pipe(Effect.as(lastValue))
+              })
             )
           )
         )

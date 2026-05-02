@@ -1,5 +1,19 @@
 # @effect-app/vue
 
+## 4.0.0-beta.178
+
+### Minor Changes
+
+- 07dd7b9: Add `asStreamResult` utility and stream-based mutation example.
+
+  `asStreamResult` mirrors `asResult` but accepts a `Stream<A, E, R>` (or a factory function that returns one). The reactive ref is updated with each emitted value (`waiting: true`) and finalised once the stream ends (`waiting: false`). Errors surface as `AsyncResult.failure`.
+
+  The included example (`examples/streamMutation.ts`) shows how to model a long-running export operation that streams `OperationProgress | ExportComplete` events into a readonly Vue ref.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.178
+
 ## 4.0.0-beta.177
 
 ### Patch Changes
@@ -28,8 +42,8 @@
 
   ```ts
   useMutation(startExportCommand, {
-    select: (result) => pollUntilDone(result.jobId)
-  })
+    select: (result) => pollUntilDone(result.jobId),
+  });
   ```
 
 ### Patch Changes

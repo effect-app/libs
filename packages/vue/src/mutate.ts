@@ -416,8 +416,8 @@ export const useMakeMutation = () => {
 /**
  * Like `makeMutation`, but for stream-type request handlers.
  * Returns a `[ref, execute]` tuple where `ref` is a reactive `AsyncResult` updated per
- * stream element, and queries are invalidated after every emitted element (same semantics
- * as `mutate` for command-type handlers).
+ * stream element. Queries are invalidated once when the stream finishes, regardless of
+ * success or failure.
  *
  * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */
@@ -444,16 +444,12 @@ export const makeStreamMutation = () => {
           Effect.andThen(
             stream.pipe(
               Stream.runForEach((value) =>
-                Effect
-                  .sync(() => {
-                    state.value = AsyncResult.success(value, { waiting: true })
-                  })
-                  .pipe(
-                    Effect.andThen(invCache(input, Exit.succeed(value), []))
-                  )
+                Effect.sync(() => {
+                  state.value = AsyncResult.success(value, { waiting: true })
+                })
               ),
               Effect.exit,
-              Effect.flatMap((exit) =>
+              Effect.tap((exit) =>
                 Effect.sync(() => {
                   if (exit._tag === "Success") {
                     const current = state.value
@@ -466,7 +462,14 @@ export const makeStreamMutation = () => {
                     state.value = AsyncResult.failure(exit.cause)
                   }
                 })
-              )
+              ),
+              Effect.tap((exit) => {
+                const current = state.value
+                const lastValue = AsyncResult.isSuccess(current) ? current.value : undefined
+                const invExit = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
+                return invCache(input, invExit, [])
+              }),
+              Effect.asVoid
             )
           )
         )

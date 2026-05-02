@@ -238,16 +238,26 @@ export type StreamMutationWithExtensions<Req> = Req extends
   : never
 
 /**
- * The pre-built `wrapStream` Command for a stream-type request handler.
- * The command's `result` is the live stream ref; the `label` is augmented with
- * `(completed/total)` progress when the stream is waiting and the current value
- * is an `OperationProgress`.
+ * The pre-built `wrapStream` CommanderWrap for a stream-type request handler.
+ * The command's `result` and `running` are the live stream ref.
+ * Callable like `wrap`: `client.myExport.wrapStream()` returns the CommandOut.
  */
 export type StreamCommandWithExtensions<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
-  ? Commander.CommandOut<I, A, E, R, Id, Id, undefined>
+  ? Commander.CommanderWrap<any, Id, Id, undefined, I, A, E, R>
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
-    ? Commander.CommandOut<void, A, E, R, Id, Id, undefined>
+    ? Commander.CommanderWrap<any, Id, Id, undefined, void, A, E, R>
+  : never
+
+/**
+ * The `fn` builder for a stream-type request handler — identical to calling
+ * `Command.fn(id)` where `id` comes from the request.
+ */
+export type StreamFnExtension<RT, Req> = Req extends
+  RequestStreamHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
+  ? Commander.CommanderFn<RT, Id, Id, undefined>
+  : Req extends RequestStreamHandler<infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
+    ? Commander.CommanderFn<RT, Id, Id, undefined>
   : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
@@ -780,6 +790,7 @@ export const makeClient = <RT_, RTHooks>(
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
     invalidationResources?: InvalidationResourcesFor<M>
   ) => {
+    const Command = useCommand()
     const streamMutation = useStreamMutation()
     const invalidation = queryInvalidation?.(client)
     const queryResources = makeQueryResources(invalidationResources)
@@ -799,14 +810,19 @@ export const makeClient = <RT_, RTHooks>(
             })))
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
-        ;(acc as any)[camelCase(key) + "Stream"] = streamMutation(client[key] as any, mergedInvalidation)
+        const sm = streamMutation(client[key] as any, mergedInvalidation)
+        ;(acc as any)[camelCase(key) + "Stream"] = Object.assign(sm, {
+          fn: Command.fn(client[key].id)
+        })
         return acc
       },
       {} as {
         [
           Key in keyof typeof client as StreamHandler<typeof client[Key]> extends never ? never
             : `${ToCamel<string & Key>}Stream`
-        ]: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+        ]:
+          & StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+          & { fn: StreamFnExtension<any, StreamHandler<typeof client[Key]>> }
       }
     )
     return streams
@@ -880,7 +896,8 @@ export const makeClient = <RT_, RTHooks>(
                 ...client[key],
                 request: h_,
                 mutateStream: streamMut,
-                wrapStream: Command.wrapStream({ id: client[key].id, mutateStream: streamMut })
+                wrapStream: Command.wrapStream({ id: client[key].id, mutateStream: streamMut }),
+                fn: Command.fn(client[key].id)
               }
             })()
             : {
@@ -945,6 +962,7 @@ export const makeClient = <RT_, RTHooks>(
             : {
               mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
               wrapStream: StreamCommandWithExtensions<StreamHandler<typeof client[Key]>>
+              fn: StreamFnExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
             })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }

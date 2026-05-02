@@ -3,10 +3,10 @@ import { asResult, deepToRaw, type MissingDependencies, reportRuntimeError } fro
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
-import { OperationFailure, OperationProgress, OperationSuccess } from "effect-app/Operations"
+import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
 import { Confirm } from "./confirm.js"
@@ -27,6 +27,11 @@ type FnOptions<Id extends string, I18nCustomKey extends string, State extends In
   blockKey?: (id: Id) => string | undefined
   waitKey?: (id: Id) => string | undefined
   allowed?: (id: Id, state: ComputedRef<State>) => boolean
+  /**
+   * A reactive AsyncResult ref whose state is exposed as `running` on the resulting command.
+   * Useful when a command body triggers an external stream and you want to track its progress.
+   */
+  progress?: ComputedRef<AsyncResult.AsyncResult<any, any>>
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -140,6 +145,12 @@ export declare namespace Commander {
     label: string
     /** reactive */
     result: AsyncResult.AsyncResult<A, E>
+    /**
+     * reactive – set when the command wraps a stream (`wrapStream` / `wrap` with `mutateStream`)
+     * or when the `progress` option is provided to `fn`.
+     * Reflects the live AsyncResult of the underlying stream.
+     */
+    running: AsyncResult.AsyncResult<any, any> | undefined
     /** reactive */
     waiting: boolean
     /** reactive */
@@ -2039,7 +2050,9 @@ export class CommanderImpl<RT, RTHooks> {
   >(
     id_: Id | { id: Id },
     options?: FnOptions<Id, I18nKey, State>,
-    errorDef?: Error
+    errorDef?: Error,
+    /** When provided, overrides the internally-created AsyncResult ref (used by wrapStream). */
+    resultOverride?: ComputedRef<AsyncResult.AsyncResult<any, any>>
   ) => {
     const id = typeof id_ === "string" ? id_ : id_.id
     const state = getStateValues(options)
@@ -2120,7 +2133,8 @@ export class CommanderImpl<RT, RTHooks> {
         const waitId = options?.waitKey ? options.waitKey(id) : undefined
         const blockId = options?.blockKey ? options.blockKey(id) : undefined
 
-        const [result, exec_] = asResult(theHandler)
+        const [internalResult, exec_] = asResult(theHandler)
+        const result = resultOverride ?? internalResult
 
         const exec = Effect
           .fnUntraced(
@@ -2224,6 +2238,8 @@ export class CommanderImpl<RT, RTHooks> {
 
           /** reactive */
           result,
+          /** reactive */
+          running: resultOverride ?? options?.progress,
           /** reactive */
           waiting,
           /** reactive */
@@ -2464,10 +2480,20 @@ export class CommanderImpl<RT, RTHooks> {
   >(
     mutation:
       | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
-      | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
+      | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id }
+      | {
+        id: Id
+        mutateStream: readonly [
+          ComputedRef<AsyncResult.AsyncResult<A, E>>,
+          ((arg: Arg) => Effect.Effect<any, never, R>) | Effect.Effect<any, never, R>
+        ]
+      },
     options?: FnOptions<Id, I18nKey, State>
-  ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> =>
-    Object.assign(
+  ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
+    if (mutation !== null && typeof mutation === "object" && "mutateStream" in mutation) {
+      return this.wrapStream(mutation as any, options) as any
+    }
+    return Object.assign(
       (
         ...combinators: any[]
       ): any => {
@@ -2495,18 +2521,27 @@ export class CommanderImpl<RT, RTHooks> {
         )
       }
     )
+  }
 
   /**
    * Define a Command from a stream-type mutation (`mutateStream` tuple).
-   * The reactive `result` ref from the stream is used directly, so progress is reflected
-   * live as the stream emits values.
-   *
-   * When the stream is `waiting` and the current value is an `OperationProgress`,
-   * the command's `label` is automatically augmented with `(completed/total)` progress info.
+   * The stream's reactive `AsyncResult` ref is used as the command's `result` and
+   * exposed as `running`, so callers can inspect progress independently.
+   * Supports the same combinator pipeline as `wrap` (e.g. `withDefaultToast`).
    *
    * @param mutation An object with `id` and `mutateStream: [resultRef, execute]`.
    *   Typically pass the client entry directly: `Command.wrapStream(client.myAction)`.
    * @param options Optional configuration (same as `fn` / `wrap`).
+   *
+   * @example
+   * ```ts
+   * // Basic usage – call the returned function to get the CommandOut:
+   * const exportCmd = Command.wrapStream(client.myExport)()
+   * // exportCmd.running reflects the live stream state (progress, final value)
+   *
+   * // With a combinator:
+   * const exportCmd = Command.wrapStream(client.myExport)(CommanderStatic.withDefaultToast())
+   * ```
    */
   wrapStream = <
     const Id extends string,
@@ -2525,112 +2560,35 @@ export class CommanderImpl<RT, RTHooks> {
       ]
     },
     options?: FnOptions<Id, I18nKey, State>
-  ): Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State> => {
-    const id = mutation.id
+  ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     const [streamRef, executeRaw] = mutation.mutateStream
-    const state = getStateValues(options)
+    const mutate = Effect.isEffect(executeRaw)
+      ? () => executeRaw
+      : executeRaw
+    return Object.assign(
+      (...combinators: any[]): any => {
+        // we capture the definition stack here, so we can append it to later stack traces
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const errorDef = new Error()
+        Error.stackTraceLimit = limit
 
-    const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
-    const initialContext = makeContext_()
-    const context = computed(() => makeContext_())
-    const action = computed(() => context.value.action)
-
-    const baseLabel = computed(() => context.value.label)
-    const label = computed(() => {
-      const current = streamRef.value
-      // A Success with waiting:true is the normal streaming pattern: the stream has emitted
-      // an intermediate value (e.g. OperationProgress) while still running.
-      if (current.waiting && AsyncResult.isSuccess(current)) {
-        const val: unknown = current.value
-        // S.is returns a type-narrowing boolean; if the emitted value is not an OperationProgress
-        // we simply fall through and return the base label unchanged.
-        if (S.is(OperationProgress)(val)) {
-          return `${baseLabel.value} (${val.completed}/${val.total})`
-        }
-      }
-      return baseLabel.value
-    })
-
-    const currentState = Effect.sync(() => state.value)
-
-    const execute = (Effect.isEffect(executeRaw)
-      ? (_arg: Arg) => executeRaw
-      : executeRaw) as (arg: Arg) => Effect.Effect<any, never, R>
-
-    const waitId = options?.waitKey ? options.waitKey(id) : undefined
-    const blockId = options?.blockKey ? options.blockKey(id) : undefined
-
-    const exec = Effect.fnUntraced(
-      function*(arg: Arg, _ctx: any) {
-        if (waitId !== undefined) registerWait(waitId)
-        if (blockId !== undefined && blockId !== waitId) {
-          registerWait(blockId)
-        }
-        return yield* execute(arg)
-      },
-      Effect.onExit(() =>
-        Effect.sync(() => {
-          if (waitId !== undefined) unregisterWait(waitId)
-          if (blockId !== undefined && blockId !== waitId) {
-            unregisterWait(blockId)
-          }
-        })
-      )
-    )
-
-    const result = streamRef
-
-    const waiting = waitId !== undefined
-      ? computed(() => result.value.waiting || (waitState.value[waitId] ?? 0) > 0)
-      : computed(() => result.value.waiting)
-
-    const blocked = blockId !== undefined
-      ? computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
-      : computed(() => waiting.value)
-
-    const computeAllowed = options?.allowed
-    const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
-
-    const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
-    const runFork = Effect.runForkWith(rt)
-
-    const handle = Object.assign((arg: Arg) => {
-      arg = toRaw(arg)
-
-      const command = currentState.pipe(Effect.flatMap((state) =>
-        Effect.withSpan(
-          exec(arg, { ...context.value, state } as any),
-          id,
-          {
-            attributes: {
-              input: deepToRaw(arg),
-              state: deepToRaw(state),
-              action: initialContext.action,
-              label: initialContext.label,
-              id: initialContext.id,
-              i18nKey: initialContext.i18nKey
-            }
-          }
+        return this.makeCommand(mutation.id, options, errorDef, streamRef)(
+          Effect.fnUntraced(
+            isGeneratorFunction(mutate) ? mutate : function*(arg: Arg) {
+              return yield* (mutate as any)(arg)
+            },
+            ...combinators as [any]
+          ) as any
         )
-      ))
-
-      return runFork(command as any)
-    }, { action, label })
-
-    return reactive({
-      id,
-      i18nKey: initialContext.i18nKey,
-      namespace: initialContext.namespace,
-      namespaced: initialContext.namespaced,
-      result,
-      waiting,
-      blocked,
-      allowed,
-      action,
-      label,
-      state,
-      handle
-    }) as unknown as Commander.CommandOut<Arg, A, E, R, Id, I18nKey, State>
+      },
+      makeBaseInfo(mutation.id, options),
+      {
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(
+          `Commander.Command.${mutation.id}.state`
+        )
+      }
+    )
   }
 }
 

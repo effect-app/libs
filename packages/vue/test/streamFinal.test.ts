@@ -95,8 +95,8 @@ it("stream request with final: .final holds the ExportComplete schema", () => {
 
 it.live("last stream value is accessible via reactive ref after stream ends", () =>
   Effect.gen(function*() {
-    const progress = new OperationProgress({ completed: 1 as any, total: 2 as any })
-    const complete = new ExportComplete({ fileUrl: "https://example.com/file.csv" as any })
+    const progress = new OperationProgress({ completed: 1 as S.NonNegativeInt, total: 2 as S.NonNegativeInt })
+    const complete = new ExportComplete({ fileUrl: "https://example.com/file.csv" as S.NonEmptyString })
 
     const [ref, execute] = asStreamResult(() => Stream.make(progress, complete))
 
@@ -108,5 +108,3 @@ it.live("last stream value is accessible via reactive ref after stream ends", ()
       expect(ref.value.waiting).toBe(false)
     }
   }))
-
-void OperationProgress

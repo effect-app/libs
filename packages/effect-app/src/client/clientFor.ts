@@ -104,7 +104,13 @@ export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends s
   id: Id
   options?: ClientForOptions
   Request: Request
-  /** @internal phantom property to carry the final-value type; not set at runtime */
+  /**
+   * Phantom type property (never set at runtime) that carries the `Final` type to
+   * `StreamMutationWithExtensions`. The tilde prefix follows the Effect convention for
+   * phantom/virtual properties and prevents accidental runtime access.
+   * When the stream fails, the execute effect still resolves (with `undefined`);
+   * check the reactive `AsyncResult` ref to distinguish success from failure.
+   */
   readonly "~final"?: Final
 }
 
@@ -113,7 +119,13 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
   id: Id
   options?: ClientForOptions
   Request: Request
-  /** @internal phantom property to carry the final-value type; not set at runtime */
+  /**
+   * Phantom type property (never set at runtime) that carries the `Final` type to
+   * `StreamMutationWithExtensions`. The tilde prefix follows the Effect convention for
+   * phantom/virtual properties and prevents accidental runtime access.
+   * When the stream fails, the execute effect still resolves (with `undefined`);
+   * check the reactive `AsyncResult` ref to distinguish success from failure.
+   */
   readonly "~final"?: Final
 }
 

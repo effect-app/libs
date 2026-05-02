@@ -143,9 +143,7 @@ export const makeRpcClient = <
       : ForceVoid
 
     const finalConfig = (config as any)?.final
-    const finalSchema = finalConfig
-      ? S.isSchema(finalConfig) ? finalConfig : undefined
-      : undefined
+    const finalSchema = finalConfig && S.isSchema(finalConfig) ? finalConfig : undefined
 
     const RequestClass = S.TaggedClass<any>()(tag, fields)
     Object.assign(RequestClass, {

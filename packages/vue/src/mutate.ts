@@ -470,6 +470,10 @@ export const makeStreamMutation = () => {
                 const current = state.value
                 const lastValue = AsyncResult.isSuccess(current) ? current.value : undefined
                 const invExit = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
+                // Note: when the stream fails, `lastValue` is undefined. The failure is
+                // communicated via the reactive `state` ref (AsyncResult.failure). The
+                // execute effect always resolves successfully; callers should inspect the
+                // ref to distinguish success from failure.
                 return invCache(input, invExit, []).pipe(Effect.as(lastValue))
               })
             )

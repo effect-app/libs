@@ -420,7 +420,7 @@ export const useMakeMutation = () => {
  * success or failure.
  *
  * When the request declares a `final` schema, `execute` resolves with the last emitted value
- * typed as `Final`; otherwise it resolves with `void`.
+ * typed as `Final`; otherwise it resolves with the last emitted value typed as the success type.
  *
  * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */

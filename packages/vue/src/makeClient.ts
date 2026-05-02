@@ -8,7 +8,7 @@ import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
+import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic } from "./commander.js"
 import { type I18n } from "./intl.js"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
@@ -225,24 +225,44 @@ export type MutationWithExtensions<RT, Req> = Req extends
   : never
 
 /**
- * The `mutateStream` factory for a stream-type request handler. Always invoke `()`
- * to get a fresh `[resultRef, execute]` tuple — each call produces a new
- * `ComputedRef` + execute pair so independent invocations don't share state.
- * `execute` updates the ref live with each emitted value. When the request declares
- * a `final` schema, `execute` resolves with the last emitted value typed as `Final`;
- * otherwise it resolves with the success type. The factory itself carries the
- * request `id` so it can be passed to `Command.fn` / `Command.wrapStream` directly.
+ * Options for invoking a `mutateStream` factory. Supplying `progress` produces
+ * a tuple-with-id that carries `running` (the live AsyncResult ref) and
+ * `progressText` (a `ComputedRef<string | undefined>` formatted from each value),
+ * which `Command.fn` / `Command.wrapStream` surface as the command's `running`
+ * and `progressText`. When omitted, the resulting command exposes neither.
+ */
+export type MutateStreamCallOptions<A, E> = {
+  progress?: (result: AsyncResult.AsyncResult<A, E>) => string | undefined
+}
+
+/**
+ * The `mutateStream` factory for a stream-type request handler. Always invoke
+ * (optionally with `{ progress }`) to get a fresh `[resultRef, execute]` tuple —
+ * each call produces a new `ComputedRef` + execute pair so independent invocations
+ * don't share state. `execute` updates the ref live with each emitted value.
+ * When the request declares a `final` schema, `execute` resolves with the last
+ * emitted value typed as `Final`; otherwise it resolves with the success type.
+ * The factory itself carries the request `id` so it can be passed to
+ * `Command.fn` / `Command.wrapStream` directly.
  */
 export type StreamMutationWithExtensions<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
-    & (() =>
+    & ((options?: MutateStreamCallOptions<A, E>) =>
       & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<Final, never, R>]
-      & { readonly id: Id })
+      & {
+        readonly id: Id
+        readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
+        readonly progressText?: ComputedRef<string | undefined>
+      })
     & { readonly id: Id }
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
-      & (() =>
+      & ((options?: MutateStreamCallOptions<A, E>) =>
         & readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
-        & { readonly id: Id })
+        & {
+          readonly id: Id
+          readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
+          readonly progressText?: ComputedRef<string | undefined>
+        })
       & { readonly id: Id }
   : never
 
@@ -820,10 +840,20 @@ export const makeClient = <RT_, RTHooks>(
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const smFactory = Object.assign(
-          () =>
-            Object.assign(streamMutation(client[key] as any, mergedInvalidation), {
-              id: client[key].id
-            }),
+          (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => string | undefined }) => {
+            const tuple = streamMutation(client[key] as any, mergedInvalidation)
+            const extras: {
+              id: string
+              running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
+              progressText?: ComputedRef<string | undefined>
+            } = { id: client[key].id }
+            if (opts?.progress) {
+              const fmt = opts.progress
+              extras.running = tuple[0]
+              extras.progressText = computed(() => fmt(tuple[0].value))
+            }
+            return Object.assign(tuple, extras)
+          },
           { id: client[key].id }
         )
         ;(acc as any)[camelCase(key) + "Stream"] = Object.assign(smFactory, {
@@ -907,10 +937,20 @@ export const makeClient = <RT_, RTHooks>(
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
               const streamMutFactory = Object.assign(
-                () =>
-                  Object.assign(streamMutation(client[key] as any, mergedInvalidation), {
-                    id: client[key].id
-                  }),
+                (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => string | undefined }) => {
+                  const tuple = streamMutation(client[key] as any, mergedInvalidation)
+                  const extras: {
+                    id: string
+                    running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
+                    progressText?: ComputedRef<string | undefined>
+                  } = { id: client[key].id }
+                  if (opts?.progress) {
+                    const fmt = opts.progress
+                    extras.running = tuple[0]
+                    extras.progressText = computed(() => fmt(tuple[0].value))
+                  }
+                  return Object.assign(tuple, extras)
+                },
                 { id: client[key].id }
               )
               return {

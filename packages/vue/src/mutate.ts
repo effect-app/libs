@@ -440,7 +440,9 @@ export const makeStreamMutation = () => {
     const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<any, never, any> => {
       const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
       const keysRef = Ref.makeUnsafe<ReadonlyArray<InvalidationKey>>([])
-      const invKeys = makeInvalidationKeysService(keysRef)
+      // V3: pass onAdded so each mid-stream metadata chunk triggers query
+      // invalidation immediately rather than waiting for stream completion.
+      const invKeys = makeInvalidationKeysService(keysRef, (key) => invCache(input, Exit.succeed(undefined), [key]))
       return Effect
         .sync(() => {
           state.value = AsyncResult.initial(true)

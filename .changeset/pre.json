@@ -213,6 +213,7 @@
     "stale-papers-join",
     "store-effect-cached",
     "store-seed-uninterruptible",
+    "stream-final-type",
     "strong-dots-sin",
     "struct-pick-omit",
     "sweet-humans-ring",

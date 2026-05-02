@@ -1,5 +1,27 @@
 # @effect-app/vue
 
+## 4.0.0-beta.179
+
+### Minor Changes
+
+- 828d264: Stream requests now support an optional `final` schema that models the final success type of the stream. When declared, `mutateStream`'s execute effect resolves with the last emitted value typed as `Final` instead of `void`.
+
+  ```ts
+  class MyStream extends SomethingStream<MyStream>()(
+    "MyStream",
+    { id: S.String },
+    {
+      success: S.Union([OperationProgress, ExportComplete]),
+      final: ExportComplete, // execute now resolves with ExportComplete
+    }
+  ) {}
+  ```
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - effect-app@4.0.0-beta.179
+
 ## 4.0.0-beta.178
 
 ### Minor Changes
@@ -42,8 +64,8 @@
 
   ```ts
   useMutation(startExportCommand, {
-    select: (result) => pollUntilDone(result.jobId)
-  })
+    select: (result) => pollUntilDone(result.jobId),
+  });
   ```
 
 ### Patch Changes

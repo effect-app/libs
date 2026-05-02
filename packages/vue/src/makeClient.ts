@@ -242,11 +242,11 @@ export type StreamMutationWithExtensions<Req> = Req extends
  * The command's `result` and `running` are the live stream ref.
  * Callable like `wrap`: `client.myExport.wrapStream()` returns the CommandOut.
  */
-export type StreamCommandWithExtensions<Req> = Req extends
+export type StreamCommandWithExtensions<RT, Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
-  ? Commander.CommanderWrap<any, Id, Id, undefined, I, A, E, R>
+  ? Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
-    ? Commander.CommanderWrap<any, Id, Id, undefined, void, A, E, R>
+    ? Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>
   : never
 
 /**
@@ -822,7 +822,7 @@ export const makeClient = <RT_, RTHooks>(
             : `${ToCamel<string & Key>}Stream`
         ]:
           & StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
-          & { fn: StreamFnExtension<any, StreamHandler<typeof client[Key]>> }
+          & { fn: StreamFnExtension<RT | RTHooks, StreamHandler<typeof client[Key]>> }
       }
     )
     return streams
@@ -961,7 +961,7 @@ export const makeClient = <RT_, RTHooks>(
           & (StreamHandler<typeof client[Key]> extends never ? {}
             : {
               mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
-              wrapStream: StreamCommandWithExtensions<StreamHandler<typeof client[Key]>>
+              wrapStream: StreamCommandWithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
               fn: StreamFnExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
             })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }

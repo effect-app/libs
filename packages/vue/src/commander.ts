@@ -2562,8 +2562,8 @@ export class CommanderImpl<RT, RTHooks> {
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     const [streamRef, executeRaw] = mutation.mutateStream
-    const mutate = Effect.isEffect(executeRaw)
-      ? () => executeRaw
+    const mutate: (_arg: Arg) => Effect.Effect<any, never, R> = Effect.isEffect(executeRaw)
+      ? (_arg: Arg) => executeRaw
       : executeRaw
     return Object.assign(
       (...combinators: any[]): any => {
@@ -2576,7 +2576,7 @@ export class CommanderImpl<RT, RTHooks> {
         return this.makeCommand(mutation.id, options, errorDef, streamRef)(
           Effect.fnUntraced(
             isGeneratorFunction(mutate) ? mutate : function*(arg: Arg) {
-              return yield* (mutate as any)(arg)
+              return yield* mutate(arg)
             },
             ...combinators as [any]
           ) as any

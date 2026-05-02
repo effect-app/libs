@@ -272,3 +272,27 @@ it.skip("works", () => {
     projectedStruct
   })
 })
+
+it.skip("stream final type tests", () => {
+  const { clientFor } = useClient()
+  const client = clientFor(Something, undefined, somethingInvalidationResources)
+
+  const [_refNoFinal, execNoFinal] = client.StreamWithoutFinal.mutateStream
+  const [_refWithFinal, execWithFinal] = client.StreamWithFinal.mutateStream
+
+  // Without `final`: execute input is {id: string} and resolves with void
+  const _execNoFinalResult: ReturnType<typeof execNoFinal> = execNoFinal({ id: "test" })
+  // @ts-expect-error result of execNoFinal should be void-typed, not ExportComplete
+  const _badAssign: import("effect").Effect.Effect<import("./stubs.js").ExportComplete, never, never> =
+    _execNoFinalResult
+
+  // With `final: ExportComplete`: execute resolves with ExportComplete
+  const _execWithFinalResult: ReturnType<typeof execWithFinal> = execWithFinal({ id: "test" })
+  // Assignment should compile — result IS Effect<ExportComplete, ...>
+  const _goodAssign: import("effect").Effect.Effect<import("./stubs.js").ExportComplete, never, never> =
+    _execWithFinalResult
+  void _execNoFinalResult
+  void _execWithFinalResult
+  void _goodAssign
+  void _badAssign
+})

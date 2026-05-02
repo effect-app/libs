@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { matchQuery } from "@tanstack/query-core"
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
-import { type Cause, Effect, type Exit, Option } from "effect-app"
+import { type Cause, Effect, Exit, Option } from "effect-app"
 import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
@@ -194,17 +194,17 @@ export const asStreamResult: {
   return tuple(computed(() => state.value), act) as any
 }
 
-export const invalidateQueries = (
+const buildInvalidateCache = (
   queryClient: QueryClient,
   self: { id: string; options?: ClientForOptions },
-  options?: MutationOptionsBase
+  queryInvalidation?: MutationOptionsBase["queryInvalidation"]
 ) => {
   type InvalidationTarget = {
     readonly filters: InvalidateQueryFilters | undefined
     readonly options: InvalidateOptions | undefined
   }
 
-  const invalidateQueries = (
+  const invalidateQueriesFn = (
     filters?: InvalidateQueryFilters,
     options?: InvalidateOptions
   ) =>
@@ -221,8 +221,8 @@ export const invalidateQueries = (
   ): ReadonlyArray<InvalidationTarget> => {
     const queryKey = getQueryKey(self)
 
-    if (options?.queryInvalidation) {
-      return options.queryInvalidation(queryKey, self.id, input, output).map((_) => ({
+    if (queryInvalidation) {
+      return queryInvalidation(queryKey, self.id, input, output).map((_) => ({
         filters: _.filters,
         options: _.options
       }))
@@ -276,7 +276,7 @@ export const invalidateQueries = (
           Effect.forEach(
             groups.values(),
             ({ options, refetchType, targets }) =>
-              invalidateQueries(
+              invalidateQueriesFn(
                 {
                   ...(refetchType !== undefined ? { refetchType } : {}),
                   predicate: (query) => targets.some((t) => t.filters ? matchQuery(t.filters, query) : true)
@@ -295,6 +295,16 @@ export const invalidateQueries = (
           Effect.withSpan("client.query.invalidation", {}, { captureStackTrace: false })
         )
     })
+
+  return invalidateCache
+}
+
+export const invalidateQueries = (
+  queryClient: QueryClient,
+  self: { id: string; options?: ClientForOptions },
+  options?: MutationOptionsBase
+) => {
+  const invalidateCache = buildInvalidateCache(queryClient, self, options?.queryInvalidation)
 
   const select = options?.select
 
@@ -401,4 +411,72 @@ export const useMakeMutation = () => {
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
+}
+
+/**
+ * Like `makeMutation`, but for stream-type request handlers.
+ * Returns a `[ref, execute]` tuple where `ref` is a reactive `AsyncResult` updated per
+ * stream element, and queries are invalidated after every emitted element (same semantics
+ * as `mutate` for command-type handlers).
+ *
+ * Must be called inside a Vue setup context (uses `useQueryClient` internally).
+ */
+export const makeStreamMutation = () => {
+  const queryClient = useQueryClient()
+
+  return (
+    self: {
+      id: string
+      options?: ClientForOptions
+      handler: Stream.Stream<any, any, any> | ((i: any) => Stream.Stream<any, any, any>)
+    },
+    mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
+  ) => {
+    const state = shallowRef<AsyncResult.AsyncResult<any, any>>(AsyncResult.initial())
+
+    const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<void, never, any> => {
+      const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
+      return Effect
+        .sync(() => {
+          state.value = AsyncResult.initial(true)
+        })
+        .pipe(
+          Effect.andThen(
+            stream.pipe(
+              Stream.runForEach((value) =>
+                Effect
+                  .sync(() => {
+                    state.value = AsyncResult.success(value, { waiting: true })
+                  })
+                  .pipe(
+                    Effect.andThen(invCache(input, Exit.succeed(value), []))
+                  )
+              ),
+              Effect.exit,
+              Effect.flatMap((exit) =>
+                Effect.sync(() => {
+                  if (exit._tag === "Success") {
+                    const current = state.value
+                    if (AsyncResult.isSuccess(current)) {
+                      state.value = AsyncResult.success(current.value, { waiting: false })
+                    } else {
+                      state.value = AsyncResult.initial(false)
+                    }
+                  } else {
+                    state.value = AsyncResult.failure(exit.cause)
+                  }
+                })
+              )
+            )
+          )
+        )
+    }
+
+    const handler = self.handler
+    const act = Stream.isStream(handler)
+      ? runStream(handler)
+      : (i: any) => runStream((handler as (i: any) => Stream.Stream<any, any, any>)(i), i)
+
+    return tuple(computed(() => state.value), act)
+  }
 }

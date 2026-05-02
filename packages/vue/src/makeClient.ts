@@ -7,13 +7,12 @@ import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandler
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
-import type * as StreamType from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic } from "./commander.js"
 import { type I18n } from "./intl.js"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
-import { asStreamResult, makeMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
+import { makeMutation, makeStreamMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
 import { type CustomUndefinedInitialQueryOptions, makeQuery } from "./query.js"
 import { makeRunPromise } from "./runtime.js"
 import { type Toast } from "./toast.js"
@@ -590,6 +589,9 @@ export const makeClient = <RT_, RTHooks>(
   let m: ReturnType<typeof useMutationInt>
   const useMutation = () => m ??= useMutationInt()
 
+  let sm: ReturnType<typeof makeStreamMutation>
+  const useStreamMutation = () => sm ??= makeStreamMutation()
+
   const query = new QueryImpl(getBaseRt)
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
@@ -758,15 +760,31 @@ export const makeClient = <RT_, RTHooks>(
     return mutations
   }
 
-  const mapStreamMutation = <M extends RequestsAny>(client: ClientFrom<M>) => {
+  const mapStreamMutation = <M extends RequestsAny>(
+    client: ClientFrom<M>,
+    queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
+    invalidationResources?: InvalidationResourcesFor<M>
+  ) => {
+    const streamMutation = useStreamMutation()
+    const invalidation = queryInvalidation?.(client)
+    const queryResources = makeQueryResources(invalidationResources)
     const streams = Struct.keys(client).reduce(
       (acc, key) => {
         if (client[key].Request.type !== "stream") {
           return acc
         }
-        ;(acc as any)[camelCase(key) + "Stream"] = asStreamResult(
-          (client[key].handler as unknown) as StreamType.Stream<any, any, any>
-        )
+        const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
+          | InvalidationCallback<InvalidationResourcesFor<M>>
+          | undefined
+        const fromRequest = fromRequestConfig
+          ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
+            fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((entry) => ({
+              filters: entry.filters,
+              options: entry.options
+            })))
+          : undefined
+        const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+        ;(acc as any)[camelCase(key) + "Stream"] = streamMutation(client[key] as any, mergedInvalidation)
         return acc
       },
       {} as {
@@ -790,6 +808,7 @@ export const makeClient = <RT_, RTHooks>(
   ) => {
     const Command = useCommand()
     const mutation = useMutation()
+    const streamMutation = useStreamMutation()
     const invalidation = queryInvalidation?.(client)
     const queryResources = makeQueryResources(invalidationResources)
     const extended = Struct.keys(client).reduce(
@@ -827,13 +846,26 @@ export const makeClient = <RT_, RTHooks>(
               }
             }
             : requestType === "stream"
-            ? {
-              ...client[key],
-              request: h_,
-              mutateStream: asStreamResult(
-                (h_ as unknown) as StreamType.Stream<any, any, any>
-              )
-            }
+            ? (() => {
+              const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
+                | InvalidationCallback<InvalidationResourcesFor<M>>
+                | undefined
+              const fromRequest = fromRequestConfig
+                ? ((defaultKey: string[], _name: string, input?: unknown, output?: unknown) =>
+                  fromRequestConfig(defaultKey, queryResources as never, input as never, output as never).map((
+                    entry
+                  ) => ({
+                    filters: entry.filters,
+                    options: entry.options
+                  })))
+                : undefined
+              const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+              return {
+                ...client[key],
+                request: h_,
+                mutateStream: streamMutation(client[key] as any, mergedInvalidation)
+              }
+            })()
             : {
               mutate: ((handler: any) => {
                 const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
@@ -901,7 +933,7 @@ export const makeClient = <RT_, RTHooks>(
       helpers: {
         ...mapRequest(client),
         ...mapMutation(client, queryInvalidation, invalidationResources),
-        ...mapStreamMutation(client),
+        ...mapStreamMutation(client, queryInvalidation, invalidationResources),
         ...mapQuery(client)
       }
     })

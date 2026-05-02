@@ -6,6 +6,7 @@ import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysS
 import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
 import * as Ref from "effect/Ref"
+import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, shallowRef } from "vue"
 
@@ -133,6 +134,62 @@ export const asResult: {
             )
           ))
         )
+
+  return tuple(computed(() => state.value), act) as any
+}
+
+/**
+ * Like `asResult`, but for streams. The ref is updated with each emitted value
+ * (keeping `waiting: true`) and is finalised (with `waiting: false`) once the
+ * stream terminates successfully. Errors are surfaced as `AsyncResult.failure`.
+ */
+export const asStreamResult: {
+  <A, E, R>(
+    handler: Stream.Stream<A, E, R>
+  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<void, never, R>]
+  <Args extends readonly any[], A, E, R>(
+    handler: (...args: Args) => Stream.Stream<A, E, R>
+  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<void, never, R>]
+} = <Args extends readonly any[], A, E, R>(
+  handler: Stream.Stream<A, E, R> | ((...args: Args) => Stream.Stream<A, E, R>)
+) => {
+  const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
+
+  const runStream = (stream: Stream.Stream<A, E, R>): Effect.Effect<void, never, R> =>
+    Effect
+      .sync(() => {
+        state.value = AsyncResult.initial(true)
+      })
+      .pipe(
+        Effect.andThen(
+          stream.pipe(
+            Stream.runForEach((value) =>
+              Effect.sync(() => {
+                state.value = AsyncResult.success(value, { waiting: true })
+              })
+            ),
+            Effect.exit,
+            Effect.flatMap((exit) =>
+              Effect.sync(() => {
+                if (exit._tag === "Success") {
+                  const current = state.value
+                  if (AsyncResult.isSuccess(current)) {
+                    state.value = AsyncResult.success(current.value, { waiting: false })
+                  } else {
+                    state.value = AsyncResult.initial(false)
+                  }
+                } else {
+                  state.value = AsyncResult.failure(exit.cause)
+                }
+              })
+            )
+          )
+        )
+      )
+
+  const act = Stream.isStream(handler)
+    ? runStream(handler)
+    : (...args: Args) => runStream(handler(...args))
 
   return tuple(computed(() => state.value), act) as any
 }

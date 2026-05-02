@@ -439,6 +439,10 @@ export const makeStreamMutation = () => {
 
     const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<any, never, any> => {
       const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
+      const keysRef = Ref.makeUnsafe<ReadonlyArray<InvalidationKey>>([])
+      // V3: pass onAdded so each mid-stream metadata chunk triggers query
+      // invalidation immediately rather than waiting for stream completion.
+      const invKeys = makeInvalidationKeysService(keysRef, (key) => invCache(input, Exit.succeed(undefined), [key]))
       return Effect
         .sync(() => {
           state.value = AsyncResult.initial(true)
@@ -446,6 +450,7 @@ export const makeStreamMutation = () => {
         .pipe(
           Effect.andThen(
             stream.pipe(
+              Stream.provideService(InvalidationKeysFromServer, invKeys),
               Stream.runForEach((value) =>
                 Effect.sync(() => {
                   state.value = AsyncResult.success(value, { waiting: true })
@@ -470,11 +475,12 @@ export const makeStreamMutation = () => {
                 const current = state.value
                 const lastValue = AsyncResult.isSuccess(current) ? current.value : undefined
                 const invExit = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
+                const serverKeys = Ref.getUnsafe(keysRef)
                 // Note: when the stream fails, `lastValue` is undefined. The failure is
                 // communicated via the reactive `state` ref (AsyncResult.failure). The
                 // execute effect always resolves successfully; callers should inspect the
                 // ref to distinguish success from failure.
-                return invCache(input, invExit, []).pipe(Effect.as(lastValue))
+                return invCache(input, invExit, serverKeys).pipe(Effect.as(lastValue))
               })
             )
           )

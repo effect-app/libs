@@ -29,10 +29,22 @@ export const InvalidationKeysFromServer = Context.Reference<InvalidationKeysServ
 )
 export type InvalidationKeysFromServer = typeof InvalidationKeysFromServer
 
-/** Creates a fresh `InvalidationKeysService` implementation backed by a `Ref`. */
+/**
+ * Creates a fresh `InvalidationKeysService` implementation backed by a `Ref`.
+ *
+ * @param ref - The `Ref` that stores the accumulated keys.
+ * @param onAdded - V3: Optional Effect run after a key is added. Use to trigger mid-stream
+ *   query invalidation without waiting for the stream to complete.
+ */
 export const makeInvalidationKeysService = (
-  ref: Ref.Ref<ReadonlyArray<InvalidationKey>>
+  ref: Ref.Ref<ReadonlyArray<InvalidationKey>>,
+  onAdded?: (key: InvalidationKey) => Effect.Effect<void>
 ): InvalidationKeysService => ({
-  add: (key) => Ref.update(ref, (keys) => [...keys, key]),
+  // When onAdded is set, fire it immediately without accumulating in the ref —
+  // the key is handled on arrival and must not be re-processed at stream end.
+  add: (key) =>
+    onAdded
+      ? onAdded(key)
+      : Ref.update(ref, (keys) => [...keys, key]),
   get: Ref.get(ref)
 })

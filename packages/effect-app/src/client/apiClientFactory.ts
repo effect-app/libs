@@ -131,8 +131,14 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
           payload: r,
           success: r.type === "command"
             ? Invalidation.CommandResponseWithMetaData(r.success)
+            : isStream
+            ? Invalidation.StreamResponseChunk(r.success)
             : r.success,
-          error: r.error,
+          error: r.type === "command"
+            ? Invalidation.CommandFailureWithMetaData(r.error)
+            : isStream
+            ? Invalidation.StreamFailureChunk(r.error)
+            : r.error,
           ...isStream ? { stream: true as const } : {}
         })
       })
@@ -200,6 +206,18 @@ const makeApiClientFactory = Effect
               yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
               return result.payload
             })
+          ),
+          // V2: unwrap CommandFailureWithMetaData failures — forward keys, re-fail with the
+          // original error so callers see the unmodified error type.
+          Effect.catch((result: any) =>
+            result?._tag === "CommandFailureWithMetaData"
+              ? Effect.gen(function*() {
+                const keys: ReadonlyArray<Invalidation.InvalidationKey> = result.metadata?.invalidateQueries ?? []
+                const invalidationKeys = yield* InvalidationKeysFromServer
+                yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+                return yield* Effect.fail(result.error)
+              })
+              : Effect.fail(result)
           )
         )
 
@@ -257,6 +275,38 @@ const makeApiClientFactory = Effect
                           Request.make(input)
                         ) as Stream.Stream<any, any, any>
                         return rpcStream.pipe(
+                          // Collect server invalidation keys from the "done" chunk, then discard it.
+                          Stream.tap((item: any) =>
+                            item._tag === "done" || item._tag === "metadata"
+                              ? InvalidationKeysFromServer.use((svc) =>
+                                Effect.forEach(
+                                  (item.metadata as Invalidation.CommandMetaData).invalidateQueries,
+                                  svc.add,
+                                  { discard: true }
+                                )
+                              )
+                              : Effect.void
+                          ),
+                          Stream.filter((item: any) => item._tag === "value"),
+                          Stream.map((item: any) => item.value),
+                          // V2: unwrap StreamFailureChunk — forward keys from failures too,
+                          // then re-fail with the original error so callers see the unmodified
+                          // error type.
+                          Stream.catch((err: any) =>
+                            err?._tag === "error" && err?.metadata
+                              ? Stream.fromEffect(
+                                InvalidationKeysFromServer.use((svc) =>
+                                  Effect
+                                    .forEach(
+                                      (err.metadata as Invalidation.CommandMetaData).invalidateQueries,
+                                      svc.add,
+                                      { discard: true }
+                                    )
+                                    .pipe(Effect.flatMap(() => Effect.fail(err.error)))
+                                )
+                              )
+                              : Stream.fail(err)
+                          ),
                           Stream.provide(layers),
                           Stream.provide(svcs)
                         )

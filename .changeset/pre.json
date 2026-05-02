@@ -214,6 +214,7 @@
     "store-effect-cached",
     "store-seed-uninterruptible",
     "stream-final-type",
+    "stream-metadata-v1",
     "strong-dots-sin",
     "struct-pick-omit",
     "sweet-humans-ring",

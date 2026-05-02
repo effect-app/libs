@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { asResult, deepToRaw, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
+import { asResult, asStreamResult, deepToRaw, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
+import * as Stream from "effect/Stream"
 import { type AsyncResult } from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
@@ -1658,6 +1659,67 @@ export declare namespace Commander {
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
   }
+
+  /**
+   * Type for `streamFn` — generator overload where the body yields Effects and returns a `Stream`.
+   * `waiting` stays `true` while the stream is running, and updates the `result` ref per emitted value.
+   */
+  export type StreamGen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
+    <
+      Eff extends Effect.Yieldable<any, any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      SA,
+      SE,
+      SR,
+      Arg = void
+    >(
+      body: (
+        arg: Arg,
+        ctx: CommandContextLocal2<Id, I18nKey, State>
+      ) => Generator<Eff, Stream.Stream<SA, SE, SR>, never>
+    ): CommandOut<
+      Arg,
+      SA,
+      | SE
+      | ([Eff] extends [never] ? never
+        : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+        : never),
+      | SR
+      | ([Eff] extends [never] ? never
+        : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+        : never),
+      Id,
+      I18nKey,
+      State
+    >
+  }
+
+  /**
+   * Type for `streamFn` — non-generator overload accepting a function that returns a `Stream` directly,
+   * or an `Effect` that resolves to a `Stream`.
+   */
+  export type NonGenStream<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
+    <
+      SA,
+      SE,
+      SR extends RT | CommandContext | `Commander.Command.${Id}.state`,
+      Arg = void
+    >(
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>
+    ): CommandOut<Arg, SA, SE, SR, Id, I18nKey, State>
+    <
+      SA,
+      SE,
+      SR,
+      EE,
+      ER extends RT | CommandContext | `Commander.Command.${Id}.state`,
+      Arg = void
+    >(
+      body: (
+        arg: Arg,
+        ctx: CommandContextLocal2<Id, I18nKey, State>
+      ) => Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>
+    ): CommandOut<Arg, SA, SE | EE, SR | ER, Id, I18nKey, State>
+  }
 }
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
@@ -2361,7 +2423,264 @@ export class CommanderImpl<RT, RTHooks> {
       }
     )
 
+  /**
+   * Internal factory for stream-backed commands. Accepts a handler that returns a `Stream` directly.
+   * Services (`CommandContext`, `stateTag`) are provided to the stream via `Stream.provideServiceEffect`.
+   */
+  readonly makeStreamCommand = <
+    const Id extends string,
+    const State extends IntlRecord | undefined,
+    const I18nKey extends string = Id
+  >(
+    id_: Id | { id: Id },
+    options?: FnOptions<Id, I18nKey, State>,
+    errorDef?: Error
+  ) => {
+    const id = typeof id_ === "string" ? id_ : id_.id
+    const state = getStateValues(options)
+
+    return Object.assign(
+      <Arg, SA, SE, SR>(
+        handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>
+      ) => {
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const localErrorDef = new Error()
+        Error.stackTraceLimit = limit
+        if (!errorDef) {
+          errorDef = localErrorDef
+        }
+
+        const key = `Commander.Command.${id}.state` as const
+        const stateTag = Context.Service<typeof key, State>(key)
+
+        const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
+        const initialContext = makeContext_()
+        const context = computed(() => makeContext_())
+        const action = computed(() => context.value.action)
+        const label = computed(() => context.value.label)
+
+        const currentState = Effect.sync(() => state.value)
+
+        const streamErrorReporter = <A, E, R>(self: Stream.Stream<A, E, R>) =>
+          self.pipe(
+            Stream.tapCause(
+              Effect.fnUntraced(function*(cause: Cause.Cause<E>) {
+                if (Cause.hasInterruptsOnly(cause as Cause.Cause<never>)) {
+                  console.info(`Interrupted while trying to ${id}`)
+                  return
+                }
+
+                const fail = Cause.findErrorOption(cause)
+                if (Option.isSome(fail)) {
+                  const message = `Failure trying to ${id}`
+                  yield* reportMessage(message, {
+                    action: id,
+                    error: fail.value
+                  })
+                  return
+                }
+
+                const ctx = yield* CommandContext
+                const extra = {
+                  action: ctx.action,
+                  message: `Unexpected Error trying to ${id}`
+                }
+                yield* reportRuntimeError(cause, extra)
+              }, Effect.uninterruptible)
+            )
+          )
+
+        const theStreamHandler = (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) =>
+          handler(arg, ctx).pipe(
+            streamErrorReporter,
+            Stream.provideServiceEffect(stateTag, currentState),
+            Stream.provideServiceEffect(CommandContext, Effect.sync(() => makeContext_()))
+          )
+
+        const waitId = options?.waitKey ? options.waitKey(id) : undefined
+        const blockId = options?.blockKey ? options.blockKey(id) : undefined
+
+        const [result, exec_] = asStreamResult(theStreamHandler)
+
+        const exec = Effect
+          .fnUntraced(
+            function*(...args: [any, any]) {
+              if (waitId !== undefined) registerWait(waitId)
+              if (blockId !== undefined && blockId !== waitId) {
+                registerWait(blockId)
+              }
+              return yield* exec_(...args)
+            },
+            Effect.onExit(() =>
+              Effect.sync(() => {
+                if (waitId !== undefined) unregisterWait(waitId)
+                if (blockId !== undefined && blockId !== waitId) {
+                  unregisterWait(blockId)
+                }
+              })
+            )
+          )
+
+        const waiting = waitId !== undefined
+          ? computed(() => result.value.waiting || (waitState.value[waitId] ?? 0) > 0)
+          : computed(() => result.value.waiting)
+
+        const blocked = blockId !== undefined
+          ? computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
+          : computed(() => waiting.value)
+
+        const computeAllowed = options?.allowed
+        const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
+
+        const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
+        const runFork = Effect.runForkWith(rt)
+
+        const handle = Object.assign((arg: Arg) => {
+          arg = toRaw(arg)
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = currentState.pipe(Effect.flatMap((state) => {
+            const rawArg = deepToRaw(arg)
+            const rawState = deepToRaw(state)
+            return Effect.withSpan(
+              exec(arg, { ...context.value, state } as any),
+              id,
+              {
+                captureStackTrace,
+                attributes: {
+                  input: rawArg,
+                  state: rawState,
+                  action: initialContext.action,
+                  label: initialContext.label,
+                  id: initialContext.id,
+                  i18nKey: initialContext.i18nKey
+                }
+              }
+            )
+          }))
+
+          return runFork(command as any)
+        }, { action, label })
+
+        return reactive({
+          id,
+          i18nKey: initialContext.i18nKey,
+          namespace: initialContext.namespace,
+          namespaced: initialContext.namespaced,
+          result,
+          waiting,
+          blocked,
+          allowed,
+          action,
+          label,
+          state,
+          handle
+        })
+      },
+      { id }
+    )
+  }
+
+  /**
+   * Define a stream-backed Command for handling user actions.
+   *
+   * Like `fn`, but the body generator (or function) must **return** a `Stream` rather than
+   * an `Effect`. The command's `waiting` state stays `true` while the stream is running and
+   * is set to `false` once it terminates. The reactive `result` ref is updated for every
+   * value emitted by the stream.
+   *
+   * Three handler shapes are accepted:
+   * 1. **Generator returning a Stream** (primary) — may yield Effects freely before returning the stream:
+   *    ```ts
+   *    Command.streamFn("exportData")(
+   *      function*(arg, ctx) {
+   *        const token = yield* getAuthToken
+   *        return Stream.fromEffect(startExport(token, arg.id)).pipe(
+   *          Stream.flatMap((job) => pollProgress(job.id))
+   *        )
+   *      }
+   *    )
+   *    ```
+   * 2. **Function returning a Stream directly**: `(arg, ctx) => Stream.make(1, 2, 3)`
+   * 3. **Function returning `Effect<Stream>`**: `(arg, ctx) => Effect.map(setup, (s) => s.stream)`
+   *
+   * @param id The internal identifier for the action (used for tracing and i18n lookup).
+   * @param options Same options as `fn` (`state`, `blockKey`, `waitKey`, `allowed`, `i18nCustomKey`).
+   *
+   * **Returned Properties**: same as `fn` — `action`, `label`, `result`, `waiting`, `blocked`,
+   * `allowed`, `handle`, `i18nKey`, `namespace`, `namespaced`.
+   */
+  streamFn = <
+    const Id extends string,
+    const State extends IntlRecord = IntlRecord,
+    const I18nKey extends string = Id
+  >(
+    id: Id | { id: Id },
+    options?: FnOptions<Id, I18nKey, State>
+  ):
+    & Commander.StreamGen<RT | RTHooks, Id, I18nKey, State>
+    & Commander.NonGenStream<RT | RTHooks, Id, I18nKey, State>
+    & {
+      state: Context.Service<`Commander.Command.${Id}.state`, State>
+    } =>
+  {
+    const resolvedId = typeof id === "string" ? id : id.id
+
+    const toStreamHandler = (fn: any): (arg: any, ctx: any) => Stream.Stream<any, any, any> => {
+      if (isGeneratorFunction(fn)) {
+        return (arg: any, ctx: any) => Stream.unwrap(Effect.fnUntraced(fn)(arg, ctx))
+      }
+      return (arg: any, ctx: any) => {
+        const result = fn(arg, ctx)
+        return Stream.isStream(result) ? result : Stream.unwrap(result)
+      }
+    }
+
+    return Object.assign(
+      (fn: any): any => {
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const errorDef = new Error()
+        Error.stackTraceLimit = limit
+
+        return this.makeStreamCommand(id, options, errorDef)(toStreamHandler(fn))
+      },
+      makeBaseInfo(resolvedId, options),
+      {
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(
+          `Commander.Command.${resolvedId}.state`
+        )
+      }
+    )
+  }
+
   /** @deprecated */
+
   alt2: <
     const Id extends string,
     MutArg,

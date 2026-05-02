@@ -1083,6 +1083,8 @@ export interface CommandBase<I = void, A = void> {
   allowed: boolean
   action: string
   label: string
+  /** formatted text for current `running` state, when `progressText` was supplied */
+  progressText?: string | undefined
 }
 
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>> {}

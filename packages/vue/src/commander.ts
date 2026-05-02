@@ -25,7 +25,13 @@ type StreamMutationTuple<Id extends string, Arg, A, E, R> =
 type StreamMutationFactory<Id extends string, Arg, A, E, R> =
   & (() => StreamMutationTuple<Id, Arg, A, E, R>)
   & { readonly id: Id }
-type FnOptions<Id extends string, I18nCustomKey extends string, State extends IntlRecord | undefined> = {
+type FnOptions<
+  Id extends string,
+  I18nCustomKey extends string,
+  State extends IntlRecord | undefined,
+  RunningA = unknown,
+  RunningE = unknown
+> = {
   i18nCustomKey?: I18nCustomKey
   /**
    * passed to the i18n formatMessage calls so you can use it in translation messagee
@@ -42,7 +48,13 @@ type FnOptions<Id extends string, I18nCustomKey extends string, State extends In
    * A reactive AsyncResult ref whose state is exposed as `running` on the resulting command.
    * Useful when a command body triggers an external stream and you want to track its progress.
    */
-  progress?: ComputedRef<AsyncResult.AsyncResult<any, any>>
+  progress?: ComputedRef<AsyncResult.AsyncResult<RunningA, RunningE>>
+  /**
+   * Optional formatter applied to the current `progress` value to produce a textual
+   * status message for the loading state (e.g. surfaced as `loading` text on a
+   * `CommandButton`). Only meaningful together with `progress`.
+   */
+  progressText?: (running: AsyncResult.AsyncResult<RunningA, RunningE>) => string
 }
 
 type FnOptionsInternal<I18nCustomKey extends string> = {
@@ -162,6 +174,12 @@ export declare namespace Commander {
      * Reflects the live AsyncResult of the underlying stream.
      */
     running: AsyncResult.AsyncResult<any, any> | undefined
+    /**
+     * reactive – formatted progress text computed from `running` via the
+     * `progressText` option. Useful as the loading text on a `CommandButton`.
+     * Undefined when no `progressText` formatter was supplied.
+     */
+    progressText: string | undefined
     /** reactive */
     waiting: boolean
     /** reactive */
@@ -2005,8 +2023,14 @@ const unregisterWait = (id: string) => {
   }
 }
 
-const getStateValues = <const Id extends string, const I18nKey extends string, State extends IntlRecord | undefined>(
-  options?: FnOptions<Id, I18nKey, State>
+const getStateValues = <
+  const Id extends string,
+  const I18nKey extends string,
+  State extends IntlRecord | undefined,
+  RunningA = unknown,
+  RunningE = unknown
+>(
+  options?: FnOptions<Id, I18nKey, State, RunningA, RunningE>
 ): ComputedRef<State> => {
   const state_ = options?.state
   const state = !state_ ? computed(() => undefined as State) : typeof state_ === "function"
@@ -2057,10 +2081,12 @@ export class CommanderImpl<RT, RTHooks> {
   readonly makeCommand = <
     const Id extends string,
     const State extends IntlRecord | undefined,
-    const I18nKey extends string = Id
+    const I18nKey extends string = Id,
+    RunningA = unknown,
+    RunningE = unknown
   >(
     id_: Id | { id: Id },
-    options?: FnOptions<Id, I18nKey, State>,
+    options?: FnOptions<Id, I18nKey, State, RunningA, RunningE>,
     errorDef?: Error
   ) => {
     const id = typeof id_ === "string" ? id_ : id_.id
@@ -2248,6 +2274,10 @@ export class CommanderImpl<RT, RTHooks> {
           result,
           /** reactive */
           running: options?.progress,
+          /** reactive – formatted text for current `running` state, when `progressText` was supplied */
+          progressText: options?.progress && options?.progressText
+            ? computed(() => options.progressText!(options.progress!.value))
+            : undefined,
           /** reactive */
           waiting,
           /** reactive */
@@ -2349,14 +2379,16 @@ export class CommanderImpl<RT, RTHooks> {
   fn = <
     const Id extends string,
     const State extends IntlRecord = IntlRecord,
-    const I18nKey extends string = Id
+    const I18nKey extends string = Id,
+    RunningA = unknown,
+    RunningE = unknown
   >(
     id:
       | Id
       | { id: Id }
-      | StreamMutationTuple<Id, any, any, any, any>
-      | StreamMutationFactory<Id, any, any, any, any>,
-    options?: FnOptions<Id, I18nKey, State>
+      | StreamMutationTuple<Id, any, RunningA, RunningE, any>
+      | StreamMutationFactory<Id, any, RunningA, RunningE, any>,
+    options?: FnOptions<Id, I18nKey, State, RunningA, RunningE>
   ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> & Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
     state: Context.Service<`Commander.Command.${Id}.state`, State>
   } => {
@@ -2367,9 +2399,9 @@ export class CommanderImpl<RT, RTHooks> {
     const streamSource = isStreamFactory
       ? (id as StreamMutationFactory<Id, any, any, any, any>)
       : isStreamTuple
-      ? (id as StreamMutationTuple<Id, any, any, any, any>)
+      ? (id as StreamMutationTuple<Id, any, RunningA, RunningE, any>)
       : undefined
-    const resolveProgress = (): ComputedRef<AsyncResult.AsyncResult<any, any>> | undefined => {
+    const resolveProgress = (): ComputedRef<AsyncResult.AsyncResult<RunningA, RunningE>> | undefined => {
       if (!streamSource) return options?.progress
       const tuple = typeof streamSource === "function" ? streamSource() : streamSource
       return tuple[0]
@@ -2522,7 +2554,7 @@ export class CommanderImpl<RT, RTHooks> {
           | StreamMutationTuple<Id, Arg, A, E, R>
       }
       | StreamMutationTuple<Id, Arg, A, E, R>,
-    options?: FnOptions<Id, I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State, A, E>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     if (mutation !== null && typeof mutation === "object" && "mutateStream" in mutation) {
       return this.wrapStream(mutation as any, options) as any
@@ -2615,7 +2647,7 @@ export class CommanderImpl<RT, RTHooks> {
       }
       | StreamMutationFactory<Id, Arg, A, E, R>
       | StreamMutationTuple<Id, Arg, A, E, R>,
-    options?: FnOptions<Id, I18nKey, State>
+    options?: FnOptions<Id, I18nKey, State, A, E>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
     const id = mutation.id
     // Resolve `source` to the factory or already-called tuple.

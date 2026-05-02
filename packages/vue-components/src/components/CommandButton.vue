@@ -32,6 +32,11 @@ const props = defineProps<
 
 const isDisabled = computed(() => props.command.blocked || props.disabled)
 
+const loading = computed<boolean | string>(() => {
+  if (!props.command.waiting) return false
+  return props.command.progressText ?? true
+})
+
 const handleClick = () => {
   // Block execution if button is disabled
   if (isDisabled.value) {
@@ -56,14 +61,14 @@ export default {
   <v-btn
     v-if="command.allowed && !empty"
     v-bind="$attrs"
-    :loading="command.waiting"
+    :loading="loading"
     :aria-disabled="isDisabled"
     :title="title ?? command.action"
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
   >
     <slot
-      :loading="command.waiting"
+      :loading="loading"
       :disabled="isDisabled"
       :label="command.label"
       :title="title ?? command.action"
@@ -74,7 +79,7 @@ export default {
   <v-btn
     v-else-if="command.allowed"
     v-bind="$attrs"
-    :loading="command.waiting"
+    :loading="loading"
     :aria-disabled="isDisabled"
     :title="title ?? command.action"
     :class="{ 'v-btn--disabled': isDisabled }"

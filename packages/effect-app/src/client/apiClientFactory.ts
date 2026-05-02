@@ -39,6 +39,8 @@ export type Req = S.Top & {
   fields: S.Struct.Fields
   success: S.Top
   error: S.Top
+  /** Optional final-value schema for stream requests. When set, the execute effect resolves with the last stream value decoded to this type. */
+  final?: S.Top
   config?: Record<string, any>
   readonly id: string
   readonly moduleName: string

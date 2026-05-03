@@ -246,13 +246,13 @@ export type StreamMutation2WithExtensions<RT, Req> = Req extends
     & ((input: I) => Stream.Stream<A, E, R>)
     & {
       readonly id: Id
-      readonly wrapStream: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+      readonly wrap: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
     }
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
       & Stream.Stream<A, E, R>
       & {
         readonly id: Id
-        readonly wrapStream: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+        readonly wrap: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
       }
   : never
 
@@ -902,7 +902,7 @@ export const makeClient = <RT_, RTHooks>(
                     : (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
                     id: client[key].id,
-                    wrapStream: (...combinators: any[]) => {
+                    wrap: (...combinators: any[]) => {
                       const sfn = useCommand().streamFn(client[key].id as any) as any
                       return sfn(sm2Handler, ...combinators)
                     }

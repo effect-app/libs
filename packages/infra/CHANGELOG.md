@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- b2e438f: Remove Operations service and repo
+- Updated dependencies [b2e438f]
+  - effect-app@4.0.0-beta.188
+
 ## 4.0.0-beta.187
 
 ### Patch Changes

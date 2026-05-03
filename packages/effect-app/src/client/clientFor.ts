@@ -108,8 +108,8 @@ export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends s
    * Phantom type property (never set at runtime) that carries the `Final` type to
    * `StreamMutationWithExtensions`. The tilde prefix follows the Effect convention for
    * phantom/virtual properties and prevents accidental runtime access.
-   * When the stream fails, the execute effect still resolves (with `undefined`);
-   * check the reactive `AsyncResult` ref to distinguish success from failure.
+   * Stream failures bubble through the execute effect's typed error channel `E`;
+   * the reactive `AsyncResult` ref also mirrors the failure for live progress UI.
    */
   readonly "~final"?: Final
 }
@@ -123,8 +123,8 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
    * Phantom type property (never set at runtime) that carries the `Final` type to
    * `StreamMutationWithExtensions`. The tilde prefix follows the Effect convention for
    * phantom/virtual properties and prevents accidental runtime access.
-   * When the stream fails, the execute effect still resolves (with `undefined`);
-   * check the reactive `AsyncResult` ref to distinguish success from failure.
+   * Stream failures bubble through the execute effect's typed error channel `E`;
+   * the reactive `AsyncResult` ref also mirrors the failure for live progress UI.
    */
   readonly "~final"?: Final
 }

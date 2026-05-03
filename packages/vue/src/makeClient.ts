@@ -8,12 +8,12 @@ import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
-import { type Commander, CommanderStatic } from "./commander.js"
+import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
+import { type Commander, CommanderStatic, type Progress } from "./commander.js"
 import { type I18n } from "./intl.js"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
 import { makeMutation, makeStreamMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
-import { type CustomUndefinedInitialQueryOptions, makeQuery } from "./query.js"
+import { type CustomUndefinedInitialQueryOptions, makeQuery, makeStreamQuery } from "./query.js"
 import { makeRunPromise } from "./runtime.js"
 import { type Toast } from "./toast.js"
 
@@ -225,16 +225,71 @@ export type MutationWithExtensions<RT, Req> = Req extends
   : never
 
 /**
- * The `mutateStream` tuple for a stream-type request handler:
- * `[resultRef, execute]` where `execute` updates the ref live with each emitted value.
- * When the request declares a `final` schema, `execute` resolves with the last emitted value
- * typed as `Final`; otherwise it resolves with the success type.
+ * Options for invoking a `mutateStream` factory. Supplying `progress` produces
+ * a tuple-with-id that carries `running` (the live AsyncResult ref) and
+ * `progress` (a `ComputedRef<Progress | undefined>` formatted from each value),
+ * which `Command.fn` / `Command.wrapStream` surface as the command's `running`
+ * and `progress`. When omitted, the resulting command exposes neither.
+ */
+export type MutateStreamCallOptions<A, E> = {
+  progress?: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined
+}
+
+/**
+ * The `mutateStream` factory for a stream-type request handler. Always invoke
+ * (optionally with `{ progress }`) to get a fresh callable `execute` — each call
+ * produces a new state + execute pair so independent invocations don't share
+ * state. The callable updates its underlying ref live with each emitted value
+ * and carries `id`, plus `running` and `progress` when the factory was called
+ * with a `progress` formatter. When the request declares a `final` schema,
+ * the callable resolves with the last emitted value typed as `Final`; otherwise
+ * it resolves with the success type. The factory itself carries the request
+ * `id` so it can be passed to `Command.fn` / `Command.wrapStream` directly.
  */
 export type StreamMutationWithExtensions<Req> = Req extends
-  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id, infer Final>
-  ? readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (input: I) => Effect.Effect<Final, never, R>]
-  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer _Id, infer Final>
-    ? readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Final, never, R>]
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
+    & ((options?: MutateStreamCallOptions<A, E>) =>
+      & ((input: I) => Effect.Effect<Final, E, R>)
+      & {
+        readonly id: Id
+        readonly _streamCallable: true
+        readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
+        readonly progress?: ComputedRef<Progress | undefined>
+      })
+    & { readonly id: Id; readonly _streamFactory: true }
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer Final> ?
+      & ((options?: MutateStreamCallOptions<A, E>) =>
+        & Effect.Effect<Final, E, R>
+        & {
+          readonly id: Id
+          readonly _streamCallable: true
+          readonly running?: ComputedRef<AsyncResult.AsyncResult<A, E>>
+          readonly progress?: ComputedRef<Progress | undefined>
+        })
+      & { readonly id: Id; readonly _streamFactory: true }
+  : never
+
+/**
+ * The pre-built `wrapStream` CommanderWrap for a stream-type request handler.
+ * The command's `result` and `running` are the live stream ref.
+ * Callable like `wrap`: `client.myExport.wrapStream()` returns the CommandOut.
+ */
+export type StreamCommandWithExtensions<RT, Req> = Req extends
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
+  ? Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final>
+    ? Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>
+  : never
+
+/**
+ * The `fn` builder for a stream-type request handler — identical to calling
+ * `Command.fn(id)` where `id` comes from the request.
+ */
+export type StreamFnExtension<RT, Req> = Req extends
+  RequestStreamHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
+  ? Commander.CommanderFn<RT, Id, Id, undefined>
+  : Req extends RequestStreamHandler<infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
+    ? Commander.CommanderFn<RT, Id, Id, undefined>
   : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
@@ -242,6 +297,8 @@ export type StreamMutationWithExtensions<Req> = Req extends
 declare const useQuery_: QueryImpl<any>["useQuery"]
 // eslint-disable-next-line unused-imports/no-unused-vars
 declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
+// eslint-disable-next-line unused-imports/no-unused-vars
+declare const useStreamQuery_: QueryImpl<any>["useStreamQuery"]
 
 export interface ProjectResult<RT, I, B, E, R, Request extends Req, Id extends string> {
   request: (i: I) => Effect.Effect<B, E, R>
@@ -332,6 +389,32 @@ export type Queries<RT, Req> = Req extends
     : never
   : never
 
+export interface StreamQueriesWithInput<Request extends Req, Id extends string, I, A, E> {
+  /**
+   * Stream helper for stream requests.
+   * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
+   * Data is an array of all chunks received so far.
+   */
+  streamQuery: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
+}
+export interface StreamQueriesWithoutInput<Request extends Req, Id extends string, A, E> {
+  /**
+   * Stream helper for stream requests.
+   * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
+   * Data is an array of all chunks received so far.
+   */
+  streamQuery: ReturnType<typeof useStreamQuery_<E, A, Request, Id>>
+}
+
+export type StreamQueries<RT, HandlerReq> = HandlerReq extends
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer _Final>
+  ? Exclude<R, RT> extends never ? StreamQueriesWithInput<Request, Id, I, A, E>
+  : { streamQuery: MissingDependencies<RT, R> & {} }
+  : HandlerReq extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer _Final>
+    ? Exclude<R, RT> extends never ? StreamQueriesWithoutInput<Request, Id, A, E>
+    : { streamQuery: MissingDependencies<RT, R> & {} }
+  : never
+
 const _useMutation = makeMutation()
 
 const wrapWithSpan = (self: { id: string; handler: any }, mut: any) => {
@@ -390,12 +473,19 @@ export type ClientFrom<M extends RequestsAny> = RequestHandlers<never, never, M,
 export class QueryImpl<R> {
   constructor(readonly getRuntime: () => Context.Context<R>) {
     this.useQuery = makeQuery(this.getRuntime)
+    this.useStreamQuery = makeStreamQuery(this.getRuntime)
   }
   /**
    * Effect results are passed to the caller, including errors.
    * @deprecated use client helpers instead (.query())
    */
   readonly useQuery: ReturnType<typeof makeQuery<R>>
+
+  /**
+   * Stream results are accumulated as an array of chunks and returned as reactive state.
+   * @deprecated use client helpers instead (.streamQuery())
+   */
+  readonly useStreamQuery: ReturnType<typeof makeStreamQuery<R>>
 
   /**
    * The difference with useQuery is that this function will return a Promise you can await in the Setup,
@@ -597,6 +687,7 @@ export const makeClient = <RT_, RTHooks>(
   const query = new QueryImpl(getBaseRt)
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
+  const useStreamQuery = query.useStreamQuery
 
   const mergeInvalidation = (
     a?: MutationOptionsBase["queryInvalidation"],
@@ -640,15 +731,19 @@ export const makeClient = <RT_, RTHooks>(
   ) => {
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
-        if (client[key].Request.type !== "query") {
-          return acc
+        const requestType = client[key].Request.type
+        if (requestType === "query") {
+          ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
+            id: client[key].id
+          })
+          ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(client[key] as any), {
+            id: client[key].id
+          })
+        } else if (requestType === "stream") {
+          ;(acc as any)[camelCase(key) + "StreamQuery"] = Object.assign(useStreamQuery(client[key] as any), {
+            id: client[key].id
+          })
         }
-        ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
-          id: client[key].id
-        })
-        ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(client[key] as any), {
-          id: client[key].id
-        })
         return acc
       },
       {} as
@@ -669,6 +764,12 @@ export const makeClient = <RT_, RTHooks>(
             RT,
             QueryHandler<typeof client[Key]>
           >["suspense"]
+        }
+        & {
+          [
+            Key in keyof typeof client as StreamHandler<typeof client[Key]> extends never ? never
+              : `${ToCamel<string & Key>}StreamQuery`
+          ]: StreamQueries<RT, StreamHandler<typeof client[Key]>>["streamQuery"]
         }
     )
     return queries
@@ -767,6 +868,7 @@ export const makeClient = <RT_, RTHooks>(
     queryInvalidation?: (client: ClientFrom<M>) => QueryInvalidation<M>,
     invalidationResources?: InvalidationResourcesFor<M>
   ) => {
+    const Command = useCommand()
     const streamMutation = useStreamMutation()
     const invalidation = queryInvalidation?.(client)
     const queryResources = makeQueryResources(invalidationResources)
@@ -786,14 +888,36 @@ export const makeClient = <RT_, RTHooks>(
             })))
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
-        ;(acc as any)[camelCase(key) + "Stream"] = streamMutation(client[key] as any, mergedInvalidation)
+        const smFactory = Object.assign(
+          (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined }) => {
+            const [resultRef, execute] = streamMutation(client[key] as any, mergedInvalidation)
+            const extras: {
+              id: string
+              _streamCallable: true
+              running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
+              progress?: ComputedRef<Progress | undefined>
+            } = { id: client[key].id, _streamCallable: true }
+            if (opts?.progress) {
+              const fmt = opts.progress
+              extras.running = resultRef
+              extras.progress = computed(() => fmt(resultRef.value))
+            }
+            return Object.assign(execute, extras)
+          },
+          { id: client[key].id, _streamFactory: true as const }
+        )
+        ;(acc as any)[camelCase(key) + "Stream"] = Object.assign(smFactory, {
+          fn: Command.fn(client[key].id)
+        })
         return acc
       },
       {} as {
         [
           Key in keyof typeof client as StreamHandler<typeof client[Key]> extends never ? never
             : `${ToCamel<string & Key>}Stream`
-        ]: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+        ]:
+          & StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+          & { fn: StreamFnExtension<RT | RTHooks, StreamHandler<typeof client[Key]>> }
       }
     )
     return streams
@@ -862,10 +986,31 @@ export const makeClient = <RT_, RTHooks>(
                   })))
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+              const streamMutFactory = Object.assign(
+                (opts?: { progress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined }) => {
+                  const [resultRef, execute] = streamMutation(client[key] as any, mergedInvalidation)
+                  const extras: {
+                    id: string
+                    _streamCallable: true
+                    running?: ComputedRef<AsyncResult.AsyncResult<any, any>>
+                    progress?: ComputedRef<Progress | undefined>
+                  } = { id: client[key].id, _streamCallable: true }
+                  if (opts?.progress) {
+                    const fmt = opts.progress
+                    extras.running = resultRef
+                    extras.progress = computed(() => fmt(resultRef.value))
+                  }
+                  return Object.assign(execute, extras)
+                },
+                { id: client[key].id, _streamFactory: true as const }
+              )
               return {
                 ...client[key],
                 request: h_,
-                mutateStream: streamMutation(client[key] as any, mergedInvalidation)
+                streamQuery: useStreamQuery(client[key] as any),
+                mutateStream: streamMutFactory,
+                wrapStream: Command.wrapStream(streamMutFactory),
+                fn: Command.fn(client[key].id)
               }
             })()
             : {
@@ -922,12 +1067,18 @@ export const makeClient = <RT_, RTHooks>(
               & QueryRequestWithExtensions<QueryHandler<typeof client[Key]>>
               & Queries<RT, QueryHandler<typeof client[Key]>>
               & QueryProjection<RT, QueryHandler<typeof client[Key]>>)
+          & (StreamHandler<typeof client[Key]> extends never ? {}
+            : StreamQueries<RT, StreamHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
           & (StreamHandler<typeof client[Key]> extends never ? {}
-            : { mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>> })
+            : {
+              mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+              wrapStream: StreamCommandWithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
+              fn: StreamFnExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
+            })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }
     )
@@ -988,6 +1139,7 @@ export const makeClient = <RT_, RTHooks>(
       // delay initialisation until first use...
       fn: (...args: [any]) => useCommand().fn(...args),
       wrap: (...args: [any]) => useCommand().wrap(...args),
+      wrapStream: (...args: [any]) => useCommand().wrapStream(...args),
       alt: (...args: [any]) => useCommand().alt(...args),
       alt2: (...args: [any]) => useCommand().alt2(...args)
     } as ReturnType<typeof useCommand>,
@@ -1025,6 +1177,8 @@ export interface CommandBase<I = void, A = void> {
   allowed: boolean
   action: string
   label: string
+  /** formatted progress info for current `running` state, when `progress` was supplied */
+  progress?: Progress | undefined
 }
 
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>> {}

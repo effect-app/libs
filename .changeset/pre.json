@@ -213,6 +213,8 @@
     "stale-papers-join",
     "store-effect-cached",
     "store-seed-uninterruptible",
+    "stream-callable-progress",
+    "stream-final-default-success",
     "stream-final-type",
     "stream-metadata-v1",
     "strong-dots-sin",
@@ -258,6 +260,7 @@
     "wild-wombats-nail",
     "wise-items-warn",
     "wise-stamps-crash",
-    "witty-bats-return"
+    "witty-bats-return",
+    "wrap-stream-command"
   ]
 }

@@ -132,8 +132,8 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
 
-export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> =
-  Parameters<I["make"]> extends [] ? void : Parameters<I["make"]>[0]
+export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
+  [] ? void : Parameters<I["make"]>[0]
 
 // Has no input only when the request schema declares no payload fields (the auto-added
 // `_tag` field is ignored). Any payload fields (even all-optional) produce a function handler.

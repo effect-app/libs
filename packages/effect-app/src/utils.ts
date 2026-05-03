@@ -5,9 +5,15 @@ import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
 import { dual } from "effect/Function"
 import { isFunction } from "effect/Predicate"
 import * as Result from "effect/Result"
-import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"
+
+type NumericDictionary<T> = { readonly [index: number]: T }
+type PropertyPath = string | number | ReadonlyArray<string | number>
+type GetFieldType<Obj, Path> = Path extends `${infer Left}.${infer Right}`
+  ? Left extends keyof Obj ? GetFieldType<Obj[Left], Right> : undefined
+  : Path extends keyof Obj ? Obj[Path]
+  : undefined
 
 // codegen:start {preset: barrel, include: ./utils/*.ts, nodir: false }
 export * from "./utils/effectify.js"

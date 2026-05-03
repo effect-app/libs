@@ -23,7 +23,6 @@ type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, stri
  */
 export type Progress = string | { readonly text: string; readonly percentage: number }
 
-export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
 type FnOptions<
   Id extends string,
   I18nCustomKey extends string,
@@ -2753,7 +2752,7 @@ export class CommanderImpl<RT, RTHooks> {
   ): Commander.Gen<RT | RTHooks, Id, I18nKey, State> & Commander.NonGen<RT | RTHooks, Id, I18nKey, State> & {
     state: Context.Service<`Commander.Command.${Id}.state`, State>
   } => {
-    const resolvedId: Id = typeof id === "string" ? id : (id as { id: Id }).id
+    const resolvedId: Id = typeof id === "string" ? id : id.id
     return Object.assign(
       (
         fn: any,
@@ -3203,9 +3202,7 @@ export class CommanderImpl<RT, RTHooks> {
       | ((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id },
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
-    const callMutation = mutation as
-      | { mutate: (arg: Arg) => Effect.Effect<A, E, R>; id: Id }
-      | (((arg: Arg) => Effect.Effect<A, E, R>) & { id: Id })
+    const callMutation = mutation
     return Object.assign(
       (
         ...combinators: any[]

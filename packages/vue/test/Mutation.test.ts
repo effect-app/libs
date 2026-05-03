@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
+import { TestClock } from "effect/testing"
 import { CommandContext, DefaultIntl } from "../src/commander.js"
 import { AsyncResult } from "../src/lib.js"
-import { useExperimental } from "./stubs.js"
+import { useExperimental, useExperimentalE } from "./stubs.js"
 
 const unwrap = <A, E>(r: Fiber.Fiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
 
@@ -770,11 +771,11 @@ it.live("fail and recover with alt", () =>
       expect(toasts[0].message).toBe("Test Action Success")
     }))
 
-it.live("slow action shows waiting toast after the 1s delay", () =>
+it.effect("slow action shows waiting toast after the 1s delay", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
+      const Command = yield* useExperimentalE({ toasts, messages: DefaultIntl.en })
 
       const command = Command.fn("Test Action")(
         function*() {
@@ -790,7 +791,9 @@ it.live("slow action shows waiting toast after the 1s delay", () =>
         Command.withDefaultToast()
       )
 
-      const r = yield* unwrap(command.handle())
+      const fiber = command.handle()
+      yield* TestClock.adjust("2 seconds")
+      const r = yield* unwrap(fiber)
 
       expect(r).toBe("test-value")
       // waiting toast is replaced (same id) with the success toast
@@ -799,11 +802,11 @@ it.live("slow action shows waiting toast after the 1s delay", () =>
       expect(toasts[0].message).toBe("Test Action Success")
     }))
 
-it.live("slow failing action surfaces waiting toast then shows error", () =>
+it.effect("slow failing action surfaces waiting toast then shows error", () =>
   Effect
     .gen(function*() {
       const toasts: any[] = []
-      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
+      const Command = yield* useExperimentalE({ toasts, messages: DefaultIntl.en })
 
       const command = Command.fn("Test Action")(
         function*() {
@@ -816,7 +819,9 @@ it.live("slow failing action surfaces waiting toast then shows error", () =>
         Command.withDefaultToast()
       )
 
-      const r = yield* Fiber.join(command.handle())
+      const fiber = command.handle()
+      yield* TestClock.adjust("2 seconds")
+      const r = yield* Fiber.join(fiber)
 
       expect(Exit.isFailure(r) && Cause.hasFails(r.cause)).toBe(true)
       expect(toasts.length).toBe(1)

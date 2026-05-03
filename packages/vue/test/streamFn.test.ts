@@ -9,7 +9,8 @@ import { useExperimental } from "./stubs.js"
 // ---------------------------------------------------------------------------
 
 /** Wait for the fiber spawned by `cmd.handle()` to finish. */
-const join = (fiber: Fiber.RuntimeFiber<any, any>) => Fiber.join(fiber)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const join = (fiber: Fiber.Fiber<any, any>) => Fiber.join(fiber)
 
 // ---------------------------------------------------------------------------
 // Non-generator form — (arg) => Stream
@@ -26,10 +27,10 @@ it.live("streamFn: non-generator returning Stream runs stream and updates result
     expect(cmd.waiting).toBe(false)
     yield* join(cmd.handle(1))
 
-    expect(cmd.result.value._tag).toBe("Success")
-    if (cmd.result.value._tag === "Success") {
-      expect(cmd.result.value.value).toBe(30)
-      expect(cmd.result.value.waiting).toBe(false)
+    expect(cmd.result._tag).toBe("Success")
+    if (cmd.result._tag === "Success") {
+      expect(cmd.result.value).toBe(30)
+      expect(cmd.result.waiting).toBe(false)
     }
   }))
 
@@ -57,10 +58,10 @@ it.live("streamFn: generator form executes yielded effects and subscribes to ret
     expect(generatorBodyExecuted).toBe(true)
 
     // Stream emitted three values: 10, 11, 12; last one should be in result
-    expect(cmd.result.value._tag).toBe("Success")
-    if (cmd.result.value._tag === "Success") {
-      expect(cmd.result.value.value).toBe(12)
-      expect(cmd.result.value.waiting).toBe(false)
+    expect(cmd.result._tag).toBe("Success")
+    if (cmd.result._tag === "Success") {
+      expect(cmd.result.value).toBe(12)
+      expect(cmd.result.waiting).toBe(false)
     }
   }))
 
@@ -86,9 +87,9 @@ it.live("streamFn: generator form with async Effect.promise works", () =>
     yield* join(cmd.handle("hello"))
 
     expect(asyncValueReceived).toBe("processed:hello")
-    expect(cmd.result.value._tag).toBe("Success")
-    if (cmd.result.value._tag === "Success") {
-      expect(cmd.result.value.value).toBe("processed:hello!")
+    expect(cmd.result._tag).toBe("Success")
+    if (cmd.result._tag === "Success") {
+      expect(cmd.result.value).toBe("processed:hello!")
     }
   }))
 
@@ -106,9 +107,9 @@ it.live("streamFn: non-generator returning Effect<Stream> runs stream", () =>
 
     yield* join(cmd.handle(4))
 
-    expect(cmd.result.value._tag).toBe("Success")
-    if (cmd.result.value._tag === "Success") {
-      expect(cmd.result.value.value).toBe(13) // 4*3+1 = 13
+    expect(cmd.result._tag).toBe("Success")
+    if (cmd.result._tag === "Success") {
+      expect(cmd.result.value).toBe(13) // 4*3+1 = 13
     }
   }))
 
@@ -134,7 +135,7 @@ it.live("streamFn: generator form sets waiting=true during execution then false 
     yield* join(fiber)
     expect(cmd.waiting).toBe(false)
 
-    expect(AsyncResult.isSuccess(cmd.result.value)).toBe(true)
+    expect(AsyncResult.isSuccess(cmd.result)).toBe(true)
   }))
 
 // ---------------------------------------------------------------------------
@@ -147,23 +148,30 @@ it.live("streamFn: generator form with combinator — combinator transforms the 
 
     const emittedByCombinator: number[] = []
 
-    // A combinator that records each element it sees
-    const spyCombinator = (stream: Stream.Stream<number, never, never>) =>
-      stream.pipe(
+    // A combinator that records each element it sees.
+    // The first argument may be a Stream or an Effect<Stream> (for generator-form handlers),
+    // matching how withDefaultToastStream handles it.
+    const spyCombinator = (streamOrEffect: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>) => {
+      const stream: Stream.Stream<number, never, never> = Stream.isStream(streamOrEffect)
+        ? streamOrEffect
+        : Stream.unwrap(streamOrEffect as Effect.Effect<Stream.Stream<number, never, never>>)
+      return stream.pipe(
         Stream.tap((v) =>
           Effect.sync(() => {
             emittedByCombinator.push(v)
           })
         )
       )
+    }
 
     const cmd = Command.streamFn("test-stream-gen-combinator")(
       function*(arg: number) {
         const base = yield* Effect.succeed(arg * 10)
         return Stream.make(base, base + 1, base + 2)
       },
-      // combinator receives (stream, arg, ctx) — we only use stream here
-      (stream: Stream.Stream<number, never, never>) => spyCombinator(stream)
+      // combinator receives (streamOrEffect, arg, ctx) — we only use the first arg here
+      (streamOrEffect: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>) =>
+        spyCombinator(streamOrEffect)
     )
 
     yield* join(cmd.handle(3))
@@ -171,9 +179,9 @@ it.live("streamFn: generator form with combinator — combinator transforms the 
     // combinator must have seen all elements: 30, 31, 32
     expect(emittedByCombinator).toEqual([30, 31, 32])
 
-    expect(cmd.result.value._tag).toBe("Success")
-    if (cmd.result.value._tag === "Success") {
-      expect(cmd.result.value.value).toBe(32)
+    expect(cmd.result._tag).toBe("Success")
+    if (cmd.result._tag === "Success") {
+      expect(cmd.result.value).toBe(32)
     }
   }))
 
@@ -201,8 +209,8 @@ it.live("streamFn: generator form Stream.ensuring cleanup runs after stream ends
     yield* join(cmd.handle(7))
 
     expect(cleanupRan).toBe(true)
-    expect(cmd.result.value._tag).toBe("Success")
-    if (cmd.result.value._tag === "Success") {
-      expect(cmd.result.value.value).toBe(107)
+    expect(cmd.result._tag).toBe("Success")
+    if (cmd.result._tag === "Success") {
+      expect(cmd.result.value).toBe(107)
     }
   }))

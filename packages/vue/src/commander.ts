@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { asResult, asStreamResult, deepToRaw, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
-import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
+import { Cause, Context, Effect, type Exit, Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
@@ -2333,7 +2333,14 @@ export const CommanderStatic = {
 
       const toastId: string | number | undefined = waitingMsg === null
         ? stableToastId
-        : yield* toast.info(waitingMsg, { id: stableToastId ?? null, timeout: Infinity })
+        : stableToastId ?? `wait-${Math.random().toString(36).slice(2)}`
+
+      const waitingFiber = waitingMsg === null ? undefined : yield* Effect.forkDetach(
+        Effect.sleep("1 seconds").pipe(
+          Effect.andThen(toast.info(waitingMsg, { id: toastId!, timeout: Infinity }))
+        )
+      )
+      const interruptWaiting = waitingFiber ? Fiber.interrupt(waitingFiber) : Effect.void
 
       const failureHandler = defaultFailureMessageHandler<E, [], never, never>(
         hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
@@ -2353,6 +2360,7 @@ export const CommanderStatic = {
                 // Update CommandProgress so CommandButton progress indicator is also driven
                 yield* CommandProgress.use((s) => s.update(p))
                 if (toastId !== undefined) {
+                  yield* interruptWaiting
                   const progressText = typeof p === "string" ? p : p.text
                   const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
                   yield* toast.info(msg, { id: toastId, timeout: Infinity })
@@ -2363,6 +2371,7 @@ export const CommanderStatic = {
         ),
         Stream.tapCause(Effect.fnUntraced(function*(cause) {
           didFail = true
+          yield* interruptWaiting
           if (Cause.hasInterruptsOnly(cause)) {
             if (toastId !== undefined) yield* toast.dismiss(toastId)
             return
@@ -2388,9 +2397,9 @@ export const CommanderStatic = {
           }
         }, Effect.uninterruptible)),
         Stream.ensuring(Effect.suspend(() => {
-          if (didFail) return Effect.void
+          if (didFail) return interruptWaiting
 
-          if (options?.onSuccess === null) return Effect.void
+          if (options?.onSuccess === null) return interruptWaiting
 
           const successMsg: string | null = typeof options?.onSuccess === "string"
             ? options.onSuccess
@@ -2400,11 +2409,13 @@ export const CommanderStatic = {
             ? intl.formatMessage({ id: customSuccess }, cc.state)
             : intl.formatMessage({ id: "handle.success" }, { action: cc.action })
 
-          if (successMsg === null) return Effect.void
+          if (successMsg === null) return interruptWaiting
 
-          return toast.success(
-            successMsg,
-            toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
+          return interruptWaiting.pipe(
+            Effect.andThen(toast.success(
+              successMsg,
+              toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
+            ))
           )
         }))
       )

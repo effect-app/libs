@@ -151,10 +151,10 @@ it.live("streamFn: generator form with combinator — combinator transforms the 
     // A combinator that records each element it sees.
     // The first argument may be a Stream or an Effect<Stream> (for generator-form handlers),
     // matching how withDefaultToastStream handles it.
-    const spyCombinator = (streamOrEffect: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>) => {
-      const stream: Stream.Stream<number, never, never> = Stream.isStream(streamOrEffect)
-        ? streamOrEffect
-        : Stream.unwrap(streamOrEffect as Effect.Effect<Stream.Stream<number, never, never>>)
+    const spyCombinator = (input: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>) => {
+      const stream: Stream.Stream<number, never, never> = Stream.isStream(input)
+        ? input
+        : Stream.unwrap(input as Effect.Effect<Stream.Stream<number, never, never>>)
       return stream.pipe(
         Stream.tap((v) =>
           Effect.sync(() => {
@@ -169,9 +169,9 @@ it.live("streamFn: generator form with combinator — combinator transforms the 
         const base = yield* Effect.succeed(arg * 10)
         return Stream.make(base, base + 1, base + 2)
       },
-      // combinator receives (streamOrEffect, arg, ctx) — we only use the first arg here
-      (streamOrEffect: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>) =>
-        spyCombinator(streamOrEffect)
+      // combinator receives (input, arg, ctx) — input is Stream or Effect<Stream> depending on handler form
+      (input: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>) =>
+        spyCombinator(input)
     )
 
     yield* join(cmd.handle(3))

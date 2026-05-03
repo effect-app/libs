@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
 import { dual } from "effect/Function"
-import { isFunction, isObject } from "effect/Predicate"
+import { isFunction } from "effect/Predicate"
 import * as Result from "effect/Result"
 import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
@@ -1007,4 +1007,4 @@ const genConstructor = (function*() {}).constructor
  * @since 3.11.0
  */
 export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any, any, any> =>
-  isObject(u) && u.constructor === genConstructor
+  isFunction(u) && u.constructor === genConstructor

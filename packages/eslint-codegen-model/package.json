@@ -33,7 +33,7 @@
     "@types/lodash": "4.17.24",
     "madge": "8.0.0",
     "oxlint": "1.62.0",
-    "typescript": "npm:@typescript/native-preview@beta",
+    "typescript": "~6.0.3",
     "effect-app": "workspace:*",
     "@effect-app/eslint-shared-config": "workspace:*"
   },

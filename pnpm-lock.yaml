@@ -41,7 +41,7 @@ importers:
         version: 4.1.2
       vue:
         specifier: ^3.5.33
-        version: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
+        version: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
       '@changesets/cli':
         specifier: ^2.31.0
@@ -75,16 +75,19 @@ importers:
         version: 25.6.0
       '@typescript-eslint/eslint-plugin':
         specifier: 8.59.1
-        version: 8.59.1(@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1))(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
+        version: 8.59.1(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       '@typescript-eslint/parser':
         specifier: 8.59.1
-        version: 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
+        version: 8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       '@typescript-eslint/scope-manager':
         specifier: 8.59.1
         version: 8.59.1
+      '@typescript/native-preview':
+        specifier: beta
+        version: 7.0.0-dev.20260421.2
       '@vue/eslint-config-typescript':
         specifier: ^14.7.0
-        version: 14.7.0(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint-plugin-vue@10.9.0(@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1)))(eslint@10.2.1)
+        version: 14.7.0(eslint-plugin-vue@10.9.0(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1)))(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
@@ -111,7 +114,7 @@ importers:
         version: 2.2.3
       madge:
         specifier: ^8.0.0
-        version: 8.0.0(@typescript/native-preview@7.0.0-dev.20260421.2)
+        version: 8.0.0(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       module-alias:
         specifier: ^2.3.4
         version: 2.3.4
@@ -135,7 +138,7 @@ importers:
         version: 3.0.0
       tsc-watch:
         specifier: ^7.2.0
-        version: 7.2.0(@typescript/native-preview@7.0.0-dev.20260421.2)
+        version: 7.2.0(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       tsconfig-paths:
         specifier: ^4.2.0
         version: 4.2.0
@@ -143,11 +146,11 @@ importers:
         specifier: ^4.21.0
         version: 4.21.0
       typescript:
-        specifier: npm:@typescript/native-preview@beta
-        version: '@typescript/native-preview@7.0.0-dev.20260421.2'
+        specifier: ~6.0.3
+        version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       unplugin-auto-import:
         specifier: ^21.0.0
-        version: 21.0.0(@vueuse/core@14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)))
+        version: 21.0.0(@vueuse/core@14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))))
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)
@@ -238,8 +241,8 @@ importers:
         specifier: ^4.7.0
         version: 4.7.0
       typescript:
-        specifier: npm:@typescript/native-preview@beta
-        version: '@typescript/native-preview@7.0.0-dev.20260421.2'
+        specifier: ~6.0.3
+        version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vitest:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))
@@ -282,13 +285,13 @@ importers:
         version: link:../effect-app
       madge:
         specifier: 8.0.0
-        version: 8.0.0(@typescript/native-preview@7.0.0-dev.20260421.2)
+        version: 8.0.0(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       oxlint:
         specifier: 1.62.0
         version: 1.62.0(oxlint-tsgolint@0.22.1)
       typescript:
-        specifier: npm:@typescript/native-preview@beta
-        version: '@typescript/native-preview@7.0.0-dev.20260421.2'
+        specifier: ~6.0.3
+        version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
 
   packages/eslint-shared-config:
     dependencies:
@@ -353,7 +356,7 @@ importers:
         specifier: 0.22.1
         version: 0.22.1
       typescript:
-        specifier: '>=6.0.3 <8'
+        specifier: ~6.0.3
         version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vue-eslint-parser:
         specifier: 10.4.0
@@ -450,8 +453,8 @@ importers:
         specifier: ^7.2.0
         version: 7.2.0
       typescript:
-        specifier: npm:@typescript/native-preview@beta
-        version: '@typescript/native-preview@7.0.0-dev.20260421.2'
+        specifier: ~6.0.3
+        version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vitest:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))
@@ -8648,22 +8651,6 @@ snapshots:
     dependencies:
       '@types/node': 25.6.0
 
-  '@typescript-eslint/eslint-plugin@8.59.1(@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1))(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)':
-    dependencies:
-      '@eslint-community/regexpp': 4.12.2
-      '@typescript-eslint/parser': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
-      '@typescript-eslint/scope-manager': 8.59.1
-      '@typescript-eslint/type-utils': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
-      '@typescript-eslint/utils': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
-      '@typescript-eslint/visitor-keys': 8.59.1
-      eslint: 10.2.1
-      ignore: 7.0.5
-      natural-compare: 1.4.0
-      ts-api-utils: 2.5.0(@typescript/native-preview@7.0.0-dev.20260421.2)
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/eslint-plugin@8.59.1(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
@@ -8680,18 +8667,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)':
-    dependencies:
-      '@typescript-eslint/scope-manager': 8.59.1
-      '@typescript-eslint/types': 8.59.1
-      '@typescript-eslint/typescript-estree': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)
-      '@typescript-eslint/visitor-keys': 8.59.1
-      debug: 4.4.3(supports-color@5.5.0)
-      eslint: 10.2.1
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))':
     dependencies:
       '@typescript-eslint/scope-manager': 8.59.1
@@ -8701,15 +8676,6 @@ snapshots:
       debug: 4.4.3(supports-color@5.5.0)
       eslint: 10.2.1
       typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
-    transitivePeerDependencies:
-      - supports-color
-
-  '@typescript-eslint/project-service@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)':
-    dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)
-      '@typescript-eslint/types': 8.59.1
-      debug: 4.4.3(supports-color@5.5.0)
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
     transitivePeerDependencies:
       - supports-color
 
@@ -8736,10 +8702,6 @@ snapshots:
       '@typescript-eslint/types': 8.59.1
       '@typescript-eslint/visitor-keys': 8.59.1
 
-  '@typescript-eslint/tsconfig-utils@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)':
-    dependencies:
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
-
   '@typescript-eslint/tsconfig-utils@8.59.1(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
@@ -8747,18 +8709,6 @@ snapshots:
   '@typescript-eslint/tsconfig-utils@8.59.1(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))':
     dependencies:
       typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
-
-  '@typescript-eslint/type-utils@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)':
-    dependencies:
-      '@typescript-eslint/types': 8.59.1
-      '@typescript-eslint/typescript-estree': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)
-      '@typescript-eslint/utils': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
-      debug: 4.4.3(supports-color@5.5.0)
-      eslint: 10.2.1
-      ts-api-utils: 2.5.0(@typescript/native-preview@7.0.0-dev.20260421.2)
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
-    transitivePeerDependencies:
-      - supports-color
 
   '@typescript-eslint/type-utils@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))':
     dependencies:
@@ -8773,21 +8723,6 @@ snapshots:
       - supports-color
 
   '@typescript-eslint/types@8.59.1': {}
-
-  '@typescript-eslint/typescript-estree@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)':
-    dependencies:
-      '@typescript-eslint/project-service': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)
-      '@typescript-eslint/tsconfig-utils': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)
-      '@typescript-eslint/types': 8.59.1
-      '@typescript-eslint/visitor-keys': 8.59.1
-      debug: 4.4.3(supports-color@5.5.0)
-      minimatch: 10.2.4
-      semver: 7.7.3
-      tinyglobby: 0.2.16
-      ts-api-utils: 2.5.0(@typescript/native-preview@7.0.0-dev.20260421.2)
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
-    transitivePeerDependencies:
-      - supports-color
 
   '@typescript-eslint/typescript-estree@8.59.1(typescript@5.9.3)':
     dependencies:
@@ -8816,17 +8751,6 @@ snapshots:
       tinyglobby: 0.2.16
       ts-api-utils: 2.5.0(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
-    transitivePeerDependencies:
-      - supports-color
-
-  '@typescript-eslint/utils@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)':
-    dependencies:
-      '@eslint-community/eslint-utils': 4.9.1(eslint@10.2.1)
-      '@typescript-eslint/scope-manager': 8.59.1
-      '@typescript-eslint/types': 8.59.1
-      '@typescript-eslint/typescript-estree': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)
-      eslint: 10.2.1
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
     transitivePeerDependencies:
       - supports-color
 
@@ -9065,16 +8989,16 @@ snapshots:
 
   '@vue/devtools-shared@8.0.7': {}
 
-  '@vue/eslint-config-typescript@14.7.0(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint-plugin-vue@10.9.0(@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1)))(eslint@10.2.1)':
+  '@vue/eslint-config-typescript@14.7.0(eslint-plugin-vue@10.9.0(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1)))(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))':
     dependencies:
-      '@typescript-eslint/utils': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
+      '@typescript-eslint/utils': 8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       eslint: 10.2.1
-      eslint-plugin-vue: 10.9.0(@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1))
+      eslint-plugin-vue: 10.9.0(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1))
       fast-glob: 3.3.3
-      typescript-eslint: 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
+      typescript-eslint: 8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       vue-eslint-parser: 10.4.0(eslint@10.2.1)
     optionalDependencies:
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
+      typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
     transitivePeerDependencies:
       - supports-color
 
@@ -9117,12 +9041,6 @@ snapshots:
       '@vue/shared': 3.5.33
       csstype: 3.2.3
 
-  '@vue/server-renderer@3.5.33(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))':
-    dependencies:
-      '@vue/compiler-ssr': 3.5.33
-      '@vue/shared': 3.5.33
-      vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
-
   '@vue/server-renderer@3.5.33(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
       '@vue/compiler-ssr': 3.5.33
@@ -9148,14 +9066,6 @@ snapshots:
       vue: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     transitivePeerDependencies:
       - typescript
-
-  '@vueuse/core@14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))':
-    dependencies:
-      '@types/web-bluetooth': 0.0.21
-      '@vueuse/metadata': 14.2.1
-      '@vueuse/shared': 14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
-      vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
-    optional: true
 
   '@vueuse/core@14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -9186,11 +9096,6 @@ snapshots:
       vue: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     transitivePeerDependencies:
       - typescript
-
-  '@vueuse/shared@14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))':
-    dependencies:
-      vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
-    optional: true
 
   '@vueuse/shared@14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -10230,19 +10135,6 @@ snapshots:
     optionalDependencies:
       '@typescript-eslint/eslint-plugin': 8.59.1(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
-  eslint-plugin-vue@10.9.0(@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1)):
-    dependencies:
-      '@eslint-community/eslint-utils': 4.9.1(eslint@10.2.1)
-      eslint: 10.2.1
-      natural-compare: 1.4.0
-      nth-check: 2.1.1
-      postcss-selector-parser: 7.1.1
-      semver: 7.7.3
-      vue-eslint-parser: 10.4.0(eslint@10.2.1)
-      xml-name-validator: 4.0.0
-    optionalDependencies:
-      '@typescript-eslint/parser': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
-
   eslint-plugin-vue@10.9.0(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(vue-eslint-parser@10.4.0(eslint@10.2.1)):
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@10.2.1)
@@ -11159,7 +11051,7 @@ snapshots:
 
   lz-string@1.5.0: {}
 
-  madge@8.0.0(@typescript/native-preview@7.0.0-dev.20260421.2):
+  madge@8.0.0(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)):
     dependencies:
       chalk: 4.1.2
       commander: 7.2.0
@@ -11174,7 +11066,7 @@ snapshots:
       ts-graphviz: 2.1.6
       walkdir: 0.4.1
     optionalDependencies:
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
+      typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
     transitivePeerDependencies:
       - supports-color
 
@@ -12536,10 +12428,6 @@ snapshots:
 
   trim-lines@3.0.1: {}
 
-  ts-api-utils@2.5.0(@typescript/native-preview@7.0.0-dev.20260421.2):
-    dependencies:
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
-
   ts-api-utils@2.5.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
@@ -12567,13 +12455,13 @@ snapshots:
 
   ts-transform-paths@3.0.0: {}
 
-  tsc-watch@7.2.0(@typescript/native-preview@7.0.0-dev.20260421.2):
+  tsc-watch@7.2.0(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)):
     dependencies:
       cross-spawn: 7.0.6
       node-cleanup: 2.1.2
       ps-tree: 1.2.0
       string-argv: 0.3.2
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
+      typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
 
   tsconfig-paths@3.15.0:
     dependencies:
@@ -12642,14 +12530,14 @@ snapshots:
       possible-typed-array-names: 1.1.0
       reflect.getprototypeof: 1.0.10
 
-  typescript-eslint@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1):
+  typescript-eslint@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.59.1(@typescript-eslint/parser@8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1))(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
-      '@typescript-eslint/parser': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
-      '@typescript-eslint/typescript-estree': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)
-      '@typescript-eslint/utils': 8.59.1(@typescript/native-preview@7.0.0-dev.20260421.2)(eslint@10.2.1)
+      '@typescript-eslint/eslint-plugin': 8.59.1(@typescript-eslint/parser@8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
+      '@typescript-eslint/parser': 8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
+      '@typescript-eslint/typescript-estree': 8.59.1(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
+      '@typescript-eslint/utils': 8.59.1(eslint@10.2.1)(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
       eslint: 10.2.1
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
+      typescript: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
     transitivePeerDependencies:
       - supports-color
 
@@ -12718,7 +12606,7 @@ snapshots:
 
   universalify@0.1.2: {}
 
-  unplugin-auto-import@21.0.0(@vueuse/core@14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))):
+  unplugin-auto-import@21.0.0(@vueuse/core@14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))):
     dependencies:
       local-pkg: 1.1.2
       magic-string: 0.30.21
@@ -12727,7 +12615,7 @@ snapshots:
       unplugin: 2.3.11
       unplugin-utils: 0.3.1
     optionalDependencies:
-      '@vueuse/core': 14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
+      '@vueuse/core': 14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
 
   unplugin-utils@0.3.1:
     dependencies:
@@ -12988,16 +12876,6 @@ snapshots:
     dependencies:
       highlight.js: 10.7.3
       vue: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
-
-  vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2):
-    dependencies:
-      '@vue/compiler-dom': 3.5.33
-      '@vue/compiler-sfc': 3.5.33
-      '@vue/runtime-dom': 3.5.33
-      '@vue/server-renderer': 3.5.33(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
-      '@vue/shared': 3.5.33
-    optionalDependencies:
-      typescript: '@typescript/native-preview@7.0.0-dev.20260421.2'
 
   vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)):
     dependencies:

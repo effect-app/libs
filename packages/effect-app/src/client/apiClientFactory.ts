@@ -252,7 +252,7 @@ const makeApiClientFactory = Effect
                 Effect.flatMap((svcs) => {
                   const rpcEffect = TheClient
                     .use((client) =>
-                      (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any, never>
+                      (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>
                     )
                     .pipe(
                       Effect.provide(layers),

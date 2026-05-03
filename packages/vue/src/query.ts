@@ -396,7 +396,7 @@ export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
 type StreamQueryResult<A, E> = readonly [
   ComputedRef<AsyncResult.AsyncResult<A[], E>>,
   ComputedRef<A[] | undefined>,
-  (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A[], CauseException<E>>, never, never>,
+  (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A[], CauseException<E>>>,
   UseQueryReturnType<any, any>
 ]
 

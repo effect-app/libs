@@ -3148,7 +3148,7 @@ export class CommanderImpl<RT, RTHooks> {
     const toRawHandler = (fn: any): (arg: any, ctx: any) => StreamOrEffect => {
       if (isGeneratorFunction(fn)) {
         return Effect.fnUntraced(function*(arg: any, ctx: any) {
-          return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>, any>)(arg, ctx)
+          return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>>)(arg, ctx)
         })
       }
       return fn

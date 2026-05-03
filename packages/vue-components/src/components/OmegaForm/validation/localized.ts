@@ -194,9 +194,9 @@ const walkAst = (ast: S.AST.AST, trans: TransFn): S.AST.AST => {
 }
 
 export const annotateLiteralUnionMessages = <To, From>(
-  schema: S.Codec<To, From, never>,
+  schema: S.Codec<To, From>,
   trans: TransFn
-): S.Codec<To, From, never> => {
+): S.Codec<To, From> => {
   const newAst = walkAst(schema.ast, trans)
   return newAst === schema.ast ? schema : S.make(newAst)
 }

@@ -8,7 +8,7 @@ export type FilterItems = {
   items: readonly [string, ...string[]]
   message:
     | string
-    | Effect.Effect<string, never>
+    | Effect.Effect<string>
     | { readonly message: string | Effect.Effect<string> }
 }
 

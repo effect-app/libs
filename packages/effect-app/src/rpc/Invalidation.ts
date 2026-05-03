@@ -179,7 +179,7 @@ export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>
  * with `CommandResponseWithMetaData` / `CommandFailureWithMetaData`.
  */
 // eslint-disable-next-line import/namespace
-export interface CommandWithMetadataRpc extends Rpc.Custom {
+export interface CommandRpc extends Rpc.Custom {
   readonly out: Rpc.Custom.Out<
     ReturnType<typeof CommandResponseWithMetaData<this["success"] & S.Top>>,
     ReturnType<typeof CommandFailureWithMetaData<this["error"] & S.Top>>
@@ -191,7 +191,7 @@ export interface CommandWithMetadataRpc extends Rpc.Custom {
  * Wraps the success schema with `CommandResponseWithMetaData` and
  * the error schema with `CommandFailureWithMetaData`.
  */
-export const makeCommandRpc = Rpc.custom<CommandWithMetadataRpc>(({ defect, error, success }) => ({
+export const makeCommandRpc = Rpc.custom<CommandRpc>(({ defect, error, success }) => ({
   success: CommandResponseWithMetaData(success),
   error: CommandFailureWithMetaData(error),
   defect
@@ -202,7 +202,7 @@ export const makeCommandRpc = Rpc.custom<CommandWithMetadataRpc>(({ defect, erro
  * with `StreamResponseChunk` / `StreamFailureChunk`.
  */
 // eslint-disable-next-line import/namespace
-export interface StreamWithMetadataRpc extends Rpc.Custom {
+export interface StreamRpc extends Rpc.Custom {
   readonly out: Rpc.Custom.Out<
     ReturnType<typeof StreamResponseChunk<this["success"] & S.Top>>,
     ReturnType<typeof StreamFailureChunk<this["error"] & S.Top>>
@@ -214,7 +214,7 @@ export interface StreamWithMetadataRpc extends Rpc.Custom {
  * Wraps the success schema with `StreamResponseChunk` and
  * the error schema with `StreamFailureChunk`.
  */
-export const makeStreamRpc = Rpc.custom<StreamWithMetadataRpc>(({ defect, error, success }) => ({
+export const makeStreamRpc = Rpc.custom<StreamRpc>(({ defect, error, success }) => ({
   success: StreamResponseChunk(success),
   error: StreamFailureChunk(error),
   defect

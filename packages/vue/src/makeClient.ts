@@ -306,18 +306,18 @@ export type StreamFnStreamExtension<RT, Req> = Req extends
   : never
 
 /**
- * `mutateStream2` factory — like `mutateStream` but returns `Effect<Stream>` per invocation
- * for use with `streamFn` combinators. Handles invalidation via `Stream.ensuring`.
+ * `mutateStream2` factory — like `mutateStream` but wraps per-invocation invalidation scaffolding
+ * into the stream itself (via `Stream.unwrap`) for use with `streamFn` combinators.
  */
 export type StreamMutation2WithExtensions<RT, Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
-    & ((input: I) => Effect.Effect<Stream.Stream<A, E, R>>)
+    & ((input: I) => Stream.Stream<A, E, R>)
     & {
       readonly id: Id
       readonly wrapStream: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
     }
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
-      & Effect.Effect<Stream.Stream<A, E, R>>
+      & Stream.Stream<A, E, R>
       & {
         readonly id: Id
         readonly wrapStream: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>

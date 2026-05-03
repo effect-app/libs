@@ -28,6 +28,8 @@
     "typescript/consistent-type-imports": ["error", {
       "fixStyle": "inline-type-imports"
     }],
+    // strange issue with types from namespaces somehow
+    "import/namespace": "off",
     "import/no-duplicates": "error",
     "import/no-self-import": "warn",
     "import/no-empty-named-blocks": "error",

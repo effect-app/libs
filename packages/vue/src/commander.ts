@@ -2169,7 +2169,7 @@ export const CommanderStatic = {
               ),
             onSuccess: options?.onSuccess === null
               ? null
-              : (a, ..._args) =>
+              : (_a, ..._args) =>
                 hasCustomSuccess
                   ? intl.formatMessage(
                     { id: customSuccess },

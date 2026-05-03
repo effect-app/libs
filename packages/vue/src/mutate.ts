@@ -425,6 +425,44 @@ export const useMakeMutation = () => {
  *
  * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */
+export const makeStreamMutation2 = () => {
+  const queryClient = useQueryClient()
+
+  return (
+    self: {
+      id: string
+      options?: ClientForOptions
+      handler: Stream.Stream<any, any, any> | ((i: any) => Stream.Stream<any, any, any>)
+    },
+    mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
+  ) => {
+    const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
+
+    const makeInvocationEffect = (input: unknown, source: Stream.Stream<any, any, any>) =>
+      Effect.gen(function*() {
+        const keysRef = yield* Ref.make<ReadonlyArray<InvalidationKey>>([])
+        const invKeys = makeInvalidationKeysService(keysRef, (key) => invCache(input, Exit.succeed(undefined), [key]))
+        const lastRef = yield* Ref.make<any>(undefined)
+        return source.pipe(
+          Stream.provideService(InvalidationKeysFromServer, invKeys),
+          Stream.tap((v) => Ref.set(lastRef, v)),
+          Stream.ensuring(
+            Effect.flatMap(Ref.get(lastRef), (lastValue) =>
+              Effect
+                .flatMap(Ref.get(keysRef), (serverKeys) => invCache(input, Exit.succeed(lastValue), serverKeys)))
+          )
+        )
+      })
+
+    const handler = self.handler
+    const act = Stream.isStream(handler)
+      ? makeInvocationEffect(undefined, handler)
+      : (i: any) => makeInvocationEffect(i, (handler as (i: any) => Stream.Stream<any, any, any>)(i))
+
+    return act
+  }
+}
+
 export const makeStreamMutation = () => {
   const queryClient = useQueryClient()
 

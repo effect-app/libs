@@ -3,7 +3,8 @@
   lang="ts"
   generic="I = never"
 >
-import type { CommandBase } from "@effect-app/vue"
+import type { CommandBase, Progress } from "@effect-app/vue"
+import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed } from "vue"
 import type { VBtn } from "vuetify/components"
 
@@ -26,20 +27,29 @@ const props = defineProps<
   & {
     disabled?: ButtonProps["disabled"]
     title?: string // why isn't it part of VBtnProps??
+    mapProgress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined
   }
   & ButtonProps
 >()
 
 const isDisabled = computed(() => props.command.blocked || props.disabled)
 
+const resolvedProgress = computed(() => {
+  if (props.mapProgress) {
+    const result = props.command.result
+    return result !== undefined ? props.mapProgress(result) : undefined
+  }
+  return props.command.progress
+})
+
 const progressText = computed(() => {
-  const p = props.command.progress
+  const p = resolvedProgress.value
   if (p === undefined) return undefined
   return typeof p === "string" ? p : p.text
 })
 
 const progressPercentage = computed(() => {
-  const p = props.command.progress
+  const p = resolvedProgress.value
   return typeof p === "object" && p !== null ? p.percentage : undefined
 })
 

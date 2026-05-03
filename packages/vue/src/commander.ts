@@ -1783,7 +1783,7 @@ export declare namespace Commander {
       SA,
       SE,
       SR,
-      A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      B,
       Arg = void
     >(
       body: (
@@ -1791,21 +1791,22 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<Id, I18nKey, State>
       ) => Generator<Eff, Stream.Stream<SA, SE, SR>, never>,
       a: (
-        _: Stream.Stream<
-          SA,
-          | SE
-          | ([Eff] extends [never] ? never
+        _: Effect.Effect<
+          Stream.Stream<SA, SE, SR>,
+          ([Eff] extends [never] ? never
             : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
             : never),
-          | SR
-          | ([Eff] extends [never] ? never
+          ([Eff] extends [never] ? never
             : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
             : never)
         >,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-      ) => A
-    ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+      ) => B
+    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2> ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
+      : B extends Effect.Effect<Stream.Stream<infer SA2, infer SE2, infer SR2>, infer EE2, infer ER2>
+        ? CommandOut<Arg, SA2, SE2 | EE2, SR2 | ER2, Id, I18nKey, State>
+      : never
   }
 
   /**
@@ -1854,7 +1855,7 @@ export declare namespace Commander {
       SR,
       EE,
       ER,
-      A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      B,
       Arg = void
     >(
       body: (
@@ -1862,11 +1863,14 @@ export declare namespace Commander {
         ctx: CommandContextLocal2<Id, I18nKey, State>
       ) => Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>,
       a: (
-        _: Stream.Stream<SA, SE | EE, SR | ER>,
+        _: Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>,
         arg: ArgForCombinator<Arg>,
         ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
-      ) => A
-    ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+      ) => B
+    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2> ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
+      : B extends Effect.Effect<Stream.Stream<infer SA2, infer SE2, infer SR2>, infer EE2, infer ER2>
+        ? CommandOut<Arg, SA2, SE2 | EE2, SR2 | ER2, Id, I18nKey, State>
+      : never
   }
 }
 
@@ -2950,18 +2954,21 @@ export class CommanderImpl<RT, RTHooks> {
   {
     const resolvedId = typeof id === "string" ? id : id.id
 
-    const toStreamHandler = (fn: any): (arg: any, ctx: any) => Stream.Stream<any, any, any> => {
+    const toRawHandler = (
+      fn: any
+    ): (arg: any, ctx: any) => Stream.Stream<any, any, any> | Effect.Effect<Stream.Stream<any, any, any>, any, any> => {
       if (isGeneratorFunction(fn)) {
-        const genFn = Effect.fnUntraced(function*(arg: any, ctx: any) {
+        return Effect.fnUntraced(function*(arg: any, ctx: any) {
           return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>, any>)(arg, ctx)
         })
-        return (arg: any, ctx: any) => Stream.unwrap(genFn(arg, ctx))
       }
-      return (arg: any, ctx: any) => {
-        const result = fn(arg, ctx)
-        return Stream.isStream(result) ? result : Stream.unwrap(result)
-      }
+      return fn
     }
+
+    const toFinalStream = (
+      value: Stream.Stream<any, any, any> | Effect.Effect<Stream.Stream<any, any, any>, any, any>
+    ): Stream.Stream<any, any, any> =>
+      Stream.isStream(value) ? value : Stream.unwrap(value as Effect.Effect<Stream.Stream<any, any, any>, any, any>)
 
     return Object.assign(
       (fn: any, ...combinators: Array<(s: any, arg: any, ctx: any) => any>): any => {
@@ -2970,16 +2977,14 @@ export class CommanderImpl<RT, RTHooks> {
         const errorDef = new Error()
         Error.stackTraceLimit = limit
 
-        const baseHandler = toStreamHandler(fn)
-        const handler = combinators.length > 0
-          ? (arg: any, ctx: any) => {
-            let stream = baseHandler(arg, ctx)
-            for (const combinator of combinators) {
-              stream = combinator(stream, arg, ctx)
-            }
-            return stream
+        const rawHandler = toRawHandler(fn)
+        const handler = (arg: any, ctx: any) => {
+          let current: any = rawHandler(arg, ctx)
+          for (const combinator of combinators) {
+            current = combinator(current, arg, ctx)
           }
-          : baseHandler
+          return toFinalStream(current)
+        }
 
         return this.makeStreamCommand(id, options, errorDef)(handler)
       },

@@ -100,6 +100,21 @@ export const useExperimental = (
   return Effect.runSync(makeUseCommand<WithToast | Toast.Toast | I18n>(Layer.empty).pipe(Effect.provide(layers)))
 }
 
+// Effect-returning variant: keeps the caller's runtime context (e.g. a TestClock
+// provided by `it.effect`) so virtual-time advances reach the runtime captured
+// inside Commander.
+export const useExperimentalE = (
+  options?: { messages?: Record<string, string> | Record<string, MessageFormatElement[]>; toasts: any[] }
+) => {
+  const FakeIntlLayer = fakeIntlLayer(options?.messages)
+  const FakeToastLayer = fakeToastLayer(options?.toasts)
+  const CommanderLayer = Commander.Default.pipe(Layer.provide([FakeIntlLayer, FakeToastLayer]))
+  const WithToastLayer = WithToast.Default.pipe(Layer.provide(FakeToastLayer))
+  const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer)
+
+  return makeUseCommand<WithToast | Toast.Toast | I18n>(Layer.empty).pipe(Effect.provide(layers))
+}
+
 export class RequestContextMap extends RpcContextMap.makeMap({}) {}
 export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 

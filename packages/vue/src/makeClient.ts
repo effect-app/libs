@@ -1051,8 +1051,8 @@ export const makeClient = <RT_, RTHooks>(
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
                   const originalHandler = (client[key] as any).handler
                   const sm2Handler = Stream.isStream(originalHandler)
-                    ? (_arg: any, _ctx: any) => sm2Act
-                    : (i: any, _ctx: any) => (sm2Act as (i: any) => any)(i)
+                    ? (_input: any, _ctx: any) => sm2Act
+                    : (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
                     id: client[key].id,
                     wrapStream: (...combinators: any[]) => {

@@ -414,14 +414,13 @@ export const useMakeMutation = () => {
 }
 
 /**
- * Like `makeMutation`, but for stream-type request handlers.
- * Returns a `[ref, execute]` tuple where `ref` is a reactive `AsyncResult` updated per
- * stream element. Queries are invalidated once when the stream finishes, regardless of
- * success or failure.
+ * Like `makeStreamMutation`, but returns an `Effect<Stream>` per invocation instead of a
+ * `[ref, execute]` tuple. The outer Effect sets up per-invocation invalidation scaffolding
+ * and returns a stream that triggers query invalidation via `Stream.ensuring` when it completes.
  *
- * When the request declares a `final` schema, `execute` resolves with the last emitted value
- * typed as `Final`; otherwise it resolves with the last emitted value typed as the success type.
- * Stream failures bubble through the execute effect's typed error channel `E`.
+ * Use this with `streamFn` / `Command.streamFn(id)(mutateStream2Handler, ...combinators)` so that
+ * the command manages its own reactive state internally. Unlike `makeStreamMutation`, no external
+ * reactive result ref is created.
  *
  * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */

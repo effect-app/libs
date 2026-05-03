@@ -130,6 +130,22 @@ type SomethingInvalidationResources = {
   GetSomething3: typeof SomethingGetSomething3
 }
 
+// command stubs covering the input-shape matrix
+class SomethingDoNoProps extends SomethingCommand<SomethingDoNoProps>()("DoNoProps", {}) {}
+
+class SomethingDoOptionalOnly extends SomethingCommand<SomethingDoOptionalOnly>()("DoOptionalOnly", {
+  name: S.optional(S.String)
+}) {}
+
+class SomethingDoRequiredOnly extends SomethingCommand<SomethingDoRequiredOnly>()("DoRequiredOnly", {
+  id: S.String
+}) {}
+
+class SomethingDoMixed extends SomethingCommand<SomethingDoMixed>()("DoMixed", {
+  id: S.String,
+  name: S.optional(S.String)
+}) {}
+
 class SomethingDoSomething extends SomethingCommand<
   SomethingDoSomething,
   { Something: SomethingInvalidationResources }
@@ -188,6 +204,10 @@ export const Something = {
   GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
   GetSomething3: SomethingGetSomething3,
   GetSomething4: SomethingGetSomething4,
+  DoNoProps: SomethingDoNoProps,
+  DoOptionalOnly: SomethingDoOptionalOnly,
+  DoRequiredOnly: SomethingDoRequiredOnly,
+  DoMixed: SomethingDoMixed,
   DoSomething: SomethingDoSomething,
   GetStructNullable: SomethingGetStructNullable,
   StreamWithoutFinal: SomethingStreamWithoutFinal,

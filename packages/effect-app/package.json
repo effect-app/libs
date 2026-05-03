@@ -6,7 +6,7 @@
   "dependencies": {
     "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.1.0",
-    "nanoid": "^5.1.9",
+    "nanoid": "^5.1.11",
     "path-parser": "^6.1.0",
     "query-string": "^9.3.1",
     "ts-pattern": "^5.9.0",

@@ -38,7 +38,7 @@ export const useOmegaForm = <
   To extends Record<PropertyKey, any>,
   TypeProps = DefaultTypeProps
 >(
-  schema: S.Codec<To, From, never>,
+  schema: S.Codec<To, From>,
   tanstackFormOptions?: NoInfer<FormProps<From, To>>,
   omegaConfig?: OmegaConfig<To>
 ): OmegaFormReturn<From, To, TypeProps> => {
@@ -95,7 +95,7 @@ export const useOmegaForm = <
       ...tanstackFormOptions?.validators
     },
     onSubmit: wrapOnSubmit<From, To>(tanstackFormOptions?.onSubmit, decode, runPromise),
-    defaultValues: persistency.defaultValues.value as any
+    defaultValues: persistency.defaultValues.value
   }) satisfies OmegaFormApi<To, From>
   formHolder.form = form
 

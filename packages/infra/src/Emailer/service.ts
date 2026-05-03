@@ -21,7 +21,7 @@ export interface SendgridConfig {
   subjectPrefix: string
   realMail: boolean
   defaultFrom: EmailData
-  apiKey: Redacted.Redacted<string>
+  apiKey: Redacted.Redacted
   /**
    * Email address used for fake/test recipients. Use `{i}` as a placeholder for an auto-incrementing index to ensure uniqueness.
    *

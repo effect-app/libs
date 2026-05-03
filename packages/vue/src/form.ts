@@ -23,7 +23,7 @@ function getObjectsAST(ast: S.AST.AST): S.AST.Objects | null {
 }
 
 /** @deprecated Use OmegaForm instead */
-export function convertIn(v: string | null, type?: "text" | "float" | "int") {
+export function convertIn(v: number | string | null, type?: "text" | "float" | "int") {
   return v === null ? "" : type === "text" ? v : `${v}`
 }
 

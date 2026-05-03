@@ -1733,7 +1733,8 @@ export declare namespace Commander {
       body: (
         arg: Arg,
         ctx: CommandContextLocal2<Id, I18nKey, State>
-      ) => Generator<Eff, Stream.Stream<SA, SE, SR>, never>
+      ) => Generator<Eff, Stream.Stream<SA, SE, SR>, never>,
+      progress?: (value: SA) => Progress | undefined
     ): CommandOut<
       Arg,
       SA,
@@ -1762,7 +1763,8 @@ export declare namespace Commander {
       SR extends RT | CommandContext | `Commander.Command.${Id}.state`,
       Arg = void
     >(
-      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>,
+      progress?: (value: SA) => Progress | undefined
     ): CommandOut<Arg, SA, SE, SR, Id, I18nKey, State>
     <
       SA,
@@ -1775,7 +1777,8 @@ export declare namespace Commander {
       body: (
         arg: Arg,
         ctx: CommandContextLocal2<Id, I18nKey, State>
-      ) => Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>
+      ) => Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>,
+      progress?: (value: SA) => Progress | undefined
     ): CommandOut<Arg, SA, SE | EE, SR | ER, Id, I18nKey, State>
   }
 }
@@ -2545,7 +2548,8 @@ export class CommanderImpl<RT, RTHooks> {
 
     return Object.assign(
       <Arg, SA, SE, SR>(
-        handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>
+        handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>,
+        progressFn?: (value: SA) => Progress | undefined
       ) => {
         const limit = Error.stackTraceLimit
         Error.stackTraceLimit = 2
@@ -2640,6 +2644,13 @@ export class CommanderImpl<RT, RTHooks> {
         const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
         const runFork = Effect.runForkWith(rt)
 
+        const progress = progressFn
+          ? computed(() => {
+            const r = result.value
+            return r._tag === "Success" ? progressFn(r.value) : undefined
+          })
+          : undefined
+
         const handle = Object.assign((arg: Arg) => {
           arg = toRaw(arg)
           const limit = Error.stackTraceLimit
@@ -2697,6 +2708,10 @@ export class CommanderImpl<RT, RTHooks> {
           namespace: initialContext.namespace,
           namespaced: initialContext.namespaced,
           result,
+          /** reactive – live AsyncResult of the underlying stream (same as `result` for streamFn commands) */
+          running: result,
+          /** reactive – formatted progress info when a `progress` formatter was supplied */
+          progress,
           waiting,
           blocked,
           allowed,
@@ -2736,8 +2751,18 @@ export class CommanderImpl<RT, RTHooks> {
    * @param id The internal identifier for the action (used for tracing and i18n lookup).
    * @param options Same options as `fn` (`state`, `blockKey`, `waitKey`, `allowed`, `i18nCustomKey`).
    *
-   * **Returned Properties**: same as `fn` — `action`, `label`, `result`, `waiting`, `blocked`,
-   * `allowed`, `handle`, `i18nKey`, `namespace`, `namespaced`.
+   * **Progress**: pass a `progress` formatter as the second argument to the handler call:
+   * ```ts
+   * Command.streamFn("exportData")(handler, (v) => `${v.completed}/${v.total}`)
+   * ```
+   * The command then exposes `running` (the live `AsyncResult`) and `progress` (the computed
+   * `Progress | undefined`) alongside the usual `result`, `waiting`, etc.
+   *
+   * To inject progress entries at specific points in the stream handler, prepend them to the
+   * returned stream: `return Stream.concat(Stream.make(progressEvent), mainStream)`.
+   *
+   * **Returned Properties**: same as `fn` — `action`, `label`, `result`, `running`, `progress`,
+   * `waiting`, `blocked`, `allowed`, `handle`, `i18nKey`, `namespace`, `namespaced`.
    */
   streamFn = <
     const Id extends string,
@@ -2769,13 +2794,13 @@ export class CommanderImpl<RT, RTHooks> {
     }
 
     return Object.assign(
-      (fn: any): any => {
+      (fn: any, progressFn?: (value: any) => Progress | undefined): any => {
         const limit = Error.stackTraceLimit
         Error.stackTraceLimit = 2
         const errorDef = new Error()
         Error.stackTraceLimit = limit
 
-        return this.makeStreamCommand(id, options, errorDef)(toStreamHandler(fn))
+        return this.makeStreamCommand(id, options, errorDef)(toStreamHandler(fn), progressFn)
       },
       makeBaseInfo(resolvedId, options),
       {

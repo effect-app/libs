@@ -7,7 +7,7 @@ import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
 import * as Stream from "effect/Stream"
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
 import { Confirm } from "./confirm.js"
@@ -138,9 +138,9 @@ export class CommandContext extends Context.Service<CommandContext, {
  * const exportCmd = Command.streamFn("exportData")(
  *   function*(arg, ctx) {
  *     return makeExportStream(arg.id).pipe(
- *       Command.mapProgress((event) =>
- *         event._tag === "OperationProgress"
- *           ? { text: `${event.completed}/${event.total}`, percentage: event.completed / event.total * 100 }
+ *       Command.mapProgress((r) =>
+ *         AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress"
+ *           ? { text: `${r.value.completed}/${r.value.total}`, percentage: r.value.completed / r.value.total * 100 }
  *           : undefined
  *       )
  *     )
@@ -1994,6 +1994,10 @@ export const CommanderStatic = {
    * Stream pipe operator that maps each emitted value to a `Progress` entry and updates the
    * command's reactive `progress` ref via the `CommandProgress` service.
    *
+   * The mapper receives an `AsyncResult<A, E>` (each emitted value wrapped as
+   * `AsyncResult.success(value, { waiting: true })`), matching the same shape used by
+   * `CommandButton`'s `:progress-map` prop.
+   *
    * Designed to be used inside a `streamFn` handler (either directly with `.pipe()`, or as
    * a combinator argument):
    *
@@ -2002,9 +2006,9 @@ export const CommanderStatic = {
    * // Inside the handler body:
    * Command.streamFn("exportData")(function*(arg, ctx) {
    *   return makeExportStream(arg.id).pipe(
-   *     Command.mapProgress((v) =>
-   *       v._tag === "OperationProgress"
-   *         ? { text: `${v.completed}/${v.total}`, percentage: v.completed / v.total * 100 }
+   *     Command.mapProgress((r) =>
+   *       AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress"
+   *         ? { text: `${r.value.completed}/${r.value.total}`, percentage: r.value.completed / r.value.total * 100 }
    *         : undefined
    *     )
    *   )
@@ -2013,15 +2017,16 @@ export const CommanderStatic = {
    * // Or as a stream combinator argument:
    * Command.streamFn("exportData")(
    *   function*(arg, ctx) { return makeExportStream(arg.id) },
-   *   (s) => s.pipe(Command.mapProgress((v) => v._tag === "OperationProgress" ? { text: `${v.completed}/${v.total}` } : undefined))
+   *   (s) => s.pipe(Command.mapProgress((r) => AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress" ? { text: `${r.value.completed}/${r.value.total}` } : undefined))
    * )
    * ```
    */
   mapProgress:
-    <A>(fn: (a: A) => Progress | undefined) => <E, R>(stream: Stream.Stream<A, E, R>): Stream.Stream<A, E, R> =>
+    <A, E>(fn: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined) =>
+    <R>(stream: Stream.Stream<A, E, R>): Stream.Stream<A, E, R> =>
       stream.pipe(
         Stream.tap((v) => {
-          const p = fn(v)
+          const p = fn(AsyncResult.success(v, { waiting: true }))
           return p !== undefined ? CommandProgress.use((s) => s.update(p)) : Effect.void
         })
       ),
@@ -2899,19 +2904,21 @@ export class CommanderImpl<RT, RTHooks> {
    * @param id The internal identifier for the action (used for tracing and i18n lookup).
    * @param options Same options as `fn` (`state`, `blockKey`, `waitKey`, `allowed`, `i18nCustomKey`).
    *
-   * **Progress** — use `Command.mapProgress(fn)` as a stream pipe operator to map emitted values
-   * to progress info, or call `Command.updateProgress(p)` for imperative control:
+   * **Progress** — use `Command.mapProgress(fn)` as a stream pipe operator; the mapper receives
+   * `AsyncResult<A, E>` (each value wrapped as `AsyncResult.success(v, { waiting: true })`),
+   * matching the same shape as CommandButton’s `:progress-map` prop. Or call
+   * `Command.updateProgress(p)` for imperative control:
    *
    * ```ts
    * // mapProgress as a combinator arg (outside the handler):
    * Command.streamFn("exportData")(
    *   function*(arg, ctx) { return makeExportStream(arg.id) },
-   *   (s) => s.pipe(Command.mapProgress((v) => v._tag === "OperationProgress" ? { text: `${v.completed}/${v.total}` } : undefined))
+   *   (s) => s.pipe(Command.mapProgress((r) => AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress" ? { text: `${r.value.completed}/${r.value.total}` } : undefined))
    * )
    *
    * // Or inline inside the handler body:
    * Command.streamFn("exportData")(function*(arg, ctx) {
-   *   return makeExportStream(arg.id).pipe(Command.mapProgress((v) => ...))
+   *   return makeExportStream(arg.id).pipe(Command.mapProgress((r) => AsyncResult.isSuccess(r) ? ... : undefined))
    * })
    * ```
    *

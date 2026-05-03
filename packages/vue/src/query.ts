@@ -201,7 +201,6 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     const queryKey = makeQueryKey(q)
     const projectionHash = (q as { queryKeyProjectionHash?: string }).queryKeyProjectionHash
     const baseQueryKey = projectionHash === undefined ? queryKey : [...queryKey, projectionHash]
-    const handler = q.handler
 
     const defaultOptions = {
       // we do not want to throw errors, because we turn the success and error responses into a Result type
@@ -214,7 +213,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     }
 
     const r = useTanstackQuery<A, CauseException<E>, TData>(
-      handler.length === 0
+      q._noInput
         ? {
           ...defaultOptions,
           ...options,
@@ -230,7 +229,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
           queryKey: baseQueryKey,
           queryFn: ({ meta, signal }) =>
             runPromise(
-              (handler as () => Effect.Effect<A, any, any>)()
+              (q.handler as () => Effect.Effect<A, any, any>)()
                 .pipe(
                   Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
                   Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
@@ -254,7 +253,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
           queryKey: projectionHash === undefined ? [...queryKey, req] : [...queryKey, req, projectionHash],
           queryFn: ({ meta, signal }) =>
             runPromise(
-              handler(req.value)
+              (q.handler as (i: I) => Effect.Effect<A, any, any>)(req.value)
                 .pipe(
                   Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
                   Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
@@ -383,7 +382,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     const q = useQuery_(self)
 
     return (argOrOptions?: any, options?: any) =>
-      self.handler.length === 0
+      self._noInput
         ? q(undefined, argOrOptions)
         : q(argOrOptions, options)
   }
@@ -421,8 +420,7 @@ export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
       })
       : ref(arg)
     const queryKey = makeQueryKey(q)
-    const handler = q.handler
-    const isWithInput = handler.length !== 0
+    const isWithInput = !q._noInput
 
     const r = useTanstackQuery<any[], CauseException<any>, any[]>(
       {
@@ -439,8 +437,8 @@ export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
         queryFn: streamedQuery({
           streamFn: () => {
             const stream = isWithInput
-              ? (handler as (arg: any) => any)(req.value)
-              : (handler as () => any)()
+              ? (q.handler as (arg: any) => any)(req.value)
+              : (q.handler as () => any)()
             return streamToAsyncIterableWithCauseException(stream, context, q.id)
           }
         })

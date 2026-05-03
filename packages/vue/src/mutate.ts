@@ -371,11 +371,11 @@ export const makeMutation = () => {
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>
   ) => {
     const queryClient = useQueryClient()
-    const handler = self.handler
-    const r = handler.length === 0
+    const r = self._noInput
       ? (options?: MutationOptionsBase) =>
-        invalidateQueries(queryClient, self, options)((handler as () => Effect.Effect<A, E, R>)())
-      : (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler(i), i)
+        invalidateQueries(queryClient, self, options)(self.handler())
+      : (i: I, options?: MutationOptionsBase) =>
+        invalidateQueries(queryClient, self, options)((self as RequestHandlerWithInput<I, A, E, R, Request, Id>).handler(i), i)
 
     return Object.assign(r, { id: self.id }) as any
   }
@@ -404,11 +404,11 @@ export const useMakeMutation = () => {
   } = <I, E, A, R, Request extends Req, Id extends string>(
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>
   ) => {
-    const handler = self.handler
-    const r = handler.length === 0
+    const r = self._noInput
       ? (options?: MutationOptionsBase) =>
-        invalidateQueries(queryClient, self, options)((handler as () => Effect.Effect<A, E, R>)())
-      : (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler(i), i)
+        invalidateQueries(queryClient, self, options)(self.handler())
+      : (i: I, options?: MutationOptionsBase) =>
+        invalidateQueries(queryClient, self, options)((self as RequestHandlerWithInput<I, A, E, R, Request, Id>).handler(i), i)
 
     return Object.assign(r, { id: self.id }) as any
   }
@@ -431,6 +431,7 @@ export const makeStreamMutation2 = () => {
   return (
     self: {
       id: string
+      _noInput?: true
       options?: ClientForOptions
       handler: (() => Stream.Stream<any, any, any>) | ((i: any) => Stream.Stream<any, any, any>)
     },
@@ -456,10 +457,10 @@ export const makeStreamMutation2 = () => {
         )
       })
 
-    const handler = self.handler
-    const act = handler.length === 0
-      ? () => Stream.unwrap(makeInvocationEffect(undefined, (handler as () => Stream.Stream<any, any, any>)()))
-      : (i: any) => Stream.unwrap(makeInvocationEffect(i, (handler as (i: any) => Stream.Stream<any, any, any>)(i)))
+    const act = self._noInput
+      ? () => Stream.unwrap(makeInvocationEffect(undefined, (self.handler as () => Stream.Stream<any, any, any>)()))
+      : (i: any) =>
+        Stream.unwrap(makeInvocationEffect(i, (self.handler as (i: any) => Stream.Stream<any, any, any>)(i)))
 
     return act
   }

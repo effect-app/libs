@@ -20,27 +20,18 @@ import { type Toast } from "./toast.js"
 
 export type { Progress }
 
-const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
-  handler: (() => Effect.Effect<A, E, R>) | ((i: I) => Effect.Effect<A, E, R>),
-  map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
-) =>
-  handler.length === 0
-    ? () => map((handler as () => Effect.Effect<A, E, R>)(), undefined as any)
-    : (i: I) => map(handler(i), i)
-
 // TODO: optimize - work from encoded shape directly
 const projectHandler = (
-  handler: (() => Effect.Effect<any, any, any>) | ((i: any) => Effect.Effect<any, any, any>),
+  noInput: boolean,
+  handler: (i: any) => Effect.Effect<any, any, any>,
   successSchema: S.Top,
   projectionSchema: S.Top
 ) => {
   const encode = S.encodeEffect(successSchema)
   const decode = S.decodeEffectConcurrently(projectionSchema)
-  return mapHandler(handler, (self) =>
-    self.pipe(
-      Effect.flatMap(encode),
-      Effect.flatMap(decode)
-    ))
+  return noInput
+    ? () => handler(undefined).pipe(Effect.flatMap(encode), Effect.flatMap(decode))
+    : (i: any) => handler(i).pipe(Effect.flatMap(encode), Effect.flatMap(decode))
 }
 
 const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
@@ -387,7 +378,7 @@ const _useMutation = makeMutation()
 const wrapWithSpan = (self: { id: string; handler: any }, mut: any) => {
   const span = (eff: Effect.Effect<any, any, any>) =>
     Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })(eff)
-  return self.handler.length === 0
+  return self._noInput
     ? (options?: MutationOptionsBase) => span(mut(options))
     : (input: any, options?: MutationOptionsBase) => span(mut(input, options))
 }
@@ -801,7 +792,7 @@ export const makeClient = <RT_, RTHooks>(
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
-          const isWithInput = handler.handler.length !== 0
+          const isWithInput = !handler._noInput
           const mut: any = withDefaultInvalidation(mutation(handler), isWithInput, mergedInvalidation)
           const wrap = Command.wrap({ mutate: mut, id: client[key].id })
           return Object.assign(mut, {
@@ -809,7 +800,7 @@ export const makeClient = <RT_, RTHooks>(
             project: (projectionSchema: any) => {
               const projected = {
                 ...handler,
-                handler: projectHandler(handler.handler, client[key].Request.success, projectionSchema)
+                handler: projectHandler(handler._noInput, handler.handler, client[key].Request.success, projectionSchema)
               }
               return makeProjectedMutation(projected)
             }
@@ -897,8 +888,7 @@ export const makeClient = <RT_, RTHooks>(
                 streamFn: useCommand().streamFn(client[key].id as any) as any,
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
-                  const originalHandler = (client[key] as any).handler
-                  const sm2Handler = originalHandler.length === 0
+                  const sm2Handler = (client[key] as any)._noInput
                     ? (_input: any, _ctx: any) => (sm2Act as () => any)()
                     : (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
@@ -924,7 +914,7 @@ export const makeClient = <RT_, RTHooks>(
                   : undefined
                 const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
                 const makeProjectedMutation = (h: any): any => {
-                  const isWithInput = h.handler.length !== 0
+                  const isWithInput = !h._noInput
                   const mutate = withDefaultInvalidation(mutation(h), isWithInput, mergedInvalidation)
                   return Object.assign(
                     mutate,
@@ -936,7 +926,7 @@ export const makeClient = <RT_, RTHooks>(
                       project: (projectionSchema: any) => {
                         const projected = {
                           ...h,
-                          handler: projectHandler(h.handler, client[key].Request.success, projectionSchema)
+                          handler: projectHandler(h._noInput, h.handler, client[key].Request.success, projectionSchema)
                         }
                         return makeProjectedMutation(projected)
                       }

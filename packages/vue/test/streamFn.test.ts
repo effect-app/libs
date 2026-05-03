@@ -151,7 +151,9 @@ it.live("streamFn: generator form with combinator — combinator transforms the 
     // A combinator that records each element it sees.
     // The first argument may be a Stream or an Effect<Stream> (for generator-form handlers),
     // matching how withDefaultToastStream handles it.
-    const spyCombinator = (input: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>) => {
+    const spyCombinator = (
+      input: Stream.Stream<number, never, never> | Effect.Effect<Stream.Stream<number, never, never>>
+    ) => {
       const stream: Stream.Stream<number, never, never> = Stream.isStream(input)
         ? input
         : Stream.unwrap(input as Effect.Effect<Stream.Stream<number, never, never>>)

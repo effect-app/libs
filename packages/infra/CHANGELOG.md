@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- dba5779: namespaces
+  - effect-app@4.0.0-beta.192
+
 ## 4.0.0-beta.191
 
 ### Patch Changes

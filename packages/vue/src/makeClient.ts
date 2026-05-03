@@ -1049,8 +1049,8 @@ export const makeClient = <RT_, RTHooks>(
                 streamFn: useCommand().streamFn(client[key].id as any) as any,
                 mutateStream2: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
-                  const handler_ = (client[key] as any).handler
-                  const sm2Handler = Stream.isStream(handler_)
+                  const originalHandler = (client[key] as any).handler
+                  const sm2Handler = Stream.isStream(originalHandler)
                     ? (_arg: any, _ctx: any) => sm2Act
                     : (i: any, _ctx: any) => (sm2Act as (i: any) => any)(i)
                   return Object.assign(sm2Act, {

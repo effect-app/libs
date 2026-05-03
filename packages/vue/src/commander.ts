@@ -2954,9 +2954,9 @@ export class CommanderImpl<RT, RTHooks> {
   {
     const resolvedId = typeof id === "string" ? id : id.id
 
-    const toRawHandler = (
-      fn: any
-    ): (arg: any, ctx: any) => Stream.Stream<any, any, any> | Effect.Effect<Stream.Stream<any, any, any>, any, any> => {
+    type StreamOrEffect = Stream.Stream<any, any, any> | Effect.Effect<Stream.Stream<any, any, any>, any, any>
+
+    const toRawHandler = (fn: any): (arg: any, ctx: any) => StreamOrEffect => {
       if (isGeneratorFunction(fn)) {
         return Effect.fnUntraced(function*(arg: any, ctx: any) {
           return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>, any>)(arg, ctx)
@@ -2965,9 +2965,7 @@ export class CommanderImpl<RT, RTHooks> {
       return fn
     }
 
-    const toFinalStream = (
-      value: Stream.Stream<any, any, any> | Effect.Effect<Stream.Stream<any, any, any>, any, any>
-    ): Stream.Stream<any, any, any> =>
+    const toFinalStream = (value: StreamOrEffect): Stream.Stream<any, any, any> =>
       Stream.isStream(value) ? value : Stream.unwrap(value as Effect.Effect<Stream.Stream<any, any, any>, any, any>)
 
     return Object.assign(

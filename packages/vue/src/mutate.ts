@@ -447,9 +447,11 @@ export const makeStreamMutation2 = () => {
           Stream.provideService(InvalidationKeysFromServer, invKeys),
           Stream.tap((v) => Ref.set(lastRef, v)),
           Stream.ensuring(
-            Effect.flatMap(Ref.get(lastRef), (lastValue) =>
-              Effect
-                .flatMap(Ref.get(keysRef), (serverKeys) => invCache(input, Exit.succeed(lastValue), serverKeys)))
+            Effect.gen(function*() {
+              const lastValue = yield* Ref.get(lastRef)
+              const serverKeys = yield* Ref.get(keysRef)
+              yield* invCache(input, Exit.succeed(lastValue), serverKeys)
+            })
           )
         )
       })

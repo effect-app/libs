@@ -6,9 +6,10 @@
  * `waiting` state until the stream ends.
  *
  * When using `makeClient` / `clientFor`, stream-type requests are exposed as
- * `mutateToResult` on the client object (and as `XxxStream` in `.helpers`).
- * The example below shows both the low-level `asStreamResult` API and how the
- * same functionality appears on the generated client.
+ * `mutate` on the client object. Use `client.exportData.mutate` with `streamFn`
+ * combinators, or use `client.exportData.streamFn` to define a full command.
+ *
+ * The example below shows the low-level `asStreamResult` API.
  */
 import { Effect, S, Stream } from "effect-app"
 import { asStreamResult } from "../src/mutate.js"
@@ -67,23 +68,3 @@ export const useExportMutation = () => {
 
   return { result, execute }
 }
-
-// ---------------------------------------------------------------------------
-// Option B: via `makeClient` / `clientFor` (stream requests -> `mutateToResult`)
-//
-// When a request schema has `type: "stream"`, `clientFor` exposes:
-//
-//   client.exportData.mutateToResult
-//   // -> (options?) => ((input: I) => Effect<Final, never, R>) & { id, running?, progress? }
-//   // Always invoke `()` (optionally with `{ progress }`) to get a fresh callable.
-//   const execute = client.exportData.mutateToResult()
-//   const executeWithProgress = client.exportData.mutateToResult({
-//     progress: (r) => r._tag === "Success" ? `${r.value.completed}/${r.value.total}` : undefined
-//   })
-//   // The callable can also be passed directly to Command.fn / Command.wrap / Command.wrapStream.
-//
-// which wraps `asStreamResult(client.exportData.handler)` internally.
-//
-// The `.helpers` object also includes `exportDataStream` (the camelCase key
-// plus "Stream" suffix) with the same factory shape.
-// ---------------------------------------------------------------------------

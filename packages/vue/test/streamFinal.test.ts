@@ -2,23 +2,13 @@
  * Runtime and type tests for the `final` schema on stream requests.
  *
  * The `final` option on a stream request schema lets callers model which type
- * the last emitted stream element is.  When present, the execute effect returned
- * by `mutateToResult` resolves with that final value instead of `void`.
+ * the last emitted stream element is.
  */
 import { expect, it } from "@effect/vitest"
 import { Effect, S } from "effect-app"
 import * as Stream from "effect/Stream"
 import { asStreamResult } from "../src/mutate.js"
-import { ExportComplete, OperationProgress, Something, useClient } from "./stubs.js"
-
-const somethingInvalidationResources = {
-  Something: {
-    GetSomething2: Something.GetSomething2,
-    GetSomething2WithDependencies: Something.GetSomething2WithDependencies,
-    GetSomething3: Something.GetSomething3,
-    GetSomething4: Something.GetSomething4
-  }
-}
+import { ExportComplete, OperationProgress, Something } from "./stubs.js"
 
 // ---------------------------------------------------------------------------
 // asStreamResult — low-level primitive, always returns void
@@ -38,43 +28,6 @@ it.live("asStreamResult returns void and updates ref with each element", () =>
       expect(ref.value.waiting).toBe(false)
     }
   }))
-
-// ---------------------------------------------------------------------------
-// mutateToResult with no `final` — execute resolves with void (type-level)
-// ---------------------------------------------------------------------------
-
-it.skip("mutateToResult without final: execute resolves void (type-level)", () => {
-  const { clientFor } = useClient()
-  const client = clientFor(Something, undefined, somethingInvalidationResources)
-
-  const execute = client.StreamWithoutFinal.mutateToResult()
-
-  // execute returns void — assigning to ExportComplete Effect should fail
-  const result = execute({ id: "test" })
-  // @ts-expect-error result should be void-typed, not ExportComplete
-  const _bad: Effect.Effect<ExportComplete, never, never> = result
-  void _bad
-})
-
-// ---------------------------------------------------------------------------
-// mutateToResult with `final` — execute resolves with Final type (type-level)
-// ---------------------------------------------------------------------------
-
-it.skip("mutateToResult with final: execute resolves with ExportComplete (type-level)", () => {
-  const { clientFor } = useClient()
-  const client = clientFor(Something, undefined, somethingInvalidationResources)
-
-  const execute = client.StreamWithFinal.mutateToResult()
-
-  // execute returns ExportComplete — assignment should compile cleanly
-  const result = execute({ id: "test" })
-  const _ok: Effect.Effect<ExportComplete, never, never> = result
-  void _ok
-})
-
-// ---------------------------------------------------------------------------
-// Request class — final schema stored on class
-// ---------------------------------------------------------------------------
 
 it("stream request without final: .final is undefined", () => {
   const req = Something.StreamWithoutFinal

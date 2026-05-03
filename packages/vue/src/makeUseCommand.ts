@@ -7,7 +7,7 @@ type X<X> = X
 export interface CommanderResolved<RT, RTHooks>
   extends
     X<typeof CommanderStatic>,
-    Pick<CommanderImpl<RT, RTHooks>, "fn" | "wrap" | "wrapStream" | "streamFn" | "alt" | "alt2">
+    Pick<CommanderImpl<RT, RTHooks>, "fn" | "wrap" | "streamFn" | "alt" | "alt2">
 {
 }
 

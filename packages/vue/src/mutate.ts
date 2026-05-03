@@ -414,13 +414,12 @@ export const useMakeMutation = () => {
 }
 
 /**
- * Like `makeStreamMutation`, but returns an `Effect<Stream>` per invocation instead of a
- * `[ref, execute]` tuple. The outer Effect sets up per-invocation invalidation scaffolding
+ * Returns a stream-based mutation factory for use with `streamFn`.
+ * The outer Effect sets up per-invocation invalidation scaffolding
  * and returns a stream that triggers query invalidation via `Stream.ensuring` when it completes.
  *
- * Use this with `streamFn` / `Command.streamFn(id)(mutateHandler, ...combinators)` so that
- * the command manages its own reactive state internally. Unlike `makeStreamMutation`, no external
- * reactive result ref is created.
+ * Use with `streamFn` / `Command.streamFn(id)(mutateHandler, ...combinators)` so that
+ * the command manages its own reactive state internally.
  *
  * Must be called inside a Vue setup context (uses `useQueryClient` internally).
  */
@@ -461,80 +460,5 @@ export const makeStreamMutation2 = () => {
       : (i: any) => Stream.unwrap(makeInvocationEffect(i, (handler as (i: any) => Stream.Stream<any, any, any>)(i)))
 
     return act
-  }
-}
-
-export const makeStreamMutation = () => {
-  const queryClient = useQueryClient()
-
-  return (
-    self: {
-      id: string
-      options?: ClientForOptions
-      handler: Stream.Stream<any, any, any> | ((i: any) => Stream.Stream<any, any, any>)
-    },
-    mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
-  ) => {
-    const state = shallowRef<AsyncResult.AsyncResult<any, any>>(AsyncResult.initial())
-
-    const runStream = (stream: Stream.Stream<any, any, any>, input?: unknown): Effect.Effect<any, any, any> => {
-      const invCache = buildInvalidateCache(queryClient, self, mergedInvalidation)
-      const keysRef = Ref.makeUnsafe<ReadonlyArray<InvalidationKey>>([])
-      // V3: pass onAdded so each mid-stream metadata chunk triggers query
-      // invalidation immediately rather than waiting for stream completion.
-      const invKeys = makeInvalidationKeysService(keysRef, (key) => invCache(input, Exit.succeed(undefined), [key]))
-      return Effect
-        .sync(() => {
-          state.value = AsyncResult.initial(true)
-        })
-        .pipe(
-          Effect.andThen(
-            stream.pipe(
-              Stream.provideService(InvalidationKeysFromServer, invKeys),
-              Stream.runForEach((value) =>
-                Effect.sync(() => {
-                  state.value = AsyncResult.success(value, { waiting: true })
-                })
-              ),
-              Effect.exit,
-              Effect.tap((exit) =>
-                Effect.sync(() => {
-                  if (exit._tag === "Success") {
-                    const current = state.value
-                    if (AsyncResult.isSuccess(current)) {
-                      state.value = AsyncResult.success(current.value, { waiting: false })
-                    } else {
-                      state.value = AsyncResult.initial(false)
-                    }
-                  } else {
-                    state.value = AsyncResult.failure(exit.cause)
-                  }
-                })
-              ),
-              Effect.flatMap((exit) => {
-                const current = state.value
-                const lastValue = AsyncResult.isSuccess(current) ? current.value : undefined
-                const invExit = exit._tag === "Success" ? Exit.succeed(lastValue) : exit
-                const serverKeys = Ref.getUnsafe(keysRef)
-                // Stream failures bubble through the execute effect's typed error
-                // channel. The reactive `state` ref still mirrors the failure as
-                // `AsyncResult.failure` for live progress UI.
-                return invCache(input, invExit, serverKeys).pipe(
-                  Effect.flatMap(() =>
-                    exit._tag === "Success" ? Effect.succeed(lastValue) : Effect.failCause(exit.cause)
-                  )
-                )
-              })
-            )
-          )
-        )
-    }
-
-    const handler = self.handler
-    const act = Stream.isStream(handler)
-      ? runStream(handler)
-      : (i: any) => runStream((handler as (i: any) => Stream.Stream<any, any, any>)(i), i)
-
-    return tuple(computed(() => state.value), act)
   }
 }

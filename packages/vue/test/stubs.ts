@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type MessageFormatElement } from "@formatjs/icu-messageformat-parser"
 import * as Intl from "@formatjs/intl"
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { Effect, Layer, ManagedRuntime, Option, S } from "effect-app"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import { RpcContextMap } from "effect-app/rpc"
+import * as Exit from "effect/Exit"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
-import { ref } from "vue"
+import { createApp, ref } from "vue"
 import { Commander } from "../src/commander.js"
 import { I18n } from "../src/intl.js"
 import { makeClient } from "../src/makeClient.js"
@@ -98,10 +100,19 @@ export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 export const SomethingReq = TaggedRequestFor("Something")
 const SomethingQuery = SomethingReq.Query
 const SomethingCommand = SomethingReq.Command
+const SomethingStream = SomethingReq.Stream
 
 class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("GetSomething2", {
   id: S.String
 }, { success: S.FiniteFromString }) {}
+
+class SomethingGetSomething3 extends SomethingQuery<SomethingGetSomething3>()("GetSomething3", {
+  id: S.NullOr(S.String).withDefault
+}, { success: S.FiniteFromString }) {}
+
+class SomethingGetSomething4
+  extends SomethingQuery<SomethingGetSomething4>()("GetSomething4", {}, { success: S.FiniteFromString })
+{}
 
 class SomethingGetSomething2WithDependencies
   extends SomethingQuery<SomethingGetSomething2WithDependencies>()("GetSomething2", {
@@ -113,20 +124,94 @@ class SomethingGetSomething2WithDependencies
   })
 {}
 
-class SomethingDoSomething extends SomethingCommand<SomethingDoSomething>()("DoSomething", {
+type SomethingInvalidationResources = {
+  GetSomething2: typeof SomethingGetSomething2
+  GetSomething2WithDependencies: typeof SomethingGetSomething2WithDependencies
+  GetSomething3: typeof SomethingGetSomething3
+}
+
+// command stubs covering the input-shape matrix
+class SomethingDoNoProps extends SomethingCommand<SomethingDoNoProps>()("DoNoProps", {}) {}
+
+class SomethingDoOptionalOnly extends SomethingCommand<SomethingDoOptionalOnly>()("DoOptionalOnly", {
+  name: S.optional(S.String)
+}) {}
+
+class SomethingDoRequiredOnly extends SomethingCommand<SomethingDoRequiredOnly>()("DoRequiredOnly", {
   id: S.String
-}, { success: S.FiniteFromString }) {}
+}) {}
+
+class SomethingDoMixed extends SomethingCommand<SomethingDoMixed>()("DoMixed", {
+  id: S.String,
+  name: S.optional(S.String)
+}) {}
+
+class SomethingDoSomething extends SomethingCommand<
+  SomethingDoSomething,
+  { Something: SomethingInvalidationResources }
+>()("DoSomething", {
+  id: S.String
+}, {
+  success: S.FiniteFromString
+}, (queryKey, { Something }, input, output) => {
+  return [
+    { filters: { queryKey } },
+    {
+      filters: {
+        queryKey: [
+          Something["GetSomething2"].id,
+          input.id,
+          Exit.isSuccess(output) ? output.value.toString() : "failed"
+        ]
+      }
+    }
+  ]
+}) {}
 
 // success schema has encoded shape { a: string | null } — used to test projection constraints
 class SomethingGetStructNullable extends SomethingQuery<SomethingGetStructNullable>()("GetStructNullable", {}, {
   success: S.Struct({ a: S.NullOr(S.String) })
 }) {}
 
+/** Stream event: intermediate progress update. */
+export class OperationProgress extends S.TaggedClass<OperationProgress>()("OperationProgress", {
+  completed: S.NonNegativeInt,
+  total: S.NonNegativeInt
+}) {}
+
+/** Stream event: final completion result. */
+export class ExportComplete extends S.TaggedClass<ExportComplete>()("ExportComplete", {
+  fileUrl: S.NonEmptyString
+}) {}
+
+/** Stream with no `final` schema — execute resolves with `void`. */
+class SomethingStreamWithoutFinal extends SomethingStream<SomethingStreamWithoutFinal>()("StreamWithoutFinal", {
+  id: S.String
+}, {
+  success: S.Union([OperationProgress, ExportComplete])
+}) {}
+
+/** Stream with a `final` schema — execute resolves with `ExportComplete`. */
+class SomethingStreamWithFinal extends SomethingStream<SomethingStreamWithFinal>()("StreamWithFinal", {
+  id: S.String
+}, {
+  success: S.Union([OperationProgress, ExportComplete]),
+  final: ExportComplete
+}) {}
+
 export const Something = {
   GetSomething2: SomethingGetSomething2,
   GetSomething2WithDependencies: SomethingGetSomething2WithDependencies,
+  GetSomething3: SomethingGetSomething3,
+  GetSomething4: SomethingGetSomething4,
+  DoNoProps: SomethingDoNoProps,
+  DoOptionalOnly: SomethingDoOptionalOnly,
+  DoRequiredOnly: SomethingDoRequiredOnly,
+  DoMixed: SomethingDoMixed,
   DoSomething: SomethingDoSomething,
-  GetStructNullable: SomethingGetStructNullable
+  GetStructNullable: SomethingGetStructNullable,
+  StreamWithoutFinal: SomethingStreamWithoutFinal,
+  StreamWithFinal: SomethingStreamWithFinal
 }
 
 export const SomethingElseReq = TaggedRequestFor("SomethingElse")
@@ -163,5 +248,28 @@ export const useClient = (
   const layers = Layer.mergeAll(CommanderLayer, WithToastLayer, FakeToastLayer, FakeIntlLayer, api)
 
   const clientFor_ = ApiClientFactory.makeFor(Layer.empty)
-  return makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
+  const rawClient = makeClient(() => ManagedRuntime.make(layers), clientFor_, Layer.empty)
+
+  // Provide a Vue injection context so that composition-API hooks (e.g. useQueryClient)
+  // called during client initialisation work outside a component setup() function.
+  const vueApp = createApp({})
+  const testQueryClientConfig = { defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }
+  vueApp.use(VueQueryPlugin, { queryClient: new QueryClient(testQueryClientConfig) })
+
+  const origClientFor = rawClient.clientFor
+  const clientFor: typeof origClientFor = function(m, ...args) {
+    const proxy = origClientFor(m, ...args)
+    // Warm up lazy mutation-hook initialisation inside the Vue injection context.
+    // After the first property access, useMutation() is cached and subsequent
+    // accesses outside the context succeed.
+    const firstPropertyName = Object.keys(m)[0]
+    if (firstPropertyName !== undefined) {
+      vueApp.runWithContext(() => {
+        void (proxy as Record<string, unknown>)[firstPropertyName]
+      })
+    }
+    return proxy
+  }
+
+  return { ...rawClient, clientFor }
 }

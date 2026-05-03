@@ -1,5 +1,257 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- Updated dependencies [985176b]
+  - effect-app@4.0.0-beta.190
+  - @effect-app/vue@4.0.0-beta.190
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- Updated dependencies [d23e3f6]
+- Updated dependencies [f44800c]
+- Updated dependencies [ea32222]
+  - @effect-app/vue@4.0.0-beta.189
+  - effect-app@4.0.0-beta.189
+
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- Updated dependencies [ed1b8a9]
+- Updated dependencies [f16e766]
+- Updated dependencies [b2e438f]
+  - @effect-app/vue@4.0.0-beta.188
+  - effect-app@4.0.0-beta.188
+
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- Updated dependencies [0d4e0b8]
+  - effect-app@4.0.0-beta.187
+  - @effect-app/vue@4.0.0-beta.187
+
+## 4.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [89b7d2f]
+  - @effect-app/vue@4.0.0-beta.186
+  - effect-app@4.0.0-beta.186
+
+## 4.0.0-beta.185
+
+### Patch Changes
+
+- ddd9505: Rename stream mutation helpers: `mutateStream` → `mutateToResult`, `mutateStream2` → `mutate`.
+- Updated dependencies [ddd9505]
+  - @effect-app/vue@4.0.0-beta.185
+  - effect-app@4.0.0-beta.185
+
+## 4.0.0-beta.184
+
+### Patch Changes
+
+- d4bf24a: Add `Command.withDefaultToastStream` — a stream-aware combinator for `streamFn` that properly handles the full stream lifecycle (waiting/success/failure toasts). Unlike `withDefaultToast`, it waits for the stream to drain before showing the success toast and correctly handles stream errors.
+
+  Strongly type `CommandBase` with `RA`/`RE` type params for `result`, and update `CommandButton`'s `mapProgress` prop to be typed as `(result: AsyncResult<RA, RE>) => Progress | undefined`.
+
+- Updated dependencies [d4bf24a]
+  - @effect-app/vue@4.0.0-beta.184
+  - effect-app@4.0.0-beta.184
+
+## 4.0.0-beta.183
+
+### Minor Changes
+
+- 8ff0bf9: - `CommandButton`: add optional `:map-progress` prop to compute progress from `command.result` via a custom mapper function
+  - `CommandBase`: add optional `result` field exposing reactive `AsyncResult` state
+  - Export `Progress` type from `@effect-app/vue`
+  - `streamFn`: pipe operators now receive the initial `Effect<Stream>` (or `Stream`) value unchanged; `Stream.unwrap` is deferred until after all combinators, enabling use of `withDefaultToast` and other Effect-level combinators
+  - Add `makeStreamMutation2`: like `makeStreamMutation` but returns `Effect<Stream>` per invocation (with invalidation via `Stream.ensuring`), for use with `streamFn` combinators
+  - Expose `streamFn` on `XClient.Y` stream handlers and on the `Command` object
+  - Expose `mutateStream2` on `XClient.Y` stream handlers, with a `wrapStream` helper that calls `streamFn` with the handler and provided combinators
+
+### Patch Changes
+
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [fc98fb7]
+  - @effect-app/vue@4.0.0-beta.183
+  - effect-app@4.0.0-beta.183
+
+## 4.0.0-beta.182
+
+### Minor Changes
+
+- b9586f8: Refine `mutateStream` shape and progress reporting.
+
+  - `mutateStream(options?)` now returns the `execute` callable directly, with `id`, `running?`, and `progress?` attached as properties. Tuple form `[ref, execute]` is gone — invoke the callable to run the stream, or pass it (or the factory) to `Command.fn` / `Command.wrap` / `Command.wrapStream`.
+  - `progress` formatter return type widened from `string | undefined` to `Progress | undefined`, where `Progress = string | { text: string; percentage: number }`.
+  - Stream failures now bubble through the execute effect's typed error channel `E` instead of being swallowed. The reactive `AsyncResult` ref still mirrors the failure for live progress UI.
+  - `CommandBase.progress?: Progress` replaces `progressText?: string`. `CommandButton` overrides the Vuetify `loader` slot when `progress` is set, rendering a `v-progress-circular` (bound to `model-value` when a `percentage` is supplied, otherwise `indeterminate`) alongside the formatted text.
+  - Factories and callables are branded with `_streamFactory` / `_streamCallable` so `Command.fn` / `Command.wrap` can disambiguate them from plain mutate functions.
+
+### Patch Changes
+
+- Updated dependencies [b9586f8]
+  - @effect-app/vue@4.0.0-beta.182
+  - effect-app@4.0.0-beta.182
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [583393f]
+- Updated dependencies [4bbeb19]
+  - effect-app@4.0.0-beta.181
+  - @effect-app/vue@4.0.0-beta.181
+
+## 4.0.0-beta.180
+
+### Patch Changes
+
+- Updated dependencies [7fa3045]
+  - effect-app@4.0.0-beta.180
+  - @effect-app/vue@4.0.0-beta.180
+
+## 4.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - @effect-app/vue@4.0.0-beta.179
+  - effect-app@4.0.0-beta.179
+
+## 4.0.0-beta.178
+
+### Patch Changes
+
+- Updated dependencies [07dd7b9]
+  - @effect-app/vue@4.0.0-beta.178
+  - effect-app@4.0.0-beta.178
+
+## 4.0.0-beta.177
+
+### Patch Changes
+
+- Updated dependencies [89d8b3a]
+  - effect-app@4.0.0-beta.177
+  - @effect-app/vue@4.0.0-beta.177
+
+## 4.0.0-beta.176
+
+### Patch Changes
+
+- pass options
+- Updated dependencies
+  - effect-app@4.0.0-beta.176
+  - @effect-app/vue@4.0.0-beta.176
+
+## 4.0.0-beta.175
+
+### Patch Changes
+
+- Updated dependencies [28777c1]
+- Updated dependencies [37089ea]
+  - @effect-app/vue@4.0.0-beta.175
+  - effect-app@4.0.0-beta.175
+
+## 4.0.0-beta.174
+
+### Patch Changes
+
+- Updated dependencies [1b38043]
+- Updated dependencies [821468d]
+- Updated dependencies [b241ae5]
+  - @effect-app/vue@4.0.0-beta.174
+  - effect-app@4.0.0-beta.174
+
+## 4.0.0-beta.173
+
+### Patch Changes
+
+- Updated dependencies [4149577]
+  - @effect-app/vue@4.0.0-beta.173
+  - effect-app@4.0.0-beta.173
+
+## 4.0.0-beta.172
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.172
+- @effect-app/vue@4.0.0-beta.172
+
+## 4.0.0-beta.171
+
+### Patch Changes
+
+- Updated dependencies [d71d976]
+  - effect-app@4.0.0-beta.171
+  - @effect-app/vue@4.0.0-beta.171
+
+## 4.0.0-beta.170
+
+### Patch Changes
+
+- Updated dependencies [8f09f77]
+  - effect-app@4.0.0-beta.170
+  - @effect-app/vue@4.0.0-beta.170
+
+## 4.0.0-beta.169
+
+### Patch Changes
+
+- Updated dependencies [8ae8b53]
+  - effect-app@4.0.0-beta.169
+  - @effect-app/vue@4.0.0-beta.169
+
+## 4.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [178480a]
+  - effect-app@4.0.0-beta.168
+  - @effect-app/vue@4.0.0-beta.168
+
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- Updated dependencies [140e192]
+  - effect-app@4.0.0-beta.167
+  - @effect-app/vue@4.0.0-beta.167
+
+## 4.0.0-beta.166
+
+### Patch Changes
+
+- Updated dependencies [dbcc53b]
+  - effect-app@4.0.0-beta.166
+  - @effect-app/vue@4.0.0-beta.166
+
+## 4.0.0-beta.165
+
+### Patch Changes
+
+- Updated dependencies [f88ea34]
+- Updated dependencies [66fd718]
+  - effect-app@4.0.0-beta.165
+  - @effect-app/vue@4.0.0-beta.165
+
+## 4.0.0-beta.164
+
+### Patch Changes
+
+- Updated dependencies [8cb3de4]
+  - effect-app@4.0.0-beta.164
+  - @effect-app/vue@4.0.0-beta.164
+
 ## 4.0.0-beta.163
 
 ### Patch Changes

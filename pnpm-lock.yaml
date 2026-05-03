@@ -60,10 +60,10 @@ importers:
         version: 0.85.1
       '@effect/platform-node':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)
       '@effect/vitest':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
       '@tsconfig/strictest':
         specifier: ^2.0.8
         version: 2.0.8
@@ -92,8 +92,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -159,10 +159,10 @@ importers:
     dependencies:
       '@effect/platform-node':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       js-yaml:
         specifier: 4.1.1
         version: 4.1.1
@@ -198,8 +198,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       nanoid:
         specifier: ^5.1.9
         version: 5.1.9
@@ -363,7 +363,7 @@ importers:
     dependencies:
       '@effect/vitest':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -380,8 +380,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -460,10 +460,10 @@ importers:
     dependencies:
       '@effect/atom-vue':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       '@effect/platform-browser':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)
       '@formatjs/intl':
         specifier: ^4.1.7
         version: 4.1.7
@@ -475,16 +475,16 @@ importers:
         version: 5.96.2(patch_hash=c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2)
       '@tanstack/vue-query':
         specifier: 5.96.2
-        version: 5.96.2(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
+        version: 5.96.2(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       '@vueuse/core':
         specifier: ^14.2.1
-        version: 14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
+        version: 14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -493,11 +493,11 @@ importers:
         version: 9.3.1
       vue:
         specifier: ^3.5.33
-        version: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
+        version: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
     devDependencies:
       '@effect/vitest':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
       '@formatjs/icu-messageformat-parser':
         specifier: ^3.5.5
         version: 3.5.5
@@ -506,7 +506,7 @@ importers:
         version: 25.6.0
       '@vitejs/plugin-vue':
         specifier: ^6.0.6
-        version: 6.0.6(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
+        version: 6.0.6(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       intl-messageformat:
         specifier: ^11.2.2
         version: 11.2.2
@@ -514,8 +514,8 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
       typescript:
-        specifier: npm:@typescript/native-preview@beta
-        version: '@typescript/native-preview@7.0.0-dev.20260421.2'
+        specifier: ~6.0.3
+        version: 6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)
@@ -538,8 +538,8 @@ importers:
         specifier: ^1.23.5
         version: 1.27.7(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -3746,8 +3746,8 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  effect@4.0.0-beta.59:
-    resolution: {integrity: sha512-xyUDLeHSe8d6lWGOvR6Fgn2HL6gYeTZ/S4Jzk9uc4ZUxMPPsNZlNXrvk0C7/utQFzeX7uAWcVnG2BjbA0SRoAA==}
+  effect@4.0.0-beta.60:
+    resolution: {integrity: sha512-OkrCKT+aBFIti4ryuxKfIozNx2SMxmFZ8uWB53gGzdjQzaJ7RVf0s6nJQ4JubJM//R24DtSYNOdmPRSK+qoRww==}
 
   electron-to-chromium@1.5.267:
     resolution: {integrity: sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==}
@@ -7201,8 +7201,8 @@ snapshots:
 
   '@effect-app/cli@2.1.0-beta.19(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node': 4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)
-      effect: 4.0.0-beta.59
+      '@effect/platform-node': 4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)
+      effect: 4.0.0-beta.60
       js-yaml: 4.1.1
       node-watch: 0.7.4
     transitivePeerDependencies:
@@ -7210,31 +7210,31 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  '@effect/atom-vue@4.0.0-beta.59(effect@4.0.0-beta.59)(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))':
+  '@effect/atom-vue@4.0.0-beta.59(effect@4.0.0-beta.60)(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      effect: 4.0.0-beta.59
-      vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
+      effect: 4.0.0-beta.60
+      vue: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
   '@effect/language-service@0.85.1': {}
 
-  '@effect/platform-browser@4.0.0-beta.59(effect@4.0.0-beta.59)':
+  '@effect/platform-browser@4.0.0-beta.59(effect@4.0.0-beta.60)':
     dependencies:
-      effect: 4.0.0-beta.59
+      effect: 4.0.0-beta.60
       multipasta: 0.2.7
 
-  '@effect/platform-node-shared@4.0.0-beta.59(effect@4.0.0-beta.59)':
+  '@effect/platform-node-shared@4.0.0-beta.59(effect@4.0.0-beta.60)':
     dependencies:
       '@types/ws': 8.18.1
-      effect: 4.0.0-beta.59
+      effect: 4.0.0-beta.60
       ws: 8.20.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)':
+  '@effect/platform-node@4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.59(effect@4.0.0-beta.59)
-      effect: 4.0.0-beta.59
+      '@effect/platform-node-shared': 4.0.0-beta.59(effect@4.0.0-beta.60)
+      effect: 4.0.0-beta.60
       ioredis: 5.9.3
       mime: 4.1.0
       undici: 8.1.0
@@ -7242,9 +7242,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/vitest@4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))':
+  '@effect/vitest@4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))':
     dependencies:
-      effect: 4.0.0-beta.59
+      effect: 4.0.0-beta.60
       vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))
 
   '@emnapi/core@1.10.0':
@@ -8447,13 +8447,13 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
 
-  '@tanstack/vue-query@5.96.2(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))':
+  '@tanstack/vue-query@5.96.2(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
       '@tanstack/match-sorter-utils': 8.19.4
       '@tanstack/query-core': 5.96.2(patch_hash=c98953cf4906c12283dbf72aa23b2066fccbe5186c91cf2ae01043004cf0e3f2)
       '@vue/devtools-api': 6.6.4
-      vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
-      vue-demi: 0.14.10(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
+      vue: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
+      vue-demi: 0.14.10(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
 
   '@tanstack/vue-store@0.7.7(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -8894,12 +8894,6 @@ snapshots:
       vite: 5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass@1.99.0)(terser@5.45.0)
       vue: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
-  '@vitejs/plugin-vue@6.0.6(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))':
-    dependencies:
-      '@rolldown/pluginutils': 1.0.0-rc.13
-      vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)
-      vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
-
   '@vitejs/plugin-vue@6.0.6(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.13
@@ -9161,6 +9155,7 @@ snapshots:
       '@vueuse/metadata': 14.2.1
       '@vueuse/shared': 14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))
       vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
+    optional: true
 
   '@vueuse/core@14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -9195,6 +9190,7 @@ snapshots:
   '@vueuse/shared@14.2.1(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2))':
     dependencies:
       vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
+    optional: true
 
   '@vueuse/shared@14.2.1(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
@@ -9971,7 +9967,7 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
-  effect@4.0.0-beta.59:
+  effect@4.0.0-beta.60:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.7.0
@@ -12918,10 +12914,6 @@ snapshots:
   vue-component-type-helpers@2.2.12: {}
 
   vue-component-type-helpers@3.2.7: {}
-
-  vue-demi@0.14.10(vue@3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)):
-    dependencies:
-      vue: 3.5.33(@typescript/native-preview@7.0.0-dev.20260421.2)
 
   vue-demi@0.14.10(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))):
     dependencies:

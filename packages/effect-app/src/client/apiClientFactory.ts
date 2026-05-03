@@ -2,18 +2,21 @@
 import { flow } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
+import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
 import * as Config from "../Config.js"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import { HttpClient, HttpClientRequest } from "../http.js"
-import * as Option from "../Option.js"
+import { Invalidation } from "../rpc.js"
 import type * as S from "../Schema.js"
 import { typedKeysOf, typedValuesOf } from "../utils.js"
 import type { Client, ClientForOptions, ExtractModuleName, RequestsAny } from "./clientFor.js"
+import { InvalidationKeysFromServer } from "./InvalidationKeys.js"
 
 export interface ApiConfig {
   url: string
@@ -36,10 +39,12 @@ export type Req = S.Top & {
   fields: S.Struct.Fields
   success: S.Top
   error: S.Top
+  /** Optional final-value schema for stream requests. When set, the execute effect resolves with the last stream value decoded to this type. */
+  final?: S.Top
   config?: Record<string, any>
   readonly id: string
   readonly moduleName: string
-  readonly type: "command" | "query"
+  readonly type: "command" | "query" | "stream"
   readonly "~decodingServices"?: unknown
 }
 
@@ -120,7 +125,19 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
   const rpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
-        return Rpc.make((_ as any)._tag, { payload: _ as any, success: (_ as any).success, error: (_ as any).error })
+        const r = _ as any
+        const isStream = r.type === "stream"
+        const isCommand = r.type === "command"
+        return (isCommand
+          ? Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
+          : isStream
+          ? Invalidation.makeStreamRpc(r._tag, {
+            payload: r,
+            success: r.success,
+            error: r.error,
+            stream: true as const
+          })
+          : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error })) as any
       })
     )
     .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<
@@ -167,9 +184,7 @@ const makeApiClientFactory = Effect
         Layer.provide(Layer.succeed(ApiClientFactory, makeClientForCached as any)),
         Layer.provide(
           RpcClient
-            .layerProtocolHttp({
-              url: "" // why not here set meta.moduleName as root?
-            })
+            .layerProtocolHttp({ url: "" }) // why not here set meta.moduleName as root?
             .pipe(
               Layer.provideMerge(Layer.succeedContext(ctx))
             )
@@ -178,6 +193,31 @@ const makeApiClientFactory = Effect
       const mr = ManagedRuntime.make(clientLayer)
 
       const filtered = getFiltered(resource)
+
+      const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
+        eff.pipe(
+          Effect.flatMap((result: any) =>
+            Effect.gen(function*() {
+              const keys: ReadonlyArray<Invalidation.InvalidationKey> = result?.metadata?.invalidateQueries ?? []
+              const invalidationKeys = yield* InvalidationKeysFromServer
+              yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+              return result.payload
+            })
+          ),
+          // V2: unwrap CommandFailureWithMetaData failures — forward keys, re-fail with the
+          // original error so callers see the unmodified error type.
+          Effect.catch((result: any) =>
+            result?._tag === "CommandFailureWithMetaData"
+              ? Effect.gen(function*() {
+                const keys: ReadonlyArray<Invalidation.InvalidationKey> = result.metadata?.invalidateQueries ?? []
+                const invalidationKeys = yield* InvalidationKeysFromServer
+                yield* Effect.forEach(keys, (key) => invalidationKeys.add(key), { discard: true })
+                return yield* Effect.fail(result.error)
+              })
+              : Effect.fail(result)
+          )
+        )
+
       return {
         mr,
         client: typedKeysOf(filtered)
@@ -204,38 +244,85 @@ const makeApiClientFactory = Effect
 
             const fields = Struct.omit(Request.fields, ["_tag"] as const)
             const requestAttr = `${meta.moduleName}.${h._tag}`
+            const isCommand = h.type === "command"
+            const isStream = h.type === "stream"
+
+            const buildEffect = (input: any) =>
+              mr.contextEffect.pipe(
+                Effect.flatMap((svcs) => {
+                  const rpcEffect = TheClient
+                    .use((client) =>
+                      (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any, never>
+                    )
+                    .pipe(
+                      Effect.provide(layers),
+                      Effect.provide(svcs)
+                    )
+                  return isCommand ? unwrapCommand(rpcEffect) : rpcEffect
+                })
+              )
+
+            const buildStream = (input: any) =>
+              Stream.unwrap(
+                mr.contextEffect.pipe(
+                  Effect.flatMap((svcs) =>
+                    TheClient
+                      .useSync((client) => {
+                        const rpcStream = (client as any)[requestAttr]!(
+                          Request.make(input)
+                        ) as Stream.Stream<any, any, any>
+                        return rpcStream.pipe(
+                          // Collect server invalidation keys from the "done" chunk, then discard it.
+                          Stream.tap((item: any) =>
+                            item._tag === "done" || item._tag === "metadata"
+                              ? InvalidationKeysFromServer.use((svc) =>
+                                Effect.forEach(
+                                  (item.metadata as Invalidation.CommandMetaData).invalidateQueries,
+                                  svc.add,
+                                  { discard: true }
+                                )
+                              )
+                              : Effect.void
+                          ),
+                          Stream.filter((item: any) => item._tag === "value"),
+                          Stream.map((item: any) => item.value),
+                          // V2: unwrap StreamFailureChunk — forward keys from failures too,
+                          // then re-fail with the original error so callers see the unmodified
+                          // error type.
+                          Stream.catch((err: any) =>
+                            err?._tag === "error" && err?.metadata
+                              ? Stream.fromEffect(
+                                InvalidationKeysFromServer.use((svc) =>
+                                  Effect
+                                    .forEach(
+                                      (err.metadata as Invalidation.CommandMetaData).invalidateQueries,
+                                      svc.add,
+                                      { discard: true }
+                                    )
+                                    .pipe(Effect.flatMap(() => Effect.fail(err.error)))
+                                )
+                              )
+                              : Stream.fail(err)
+                          ),
+                          Stream.provide(layers),
+                          Stream.provide(svcs)
+                        )
+                      })
+                      .pipe(Effect.provide(svcs))
+                  )
+                )
+              )
+
             // @ts-expect-error doc
             prev[cur] = Object.keys(fields).length === 0
               ? {
-                handler: mr.contextEffect.pipe(
-                  Effect.flatMap((svcs) =>
-                    TheClient
-                      .use((client) =>
-                        (client as any)[requestAttr]!(Request.make({})) as Effect.Effect<any, any>
-                      )
-                      .pipe(
-                        Effect.provide(layers),
-                        Effect.provide(svcs)
-                      )
-                  )
-                ),
+                handler: isStream ? buildStream({}) : buildEffect({}),
                 ...requestMeta
               }
               : {
-                handler: (req: any) =>
-                  mr.contextEffect.pipe(
-                    Effect.flatMap((svcs) =>
-                      TheClient
-                        .use((client) =>
-                          (client as any)[requestAttr]!(Request.make(req)) as Effect.Effect<any, any>
-                        )
-                        .pipe(
-                          Effect.provide(layers),
-                          Effect.provide(svcs)
-                        )
-                    )
-                  ),
-
+                handler: isStream
+                  ? (req: any) => buildStream(req)
+                  : (req: any) => buildEffect(req),
                 ...requestMeta
               }
 

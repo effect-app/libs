@@ -17,7 +17,7 @@ import { RequestType as RequestTypeAnnotation, type RouterMiddleware } from "./r
 export * from "./routing/middleware.js"
 
 export const applyRequestTypeInterruptibility = <A, E, R>(
-  requestType: "command" | "query",
+  requestType: "command" | "query" | "queryStream" | "commandStream",
   effect: Effect.Effect<A, E, R>
 ) => requestType === "command" ? Rpc.uninterruptible(effect) : effect
 
@@ -25,7 +25,7 @@ export const applyRequestTypeInterruptibility = <A, E, R>(
 // it's a schema plus some metadata
 export type AnyRequestModule = S.Top & {
   _tag: string // unique identifier for the request module
-  type: "command" | "query" | "stream"
+  type: "command" | "query" | "queryStream" | "commandStream"
   config: any // ?
   success: S.Top // validates the success response
   error: S.Top // validates the failure response
@@ -537,7 +537,7 @@ export const makeRouter = <
           const rpcs = RpcGroup
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
-                const isStream = resource.type === "stream"
+                const isStream = resource.type === "queryStream" || resource.type === "commandStream"
                 const isCommand = resource.type === "command"
                 return (isCommand
                   ? Invalidation.makeCommandRpc(resource._tag, {

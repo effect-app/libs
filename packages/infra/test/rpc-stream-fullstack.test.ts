@@ -55,19 +55,19 @@ const { Router, matchAll } = makeRouter(AppMiddleware)
 const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 const Req = TaggedRequestFor("Streamy")
 
-class StreamTicks extends Req.Stream<StreamTicks>()("StreamTicks", {}, {
+class StreamTicks extends Req.CommandStream<StreamTicks>()("StreamTicks", {}, {
   allowAnonymous: true,
   success: S.Number
 }) {}
 
-class StreamCountTo extends Req.Stream<StreamCountTo>()("StreamCountTo", {
+class StreamCountTo extends Req.CommandStream<StreamCountTo>()("StreamCountTo", {
   to: S.Number
 }, {
   allowAnonymous: true,
   success: S.Number
 }) {}
 
-class StreamRealtime extends Req.Stream<StreamRealtime>()("StreamRealtime", {}, {
+class StreamRealtime extends Req.CommandStream<StreamRealtime>()("StreamRealtime", {}, {
   allowAnonymous: true,
   success: S.Number
 }) {}

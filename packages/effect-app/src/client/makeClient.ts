@@ -87,7 +87,7 @@ type TaggedRequestForResult<
   Error extends S.Top,
   Config,
   ModuleName extends string,
-  Type extends "command" | "query" | "stream",
+  Type extends "command" | "query" | "queryStream" | "commandStream",
   Resources = never,
   Final extends S.Top = never
 > =
@@ -157,7 +157,10 @@ export const makeRpcClient = <
     return RequestClass
   }
 
-  function makeTaggedRequestWithMeta<ModuleName extends string, Type extends "command" | "query" | "stream">(
+  function makeTaggedRequestWithMeta<
+    ModuleName extends string,
+    Type extends "command" | "query" | "queryStream" | "commandStream"
+  >(
     moduleName: ModuleName,
     type: Type
   ) {
@@ -357,7 +360,8 @@ export const makeRpcClient = <
   function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
     const Query = makeTaggedRequestWithMeta(moduleName, "query")
     const Command = makeTaggedRequestWithMeta(moduleName, "command")
-    const Stream = makeTaggedRequestWithMeta(moduleName, "stream")
+    const QueryStream = makeTaggedRequestWithMeta(moduleName, "queryStream")
+    const CommandStream = makeTaggedRequestWithMeta(moduleName, "commandStream")
 
     return {
       moduleName,
@@ -372,11 +376,19 @@ export const makeRpcClient = <
        */
       Command,
       /**
-       * Create stream request classes for this module.
-       * Streams produce a Stream of `success` values, may also fail with `error`.
-       * Handlers must return an `Effect`-compatible Stream rather than an Effect.
+       * Create query-stream request classes for this module.
+       * QueryStreams produce a Stream of `success` values for read-only purposes.
+       * Exposes `.streamQuery` on the client (no `.mutate`).
+       * Handlers must return a Stream rather than an Effect.
        */
-      Stream
+      QueryStream,
+      /**
+       * Create command-stream request classes for this module.
+       * CommandStreams produce a Stream of `success` values and can mutate server state.
+       * Exposes `.mutate` and `.streamFn` on the client (no `.streamQuery`).
+       * Handlers must return a Stream rather than an Effect.
+       */
+      CommandStream
     } as const
   }
 

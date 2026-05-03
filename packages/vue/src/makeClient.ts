@@ -128,11 +128,18 @@ type CommandHandler<Req> = Req extends
     ? Request["type"] extends "command" ? RequestHandler<A, E, R, Request, Id> : never
   : never
 
-type StreamHandler<Req> = Req extends
+type QueryStreamHandler<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
-  ? Request["type"] extends "stream" ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final> : never
+  ? Request["type"] extends "queryStream" ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final> : never
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer Final>
-    ? Request["type"] extends "stream" ? RequestStreamHandler<A, E, R, Request, Id, Final> : never
+    ? Request["type"] extends "queryStream" ? RequestStreamHandler<A, E, R, Request, Id, Final> : never
+  : never
+
+type CommandStreamHandler<Req> = Req extends
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
+  ? Request["type"] extends "commandStream" ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final> : never
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer Final>
+    ? Request["type"] extends "commandStream" ? RequestStreamHandler<A, E, R, Request, Id, Final> : never
   : never
 
 export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
@@ -703,7 +710,7 @@ export const makeClient = <RT_, RTHooks>(
           ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(client[key] as any), {
             id: client[key].id
           })
-        } else if (requestType === "stream") {
+        } else if (requestType === "queryStream") {
           ;(acc as any)[camelCase(key) + "StreamQuery"] = Object.assign(useStreamQuery(client[key] as any), {
             id: client[key].id
           })
@@ -731,9 +738,9 @@ export const makeClient = <RT_, RTHooks>(
         }
         & {
           [
-            Key in keyof typeof client as StreamHandler<typeof client[Key]> extends never ? never
+            Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
               : `${ToCamel<string & Key>}StreamQuery`
-          ]: StreamQueries<RT, StreamHandler<typeof client[Key]>>["streamQuery"]
+          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["streamQuery"]
         }
     )
     return queries
@@ -874,7 +881,13 @@ export const makeClient = <RT_, RTHooks>(
                 }
               }
             }
-            : requestType === "stream"
+            : requestType === "queryStream"
+            ? {
+              ...client[key],
+              request: h_,
+              streamQuery: useStreamQuery(client[key] as any)
+            }
+            : requestType === "commandStream"
             ? (() => {
               const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
                 | InvalidationCallback<InvalidationResourcesFor<M>>
@@ -892,7 +905,6 @@ export const makeClient = <RT_, RTHooks>(
               return {
                 ...client[key],
                 request: h_,
-                streamQuery: useStreamQuery(client[key] as any),
                 streamFn: useCommand().streamFn(client[key].id as any) as any,
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
@@ -961,16 +973,16 @@ export const makeClient = <RT_, RTHooks>(
               & QueryRequestWithExtensions<QueryHandler<typeof client[Key]>>
               & Queries<RT, QueryHandler<typeof client[Key]>>
               & QueryProjection<RT, QueryHandler<typeof client[Key]>>)
-          & (StreamHandler<typeof client[Key]> extends never ? {}
-            : StreamQueries<RT, StreamHandler<typeof client[Key]>>)
+          & (QueryStreamHandler<typeof client[Key]> extends never ? {}
+            : StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : CommandRequestWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>>)
           & (CommandHandler<typeof client[Key]> extends never ? {}
             : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
-          & (StreamHandler<typeof client[Key]> extends never ? {}
+          & (CommandStreamHandler<typeof client[Key]> extends never ? {}
             : {
-              streamFn: StreamFnStreamExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
-              mutate: StreamMutation2WithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
+              streamFn: StreamFnStreamExtension<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
+              mutate: StreamMutation2WithExtensions<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
             })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }

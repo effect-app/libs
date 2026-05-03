@@ -83,10 +83,6 @@
       "types": "./dist/NonEmptySet.d.ts",
       "default": "./dist/NonEmptySet.js"
     },
-    "./Operations": {
-      "types": "./dist/Operations.d.ts",
-      "default": "./dist/Operations.js"
-    },
     "./Option": {
       "types": "./dist/Option.d.ts",
       "default": "./dist/Option.js"

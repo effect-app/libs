@@ -12,7 +12,7 @@ type MakeEff<S, E, R> = {
   readonly make: Effect.Effect<S, E, R>
 }
 type MakeGen<S, E = never, R = never> = {
-  readonly make: () => Generator<Yieldable<any, any, E, R>, S, any>
+  readonly make: () => Generator<Yieldable<any, any, E, R>, S>
 }
 type MakeGenNo<S> = {
   readonly make: () => Generator<unknown, S>

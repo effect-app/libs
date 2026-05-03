@@ -217,8 +217,7 @@ export namespace RefinePathValueTests {
     | { nested: { a: string; _tag: "a" } | { b: number; _tag: "b" }; _tag: "ab" }
     | { nested: { b: number; _tag: "b" } | { c: boolean; _tag: "c" }; _tag: "bc" },
     "nested._tag",
-    "a",
-    false
+    "a"
   >
 
   expectTypeOf<test10>().toEqualTypeOf<{

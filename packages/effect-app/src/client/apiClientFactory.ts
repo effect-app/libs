@@ -251,9 +251,7 @@ const makeApiClientFactory = Effect
               mr.contextEffect.pipe(
                 Effect.flatMap((svcs) => {
                   const rpcEffect = TheClient
-                    .use((client) =>
-                      (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any, never>
-                    )
+                    .use((client) => (client as any)[requestAttr]!(Request.make(input)) as Effect.Effect<any, any>)
                     .pipe(
                       Effect.provide(layers),
                       Effect.provide(svcs)
@@ -337,7 +335,7 @@ const makeApiClientFactory = Effect
 
     const cacheL = new Map<any, Map<any, Client<any, any>>>()
 
-    function makeClientForCached(requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) {
+    function makeClientForCached(requestLevelLayers: Layer.Layer<never>, options?: ClientForOptions) {
       let cache = cacheL.get(requestLevelLayers)
       if (!cache) {
         cache = new Map<any, Client<any, any>>()
@@ -375,7 +373,7 @@ export class ApiClientFactory
   )
 
   static readonly makeFor =
-    (requestLevelLayers: Layer.Layer<never, never, never>, options?: ClientForOptions) =>
+    (requestLevelLayers: Layer.Layer<never>, options?: ClientForOptions) =>
     <M extends RequestsAny>(
       resource: M
     ) =>

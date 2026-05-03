@@ -151,7 +151,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData | undefined>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
 
@@ -161,7 +161,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
 
@@ -171,7 +171,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
     }
@@ -316,7 +316,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
         ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>, never, never>,
+        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryDefinedReturnType<TData, CauseException<E>>
       ]
       // optional options, optional A
@@ -396,7 +396,7 @@ export interface MakeQuery2<R> extends ReturnType<typeof makeQuery<R>> {}
 type StreamQueryResult<A, E> = readonly [
   ComputedRef<AsyncResult.AsyncResult<A[], E>>,
   ComputedRef<A[] | undefined>,
-  (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A[], CauseException<E>>, never, never>,
+  (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<A[], CauseException<E>>>,
   UseQueryReturnType<any, any>
 ]
 

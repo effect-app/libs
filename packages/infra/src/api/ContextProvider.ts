@@ -98,8 +98,7 @@ export const ContextProvider = <
       | Effect.Effect<ContextProviderA, never, ContextProviderR>
       | (() => Generator<
         Yieldable<any, any, never, ContextProviderR>,
-        ContextProviderA,
-        any
+        ContextProviderA
       >),
       MakeContextProviderE,
       MakeContextProviderR | Scope.Scope

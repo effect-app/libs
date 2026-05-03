@@ -38,9 +38,9 @@ export type UserOnSubmit<From, To> = (props: {
   formApi: OmegaFormParams<From, To>
   meta: any
   value: To
-}) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any, never>
+}) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any>
 
-export type RunPromise = <A, E>(eff: Effect.Effect<A, E, never>) => Promise<A>
+export type RunPromise = <A, E>(eff: Effect.Effect<A, E>) => Promise<A>
 
 /**
  * Wraps the user's `onSubmit` to:
@@ -53,7 +53,7 @@ export type RunPromise = <A, E>(eff: Effect.Effect<A, E, never>) => Promise<A>
  */
 export const wrapOnSubmit = <From, To>(
   userOnSubmit: UserOnSubmit<From, To> | undefined,
-  decode: (value: From) => Effect.Effect<To, any, never>,
+  decode: (value: From) => Effect.Effect<To, any>,
   runPromise: RunPromise
 ) => {
   if (!userOnSubmit) return undefined
@@ -89,7 +89,7 @@ export const wrapOnSubmit = <From, To>(
 export const makeSubmitHandlers = <From, To>(
   form: OmegaFormApi<From, To>
 ) => {
-  const hs = form.handleSubmit
+  const hs = form.handleSubmit.bind(form)
 
   const handleSubmitInner: typeof form.handleSubmit = async (meta?: Record<string, any>) => {
     return await hs(meta)

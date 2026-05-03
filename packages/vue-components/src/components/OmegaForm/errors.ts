@@ -110,7 +110,7 @@ export const eHoc = (errorProps: {
           errors,
           generalErrors,
           ...this.$attrs
-        } as any, this.$slots)
+        }, this.$slots)
       }
     }
   }

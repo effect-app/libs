@@ -20,10 +20,10 @@ This is the Effect App library repository, focusing on functional programming pa
 
 ### Mandatory Validation Steps
 
-After **any** changes to package files, run these inside the affected package directory:
+After **all** changes are made, run these from the **repo root**:
 
-1. `pnpm lint-fix` — auto-formats and fixes lint issues; apply all resulting changes
-2. `pnpm check` — type-checks the package; fix all reported errors
+1. `pnpm lint-fix` — auto-formats and fixes lint issues across all packages; apply all resulting changes
+2. `pnpm check` — type-checks all packages (dependency changes in one package can break others); fix all reported errors
    - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
 
 <!-- - Always run tests after making changes: `pnpm test <test_file.ts>` -->

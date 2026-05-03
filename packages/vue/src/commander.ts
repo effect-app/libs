@@ -3,7 +3,6 @@ import { asResult, asStreamResult, deepToRaw, type MissingDependencies, reportRu
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
-import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
 import * as Stream from "effect/Stream"
@@ -1966,25 +1965,15 @@ const defaultFailureMessageHandler = <E, Args extends Array<unknown>, AME, AMR>(
         ),
       onSome: (e) => {
         const rendered = renderError(action, errorRenderer)(e, ...args)
-        return S.is(OperationFailure)(e)
-          ? {
-            level: "warn" as const,
-            message: `${
-              intl.formatMessage(
-                { id: "handle.with_warnings" },
-                { action }
-              )
-            }${rendered ? "\n" + rendered : ""}`
-          }
-          : {
-            level: "warn" as const,
-            message: `${
-              intl.formatMessage(
-                { id: "handle.with_errors" },
-                { action }
-              )
-            }:\n` + rendered
-          }
+        return {
+          level: "warn" as const,
+          message: `${
+            intl.formatMessage(
+              { id: "handle.with_errors" },
+              { action }
+            )
+          }:\n` + rendered
+        }
       }
     })
   })
@@ -2180,14 +2169,13 @@ export const CommanderStatic = {
               ),
             onSuccess: options?.onSuccess === null
               ? null
-              : (a, ..._args) =>
+              : (_a, ..._args) =>
                 hasCustomSuccess
                   ? intl.formatMessage(
                     { id: customSuccess },
                     cc.state
                   )
-                  : (intl.formatMessage({ id: "handle.success" }, { action: cc.action })
-                    + (S.is(OperationSuccess)(a) && a.message ? "\n" + a.message : "")),
+                  : intl.formatMessage({ id: "handle.success" }, { action: cc.action }),
             onFailure: defaultFailureMessageHandler(
               hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
               options?.errorRenderer as ErrorRenderer<E, Args> | undefined
@@ -2362,7 +2350,6 @@ export const CommanderStatic = {
             : hasCustomSuccess
             ? intl.formatMessage({ id: customSuccess }, cc.state)
             : intl.formatMessage({ id: "handle.success" }, { action: cc.action })
-              + (S.is(OperationSuccess)(lastValue) && lastValue.message ? "\n" + lastValue.message : "")
 
           if (successMsg === null) return Effect.void
 

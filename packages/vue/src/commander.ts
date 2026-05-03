@@ -2243,7 +2243,7 @@ export const CommanderStatic = {
         | undefined
         | string
         | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
-      /** Map each stream element to a progress label. When non-`undefined`, the active waiting toast is updated to show the progress text. */
+      /** Map each stream element to a progress label. When non-`undefined`, updates both the active waiting toast and the `CommandProgress` service (for CommandButton progress display). */
       progress?: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined
     }
   ) =>
@@ -2310,12 +2310,16 @@ export const CommanderStatic = {
         Stream.tap((v) =>
           Effect.gen(function*() {
             lastValue = v
-            if (options?.progress !== undefined && toastId !== undefined) {
+            if (options?.progress !== undefined) {
               const p = options.progress(AsyncResult.success(v, { waiting: true }))
               if (p !== undefined) {
-                const progressText = typeof p === "string" ? p : p.text
-                const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
-                yield* toast.info(msg, { id: toastId })
+                // Update CommandProgress so CommandButton progress indicator is also driven
+                yield* CommandProgress.use((s) => s.update(p))
+                if (toastId !== undefined) {
+                  const progressText = typeof p === "string" ? p : p.text
+                  const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
+                  yield* toast.info(msg, { id: toastId })
+                }
               }
             }
           })

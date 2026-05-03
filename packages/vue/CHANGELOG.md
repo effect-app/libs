@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.185
+
+### Patch Changes
+
+- ddd9505: Rename stream mutation helpers: `mutateStream` → `mutateToResult`, `mutateStream2` → `mutate`.
+  - effect-app@4.0.0-beta.185
+
 ## 4.0.0-beta.184
 
 ### Minor Changes

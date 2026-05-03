@@ -166,6 +166,7 @@
     "remove-tagged-error-compat",
     "remove-tagged-request",
     "remove-withDefaultConstructor",
+    "rename-mutate-stream",
     "replace-proxify-with-accessors",
     "repo-mutations-accept-empty-arrays",
     "repo-spans-itemtype",

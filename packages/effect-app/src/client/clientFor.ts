@@ -86,13 +86,15 @@ export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForO
     .split(".")
 
 export interface RequestHandler<A, E, R, Request extends Req, Id extends string> {
-  handler: Effect.Effect<A, E, R>
+  readonly _noInput: true
+  handler: () => Effect.Effect<A, E, R>
   id: Id
   options?: ClientForOptions
   Request: Request
 }
 
 export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
+  readonly _noInput?: never
   handler: (i: I) => Effect.Effect<A, E, R>
   id: Id
   options?: ClientForOptions
@@ -100,7 +102,8 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
 }
 
 export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> {
-  handler: Stream.Stream<A, E, R>
+  readonly _noInput: true
+  handler: () => Stream.Stream<A, E, R>
   id: Id
   options?: ClientForOptions
   Request: Request
@@ -115,6 +118,7 @@ export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends s
 }
 
 export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, Id extends string, Final = A> {
+  readonly _noInput?: never
   handler: (i: I) => Stream.Stream<A, E, R>
   id: Id
   options?: ClientForOptions
@@ -132,8 +136,8 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
 
-export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> =
-  Parameters<I["make"]> extends [] ? void : Parameters<I["make"]>[0]
+export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
+  [] ? void : Parameters<I["make"]>[0]
 
 // Has no input only when the request schema declares no payload fields (the auto-added
 // `_tag` field is ignored). Any payload fields (even all-optional) produce a function handler.

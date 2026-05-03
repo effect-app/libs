@@ -316,7 +316,8 @@ const makeApiClientFactory = Effect
             // @ts-expect-error doc
             prev[cur] = Object.keys(fields).length === 0
               ? {
-                handler: isStream ? buildStream({}) : buildEffect({}),
+                _noInput: true,
+                handler: isStream ? () => buildStream({}) : () => buildEffect({}),
                 ...requestMeta
               }
               : {

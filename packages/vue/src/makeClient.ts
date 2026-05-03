@@ -7,7 +7,7 @@ import type { ExtractModuleName, HandlerInput, RequestHandler, RequestHandlers, 
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
-import * as Stream from "effect/Stream"
+import type * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic, type Progress } from "./commander.js"
@@ -21,13 +21,16 @@ import { type Toast } from "./toast.js"
 export type { Progress }
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
-  handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
+  handler: (() => Effect.Effect<A, E, R>) | ((i: I) => Effect.Effect<A, E, R>),
   map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
-) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
+) =>
+  handler.length === 0
+    ? () => map((handler as () => Effect.Effect<A, E, R>)(), undefined as any)
+    : (i: I) => map(handler(i), i)
 
 // TODO: optimize - work from encoded shape directly
 const projectHandler = (
-  handler: Effect.Effect<any, any, any> | ((i: any) => Effect.Effect<any, any, any>),
+  handler: (() => Effect.Effect<any, any, any>) | ((i: any) => Effect.Effect<any, any, any>),
   successSchema: S.Top,
   projectionSchema: S.Top
 ) => {
@@ -384,7 +387,7 @@ const _useMutation = makeMutation()
 const wrapWithSpan = (self: { id: string; handler: any }, mut: any) => {
   const span = (eff: Effect.Effect<any, any, any>) =>
     Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })(eff)
-  return Effect.isEffect(self.handler)
+  return self.handler.length === 0
     ? (options?: MutationOptionsBase) => span(mut(options))
     : (input: any, options?: MutationOptionsBase) => span(mut(input, options))
 }
@@ -749,7 +752,7 @@ export const makeClient = <RT_, RTHooks>(
           return acc
         }
         const mut = client[key].handler
-        const request = Effect.isEffect(mut) ? () => mut : mut
+        const request = mut
         const fn = Command.fn(client[key].id)
         const wrap = Command.wrap({ mutate: request, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
@@ -798,7 +801,7 @@ export const makeClient = <RT_, RTHooks>(
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
-          const isWithInput = !Effect.isEffect(handler.handler)
+          const isWithInput = handler.handler.length !== 0
           const mut: any = withDefaultInvalidation(mutation(handler), isWithInput, mergedInvalidation)
           const wrap = Command.wrap({ mutate: mut, id: client[key].id })
           return Object.assign(mut, {
@@ -846,10 +849,7 @@ export const makeClient = <RT_, RTHooks>(
         const requestType = client[key].Request.type
         const fn = Command.fn(client[key].id)
         const h_ = client[key].handler
-        const wrapInput = typeof h_ === "function"
-          ? (...args: [any]) => (h_ as (...a: [any]) => any)(...args)
-          : () => h_
-        const request = wrapInput
+        const request = h_
         ;(acc as any)[key] = Object.assign(
           requestType === "query"
             ? {
@@ -898,7 +898,7 @@ export const makeClient = <RT_, RTHooks>(
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
                   const originalHandler = (client[key] as any).handler
-                  const sm2Handler = Stream.isStream(originalHandler)
+                  const sm2Handler = originalHandler.length === 0
                     ? (_input: any, _ctx: any) => (sm2Act as () => any)()
                     : (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
@@ -924,7 +924,7 @@ export const makeClient = <RT_, RTHooks>(
                   : undefined
                 const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
                 const makeProjectedMutation = (h: any): any => {
-                  const isWithInput = !Effect.isEffect(h.handler)
+                  const isWithInput = h.handler.length !== 0
                   const mutate = withDefaultInvalidation(mutation(h), isWithInput, mergedInvalidation)
                   return Object.assign(
                     mutate,
@@ -949,7 +949,7 @@ export const makeClient = <RT_, RTHooks>(
               ...fn, // to get the i18n key etc.
               request,
               fn,
-              wrap: Command.wrap({ mutate: wrapInput as any, id: client[key].id })
+              wrap: Command.wrap({ mutate: h_, id: client[key].id })
             }
         )
         return acc

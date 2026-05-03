@@ -372,8 +372,9 @@ export const makeMutation = () => {
   ) => {
     const queryClient = useQueryClient()
     const handler = self.handler
-    const r = Effect.isEffect(handler)
-      ? (options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler)
+    const r = handler.length === 0
+      ? (options?: MutationOptionsBase) =>
+        invalidateQueries(queryClient, self, options)((handler as () => Effect.Effect<A, E, R>)())
       : (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler(i), i)
 
     return Object.assign(r, { id: self.id }) as any
@@ -404,8 +405,9 @@ export const useMakeMutation = () => {
     self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>
   ) => {
     const handler = self.handler
-    const r = Effect.isEffect(handler)
-      ? (options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler)
+    const r = handler.length === 0
+      ? (options?: MutationOptionsBase) =>
+        invalidateQueries(queryClient, self, options)((handler as () => Effect.Effect<A, E, R>)())
       : (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler(i), i)
 
     return Object.assign(r, { id: self.id }) as any
@@ -430,7 +432,7 @@ export const makeStreamMutation2 = () => {
     self: {
       id: string
       options?: ClientForOptions
-      handler: Stream.Stream<any, any, any> | ((i: any) => Stream.Stream<any, any, any>)
+      handler: (() => Stream.Stream<any, any, any>) | ((i: any) => Stream.Stream<any, any, any>)
     },
     mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
   ) => {
@@ -455,8 +457,8 @@ export const makeStreamMutation2 = () => {
       })
 
     const handler = self.handler
-    const act = Stream.isStream(handler)
-      ? () => Stream.unwrap(makeInvocationEffect(undefined, handler))
+    const act = handler.length === 0
+      ? () => Stream.unwrap(makeInvocationEffect(undefined, (handler as () => Stream.Stream<any, any, any>)()))
       : (i: any) => Stream.unwrap(makeInvocationEffect(i, (handler as (i: any) => Stream.Stream<any, any, any>)(i)))
 
     return act

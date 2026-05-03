@@ -214,7 +214,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     }
 
     const r = useTanstackQuery<A, CauseException<E>, TData>(
-      Effect.isEffect(handler)
+      handler.length === 0
         ? {
           ...defaultOptions,
           ...options,
@@ -230,7 +230,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
           queryKey: baseQueryKey,
           queryFn: ({ meta, signal }) =>
             runPromise(
-              handler
+              (handler as () => Effect.Effect<A, any, any>)()
                 .pipe(
                   Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
                   Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
@@ -383,7 +383,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     const q = useQuery_(self)
 
     return (argOrOptions?: any, options?: any) =>
-      Effect.isEffect(self.handler)
+      self.handler.length === 0
         ? q(undefined, argOrOptions)
         : q(argOrOptions, options)
   }
@@ -422,7 +422,7 @@ export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
       : ref(arg)
     const queryKey = makeQueryKey(q)
     const handler = q.handler
-    const isWithInput = typeof handler === "function"
+    const isWithInput = handler.length !== 0
 
     const r = useTanstackQuery<any[], CauseException<any>, any[]>(
       {
@@ -439,8 +439,8 @@ export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
         queryFn: streamedQuery({
           streamFn: () => {
             const stream = isWithInput
-              ? handler(req.value)
-              : handler
+              ? (handler as (arg: any) => any)(req.value)
+              : (handler as () => any)()
             return streamToAsyncIterableWithCauseException(stream, context, q.id)
           }
         })

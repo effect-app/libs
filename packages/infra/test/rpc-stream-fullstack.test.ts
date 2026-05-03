@@ -140,7 +140,7 @@ it.live(
   "stream resource without input: ApiClientFactory client emits all values",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const values = yield* Stream.runCollect(client.StreamTicks.handler)
+    const values = yield* Stream.runCollect(client.StreamTicks.handler())
     expect(values).toStrictEqual([10, 20, 30])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
@@ -162,7 +162,7 @@ it.live(
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
     const start = Date.now()
     const arrivals = yield* Stream.runCollect(
-      client.StreamRealtime.handler.pipe(
+      client.StreamRealtime.handler().pipe(
         Stream.map((n) => ({ n, at: Date.now() - start }))
       )
     )

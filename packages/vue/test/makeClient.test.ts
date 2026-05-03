@@ -138,10 +138,11 @@ it("clientFor handler shape — props variants", () => {
   )
   expect(client).toBeDefined()
 
-  // no-props (no fields): handler is the Effect itself (RequestHandler), not a function
-  expectTypeOf(client.DoNoProps.handler).not.toBeFunction()
+  // no-props (no fields): handler is now always a function (() => Effect)
+  expectTypeOf(client.DoNoProps.handler).toBeFunction()
+  expectTypeOf<Parameters<typeof client.DoNoProps.handler>>().toEqualTypeOf<[]>()
 
-  // no-props: request is always a function (no args)
+  // no-props: request mirrors handler — always a function (no args)
   expectTypeOf(client.DoNoProps.request).toBeFunction()
   expectTypeOf<Parameters<typeof client.DoNoProps.request>>().toEqualTypeOf<[]>()
 

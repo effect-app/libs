@@ -168,14 +168,6 @@
       "types": "./dist/Model/query/new-kid-interpreter.d.ts",
       "default": "./dist/Model/query/new-kid-interpreter.js"
     },
-    "./Operations": {
-      "types": "./dist/Operations.d.ts",
-      "default": "./dist/Operations.js"
-    },
-    "./OperationsRepo": {
-      "types": "./dist/OperationsRepo.d.ts",
-      "default": "./dist/OperationsRepo.js"
-    },
     "./QueueMaker/SQLQueue": {
       "types": "./dist/QueueMaker/SQLQueue.d.ts",
       "default": "./dist/QueueMaker/SQLQueue.js"

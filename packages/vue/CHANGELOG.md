@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- 985176b: Align request handler input typing with the request's `make` signature. Handlers are now classified as no-input only when the request schema declares no payload fields; any payload (even fully-optional) yields a function handler whose input matches `make`'s first parameter. Adds `HandlerInput<I>` and threads it through `CommandFromRequest`.
+- Updated dependencies [985176b]
+  - effect-app@4.0.0-beta.190
+
 ## 4.0.0-beta.189
 
 ### Patch Changes

@@ -1,6 +1,7 @@
 import { expect, it } from "@effect/vitest"
-import { Effect, Fiber } from "effect-app"
+import { Deferred, Effect, Fiber } from "effect-app"
 import * as Stream from "effect/Stream"
+import { CommanderStatic } from "../src/commander.js"
 import { AsyncResult } from "../src/lib.js"
 import { useExperimental } from "./stubs.js"
 
@@ -215,4 +216,196 @@ it.live("streamFn: generator form Stream.ensuring cleanup runs after stream ends
     if (cmd.result._tag === "Success") {
       expect(cmd.result.value).toBe(107)
     }
+  }))
+
+// ---------------------------------------------------------------------------
+// Command.mapProgress — updates progress ref for each element
+// ---------------------------------------------------------------------------
+
+it.live("streamFn: Command.mapProgress updates progress ref for each stream element", () =>
+  Effect.gen(function*() {
+    const Command = useExperimental({ toasts: [] })
+
+    const cmd = Command.streamFn("test-map-progress")(
+      function*(_arg: void) {
+        return Stream.make(1, 2, 3).pipe(
+          CommanderStatic.mapProgress((r) =>
+            AsyncResult.isSuccess(r)
+              ? { text: `item-${r.value}`, percentage: r.value * 10 }
+              : undefined
+          )
+        )
+      }
+    )
+
+    // progress starts undefined (reactive unwraps the ref)
+    expect(cmd.progress).toBeUndefined()
+
+    yield* join(cmd.handle())
+
+    // after stream drains, last mapped progress value should be set
+    expect(cmd.progress).toEqual({ text: "item-3", percentage: 30 })
+  }))
+
+// ---------------------------------------------------------------------------
+// Command.updateProgress — imperative progress update from stream
+// ---------------------------------------------------------------------------
+
+it.live("streamFn: Command.updateProgress imperatively drives the progress ref", () =>
+  Effect.gen(function*() {
+    const Command = useExperimental({ toasts: [] })
+
+    const cmd = Command.streamFn("test-update-progress")(
+      function*(_arg: void) {
+        return Stream.make("a", "b").pipe(
+          Stream.tap((v) => CommanderStatic.updateProgress(`processing ${v}`))
+        )
+      }
+    )
+
+    expect(cmd.progress).toBeUndefined()
+    yield* join(cmd.handle())
+
+    expect(cmd.progress).toBe("processing b")
+  }))
+
+// ---------------------------------------------------------------------------
+// Command.withDefaultToastStream — in-progress (waiting) initial toast
+// ---------------------------------------------------------------------------
+
+it.live("withDefaultToastStream: shows info toast while stream is running", () =>
+  Effect.gen(function*() {
+    const toasts: any[] = []
+    const Command = useExperimental({ toasts, messages: { "handle.waiting": "{action} waiting…" } })
+
+    // Gate that lets us inspect toast state while the stream is paused mid-flight.
+    const streamPaused = yield* Deferred.make<void>()
+    const resume = yield* Deferred.make<void>()
+
+    const cmd = Command.streamFn("doWork")(
+      function*(_arg: void) {
+        return Stream.make(1).pipe(
+          Stream.tap(() =>
+            Effect.gen(function*() {
+              yield* Deferred.succeed(streamPaused, undefined)
+              yield* Deferred.await(resume)
+            })
+          )
+        )
+      },
+      Command.withDefaultToastStream()
+    )
+
+    const fiber = cmd.handle()
+
+    // Wait until the stream has emitted its first element (and paused).
+    yield* Deferred.await(streamPaused)
+
+    // The waiting info toast should exist before the stream finishes.
+    expect(toasts.some((t) => t.type === "info")).toBe(true)
+    const infoToast = toasts.find((t) => t.type === "info")
+    expect(infoToast.message).toContain("doWork")
+
+    // Let the stream finish.
+    yield* Deferred.succeed(resume, undefined)
+    yield* join(fiber)
+
+    // After completion the same toast slot is replaced with a success toast.
+    expect(toasts.some((t) => t.type === "success")).toBe(true)
+  }))
+
+// ---------------------------------------------------------------------------
+// Command.withDefaultToastStream — progress text/percent updates the toast
+// ---------------------------------------------------------------------------
+
+it.live("withDefaultToastStream: progress option updates waiting toast message", () =>
+  Effect.gen(function*() {
+    const toasts: any[] = []
+    const Command = useExperimental({
+      toasts,
+      messages: { "handle.waiting": "Working…", "handle.success": "{action} done" }
+    })
+
+    const progressSnapshots: string[] = []
+
+    const cmd = Command.streamFn("doWorkProgress")(
+      function*(_arg: void) {
+        return Stream.make(10, 50, 100).pipe(
+          Stream.tap((pct) =>
+            Effect.sync(() => {
+              progressSnapshots.push(`${pct}%`)
+            })
+          )
+        )
+      },
+      Command.withDefaultToastStream({
+        progress: (r) =>
+          AsyncResult.isSuccess(r)
+            ? { text: `${r.value}%`, percentage: r.value }
+            : undefined
+      })
+    )
+
+    yield* join(cmd.handle())
+
+    // All three stream elements were visited by the tap above
+    expect(progressSnapshots).toEqual(["10%", "50%", "100%"])
+
+    // cmd.progress reflects the last mapped value (reactive unwraps the ref)
+    expect(cmd.progress).toEqual({ text: "100%", percentage: 100 })
+
+    // A success toast should appear after the stream completes
+    expect(toasts.some((t) => t.type === "success")).toBe(true)
+  }))
+
+// ---------------------------------------------------------------------------
+// Command.withDefaultToastStream — failure shows warning/error toast
+// ---------------------------------------------------------------------------
+
+it.live("withDefaultToastStream: failure shows failure toast, not success toast", () =>
+  Effect.gen(function*() {
+    const toasts: any[] = []
+    const Command = useExperimental({ toasts })
+
+    class BoomError {
+      readonly _tag = "BoomError"
+      readonly message = "boom"
+    }
+
+    const cmd = Command.streamFn("doWorkFail")(
+      function*(_arg: void) {
+        return Stream.fail(new BoomError())
+      },
+      Command.withDefaultToastStream()
+    )
+
+    yield* join(cmd.handle())
+
+    // Typed errors → withDefaultToastStream calls toast.warning (level: "warn")
+    expect(toasts.some((t) => t.type === "warning" || t.type === "error")).toBe(true)
+    expect(toasts.some((t) => t.type === "success")).toBe(false)
+  }))
+
+// ---------------------------------------------------------------------------
+// Command.withDefaultToastStream — success shows success toast
+// ---------------------------------------------------------------------------
+
+it.live("withDefaultToastStream: success shows success toast after stream drains", () =>
+  Effect.gen(function*() {
+    const toasts: any[] = []
+    const Command = useExperimental({ toasts, messages: { "handle.success": "{action} complete" } })
+
+    const cmd = Command.streamFn("doWorkSuccess")(
+      function*(_arg: void) {
+        return Stream.make(42)
+      },
+      Command.withDefaultToastStream()
+    )
+
+    yield* join(cmd.handle())
+
+    const successToast = toasts.find((t) => t.type === "success")
+    expect(successToast).toBeDefined()
+    expect(successToast.message).toContain("doWorkSuccess")
+    expect(toasts.some((t) => t.type === "error")).toBe(false)
   }))

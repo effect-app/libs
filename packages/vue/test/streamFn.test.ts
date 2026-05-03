@@ -301,6 +301,10 @@ it.live("withDefaultToastStream: shows info toast while stream is running", () =
     // Wait until the stream has emitted its first element (and paused).
     yield* Deferred.await(streamPaused)
 
+    // The waiting info toast is forked behind a 1s delay; wait past that window
+    // before asserting it has surfaced.
+    yield* Effect.sleep("1100 millis")
+
     // The waiting info toast should exist before the stream finishes.
     expect(toasts.some((t) => t.type === "info")).toBe(true)
     const infoToast = toasts.find((t) => t.type === "info")
@@ -311,6 +315,29 @@ it.live("withDefaultToastStream: shows info toast while stream is running", () =
     yield* join(fiber)
 
     // After completion the same toast slot is replaced with a success toast.
+    expect(toasts.some((t) => t.type === "success")).toBe(true)
+  }))
+
+// ---------------------------------------------------------------------------
+// Command.withDefaultToastStream — fast streams skip the waiting toast
+// ---------------------------------------------------------------------------
+
+it.live("withDefaultToastStream: fast stream finishes before delay → no waiting toast", () =>
+  Effect.gen(function*() {
+    const toasts: any[] = []
+    const Command = useExperimental({ toasts, messages: { "handle.waiting": "{action} waiting…" } })
+
+    const cmd = Command.streamFn("doWorkFast")(
+      function*(_arg: void) {
+        return Stream.make(1, 2, 3)
+      },
+      Command.withDefaultToastStream()
+    )
+
+    yield* join(cmd.handle())
+
+    // Stream completed instantly; the 1s waiting fiber must have been interrupted before emitting an info toast.
+    expect(toasts.some((t) => t.type === "info")).toBe(false)
     expect(toasts.some((t) => t.type === "success")).toBe(true)
   }))
 

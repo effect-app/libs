@@ -28,6 +28,16 @@ const fakeToastLayer = (toasts: any[] = []) =>
           toasts.splice(idx, 1)
         }
       }
+      const scheduleAutoDismiss = (toast: any, timeout: number | undefined) => {
+        // Treat Infinity / undefined as "stays until explicitly replaced/dismissed".
+        // Node's setTimeout silently clamps Infinity to 1ms which would otherwise
+        // cause the toast to disappear before assertions can observe it.
+        if (timeout === undefined || !Number.isFinite(timeout)) return
+        toast.timeoutId = setTimeout(() => {
+          const i = toasts.indexOf(toast)
+          if (i > -1) toasts.splice(i, 1)
+        }, timeout)
+      }
       const fakeToast =
         (type: "error" | "warning" | "success" | "info") => (message: string, options?: Toast.ToastOpts) => {
           const id = options?.id ?? Math.random().toString(36).substring(2, 15)
@@ -39,15 +49,11 @@ const fakeToastLayer = (toasts: any[] = []) =>
             const toast = toasts[idx]
             clearTimeout(toast.timeoutId)
             Object.assign(toast, { type, message, options })
-            toast.timeoutId = setTimeout(() => {
-              toasts.splice(idx, 1)
-            }, options?.timeout ?? 3000)
+            scheduleAutoDismiss(toast, options?.timeout ?? 3000)
           } else {
             const toast: any = { id, type, message, options }
-            toast.timeoutId = setTimeout(() => {
-              toasts.splice(idx, 1)
-            }, options?.timeout ?? 3000)
             toasts.push(toast)
+            scheduleAutoDismiss(toast, options?.timeout ?? 3000)
           }
           return id
         }

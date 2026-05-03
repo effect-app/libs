@@ -17,7 +17,7 @@
     "@effect/atom-vue": "^4.0.0-beta.59",
     "@effect/platform-browser": "^4.0.0-beta.59",
     "@sentry/browser": "^10.50.0",
-    "effect": "^4.0.0-beta.59",
+    "effect": "^4.0.0-beta.60",
     "vue": "^3.5.33"
   },
   "devDependencies": {

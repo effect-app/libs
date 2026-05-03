@@ -1,4 +1,5 @@
 import * as Ref from "effect/Ref"
+import { Rpc } from "effect/unstable/rpc"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import * as S from "../Schema.js"
@@ -172,3 +173,49 @@ export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>
   get: Ref.get(ref),
   drain: Ref.getAndSet(ref, [])
 })
+
+/**
+ * `Rpc.Custom` definition for command RPCs that wrap the success/error schemas
+ * with `CommandResponseWithMetaData` / `CommandFailureWithMetaData`.
+ */
+// eslint-disable-next-line import/namespace
+export interface CommandRpc extends Rpc.Custom {
+  readonly out: Rpc.Custom.Out<
+    ReturnType<typeof CommandResponseWithMetaData<this["success"] & S.Top>>,
+    ReturnType<typeof CommandFailureWithMetaData<this["error"] & S.Top>>
+  >
+}
+
+/**
+ * Custom Rpc constructor for command RPCs.
+ * Wraps the success schema with `CommandResponseWithMetaData` and
+ * the error schema with `CommandFailureWithMetaData`.
+ */
+export const makeCommandRpc = Rpc.custom<CommandRpc>(({ defect, error, success }) => ({
+  success: CommandResponseWithMetaData(success),
+  error: CommandFailureWithMetaData(error),
+  defect
+}))
+
+/**
+ * `Rpc.Custom` definition for stream RPCs that wrap the success/error schemas
+ * with `StreamResponseChunk` / `StreamFailureChunk`.
+ */
+// eslint-disable-next-line import/namespace
+export interface StreamRpc extends Rpc.Custom {
+  readonly out: Rpc.Custom.Out<
+    ReturnType<typeof StreamResponseChunk<this["success"] & S.Top>>,
+    ReturnType<typeof StreamFailureChunk<this["error"] & S.Top>>
+  >
+}
+
+/**
+ * Custom Rpc constructor for stream RPCs.
+ * Wraps the success schema with `StreamResponseChunk` and
+ * the error schema with `StreamFailureChunk`.
+ */
+export const makeStreamRpc = Rpc.custom<StreamRpc>(({ defect, error, success }) => ({
+  success: StreamResponseChunk(success),
+  error: StreamFailureChunk(error),
+  defect
+}))

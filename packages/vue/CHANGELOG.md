@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- 0d4e0b8: Fix `isGeneratorFunction` using `isObject` instead of `isFunction`: generator functions have `typeof === "function"`, not `"object"`, so the check always returned `false`. This caused `Command.streamFn` generator-form handlers to silently pass a raw `Generator` object rather than an `Effect<Stream>`, meaning the mutation was never executed.
+- Updated dependencies [0d4e0b8]
+  - effect-app@4.0.0-beta.187
+
 ## 4.0.0-beta.186
 
 ### Patch Changes

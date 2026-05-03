@@ -68,6 +68,7 @@
     "fiery-suits-kneel",
     "five-trams-repeat",
     "fix-class-type-export",
+    "fix-is-generator-function",
     "fix-json-schema-annotations",
     "fix-jsonschema-postprocess",
     "fix-onedsl-r-inference",

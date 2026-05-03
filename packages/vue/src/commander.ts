@@ -1830,6 +1830,97 @@ export declare namespace Commander {
         ? CommandOut<Arg, SA2, SE2 | EE2, SR2 | ER2, Id, I18nKey, State>
       : never
   }
+
+  /**
+   * Type returned by `mutate.wrap` on a stream handler — analogous to `CommanderWrap` but for streams.
+   * The handler is pre-baked (from the stream mutation), so this is called with only optional combinators.
+   */
+  export type StreamerWrap<
+    RT,
+    Id extends string,
+    I18nKey extends string,
+    State extends IntlRecord | undefined,
+    Arg,
+    SA,
+    SE,
+    SR
+  > =
+    & CommandContextLocal<Id, I18nKey>
+    & { readonly state: Context.Service<`Commander.Command.${Id}.state`, State> }
+    & {
+      (): Exclude<SR, RT> extends never ? CommandOut<Arg, SA, SE, SR, Id, I18nKey, State>
+        : MissingDependencies<RT, SR> & {}
+      <A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>>(
+        a: (
+          _: Stream.Stream<SA, SE, SR>,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => A
+      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+      <
+        B,
+        A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      >(
+        a: (
+          _: Stream.Stream<SA, SE, SR>,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => B,
+        b: (
+          _: B,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => A
+      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+      <
+        B,
+        C,
+        A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      >(
+        a: (
+          _: Stream.Stream<SA, SE, SR>,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => B,
+        b: (
+          _: B,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => C,
+        c: (
+          _: C,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => A
+      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+      <
+        B,
+        C,
+        D,
+        A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>
+      >(
+        a: (
+          _: Stream.Stream<SA, SE, SR>,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => B,
+        b: (
+          _: B,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => C,
+        c: (
+          _: C,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => D,
+        d: (
+          _: D,
+          arg: ArgForCombinator<Arg>,
+          ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+        ) => A
+      ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+    }
 }
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
@@ -3175,6 +3266,46 @@ export class CommanderImpl<RT, RTHooks> {
    * **User Feedback**: Use the `withDefaultToast` helper for status notifications, or render
    * the `result` inline for custom UI feedback.
    */
+  streamWrap = <
+    const Id extends string,
+    Arg,
+    SA,
+    SE,
+    SR,
+    const State extends IntlRecord = IntlRecord,
+    I18nKey extends string = Id
+  >(
+    handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>,
+    id: Id,
+    options?: FnOptions<Id, I18nKey, State>
+  ): Commander.StreamerWrap<RT | RTHooks, Id, I18nKey, State, Arg, SA, SE, SR> => {
+    return Object.assign(
+      (...combinators: any[]): any => {
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const errorDef = new Error()
+        Error.stackTraceLimit = limit
+        return this.makeStreamCommand(id, options, errorDef)(
+          combinators.length === 0
+            ? handler
+            : (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => {
+              let current: any = handler(arg, ctx)
+              for (const combinator of combinators) {
+                current = combinator(current, arg, ctx)
+              }
+              return current
+            }
+        )
+      },
+      makeBaseInfo(id, options),
+      {
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(
+          `Commander.Command.${id}.state`
+        )
+      }
+    )
+  }
+
   wrap = <
     const Id extends string,
     Arg,

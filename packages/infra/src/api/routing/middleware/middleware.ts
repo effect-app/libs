@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Config, Effect, Layer, Schema } from "effect"
-import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
-import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
+import { Cause, Config, Effect, Layer, Ref, Schema } from "effect"
+import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, InvalidationMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
+import { Invalidation, RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
+import * as Array from "effect/Array"
 import * as Context from "effect/Context"
 import { type Rpc } from "effect/unstable/rpc"
 import { logError, reportError } from "../../../errorReporter.js"
@@ -121,11 +122,64 @@ export const DevModeMiddlewareLive = Layer
   )
   .pipe(Layer.provide(DevModeLive))
 
+/**
+ * RPC middleware that:
+ * 1. Reads the `Invalidates` annotation and pre-populates `InvalidationSet` with static keys.
+ * 2. Creates a request-scoped `InvalidationSet` backed by a `Ref` and provides it to the handler.
+ * 3. For commands: wraps the result in `{ payload, metadata: { invalidateQueries } }` so that
+ *    accumulated invalidation keys reach the client via the RPC response body.
+ * 4. For commands (V2): also wraps failures in `CommandFailureWithMetaData` so clients can
+ *    invalidate queries even when a command fails.
+ */
+export const InvalidationMiddlewareLive = Layer.succeed(
+  InvalidationMiddleware,
+  (effect, { rpc }) =>
+    Ref
+      .make<ReadonlyArray<Invalidation.InvalidationKey>>(
+        Context.get(rpc.annotations, Invalidation.Invalidates)
+      )
+      .pipe(
+        Effect.flatMap((keysRef): Effect.Effect<any, any, any> => {
+          const requestType = Context.get(rpc.annotations, RequestType)
+          const isCommand = requestType === "command"
+          const withSet = Effect.provideService(
+            effect,
+            Invalidation.InvalidationSet,
+            Invalidation.makeInvalidationSet(keysRef)
+          )
+
+          if (!isCommand) return withSet
+
+          return withSet.pipe(
+            Effect.flatMap((value) =>
+              Ref.get(keysRef).pipe(
+                Effect.map((keys) => ({ payload: value, metadata: { invalidateQueries: keys } }) as any)
+              )
+            ),
+            // V2: wrap command failures with metadata so the client can invalidate
+            // queries even when the command fails.
+            Effect.catch((err: any) =>
+              Ref.get(keysRef).pipe(
+                Effect.flatMap((keys) =>
+                  Effect.fail({
+                    _tag: "CommandFailureWithMetaData" as const,
+                    error: err,
+                    metadata: { invalidateQueries: keys }
+                  })
+                )
+              )
+            )
+          )
+        })
+      ) as any
+)
+
 export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
   RequestCacheMiddlewareLive,
   ConfigureInterruptibilityMiddlewareLive,
   LoggerMiddlewareLive,
-  DevModeMiddlewareLive
+  DevModeMiddlewareLive,
+  InvalidationMiddlewareLive
 )
 
 /**

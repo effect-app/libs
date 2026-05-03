@@ -1,5 +1,172 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- 985176b: Align request handler input typing with the request's `make` signature. Handlers are now classified as no-input only when the request schema declares no payload fields; any payload (even fully-optional) yields a function handler whose input matches `make`'s first parameter. Adds `HandlerInput<I>` and threads it through `CommandFromRequest`.
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- ea32222: Update to effect 4.0.0-beta.60 and use native `Rpc.custom` constructors (`makeCommandRpc`, `makeStreamRpc`) for metadata-wrapped RPC schemas instead of manually wrapping/unwrapping schemas inline.
+
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- b2e438f: Remove Operations service and repo
+
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- 0d4e0b8: Fix `isGeneratorFunction` using `isObject` instead of `isFunction`: generator functions have `typeof === "function"`, not `"object"`, so the check always returned `false`. This caused `Command.streamFn` generator-form handlers to silently pass a raw `Generator` object rather than an `Effect<Stream>`, meaning the mutation was never executed.
+
+## 4.0.0-beta.186
+
+## 4.0.0-beta.185
+
+## 4.0.0-beta.184
+
+## 4.0.0-beta.183
+
+## 4.0.0-beta.182
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- 583393f: Default the stream `mutateStream` execute resolved value to the request's success type when no `final` schema is declared.
+
+  Previously the type defaulted to `void`, but the runtime already resolves with the last emitted value. Types now match runtime behaviour: `execute` returns `Final` if a `final` schema is set, otherwise the success type.
+
+## 4.0.0-beta.180
+
+### Minor Changes
+
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+## 4.0.0-beta.179
+
+### Minor Changes
+
+- 828d264: Stream requests now support an optional `final` schema that models the final success type of the stream. When declared, `mutateStream`'s execute effect resolves with the last emitted value typed as `Final` instead of `void`.
+
+  ```ts
+  class MyStream extends SomethingStream<MyStream>()(
+    "MyStream",
+    { id: S.String },
+    {
+      success: S.Union([OperationProgress, ExportComplete]),
+      final: ExportComplete, // execute now resolves with ExportComplete
+    }
+  ) {}
+  ```
+
+## 4.0.0-beta.178
+
+## 4.0.0-beta.177
+
+### Minor Changes
+
+- 89d8b3a: Add Effect RPC `Stream` support to the wrapper.
+
+  - New `Stream` request constructor on `TaggedRequestFor` parallel to `Query`/`Command`. Emits resources with `type: "stream"`.
+  - Server router (`@effect-app/infra` `routing.ts`) accepts stream resources whose handlers return a `Stream.Stream<A, E, R>` (or a function from input to one). Forwards `stream: true` to `Rpc.make` so `RpcSchema.Stream` wrapping is applied. Streams bypass `applyRequestTypeInterruptibility` and the `Effect.withSpan` wrapping (the RPC server adds its own span).
+  - Client (`apiClientFactory.ts`) detects stream resources, forwards `stream: true` when constructing `RpcGroup`, and exposes the per-request `handler` as a `Stream.Stream` (via `Stream.unwrap` over the `ManagedRuntime` context) instead of an `Effect`. `Invalidation.CommandResponseWithMetaData` continues to apply only to commands.
+  - New `RequestStreamHandler` / `RequestStreamHandlerWithInput` shapes in `clientFor.ts`; `RequestHandlers` dispatches on `type: "stream"`.
+
+## 4.0.0-beta.176
+
+### Patch Changes
+
+- pass options
+
+## 4.0.0-beta.175
+
+## 4.0.0-beta.174
+
+### Minor Changes
+
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+## 4.0.0-beta.173
+
+## 4.0.0-beta.172
+
+## 4.0.0-beta.171
+
+### Patch Changes
+
+- d71d976: fix
+
+## 4.0.0-beta.170
+
+### Patch Changes
+
+- 8f09f77: fix
+
+## 4.0.0-beta.169
+
+### Patch Changes
+
+- 8ae8b53: input mess
+
+## 4.0.0-beta.168
+
+### Patch Changes
+
+- 178480a: Fix request handler input classification to use request schema fields instead of `make` parameters, preventing defaulted/nullable input fields from being treated as no-input handlers.
+
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- 140e192: Relax invalidation resource value constraints to allow arbitrary values while preserving query-only filtering in invalidation handling.
+
+## 4.0.0-beta.166
+
+### Patch Changes
+
+- dbcc53b: Refactor command invalidation typing: declare resources via `Command<Self, Resources>()`, pass `invalidatesQueries` as the optional 4th argument, and enforce exact `clientFor` invalidation resources when required.
+
+## 4.0.0-beta.165
+
+### Minor Changes
+
+- f88ea34: Move `makeQueryKey` into `effect-app/client` and update Vue source and tests to import it from the shared client module. Vue still re-exports `makeQueryKey` from `src/lib` for compatibility.
+
+## 4.0.0-beta.164
+
+### Minor Changes
+
+- 8cb3de4: Add command invalidation helpers that preserve query-only resource types and pass mutation input and `Exit` results into invalidation callbacks. Update Vue `clientFor` to merge request-level invalidation config with call-site invalidation and require matching invalidation resources.
+
 ## 4.0.0-beta.163
 
 ### Patch Changes

@@ -1,5 +1,229 @@
 # @effect-app/infra
 
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- Updated dependencies [985176b]
+  - effect-app@4.0.0-beta.190
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- ea32222: Update to effect 4.0.0-beta.60 and use native `Rpc.custom` constructors (`makeCommandRpc`, `makeStreamRpc`) for metadata-wrapped RPC schemas instead of manually wrapping/unwrapping schemas inline.
+- Updated dependencies [ea32222]
+  - effect-app@4.0.0-beta.189
+
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- b2e438f: Remove Operations service and repo
+- Updated dependencies [b2e438f]
+  - effect-app@4.0.0-beta.188
+
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- Updated dependencies [0d4e0b8]
+  - effect-app@4.0.0-beta.187
+
+## 4.0.0-beta.186
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.186
+
+## 4.0.0-beta.185
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.185
+
+## 4.0.0-beta.184
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.184
+
+## 4.0.0-beta.183
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.183
+
+## 4.0.0-beta.182
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.182
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [583393f]
+  - effect-app@4.0.0-beta.181
+
+## 4.0.0-beta.180
+
+### Minor Changes
+
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+### Patch Changes
+
+- Updated dependencies [7fa3045]
+  - effect-app@4.0.0-beta.180
+
+## 4.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - effect-app@4.0.0-beta.179
+
+## 4.0.0-beta.178
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.178
+
+## 4.0.0-beta.177
+
+### Minor Changes
+
+- 89d8b3a: Add Effect RPC `Stream` support to the wrapper.
+
+  - New `Stream` request constructor on `TaggedRequestFor` parallel to `Query`/`Command`. Emits resources with `type: "stream"`.
+  - Server router (`@effect-app/infra` `routing.ts`) accepts stream resources whose handlers return a `Stream.Stream<A, E, R>` (or a function from input to one). Forwards `stream: true` to `Rpc.make` so `RpcSchema.Stream` wrapping is applied. Streams bypass `applyRequestTypeInterruptibility` and the `Effect.withSpan` wrapping (the RPC server adds its own span).
+  - Client (`apiClientFactory.ts`) detects stream resources, forwards `stream: true` when constructing `RpcGroup`, and exposes the per-request `handler` as a `Stream.Stream` (via `Stream.unwrap` over the `ManagedRuntime` context) instead of an `Effect`. `Invalidation.CommandResponseWithMetaData` continues to apply only to commands.
+  - New `RequestStreamHandler` / `RequestStreamHandlerWithInput` shapes in `clientFor.ts`; `RequestHandlers` dispatches on `type: "stream"`.
+
+### Patch Changes
+
+- Updated dependencies [89d8b3a]
+  - effect-app@4.0.0-beta.177
+
+## 4.0.0-beta.176
+
+### Patch Changes
+
+- pass options
+- Updated dependencies
+  - effect-app@4.0.0-beta.176
+
+## 4.0.0-beta.175
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.175
+
+## 4.0.0-beta.174
+
+### Minor Changes
+
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+### Patch Changes
+
+- Updated dependencies [821468d]
+  - effect-app@4.0.0-beta.174
+
+## 4.0.0-beta.173
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.173
+
+## 4.0.0-beta.172
+
+### Patch Changes
+
+- improve sentry
+  - effect-app@4.0.0-beta.172
+
+## 4.0.0-beta.171
+
+### Patch Changes
+
+- Updated dependencies [d71d976]
+  - effect-app@4.0.0-beta.171
+
+## 4.0.0-beta.170
+
+### Patch Changes
+
+- Updated dependencies [8f09f77]
+  - effect-app@4.0.0-beta.170
+
+## 4.0.0-beta.169
+
+### Patch Changes
+
+- Updated dependencies [8ae8b53]
+  - effect-app@4.0.0-beta.169
+
+## 4.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [178480a]
+  - effect-app@4.0.0-beta.168
+
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- Updated dependencies [140e192]
+  - effect-app@4.0.0-beta.167
+
+## 4.0.0-beta.166
+
+### Patch Changes
+
+- Updated dependencies [dbcc53b]
+  - effect-app@4.0.0-beta.166
+
+## 4.0.0-beta.165
+
+### Patch Changes
+
+- Updated dependencies [f88ea34]
+  - effect-app@4.0.0-beta.165
+
+## 4.0.0-beta.164
+
+### Patch Changes
+
+- Updated dependencies [8cb3de4]
+  - effect-app@4.0.0-beta.164
+
 ## 4.0.0-beta.163
 
 ### Patch Changes

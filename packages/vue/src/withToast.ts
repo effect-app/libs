@@ -1,6 +1,6 @@
-import { Cause, Context, Effect, Layer, type Option } from "effect-app"
+import { Cause, Context, Effect, Fiber, Layer, type Option } from "effect-app"
 import { wrapEffect } from "effect-app/utils"
-import { CurrentToastId, Toast } from "./toast.js"
+import { CurrentToastId, Toast, type ToastId } from "./toast.js"
 
 export interface ToastOptions<A, E, Args extends ReadonlyArray<unknown>, WaiR, SucR, ErrR> {
   stableToastId?: undefined | string | ((...args: Args) => string | undefined)
@@ -48,12 +48,20 @@ export class WithToast extends Context.Service<WithToast>()("WithToast", {
           : options.stableToastId
 
         const t = yield* wrapEffect(options.onWaiting)(...args)
-        const toastId = t === null ? stableToastId : yield* toast.info(
-          t,
-          { id: stableToastId ?? null } // TODO: timeout forever?
+        const toastId: ToastId | undefined = t === null
+          ? stableToastId
+          : stableToastId ?? `wait-${Math.random().toString(36).slice(2)}`
+
+        const waitingFiber = t === null ? undefined : yield* Effect.forkChild(
+          Effect.sleep("1 seconds").pipe(
+            Effect.andThen(toast.info(t, { id: toastId!, timeout: Infinity }))
+          )
         )
+        const interruptWaiting = waitingFiber ? Fiber.interrupt(waitingFiber) : Effect.void
+
         return yield* self.pipe(
           Effect.tap(Effect.fnUntraced(function*(a) {
+            yield* interruptWaiting
             const t = yield* wrapEffect(options.onSuccess)(a, ...args)
             if (t === null) {
               return
@@ -64,6 +72,7 @@ export class WithToast extends Context.Service<WithToast>()("WithToast", {
             )
           })),
           Effect.tapCause(Effect.fnUntraced(function*(cause) {
+            yield* interruptWaiting
             yield* Effect.logDebug(
               "WithToast - caught error cause: " + Cause.squash(cause),
               Cause.hasInterruptsOnly(cause),

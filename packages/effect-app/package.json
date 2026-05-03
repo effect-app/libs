@@ -1,6 +1,6 @@
 {
   "name": "effect-app",
-  "version": "4.0.0-beta.163",
+  "version": "4.0.0-beta.190",
   "license": "MIT",
   "type": "module",
   "dependencies": {
@@ -25,7 +25,7 @@
     "vitest": "^4.1.5"
   },
   "peerDependencies": {
-    "effect": "^4.0.0-beta.59"
+    "effect": "^4.0.0-beta.60"
   },
   "typesVersions": {
     "*": {
@@ -82,10 +82,6 @@
     "./NonEmptySet": {
       "types": "./dist/NonEmptySet.d.ts",
       "default": "./dist/NonEmptySet.js"
-    },
-    "./Operations": {
-      "types": "./dist/Operations.d.ts",
-      "default": "./dist/Operations.js"
     },
     "./Option": {
       "types": "./dist/Option.d.ts",
@@ -195,6 +191,10 @@
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
     },
+    "./client/InvalidationKeys": {
+      "types": "./dist/client/InvalidationKeys.d.ts",
+      "default": "./dist/client/InvalidationKeys.js"
+    },
     "./client/apiClientFactory": {
       "types": "./dist/client/apiClientFactory.d.ts",
       "default": "./dist/client/apiClientFactory.js"
@@ -238,6 +238,10 @@
     "./rpc": {
       "types": "./dist/rpc.d.ts",
       "default": "./dist/rpc.js"
+    },
+    "./rpc/Invalidation": {
+      "types": "./dist/rpc/Invalidation.d.ts",
+      "default": "./dist/rpc/Invalidation.js"
     },
     "./rpc/MiddlewareMaker": {
       "types": "./dist/rpc/MiddlewareMaker.d.ts",

@@ -16,7 +16,7 @@ export type FieldPath<T> = unknown extends T ? string
   // technically we cannot have array at the root
   : T extends ReadonlyArray<infer U> ? FieldPath_<U, `[${number}]`>
   : {
-    [K in keyof T]: FieldPath_<T[K], `${K & string}`>
+    [K in keyof T]: FieldPath_<T[K], K & string>
   }[keyof T]
 
 export type FieldPath_<T, Path extends string> = unknown extends T ? string
@@ -147,7 +147,7 @@ export type FormProps<From, To> =
       formApi: OmegaFormParams<From, To>
       meta: any
       value: To
-    }) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any, never>
+    }) => Promise<any> | EffectFiber<any, any> | Effect.Effect<unknown, any>
   }
 
 export type OmegaFormParams<From, To> = FormApi<
@@ -478,7 +478,7 @@ export interface OmegaFormReturn<
   // Pre-computed type aliases - computed ONCE for performance
   _paths: FieldPath<From>
   _keys: NestedKeyOf<From>
-  _schema: S.Codec<To, From, never>
+  _schema: S.Codec<To, From>
 
   // this crazy thing here is copied from the OmegaFormInput.vue.d.ts, with `From` removed as Generic, instead closed over from the From generic above..
   Input: <Name extends OmegaFormReturn<From, To, TypeProps>["_paths"]>(

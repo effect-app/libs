@@ -202,7 +202,7 @@ class GHGistService extends Context.Service<GHGistService>()("GHGistService", {
     const loadGistCache: (
       company: string,
       rec?: { recCache?: boolean; recCacheCompany?: boolean }
-    ) => Effect.Effect<GistCache, GistCacheOfCompanyNotFound, never> = Effect
+    ) => Effect.Effect<GistCache, GistCacheOfCompanyNotFound> = Effect
       .fn("effa-cli.gist.loadGistCache")(
         function*(
           company: string,

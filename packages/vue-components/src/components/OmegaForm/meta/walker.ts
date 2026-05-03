@@ -177,8 +177,9 @@ export const classifyAndWalkUnion = <T>(
     return
   }
 
-  if (nonNullTypes.some(S.AST.isArrays)) {
-    walk(nonNullTypes.find(S.AST.isArrays)!, key, parentMeta, ctx)
+  const ast = nonNullTypes.find(S.AST.isArrays)
+  if (ast) {
+    walk(ast, key, parentMeta, ctx)
     return
   }
 

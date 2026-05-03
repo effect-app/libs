@@ -387,6 +387,31 @@ it.live("withDefaultToastStream: failure shows failure toast, not success toast"
   }))
 
 // ---------------------------------------------------------------------------
+// Command.withDefaultToastStream — die (defect) shows error toast
+// ---------------------------------------------------------------------------
+
+it.live("withDefaultToastStream: die/defect shows error toast, not warning or success", () =>
+  Effect.gen(function*() {
+    const toasts: any[] = []
+    const Command = useExperimental({ toasts })
+
+    const cmd = Command.streamFn("doWorkDie")(
+      function*(_arg: void) {
+        // Stream.die produces a defect — Cause.findErrorOption returns Option.none()
+        // so defaultFailureMessageHandler returns a plain string → toast.error
+        return Stream.die(new Error("unexpected defect"))
+      },
+      Command.withDefaultToastStream()
+    )
+
+    yield* join(cmd.handle())
+
+    expect(toasts.some((t) => t.type === "error")).toBe(true)
+    expect(toasts.some((t) => t.type === "warning")).toBe(false)
+    expect(toasts.some((t) => t.type === "success")).toBe(false)
+  }))
+
+// ---------------------------------------------------------------------------
 // Command.withDefaultToastStream — success shows success toast
 // ---------------------------------------------------------------------------
 

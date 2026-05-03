@@ -1,9 +1,10 @@
 import { expect, it } from "@effect/vitest"
 import { Deferred, Effect, Fiber } from "effect-app"
 import * as Stream from "effect/Stream"
+import { TestClock } from "effect/testing"
 import { CommanderStatic } from "../src/commander.js"
 import { AsyncResult } from "../src/lib.js"
-import { useExperimental } from "./stubs.js"
+import { useExperimental, useExperimentalE } from "./stubs.js"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -273,24 +274,19 @@ it.live("streamFn: Command.updateProgress imperatively drives the progress ref",
 // Command.withDefaultToastStream — in-progress (waiting) initial toast
 // ---------------------------------------------------------------------------
 
-it.live("withDefaultToastStream: shows info toast while stream is running", () =>
+it.effect("withDefaultToastStream: shows info toast while stream is running", () =>
   Effect.gen(function*() {
     const toasts: any[] = []
-    const Command = useExperimental({ toasts, messages: { "handle.waiting": "{action} waiting…" } })
+    const Command = yield* useExperimentalE({ toasts, messages: { "handle.waiting": "{action} waiting…" } })
 
-    // Gate that lets us inspect toast state while the stream is paused mid-flight.
-    const streamPaused = yield* Deferred.make<void>()
+    // Gate that holds the stream open past the 1s waiting-toast delay so we can
+    // observe the info toast while the stream is still in-flight.
     const resume = yield* Deferred.make<void>()
 
     const cmd = Command.streamFn("doWork")(
       function*(_arg: void) {
         return Stream.make(1).pipe(
-          Stream.tap(() =>
-            Effect.gen(function*() {
-              yield* Deferred.succeed(streamPaused, undefined)
-              yield* Deferred.await(resume)
-            })
-          )
+          Stream.tap(() => Deferred.await(resume))
         )
       },
       Command.withDefaultToastStream()
@@ -298,14 +294,10 @@ it.live("withDefaultToastStream: shows info toast while stream is running", () =
 
     const fiber = cmd.handle()
 
-    // Wait until the stream has emitted its first element (and paused).
-    yield* Deferred.await(streamPaused)
+    // Advance virtual time past the 1s waiting-toast delay; the stream is still
+    // paused on `resume`, so the info toast must have surfaced.
+    yield* TestClock.adjust("1100 millis")
 
-    // The waiting info toast is forked behind a 1s delay; wait past that window
-    // before asserting it has surfaced.
-    yield* Effect.sleep("1100 millis")
-
-    // The waiting info toast should exist before the stream finishes.
     expect(toasts.some((t) => t.type === "info")).toBe(true)
     const infoToast = toasts.find((t) => t.type === "info")
     expect(infoToast.message).toContain("doWork")

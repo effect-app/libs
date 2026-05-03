@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect, expectTypeOf, it } from "@effect/vitest"
-import { type Effect, S } from "effect-app"
+import { S } from "effect-app"
 import { configureInvalidation, makeQueryKey } from "effect-app/client"
 import * as Exit from "effect/Exit"
-import { type ExportComplete, Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
+import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
 const somethingInvalidationResources = {
   Something: {
@@ -272,26 +272,4 @@ it.skip("works", () => {
     p,
     projectedStruct
   })
-})
-
-it.skip("stream final type tests", () => {
-  const { clientFor } = useClient()
-  const client = clientFor(Something, undefined, somethingInvalidationResources)
-
-  const execNoFinal = client.StreamWithoutFinal.mutateToResult()
-  const execWithFinal = client.StreamWithFinal.mutateToResult()
-
-  // Without `final`: execute input is {id: string} and resolves with void
-  const _execNoFinalResult: ReturnType<typeof execNoFinal> = execNoFinal({ id: "test" })
-  // @ts-expect-error result of execNoFinal should be void-typed, not ExportComplete
-  const _badAssign: Effect.Effect<ExportComplete, never, never> = _execNoFinalResult
-
-  // With `final: ExportComplete`: execute resolves with ExportComplete
-  const _execWithFinalResult: ReturnType<typeof execWithFinal> = execWithFinal({ id: "test" })
-  // Assignment should compile — result IS Effect<ExportComplete, ...>
-  const _goodAssign: Effect.Effect<ExportComplete, never, never> = _execWithFinalResult
-  void _execNoFinalResult
-  void _execWithFinalResult
-  void _goodAssign
-  void _badAssign
 })

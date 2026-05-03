@@ -83,7 +83,7 @@ export interface RequestExt<
    * Send the request to the endpoint and return the raw Effect response.
    * This does not perform query cache invalidation.
    */
-  request: Effect.Effect<A, E, R>
+  request: () => Effect.Effect<A, E, R>
 }
 
 export type CommandRequestWithExtensions<RT, Req> = Req extends
@@ -105,7 +105,7 @@ export interface QueryExtensions<A, E, R> {
    * Send the request to the endpoint and return the raw Effect response.
    * This does not set up query state tracking.
    */
-  request: Effect.Effect<A, E, R>
+  request: () => Effect.Effect<A, E, R>
 }
 
 export type QueryRequestWithExtensions<Req> = Req extends
@@ -249,7 +249,7 @@ export type StreamMutation2WithExtensions<RT, Req> = Req extends
       readonly wrap: Commander.StreamerWrap<RT, Id, Id, undefined, I, A, E, R>
     }
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
-      & Stream.Stream<A, E, R>
+      & (() => Stream.Stream<A, E, R>)
       & {
         readonly id: Id
         readonly wrap: Commander.StreamerWrap<RT, Id, Id, undefined, void, A, E, R>
@@ -265,7 +265,7 @@ declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
 declare const useStreamQuery_: QueryImpl<any>["useStreamQuery"]
 
 export interface ProjectResult<RT, I, B, E, R, Request extends Req, Id extends string> {
-  request: (i: I) => Effect.Effect<B, E, R>
+  request: [I] extends [void] ? () => Effect.Effect<B, E, R> : (i: I) => Effect.Effect<B, E, R>
   query: Exclude<R, RT> extends never ? ReturnType<typeof useQuery_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
   suspense: Exclude<R, RT> extends never ? ReturnType<typeof useSuspenseQuery_<I, E, B, Request, Id>>
@@ -749,12 +749,13 @@ export const makeClient = <RT_, RTHooks>(
           return acc
         }
         const mut = client[key].handler
+        const request = Effect.isEffect(mut) ? () => mut : mut
         const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
+        const wrap = Command.wrap({ mutate: request, id: client[key].id })
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
           mut,
           fn, // to get the i18n key etc.
-          { wrap, fn }
+          { wrap, fn, request }
         )
         return acc
       },
@@ -848,7 +849,7 @@ export const makeClient = <RT_, RTHooks>(
         const wrapInput = Effect.isEffect(h_)
           ? () => h_
           : (...args: [any]) => h_(...args)
-        const request = Effect.isEffect(h_) ? h_ : wrapInput
+        const request = wrapInput
         ;(acc as any)[key] = Object.assign(
           requestType === "query"
             ? {
@@ -891,14 +892,14 @@ export const makeClient = <RT_, RTHooks>(
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
               return {
                 ...client[key],
-                request: h_,
+                request: Stream.isStream(h_) ? () => h_ : h_,
                 streamQuery: useStreamQuery(client[key] as any),
                 streamFn: useCommand().streamFn(client[key].id as any) as any,
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
                   const originalHandler = (client[key] as any).handler
                   const sm2Handler = Stream.isStream(originalHandler)
-                    ? (_input: any, _ctx: any) => sm2Act
+                    ? (_input: any, _ctx: any) => (sm2Act as () => any)()
                     : (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
                     id: client[key].id,
@@ -1063,7 +1064,7 @@ export type ToCamel<S extends string | number | symbol> = S extends string
   : never
 
 export interface CommandBase<I = void, A = void, RA = unknown, RE = unknown> {
-  handle: (input: I) => A
+  handle: [I] extends [void] ? () => A : (input: I) => A
   waiting: boolean
   blocked: boolean
   allowed: boolean

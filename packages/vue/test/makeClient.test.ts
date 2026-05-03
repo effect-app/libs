@@ -2,8 +2,8 @@
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { S } from "effect-app"
 import { configureInvalidation, makeQueryKey } from "effect-app/client"
-import type { CommandFromRequest } from "../src/makeClient.js"
 import * as Exit from "effect/Exit"
+import type { CommandFromRequest } from "../src/makeClient.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
 const somethingInvalidationResources = {
@@ -141,6 +141,10 @@ it("clientFor handler shape — props variants", () => {
   // no-props (no fields): handler is the Effect itself (RequestHandler), not a function
   expectTypeOf(client.DoNoProps.handler).not.toBeFunction()
 
+  // no-props: request is always a function (no args)
+  expectTypeOf(client.DoNoProps.request).toBeFunction()
+  expectTypeOf<Parameters<typeof client.DoNoProps.request>>().toEqualTypeOf<[]>()
+
   // optional-only: any fields → function handler. Input matches `make`, which for
   // fully-optional payload is omittable.
   expectTypeOf(client.DoOptionalOnly.handler).toBeFunction()
@@ -167,16 +171,20 @@ it("clientFor handler shape — props variants", () => {
 })
 
 it("CommandFromRequest input shape — props variants", () => {
-  type NoPropsArg = Parameters<CommandFromRequest<typeof Something.DoNoProps>["handle"]>[0]
+  type NoPropsHandle = CommandFromRequest<typeof Something.DoNoProps>["handle"]
 
-  // no-props (no fields) → void input
-  expectTypeOf<NoPropsArg>().toBeVoid()
+  // no-props (no fields) → handle takes no arguments
+  expectTypeOf<Parameters<NoPropsHandle>>().toEqualTypeOf<[]>()
 
   // type-only assignability checks for the remaining variants
   if (false as boolean) {
+    const noProps = null as unknown as CommandFromRequest<typeof Something.DoNoProps>
     const optOnly = null as unknown as CommandFromRequest<typeof Something.DoOptionalOnly>
     const reqOnly = null as unknown as CommandFromRequest<typeof Something.DoRequiredOnly>
     const mixed = null as unknown as CommandFromRequest<typeof Something.DoMixed>
+
+    // no-props → handle takes no args
+    noProps.handle()
 
     // optional-only → matches `make` (fully optional, arg omittable)
     optOnly.handle()

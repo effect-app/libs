@@ -208,10 +208,13 @@ export declare namespace Commander {
     new(): {}
 
     /** click handlers */
-    handle: ((arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>, never>) & {
-      /** @deprecated don't exist */
-      effect: (arg: Arg) => Effect.Effect<A, E, R>
-    }
+    handle:
+      & ([Arg] extends [void] ? () => Fiber.Fiber<Exit.Exit<A, E>, never>
+        : (arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>, never>)
+      & {
+        /** @deprecated don't exist */
+        effect: [Arg] extends [void] ? () => Effect.Effect<A, E, R> : (arg: Arg) => Effect.Effect<A, E, R>
+      }
 
     // // TODO: if we keep them, it would probably be nicer as an option api, deciding the return value like in Atom?
     // /** @experimental */

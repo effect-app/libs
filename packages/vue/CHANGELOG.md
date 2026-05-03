@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.186
+
+### Patch Changes
+
+- 89b7d2f: `Command.withDefaultToastStream`: add `progress` option to update the waiting toast with progress text on each stream element
+  - effect-app@4.0.0-beta.186
+
 ## 4.0.0-beta.185
 
 ### Patch Changes

@@ -89,7 +89,7 @@ export const wrapOnSubmit = <From, To>(
 export const makeSubmitHandlers = <From, To>(
   form: OmegaFormApi<From, To>
 ) => {
-  const hs = form.handleSubmit
+  const hs = form.handleSubmit.bind(form)
 
   const handleSubmitInner: typeof form.handleSubmit = async (meta?: Record<string, any>) => {
     return await hs(meta)

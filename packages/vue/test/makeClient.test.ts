@@ -2,8 +2,8 @@
 import { expect, expectTypeOf, it } from "@effect/vitest"
 import { S } from "effect-app"
 import { configureInvalidation, makeQueryKey } from "effect-app/client"
-import type { CommandFromRequest } from "../src/makeClient.js"
 import * as Exit from "effect/Exit"
+import type { CommandFromRequest } from "../src/makeClient.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
 const somethingInvalidationResources = {

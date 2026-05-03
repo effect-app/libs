@@ -13,8 +13,6 @@ import { computed, type ComputedRef, shallowRef } from "vue"
 export const getQueryKey = (h: { id: string; options?: ClientForOptions }) => {
   const key = makeQueryKey(h)
   const ns = key.filter((_) => _.startsWith("$"))
-  // we invalidate the parent namespace e.g $project/$configuration.get, we invalidate $project
-  // for $project/$configuration/$something.get, we invalidate $project/$configuration
   const k = ns.length ? ns.length > 1 ? ns.slice(0, ns.length - 1) : ns : undefined
   if (!k) throw new Error("empty query key for: " + h.id)
   return k
@@ -71,8 +69,8 @@ export function make<A, E, R>(self: Effect.Effect<A, E, R>) {
 
 export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never> {
   /**
-   * By default we invalidate one level of the query key, e.g $project/$configuration.get, we invalidate $project.
-   * This can be overridden by providing a function that returns an array of filters and options.
+   * Provide a function that returns an array of query invalidation filters and options.
+   * If omitted, no client-side invalidation is performed (only server-provided keys are used).
    */
   queryInvalidation?: (defaultKey: string[], name: string, input?: unknown, output?: Exit.Exit<unknown, unknown>) => {
     filters?: InvalidateQueryFilters | undefined
@@ -219,20 +217,15 @@ const buildInvalidateCache = (
     input: unknown,
     output: Exit.Exit<unknown, unknown>
   ): ReadonlyArray<InvalidationTarget> => {
-    const queryKey = getQueryKey(self)
-
-    if (queryInvalidation) {
-      return queryInvalidation(queryKey, self.id, input, output).map((_) => ({
-        filters: _.filters,
-        options: _.options
-      }))
-    }
-
-    if (!queryKey) {
+    if (!queryInvalidation) {
       return []
     }
 
-    return [{ filters: { queryKey }, options: undefined }]
+    const queryKey = getQueryKey(self)
+    return queryInvalidation(queryKey, self.id, input, output).map((_) => ({
+      filters: _.filters,
+      options: _.options
+    }))
   }
 
   const invalidateCache = (

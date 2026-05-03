@@ -10,6 +10,8 @@ import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, shallowRef } from "vue"
 
+// Returns the parent namespace key (e.g. ["$project"] for "$project/$configuration.get"),
+// passed as `defaultKey` to `queryInvalidation` callbacks.
 export const getQueryKey = (h: { id: string; options?: ClientForOptions }) => {
   const key = makeQueryKey(h)
   const ns = key.filter((_) => _.startsWith("$"))

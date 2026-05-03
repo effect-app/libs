@@ -7,15 +7,18 @@ import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandler
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
+import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed, type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic, type Progress } from "./commander.js"
 import { type I18n } from "./intl.js"
 import { type CommanderResolved, makeUseCommand } from "./makeUseCommand.js"
-import { makeMutation, makeStreamMutation, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
+import { makeMutation, makeStreamMutation, makeStreamMutation2, type MutationOptionsBase, useMakeMutation } from "./mutate.js"
 import { type CustomUndefinedInitialQueryOptions, makeQuery, makeStreamQuery } from "./query.js"
 import { makeRunPromise } from "./runtime.js"
 import { type Toast } from "./toast.js"
+
+export type { Progress }
 
 const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
   handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
@@ -290,6 +293,35 @@ export type StreamFnExtension<RT, Req> = Req extends
   ? Commander.CommanderFn<RT, Id, Id, undefined>
   : Req extends RequestStreamHandler<infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
     ? Commander.CommanderFn<RT, Id, Id, undefined>
+  : never
+
+/**
+ * The `streamFn` builder for a stream-type request handler, using the stream-specific overloads.
+ */
+export type StreamFnStreamExtension<RT, Req> = Req extends
+  RequestStreamHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
+  ? Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+  : Req extends RequestStreamHandler<infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
+    ? Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+  : never
+
+/**
+ * `mutateStream2` factory — like `mutateStream` but returns `Effect<Stream>` per invocation
+ * for use with `streamFn` combinators. Handles invalidation via `Stream.ensuring`.
+ */
+export type StreamMutation2WithExtensions<RT, Req> = Req extends
+  RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
+    & ((input: I) => Effect.Effect<Stream.Stream<A, E, R>>)
+    & {
+      readonly id: Id
+      readonly wrapStream: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+    }
+  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
+      & Effect.Effect<Stream.Stream<A, E, R>>
+      & {
+        readonly id: Id
+        readonly wrapStream: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+      }
   : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
@@ -684,6 +716,9 @@ export const makeClient = <RT_, RTHooks>(
   let sm: ReturnType<typeof makeStreamMutation>
   const useStreamMutation = () => sm ??= makeStreamMutation()
 
+  let sm2: ReturnType<typeof makeStreamMutation2>
+  const useStreamMutation2 = () => sm2 ??= makeStreamMutation2()
+
   const query = new QueryImpl(getBaseRt)
   const useQuery = query.useQuery
   const useSuspenseQuery = query.useSuspenseQuery
@@ -1010,7 +1045,22 @@ export const makeClient = <RT_, RTHooks>(
                 streamQuery: useStreamQuery(client[key] as any),
                 mutateStream: streamMutFactory,
                 wrapStream: Command.wrapStream(streamMutFactory),
-                fn: Command.fn(client[key].id)
+                fn: Command.fn(client[key].id),
+                streamFn: useCommand().streamFn(client[key].id as any) as any,
+                mutateStream2: (() => {
+                  const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
+                  const originalHandler = (client[key] as any).handler
+                  const sm2Handler = Stream.isStream(originalHandler)
+                    ? (_input: any, _ctx: any) => sm2Act
+                    : (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
+                  return Object.assign(sm2Act, {
+                    id: client[key].id,
+                    wrapStream: (...combinators: any[]) => {
+                      const sfn = useCommand().streamFn(client[key].id as any) as any
+                      return sfn(sm2Handler, ...combinators)
+                    }
+                  })
+                })()
               }
             })()
             : {
@@ -1078,6 +1128,8 @@ export const makeClient = <RT_, RTHooks>(
               mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
               wrapStream: StreamCommandWithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
               fn: StreamFnExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
+              streamFn: StreamFnStreamExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
+              mutateStream2: StreamMutation2WithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
             })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }
@@ -1140,6 +1192,7 @@ export const makeClient = <RT_, RTHooks>(
       fn: (...args: [any]) => useCommand().fn(...args),
       wrap: (...args: [any]) => useCommand().wrap(...args),
       wrapStream: (...args: [any]) => useCommand().wrapStream(...args),
+      streamFn: (...args: [any]) => useCommand().streamFn(...args),
       alt: (...args: [any]) => useCommand().alt(...args),
       alt2: (...args: [any]) => useCommand().alt2(...args)
     } as ReturnType<typeof useCommand>,
@@ -1179,6 +1232,8 @@ export interface CommandBase<I = void, A = void> {
   label: string
   /** formatted progress info for current `running` state, when `progress` was supplied */
   progress?: Progress | undefined
+  /** reactive result state, available on stream-backed commands */
+  result?: AsyncResult.AsyncResult<any, any>
 }
 
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>> {}

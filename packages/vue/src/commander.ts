@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { asResult, deepToRaw, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
+import { asResult, asStreamResult, deepToRaw, type MissingDependencies, reportRuntimeError } from "@effect-app/vue"
 import { reportMessage } from "@effect-app/vue/errorReporter"
 import { Cause, Context, Effect, type Exit, type Fiber, flow, Layer, Match, MutableHashMap, Option, Predicate, S } from "effect-app"
 import { SupportedErrors } from "effect-app/client"
 import { OperationFailure, OperationSuccess } from "effect-app/Operations"
 import { isGeneratorFunction, wrapEffect } from "effect-app/utils"
 import { type Refinement } from "effect/Predicate"
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as Stream from "effect/Stream"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
 import { Confirm } from "./confirm.js"
@@ -124,6 +125,35 @@ export class CommandContext extends Context.Service<CommandContext, {
 }>()(
   "CommandContext"
 ) {}
+
+/**
+ * Service available inside `streamFn` stream handlers that lets you imperatively push
+ * progress updates to the command's reactive `progress` ref.
+ *
+ * Use `Command.mapProgress(fn)` or `Command.updateProgress(progress)` to interact with this service.
+ *
+ * @example
+ * ```ts
+ * // Using mapProgress (recommended) — applied as a stream pipe operator:
+ * const exportCmd = Command.streamFn("exportData")(
+ *   function*(arg, ctx) {
+ *     return makeExportStream(arg.id).pipe(
+ *       Command.mapProgress((r) =>
+ *         AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress"
+ *           ? { text: `${r.value.completed}/${r.value.total}`, percentage: r.value.completed / r.value.total * 100 }
+ *           : undefined
+ *       )
+ *     )
+ *   }
+ * )
+ * // exportCmd.progress is updated for every OperationProgress event
+ * ```
+ */
+export class CommandProgress extends Context.Reference<{
+  readonly update: (progress: Progress | undefined) => Effect.Effect<void>
+}>("Commander.CommandProgress", {
+  defaultValue: () => ({ update: (_progress: Progress | undefined): Effect.Effect<void> => Effect.void })
+}) {}
 
 export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
 
@@ -1716,6 +1746,132 @@ export declare namespace Commander {
       ) => Eff
     ): CommandOutHelper<Arg, Eff, Id, I18nKey, State>
   }
+
+  /**
+   * Type for `streamFn` — generator overload where the body yields Effects and returns a `Stream`.
+   * `waiting` stays `true` while the stream is running, and updates the `result` ref per emitted value.
+   */
+  export type StreamGen<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
+    <
+      Eff extends Effect.Yieldable<any, any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      SA,
+      SE,
+      SR,
+      Arg = void
+    >(
+      body: (
+        arg: Arg,
+        ctx: CommandContextLocal2<Id, I18nKey, State>
+      ) => Generator<Eff, Stream.Stream<SA, SE, SR>, never>
+    ): CommandOut<
+      Arg,
+      SA,
+      | SE
+      | ([Eff] extends [never] ? never
+        : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+        : never),
+      | SR
+      | ([Eff] extends [never] ? never
+        : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+        : never),
+      Id,
+      I18nKey,
+      State
+    >
+    <
+      Eff extends Effect.Yieldable<any, any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      SA,
+      SE,
+      SR,
+      B,
+      Arg = void
+    >(
+      body: (
+        arg: Arg,
+        ctx: CommandContextLocal2<Id, I18nKey, State>
+      ) => Generator<Eff, Stream.Stream<SA, SE, SR>, never>,
+      a: (
+        _: Effect.Effect<
+          Stream.Stream<SA, SE, SR>,
+          ([Eff] extends [never] ? never
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer E, infer _R>] ? E
+            : never),
+          ([Eff] extends [never] ? never
+            : [Eff] extends [Effect.Yieldable<any, infer _A, infer _E, infer R>] ? R
+            : never)
+        >,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => B
+    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2> ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
+      : B extends Effect.Effect<Stream.Stream<infer SA2, infer SE2, infer SR2>, infer EE2, infer ER2>
+        ? CommandOut<Arg, SA2, SE2 | EE2, SR2 | ER2, Id, I18nKey, State>
+      : never
+  }
+
+  /**
+   * Type for `streamFn` — non-generator overload accepting a function that returns a `Stream` directly,
+   * or an `Effect` that resolves to a `Stream`.
+   */
+  export type NonGenStream<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> = {
+    <
+      SA,
+      SE,
+      SR extends RT | CommandContext | `Commander.Command.${Id}.state`,
+      Arg = void
+    >(
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>
+    ): CommandOut<Arg, SA, SE, SR, Id, I18nKey, State>
+    <
+      SA,
+      SE,
+      SR,
+      A extends Stream.Stream<any, any, RT | CommandContext | `Commander.Command.${Id}.state`>,
+      Arg = void
+    >(
+      body: (arg: Arg, ctx: CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>,
+      a: (
+        _: Stream.Stream<SA, SE, SR>,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => A
+    ): CommandOut<Arg, Stream.Success<A>, Stream.Error<A>, Stream.Services<A>, Id, I18nKey, State>
+    <
+      SA,
+      SE,
+      SR,
+      EE,
+      ER extends RT | CommandContext | `Commander.Command.${Id}.state`,
+      Arg = void
+    >(
+      body: (
+        arg: Arg,
+        ctx: CommandContextLocal2<Id, I18nKey, State>
+      ) => Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>
+    ): CommandOut<Arg, SA, SE | EE, SR | ER, Id, I18nKey, State>
+    <
+      SA,
+      SE,
+      SR,
+      EE,
+      ER,
+      B,
+      Arg = void
+    >(
+      body: (
+        arg: Arg,
+        ctx: CommandContextLocal2<Id, I18nKey, State>
+      ) => Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>,
+      a: (
+        _: Effect.Effect<Stream.Stream<SA, SE, SR>, EE, ER>,
+        arg: ArgForCombinator<Arg>,
+        ctx: CommandContextLocal2<NoInfer<Id>, NoInfer<I18nKey>, NoInfer<State>>
+      ) => B
+    ): B extends Stream.Stream<infer SA2, infer SE2, infer SR2> ? CommandOut<Arg, SA2, SE2, SR2, Id, I18nKey, State>
+      : B extends Effect.Effect<Stream.Stream<infer SA2, infer SE2, infer SR2>, infer EE2, infer ER2>
+        ? CommandOut<Arg, SA2, SE2 | EE2, SR2 | ER2, Id, I18nKey, State>
+      : never
+  }
 }
 
 type ErrorRenderer<E, Args extends readonly any[]> = (e: E, action: string, ...args: Args) => string | undefined
@@ -1837,6 +1993,66 @@ export const CommanderStatic = {
     cb: (a: NoInfer<Arg>, b: NoInfer<Arg2>) => (self: NoInfer<In>) => Out
   ) =>
   (self: In, arg: Arg, arg2: Arg2) => cb(arg, arg2)(self),
+
+  /**
+   * Stream pipe operator that maps each emitted value to a `Progress` entry and updates the
+   * command's reactive `progress` ref via the `CommandProgress` service.
+   *
+   * The mapper receives an `AsyncResult<A, E>` (each emitted value wrapped as
+   * `AsyncResult.success(value, { waiting: true })`), matching the same shape used by
+   * `CommandButton`'s `:progress-map` prop.
+   *
+   * Designed to be used inside a `streamFn` handler (either directly with `.pipe()`, or as
+   * a combinator argument):
+   *
+   * @example
+   * ```ts
+   * // Inside the handler body:
+   * Command.streamFn("exportData")(function*(arg, ctx) {
+   *   return makeExportStream(arg.id).pipe(
+   *     Command.mapProgress((r) =>
+   *       AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress"
+   *         ? { text: `${r.value.completed}/${r.value.total}`, percentage: r.value.completed / r.value.total * 100 }
+   *         : undefined
+   *     )
+   *   )
+   * })
+   *
+   * // Or as a stream combinator argument:
+   * Command.streamFn("exportData")(
+   *   function*(arg, ctx) { return makeExportStream(arg.id) },
+   *   (s) => s.pipe(Command.mapProgress((r) => AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress" ? { text: `${r.value.completed}/${r.value.total}` } : undefined))
+   * )
+   * ```
+   */
+  mapProgress:
+    <A, E>(fn: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined) =>
+    <R>(stream: Stream.Stream<A, E, R>): Stream.Stream<A, E, R> =>
+      stream.pipe(
+        Stream.tap((v) => {
+          const p = fn(AsyncResult.success(v, { waiting: true }))
+          return p !== undefined ? CommandProgress.use((s) => s.update(p)) : Effect.void
+        })
+      ),
+
+  /**
+   * Imperatively push a progress update from inside a `streamFn` handler.
+   * Requires `CommandProgress` to be in context — provided automatically for all `streamFn` streams.
+   *
+   * @example
+   * ```ts
+   * // In a streamFn handler:
+   * stream.pipe(
+   *   Stream.tap((event) =>
+   *     event._tag === "OperationProgress"
+   *       ? Command.updateProgress({ text: `${event.completed}/${event.total}`, percentage: event.completed / event.total * 100 })
+   *       : Effect.void
+   *   )
+   * )
+   * ```
+   */
+  updateProgress: (progress: Progress | undefined): Effect.Effect<void> =>
+    CommandProgress.use((s) => s.update(progress)),
 
   /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
   confirmOrInterrupt: Effect.fnUntraced(function*(
@@ -2465,7 +2681,322 @@ export class CommanderImpl<RT, RTHooks> {
     )
   }
 
+  /**
+   * Internal factory for stream-backed commands. Accepts a handler that returns a `Stream` directly.
+   * Services (`CommandContext`, `stateTag`) are provided to the stream via `Stream.provideServiceEffect`.
+   */
+  readonly makeStreamCommand = <
+    const Id extends string,
+    const State extends IntlRecord | undefined,
+    const I18nKey extends string = Id
+  >(
+    id_: Id | { id: Id },
+    options?: FnOptions<Id, I18nKey, State>,
+    errorDef?: Error
+  ) => {
+    const id = typeof id_ === "string" ? id_ : id_.id
+    const state = getStateValues(options)
+
+    return Object.assign(
+      <Arg, SA, SE, SR>(
+        handler: (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => Stream.Stream<SA, SE, SR>
+      ) => {
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const localErrorDef = new Error()
+        Error.stackTraceLimit = limit
+        if (!errorDef) {
+          errorDef = localErrorDef
+        }
+
+        const key = `Commander.Command.${id}.state` as const
+        const stateTag = Context.Service<typeof key, State>(key)
+
+        const makeContext_ = () => this.makeContext(id, { ...options, state: state?.value })
+        const initialContext = makeContext_()
+        const context = computed(() => makeContext_())
+        const action = computed(() => context.value.action)
+        const label = computed(() => context.value.label)
+
+        const currentState = Effect.sync(() => state.value)
+
+        // Reactive ref driven by the CommandProgress service — updated imperatively
+        // from inside the stream via `Command.mapProgress(fn)` or `Command.updateProgress(p)`.
+        const progressRef = ref<Progress | undefined>(undefined)
+        const commandProgressService = {
+          update: (p: Progress | undefined) =>
+            Effect.sync(() => {
+              progressRef.value = p
+            })
+        }
+
+        const streamErrorReporter = <A, E, R>(self: Stream.Stream<A, E, R>) =>
+          self.pipe(
+            Stream.tapCause(
+              Effect.fnUntraced(function*(cause) {
+                if (Cause.hasInterruptsOnly(cause)) {
+                  console.info(`Interrupted while trying to ${id}`)
+                  return
+                }
+
+                const fail = Cause.findErrorOption(cause)
+                if (Option.isSome(fail)) {
+                  const message = `Failure trying to ${id}`
+                  yield* reportMessage(message, {
+                    action: id,
+                    error: fail.value
+                  })
+                  return
+                }
+
+                const ctx = yield* CommandContext
+                const extra = {
+                  action: ctx.action,
+                  message: `Unexpected Error trying to ${id}`
+                }
+                yield* reportRuntimeError(cause, extra)
+              }, Effect.uninterruptible)
+            )
+          )
+
+        const theStreamHandler = (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) =>
+          handler(arg, ctx).pipe(
+            streamErrorReporter,
+            Stream.provideService(CommandProgress, commandProgressService),
+            Stream.provideServiceEffect(stateTag, currentState),
+            Stream.provideServiceEffect(CommandContext, Effect.sync(() => makeContext_()))
+          )
+
+        const waitId = options?.waitKey ? options.waitKey(id) : undefined
+        const blockId = options?.blockKey ? options.blockKey(id) : undefined
+
+        const [result, exec_] = asStreamResult(theStreamHandler)
+
+        const exec = Effect
+          .fnUntraced(
+            function*(...args: [any, any]) {
+              if (waitId !== undefined) registerWait(waitId)
+              if (blockId !== undefined && blockId !== waitId) {
+                registerWait(blockId)
+              }
+              return yield* exec_(...args)
+            },
+            Effect.onExit(() =>
+              Effect.sync(() => {
+                if (waitId !== undefined) unregisterWait(waitId)
+                if (blockId !== undefined && blockId !== waitId) {
+                  unregisterWait(blockId)
+                }
+              })
+            )
+          )
+
+        const waiting = waitId !== undefined
+          ? computed(() => result.value.waiting || (waitState.value[waitId] ?? 0) > 0)
+          : computed(() => result.value.waiting)
+
+        const blocked = blockId !== undefined
+          ? computed(() => waiting.value || (waitState.value[blockId] ?? 0) > 0)
+          : computed(() => waiting.value)
+
+        const computeAllowed = options?.allowed
+        const allowed = computeAllowed ? computed(() => computeAllowed(id, state)) : true
+
+        const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
+        const runFork = Effect.runForkWith(rt)
+
+        const progress = progressRef
+
+        const handle = Object.assign((arg: Arg) => {
+          arg = toRaw(arg)
+          progressRef.value = undefined // reset progress on new invocation
+          const limit = Error.stackTraceLimit
+          Error.stackTraceLimit = 2
+          const errorCall = new Error()
+          Error.stackTraceLimit = limit
+
+          let cache: false | string = false
+          const captureStackTrace = () => {
+            if (cache !== false) {
+              return cache
+            }
+            if (errorCall.stack) {
+              const stackDef = errorDef!.stack!.trim().split("\n")
+              const stackCall = errorCall.stack.trim().split("\n")
+              let endStackDef = stackDef.slice(2).join("\n").trim()
+              if (!endStackDef.includes(`(`)) {
+                endStackDef = endStackDef.replace(/at (.*)/, "at ($1)")
+              }
+              let endStackCall = stackCall.slice(2).join("\n").trim()
+              if (!endStackCall.includes(`(`)) {
+                endStackCall = endStackCall.replace(/at (.*)/, "at ($1)")
+              }
+              cache = `${endStackDef}\n${endStackCall}`
+              return cache
+            }
+          }
+
+          const command = currentState.pipe(Effect.flatMap((state) => {
+            const rawArg = deepToRaw(arg)
+            const rawState = deepToRaw(state)
+            return Effect.withSpan(
+              exec(arg, { ...context.value, state } as any),
+              id,
+              {
+                captureStackTrace,
+                attributes: {
+                  input: rawArg,
+                  state: rawState,
+                  action: initialContext.action,
+                  label: initialContext.label,
+                  id: initialContext.id,
+                  i18nKey: initialContext.i18nKey
+                }
+              }
+            )
+          }))
+
+          return runFork(command as any)
+        }, { action, label })
+
+        return reactive({
+          id,
+          i18nKey: initialContext.i18nKey,
+          namespace: initialContext.namespace,
+          namespaced: initialContext.namespaced,
+          result,
+          /** always undefined for streamFn commands — `result` already exposes the live stream state */
+          running: undefined,
+          /** reactive – progress driven by `Command.mapProgress` or `Command.updateProgress` inside the stream */
+          progress,
+          waiting,
+          blocked,
+          allowed,
+          action,
+          label,
+          state,
+          handle
+        })
+      },
+      { id }
+    )
+  }
+
+  /**
+   * Define a stream-backed Command for handling user actions.
+   *
+   * Like `fn`, but the body generator (or function) must **return** a `Stream` rather than
+   * an `Effect`. The command's `waiting` state stays `true` while the stream is running and
+   * is set to `false` once it terminates. The reactive `result` ref is updated for every
+   * value emitted by the stream.
+   *
+   * Three handler shapes are accepted:
+   * 1. **Generator returning a Stream** (primary) — may yield Effects freely before returning the stream:
+   *    ```ts
+   *    Command.streamFn("exportData")(
+   *      function*(arg, ctx) {
+   *        const token = yield* getAuthToken
+   *        return Stream.fromEffect(startExport(token, arg.id)).pipe(
+   *          Stream.flatMap((job) => pollProgress(job.id))
+   *        )
+   *      }
+   *    )
+   *    ```
+   * 2. **Function returning a Stream directly**: `(arg, ctx) => Stream.make(1, 2, 3)`
+   * 3. **Function returning `Effect<Stream>`**: `(arg, ctx) => Effect.map(setup, (s) => s.stream)`
+   *
+   * @param id The internal identifier for the action (used for tracing and i18n lookup).
+   * @param options Same options as `fn` (`state`, `blockKey`, `waitKey`, `allowed`, `i18nCustomKey`).
+   *
+   * **Progress** — use `Command.mapProgress(fn)` as a stream pipe operator; the mapper receives
+   * `AsyncResult<A, E>` (each value wrapped as `AsyncResult.success(v, { waiting: true })`),
+   * matching the same shape as CommandButton’s `:progress-map` prop. Or call
+   * `Command.updateProgress(p)` for imperative control:
+   *
+   * ```ts
+   * // mapProgress as a combinator arg (outside the handler):
+   * Command.streamFn("exportData")(
+   *   function*(arg, ctx) { return makeExportStream(arg.id) },
+   *   (s) => s.pipe(Command.mapProgress((r) => AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress" ? { text: `${r.value.completed}/${r.value.total}` } : undefined))
+   * )
+   *
+   * // Or inline inside the handler body:
+   * Command.streamFn("exportData")(function*(arg, ctx) {
+   *   return makeExportStream(arg.id).pipe(Command.mapProgress((r) => AsyncResult.isSuccess(r) ? ... : undefined))
+   * })
+   * ```
+   *
+   * **Pipeable combinators** — the 2nd–Nth args follow the same pattern as `fn`: each combinator
+   * receives `(stream, arg, ctx)` and returns a transformed stream:
+   * ```ts
+   * Command.streamFn("exportData")(
+   *   handler,
+   *   (s, arg, ctx) => s.pipe(Command.mapProgress(fn), Stream.take(100))
+   * )
+   * ```
+   *
+   * **Returned Properties**: `action`, `label`, `result`, `progress`, `waiting`, `blocked`,
+   * `allowed`, `handle`, `i18nKey`, `namespace`, `namespaced`.
+   */
+  streamFn = <
+    const Id extends string,
+    const State extends IntlRecord = IntlRecord,
+    const I18nKey extends string = Id
+  >(
+    id: Id | { id: Id },
+    options?: FnOptions<Id, I18nKey, State>
+  ):
+    & Commander.StreamGen<RT | RTHooks, Id, I18nKey, State>
+    & Commander.NonGenStream<RT | RTHooks, Id, I18nKey, State>
+    & {
+      state: Context.Service<`Commander.Command.${Id}.state`, State>
+    } =>
+  {
+    const resolvedId = typeof id === "string" ? id : id.id
+
+    type StreamOrEffect = Stream.Stream<any, any, any> | Effect.Effect<Stream.Stream<any, any, any>, any, any>
+
+    const toRawHandler = (fn: any): (arg: any, ctx: any) => StreamOrEffect => {
+      if (isGeneratorFunction(fn)) {
+        return Effect.fnUntraced(function*(arg: any, ctx: any) {
+          return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>, any>)(arg, ctx)
+        })
+      }
+      return fn
+    }
+
+    const toFinalStream = (value: StreamOrEffect): Stream.Stream<any, any, any> =>
+      Stream.isStream(value) ? value : Stream.unwrap(value as Effect.Effect<Stream.Stream<any, any, any>, any, any>)
+
+    return Object.assign(
+      (fn: any, ...combinators: Array<(s: any, arg: any, ctx: any) => any>): any => {
+        const limit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const errorDef = new Error()
+        Error.stackTraceLimit = limit
+
+        const rawHandler = toRawHandler(fn)
+        const handler = (arg: any, ctx: any) => {
+          let current: any = rawHandler(arg, ctx)
+          for (const combinator of combinators) {
+            current = combinator(current, arg, ctx)
+          }
+          return toFinalStream(current)
+        }
+
+        return this.makeStreamCommand(id, options, errorDef)(handler)
+      },
+      makeBaseInfo(resolvedId, options),
+      {
+        state: Context.Service<`Commander.Command.${Id}.state`, State>(
+          `Commander.Command.${resolvedId}.state`
+        )
+      }
+    )
+  }
+
   /** @deprecated */
+
   alt2: <
     const Id extends string,
     MutArg,

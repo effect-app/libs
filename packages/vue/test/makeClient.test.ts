@@ -138,14 +138,13 @@ it("clientFor handler shape — props variants", () => {
   )
   expect(client).toBeDefined()
 
-  // no-props (no fields): handler is now always a function (() => Effect)
+  // no-props (no fields): handler is (i: void) => Effect — callable without arg
   expectTypeOf(client.DoNoProps.handler).toBeFunction()
-  expectTypeOf<Parameters<typeof client.DoNoProps.handler>>().toEqualTypeOf<[]>()
+  client.DoNoProps.handler()
 
-  // no-props: request mirrors handler — always a function (no args)
+  // no-props: request mirrors handler — (i: void) => Effect, callable without arg
   expectTypeOf(client.DoNoProps.request).toBeFunction()
-  expectTypeOf<Parameters<typeof client.DoNoProps.request>>().toEqualTypeOf<[]>()
-
+  client.DoNoProps.request()
   // optional-only: any fields → function handler. Input matches `make`, which for
   // fully-optional payload is omittable.
   expectTypeOf(client.DoOptionalOnly.handler).toBeFunction()
@@ -266,8 +265,7 @@ it.skip("works", () => {
   const de = client.GetSomething3.handler(null as any)
   const de2 = client.GetSomething3.handler({ id: null })
 
-  // @ts-expect-error not callable as it requires no input
-  const de3 = client.GetSomething4.handler(null as any)
+  const de3 = client.GetSomething4.handler()
   void client.GetSomething4.handler
 
   // @ts-expect-error query requests no longer expose command helpers

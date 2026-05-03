@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- Updated dependencies [50ce7e6]
+  - effect-app@4.0.0-beta.191
+
 ## 4.0.0-beta.190
 
 ### Patch Changes

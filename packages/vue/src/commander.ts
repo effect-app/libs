@@ -2266,7 +2266,7 @@ export const CommanderStatic = {
           ? cc.id
           : typeof options.stableToastId === "function"
           ? (() => {
-            const r = (options.stableToastId as any)(cc.id, ...args)
+            const r = (options.stableToastId as (...a: any[]) => true | string | undefined)(cc.id, ...args)
             if (typeof r === "string") return r
             if (r === true) return cc.id
             return undefined
@@ -2281,7 +2281,7 @@ export const CommanderStatic = {
         : typeof options?.onWaiting === "string"
         ? options.onWaiting
         : typeof options?.onWaiting === "function"
-        ? (options.onWaiting as any)(cc.id, ...args) ?? null
+        ? (options.onWaiting as (...a: any[]) => string | null | undefined)(cc.id, ...args) ?? null
         : hasCustomWaiting
         ? intl.formatMessage({ id: customWaiting }, cc.state)
         : intl.formatMessage({ id: "handle.waiting" }, { action: cc.action })
@@ -2298,7 +2298,7 @@ export const CommanderStatic = {
       let lastValue: A | undefined = undefined
       let didFail = false
 
-      return rawStream.pipe(
+      const composed = rawStream.pipe(
         Stream.tap((v) =>
           Effect.sync(() => {
             lastValue = v
@@ -2335,10 +2335,10 @@ export const CommanderStatic = {
 
           if (options?.onSuccess === null) return Effect.void
 
-          const successMsg: string = typeof options?.onSuccess === "string"
+          const successMsg: string | null = typeof options?.onSuccess === "string"
             ? options.onSuccess
             : typeof options?.onSuccess === "function"
-            ? (options.onSuccess as any)(lastValue, cc.action, ...args) ?? null
+            ? (options.onSuccess as (...a: any[]) => string | null | undefined)(lastValue, cc.action, ...args) ?? null
             : hasCustomSuccess
             ? intl.formatMessage({ id: customSuccess }, cc.state)
             : intl.formatMessage({ id: "handle.success" }, { action: cc.action })
@@ -2350,11 +2350,12 @@ export const CommanderStatic = {
             successMsg,
             toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
           )
-        })),
-        toastId !== undefined
-          ? Stream.provideService(CurrentToastId, CurrentToastId.of({ toastId }))
-          : (s) => s
-      ) as unknown as Stream.Stream<A, E, R>
+        }))
+      )
+
+      return (toastId !== undefined
+        ? composed.pipe(Stream.provideService(CurrentToastId, CurrentToastId.of({ toastId })))
+        : composed) as unknown as Stream.Stream<A, E, R>
     }))
   },
 

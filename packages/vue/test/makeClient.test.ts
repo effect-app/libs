@@ -171,10 +171,10 @@ it("clientFor handler shape — props variants", () => {
 })
 
 it("CommandFromRequest input shape — props variants", () => {
-  type NoPropsHandle = CommandFromRequest<typeof Something.DoNoProps>["handle"]
+  type NoPropsArg = Parameters<CommandFromRequest<typeof Something.DoNoProps>["handle"]>[0]
 
-  // no-props (no fields) → handle takes no arguments
-  expectTypeOf<Parameters<NoPropsHandle>>().toEqualTypeOf<[]>()
+  // no-props (no fields) → void input; void parameter is implicitly optional, so handle() works
+  expectTypeOf<NoPropsArg>().toBeVoid()
 
   // type-only assignability checks for the remaining variants
   if (false as boolean) {
@@ -183,7 +183,7 @@ it("CommandFromRequest input shape — props variants", () => {
     const reqOnly = null as unknown as CommandFromRequest<typeof Something.DoRequiredOnly>
     const mixed = null as unknown as CommandFromRequest<typeof Something.DoMixed>
 
-    // no-props → handle takes no args
+    // no-props → void param, calling without args is fine
     noProps.handle()
 
     // optional-only → matches `make` (fully optional, arg omittable)

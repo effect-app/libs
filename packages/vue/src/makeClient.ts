@@ -265,7 +265,7 @@ declare const useSuspenseQuery_: QueryImpl<any>["useSuspenseQuery"]
 declare const useStreamQuery_: QueryImpl<any>["useStreamQuery"]
 
 export interface ProjectResult<RT, I, B, E, R, Request extends Req, Id extends string> {
-  request: [I] extends [void] ? () => Effect.Effect<B, E, R> : (i: I) => Effect.Effect<B, E, R>
+  request: (i: I) => Effect.Effect<B, E, R>
   query: Exclude<R, RT> extends never ? ReturnType<typeof useQuery_<I, E, B, Request, Id>>
     : MissingDependencies<RT, R> & {}
   suspense: Exclude<R, RT> extends never ? ReturnType<typeof useSuspenseQuery_<I, E, B, Request, Id>>
@@ -846,9 +846,9 @@ export const makeClient = <RT_, RTHooks>(
         const requestType = client[key].Request.type
         const fn = Command.fn(client[key].id)
         const h_ = client[key].handler
-        const wrapInput = Effect.isEffect(h_)
-          ? () => h_
-          : (...args: [any]) => h_(...args)
+        const wrapInput = typeof h_ === "function"
+          ? (...args: [any]) => (h_ as (...a: [any]) => any)(...args)
+          : () => h_
         const request = wrapInput
         ;(acc as any)[key] = Object.assign(
           requestType === "query"
@@ -892,7 +892,7 @@ export const makeClient = <RT_, RTHooks>(
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
               return {
                 ...client[key],
-                request: Stream.isStream(h_) ? () => h_ : h_,
+                request,
                 streamQuery: useStreamQuery(client[key] as any),
                 streamFn: useCommand().streamFn(client[key].id as any) as any,
                 mutate: (() => {
@@ -949,7 +949,7 @@ export const makeClient = <RT_, RTHooks>(
               ...fn, // to get the i18n key etc.
               request,
               fn,
-              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
+              wrap: Command.wrap({ mutate: wrapInput as any, id: client[key].id })
             }
         )
         return acc
@@ -1064,7 +1064,7 @@ export type ToCamel<S extends string | number | symbol> = S extends string
   : never
 
 export interface CommandBase<I = void, A = void, RA = unknown, RE = unknown> {
-  handle: [I] extends [void] ? () => A : (input: I) => A
+  handle: (input: I) => A
   waiting: boolean
   blocked: boolean
   allowed: boolean

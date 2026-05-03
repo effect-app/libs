@@ -2204,6 +2204,7 @@ export const CommanderStatic = {
    *
    * Unlike `withDefaultToast` (which only wraps the initial `Effect`), this combinator:
    * - Shows the "waiting" toast **before** the stream starts
+   * - Updates the waiting toast with progress text when `progress` is set and a new element arrives
    * - Shows the "success" toast only **after** the stream drains fully without error
    * - Shows the "failure" toast if the stream errors or fails
    *
@@ -2214,7 +2215,12 @@ export const CommanderStatic = {
    * ```ts
    * Command.streamFn("exportData")(
    *   function*(arg, ctx) { return makeExportStream(arg.id) },
-   *   Command.withDefaultToastStream()
+   *   Command.withDefaultToastStream({
+   *     progress: (r) =>
+   *       AsyncResult.isSuccess(r) && r.value._tag === "OperationProgress"
+   *         ? { text: `${r.value.completed}/${r.value.total}`, percentage: r.value.completed / r.value.total * 100 }
+   *         : undefined
+   *   })
    * )
    * ```
    */
@@ -2237,6 +2243,8 @@ export const CommanderStatic = {
         | undefined
         | string
         | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
+      /** Map each stream element to a progress label. When non-`undefined`, updates both the active waiting toast and the `CommandProgress` service (for CommandButton progress display). */
+      progress?: (result: AsyncResult.AsyncResult<A, E>) => Progress | undefined
     }
   ) =>
   (
@@ -2300,8 +2308,20 @@ export const CommanderStatic = {
 
       const composed = rawStream.pipe(
         Stream.tap((v) =>
-          Effect.sync(() => {
+          Effect.gen(function*() {
             lastValue = v
+            if (options?.progress !== undefined) {
+              const p = options.progress(AsyncResult.success(v, { waiting: true }))
+              if (p !== undefined) {
+                // Update CommandProgress so CommandButton progress indicator is also driven
+                yield* CommandProgress.use((s) => s.update(p))
+                if (toastId !== undefined) {
+                  const progressText = typeof p === "string" ? p : p.text
+                  const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
+                  yield* toast.info(msg, { id: toastId })
+                }
+              }
+            }
           })
         ),
         Stream.tapCause(Effect.fnUntraced(function*(cause) {

@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- ea32222: Update to effect 4.0.0-beta.60 and use native `Rpc.custom` constructors (`makeCommandRpc`, `makeStreamRpc`) for metadata-wrapped RPC schemas instead of manually wrapping/unwrapping schemas inline.
+- Updated dependencies [ea32222]
+  - effect-app@4.0.0-beta.189
+
 ## 4.0.0-beta.188
 
 ### Patch Changes

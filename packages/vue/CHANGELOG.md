@@ -1,5 +1,14 @@
 # @effect-app/vue
 
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- d23e3f6: Delay the in-progress (waiting) toast by 1 second in `withToast` and `withDefaultToastStream`. Fast operations that produce a success/failure (or, for streams, a progress event or terminal state) within the delay window never show a waiting toast at all. Any subsequent waiting/progress/success/failure toast aborts the pending delayed toast so it never flashes after the terminal state.
+- f44800c: In-progress toasts (`withToast` waiting toast and `withDefaultToastStream` waiting/progress toasts) now persist indefinitely (`timeout: Infinity`) until replaced by the success/failure toast or dismissed. Previously they used the underlying toast adapter's default duration and could disappear before the operation finished.
+- Updated dependencies [ea32222]
+  - effect-app@4.0.0-beta.189
+
 ## 4.0.0-beta.188
 
 ### Minor Changes

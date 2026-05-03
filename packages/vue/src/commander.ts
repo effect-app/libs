@@ -2643,7 +2643,7 @@ export class CommanderImpl<RT, RTHooks> {
           /** reactive */
           result,
           /** always undefined for non-stream commands */
-          progress: undefined as Progress | undefined,
+          progress: undefined,
           /** reactive */
           waiting,
           /** reactive */

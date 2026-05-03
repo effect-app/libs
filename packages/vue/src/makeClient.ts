@@ -228,7 +228,7 @@ export type MutationWithExtensions<RT, Req> = Req extends
   : never
 
 /**
- * Options for invoking a `mutateStream` factory. Supplying `progress` produces
+ * Options for invoking a `mutateToResult` factory. Supplying `progress` produces
  * a tuple-with-id that carries `running` (the live AsyncResult ref) and
  * `progress` (a `ComputedRef<Progress | undefined>` formatted from each value),
  * which `Command.fn` / `Command.wrapStream` surface as the command's `running`
@@ -239,7 +239,7 @@ export type MutateStreamCallOptions<A, E> = {
 }
 
 /**
- * The `mutateStream` factory for a stream-type request handler. Always invoke
+ * The `mutateToResult` factory for a stream-type request handler. Always invoke
  * (optionally with `{ progress }`) to get a fresh callable `execute` — each call
  * produces a new state + execute pair so independent invocations don't share
  * state. The callable updates its underlying ref live with each emitted value
@@ -306,7 +306,7 @@ export type StreamFnStreamExtension<RT, Req> = Req extends
   : never
 
 /**
- * `mutateStream2` factory — like `mutateStream` but wraps per-invocation invalidation scaffolding
+ * `mutate` factory — like `mutateToResult` but wraps per-invocation invalidation scaffolding
  * into the stream itself (via `Stream.unwrap`) for use with `streamFn` combinators.
  */
 export type StreamMutation2WithExtensions<RT, Req> = Req extends
@@ -1043,11 +1043,11 @@ export const makeClient = <RT_, RTHooks>(
                 ...client[key],
                 request: h_,
                 streamQuery: useStreamQuery(client[key] as any),
-                mutateStream: streamMutFactory,
+                mutateToResult: streamMutFactory,
                 wrapStream: Command.wrapStream(streamMutFactory),
                 fn: Command.fn(client[key].id),
                 streamFn: useCommand().streamFn(client[key].id as any) as any,
-                mutateStream2: (() => {
+                mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
                   const originalHandler = (client[key] as any).handler
                   const sm2Handler = Stream.isStream(originalHandler)
@@ -1125,11 +1125,11 @@ export const makeClient = <RT_, RTHooks>(
             : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
           & (StreamHandler<typeof client[Key]> extends never ? {}
             : {
-              mutateStream: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
+              mutateToResult: StreamMutationWithExtensions<StreamHandler<typeof client[Key]>>
               wrapStream: StreamCommandWithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
               fn: StreamFnExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
               streamFn: StreamFnStreamExtension<RT | RTHooks, StreamHandler<typeof client[Key]>>
-              mutateStream2: StreamMutation2WithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
+              mutate: StreamMutation2WithExtensions<RT | RTHooks, StreamHandler<typeof client[Key]>>
             })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }
       }

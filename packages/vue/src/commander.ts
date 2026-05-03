@@ -34,7 +34,7 @@ export type StreamMutationCallOptions<A, E> = {
 }
 
 /**
- * The result of invoking a `mutateStream` factory: the `execute` function (or
+ * The result of invoking a `mutateToResult` factory: the `execute` function (or
  * `Effect`, when the request takes no input) carries `id`, plus `running` and
  * `progress` when the factory was called with a `progress` formatter. Pass
  * directly to `Command.fn` / `Command.wrap` / `Command.wrapStream`, or invoke
@@ -218,7 +218,7 @@ export declare namespace Commander {
     /** reactive */
     result: AsyncResult.AsyncResult<A, E>
     /**
-     * reactive – set when the command wraps a stream (`wrapStream` / `wrap` with `mutateStream`)
+     * reactive – set when the command wraps a stream (`wrapStream` / `wrap` with `mutateToResult`)
      * or when the `progress` option is provided to `fn`.
      * Reflects the live AsyncResult of the underlying stream.
      */
@@ -3265,14 +3265,14 @@ export class CommanderImpl<RT, RTHooks> {
       | StreamMutationFactory<Id, Arg, A, E, R>
       | {
         id: Id
-        mutateStream:
+        mutateToResult:
           | StreamMutationFactory<Id, Arg, A, E, R>
           | StreamMutationCallable<Id, Arg, A, E, R>
       }
       | StreamMutationCallable<Id, Arg, A, E, R>,
     options?: FnOptions<Id, I18nKey, State>
   ): Commander.CommanderWrap<RT | RTHooks, Id, I18nKey, State, Arg, A, E, R> => {
-    if (mutation !== null && typeof mutation === "object" && "mutateStream" in mutation) {
+    if (mutation !== null && typeof mutation === "object" && "mutateToResult" in mutation) {
       return this.wrapStream(mutation as any, options) as any
     }
     if (isStreamCallable(mutation) || isStreamFactory(mutation)) {
@@ -3315,18 +3315,18 @@ export class CommanderImpl<RT, RTHooks> {
   }
 
   /**
-   * Define a Command from a stream-type mutation (`mutateStream` factory).
+   * Define a Command from a stream-type mutation (`mutateToResult` factory).
    * The stream's reactive `AsyncResult` ref is exposed as `running` for independent progress tracking.
    * The command's own `result` reflects the execution outcome of the `execute` function.
    * Supports the same combinator pipeline as `wrap` (e.g. `withDefaultToast`).
    *
    * Each invocation of the resulting wrap call produces a fresh `[ref, execute]` pair
-   * (the `mutateStream` factory is called once per build), so independent commands
+   * (the `mutateToResult` factory is called once per build), so independent commands
    * don't share progress state.
    *
    * Accepts either:
-   * - An object with `id` and `mutateStream` factory (e.g. a client entry)
-   * - The `mutateStream` factory directly (callable, with `id`)
+   * - An object with `id` and `mutateToResult` factory (e.g. a client entry)
+   * - The `mutateToResult` factory directly (callable, with `id`)
    * - An already-called factory result (`[resultRef, execute] & { id }`) — shared ref across builds
    *
    * @example
@@ -3335,10 +3335,10 @@ export class CommanderImpl<RT, RTHooks> {
    * const exportCmd = Command.wrapStream(client.myExport)()
    *
    * // Via factory directly:
-   * const exportCmd = Command.wrapStream(client.myExport.mutateStream)()
+   * const exportCmd = Command.wrapStream(client.myExport.mutateToResult)()
    *
    * // Via already-called factory (shared ref):
-   * const stream = client.myExport.mutateStream()
+   * const stream = client.myExport.mutateToResult()
    * const exportCmd = Command.wrapStream(stream)()
    * ```
    */
@@ -3354,7 +3354,7 @@ export class CommanderImpl<RT, RTHooks> {
     mutation:
       | {
         id: Id
-        mutateStream:
+        mutateToResult:
           | StreamMutationFactory<Id, Arg, A, E, R>
           | StreamMutationCallable<Id, Arg, A, E, R>
       }
@@ -3365,8 +3365,8 @@ export class CommanderImpl<RT, RTHooks> {
     const id = mutation.id
     // Resolve `source` to the factory or already-invoked callable.
     const source: StreamMutationFactory<Id, Arg, A, E, R> | StreamMutationCallable<Id, Arg, A, E, R> =
-      mutation !== null && typeof mutation === "object" && "mutateStream" in mutation
-        ? (mutation.mutateStream as any)
+      mutation !== null && typeof mutation === "object" && "mutateToResult" in mutation
+        ? (mutation.mutateToResult as any)
         : (mutation as any)
     const resolveCallable = (): StreamMutationCallable<Id, Arg, A, E, R> =>
       (isStreamFactory(source)

@@ -418,7 +418,7 @@ export const useMakeMutation = () => {
  * `[ref, execute]` tuple. The outer Effect sets up per-invocation invalidation scaffolding
  * and returns a stream that triggers query invalidation via `Stream.ensuring` when it completes.
  *
- * Use this with `streamFn` / `Command.streamFn(id)(mutateStream2Handler, ...combinators)` so that
+ * Use this with `streamFn` / `Command.streamFn(id)(mutateHandler, ...combinators)` so that
  * the command manages its own reactive state internally. Unlike `makeStreamMutation`, no external
  * reactive result ref is created.
  *

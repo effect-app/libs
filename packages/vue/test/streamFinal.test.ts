@@ -3,7 +3,7 @@
  *
  * The `final` option on a stream request schema lets callers model which type
  * the last emitted stream element is.  When present, the execute effect returned
- * by `mutateStream` resolves with that final value instead of `void`.
+ * by `mutateToResult` resolves with that final value instead of `void`.
  */
 import { expect, it } from "@effect/vitest"
 import { Effect, S } from "effect-app"
@@ -40,14 +40,14 @@ it.live("asStreamResult returns void and updates ref with each element", () =>
   }))
 
 // ---------------------------------------------------------------------------
-// mutateStream with no `final` — execute resolves with void (type-level)
+// mutateToResult with no `final` — execute resolves with void (type-level)
 // ---------------------------------------------------------------------------
 
-it.skip("mutateStream without final: execute resolves void (type-level)", () => {
+it.skip("mutateToResult without final: execute resolves void (type-level)", () => {
   const { clientFor } = useClient()
   const client = clientFor(Something, undefined, somethingInvalidationResources)
 
-  const execute = client.StreamWithoutFinal.mutateStream()
+  const execute = client.StreamWithoutFinal.mutateToResult()
 
   // execute returns void — assigning to ExportComplete Effect should fail
   const result = execute({ id: "test" })
@@ -57,14 +57,14 @@ it.skip("mutateStream without final: execute resolves void (type-level)", () => 
 })
 
 // ---------------------------------------------------------------------------
-// mutateStream with `final` — execute resolves with Final type (type-level)
+// mutateToResult with `final` — execute resolves with Final type (type-level)
 // ---------------------------------------------------------------------------
 
-it.skip("mutateStream with final: execute resolves with ExportComplete (type-level)", () => {
+it.skip("mutateToResult with final: execute resolves with ExportComplete (type-level)", () => {
   const { clientFor } = useClient()
   const client = clientFor(Something, undefined, somethingInvalidationResources)
 
-  const execute = client.StreamWithFinal.mutateStream()
+  const execute = client.StreamWithFinal.mutateToResult()
 
   // execute returns ExportComplete — assignment should compile cleanly
   const result = execute({ id: "test" })

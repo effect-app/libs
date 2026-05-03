@@ -6,7 +6,7 @@
  * `waiting` state until the stream ends.
  *
  * When using `makeClient` / `clientFor`, stream-type requests are exposed as
- * `mutateStream` on the client object (and as `XxxStream` in `.helpers`).
+ * `mutateToResult` on the client object (and as `XxxStream` in `.helpers`).
  * The example below shows both the low-level `asStreamResult` API and how the
  * same functionality appears on the generated client.
  */
@@ -69,15 +69,15 @@ export const useExportMutation = () => {
 }
 
 // ---------------------------------------------------------------------------
-// Option B: via `makeClient` / `clientFor` (stream requests -> `mutateStream`)
+// Option B: via `makeClient` / `clientFor` (stream requests -> `mutateToResult`)
 //
 // When a request schema has `type: "stream"`, `clientFor` exposes:
 //
-//   client.exportData.mutateStream
+//   client.exportData.mutateToResult
 //   // -> (options?) => ((input: I) => Effect<Final, never, R>) & { id, running?, progress? }
 //   // Always invoke `()` (optionally with `{ progress }`) to get a fresh callable.
-//   const execute = client.exportData.mutateStream()
-//   const executeWithProgress = client.exportData.mutateStream({
+//   const execute = client.exportData.mutateToResult()
+//   const executeWithProgress = client.exportData.mutateToResult({
 //     progress: (r) => r._tag === "Success" ? `${r.value.completed}/${r.value.total}` : undefined
 //   })
 //   // The callable can also be passed directly to Command.fn / Command.wrap / Command.wrapStream.

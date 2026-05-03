@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- b2e438f: Remove Operations service and repo
+
 ## 4.0.0-beta.187
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @effect-app/vue
 
+## 4.0.0-beta.188
+
+### Minor Changes
+
+- f16e766: Remove legacy `mutateToResult` stream mutation factory, `wrapStream` command builder, and standard command progress reporting (`running`/`progress` from the old stream factory path). Keep only the `mutate` path for use with `streamFn` combinators. Remove obsolete types (`StreamMutationWithExtensions`, `StreamCommandWithExtensions`, `StreamFnExtension`, `MutateStreamCallOptions`) and the internal `makeStreamMutation` function. Rename `mutate.wrapStream` shorthand to `mutate.wrap` to match the non-stream convention.
+
+### Patch Changes
+
+- ed1b8a9: `mutate.wrap` on stream handlers now works the same as on command/query handlers: it can be called without arguments or with only combinators, with the underlying stream handler pre-baked in.
+- b2e438f: Remove Operations service and repo
+- Updated dependencies [b2e438f]
+  - effect-app@4.0.0-beta.188
+
 ## 4.0.0-beta.187
 
 ### Patch Changes

@@ -457,8 +457,8 @@ export const makeStreamMutation2 = () => {
 
     const handler = self.handler
     const act = Stream.isStream(handler)
-      ? makeInvocationEffect(undefined, handler)
-      : (i: any) => makeInvocationEffect(i, (handler as (i: any) => Stream.Stream<any, any, any>)(i))
+      ? Stream.unwrap(makeInvocationEffect(undefined, handler))
+      : (i: any) => Stream.unwrap(makeInvocationEffect(i, (handler as (i: any) => Stream.Stream<any, any, any>)(i)))
 
     return act
   }

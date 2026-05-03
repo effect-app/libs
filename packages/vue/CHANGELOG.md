@@ -1,5 +1,40 @@
 # @effect-app/vue
 
+## 4.0.0-beta.183
+
+### Minor Changes
+
+- 8ff0bf9: Add `Command.streamFn` — a stream-backed variant of `Command.fn`.
+
+  The body generator (or plain function) returns a `Stream` instead of an `Effect`. The command's `waiting` state stays `true` while the stream is running and updates the reactive `result` ref for every emitted value.
+
+  Three handler shapes are accepted:
+
+  1. **Generator returning a Stream** (primary):
+     ```ts
+     Command.streamFn("exportData")(function* (arg, ctx) {
+       const token = yield* getAuthToken;
+       return Stream.fromEffect(startExport(token, arg.id)).pipe(
+         Stream.flatMap((job) => pollProgress(job.id))
+       );
+     });
+     ```
+  2. Function returning a `Stream` directly.
+  3. Function returning `Effect<Stream>` (unwrapped automatically).
+
+- 8ff0bf9: - `CommandButton`: add optional `:map-progress` prop to compute progress from `command.result` via a custom mapper function
+  - `CommandBase`: add optional `result` field exposing reactive `AsyncResult` state
+  - Export `Progress` type from `@effect-app/vue`
+  - `streamFn`: pipe operators now receive the initial `Effect<Stream>` (or `Stream`) value unchanged; `Stream.unwrap` is deferred until after all combinators, enabling use of `withDefaultToast` and other Effect-level combinators
+  - Add `makeStreamMutation2`: like `makeStreamMutation` but returns `Effect<Stream>` per invocation (with invalidation via `Stream.ensuring`), for use with `streamFn` combinators
+  - Expose `streamFn` on `XClient.Y` stream handlers and on the `Command` object
+  - Expose `mutateStream2` on `XClient.Y` stream handlers, with a `wrapStream` helper that calls `streamFn` with the handler and provided combinators
+- fc98fb7: Add `streamQuery` support for stream-type Rpc handlers. When an Rpc is of type `"stream"`, the client now exposes a `.streamQuery` property (and `...StreamQuery` in helpers) that uses `streamedQuery` from `@tanstack/query-core` to accumulate chunks reactively as an `AsyncResult<A[], E>`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.183
+
 ## 4.0.0-beta.182
 
 ### Minor Changes
@@ -159,8 +194,8 @@
 
   ```ts
   useMutation(startExportCommand, {
-    select: (result) => pollUntilDone(result.jobId)
-  })
+    select: (result) => pollUntilDone(result.jobId),
+  });
   ```
 
 ### Patch Changes

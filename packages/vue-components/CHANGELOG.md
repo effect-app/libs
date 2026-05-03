@@ -1,5 +1,25 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.183
+
+### Minor Changes
+
+- 8ff0bf9: - `CommandButton`: add optional `:map-progress` prop to compute progress from `command.result` via a custom mapper function
+  - `CommandBase`: add optional `result` field exposing reactive `AsyncResult` state
+  - Export `Progress` type from `@effect-app/vue`
+  - `streamFn`: pipe operators now receive the initial `Effect<Stream>` (or `Stream`) value unchanged; `Stream.unwrap` is deferred until after all combinators, enabling use of `withDefaultToast` and other Effect-level combinators
+  - Add `makeStreamMutation2`: like `makeStreamMutation` but returns `Effect<Stream>` per invocation (with invalidation via `Stream.ensuring`), for use with `streamFn` combinators
+  - Expose `streamFn` on `XClient.Y` stream handlers and on the `Command` object
+  - Expose `mutateStream2` on `XClient.Y` stream handlers, with a `wrapStream` helper that calls `streamFn` with the handler and provided combinators
+
+### Patch Changes
+
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [fc98fb7]
+  - @effect-app/vue@4.0.0-beta.183
+  - effect-app@4.0.0-beta.183
+
 ## 4.0.0-beta.182
 
 ### Minor Changes

@@ -50,7 +50,7 @@ export class WithToast extends Context.Service<WithToast>()("WithToast", {
         const t = yield* wrapEffect(options.onWaiting)(...args)
         const toastId = t === null ? stableToastId : yield* toast.info(
           t,
-          { id: stableToastId ?? null } // TODO: timeout forever?
+          { id: stableToastId ?? null, timeout: Infinity }
         )
         return yield* self.pipe(
           Effect.tap(Effect.fnUntraced(function*(a) {

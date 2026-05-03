@@ -2333,7 +2333,7 @@ export const CommanderStatic = {
 
       const toastId: string | number | undefined = waitingMsg === null
         ? stableToastId
-        : yield* toast.info(waitingMsg, { id: stableToastId ?? null })
+        : yield* toast.info(waitingMsg, { id: stableToastId ?? null, timeout: Infinity })
 
       const failureHandler = defaultFailureMessageHandler<E, [], never, never>(
         hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
@@ -2355,7 +2355,7 @@ export const CommanderStatic = {
                 if (toastId !== undefined) {
                   const progressText = typeof p === "string" ? p : p.text
                   const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
-                  yield* toast.info(msg, { id: toastId })
+                  yield* toast.info(msg, { id: toastId, timeout: Infinity })
                 }
               }
             }

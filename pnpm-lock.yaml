@@ -63,10 +63,10 @@ importers:
         version: 0.85.1
       '@effect/platform-node':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)
       '@effect/vitest':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
       '@tsconfig/strictest':
         specifier: ^2.0.8
         version: 2.0.8
@@ -95,8 +95,8 @@ importers:
         specifier: ^0.54.0
         version: 0.54.0
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:packages/effect-app
@@ -159,10 +159,10 @@ importers:
     dependencies:
       '@effect/platform-node':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       js-yaml:
         specifier: 4.1.1
         version: 4.1.1
@@ -201,8 +201,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       nanoid:
         specifier: ^5.1.9
         version: 5.1.9
@@ -396,7 +396,7 @@ importers:
     dependencies:
       '@effect/vitest':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -413,8 +413,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -496,10 +496,10 @@ importers:
     dependencies:
       '@effect/atom-vue':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       '@effect/platform-browser':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)
       '@formatjs/intl':
         specifier: ^4.1.7
         version: 4.1.7
@@ -519,8 +519,8 @@ importers:
         specifier: ^5.4.4
         version: 5.4.4
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -536,7 +536,7 @@ importers:
         version: link:../eslint-shared-config
       '@effect/vitest':
         specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))
       '@formatjs/icu-messageformat-parser':
         specifier: ^3.5.5
         version: 3.5.5
@@ -577,8 +577,8 @@ importers:
         specifier: ^1.23.5
         version: 1.27.7(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))
       effect:
-        specifier: ^4.0.0-beta.59
-        version: 4.0.0-beta.59
+        specifier: ^4.0.0-beta.60
+        version: 4.0.0-beta.60
       effect-app:
         specifier: workspace:*
         version: link:../effect-app
@@ -3868,8 +3868,8 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  effect@4.0.0-beta.59:
-    resolution: {integrity: sha512-xyUDLeHSe8d6lWGOvR6Fgn2HL6gYeTZ/S4Jzk9uc4ZUxMPPsNZlNXrvk0C7/utQFzeX7uAWcVnG2BjbA0SRoAA==}
+  effect@4.0.0-beta.60:
+    resolution: {integrity: sha512-OkrCKT+aBFIti4ryuxKfIozNx2SMxmFZ8uWB53gGzdjQzaJ7RVf0s6nJQ4JubJM//R24DtSYNOdmPRSK+qoRww==}
 
   electron-to-chromium@1.5.267:
     resolution: {integrity: sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==}
@@ -7645,8 +7645,8 @@ snapshots:
 
   '@effect-app/cli@2.1.0-beta.17(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node': 4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)
-      effect: 4.0.0-beta.59
+      '@effect/platform-node': 4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)
+      effect: 4.0.0-beta.60
       js-yaml: 4.1.1
       node-watch: 0.7.4
     transitivePeerDependencies:
@@ -7654,31 +7654,31 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  '@effect/atom-vue@4.0.0-beta.59(effect@4.0.0-beta.59)(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
+  '@effect/atom-vue@4.0.0-beta.59(effect@4.0.0-beta.60)(vue@3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e)))':
     dependencies:
-      effect: 4.0.0-beta.59
+      effect: 4.0.0-beta.60
       vue: 3.5.33(typescript@6.0.3(patch_hash=6a20b8df080eb8a9c34008e1802ecfd839f4e90e07f1ee97f78694dbd95a520e))
 
   '@effect/language-service@0.85.1': {}
 
-  '@effect/platform-browser@4.0.0-beta.59(effect@4.0.0-beta.59)':
+  '@effect/platform-browser@4.0.0-beta.59(effect@4.0.0-beta.60)':
     dependencies:
-      effect: 4.0.0-beta.59
+      effect: 4.0.0-beta.60
       multipasta: 0.2.7
 
-  '@effect/platform-node-shared@4.0.0-beta.59(effect@4.0.0-beta.59)':
+  '@effect/platform-node-shared@4.0.0-beta.59(effect@4.0.0-beta.60)':
     dependencies:
       '@types/ws': 8.18.1
-      effect: 4.0.0-beta.59
+      effect: 4.0.0-beta.60
       ws: 8.20.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0-beta.59(effect@4.0.0-beta.59)(ioredis@5.9.3)':
+  '@effect/platform-node@4.0.0-beta.59(effect@4.0.0-beta.60)(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.59(effect@4.0.0-beta.59)
-      effect: 4.0.0-beta.59
+      '@effect/platform-node-shared': 4.0.0-beta.59(effect@4.0.0-beta.60)
+      effect: 4.0.0-beta.60
       ioredis: 5.9.3
       mime: 4.1.0
       undici: 8.1.0
@@ -7686,9 +7686,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/vitest@4.0.0-beta.59(effect@4.0.0-beta.59)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))':
+  '@effect/vitest@4.0.0-beta.59(effect@4.0.0-beta.60)(vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3)))':
     dependencies:
-      effect: 4.0.0-beta.59
+      effect: 4.0.0-beta.60
       vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(jsdom@29.1.0)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.2)(sass@1.99.0)(terser@5.45.0)(tsx@4.21.0)(yaml@2.8.3))
 
   '@emnapi/core@1.10.0':
@@ -10420,7 +10420,7 @@ snapshots:
       minimatch: 9.0.1
       semver: 7.7.3
 
-  effect@4.0.0-beta.59:
+  effect@4.0.0-beta.60:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.7.0

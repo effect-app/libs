@@ -538,21 +538,25 @@ export const makeRouter = <
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
                 const isStream = resource.type === "stream"
-                return Rpc
-                  .make(resource._tag, {
+                const isCommand = resource.type === "command"
+                return (isCommand
+                  ? Invalidation.makeCommandRpc(resource._tag, {
                     payload: resource,
-                    success: resource.type === "command"
-                      ? Invalidation.CommandResponseWithMetaData(resource.success)
-                      : isStream
-                      ? Invalidation.StreamResponseChunk(resource.success)
-                      : resource.success,
-                    error: resource.type === "command"
-                      ? Invalidation.CommandFailureWithMetaData(resource.error)
-                      : isStream
-                      ? Invalidation.StreamFailureChunk(resource.error)
-                      : resource.error,
-                    ...isStream ? { stream: true as const } : {}
+                    success: resource.success,
+                    error: resource.error
                   })
+                  : isStream
+                  ? Invalidation.makeStreamRpc(resource._tag, {
+                    payload: resource,
+                    success: resource.success,
+                    error: resource.error,
+                    stream: true as const
+                  })
+                  : Rpc.make(resource._tag, {
+                    payload: resource,
+                    success: resource.success,
+                    error: resource.error
+                  }))
                   .annotate(middleware.requestContext, resource.config ?? {})
                   .annotate(RequestTypeAnnotation, resource.type)
               })

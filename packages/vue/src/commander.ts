@@ -126,6 +126,37 @@ export class CommandContext extends Context.Service<CommandContext, {
   "CommandContext"
 ) {}
 
+/**
+ * Service available inside `streamFn` stream handlers that lets you imperatively push
+ * progress updates to the command's reactive `progress` ref.
+ *
+ * Use the `Command.updateProgress` helper to call it rather than yielding the service directly.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * const exportCmd = Command.streamFn("exportData")(
+ *   function*(arg, ctx) {
+ *     const stream = yield* startExport(arg.id)
+ *     return stream.pipe(
+ *       Stream.tap((event) =>
+ *         event._tag === "OperationProgress"
+ *           ? Command.updateProgress({ text: `${event.completed}/${event.total}`, percentage: event.completed / event.total * 100 })
+ *           : Effect.void
+ *       )
+ *     )
+ *   }
+ * )
+ * // exportCmd.progress is updated for every OperationProgress event
+ * ```
+ */
+export class CommandProgress extends Context.Reference<{
+  readonly update: (progress: Progress | undefined) => Effect.Effect<void>
+}>("Commander.CommandProgress", {
+  defaultValue: () => ({ update: (_progress: Progress | undefined): Effect.Effect<void> => Effect.void })
+}) {}
+
 export type EmitWithCallback<A, Event extends string> = (event: Event, value: A, onDone: () => void) => void
 
 /**
@@ -1903,6 +1934,25 @@ export const CommanderStatic = {
   ) =>
   (self: In, arg: Arg, arg2: Arg2) => cb(arg, arg2)(self),
 
+  /**
+   * Imperatively push a progress update from inside a `streamFn` handler.
+   * Requires `CommandProgress` to be in context — provided automatically for all `streamFn` streams.
+   *
+   * @example
+   * ```ts
+   * // In a streamFn handler:
+   * stream.pipe(
+   *   Stream.tap((event) =>
+   *     event._tag === "OperationProgress"
+   *       ? Command.updateProgress({ text: `${event.completed}/${event.total}`, percentage: event.completed / event.total * 100 })
+   *       : Effect.void
+   *   )
+   * )
+   * ```
+   */
+  updateProgress: (progress: Progress | undefined): Effect.Effect<void> =>
+    CommandProgress.use((s) => s.update(progress)),
+
   /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
   confirmOrInterrupt: Effect.fnUntraced(function*(
     message: string | undefined = undefined
@@ -2570,6 +2620,17 @@ export class CommanderImpl<RT, RTHooks> {
 
         const currentState = Effect.sync(() => state.value)
 
+        // Reactive ref driven by the CommandProgress service — updated imperatively
+        // from inside the stream via `updateProgress(...)` or automatically when
+        // `progressFn` is supplied.
+        const progressRef = ref<Progress | undefined>(undefined)
+        const commandProgressService = {
+          update: (p: Progress | undefined) =>
+            Effect.sync(() => {
+              progressRef.value = p
+            })
+        }
+
         const streamErrorReporter = <A, E, R>(self: Stream.Stream<A, E, R>) =>
           self.pipe(
             Stream.tapCause(
@@ -2599,12 +2660,24 @@ export class CommanderImpl<RT, RTHooks> {
             )
           )
 
-        const theStreamHandler = (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) =>
-          handler(arg, ctx).pipe(
+        const theStreamHandler = (arg: Arg, ctx: Commander.CommandContextLocal2<Id, I18nKey, State>) => {
+          // Auto-tap stream values through the progress service when a formatter is provided.
+          // Users can also call `updateProgress(...)` directly inside the stream for finer control.
+          const stream = handler(arg, ctx)
+          const tapped = progressFn
+            ? stream.pipe(Stream.tap((v: SA) =>
+              Effect.sync(() => {
+                progressRef.value = progressFn(v)
+              })
+            ))
+            : stream
+          return tapped.pipe(
             streamErrorReporter,
+            Stream.provideService(CommandProgress, commandProgressService),
             Stream.provideServiceEffect(stateTag, currentState),
             Stream.provideServiceEffect(CommandContext, Effect.sync(() => makeContext_()))
           )
+        }
 
         const waitId = options?.waitKey ? options.waitKey(id) : undefined
         const blockId = options?.blockKey ? options.blockKey(id) : undefined
@@ -2644,15 +2717,11 @@ export class CommanderImpl<RT, RTHooks> {
         const rt = Effect.context<RT | RTHooks>().pipe(Effect.provide(this.hooks)).pipe(Effect.runSyncWith(this.rt))
         const runFork = Effect.runForkWith(rt)
 
-        const progress = progressFn
-          ? computed(() => {
-            const r = result.value
-            return r._tag === "Success" ? progressFn(r.value) : undefined
-          })
-          : undefined
+        const progress = progressRef
 
         const handle = Object.assign((arg: Arg) => {
           arg = toRaw(arg)
+          progressRef.value = undefined // reset progress on new invocation
           const limit = Error.stackTraceLimit
           Error.stackTraceLimit = 2
           const errorCall = new Error()
@@ -2751,15 +2820,36 @@ export class CommanderImpl<RT, RTHooks> {
    * @param id The internal identifier for the action (used for tracing and i18n lookup).
    * @param options Same options as `fn` (`state`, `blockKey`, `waitKey`, `allowed`, `i18nCustomKey`).
    *
-   * **Progress**: pass a `progress` formatter as the second argument to the handler call:
-   * ```ts
-   * Command.streamFn("exportData")(handler, (v) => `${v.completed}/${v.total}`)
-   * ```
-   * The command then exposes `running` (the live `AsyncResult`) and `progress` (the computed
-   * `Progress | undefined`) alongside the usual `result`, `waiting`, etc.
+   * **Progress — two ways to drive `progress`**:
    *
-   * To inject progress entries at specific points in the stream handler, prepend them to the
-   * returned stream: `return Stream.concat(Stream.make(progressEvent), mainStream)`.
+   * 1. **Service approach** (fine-grained) — call `Command.updateProgress(value)` anywhere inside
+   *    the returned stream using `Stream.tap`:
+   *    ```ts
+   *    Command.streamFn("exportData")(
+   *      function*(arg, ctx) {
+   *        return makeExportStream(arg.id).pipe(
+   *          Stream.tap((event) =>
+   *            event._tag === "OperationProgress"
+   *              ? Command.updateProgress({ text: `${event.completed}/${event.total}`, percentage: event.completed / event.total * 100 })
+   *              : Effect.void
+   *          )
+   *        )
+   *      }
+   *    )
+   *    ```
+   *
+   * 2. **Formatter approach** (convenience) — pass a `progress` formatter as the second argument;
+   *    it is automatically applied to every emitted value:
+   *    ```ts
+   *    Command.streamFn("exportData")(handler, (v) =>
+   *      v._tag === "OperationProgress"
+   *        ? { text: `${v.completed}/${v.total}`, percentage: v.completed / v.total * 100 }
+   *        : undefined
+   *    )
+   *    ```
+   *
+   * Both approaches update the same reactive `progress` ref on the command. They can be combined:
+   * the formatter runs first, then explicit `updateProgress` calls override it for that emission.
    *
    * **Returned Properties**: same as `fn` — `action`, `label`, `result`, `running`, `progress`,
    * `waiting`, `blocked`, `allowed`, `handle`, `i18nKey`, `namespace`, `namespaced`.

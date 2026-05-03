@@ -1223,7 +1223,7 @@ export type ToCamel<S extends string | number | symbol> = S extends string
   : Uncapitalize<S>
   : never
 
-export interface CommandBase<I = void, A = void> {
+export interface CommandBase<I = void, A = void, RA = unknown, RE = unknown> {
   handle: (input: I) => A
   waiting: boolean
   blocked: boolean
@@ -1233,10 +1233,10 @@ export interface CommandBase<I = void, A = void> {
   /** formatted progress info for current `running` state, when `progress` was supplied */
   progress?: Progress | undefined
   /** reactive result state, available on stream-backed commands */
-  result?: AsyncResult.AsyncResult<any, any>
+  result?: AsyncResult.AsyncResult<RA, RE>
 }
 
-export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>> {}
+export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>, A, E> {}
 
 export interface CommandFromRequest<I extends { readonly make: (...args: any[]) => any }, A = unknown, E = unknown>
   extends EffectCommand<RequestInputFromMake<I>, A, E>

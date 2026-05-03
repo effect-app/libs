@@ -1,7 +1,7 @@
 <script
   setup
   lang="ts"
-  generic="I = never"
+  generic="I = never, RA = unknown, RE = unknown"
 >
 import type { CommandBase, Progress } from "@effect-app/vue"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -15,11 +15,11 @@ const props = defineProps<
   & (
     | {
       input: NoInfer<I>
-      command: CommandBase<I>
+      command: CommandBase<I, any, RA, RE>
       empty?: boolean
     }
     | {
-      command: CommandBase
+      command: CommandBase<any, any, RA, RE>
       input?: undefined
       empty?: boolean
     }
@@ -27,7 +27,7 @@ const props = defineProps<
   & {
     disabled?: ButtonProps["disabled"]
     title?: string // why isn't it part of VBtnProps??
-    mapProgress?: (result: AsyncResult.AsyncResult<any, any>) => Progress | undefined
+    mapProgress?: (result: AsyncResult.AsyncResult<RA, RE>) => Progress | undefined
   }
   & ButtonProps
 >()

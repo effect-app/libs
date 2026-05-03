@@ -12,6 +12,7 @@ import { type FormatXMLElementFn, type PrimitiveType } from "intl-messageformat"
 import { computed, type ComputedRef, reactive, ref, toRaw } from "vue"
 import { Confirm } from "./confirm.js"
 import { I18n } from "./intl.js"
+import { CurrentToastId, Toast } from "./toast.js"
 import { WithToast } from "./withToast.js"
 
 type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
@@ -2196,6 +2197,167 @@ export const CommanderStatic = {
           })(_, ...args)
       )
     }),
+
+  /**
+   * Stream-aware version of `withDefaultToast`. Use this as a combinator inside `streamFn`
+   * (or anywhere a `Stream` needs toast lifecycle handling) instead of `withDefaultToast`.
+   *
+   * Unlike `withDefaultToast` (which only wraps the initial `Effect`), this combinator:
+   * - Shows the "waiting" toast **before** the stream starts
+   * - Shows the "success" toast only **after** the stream drains fully without error
+   * - Shows the "failure" toast if the stream errors or fails
+   *
+   * Accepts either a `Stream<A, E, R>` or an `Effect<Stream<A, E, R>, EE, ER>` as input,
+   * so it works in both the `NonGenStream` and `StreamGen` overloads of `streamFn`.
+   *
+   * @example
+   * ```ts
+   * Command.streamFn("exportData")(
+   *   function*(arg, ctx) { return makeExportStream(arg.id) },
+   *   Command.withDefaultToastStream()
+   * )
+   * ```
+   */
+  withDefaultToastStream: <A, E, R, Args extends Array<unknown>>(
+    options?: {
+      stableToastId?:
+        | undefined
+        | true
+        | string
+        | ((id: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => true | string | undefined)
+      errorRenderer?: (e: E, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | undefined
+      showSpanInfo?: false
+      onWaiting?:
+        | null
+        | undefined
+        | string
+        | ((id: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
+      onSuccess?:
+        | null
+        | undefined
+        | string
+        | ((a: A, action: string, arg: NoInfer<Args>[0], ctx: NoInfer<Args>[1]) => string | null | undefined)
+    }
+  ) =>
+  (
+    self: Stream.Stream<A, E, R> | Effect.Effect<Stream.Stream<A, E, R>, any, any>,
+    ...args: Args
+  ): Stream.Stream<A, E, R | I18n | Toast | CommandContext> => {
+    const rawStream: Stream.Stream<A, E, R> = Stream.isStream(self)
+      ? self
+      : Stream.unwrap(self)
+
+    return Stream.unwrap(Effect.gen(function*() {
+      const cc = yield* CommandContext
+      const { intl } = yield* I18n
+      const toast = yield* Toast
+
+      const customWaiting = cc.namespaced("waiting")
+      const hasCustomWaiting = !!intl.messages[customWaiting]
+      const customSuccess = cc.namespaced("success")
+      const hasCustomSuccess = !!intl.messages[customSuccess]
+      const customFailure = cc.namespaced("failure")
+      const hasCustomFailure = !!intl.messages[customFailure]
+
+      const stableToastId: string | undefined = options?.stableToastId
+        ? typeof options.stableToastId === "string"
+          ? options.stableToastId
+          : typeof options.stableToastId === "boolean"
+          ? cc.id
+          : typeof options.stableToastId === "function"
+          ? (() => {
+            const r = (options.stableToastId as (...a: any[]) => true | string | undefined)(cc.id, ...args)
+            if (typeof r === "string") return r
+            if (r === true) return cc.id
+            return undefined
+          })()
+          : undefined
+        : undefined
+
+      const baseTimeout = 3_000
+
+      const waitingMsg: string | null = options?.onWaiting === null
+        ? null
+        : typeof options?.onWaiting === "string"
+        ? options.onWaiting
+        : typeof options?.onWaiting === "function"
+        ? (options.onWaiting as (...a: any[]) => string | null | undefined)(cc.id, ...args) ?? null
+        : hasCustomWaiting
+        ? intl.formatMessage({ id: customWaiting }, cc.state)
+        : intl.formatMessage({ id: "handle.waiting" }, { action: cc.action })
+
+      const toastId: string | number | undefined = waitingMsg === null
+        ? stableToastId
+        : yield* toast.info(waitingMsg, { id: stableToastId ?? null })
+
+      const failureHandler = defaultFailureMessageHandler<E, [], never, never>(
+        hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
+        options?.errorRenderer as ErrorRenderer<E, []> | undefined
+      )
+
+      let lastValue: A | undefined = undefined
+      let didFail = false
+
+      const composed = rawStream.pipe(
+        Stream.tap((v) =>
+          Effect.sync(() => {
+            lastValue = v
+          })
+        ),
+        Stream.tapCause(Effect.fnUntraced(function*(cause) {
+          didFail = true
+          if (Cause.hasInterruptsOnly(cause)) {
+            if (toastId !== undefined) yield* toast.dismiss(toastId)
+            return
+          }
+
+          const spanInfo = options?.showSpanInfo !== false
+            ? yield* Effect.currentSpan.pipe(
+              Effect.map((span) => `\nTrace: ${span.traceId}\nSpan: ${span.spanId}`),
+              Effect.orElseSucceed(() => "")
+            )
+            : ""
+
+          const t = yield* failureHandler(Cause.findErrorOption(cause))
+          const opts = { timeout: baseTimeout * 2 }
+
+          if (typeof t === "object") {
+            const message = t.message + spanInfo
+            yield* t.level === "warn"
+              ? toast.warning(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
+              : toast.error(message, toastId !== undefined ? { ...opts, id: toastId } : opts)
+          } else {
+            yield* toast.error(t + spanInfo, toastId !== undefined ? { ...opts, id: toastId } : opts)
+          }
+        }, Effect.uninterruptible)),
+        Stream.ensuring(Effect.suspend(() => {
+          if (didFail) return Effect.void
+
+          if (options?.onSuccess === null) return Effect.void
+
+          const successMsg: string | null = typeof options?.onSuccess === "string"
+            ? options.onSuccess
+            : typeof options?.onSuccess === "function"
+            ? (options.onSuccess as (...a: any[]) => string | null | undefined)(lastValue, cc.action, ...args) ?? null
+            : hasCustomSuccess
+            ? intl.formatMessage({ id: customSuccess }, cc.state)
+            : intl.formatMessage({ id: "handle.success" }, { action: cc.action })
+              + (S.is(OperationSuccess)(lastValue) && lastValue.message ? "\n" + lastValue.message : "")
+
+          if (successMsg === null) return Effect.void
+
+          return toast.success(
+            successMsg,
+            toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
+          )
+        }))
+      )
+
+      return (toastId !== undefined
+        ? composed.pipe(Stream.provideService(CurrentToastId, CurrentToastId.of({ toastId })))
+        : composed) as unknown as Stream.Stream<A, E, R>
+    }))
+  },
 
   /** borrowing the idea from Families in Effect Atom */
   family: <T extends object, Arg, ArgIn = Arg>(

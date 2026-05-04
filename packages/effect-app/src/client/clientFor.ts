@@ -122,8 +122,6 @@ export type RequestStreamHandler<A, E, R, Request extends Req, Id extends string
   RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
-type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
-
 export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
   [] ? void : Parameters<I["make"]>[0]
 
@@ -151,7 +149,7 @@ type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] ext
     HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | ReqDecodingServices<T>,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
     T,
     Id,
     FinalTypeOf<T>
@@ -160,7 +158,7 @@ type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] ext
     HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | ReqDecodingServices<T>,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
     T,
     Id
   >

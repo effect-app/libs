@@ -46,7 +46,6 @@ export type Req = S.Top & {
   readonly moduleName: string
   readonly type: "command" | "query"
   readonly stream: boolean
-  readonly "~decodingServices"?: unknown
 }
 
 class RequestName extends Context.Reference("RequestName", {

@@ -1,5 +1,6 @@
 import { SchemaTransformation } from "effect"
 import type * as Exit from "effect/Exit"
+import { type Opaque } from "effect/Schema"
 import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
@@ -79,6 +80,12 @@ export const configureInvalidationCallback = <Resources>() =>
 export const configureInvalidationResources = <Resources>() =>
   ({}) as Pick<InvalidationConfig<Resources>, "invalidationResources">
 
+export interface OpaqueHelper<Self, S extends S.Top & { readonly fields: S.Struct.Fields }>
+  extends Opaque<Self, S, {}>
+{
+  readonly fields: S["fields"]
+}
+
 type TaggedRequestForResult<
   Self,
   Tag extends string,
@@ -92,14 +99,12 @@ type TaggedRequestForResult<
   Resources = never,
   Final extends S.Top = never
 > =
-  & S.EnhancedClass<Self, TaggedRequestSchema<Tag, Payload>, {}>
+  & OpaqueHelper<Self, TaggedRequestSchema<Tag, Payload>>
   & {
     readonly _tag: Tag
     readonly success: Success
     readonly error: Error
     readonly config: Config
-    readonly "~decodingServices": S.Codec.DecodingServices<Success> | S.Codec.DecodingServices<Error>
-    readonly "~encodingServices": S.Codec.EncodingServices<Success> | S.Codec.EncodingServices<Error>
     readonly id: `${ModuleName}.${Tag}`
     readonly moduleName: ModuleName
     readonly type: Type
@@ -151,7 +156,7 @@ export const makeRpcClient = <
     // Strip stream from the stored config — it's request metadata, not handler config
     const { stream: _stream, ...restConfig } = config ?? ({} as C)
 
-    const RequestClass = S.TaggedClass<any>()(tag, fields)
+    const RequestClass = S.Opaque()(S.TaggedStruct(tag, fields))
     Object.assign(RequestClass, {
       _tag: tag,
       success: successSchema,

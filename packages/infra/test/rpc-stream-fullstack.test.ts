@@ -87,7 +87,21 @@ class StreamFailStream extends Req.Stream<StreamFailStream>()("StreamFailStream"
   error: StreamBoom
 }) {}
 
-const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffect, StreamFailStream }
+// no allowAnonymous — middleware should reject anonymous request with NotLoggedInError.
+// the question: does that middleware-level Effect failure surface to the client as a
+// decoded NotLoggedInError stream failure, or does the wire schema decode fail?
+class StreamRequiresAuth extends Req.Stream<StreamRequiresAuth>()("StreamRequiresAuth", {}, {
+  success: S.Number
+}) {}
+
+const StreamyRsc = {
+  StreamTicks,
+  StreamCountTo,
+  StreamRealtime,
+  StreamFailEffect,
+  StreamFailStream,
+  StreamRequiresAuth
+}
 
 // ---------------------------------------------------------------------------
 // Controllers / router — Stream impls returned from the match callback.
@@ -111,7 +125,11 @@ const router = Router(StreamyRsc)({
       // returning Effect.fail from a stream handler should surface as a failing
       // stream on the client (not a protocol error)
       StreamFailEffect: Effect.fail(new StreamBoom({ reason: "from-effect" })),
-      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" }))
+      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" })),
+      // emits one value when middleware lets through; without auth headers the
+      // AllowAnonymous middleware fails the request with NotLoggedInError before
+      // the handler runs.
+      StreamRequiresAuth: Stream.fromIterable([42])
     })
   }
 })
@@ -226,6 +244,48 @@ it.live(
       expect(failures.length).toBeGreaterThan(0)
       expect(failures[0]!.error._tag).toBe("StreamBoom")
       expect(failures[0]!.error.reason).toBe("from-stream")
+    }
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+// KNOWN BUG: middleware-level `Effect.fail` on a stream rpc surfaces on the
+// client as a Die with "Expected never, got <Error>" rather than a typed
+// failure. Two distinct asymmetries combine:
+//
+// 1. effect-rpc routes failures through different schemas for stream rpcs:
+//    `Stream.fail(e)` from inside the stream goes through the chunk channel
+//    (`streamSchemas.value.error`), while `Effect.fail(e)` from middleware
+//    or anywhere outside the stream goes through the rpc Exit channel,
+//    which uses the wire-level `errorSchema`. For streams, `Rpc.make` forces
+//    `errorSchema: Schema.Never`, so the failure union for the Exit channel
+//    only includes whatever `rpc.middlewares[*].error` contributes (we now
+//    merge rcm + generalErrors into that union — see MiddlewareMaker).
+//
+// 2. Even with the union merged, `Schema.Exit`'s decode runs the declared
+//    constructor's runtime check (`Exit_.isExit`) before the toCodec link
+//    bridges JSON ↔ Exit, and the inner `Cause(error, defect)` codec link
+//    isn't propagating the `error` member union through nested decoding
+//    when the input is a plain JS shape. The decode dies with
+//    `InvalidType(ast, Option.some(input))` — which is where the
+//    "Option.some" wrap in the visible error message comes from.
+//
+// Resolving (1) requires either making middleware emit through the stream
+// channel (Stream.fail / Stream.unwrap on Effect) or wrapping registered
+// stream handlers so any pre-handler `Effect.fail` is lifted to a stream
+// failure. (2) needs deeper investigation in effect-schema/effect-rpc.
+it.live.fails(
+  "stream resource: middleware Effect-fail (NotLoggedInError) should decode (currently broken)",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamRequiresAuth.handler).pipe(Effect.exit)
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const reasons = (exit.cause as any).reasons as ReadonlyArray<any>
+      expect(reasons.length).toBeGreaterThan(0)
+      const r = reasons[0]
+      const firstError = r?.error ?? r?.defect
+      expect(firstError?._tag).toBe("NotLoggedInError")
     }
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }

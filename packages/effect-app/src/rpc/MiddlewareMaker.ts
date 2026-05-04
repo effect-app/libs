@@ -310,7 +310,26 @@ const makeMiddlewareBasic = <Self>() =>
   // reverse middlewares and wrap one after the other
   const middleware = middlewareMaker(make)
 
-  const failures = make.flatMap((_) => _.error ? [_.error] : [])
+  // Per-middleware error: union of the static `error` on the tag (if any) AND
+  // the rcm config entry pointed at by the middleware's `dynamic.key` (if any).
+  // Reason: middlewares declared with `dynamic: RequestContextMap.get("foo")`
+  // don't set a static `error` field — at runtime their `.error` defaults to
+  // `Schema.Never`. Without pulling from rcm, the composite middleware's
+  // `.error` collapses to `Never`, and `Rpc.exitSchema` (which walks
+  // `rpc.middlewares[*].error` to build the wire failure union) can't decode
+  // the actual middleware-thrown error type. Critical for stream rpcs whose
+  // top-level `errorSchema` is force-set to `Never` by effect-rpc.
+  const isMeaningfulError = (e: S.Top | undefined): e is S.Top => e !== undefined && e !== null && e !== S.Never
+  const rcmRecord = rcm as Record<string, RpcContextMap.Any>
+  const failures: Array<S.Top> = make.flatMap((_) => {
+    const out: Array<S.Top> = []
+    if (isMeaningfulError(_.error)) out.push(_.error)
+    const key = _.dynamic?.key as string | undefined
+    if (key && rcmRecord[key] && isMeaningfulError(rcmRecord[key].error)) {
+      out.push(rcmRecord[key].error)
+    }
+    return out
+  })
   const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
   const requires = make
     .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
@@ -346,10 +365,11 @@ const makeMiddlewareBasic = <Self>() =>
     .effect(
       MiddlewareMaker,
       middleware as Effect.Effect<
-        any,
-        Effect.Error<typeof middleware>,
-        Effect.Services<typeof middleware>
+        any
       >
+      // todo; they dont change the type..
+      //  Effect.Error<typeof middleware>,
+      //  Effect.Services<typeof middleware>
     )
 
   // add to the tag a default implementation

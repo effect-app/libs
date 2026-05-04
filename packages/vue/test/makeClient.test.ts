@@ -3,6 +3,7 @@ import { expect, expectTypeOf, it } from "@effect/vitest"
 import { S } from "effect-app"
 import { configureInvalidation, makeQueryKey } from "effect-app/client"
 import * as Exit from "effect/Exit"
+import type { CommandFromRequest } from "../src/makeClient.js"
 import { Something, SomethingElse, SomethingElseReq, SomethingReq, useClient, useExperimental } from "./stubs.js"
 
 const somethingInvalidationResources = {
@@ -126,6 +127,73 @@ it("TaggedRequestFor .moduleName and request .id / .moduleName", () => {
 
   type WithSuccessInvalidation = NonNullable<typeof TypeInferenceWithSuccess.config.invalidatesQueries> // @ts-expect-error input should be required when command payload is non-empty
   ;((_queryKey, _resources) => []) satisfies WithSuccessInvalidation
+})
+
+it("clientFor handler shape — props variants", () => {
+  const { clientFor } = useClient()
+  const client = clientFor(
+    Something,
+    undefined,
+    somethingInvalidationResources
+  )
+  expect(client).toBeDefined()
+
+  // no-props (no fields): handler is the Effect itself (RequestHandler), not a function
+  expectTypeOf(client.DoNoProps.handler).not.toBeFunction()
+
+  // optional-only: any fields → function handler. Input matches `make`, which for
+  // fully-optional payload is omittable.
+  expectTypeOf(client.DoOptionalOnly.handler).toBeFunction()
+  // arg may be omitted entirely
+  client.DoOptionalOnly.handler()
+  // or supplied with all-optional payload
+  client.DoOptionalOnly.handler({})
+  client.DoOptionalOnly.handler({ name: "x" })
+
+  // required-only: function, `id` required
+  expectTypeOf(client.DoRequiredOnly.handler).toBeFunction()
+  client.DoRequiredOnly.handler({ id: "x" })
+  // @ts-expect-error id is required
+  client.DoRequiredOnly.handler({})
+  // @ts-expect-error arg cannot be omitted
+  client.DoRequiredOnly.handler()
+
+  // mixed: id required, name optional
+  expectTypeOf(client.DoMixed.handler).toBeFunction()
+  client.DoMixed.handler({ id: "x" })
+  client.DoMixed.handler({ id: "x", name: "y" })
+  // @ts-expect-error id required
+  client.DoMixed.handler({ name: "y" })
+})
+
+it("CommandFromRequest input shape — props variants", () => {
+  type NoPropsArg = Parameters<CommandFromRequest<typeof Something.DoNoProps>["handle"]>[0]
+
+  // no-props (no fields) → void input
+  expectTypeOf<NoPropsArg>().toBeVoid()
+
+  // type-only assignability checks for the remaining variants
+  if (false as boolean) {
+    const optOnly = null as unknown as CommandFromRequest<typeof Something.DoOptionalOnly>
+    const reqOnly = null as unknown as CommandFromRequest<typeof Something.DoRequiredOnly>
+    const mixed = null as unknown as CommandFromRequest<typeof Something.DoMixed>
+
+    // optional-only → matches `make` (fully optional, arg omittable)
+    optOnly.handle()
+    optOnly.handle({})
+    optOnly.handle({ name: "x" })
+
+    // required-only → id required
+    reqOnly.handle({ id: "x" })
+    // @ts-expect-error id required
+    reqOnly.handle({})
+
+    // mixed → id required, name optional
+    mixed.handle({ id: "x" })
+    mixed.handle({ id: "x", name: "y" })
+    // @ts-expect-error id required
+    mixed.handle({ name: "y" })
+  }
 })
 
 it.skip("query type tests", () => {

@@ -11,12 +11,13 @@
  */
 import { NodeHttpServer } from "@effect/platform-node"
 import { expect, it } from "@effect/vitest"
-import { Effect, Layer, Option, Stream } from "effect"
+import { Effect, Exit, Layer, Option, Stream } from "effect"
 import { S } from "effect-app"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
 import { HttpRouter, HttpServer } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import { MiddlewareMaker } from "effect-app/rpc"
+import { TaggedErrorClass } from "effect-app/Schema"
 import { FetchHttpClient } from "effect/unstable/http"
 import { RpcSerialization } from "effect/unstable/rpc"
 import { createServer } from "http"
@@ -72,7 +73,21 @@ class StreamRealtime extends Req.Stream<StreamRealtime>()("StreamRealtime", {}, 
   success: S.Number
 }) {}
 
-const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime }
+class StreamBoom extends TaggedErrorClass<StreamBoom>()("StreamBoom", { reason: S.String }) {}
+
+class StreamFailEffect extends Req.Stream<StreamFailEffect>()("StreamFailEffect", {}, {
+  allowAnonymous: true,
+  success: S.Number,
+  error: StreamBoom
+}) {}
+
+class StreamFailStream extends Req.Stream<StreamFailStream>()("StreamFailStream", {}, {
+  allowAnonymous: true,
+  success: S.Number,
+  error: StreamBoom
+}) {}
+
+const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffect, StreamFailStream }
 
 // ---------------------------------------------------------------------------
 // Controllers / router — Stream impls returned from the match callback.
@@ -92,7 +107,11 @@ const router = Router(StreamyRsc)({
       // delivery rather than a single batched response
       StreamRealtime: Stream.fromIterable([1, 2, 3]).pipe(
         Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
-      )
+      ),
+      // returning Effect.fail from a stream handler should surface as a failing
+      // stream on the client (not a protocol error)
+      StreamFailEffect: Effect.fail(new StreamBoom({ reason: "from-effect" })),
+      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" }))
     })
   }
 })
@@ -176,6 +195,38 @@ it.live(
     expect(delta2).toBeGreaterThan(50)
     // first element should not be withheld until the whole stream completes
     expect(arrivals[0]!.at).toBeLessThan(arrivals[2]!.at - 50)
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "stream handler returning Effect.fail surfaces as failing stream on client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamFailEffect.handler).pipe(Effect.exit)
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>
+      expect(failures.length).toBeGreaterThan(0)
+      expect(failures[0]!.error._tag).toBe("StreamBoom")
+      expect(failures[0]!.error.reason).toBe("from-effect")
+    }
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "stream handler returning Stream.fail surfaces as failing stream on client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamFailStream.handler).pipe(Effect.exit)
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>
+      expect(failures.length).toBeGreaterThan(0)
+      expect(failures[0]!.error._tag).toBe("StreamBoom")
+      expect(failures[0]!.error.reason).toBe("from-stream")
+    }
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

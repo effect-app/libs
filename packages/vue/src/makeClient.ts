@@ -3,7 +3,7 @@ import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, 
 import { camelCase } from "change-case"
 import { type Context, Effect, Exit, Hash, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
-import type { ExtractModuleName, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestInputFromMake, RequestsAny, RequestStreamHandler, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
+import type { ExtractModuleName, HandlerInput, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestsAny, RequestStreamHandler, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
@@ -1078,5 +1078,5 @@ export interface CommandBase<I = void, A = void, RA = unknown, RE = unknown> {
 export interface EffectCommand<I = void, A = unknown, E = unknown> extends CommandBase<I, Fiber<A, E>, A, E> {}
 
 export interface CommandFromRequest<I extends { readonly make: (...args: any[]) => any }, A = unknown, E = unknown>
-  extends EffectCommand<RequestInputFromMake<I>, A, E>
+  extends EffectCommand<HandlerInput<I>, A, E>
 {}

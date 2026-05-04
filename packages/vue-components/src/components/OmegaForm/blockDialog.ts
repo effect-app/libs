@@ -55,11 +55,14 @@ export const useOnClose = (close: () => void) => {
     bus.emit("dialog-closing", evt)
     if (evt.prevent) {
       if (typeof evt.prevent === "object" && "then" in evt.prevent) {
-        evt.prevent.then((r) => {
-          if (r !== false) {
-            close()
-          }
-        })
+        evt
+          .prevent
+          .then((r) => {
+            if (r) {
+              close()
+            }
+          })
+          .catch(console.error)
       }
     } else {
       close()

@@ -1,12 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import generate from "@babel/generator"
-import { parse } from "@babel/parser"
-import type { Preset } from "eslint-plugin-codegen"
 import * as fs from "fs"
 
-function parseModule(code: string) {
-  return parse(code, { sourceType: "module", plugins: ["typescript"] }) as any
-}
+type PresetFn<T = Record<string, unknown>> = (args: {
+  meta: { filename: string; existingContent: string }
+  options: T
+}, context?: unknown) => string
 
 // Detects `export class Foo` whose extends clause contains e.g. `Class<Foo,` or
 // `S.TaggedClass<Foo,` — the second generic signals an Encoded override and marks
@@ -24,7 +21,7 @@ function getExportedModelNames(code: string): Array<string> {
   const matches = Array.from(code.matchAll(classRe))
   for (const [index, match] of matches.entries()) {
     const name = match[2]!
-    const start = match.index! + match[1]!.length
+    const start = match.index + match[1]!.length
     // Take up to the next `export class` or 500 chars, whichever comes first,
     // then trim further to only the extends clause (before the first `{`).
     const nextClass = matches[index + 1]?.index
@@ -42,41 +39,24 @@ function getExportedModelNames(code: string): Array<string> {
   return result
 }
 
-function normalise(str: string) {
-  try {
-    return generate(
-      parseModule(str)
-    )
-      .code
-    // .replace(/'/g, `"`)
-    // .replace(/\/index/g, "")
-    // .replace(/([\n\s]+ \|)/g, " |").replaceAll(": |", ":")
-    // .replaceAll(/[\s\n]+\|/g, " |")
-    // .replaceAll("\n", ";")
-    // .replaceAll(" ", "")
-    // TODO: remove all \n and whitespace?
-  } catch {
-    return str
-  }
+function normaliseLines(s: string): string {
+  return s.split("\n").map((l) => l.trim()).filter(Boolean).join("\n")
 }
 
-export const model: Preset<{
+export const model: PresetFn<{
   writeFullTypes?: boolean
-}> = ({ meta }) => {
+}> = ({ meta }, context) => {
   try {
-    const targetContent = fs.readFileSync(meta.filename).toString()
+    const targetContent = typeof context === "string" && context.length > 0
+      ? context
+      : fs.readFileSync(meta.filename).toString()
 
-    const processed: string[] = []
-
-    const sourcePath = meta.filename
-    if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
-      throw Error(`Source path is not a file: ${sourcePath}`)
-    }
+    const processed = new Set<string>()
 
     const them = []
     for (const modelName of getExportedModelNames(targetContent)) {
-      if (processed.includes(modelName)) continue
-      processed.push(modelName)
+      if (processed.has(modelName)) continue
+      processed.add(modelName)
 
       them.push([
         `export namespace ${modelName} {`,
@@ -86,15 +66,13 @@ export const model: Preset<{
     }
     const expectedContent = [
       "//",
-      `/* eslint-disable */`,
       ...them.flat().filter((x): x is string => !!x),
-      `/* eslint-enable */`,
       "//"
     ]
       .join("\n")
 
-    // do not re-emit in a different style, or a loop will occur
-    if (normalise(meta.existingContent) === normalise(expectedContent)) {
+    // Fast path: whitespace-normalised comparison (avoids AST parse)
+    if (normaliseLines(meta.existingContent) === normaliseLines(expectedContent)) {
       return meta.existingContent
     }
     return expectedContent

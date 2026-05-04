@@ -1,5 +1,63 @@
 # @effect-app/vue
 
+## 4.0.0-beta.195
+
+### Patch Changes
+
+- Updated dependencies [774a9b3]
+  - effect-app@4.0.0-beta.195
+
+## 4.0.0-beta.194
+
+### Patch Changes
+
+- refactor(vue): remove 1s waiting toast delay in withDefaultToastStream
+  - effect-app@4.0.0-beta.194
+
+## 4.0.0-beta.193
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.193
+
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.192
+
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- Updated dependencies [50ce7e6]
+  - effect-app@4.0.0-beta.191
+
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- 985176b: Align request handler input typing with the request's `make` signature. Handlers are now classified as no-input only when the request schema declares no payload fields; any payload (even fully-optional) yields a function handler whose input matches `make`'s first parameter. Adds `HandlerInput<I>` and threads it through `CommandFromRequest`.
+- Updated dependencies [985176b]
+  - effect-app@4.0.0-beta.190
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- d23e3f6: Delay the in-progress (waiting) toast by 1 second in `withToast` and `withDefaultToastStream`. Fast operations that produce a success/failure (or, for streams, a progress event or terminal state) within the delay window never show a waiting toast at all. Any subsequent waiting/progress/success/failure toast aborts the pending delayed toast so it never flashes after the terminal state.
+- f44800c: In-progress toasts (`withToast` waiting toast and `withDefaultToastStream` waiting/progress toasts) now persist indefinitely (`timeout: Infinity`) until replaced by the success/failure toast or dismissed. Previously they used the underlying toast adapter's default duration and could disappear before the operation finished.
+- Updated dependencies [ea32222]
+  - effect-app@4.0.0-beta.189
+
 ## 4.0.0-beta.188
 
 ### Minor Changes

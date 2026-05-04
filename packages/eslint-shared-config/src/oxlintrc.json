@@ -1,10 +1,14 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "oxc", "eslint", "unicorn", "node"],
+  "jsPlugins": [{ "name": "codegen", "specifier": "@effect-app/eslint-codegen-model/oxlint" }],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
     "perf": "error"
+  },
+  "options": {
+    "typeAware": true
   },
   // NOTE: oxlint does NOT merge ignorePatterns from extended configs — the child config's
   // ignorePatterns completely replaces the base. Consumers must repeat these patterns
@@ -20,9 +24,12 @@
     "**/CHANGELOG.md"
   ],
   "rules": {
+    "codegen/codegen": "error",
     "typescript/consistent-type-imports": ["error", {
       "fixStyle": "inline-type-imports"
     }],
+    // strange issue with types from namespaces somehow
+    "import/namespace": "off",
     "import/no-duplicates": "error",
     "import/no-self-import": "warn",
     "import/no-empty-named-blocks": "error",
@@ -45,6 +52,11 @@
     "eslint/object-shorthand": "error",
     "eslint/no-underscore-dangle": ["warn", {
       "allow": ["_tag", "_etag"]
+    }],
+    "typescript/no-use-before-define": ["warn", {
+      "functions": false,
+      "classes": true,
+      "variables": true
     }],
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-type-constraint": "error",
@@ -82,6 +94,39 @@
     "unicorn/no-array-reverse": "off",
     "unicorn/require-post-message-target-origin": "off",
     "unicorn/prefer-add-event-listener": "off",
-    "unicorn/prefer-set-has": "off"
+    "unicorn/prefer-set-has": "off",
+
+    // Type-aware rules (powered by tsgolint via `oxlint --type-aware`).
+    // Mirrors the previous typescript-eslint rules from eslint.base.config.mjs.
+    "typescript/restrict-template-expressions": "warn",
+    "typescript/restrict-plus-operands": "off",
+    "typescript/no-unsafe-assignment": "warn",
+    "typescript/no-unsafe-call": "warn",
+    "typescript/no-unsafe-return": "warn",
+    "typescript/no-unsafe-argument": "warn",
+    "typescript/no-unsafe-member-access": "warn",
+    "typescript/no-misused-promises": "warn",
+    "typescript/unbound-method": "error",
+    "typescript/only-throw-error": "off",
+    "typescript/no-base-to-string": "warn",
+    "typescript/no-floating-promises": "error",
+
+    // Surplus type-aware rules pulled in by `correctness/suspicious/perf` categories
+    // that were NOT enabled in the original eslint config. Disabled to match prior baseline.
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/no-unsafe-enum-comparison": "off",
+    "typescript/no-unnecessary-type-arguments": "off",
+    "typescript/no-unnecessary-type-parameters": "off",
+    "typescript/no-unnecessary-type-conversion": "off",
+    "typescript/no-unnecessary-template-expression": "off",
+    "typescript/no-unnecessary-boolean-literal-compare": "off",
+    "typescript/no-redundant-type-constituents": "off",
+    "typescript/no-duplicate-type-constituents": "off",
+    "typescript/consistent-return": "off",
+    "typescript/no-extraneous-class": "off",
+    "typescript/no-meaningless-void-operator": "off",
+    "typescript/no-misused-spread": "off",
+    "typescript/no-useless-default-assignment": "off",
+    "typescript/require-array-sort-compare": "off"
   }
 }

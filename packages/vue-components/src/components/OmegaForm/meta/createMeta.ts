@@ -8,7 +8,7 @@ export type FilterItems = {
   items: readonly [string, ...string[]]
   message:
     | string
-    | Effect.Effect<string, never, never>
+    | Effect.Effect<string>
     | { readonly message: string | Effect.Effect<string> }
 }
 
@@ -33,7 +33,7 @@ export const unwrapDeclaration = (property: S.AST.AST): S.AST.AST => {
   let current = getTransformationFrom(property)
 
   while (S.AST.isDeclaration(current) && current.typeParameters.length > 0) {
-    current = getTransformationFrom(current.typeParameters[0]!)
+    current = getTransformationFrom(current.typeParameters[0])
   }
 
   return current
@@ -96,7 +96,7 @@ export const createMeta = <T = any>(
 }
 
 export const metadataFromAst = <From, To>(
-  schema: S.Codec<To, From, never>
+  schema: S.Codec<To, From>
 ): {
   meta: MetaRecord<To>
   defaultValues: Record<string, any>
@@ -126,9 +126,9 @@ export const metadataFromAst = <From, To>(
 }
 
 export const generateMetaFromSchema = <From, To>(
-  schema: S.Codec<To, From, never>
+  schema: S.Codec<To, From>
 ): {
-  schema: S.Codec<To, From, never>
+  schema: S.Codec<To, From>
   meta: MetaRecord<To>
   unionMeta: Record<string, MetaRecord<To>>
 } => {

@@ -132,37 +132,30 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
 
-type RequestFields<I> = I extends { readonly fields: infer F extends S.Struct.Fields } ? F : never
+export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
+  [] ? void : Parameters<I["make"]>[0]
 
-type RequestInputFromFields<I> = [RequestFields<I>] extends [never] ? never
-  : keyof RequestFields<I> extends never ? void
-  : S.Schema.Type<S.Struct<RequestFields<I>>>
-
-type RequestInputFromOverloadedMake<I extends { readonly make: (...args: any[]) => any }> =
-  Parameters<I["make"]> extends [] ? void
-    : Parameters<I["make"]>[0]
-
-export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> =
-  [RequestInputFromFields<I>] extends [never] ? RequestInputFromOverloadedMake<I>
-    : RequestInputFromFields<I>
-
-type NormalizedRequestInput<T> = Omit<Exclude<T, undefined>, "_tag">
-
-// If make's first param has only an optional _tag property, treat as no-input handler.
-type IsTagOnly<T> = [Exclude<T, undefined>] extends [never] ? true
-  : [keyof NormalizedRequestInput<T>] extends [never] ? true
+// Has no input only when the request schema declares no payload fields (the auto-added
+// `_tag` field is ignored). Any payload fields (even all-optional) produce a function handler.
+type HasNoFields<I> = I extends { readonly fields: infer F extends S.Struct.Fields }
+  ? [Exclude<keyof F, "_tag">] extends [never] ? true : false
   : false
 
-type RequestInput<I extends { readonly make: (...args: any[]) => any }> = NormalizedRequestInput<
-  RequestInputFromMake<I>
->
+type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]>[0]
+
+/**
+ * Caller-facing input type for a request. `void` when the request schema has no fields;
+ * otherwise `make`'s first param type.
+ */
+export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> = HasNoFields<I> extends true ? void
+  : RequestInput<I>
 
 /** Extracts the final-value type from a stream request. Defaults to the success type when no `final` schema is set. */
 type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
   : S.Schema.Type<T["success"]>
 
 type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] extends "stream"
-  ? IsTagOnly<RequestInputFromMake<T>> extends true ? RequestStreamHandler<
+  ? HasNoFields<T> extends true ? RequestStreamHandler<
       S.Schema.Type<T["success"]>,
       S.Schema.Type<T["error"]> | E,
       R | ReqDecodingServices<T>,
@@ -179,7 +172,7 @@ type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] exten
     Id,
     FinalTypeOf<T>
   >
-  : IsTagOnly<RequestInputFromMake<T>> extends true ? RequestHandler<
+  : HasNoFields<T> extends true ? RequestHandler<
       S.Schema.Type<T["success"]>,
       S.Schema.Type<T["error"]> | E,
       R | ReqDecodingServices<T>,

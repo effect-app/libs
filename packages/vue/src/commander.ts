@@ -208,7 +208,7 @@ export declare namespace Commander {
     new(): {}
 
     /** click handlers */
-    handle: ((arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>, never>) & {
+    handle: ((arg: Arg) => Fiber.Fiber<Exit.Exit<A, E>>) & {
       /** @deprecated don't exist */
       effect: (arg: Arg) => Effect.Effect<A, E, R>
     }
@@ -1985,7 +1985,7 @@ const renderErrorMaker = Effect.gen(function*() {
             return intl.formatMessage({ id: "validation.failed" })
           }
         }),
-        Match.orElse((e) => `${e.message ?? e._tag ?? e}`)
+        Match.orElse((e) => e.message ?? e._tag ?? e)
       )
     }
   )
@@ -2095,7 +2095,7 @@ export const CommanderStatic = {
 
   /** Version of @see confirmOrInterrupt that automatically includes the action name in the default messages */
   confirmOrInterrupt: Effect.fnUntraced(function*(
-    message: string | undefined = undefined
+    message?: string
   ) {
     const context = yield* CommandContext
     const { intl } = yield* I18n
@@ -2110,7 +2110,7 @@ export const CommanderStatic = {
   }),
   /** Version of @see confirm that automatically includes the action name in the default messages */
   confirm: Effect.fnUntraced(function*(
-    message: string | undefined = undefined
+    message?: string
   ) {
     const context = yield* CommandContext
     const { intl } = yield* I18n
@@ -2333,7 +2333,11 @@ export const CommanderStatic = {
 
       const toastId: string | number | undefined = waitingMsg === null
         ? stableToastId
-        : yield* toast.info(waitingMsg, { id: stableToastId ?? null })
+        : stableToastId ?? `wait-${Math.random().toString(36).slice(2)}`
+
+      if (waitingMsg !== null) {
+        yield* toast.info(waitingMsg, { id: toastId!, timeout: Infinity })
+      }
 
       const failureHandler = defaultFailureMessageHandler<E, [], never, never>(
         hasCustomFailure ? intl.formatMessage({ id: customFailure }, cc.state) : cc.action,
@@ -2355,7 +2359,7 @@ export const CommanderStatic = {
                 if (toastId !== undefined) {
                   const progressText = typeof p === "string" ? p : p.text
                   const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
-                  yield* toast.info(msg, { id: toastId })
+                  yield* toast.info(msg, { id: toastId, timeout: Infinity })
                 }
               }
             }
@@ -3137,7 +3141,7 @@ export class CommanderImpl<RT, RTHooks> {
     const toRawHandler = (fn: any): (arg: any, ctx: any) => StreamOrEffect => {
       if (isGeneratorFunction(fn)) {
         return Effect.fnUntraced(function*(arg: any, ctx: any) {
-          return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>, any>)(arg, ctx)
+          return yield* (fn as (arg: any, ctx: any) => Generator<any, Stream.Stream<any, any, any>>)(arg, ctx)
         })
       }
       return fn

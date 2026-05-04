@@ -126,7 +126,7 @@ export const extendRepo = <
       ) =>
         | Query<Encoded>
         | QueryWhere<Encoded>
-        | QueryEnd<Encoded, "many">,
+        | QueryEnd<Encoded>,
       pure: Effect.Effect<A, E2, FixEnv<R2, Evt, readonly T[], readonly T2[]>>
     ): Effect.Effect<
       A,
@@ -143,7 +143,7 @@ export const extendRepo = <
       ) =>
         | Query<Encoded>
         | QueryWhere<Encoded>
-        | QueryEnd<Encoded, "many">,
+        | QueryEnd<Encoded>,
       pure: Effect.Effect<A, E2, FixEnv<R2, Evt, readonly T[], readonly T2[]>>,
       batch: "batched" | number
     ): Effect.Effect<
@@ -231,8 +231,7 @@ export const extendRepo = <
       _key: unknown
     ) =>
       (repo.query(Q.where(repo.idKey as any, "in" as any, entries.map((_) => _.request.id)) as any) as Effect.Effect<
-        readonly T[],
-        never
+        readonly T[]
       >)
         // TODO
         .pipe(

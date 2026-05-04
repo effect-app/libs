@@ -9,11 +9,7 @@
 <script
   setup
   lang="ts"
-  generic="
-  From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>
-"
+  generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys, type DeepValue } from "@tanstack/vue-form"
 import { watch } from "vue"
@@ -38,7 +34,7 @@ watch(() => props.state, (newTag, oldTag) => {
   if (newTag !== oldTag) {
     props.form.reset(values.value)
     setTimeout(() => {
-      props.field.validate("change")
+      void props.field.validate("change")
     }, 0)
   }
 }, { immediate: true })

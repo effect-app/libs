@@ -1,5 +1,41 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.195
+
+### Patch Changes
+
+- 774a9b3: `MiddlewareMaker.makeMiddlewareBasic` now derives each middleware's effective error from both the static `error` field on the tag AND the `rcm` config entry referenced by `dynamic.key`, rather than relying on the static field alone.
+
+  Middlewares declared with `dynamic: RequestContextMap.get("foo")` (instead of an explicit static `error: ...`) end up with `tag.error = Schema.Never` at runtime — `RpcMiddleware.Tag` defaults the static error to `Never` when not provided. The composite `MiddlewareMaker.Tag(...).middleware(...)` walked `make[*].error` to build its own error union, collapsing to `Union<Never, ...> ≡ Never`.
+
+  `Rpc.exitSchema` walks `rpc.middlewares[*].error` when building the wire-level failure union for every rpc kind. Empty-union meant middleware-thrown errors (`NotLoggedInError`, `UnauthorizedError`, etc.) never reached the wire schema. Query/command happened to work because their wire `errorSchema = resource.error` already covered the merge from `makeRpcClient`. Stream rpcs have `errorSchema` force-set to `Schema.Never` by effect-rpc, so the resource-level merge never reached the wire — middleware errors decoded as "Expected never, got X".
+
+  Per middleware, the new logic pushes both the static `_.error` (if non-`Never`) and `rcm[_.dynamic.key].error` (if non-`Never`) into the composite's failure union.
+
+## 4.0.0-beta.194
+
+## 4.0.0-beta.193
+
+## 4.0.0-beta.192
+
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- 985176b: Align request handler input typing with the request's `make` signature. Handlers are now classified as no-input only when the request schema declares no payload fields; any payload (even fully-optional) yields a function handler whose input matches `make`'s first parameter. Adds `HandlerInput<I>` and threads it through `CommandFromRequest`.
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- ea32222: Update to effect 4.0.0-beta.60 and use native `Rpc.custom` constructors (`makeCommandRpc`, `makeStreamRpc`) for metadata-wrapped RPC schemas instead of manually wrapping/unwrapping schemas inline.
+
 ## 4.0.0-beta.188
 
 ### Patch Changes

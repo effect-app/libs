@@ -17,7 +17,7 @@ export const ExtractExportMappingsService = Effect.fn("effa-cli.extractExportMap
 
   return Effect.fn("effa-cli.extractExportMappings.service")(function*(cwd: string) {
     // @effect-diagnostics-next-line effectFnOpportunity:off
-    const findTsFiles = (dir: string): Effect.Effect<string[], PlatformError.PlatformError, never> =>
+    const findTsFiles = (dir: string): Effect.Effect<string[], PlatformError.PlatformError> =>
       Effect.gen(function*() {
         const entries = yield* fs.readDirectory(dir)
 

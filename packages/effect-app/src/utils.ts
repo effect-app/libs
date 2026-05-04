@@ -895,5 +895,5 @@ const genConstructor = (function*() {}).constructor
  * @category predicates
  * @since 3.11.0
  */
-export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any, any, any> =>
+export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any> =>
   isFunction(u) && u.constructor === genConstructor

@@ -1,5 +1,33 @@
 # @effect-app/infra
 
+## 4.0.0-beta.194
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.194
+
+## 4.0.0-beta.193
+
+### Patch Changes
+
+- 9569911: Stream resources accept `Effect.fail(...)` (and `Effect<Stream>`) from controller handlers — previously only `Stream.fail(...)` / a returned `Stream` worked. The router now lifts an Effect result to a Stream via `Stream.unwrap`, so failures from an `Effect` propagate as a failing Stream on the client, matching `Stream.fail(...)` behavior. Also removes the need for manual `.pipe(Stream.unwrap)` on generator handlers that return a `Stream`.
+  - effect-app@4.0.0-beta.193
+
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- dba5779: namespaces
+  - effect-app@4.0.0-beta.192
+
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- Updated dependencies [50ce7e6]
+  - effect-app@4.0.0-beta.191
+
 ## 4.0.0-beta.190
 
 ### Patch Changes

@@ -102,7 +102,7 @@ export const defaultsValueFromSchema = (
       for (const prop of memberAst.propertySignatures) {
         const key = prop.name.toString()
         const fieldDefault = getDefaultFromAst(prop.type)
-        const existingDefault = mergedFields[key] ? getDefaultFromAst(mergedFields[key]!.ast) : undefined
+        const existingDefault = mergedFields[key] ? getDefaultFromAst(mergedFields[key].ast) : undefined
 
         if (!mergedFields[key] || (fieldDefault !== undefined && existingDefault === undefined)) {
           mergedFields[key] = { ast: prop.type }

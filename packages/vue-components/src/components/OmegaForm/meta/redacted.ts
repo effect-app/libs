@@ -19,8 +19,8 @@ const isRedactedWithoutEncoding = (ast: S.AST.AST): boolean =>
  * plain values on the encoded side and wraps them in Redacted on decode.
  */
 export const toFormSchema = <From, To>(
-  schema: S.Codec<To, From, never>
-): S.Codec<To, From, never> => {
+  schema: S.Codec<To, From>
+): S.Codec<To, From> => {
   const ast = schema.ast
   const objAst = S.AST.isObjects(ast)
     ? ast
@@ -36,14 +36,14 @@ export const toFormSchema = <From, To>(
   for (const p of objAst.propertySignatures) {
     if (isRedactedWithoutEncoding(p.type)) {
       hasRedacted = true
-      const innerSchema = S.make((p.type as S.AST.Declaration).typeParameters[0]!)
+      const innerSchema = S.make((p.type as S.AST.Declaration).typeParameters[0])
       props[p.name as string] = S.RedactedFromValue(innerSchema)
     } else if (S.AST.isUnion(p.type)) {
       const types = p.type.types
       const redactedType = types.find(isRedactedWithoutEncoding)
       if (redactedType) {
         hasRedacted = true
-        const innerSchema = S.make((redactedType as S.AST.Declaration).typeParameters[0]!)
+        const innerSchema = S.make((redactedType as S.AST.Declaration).typeParameters[0])
         const hasNull = types.some(S.AST.isNull)
         const hasUndefined = types.some(S.AST.isUndefined)
         const base = S.RedactedFromValue(innerSchema)
@@ -62,5 +62,5 @@ export const toFormSchema = <From, To>(
     }
   }
 
-  return hasRedacted ? S.Struct(props) as unknown as S.Codec<To, From, never> : schema
+  return hasRedacted ? S.Struct(props) as unknown as S.Codec<To, From> : schema
 }

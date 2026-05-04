@@ -449,7 +449,17 @@ export const makeRouter = <
                 } as any
                 : resource,
               (payload: any, headers: any) => {
-                const result = handler.handler(payload, headers)
+                let result: any = handler.handler(payload, headers)
+                // Stream resources accept handlers returning either Stream or Effect.
+                // Lift Effect to Stream so `Effect.fail(...)` and `Effect<Stream>` (e.g.
+                // from generator handlers) work the same as a returned Stream.
+                if (resource.type === "stream" && Effect.isEffect(result)) {
+                  result = Stream.unwrap(
+                    (result as Effect.Effect<unknown, unknown, unknown>).pipe(
+                      Effect.map((v) => Stream.isStream(v) ? v : Stream.succeed(v))
+                    )
+                  )
+                }
                 if (Stream.isStream(result)) {
                   // Wrap stream items as { _tag: "value", value } and append a final
                   // { _tag: "done", metadata } chunk carrying accumulated invalidation keys.

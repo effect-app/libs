@@ -1,6 +1,5 @@
 import { SchemaTransformation } from "effect"
 import type * as Exit from "effect/Exit"
-import { type Opaque } from "effect/Schema"
 import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
@@ -80,12 +79,6 @@ export const configureInvalidationCallback = <Resources>() =>
 export const configureInvalidationResources = <Resources>() =>
   ({}) as Pick<InvalidationConfig<Resources>, "invalidationResources">
 
-export interface OpaqueHelper<Self, S extends S.Top & { readonly fields: S.Struct.Fields }>
-  extends Opaque<Self, S, {}>
-{
-  readonly fields: S["fields"]
-}
-
 type TaggedRequestForResult<
   Self,
   Tag extends string,
@@ -99,8 +92,9 @@ type TaggedRequestForResult<
   Resources = never,
   Final extends S.Top = never
 > =
-  & OpaqueHelper<Self, TaggedRequestSchema<Tag, Payload>>
+  & S.Opaque<Self, S.ExtendedSchemaNoEncoded, TaggedRequestSchema<Tag, Payload>, {}>
   & {
+    readonly fields: TaggedRequestSchema<Tag, Payload>["fields"]
     readonly _tag: Tag
     readonly success: Success
     readonly error: Error

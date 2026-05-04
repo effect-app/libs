@@ -28,24 +28,14 @@ type ClassOptions = {
   readonly strict?: boolean
 }
 
-declare const ExtendedSchemaNoEncoded: unique symbol
+export declare const ExtendedSchemaNoEncoded: unique symbol
 
-type ExtendedSchemaNoEncoded = typeof ExtendedSchemaNoEncoded
+export type ExtendedSchemaNoEncoded = typeof ExtendedSchemaNoEncoded
 
 type WithEncoded<SchemaS extends S.Top, Encoded> = Omit<SchemaS, "Encoded"> & { readonly Encoded: Encoded }
 
 type ExtendedSchema<SchemaS extends S.Top, Encoded> = [Encoded] extends [ExtendedSchemaNoEncoded] ? SchemaS
   : WithEncoded<SchemaS, Encoded>
-
-type OptionalMakeSurface<SchemaS extends S.Top> = {} extends SchemaS["~type.make.in"] ? {
-    make(input?: SchemaS["~type.make.in"], options?: S.MakeOptions): SchemaS["Type"]
-    makeOption(input?: SchemaS["~type.make.in"], options?: S.MakeOptions): Option.Option<SchemaS["Type"]>
-    makeEffect(
-      input?: SchemaS["~type.make.in"],
-      options?: S.MakeOptions
-    ): Effect.Effect<SchemaS["Type"], S.SchemaError>
-  }
-  : {}
 
 export type Class<Self, S extends S.Top & { readonly fields: S.Struct.Fields }, Inherited> = EnhancedClass<
   Self,
@@ -308,11 +298,10 @@ export const TaggedErrorClass: <Self = never, Encoded = ExtendedSchemaNoEncoded,
     } as any
   }
 
-const ExtendedOpaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <SchemaS extends S.Top>(
-  schema: SchemaS
-) =>
-  & S.Opaque<Self, ExtendedSchema<SchemaS, Encoded>, Brand>
-  & Omit<SchemaS, keyof S.Top>
-  & OptionalMakeSurface<S.Opaque<Self, ExtendedSchema<SchemaS, Encoded>, Brand>> = S.Opaque as any
+export interface Opaque<Self, Encoded, SchemaS extends S.Top, Brand>
+  extends S.Opaque<Self, ExtendedSchema<SchemaS, Encoded>, Brand>
+{}
 
-export const Opaque = ExtendedOpaque
+export const Opaque: <Self, Encoded = ExtendedSchemaNoEncoded, Brand = {}>() => <S extends S.Top>(
+  schema: S
+) => Opaque<Self, Encoded, S, Brand> & Omit<S, keyof S.Top> = S.Opaque as any

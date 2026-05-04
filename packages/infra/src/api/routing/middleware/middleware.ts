@@ -5,7 +5,7 @@ import { Invalidation, RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
 import * as Array from "effect/Array"
 import * as Context from "effect/Context"
-import { type Rpc } from "effect/unstable/rpc"
+import { type Rpc, RpcSchema } from "effect/unstable/rpc"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { WithNsTransaction } from "../../../Store/SQL.js"
@@ -142,13 +142,16 @@ export const InvalidationMiddlewareLive = Layer.succeed(
         Effect.flatMap((keysRef): Effect.Effect<any, any, any> => {
           const requestType = Context.get(rpc.annotations, RequestType)
           const isCommand = requestType === "command"
+          const isStream = RpcSchema.isStreamSchema((rpc as any).successSchema)
           const withSet = Effect.provideService(
             effect,
             Invalidation.InvalidationSet,
             Invalidation.makeInvalidationSet(keysRef)
           )
 
-          if (!isCommand) return withSet
+          // Stream resources handle their own invalidation wrapping in routing.ts
+          // (per-chunk { _tag: "value"|"metadata"|"done" } envelope).
+          if (!isCommand || isStream) return withSet
 
           return withSet.pipe(
             Effect.flatMap((value) =>

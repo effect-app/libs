@@ -121,7 +121,6 @@ export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 export const SomethingReq = TaggedRequestFor("Something")
 const SomethingQuery = SomethingReq.Query
 const SomethingCommand = SomethingReq.Command
-const SomethingStream = SomethingReq.Stream
 
 class SomethingGetSomething2 extends SomethingQuery<SomethingGetSomething2>()("GetSomething2", {
   id: S.String
@@ -206,16 +205,18 @@ export class ExportComplete extends S.TaggedClass<ExportComplete>()("ExportCompl
 }) {}
 
 /** Stream with no `final` schema — execute resolves with `void`. */
-class SomethingStreamWithoutFinal extends SomethingStream<SomethingStreamWithoutFinal>()("StreamWithoutFinal", {
+class SomethingStreamWithoutFinal extends SomethingCommand<SomethingStreamWithoutFinal>()("StreamWithoutFinal", {
   id: S.String
 }, {
+  stream: true,
   success: S.Union([OperationProgress, ExportComplete])
 }) {}
 
 /** Stream with a `final` schema — execute resolves with `ExportComplete`. */
-class SomethingStreamWithFinal extends SomethingStream<SomethingStreamWithFinal>()("StreamWithFinal", {
+class SomethingStreamWithFinal extends SomethingCommand<SomethingStreamWithFinal>()("StreamWithFinal", {
   id: S.String
 }, {
+  stream: true,
   success: S.Union([OperationProgress, ExportComplete]),
   final: ExportComplete
 }) {}

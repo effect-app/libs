@@ -25,7 +25,8 @@ export const applyRequestTypeInterruptibility = <A, E, R>(
 // it's a schema plus some metadata
 export type AnyRequestModule = S.Top & {
   _tag: string // unique identifier for the request module
-  type: "command" | "query" | "stream"
+  type: "command" | "query"
+  stream: boolean
   config: any // ?
   success: S.Top // validates the success response
   error: S.Top // validates the failure response
@@ -385,7 +386,7 @@ export const makeRouter = <
                 // Stream resources accept handlers returning either Stream or Effect.
                 // Lift Effect to Stream so `Effect.fail(...)` and `Effect<Stream>` (e.g.
                 // from generator handlers) work the same as a returned Stream.
-                if (resource.type === "stream" && Effect.isEffect(result)) {
+                if (resource.stream && Effect.isEffect(result)) {
                   result = Stream.unwrap(
                     (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                       Effect.map((v) => Stream.isStream(v) ? v : Stream.succeed(v))
@@ -475,25 +476,26 @@ export const makeRouter = <
           const rpcs = RpcGroup
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
-                const isStream = resource.type === "stream"
+                const isStream = resource.stream
                 const isCommand = resource.type === "command"
                 return (isCommand
-                  ? Invalidation.makeCommandRpc(resource._tag, {
-                    payload: resource,
-                    success: resource.success,
-                    error: resource.error
-                  })
-                  : isStream
-                  ? Invalidation.makeStreamRpc(resource._tag, {
-                    payload: resource,
-                    success: resource.success,
-                    error: resource.error,
-                    stream: true as const
-                  })
+                  ? isStream
+                    ? Invalidation.makeStreamRpc(resource._tag, {
+                      payload: resource,
+                      success: resource.success,
+                      error: resource.error,
+                      stream: true as const
+                    })
+                    : Invalidation.makeCommandRpc(resource._tag, {
+                      payload: resource,
+                      success: resource.success,
+                      error: resource.error
+                    })
                   : Rpc.make(resource._tag, {
                     payload: resource,
                     success: resource.success,
-                    error: resource.error
+                    error: resource.error,
+                    stream: isStream
                   }))
                   .annotate(middleware.requestContext, resource.config ?? {})
                   .annotate(RequestTypeAnnotation, resource.type)

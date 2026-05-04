@@ -117,6 +117,7 @@ export const makeRpcClient = <
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     error: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
     final?: S.Top | S.Struct.Fields // optional final-value schema for stream requests
+    stream?: boolean // request metadata — stripped from stored config
   }
 
   type RequestConfig = GetContextConfig<RequestContextMap["config"]>
@@ -148,7 +149,7 @@ export const makeRpcClient = <
     const finalSchema = finalConfig && S.isSchema(finalConfig) ? finalConfig : undefined
 
     // Strip stream from the stored config — it's request metadata, not handler config
-    const { stream: _stream, ...restConfig } = (config ?? {}) as any
+    const { stream: _stream, ...restConfig } = config ?? ({} as C)
 
     const RequestClass = S.TaggedClass<any>()(tag, fields)
     Object.assign(RequestClass, {

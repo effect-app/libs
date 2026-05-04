@@ -3,7 +3,7 @@ import { matchQuery } from "@tanstack/query-core"
 import { type InvalidateOptions, type InvalidateQueryFilters, type QueryClient, useQueryClient } from "@tanstack/vue-query"
 import { type Cause, Effect, Exit, Option } from "effect-app"
 import { type InvalidationKey, InvalidationKeysFromServer, makeInvalidationKeysService, makeQueryKey, type Req } from "effect-app/client"
-import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
+import type { ClientForOptions, RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { tuple } from "effect-app/Function"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
@@ -96,44 +96,27 @@ export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never>
   select?: (result: A) => Effect.Effect<B, E2, R2>
 }
 
-export const asResult: {
-  <A, E, R>(
-    handler: Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Exit.Exit<A, E>, never, R>]
-  <Args extends readonly any[], A, E, R>(
-    handler: (...args: Args) => Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>]
-} = <Args extends readonly any[], A, E, R>(
-  handler: Effect.Effect<A, E, R> | ((...args: Args) => Effect.Effect<A, E, R>)
-) => {
+export const asResult = <Args extends readonly any[], A, E, R>(
+  handler: (...args: Args) => Effect.Effect<A, E, R>
+): readonly [
+  ComputedRef<AsyncResult.AsyncResult<A, E>>,
+  (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>
+] => {
   const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
 
-  const act = Effect.isEffect(handler)
-    ? Effect
+  const act = (...args: Args) =>
+    Effect
       .sync(() => {
         state.value = AsyncResult.initial(true)
       })
       .pipe(
         Effect.andThen(Effect.suspend(() =>
-          handler.pipe(
+          handler(...args).pipe(
             Effect.exit,
             Effect.tap((exit) => Effect.sync(() => (state.value = AsyncResult.fromExit(exit))))
           )
         ))
       )
-    : (...args: Args) =>
-      Effect
-        .sync(() => {
-          state.value = AsyncResult.initial(true)
-        })
-        .pipe(
-          Effect.andThen(Effect.suspend(() =>
-            handler(...args).pipe(
-              Effect.exit,
-              Effect.tap((exit) => Effect.sync(() => (state.value = AsyncResult.fromExit(exit))))
-            )
-          ))
-        )
 
   return tuple(computed(() => state.value), act) as any
 }
@@ -143,16 +126,9 @@ export const asResult: {
  * (keeping `waiting: true`) and is finalised (with `waiting: false`) once the
  * stream terminates successfully. Errors are surfaced as `AsyncResult.failure`.
  */
-export const asStreamResult: {
-  <A, E, R>(
-    handler: Stream.Stream<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<void, never, R>]
-  <Args extends readonly any[], A, E, R>(
-    handler: (...args: Args) => Stream.Stream<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<void, never, R>]
-} = <Args extends readonly any[], A, E, R>(
-  handler: Stream.Stream<A, E, R> | ((...args: Args) => Stream.Stream<A, E, R>)
-) => {
+export const asStreamResult = <Args extends readonly any[], A, E, R>(
+  handler: (...args: Args) => Stream.Stream<A, E, R>
+): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<void, never, R>] => {
   const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
 
   const runStream = (stream: Stream.Stream<A, E, R>): Effect.Effect<void, never, R> =>
@@ -187,9 +163,7 @@ export const asStreamResult: {
         )
       )
 
-  const act = Stream.isStream(handler)
-    ? runStream(handler)
-    : (...args: Args) => runStream(handler(...args))
+  const act = (...args: Args) => runStream(handler(...args))
 
   return tuple(computed(() => state.value), act) as any
 }
@@ -331,7 +305,10 @@ export const invalidateQueries = (
   return handle
 }
 
-export interface MutationFnWithInput<I, A, E, R, Id extends string> {
+/**
+ * A callable mutation result. When `I = void` the input argument may be omitted.
+ */
+export interface MutationFn<I, A, E, R, Id extends string> {
   <B = A, E2 = never, R2 = never>(
     input: I,
     options?: MutationOptionsBase<A, B, E2, R2>
@@ -339,38 +316,17 @@ export interface MutationFnWithInput<I, A, E, R, Id extends string> {
   readonly id: Id
 }
 
-export interface MutationFn<A, E, R, Id extends string> {
-  <B = A, E2 = never, R2 = never>(
-    options?: MutationOptionsBase<A, B, E2, R2>
-  ): Effect.Effect<B, E | E2, R | R2>
-  readonly id: Id
-}
-
 export const makeMutation = () => {
-  const useMutation: {
-    /**
-     * Pass a function that returns an Effect, e.g from a client action
-     * Executes query cache invalidation based on default rules or provided option.
-     */
-    <I, E, A, R, Request extends Req, Id extends string>(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Id>
-    ): MutationFnWithInput<I, A, E, R, Id>
-    /**
-     * Pass an Effect, e.g from a client action
-     * Executes query cache invalidation based on default rules or provided option.
-     */
-    <E, A, R, Request extends Req, Id extends string>(
-      self: RequestHandler<A, E, R, Request, Id>
-    ): MutationFn<A, E, R, Id>
-  } = <I, E, A, R, Request extends Req, Id extends string>(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>
-  ) => {
+  /**
+   * Pass a function that returns an Effect, e.g from a client action.
+   * Executes query cache invalidation based on default rules or provided option.
+   * When `I = void` the input argument may be omitted.
+   */
+  const useMutation = <I, E, A, R, Request extends Req, Id extends string>(
+    self: RequestHandlerWithInput<I, A, E, R, Request, Id>
+  ): MutationFn<I, A, E, R, Id> => {
     const queryClient = useQueryClient()
-    const handler = self.handler
-    const r = Effect.isEffect(handler)
-      ? (options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler)
-      : (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler(i), i)
-
+    const r = (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
@@ -380,29 +336,15 @@ export const makeMutation = () => {
 export const useMakeMutation = () => {
   const queryClient = useQueryClient()
 
-  const useMutation: {
-    /**
-     * Pass a function that returns an Effect, e.g from a client action
-     * Executes query cache invalidation based on default rules or provided option.
-     */
-    <I, E, A, R, Request extends Req, Id extends string>(
-      self: RequestHandlerWithInput<I, A, E, R, Request, Id>
-    ): MutationFnWithInput<I, A, E, R, Id>
-    /**
-     * Pass an Effect, e.g from a client action
-     * Executes query cache invalidation based on default rules or provided option.
-     */
-    <E, A, R, Request extends Req, Id extends string>(
-      self: RequestHandler<A, E, R, Request, Id>
-    ): MutationFn<A, E, R, Id>
-  } = <I, E, A, R, Request extends Req, Id extends string>(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Id> | RequestHandler<A, E, R, Request, Id>
-  ) => {
-    const handler = self.handler
-    const r = Effect.isEffect(handler)
-      ? (options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler)
-      : (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(handler(i), i)
-
+  /**
+   * Pass a function that returns an Effect, e.g from a client action.
+   * Executes query cache invalidation based on default rules or provided option.
+   * When `I = void` the input argument may be omitted.
+   */
+  const useMutation = <I, E, A, R, Request extends Req, Id extends string>(
+    self: RequestHandlerWithInput<I, A, E, R, Request, Id>
+  ): MutationFn<I, A, E, R, Id> => {
+    const r = (i: I, options?: MutationOptionsBase) => invalidateQueries(queryClient, self, options)(self.handler(i), i)
     return Object.assign(r, { id: self.id }) as any
   }
   return useMutation
@@ -425,7 +367,7 @@ export const makeStreamMutation2 = () => {
     self: {
       id: string
       options?: ClientForOptions
-      handler: Stream.Stream<any, any, any> | ((i: any) => Stream.Stream<any, any, any>)
+      handler: (i: any) => Stream.Stream<any, any, any>
     },
     mergedInvalidation?: MutationOptionsBase["queryInvalidation"]
   ) => {
@@ -449,11 +391,6 @@ export const makeStreamMutation2 = () => {
         )
       })
 
-    const handler = self.handler
-    const act = Stream.isStream(handler)
-      ? Stream.unwrap(makeInvocationEffect(undefined, handler))
-      : (i: any) => Stream.unwrap(makeInvocationEffect(i, (handler as (i: any) => Stream.Stream<any, any, any>)(i)))
-
-    return act
+    return (i: any) => Stream.unwrap(makeInvocationEffect(i, self.handler(i)))
   }
 }

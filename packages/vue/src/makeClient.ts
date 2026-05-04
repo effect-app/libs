@@ -3,11 +3,11 @@ import { type InvalidateOptions, type InvalidateQueryFilters, isCancelledError, 
 import { camelCase } from "change-case"
 import { type Context, Effect, Exit, Hash, type Layer, type ManagedRuntime, S, Struct } from "effect-app"
 import { type ApiClientFactory, type Req } from "effect-app/client"
-import type { ExtractModuleName, HandlerInput, RequestHandler, RequestHandlers, RequestHandlerWithInput, RequestsAny, RequestStreamHandler, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
+import type { ExtractModuleName, HandlerInput, RequestHandlers, RequestHandlerWithInput, RequestsAny, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import type { InvalidationCallback } from "effect-app/client/makeClient"
 import type * as ExitResult from "effect/Exit"
 import { type Fiber } from "effect/Fiber"
-import * as Stream from "effect/Stream"
+import type * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { type ComputedRef, onBeforeUnmount, ref, type WatchSource } from "vue"
 import { type Commander, CommanderStatic, type Progress } from "./commander.js"
@@ -20,24 +20,15 @@ import { type Toast } from "./toast.js"
 
 export type { Progress }
 
-const mapHandler = <A, E, R, I = void, A2 = A, E2 = E, R2 = R>(
-  handler: Effect.Effect<A, E, R> | ((i: I) => Effect.Effect<A, E, R>),
-  map: (self: Effect.Effect<A, E, R>, i: I) => Effect.Effect<A2, E2, R2>
-) => Effect.isEffect(handler) ? map(handler, undefined as any) : (i: I) => map(handler(i), i)
-
 // TODO: optimize - work from encoded shape directly
 const projectHandler = (
-  handler: Effect.Effect<any, any, any> | ((i: any) => Effect.Effect<any, any, any>),
+  handler: (i: any) => Effect.Effect<any, any, any>,
   successSchema: S.Top,
   projectionSchema: S.Top
 ) => {
   const encode = S.encodeEffect(successSchema)
   const decode = S.decodeEffectConcurrently(projectionSchema)
-  return mapHandler(handler, (self) =>
-    self.pipe(
-      Effect.flatMap(encode),
-      Effect.flatMap(decode)
-    ))
+  return (i: any) => handler(i).pipe(Effect.flatMap(encode), Effect.flatMap(decode))
 }
 
 const projectionSchemaHash = (schema: S.Top) => String(Hash.hash(schema.ast))
@@ -46,53 +37,41 @@ export interface CommandRequestExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
    * The Request function will be taken as the first member of the Command, the Command required input will be the Request input.
    * see Command.wrap for details */
-  wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderWrap<RT, Id, I18nKey, State, I, A, E, R>
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
    * see Command.fn for details */
-  fn: Commander.CommanderFn<RT, Id, Id, undefined>
+  fn: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderFn<RT, Id, I18nKey, State>
 }
 
 /** my other doc */
-export interface RequestExtWithInput<
+export interface RequestExt<
   RT,
   Id extends string,
   I,
   A,
   E,
   R
-> extends Commander.CommandContextLocal<Id, Id>, CommandRequestExtensions<RT, Id, I, A, E, R> {
-  /**
-   * Send the request to the endpoint and return the raw Effect response.
-   * This does not perform query cache invalidation.
-   */
-  request: (i: I) => Effect.Effect<A, E, R>
-}
-
-export interface RequestExt<
-  RT,
-  Id extends string,
-  A,
-  E,
-  R
 > extends
   Commander.CommandContextLocal<Id, Id>,
-  Commander.CommanderWrap<RT, Id, Id, undefined, void, A, E, R>,
-  CommandRequestExtensions<RT, Id, void, A, E, R>
+  Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>,
+  CommandRequestExtensions<RT, Id, I, A, E, R>
 {
   /**
    * Send the request to the endpoint and return the raw Effect response.
    * This does not perform query cache invalidation.
    */
-  request: Effect.Effect<A, E, R>
+  request: (i: I) => Effect.Effect<A, E, R>
 }
 
 export type CommandRequestWithExtensions<RT, Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id>
-  ? RequestExtWithInput<RT, Id, I, A, E, R>
-  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, A, E, R>
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer Id> ? RequestExt<RT, Id, I, A, E, R>
   : never
 
-export interface QueryExtensionsWithInput<I, A, E, R> {
+export interface QueryExtensions<I, A, E, R> {
   /**
    * Send the request to the endpoint and return the raw Effect response.
    * This does not set up query state tracking.
@@ -100,50 +79,53 @@ export interface QueryExtensionsWithInput<I, A, E, R> {
   request: (i: I) => Effect.Effect<A, E, R>
 }
 
-export interface QueryExtensions<A, E, R> {
-  /**
-   * Send the request to the endpoint and return the raw Effect response.
-   * This does not set up query state tracking.
-   */
-  request: Effect.Effect<A, E, R>
-}
-
 export type QueryRequestWithExtensions<Req> = Req extends
-  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id>
-  ? QueryExtensionsWithInput<I, A, E, R>
-  : Req extends RequestHandler<infer A, infer E, infer R, infer _Request, infer _Id> ? QueryExtensions<A, E, R>
+  RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer _Request, infer _Id> ? QueryExtensions<I, A, E, R>
   : never
 
 type QueryHandler<Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
   ? Request["type"] extends "query" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
-  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-    ? Request["type"] extends "query" ? RequestHandler<A, E, R, Request, Id> : never
   : never
 
 type CommandHandler<Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
   ? Request["type"] extends "command" ? RequestHandlerWithInput<I, A, E, R, Request, Id> : never
-  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-    ? Request["type"] extends "command" ? RequestHandler<A, E, R, Request, Id> : never
   : never
 
 type StreamHandler<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
   ? Request["type"] extends "stream" ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final> : never
-  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer Final>
-    ? Request["type"] extends "stream" ? RequestStreamHandler<A, E, R, Request, Id, Final> : never
   : never
 
 export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
    * see Command.wrap for details */
-  wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderWrap<RT, Id, I18nKey, State, I, A, E, R>
+  /** Defines a Command based on this call, taking the `id` of the mutation as the `id` of the Command.
+   * see Command.fn for details */
+  fn: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderFn<RT, Id, I18nKey, State>
 }
 
-/** my other doc */
-export interface MutationExtWithInput<
+/**
+ * Send the request to the endpoint and return the raw Effect response.
+ * Also invalidates query caches using the request namespace by default.
+ * Namespace invalidation targets parent namespace keys
+ * (for example `$project/$configuration.get` invalidates `$project`).
+ * Override invalidation in client options via `queryInvalidation`.
+ *
+ * Pass `options` to attach a `select` Effect that runs after the mutation
+ * succeeds (its output is returned to the caller) and/or override the default
+ * `queryInvalidation`.
+ *
+ * When `I = void` the input argument may be omitted.
+ */
+export interface MutationExt<
   RT,
   Id extends string,
   I,
@@ -152,17 +134,6 @@ export interface MutationExtWithInput<
   R,
   EA = unknown
 > extends MutationExtensions<RT, Id, I, A, E, R> {
-  /**
-   * Send the request to the endpoint and return the raw Effect response.
-   * Also invalidates query caches using the request namespace by default.
-   * Namespace invalidation targets parent namespace keys
-   * (for example `$project/$configuration.get` invalidates `$project`).
-   * Override invalidation in client options via `queryInvalidation`.
-   *
-   * Pass `options` to attach a `select` Effect that runs after the mutation
-   * succeeds (its output is returned to the caller) and/or override the default
-   * `queryInvalidation`.
-   */
   <B = A, E2 = never, R2 = never>(
     input: I,
     options?: MutationOptionsBase<A, B, E2, R2>
@@ -170,7 +141,7 @@ export interface MutationExtWithInput<
 
   project: <ProjSchema extends S.Top>(
     schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
-  ) => MutationExtWithInput<
+  ) => MutationExt<
     RT,
     Id,
     I,
@@ -181,50 +152,9 @@ export interface MutationExtWithInput<
   >
 }
 
-/**
- * Send the request to the endpoint and return the raw Effect response.
- * Also invalidates query caches using the request namespace by default.
- * Namespace invalidation targets parent namespace keys
- * (for example `$project/$configuration.get` invalidates `$project`).
- * Override invalidation in client options via `queryInvalidation`.
- */
-export interface MutationExt<
-  RT,
-  Id extends string,
-  A,
-  E,
-  R,
-  EA = unknown
-> extends MutationExtensions<RT, Id, void, A, E, R> {
-  /**
-   * Send the request to the endpoint and return the raw Effect response.
-   * Also invalidates query caches using the request namespace by default.
-   *
-   * Pass `options` to attach a `select` Effect that runs after the mutation
-   * succeeds (its output is returned to the caller) and/or override the default
-   * `queryInvalidation`.
-   */
-  <B = A, E2 = never, R2 = never>(
-    options?: MutationOptionsBase<A, B, E2, R2>
-  ): Effect.Effect<B, E | E2, R | R2>
-
-  project: <ProjSchema extends S.Top>(
-    schema: EA extends ProjSchema["Encoded"] ? ProjSchema : never
-  ) => MutationExt<
-    RT,
-    Id,
-    S.Schema.Type<ProjSchema>,
-    E | S.SchemaError,
-    R | S.Codec.DecodingServices<ProjSchema>,
-    S.Codec.Encoded<ProjSchema>
-  >
-}
-
 export type MutationWithExtensions<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? MutationExtWithInput<RT, Id, I, A, E, R, S.Codec.Encoded<Request["success"]>>
-  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-    ? MutationExt<RT, Id, A, E, R, S.Codec.Encoded<Request["success"]>>
+  ? MutationExt<RT, Id, I, A, E, R, S.Codec.Encoded<Request["success"]>>
   : never
 
 /**
@@ -233,8 +163,6 @@ export type MutationWithExtensions<RT, Req> = Req extends
 export type StreamFnStreamExtension<RT, Req> = Req extends
   RequestStreamHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
   ? Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
-  : Req extends RequestStreamHandler<infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
-    ? Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
   : never
 
 /**
@@ -246,14 +174,10 @@ export type StreamMutation2WithExtensions<RT, Req> = Req extends
     & ((input: I) => Stream.Stream<A, E, R>)
     & {
       readonly id: Id
-      readonly wrap: Commander.StreamerWrap<RT, Id, Id, undefined, I, A, E, R>
+      readonly wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+        options?: Commander.FnOptions<Id, I18nKey, State>
+      ) => Commander.StreamerWrap<RT, Id, I18nKey, State, I, A, E, R>
     }
-  : Req extends RequestStreamHandler<infer A, infer E, infer R, infer _Request, infer Id, infer _Final> ?
-      & Stream.Stream<A, E, R>
-      & {
-        readonly id: Id
-        readonly wrap: Commander.StreamerWrap<RT, Id, Id, undefined, void, A, E, R>
-      }
   : never
 
 // we don't really care about the RT, as we are in charge of ensuring runtime safety anyway
@@ -288,28 +212,14 @@ export type QueryProjection<RT, HandlerReq> = HandlerReq extends
       >
     }
   : {}
-  : HandlerReq extends RequestHandler<infer _A, infer E, infer R, infer Request, infer Id>
-    ? Request["type"] extends "query" ? {
-        project: <ProjSchema extends S.Top>(
-          schema: S.Codec.Encoded<Request["success"]> extends ProjSchema["Encoded"] ? ProjSchema : never
-        ) => ProjectResult<
-          RT,
-          void,
-          S.Schema.Type<ProjSchema>,
-          E | S.SchemaError,
-          R | S.Codec.DecodingServices<ProjSchema>,
-          Request,
-          Id
-        >
-      }
-    : {}
   : {}
 
-export interface QueriesWithInput<Request extends Req, Id extends string, I, A, E> {
+export interface QueryResultExtensions<Request extends Req, Id extends string, I, A, E> {
   /**
    * Read helper for query requests.
    * Runs as a tracked Vue Query and returns reactive state.
    * Queries read state and should not be used to mutate it.
+   * When `I = void` the input argument may be omitted.
    */
   query: ReturnType<typeof useQuery_<I, E, A, Request, Id>>
   // TODO or suspense as Option?
@@ -319,20 +229,6 @@ export interface QueriesWithInput<Request extends Req, Id extends string, I, A, 
    */
   suspense: ReturnType<typeof useSuspenseQuery_<I, E, A, Request, Id>>
 }
-export interface QueriesWithoutInput<Request extends Req, Id extends string, A, E> {
-  /**
-   * Read helper for query requests.
-   * Runs as a tracked Vue Query and returns reactive state.
-   * Queries read state and should not be used to mutate it.
-   */
-  query: ReturnType<typeof useQuery_<E, A, Request, Id>>
-  // TODO or suspense as Option?
-  /**
-   * Like `.query`, but returns a Promise for setup-time awaiting.
-   * Use this when integrating with Vue Suspense / error boundaries.
-   */
-  suspense: ReturnType<typeof useSuspenseQuery_<E, A, Request, Id>>
-}
 
 export type MissingDependencies<RT, R> = {
   message: "Dependencies required that are not provided by the runtime"
@@ -341,52 +237,33 @@ export type MissingDependencies<RT, R> = {
 
 export type Queries<RT, Req> = Req extends
   RequestHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id>
-  ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueriesWithInput<Request, Id, I, A, E>
-    : {
-      query: MissingDependencies<RT, R> & {}
-      suspense: MissingDependencies<RT, R> & {}
-    }
+  ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueryResultExtensions<Request, Id, I, A, E>
+    : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
   : never
-  : Req extends RequestHandler<infer A, infer E, infer R, infer Request, infer Id>
-    ? Request["type"] extends "query" ? Exclude<R, RT> extends never ? QueriesWithoutInput<Request, Id, A, E>
-      : { query: MissingDependencies<RT, R> & {}; suspense: MissingDependencies<RT, R> & {} }
-    : never
   : never
 
-export interface StreamQueriesWithInput<Request extends Req, Id extends string, I, A, E> {
+export interface StreamQueryExtensions<Request extends Req, Id extends string, I, A, E> {
   /**
    * Stream helper for stream requests.
    * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
    * Data is an array of all chunks received so far.
+   * When `I = void` the input argument may be omitted.
    */
   streamQuery: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
-}
-export interface StreamQueriesWithoutInput<Request extends Req, Id extends string, A, E> {
-  /**
-   * Stream helper for stream requests.
-   * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
-   * Data is an array of all chunks received so far.
-   */
-  streamQuery: ReturnType<typeof useStreamQuery_<E, A, Request, Id>>
 }
 
 export type StreamQueries<RT, HandlerReq> = HandlerReq extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer _Final>
-  ? Exclude<R, RT> extends never ? StreamQueriesWithInput<Request, Id, I, A, E>
+  ? Exclude<R, RT> extends never ? StreamQueryExtensions<Request, Id, I, A, E>
   : { streamQuery: MissingDependencies<RT, R> & {} }
-  : HandlerReq extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer _Final>
-    ? Exclude<R, RT> extends never ? StreamQueriesWithoutInput<Request, Id, A, E>
-    : { streamQuery: MissingDependencies<RT, R> & {} }
   : never
 
 const _useMutation = makeMutation()
 
-const wrapWithSpan = (self: { id: string; handler: any }, mut: any) => {
+const wrapWithSpan = (self: { id: string }, mut: any) => {
   const span = (eff: Effect.Effect<any, any, any>) =>
     Effect.withSpan(`mutation ${self.id}`, {}, { captureStackTrace: false })(eff)
-  return Effect.isEffect(self.handler)
-    ? (options?: MutationOptionsBase) => span(mut(options))
-    : (input: any, options?: MutationOptionsBase) => span(mut(input, options))
+  return (input: any, options?: MutationOptionsBase) => span(mut(input, options))
 }
 
 /**
@@ -402,7 +279,7 @@ export const useMutation: typeof _useMutation = (<
   Request extends Req,
   Name extends string
 >(
-  self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
+  self: RequestHandlerWithInput<I, A, E, R, Request, Name>
 ) =>
   Object.assign(
     wrapWithSpan(self, _useMutation(self as any)),
@@ -424,7 +301,7 @@ export const useMutationInt = (): typeof _useMutation => {
     Request extends Req,
     Name extends string
   >(
-    self: RequestHandlerWithInput<I, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
+    self: RequestHandlerWithInput<I, A, E, R, Request, Name>
   ) =>
     Object.assign(
       wrapWithSpan(self, _useMutation(self as any)),
@@ -462,22 +339,18 @@ export class QueryImpl<R> {
      * The difference with useQuery is that this function will return a Promise you can await in the Setup,
      * which ensures that either there always is a latest value, or an error occurs on load.
      * So that Suspense and error boundaries can be used.
-     * @deprecated use client helpers instead (.suspense())
+     * When `I = void` the input argument may be omitted.
      */
     <
+      I,
       E,
       A,
       Request extends Req,
       Name extends string
     >(
-      self: RequestHandler<A, E, R, Request, Name>
+      self: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
-      /**
-       * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-       * which ensures that either there always is a latest value, or an error occurs on load.
-       * So that Suspense and error boundaries can be used.
-       */
-      <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
+      <TData = A>(arg: I | WatchSource<I>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
         readonly [
           ComputedRef<AsyncResult.AsyncResult<TData, E>>,
           ComputedRef<TData>,
@@ -488,38 +361,8 @@ export class QueryImpl<R> {
         ]
       >
     }
-    /**
-     * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-     * which ensures that either there always is a latest value, or an error occurs on load.
-     * So that Suspense and error boundaries can be used.
-     */
-    <
-      Arg,
-      E,
-      A,
-      Request extends Req,
-      Name extends string
-    >(
-      self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
-    ): {
-      /**
-       * The difference with useQuery is that this function will return a Promise you can await in the Setup,
-       * which ensures that either there always is a latest value, or an error occurs on load.
-       * So that Suspense and error boundaries can be used.
-       */
-      <TData = A>(arg: Arg | WatchSource<Arg>, options?: CustomUndefinedInitialQueryOptions<A, E, TData>): Promise<
-        readonly [
-          ComputedRef<AsyncResult.AsyncResult<TData, E>>,
-          ComputedRef<TData>,
-          (
-            options?: RefetchOptions
-          ) => Effect.Effect<QueryObserverResult<TData, E>>,
-          UseQueryReturnType<any, any>
-        ]
-      >
-    }
-  } = <Arg, E, A, Request extends Req, Name extends string>(
-    self: RequestHandlerWithInput<Arg, A, E, R, Request, Name> | RequestHandler<A, E, R, Request, Name>
+  } = <I, E, A, Request extends Req, Name extends string>(
+    self: RequestHandlerWithInput<I, A, E, R, Request, Name>
   ) => {
     const runPromise = makeRunPromise(this.getRuntime())
     const q = this.useQuery(self as any) as any
@@ -668,7 +511,6 @@ export const makeClient = <RT_, RTHooks>(
 
   const withDefaultInvalidation = (
     mut: any,
-    isWithInput: boolean,
     defaultInvalidation?: MutationOptionsBase["queryInvalidation"]
   ) => {
     if (!defaultInvalidation) return mut
@@ -678,9 +520,7 @@ export const makeClient = <RT_, RTHooks>(
         ? mergeInvalidation(defaultInvalidation, callerOpts.queryInvalidation)
         : defaultInvalidation
     })
-    return isWithInput
-      ? (input: any, callerOpts?: MutationOptionsBase) => mut(input, apply(callerOpts))
-      : (callerOpts?: MutationOptionsBase) => mut(apply(callerOpts))
+    return (input: any, callerOpts?: MutationOptionsBase) => mut(input, apply(callerOpts))
   }
 
   const makeQueryResources = <Resources extends InvalidationResources>(resources: Resources | undefined) => {
@@ -749,12 +589,13 @@ export const makeClient = <RT_, RTHooks>(
           return acc
         }
         const mut = client[key].handler
-        const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap({ mutate: Effect.isEffect(mut) ? () => mut : mut, id: client[key].id })
+        const request = mut
+        const fn = (options?: any) => Command.fn(client[key].id, options)
+        const wrap = (options?: any) => Command.wrap({ mutate: request, id: client[key].id }, options)
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
           mut,
-          fn, // to get the i18n key etc.
-          { wrap, fn }
+          Command.fn(client[key].id), // to get the i18n key etc.
+          { wrap, fn, request }
         )
         return acc
       },
@@ -797,11 +638,10 @@ export const makeClient = <RT_, RTHooks>(
           : undefined
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
-          const isWithInput = !Effect.isEffect(handler.handler)
-          const mut: any = withDefaultInvalidation(mutation(handler), isWithInput, mergedInvalidation)
-          const wrap = Command.wrap({ mutate: mut, id: client[key].id })
+          const mut: any = withDefaultInvalidation(mutation(handler), mergedInvalidation)
           return Object.assign(mut, {
-            wrap,
+            wrap: (options?: any) => Command.wrap({ mutate: mut, id: client[key].id }, options),
+            fn: (options?: any) => Command.fn(client[key].id, options),
             project: (projectionSchema: any) => {
               const projected = {
                 ...handler,
@@ -845,10 +685,7 @@ export const makeClient = <RT_, RTHooks>(
         const requestType = client[key].Request.type
         const fn = Command.fn(client[key].id)
         const h_ = client[key].handler
-        const wrapInput = Effect.isEffect(h_)
-          ? () => h_
-          : (...args: [any]) => h_(...args)
-        const request = Effect.isEffect(h_) ? h_ : wrapInput
+        const request = h_
         ;(acc as any)[key] = Object.assign(
           requestType === "query"
             ? {
@@ -889,20 +726,18 @@ export const makeClient = <RT_, RTHooks>(
                   })))
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+              const streamCmd = useCommand()
               return {
                 ...client[key],
-                request: h_,
+                request,
                 streamQuery: useStreamQuery(client[key] as any),
-                streamFn: useCommand().streamFn(client[key].id as any) as any,
+                streamFn: streamCmd.streamFn(client[key].id as any) as any,
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
-                  const originalHandler = (client[key] as any).handler
-                  const sm2Handler = Stream.isStream(originalHandler)
-                    ? (_input: any, _ctx: any) => sm2Act
-                    : (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
+                  const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
                     id: client[key].id,
-                    wrap: useCommand().streamWrap(sm2Handler, client[key].id as any)
+                    wrap: (options?: any) => streamCmd.streamWrap(sm2Handler, client[key].id as any, options)
                   })
                 })()
               }
@@ -923,15 +758,16 @@ export const makeClient = <RT_, RTHooks>(
                   : undefined
                 const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
                 const makeProjectedMutation = (h: any): any => {
-                  const isWithInput = !Effect.isEffect(h.handler)
-                  const mutate = withDefaultInvalidation(mutation(h), isWithInput, mergedInvalidation)
+                  const mutate = withDefaultInvalidation(mutation(h), mergedInvalidation)
                   return Object.assign(
                     mutate,
                     {
-                      wrap: Command.wrap({
-                        mutate,
-                        id: client[key].id
-                      }),
+                      wrap: (options?: any) =>
+                        Command.wrap({
+                          mutate,
+                          id: client[key].id
+                        }, options),
+                      fn: (options?: any) => Command.fn(client[key].id, options),
                       project: (projectionSchema: any) => {
                         const projected = {
                           ...h,
@@ -947,8 +783,8 @@ export const makeClient = <RT_, RTHooks>(
               ...client[key],
               ...fn, // to get the i18n key etc.
               request,
-              fn,
-              wrap: Command.wrap({ mutate: wrapInput, id: client[key].id })
+              fn: (options?: any) => Command.fn(client[key].id, options),
+              wrap: (options?: any) => Command.wrap({ mutate: h_, id: client[key].id }, options)
             }
         )
         return acc

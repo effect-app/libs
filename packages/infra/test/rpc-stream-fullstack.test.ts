@@ -96,7 +96,7 @@ const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffec
 const router = Router(StreamyRsc)({
   *effect(match) {
     return match({
-      StreamTicks: Stream.fromIterable([10, 20, 30]),
+      StreamTicks: () => Stream.fromIterable([10, 20, 30]),
       StreamCountTo: ({ to }: { readonly to: number }) =>
         Effect
           .gen(function*() {
@@ -105,13 +105,14 @@ const router = Router(StreamyRsc)({
           .pipe(Stream.unwrap),
       // emits 3 values 100ms apart so the test can prove element-by-element
       // delivery rather than a single batched response
-      StreamRealtime: Stream.fromIterable([1, 2, 3]).pipe(
-        Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
-      ),
+      StreamRealtime: () =>
+        Stream.fromIterable([1, 2, 3]).pipe(
+          Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
+        ),
       // returning Effect.fail from a stream handler should surface as a failing
       // stream on the client (not a protocol error)
-      StreamFailEffect: Effect.fail(new StreamBoom({ reason: "from-effect" })),
-      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" }))
+      StreamFailEffect: () => Effect.fail(new StreamBoom({ reason: "from-effect" })),
+      StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" }))
     })
   }
 })
@@ -159,7 +160,7 @@ it.live(
   "stream resource without input: ApiClientFactory client emits all values",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const values = yield* Stream.runCollect(client.StreamTicks.handler)
+    const values = yield* Stream.runCollect(client.StreamTicks.handler())
     expect(values).toStrictEqual([10, 20, 30])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
@@ -181,7 +182,7 @@ it.live(
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
     const start = Date.now()
     const arrivals = yield* Stream.runCollect(
-      client.StreamRealtime.handler.pipe(
+      client.StreamRealtime.handler().pipe(
         Stream.map((n) => ({ n, at: Date.now() - start }))
       )
     )
@@ -203,7 +204,7 @@ it.live(
   "stream handler returning Effect.fail surfaces as failing stream on client",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const exit = yield* Stream.runCollect(client.StreamFailEffect.handler).pipe(Effect.exit)
+    const exit = yield* Stream.runCollect(client.StreamFailEffect.handler()).pipe(Effect.exit)
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>
@@ -219,7 +220,7 @@ it.live(
   "stream handler returning Stream.fail surfaces as failing stream on client",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const exit = yield* Stream.runCollect(client.StreamFailStream.handler).pipe(Effect.exit)
+    const exit = yield* Stream.runCollect(client.StreamFailStream.handler()).pipe(Effect.exit)
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>

@@ -362,28 +362,28 @@ export type Queries<RT, Req> = Req extends
 
 export interface StreamQueriesWithInput<Request extends Req, Id extends string, I, A, E> {
   /**
-   * Stream helper for stream requests.
+   * Stream helper for query-stream requests.
    * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
    * Data is an array of all chunks received so far.
    */
-  streamQuery: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
+  query: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
 }
 export interface StreamQueriesWithoutInput<Request extends Req, Id extends string, A, E> {
   /**
-   * Stream helper for stream requests.
+   * Stream helper for query-stream requests.
    * Runs as a tracked Vue Query and returns reactive state with accumulated chunks.
    * Data is an array of all chunks received so far.
    */
-  streamQuery: ReturnType<typeof useStreamQuery_<E, A, Request, Id>>
+  query: ReturnType<typeof useStreamQuery_<E, A, Request, Id>>
 }
 
 export type StreamQueries<RT, HandlerReq> = HandlerReq extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer _Final>
   ? Exclude<R, RT> extends never ? StreamQueriesWithInput<Request, Id, I, A, E>
-  : { streamQuery: MissingDependencies<RT, R> & {} }
+  : { query: MissingDependencies<RT, R> & {} }
   : HandlerReq extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer _Final>
     ? Exclude<R, RT> extends never ? StreamQueriesWithoutInput<Request, Id, A, E>
-    : { streamQuery: MissingDependencies<RT, R> & {} }
+    : { query: MissingDependencies<RT, R> & {} }
   : never
 
 const _useMutation = makeMutation()
@@ -711,7 +711,7 @@ export const makeClient = <RT_, RTHooks>(
             id: client[key].id
           })
         } else if (requestType === "queryStream") {
-          ;(acc as any)[camelCase(key) + "StreamQuery"] = Object.assign(useStreamQuery(client[key] as any), {
+          ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useStreamQuery(client[key] as any), {
             id: client[key].id
           })
         }
@@ -739,8 +739,8 @@ export const makeClient = <RT_, RTHooks>(
         & {
           [
             Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}StreamQuery`
-          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["streamQuery"]
+              : `${ToCamel<string & Key>}Query`
+          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["query"]
         }
     )
     return queries
@@ -885,7 +885,7 @@ export const makeClient = <RT_, RTHooks>(
             ? {
               ...client[key],
               request: h_,
-              streamQuery: useStreamQuery(client[key] as any)
+              query: useStreamQuery(client[key] as any)
             }
             : requestType === "commandStream"
             ? (() => {

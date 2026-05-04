@@ -378,14 +378,14 @@ export const makeRpcClient = <
       /**
        * Create query-stream request classes for this module.
        * QueryStreams produce a Stream of `success` values for read-only purposes.
-       * Exposes `.streamQuery` on the client (no `.mutate`).
+       * Exposes `.query` on the client (no `.mutate`).
        * Handlers must return a Stream rather than an Effect.
        */
       QueryStream,
       /**
        * Create command-stream request classes for this module.
        * CommandStreams produce a Stream of `success` values and can mutate server state.
-       * Exposes `.mutate` and `.streamFn` on the client (no `.streamQuery`).
+       * Exposes `.mutate` and `.streamFn` on the client (no `.query`).
        * Handlers must return a Stream rather than an Effect.
        */
       CommandStream

@@ -138,9 +138,13 @@ it("clientFor handler shape — props variants", () => {
   )
   expect(client).toBeDefined()
 
-  // no-props (no fields): handler is the Effect itself (RequestHandler), not a function
-  expectTypeOf(client.DoNoProps.handler).not.toBeFunction()
+  // no-props (no fields): handler is (i: void) => Effect — callable without arg
+  expectTypeOf(client.DoNoProps.handler).toBeFunction()
+  client.DoNoProps.handler()
 
+  // no-props: request mirrors handler — (i: void) => Effect, callable without arg
+  expectTypeOf(client.DoNoProps.request).toBeFunction()
+  client.DoNoProps.request()
   // optional-only: any fields → function handler. Input matches `make`, which for
   // fully-optional payload is omittable.
   expectTypeOf(client.DoOptionalOnly.handler).toBeFunction()
@@ -169,14 +173,18 @@ it("clientFor handler shape — props variants", () => {
 it("CommandFromRequest input shape — props variants", () => {
   type NoPropsArg = Parameters<CommandFromRequest<typeof Something.DoNoProps>["handle"]>[0]
 
-  // no-props (no fields) → void input
+  // no-props (no fields) → void input; void parameter is implicitly optional, so handle() works
   expectTypeOf<NoPropsArg>().toBeVoid()
 
   // type-only assignability checks for the remaining variants
   if (false as boolean) {
+    const noProps = null as unknown as CommandFromRequest<typeof Something.DoNoProps>
     const optOnly = null as unknown as CommandFromRequest<typeof Something.DoOptionalOnly>
     const reqOnly = null as unknown as CommandFromRequest<typeof Something.DoRequiredOnly>
     const mixed = null as unknown as CommandFromRequest<typeof Something.DoMixed>
+
+    // no-props → void param, calling without args is fine
+    noProps.handle()
 
     // optional-only → matches `make` (fully optional, arg omittable)
     optOnly.handle()
@@ -257,8 +265,7 @@ it.skip("works", () => {
   const de = client.GetSomething3.handler(null as any)
   const de2 = client.GetSomething3.handler({ id: null })
 
-  // @ts-expect-error not callable as it requires no input
-  const de3 = client.GetSomething4.handler(null as any)
+  const de3 = client.GetSomething4.handler()
   void client.GetSomething4.handler
 
   // @ts-expect-error query requests no longer expose command helpers
@@ -286,7 +293,6 @@ it.skip("works", () => {
   const g4 = client.helpers.doSomethingMutation.project(S.String)
   const g5 = g4(null as any)
   const g6 = g4.wrap(null as any)
-  // @ts-expect-error mutate no longer exposes fn, use client.DoSomething.fn
   const h = client.DoSomething.mutate.fn(null as any)
 
   // projection

@@ -1,7 +1,7 @@
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
 import { Cause, type Effect } from "effect-app"
 import type { Req } from "effect-app/client"
-import type { RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
+import type { RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
 import { isProxy, isReactive, isRef, type MaybeRefOrGetter, toRaw } from "vue"
 import { reportError } from "./errorReporter.js"
@@ -67,15 +67,9 @@ export const mapHandler: {
     self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
     map: (handler: (i: I) => Effect.Effect<A, E, R>) => (i: I) => Effect.Effect<A2, E2, R2>
   ): RequestHandlerWithInput<I, A2, E2, R2, Request, Name>
-  <E, A, R, E2, A2, R2, Request extends Req, Name extends string>(
-    self: RequestHandler<A, E, R, Request, Name>,
-    map: (handler: Effect.Effect<A, E, R>) => Effect.Effect<A2, E2, R2>
-  ): RequestHandler<A2, E2, R2, Request, Name>
 } = (self: any, map: any): any => ({
   ...self,
-  handler: typeof self.handler === "function"
-    ? (i: any) => map(self.handler as (i: any) => Effect.Effect<any, any, any>)(i)
-    : map(self.handler)
+  handler: (i: any) => map(self.handler as (i: any) => Effect.Effect<any, any, any>)(i)
 })
 
 export function deepToRaw<T>(sourceObj: T): T {

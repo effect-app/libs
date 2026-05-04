@@ -726,17 +726,18 @@ export const makeClient = <RT_, RTHooks>(
                   })))
                 : undefined
               const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
+              const streamCmd = useCommand()
               return {
                 ...client[key],
                 request,
                 streamQuery: useStreamQuery(client[key] as any),
-                streamFn: useCommand().streamFn(client[key].id as any) as any,
+                streamFn: streamCmd.streamFn(client[key].id as any) as any,
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
                   const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
                     id: client[key].id,
-                    wrap: (options?: any) => useCommand().streamWrap(sm2Handler, client[key].id as any, options)
+                    wrap: (options?: any) => streamCmd.streamWrap(sm2Handler, client[key].id as any, options)
                   })
                 })()
               }

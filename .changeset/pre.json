@@ -227,6 +227,7 @@
     "store-effect-cached",
     "store-seed-uninterruptible",
     "stream-callable-progress",
+    "stream-effect-fail",
     "stream-final-default-success",
     "stream-final-type",
     "stream-fn-enhancements",

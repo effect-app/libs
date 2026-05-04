@@ -1,13 +1,14 @@
-import yaml from "js-yaml"
 // @ts-expect-error oxlint@1.61.0 declares CreateRule but does not export it.
 import type { CreateRule } from "oxlint/plugins-dev"
-import { barrel } from "../../presets/barrel.js"
-import { meta as metaPreset } from "../../presets/meta.js"
-import { model } from "../../presets/model.js"
-
-type BlockOptions = Record<string, unknown> & {
-  preset: string
-}
+import {
+  blockRe,
+  indentBlock,
+  normaliseGeneratedContent,
+  parseBlockOptions,
+  renderPreset,
+  trimTrailingNewline,
+  type BlockOptions
+} from "../../shared/codegen-block.js"
 
 type RuleContext = {
   sourceCode: {
@@ -31,73 +32,6 @@ type RuleFixer = {
   replaceTextRange: (range: [number, number], text: string) => { range: [number, number]; text: string }
 }
 
-const blockRe = /^([ \t]*)\/\/ codegen:start[ \t]*(\{.*\})[ \t]*$\n?([\s\S]*?)^([ \t]*)\/\/ codegen:end[ \t]*$/gm
-
-function isRecord(input: unknown): input is Record<string, unknown> {
-  return typeof input === "object" && input !== null && !Array.isArray(input)
-}
-
-function isBlockOptions(input: unknown): input is BlockOptions {
-  return isRecord(input) && typeof input["preset"] === "string"
-}
-
-function parseBlockOptions(input: string): BlockOptions {
-  const parsed = yaml.load(input)
-  if (!isBlockOptions(parsed)) {
-    throw new Error(`Invalid codegen options: ${input}`)
-  }
-  return parsed
-}
-
-function trimTrailingNewline(input: string): string {
-  return input.endsWith("\n") ? input.slice(0, -1) : input
-}
-
-function isTypeScriptSource(filePath: string): boolean {
-  return /\.[cm]?tsx?$/.test(filePath)
-}
-
-function shouldStripJsExtensions(options: BlockOptions, filePath: string): boolean {
-  return options.preset === "barrel"
-    && options["jsExtensions"] === false
-    && isTypeScriptSource(filePath)
-}
-
-function normaliseGeneratedContent(
-  options: BlockOptions,
-  filePath: string,
-  content: string
-): string {
-  if (!shouldStripJsExtensions(options, filePath)) {
-    return content
-  }
-  return content.replace(/(["'])(\.{1,2}\/[^"']+)\.js\1/g, "$1$2$1")
-}
-
-function indentBlock(content: string, indent: string): string {
-  if (indent.length === 0) {
-    return content
-  }
-  return content
-    .split("\n")
-    .map((line) => line.length === 0 ? line : `${indent}${line}`)
-    .join("\n")
-}
-
-function renderPreset(options: BlockOptions, meta: { filename: string; existingContent: string }): string {
-  const { preset, ...rest } = options
-  switch (preset) {
-    case "barrel":
-      return barrel({ meta, options: rest as Parameters<typeof barrel>[0]["options"] }, undefined)
-    case "meta":
-      return metaPreset({ meta, options: rest as Parameters<typeof metaPreset>[0]["options"] }, undefined)
-    case "model":
-      return model({ meta, options: rest as Parameters<typeof model>[0]["options"] }, undefined)
-    default:
-      throw new Error(`Unknown codegen preset: ${preset}`)
-  }
-}
-
 const codegenRule: CreateRule = {
   meta: {
     type: "suggestion",
@@ -112,10 +46,11 @@ const codegenRule: CreateRule = {
         const source = context.sourceCode.getText()
         const filename = context.physicalFilename
 
+        // Create a fresh regex instance per Program visit to avoid shared lastIndex state
+        const re = new RegExp(blockRe.source, blockRe.flags)
         let match: RegExpExecArray | null
-        blockRe.lastIndex = 0
 
-        while ((match = blockRe.exec(source)) !== null) {
+        while ((match = re.exec(source)) !== null) {
           const [fullMatch, indent = "", rawOptions = "", body = "", endIndent = ""] = match
           const matchStart = match.index
           const matchEnd = match.index + fullMatch.length
@@ -134,7 +69,7 @@ const codegenRule: CreateRule = {
               normaliseGeneratedContent(
                 options,
                 filename,
-                renderPreset(options, { filename, existingContent })
+                renderPreset(options, { filename, existingContent }, source)
               )
             )
           } catch {

@@ -1,11 +1,14 @@
-import type { Preset } from "eslint-plugin-codegen"
+type PresetFn<T = Record<string, unknown>> = (args: {
+  meta: { filename: string; existingContent: string }
+  options: T
+}, context?: unknown) => string
 
 const filterAdjacent = (input: string[]) => input.filter((i, idx) => input[idx - 1] !== i)
 
 /**
  * Adds file meta
  */
-export const meta: Preset<{ sourcePrefix?: string }> = ({ meta, options }) => {
+export const meta: PresetFn<{ sourcePrefix?: string }> = ({ meta, options }) => {
   const sourcePrefix = options.sourcePrefix || "src/"
   const moduleName = filterAdjacent(
     meta

@@ -53,11 +53,9 @@ export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace">
 
 // codegen:start {preset: model}
 //
-/* eslint-disable */
 export namespace RequestContext {
   export interface Encoded extends S.StructNestedEncoded<typeof RequestContext> {}
 }
-/* eslint-enable */
 //
 // codegen:end
 //

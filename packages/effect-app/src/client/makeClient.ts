@@ -346,7 +346,7 @@ export const makeRpcClient = <
         tag: Tag,
         fields: Fields,
         config?: C,
-        invalidatesQueries?: InvalidationCallback<Resources, unknown, unknown, unknown>
+        invalidatesQueries?: InvalidationCallback<Resources>
       ) => {
         const requestConfig = invalidatesQueries === undefined ? config : { ...config, invalidatesQueries }
         const cls = makeRequestClass(tag, fields, requestConfig)

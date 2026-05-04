@@ -1,5 +1,12 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.22
+
+### Patch Changes
+
+- b3ea988: update dprint plugins
+  - @effect-app/eslint-codegen-model@2.0.0-beta.13
+
 ## 0.6.0-beta.21
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @effect-app/vue
 
+## 4.0.0-beta.196
+
+### Patch Changes
+
+- c7fbd58: `handle`, `mutate`, and `request` are now always functions, never a raw Effect or Stream. For no-input handlers the first argument is omitted (`handle()`, `request()`, `mutate()`).
+  - effect-app@4.0.0-beta.196
+
+## 4.0.0-beta.195
+
+### Patch Changes
+
+- Updated dependencies [774a9b3]
+  - effect-app@4.0.0-beta.195
+
 ## 4.0.0-beta.194
 
 ### Patch Changes

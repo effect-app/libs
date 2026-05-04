@@ -85,13 +85,6 @@ export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForO
     .join(".")
     .split(".")
 
-export interface RequestHandler<A, E, R, Request extends Req, Id extends string> {
-  handler: Effect.Effect<A, E, R>
-  id: Id
-  options?: ClientForOptions
-  Request: Request
-}
-
 export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
   handler: (i: I) => Effect.Effect<A, E, R>
   id: Id
@@ -99,20 +92,15 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
   Request: Request
 }
 
-export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> {
-  handler: Stream.Stream<A, E, R>
-  id: Id
-  options?: ClientForOptions
-  Request: Request
-  /**
-   * Phantom type property (never set at runtime) that carries the `Final` type to
-   * `StreamMutationWithExtensions`. The tilde prefix follows the Effect convention for
-   * phantom/virtual properties and prevents accidental runtime access.
-   * Stream failures bubble through the execute effect's typed error channel `E`;
-   * the reactive `AsyncResult` ref also mirrors the failure for live progress UI.
-   */
-  readonly "~final"?: Final
-}
+/** Type alias: a no-input handler is simply `RequestHandlerWithInput<void, …>`. */
+export type RequestHandler<A, E, R, Request extends Req, Id extends string> = RequestHandlerWithInput<
+  void,
+  A,
+  E,
+  R,
+  Request,
+  Id
+>
 
 export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, Id extends string, Final = A> {
   handler: (i: I) => Stream.Stream<A, E, R>
@@ -128,6 +116,10 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
    */
   readonly "~final"?: Final
 }
+
+/** Type alias: a no-input stream handler is simply `RequestStreamHandlerWithInput<void, …>`. */
+export type RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> =
+  RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
 type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
@@ -155,16 +147,8 @@ type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.
   : S.Schema.Type<T["success"]>
 
 type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
-  ? HasNoFields<T> extends true ? RequestStreamHandler<
-      S.Schema.Type<T["success"]>,
-      S.Schema.Type<T["error"]> | E,
-      R | ReqDecodingServices<T>,
-      T,
-      Id,
-      FinalTypeOf<T>
-    >
-  : RequestStreamHandlerWithInput<
-    RequestInput<T>,
+  ? RequestStreamHandlerWithInput<
+    HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
     R | ReqDecodingServices<T>,
@@ -172,15 +156,8 @@ type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] ext
     Id,
     FinalTypeOf<T>
   >
-  : HasNoFields<T> extends true ? RequestHandler<
-      S.Schema.Type<T["success"]>,
-      S.Schema.Type<T["error"]> | E,
-      R | ReqDecodingServices<T>,
-      T,
-      Id
-    >
   : RequestHandlerWithInput<
-    RequestInput<T>,
+    HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
     R | ReqDecodingServices<T>,

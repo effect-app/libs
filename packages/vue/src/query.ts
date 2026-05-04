@@ -6,7 +6,7 @@
 import { type DefaultError, type Enabled, experimental_streamedQuery as streamedQuery, type InitialDataFunction, type NonUndefinedGuard, type PlaceholderDataFunction, type QueryKey, type QueryObserverOptions, type QueryObserverResult, type RefetchOptions, useQuery as useTanstackQuery, useQueryClient, type UseQueryDefinedReturnType, type UseQueryReturnType } from "@tanstack/vue-query"
 import { Array, Cause, type Context, Effect, Exit, Option, S } from "effect-app"
 import { makeQueryKey, type Req } from "effect-app/client"
-import type { RequestHandler, RequestHandlerWithInput, RequestStreamHandler, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
+import type { RequestHandlerWithInput, RequestStreamHandlerWithInput } from "effect-app/client/clientFor"
 import { CauseException, ServiceUnavailableError } from "effect-app/client/errors"
 import * as Channel from "effect/Channel"
 import * as Pull from "effect/Pull"
@@ -141,9 +141,7 @@ function streamToAsyncIterableWithCauseException<A, E, R>(
 export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
   const useQuery_: {
     <I, A, E, Request extends Req, Name extends string>(
-      q:
-        | RequestHandlerWithInput<I, A, E, R, Request, Name>
-        | RequestHandler<A, E, R, Request, Name>
+      q: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
       <TData = A>(
         arg: I | WatchSource<I> | undefined,
@@ -176,9 +174,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       ]
     }
   } = <I, A, E, Request extends Req, Name extends string>(
-    q:
-      | RequestHandlerWithInput<I, A, E, R, Request, Name>
-      | RequestHandler<A, E, R, Request, Name>
+    q: RequestHandlerWithInput<I, A, E, R, Request, Name>
   ) =>
   <TData = A>(
     arg: I | WatchSource<I> | undefined,
@@ -189,19 +185,17 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
     // we wrap into CauseException because we want to keep the full cause of the failure.
     const runPromise = makeRunPromise(getRuntime())
     const arr = arg
-    const req: { value: I } = !arg
-      ? undefined as any
+    const req: { value: I } | undefined = !arg
+      ? undefined
       : typeof arr === "function"
       ? ({
         get value() {
           return (arr as any)()
         }
       })
-      : ref(arg)
+      : ref(arg) as any
     const queryKey = makeQueryKey(q)
     const projectionHash = (q as { queryKeyProjectionHash?: string }).queryKeyProjectionHash
-    const baseQueryKey = projectionHash === undefined ? queryKey : [...queryKey, projectionHash]
-    const handler = q.handler
 
     const defaultOptions = {
       // we do not want to throw errors, because we turn the success and error responses into a Result type
@@ -213,57 +207,31 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
       throwOnError: false
     }
 
-    const r = useTanstackQuery<A, CauseException<E>, TData>(
-      Effect.isEffect(handler)
-        ? {
-          ...defaultOptions,
-          ...options,
-          retry: (retryCount, error) => {
-            if (error instanceof CauseException) {
-              if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
-                return false
-              }
-            }
-
-            return retryCount < 5
-          },
-          queryKey: baseQueryKey,
-          queryFn: ({ meta, signal }) =>
-            runPromise(
-              handler
-                .pipe(
-                  Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
-                  Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
-                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
-                ),
-              { signal }
-            )
+    const r = useTanstackQuery<A, CauseException<E>, TData>({
+      ...defaultOptions,
+      ...options,
+      retry: (retryCount, error) => {
+        if (error instanceof CauseException) {
+          if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
+            return false
+          }
         }
-        : {
-          ...defaultOptions,
-          ...options,
-          retry: (retryCount, error) => {
-            if (error instanceof CauseException) {
-              if (!isHttpClientError(error.cause) && !S.is(ServiceUnavailableError)(error.cause)) {
-                return false
-              }
-            }
 
-            return retryCount < 5
-          },
-          queryKey: projectionHash === undefined ? [...queryKey, req] : [...queryKey, req, projectionHash],
-          queryFn: ({ meta, signal }) =>
-            runPromise(
-              handler(req.value)
-                .pipe(
-                  Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
-                  Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
-                  meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
-                ),
-              { signal }
-            )
-        }
-    )
+        return retryCount < 5
+      },
+      queryKey: projectionHash === undefined ? [...queryKey, req] : [...queryKey, req, projectionHash],
+      queryFn: ({ meta, signal }) =>
+        runPromise(
+          q
+            .handler(req?.value as I)
+            .pipe(
+              Effect.tapCauseIf(Cause.hasDies, (cause) => reportRuntimeError(cause)),
+              Effect.withSpan(`query ${q.id}`, {}, { captureStackTrace: false }),
+              meta?.["span"] ? Effect.withParentSpan(meta["span"] as Span) : (_) => _
+            ),
+          { signal }
+        )
+    })
 
     const latestSuccess = shallowRef<TData>()
     const result = computed((): AsyncResult.AsyncResult<TData, E> =>
@@ -294,16 +262,14 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
   const useQuery: {
     /**
      * Effect results are passed to the caller, including errors.
+     * When `I = void` the input argument may be omitted.
      * @deprecated use client helpers instead (.query())
      */
-    <E, A, Request extends Req, Name extends string>(
-      self: RequestHandler<A, E, R, Request, Name>
+    <I, E, A, Request extends Req, Name extends string>(
+      self: RequestHandlerWithInput<I, A, E, R, Request, Name>
     ): {
-      // required options, with initialData
-      /**
-       * Effect results are passed to the caller, including errors.
-       */
       <TData = A>(
+        arg: I | WatchSource<I>,
         options: CustomDefinedInitialQueryOptions<A, CauseException<E>, TData>
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
@@ -312,50 +278,7 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
         UseQueryReturnType<any, any>
       ]
       <TData = A>(
-        options: CustomDefinedPlaceholderQueryOptions<A, E, TData>
-      ): readonly [
-        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
-        ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
-        UseQueryDefinedReturnType<TData, CauseException<E>>
-      ]
-      // optional options, optional A
-      /**
-       * Effect results are passed to the caller, including errors.
-       */
-      <TData = A>(options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>): readonly [
-        ComputedRef<AsyncResult.AsyncResult<A, E>>,
-        ComputedRef<A | undefined>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
-        UseQueryReturnType<any, any>
-      ]
-    }
-    /**
-     * Effect results are passed to the caller, including errors.
-     * @deprecated use client helpers instead (.query())
-     */
-    <Arg, E, A, Request extends Req, Name extends string>(
-      self: RequestHandlerWithInput<Arg, A, E, R, Request, Name>
-    ): {
-      // required options, with initialData
-      /**
-       * Effect results are passed to the caller, including errors.
-       */
-      <TData = A>(
-        arg: Arg | WatchSource<Arg>,
-        options: CustomDefinedInitialQueryOptions<A, CauseException<E>, TData>
-      ): readonly [
-        ComputedRef<AsyncResult.AsyncResult<TData, E>>,
-        ComputedRef<TData>,
-        (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
-        UseQueryReturnType<any, any>
-      ]
-      // required options, with placeholderData
-      /**
-       * Effect results are passed to the caller, including errors.
-       */
-      <TData = A>(
-        arg: Arg | WatchSource<Arg>,
+        arg: I | WatchSource<I>,
         options: CustomDefinedPlaceholderQueryOptions<A, CauseException<E>, TData>
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
@@ -363,12 +286,8 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
         (options?: RefetchOptions) => Effect.Effect<QueryObserverResult<TData, CauseException<E>>>,
         UseQueryReturnType<any, any>
       ]
-      // optional options, optional A
-      /**
-       * Effect results are passed to the caller, including errors.
-       */
       <TData = A>(
-        arg: Arg | WatchSource<Arg>,
+        arg: I | WatchSource<I>,
         options?: CustomUndefinedInitialQueryOptions<A, CauseException<E>, TData>
       ): readonly [
         ComputedRef<AsyncResult.AsyncResult<TData, E>>,
@@ -377,16 +296,12 @@ export const makeQuery = <R>(getRuntime: () => Context.Context<R>) => {
         UseQueryReturnType<any, any>
       ]
     }
-  } = (
+  } = ((
     self: any
   ) => {
     const q = useQuery_(self)
-
-    return (argOrOptions?: any, options?: any) =>
-      Effect.isEffect(self.handler)
-        ? q(undefined, argOrOptions)
-        : q(argOrOptions, options)
-  }
+    return (arg?: any, options?: any) => q(arg, options)
+  }) as any
   return useQuery
 }
 
@@ -402,17 +317,14 @@ type StreamQueryResult<A, E> = readonly [
 
 export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
   const streamQuery_: {
-    <E, A, Request extends Req, Name extends string>(
-      q: RequestStreamHandler<A, E, R, Request, Name>
-    ): () => StreamQueryResult<A, E>
-    <Arg, E, A, Request extends Req, Name extends string>(
-      q: RequestStreamHandlerWithInput<Arg, A, E, R, Request, Name>
-    ): (arg: Arg | WatchSource<Arg>) => StreamQueryResult<A, E>
+    <I, E, A, Request extends Req, Name extends string>(
+      q: RequestStreamHandlerWithInput<I, A, E, R, Request, Name>
+    ): (arg: I | WatchSource<I>) => StreamQueryResult<A, E>
   } = (q: any) => (arg?: any) => {
     const context = getRuntime()
     const arr = arg
-    const req: { value: any } = !arg
-      ? undefined as any
+    const req: { value: any } | undefined = !arg
+      ? undefined
       : typeof arr === "function"
       ? ({
         get value() {
@@ -421,8 +333,6 @@ export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
       })
       : ref(arg)
     const queryKey = makeQueryKey(q)
-    const handler = q.handler
-    const isWithInput = typeof handler === "function"
 
     const r = useTanstackQuery<any[], CauseException<any>, any[]>(
       {
@@ -435,12 +345,10 @@ export const makeStreamQuery = <R>(getRuntime: () => Context.Context<R>) => {
           }
           return retryCount < 5
         },
-        queryKey: isWithInput ? [...queryKey, req] : queryKey,
+        queryKey: [...queryKey, req],
         queryFn: streamedQuery({
           streamFn: () => {
-            const stream = isWithInput
-              ? handler(req.value)
-              : handler
+            const stream = q.handler(req?.value)
             return streamToAsyncIterableWithCauseException(stream, context, q.id)
           }
         })
@@ -525,20 +433,13 @@ export const useUpdateQuery = () => {
   const queryClient = useQueryClient()
 
   const f: {
-    <A>(
-      query: RequestHandler<A, any, any, any, any>,
-      updater: (data: NoInfer<A>) => NoInfer<A>
-    ): void
     <I, A>(
       query: RequestHandlerWithInput<I, A, any, any, any, any>,
       input: I,
       updater: (data: NoInfer<A>) => NoInfer<A>
     ): void
-  } = (query: any, updateOrInput: any, updaterMaybe?: any) => {
-    const updater = updaterMaybe !== undefined ? updaterMaybe : updateOrInput
-    const key = updaterMaybe !== undefined
-      ? [...makeQueryKey(query), updateOrInput]
-      : makeQueryKey(query)
+  } = (query: any, input: any, updater: any) => {
+    const key = [...makeQueryKey(query), input]
     const data = queryClient.getQueryData(key)
     if (data) {
       queryClient.setQueryData(key, updater)

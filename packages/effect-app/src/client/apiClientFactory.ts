@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { flow } from "effect/Function"
+import { constant, flow } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
@@ -315,7 +315,7 @@ const makeApiClientFactory = Effect
             // @ts-expect-error doc
             prev[cur] = Object.keys(fields).length === 0
               ? {
-                handler: isStream ? buildStream({}) : buildEffect({}),
+                handler: isStream ? constant(buildStream({})) : constant(buildEffect({})),
                 ...requestMeta
               }
               : {

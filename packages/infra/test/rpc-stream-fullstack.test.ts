@@ -14,6 +14,7 @@ import { expect, it } from "@effect/vitest"
 import { Effect, Exit, Layer, Option, Stream } from "effect"
 import { S } from "effect-app"
 import { ApiClientFactory, makeRpcClient } from "effect-app/client"
+import { NotLoggedInError } from "effect-app/client"
 import { HttpRouter, HttpServer } from "effect-app/http"
 import { DefaultGenericMiddlewares } from "effect-app/middleware"
 import { MiddlewareMaker } from "effect-app/rpc"
@@ -87,7 +88,19 @@ class StreamFailStream extends Req.Stream<StreamFailStream>()("StreamFailStream"
   error: StreamBoom
 }) {}
 
-const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffect, StreamFailStream }
+/** Stream resource that requires authentication (no allowAnonymous: true). */
+class StreamMiddlewareFail extends Req.Stream<StreamMiddlewareFail>()("StreamMiddlewareFail", {}, {
+  success: S.Number
+}) {}
+
+const StreamyRsc = {
+  StreamTicks,
+  StreamCountTo,
+  StreamRealtime,
+  StreamFailEffect,
+  StreamFailStream,
+  StreamMiddlewareFail
+}
 
 // ---------------------------------------------------------------------------
 // Controllers / router — Stream impls returned from the match callback.
@@ -111,7 +124,8 @@ const router = Router(StreamyRsc)({
       // returning Effect.fail from a stream handler should surface as a failing
       // stream on the client (not a protocol error)
       StreamFailEffect: Effect.fail(new StreamBoom({ reason: "from-effect" })),
-      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" }))
+      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" })),
+      StreamMiddlewareFail: Stream.fromIterable([42])
     })
   }
 })
@@ -226,6 +240,25 @@ it.live(
       expect(failures.length).toBeGreaterThan(0)
       expect(failures[0]!.error._tag).toBe("StreamBoom")
       expect(failures[0]!.error.reason).toBe("from-stream")
+    }
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "stream handler: middleware failure surfaces as a typed error (not a die)",
+  Effect.fnUntraced(function*() {
+    // StreamMiddlewareFail requires auth (no allowAnonymous: true).
+    // Calling it without x-user header should trigger AllowAnonymous middleware
+    // to fail with NotLoggedInError — which should propagate as a typed stream
+    // failure, not an Effect.die / protocol defect.
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamMiddlewareFail.handler).pipe(Effect.exit)
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: unknown }>
+      expect(failures.length).toBeGreaterThan(0)
+      expect((failures[0]!.error as NotLoggedInError)._tag).toBe("NotLoggedInError")
     }
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }

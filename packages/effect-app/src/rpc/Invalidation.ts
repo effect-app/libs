@@ -1,5 +1,5 @@
 import * as Ref from "effect/Ref"
-import { Rpc } from "effect/unstable/rpc"
+import { Rpc, RpcSchema } from "effect/unstable/rpc"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
 import * as S from "../Schema.js"
@@ -200,22 +200,34 @@ export const makeCommandRpc = Rpc.custom<CommandRpc>(({ defect, error, success }
 /**
  * `Rpc.Custom` definition for stream RPCs that wrap the success/error schemas
  * with `StreamResponseChunk` / `StreamFailureChunk`.
+ *
+ * The success schema is wrapped in `RpcSchema.Stream` so the RPC framework
+ * recognises it as a streaming endpoint. The error schema is kept as the raw
+ * user-provided error (not `Schema.Never`) so that outer failures — in
+ * particular middleware failures that happen before the stream starts — can
+ * still be encoded on the server and decoded on the client.  Stream-level
+ * failures are embedded as `StreamFailureChunk` items inside the stream.
  */
 // eslint-disable-next-line import/namespace
 export interface StreamRpc extends Rpc.Custom {
   readonly out: Rpc.Custom.Out<
-    ReturnType<typeof StreamResponseChunk<this["success"] & S.Top>>,
-    ReturnType<typeof StreamFailureChunk<this["error"] & S.Top>>
+    // eslint-disable-next-line import/namespace
+    RpcSchema.Stream<
+      ReturnType<typeof StreamResponseChunk<this["success"] & S.Top>>,
+      ReturnType<typeof StreamFailureChunk<this["error"] & S.Top>>
+    >,
+    this["error"] & S.Top
   >
 }
 
 /**
  * Custom Rpc constructor for stream RPCs.
- * Wraps the success schema with `StreamResponseChunk` and
- * the error schema with `StreamFailureChunk`.
+ * Wraps the success schema in `RpcSchema.Stream(StreamResponseChunk, StreamFailureChunk)`.
+ * Keeps the error schema as the raw user-provided error so middleware failures
+ * (outer Effect failures) are encodeable/decodeable alongside stream failures.
  */
 export const makeStreamRpc = Rpc.custom<StreamRpc>(({ defect, error, success }) => ({
-  success: StreamResponseChunk(success),
-  error: StreamFailureChunk(error),
+  success: RpcSchema.Stream(StreamResponseChunk(success), StreamFailureChunk(error)),
+  error,
   defect
 }))

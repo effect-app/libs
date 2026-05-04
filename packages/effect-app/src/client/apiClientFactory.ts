@@ -134,8 +134,7 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
           ? Invalidation.makeStreamRpc(r._tag, {
             payload: r,
             success: r.success,
-            error: r.error,
-            stream: true as const
+            error: r.error
           })
           : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error })) as any
       })

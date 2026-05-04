@@ -555,8 +555,7 @@ export const makeRouter = <
                   ? Invalidation.makeStreamRpc(resource._tag, {
                     payload: resource,
                     success: resource.success,
-                    error: resource.error,
-                    stream: true as const
+                    error: resource.error
                   })
                   : Rpc.make(resource._tag, {
                     payload: resource,

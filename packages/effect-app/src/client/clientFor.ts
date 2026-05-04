@@ -154,7 +154,7 @@ export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> =
 type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
   : S.Schema.Type<T["success"]>
 
-type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] extends "queryStream" | "commandStream"
+type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
   ? HasNoFields<T> extends true ? RequestStreamHandler<
       S.Schema.Type<T["success"]>,
       S.Schema.Type<T["error"]> | E,

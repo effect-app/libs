@@ -130,16 +130,22 @@ type CommandHandler<Req> = Req extends
 
 type QueryStreamHandler<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
-  ? Request["type"] extends "queryStream" ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final> : never
+  ? [Request["stream"], Request["type"]] extends [true, "query"]
+    ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final>
+  : never
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer Final>
-    ? Request["type"] extends "queryStream" ? RequestStreamHandler<A, E, R, Request, Id, Final> : never
+    ? [Request["stream"], Request["type"]] extends [true, "query"] ? RequestStreamHandler<A, E, R, Request, Id, Final>
+    : never
   : never
 
 type CommandStreamHandler<Req> = Req extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer Final>
-  ? Request["type"] extends "commandStream" ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final> : never
+  ? [Request["stream"], Request["type"]] extends [true, "command"]
+    ? RequestStreamHandlerWithInput<I, A, E, R, Request, Id, Final>
+  : never
   : Req extends RequestStreamHandler<infer A, infer E, infer R, infer Request, infer Id, infer Final>
-    ? Request["type"] extends "commandStream" ? RequestStreamHandler<A, E, R, Request, Id, Final> : never
+    ? [Request["stream"], Request["type"]] extends [true, "command"] ? RequestStreamHandler<A, E, R, Request, Id, Final>
+    : never
   : never
 
 export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
@@ -703,14 +709,15 @@ export const makeClient = <RT_, RTHooks>(
     const queries = Struct.keys(client).reduce(
       (acc, key) => {
         const requestType = client[key].Request.type
-        if (requestType === "query") {
+        const isStream = client[key].Request.stream
+        if (requestType === "query" && !isStream) {
           ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useQuery(client[key] as any), {
             id: client[key].id
           })
           ;(acc as any)[camelCase(key) + "SuspenseQuery"] = Object.assign(useSuspenseQuery(client[key] as any), {
             id: client[key].id
           })
-        } else if (requestType === "queryStream") {
+        } else if (requestType === "query" && isStream) {
           ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useStreamQuery(client[key] as any), {
             id: client[key].id
           })
@@ -752,7 +759,7 @@ export const makeClient = <RT_, RTHooks>(
     const Command = useCommand()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        if (client[key].Request.type !== "command") {
+        if (client[key].Request.type !== "command" || client[key].Request.stream) {
           return acc
         }
         const mut = client[key].handler
@@ -789,7 +796,7 @@ export const makeClient = <RT_, RTHooks>(
     const queryResources = makeQueryResources(invalidationResources)
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        if (client[key].Request.type !== "command") {
+        if (client[key].Request.type !== "command" || client[key].Request.stream) {
           return acc
         }
         const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
@@ -850,6 +857,7 @@ export const makeClient = <RT_, RTHooks>(
     const extended = Struct.keys(client).reduce(
       (acc, key) => {
         const requestType = client[key].Request.type
+        const isStream = client[key].Request.stream
         const fn = Command.fn(client[key].id)
         const h_ = client[key].handler
         const wrapInput = Effect.isEffect(h_)
@@ -857,7 +865,7 @@ export const makeClient = <RT_, RTHooks>(
           : (...args: [any]) => h_(...args)
         const request = Effect.isEffect(h_) ? h_ : wrapInput
         ;(acc as any)[key] = Object.assign(
-          requestType === "query"
+          requestType === "query" && !isStream
             ? {
               ...client[key],
               request,
@@ -881,13 +889,13 @@ export const makeClient = <RT_, RTHooks>(
                 }
               }
             }
-            : requestType === "queryStream"
+            : requestType === "query" && isStream
             ? {
               ...client[key],
               request: h_,
               query: useStreamQuery(client[key] as any)
             }
-            : requestType === "commandStream"
+            : requestType === "command" && isStream
             ? (() => {
               const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as
                 | InvalidationCallback<InvalidationResourcesFor<M>>

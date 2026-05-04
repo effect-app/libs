@@ -87,7 +87,8 @@ type TaggedRequestForResult<
   Error extends S.Top,
   Config,
   ModuleName extends string,
-  Type extends "command" | "query" | "queryStream" | "commandStream",
+  Type extends "command" | "query",
+  Stream extends boolean,
   Resources = never,
   Final extends S.Top = never
 > =
@@ -102,6 +103,7 @@ type TaggedRequestForResult<
     readonly id: `${ModuleName}.${Tag}`
     readonly moduleName: ModuleName
     readonly type: Type
+    readonly stream: Stream
     readonly "~invalidationResources"?: Resources
   }
   & ([Final] extends [never] ? {} : { readonly final: Final })
@@ -159,10 +161,12 @@ export const makeRpcClient = <
 
   function makeTaggedRequestWithMeta<
     ModuleName extends string,
-    Type extends "command" | "query" | "queryStream" | "commandStream"
+    Type extends "command" | "query",
+    Stream extends boolean
   >(
     moduleName: ModuleName,
-    type: Type
+    type: Type,
+    stream: Stream
   ) {
     function TaggedRequestWithMeta<Self, Resources extends InvalidationResources = never>(): {
       <
@@ -208,6 +212,7 @@ export const makeRpcClient = <
         >,
         ModuleName,
         Type,
+        Stream,
         Resources,
         [Final] extends [never] ? never : SchemaOrFields<Final>
       >
@@ -254,6 +259,7 @@ export const makeRpcClient = <
         >,
         ModuleName,
         Type,
+        Stream,
         Resources,
         [Final] extends [never] ? never : SchemaOrFields<Final>
       >
@@ -297,6 +303,7 @@ export const makeRpcClient = <
         >,
         ModuleName,
         Type,
+        Stream,
         Resources
       >
       <
@@ -326,6 +333,7 @@ export const makeRpcClient = <
         >,
         ModuleName,
         Type,
+        Stream,
         Resources
       >
       <Tag extends string, Payload extends S.Struct.Fields>(
@@ -339,7 +347,8 @@ export const makeRpcClient = <
         ErrorResult<{}>,
         Record<string, never>,
         ModuleName,
-        Type
+        Type,
+        Stream
       >
     } {
       return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
@@ -350,18 +359,18 @@ export const makeRpcClient = <
       ) => {
         const requestConfig = invalidatesQueries === undefined ? config : { ...config, invalidatesQueries }
         const cls = makeRequestClass(tag, fields, requestConfig)
-        Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName, type })
+        Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName, type, stream })
         return cls
       }) as any
     }
-    return Object.assign(TaggedRequestWithMeta, { moduleName, type } as const)
+    return Object.assign(TaggedRequestWithMeta, { moduleName, type, stream } as const)
   }
 
   function TaggedRequestFor<ModuleName extends string>(moduleName: ModuleName) {
-    const Query = makeTaggedRequestWithMeta(moduleName, "query")
-    const Command = makeTaggedRequestWithMeta(moduleName, "command")
-    const QueryStream = makeTaggedRequestWithMeta(moduleName, "queryStream")
-    const CommandStream = makeTaggedRequestWithMeta(moduleName, "commandStream")
+    const Query = makeTaggedRequestWithMeta(moduleName, "query", false as const)
+    const Command = makeTaggedRequestWithMeta(moduleName, "command", false as const)
+    const QueryStream = makeTaggedRequestWithMeta(moduleName, "query", true as const)
+    const CommandStream = makeTaggedRequestWithMeta(moduleName, "command", true as const)
 
     return {
       moduleName,

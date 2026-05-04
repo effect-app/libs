@@ -44,7 +44,8 @@ export type Req = S.Top & {
   config?: Record<string, any>
   readonly id: string
   readonly moduleName: string
-  readonly type: "command" | "query" | "queryStream" | "commandStream"
+  readonly type: "command" | "query"
+  readonly stream: boolean
   readonly "~decodingServices"?: unknown
 }
 
@@ -126,7 +127,7 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
     .make(
       ...typedValuesOf(filtered).map((_) => {
         const r = _ as any
-        const isStream = r.type === "queryStream" || r.type === "commandStream"
+        const isStream = r.stream
         const isCommand = r.type === "command"
         return (isCommand
           ? Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
@@ -245,7 +246,7 @@ const makeApiClientFactory = Effect
             const fields = Struct.omit(Request.fields, ["_tag"] as const)
             const requestAttr = `${meta.moduleName}.${h._tag}`
             const isCommand = h.type === "command"
-            const isStream = h.type === "queryStream" || h.type === "commandStream"
+            const isStream = h.stream
 
             const buildEffect = (input: any) =>
               mr.contextEffect.pipe(

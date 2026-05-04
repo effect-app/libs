@@ -75,13 +75,13 @@ class StreamRealtime extends Req.CommandStream<StreamRealtime>()("StreamRealtime
 
 class StreamBoom extends TaggedErrorClass<StreamBoom>()("StreamBoom", { reason: S.String }) {}
 
-class StreamFailEffect extends Req.Stream<StreamFailEffect>()("StreamFailEffect", {}, {
+class StreamFailEffect extends Req.CommandStream<StreamFailEffect>()("StreamFailEffect", {}, {
   allowAnonymous: true,
   success: S.Number,
   error: StreamBoom
 }) {}
 
-class StreamFailStream extends Req.Stream<StreamFailStream>()("StreamFailStream", {}, {
+class StreamFailStream extends Req.CommandStream<StreamFailStream>()("StreamFailStream", {}, {
   allowAnonymous: true,
   success: S.Number,
   error: StreamBoom

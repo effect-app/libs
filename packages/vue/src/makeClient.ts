@@ -759,7 +759,7 @@ export const makeClient = <RT_, RTHooks>(
     const Command = useCommand()
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        if (client[key].Request.type !== "command" || client[key].Request.stream) {
+        if (!(client[key].Request.type === "command" && !client[key].Request.stream)) {
           return acc
         }
         const mut = client[key].handler
@@ -796,7 +796,7 @@ export const makeClient = <RT_, RTHooks>(
     const queryResources = makeQueryResources(invalidationResources)
     const mutations = Struct.keys(client).reduce(
       (acc, key) => {
-        if (client[key].Request.type !== "command" || client[key].Request.stream) {
+        if (!(client[key].Request.type === "command" && !client[key].Request.stream)) {
           return acc
         }
         const fromRequestConfig = client[key].Request.config?.["invalidatesQueries"] as

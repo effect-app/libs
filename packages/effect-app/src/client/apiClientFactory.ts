@@ -128,16 +128,16 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
         const r = _ as any
         const isStream = r.stream
         const isCommand = r.type === "command"
-        return (isStream
-          ? Invalidation.makeStreamRpc(r._tag, {
-            payload: r,
-            success: r.success,
-            error: r.error,
-            stream: true as const
-          })
-          : isCommand
-          ? Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
-          : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error })) as any
+        return (isCommand
+          ? isStream
+            ? Invalidation.makeStreamRpc(r._tag, {
+              payload: r,
+              success: r.success,
+              error: r.error,
+              stream: true as const
+            })
+            : Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
+          : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error, stream: isStream })) as any
       })
     )
     .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<

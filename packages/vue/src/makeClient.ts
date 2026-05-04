@@ -258,12 +258,12 @@ export interface StreamQueryExtensions<Request extends Req, Id extends string, I
    * Data is an array of all chunks received so far.
    * When `I = void` the input argument may be omitted.
    */
-  streamQuery: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
+  query: ReturnType<typeof useStreamQuery_<I, E, A, Request, Id>>
 }
 export type StreamQueries<RT, HandlerReq> = HandlerReq extends
   RequestStreamHandlerWithInput<infer I, infer A, infer E, infer R, infer Request, infer Id, infer _Final>
   ? Exclude<R, RT> extends never ? StreamQueryExtensions<Request, Id, I, A, E>
-  : { streamQuery: MissingDependencies<RT, R> & {} }
+  : { query: MissingDependencies<RT, R> & {} }
   : never
 
 const _useMutation = makeMutation()
@@ -332,7 +332,7 @@ export class QueryImpl<R> {
 
   /**
    * Stream results are accumulated as an array of chunks and returned as reactive state.
-   * @deprecated use client helpers instead (.streamQuery())
+   * @deprecated use client helpers instead (.query())
    */
   readonly useStreamQuery: ReturnType<typeof makeStreamQuery<R>>
 
@@ -553,7 +553,7 @@ export const makeClient = <RT_, RTHooks>(
             id: client[key].id
           })
         } else if (requestType === "query" && isStream) {
-          ;(acc as any)[camelCase(key) + "StreamQuery"] = Object.assign(useStreamQuery(client[key] as any), {
+          ;(acc as any)[camelCase(key) + "Query"] = Object.assign(useStreamQuery(client[key] as any), {
             id: client[key].id
           })
         }
@@ -581,8 +581,8 @@ export const makeClient = <RT_, RTHooks>(
         & {
           [
             Key in keyof typeof client as QueryStreamHandler<typeof client[Key]> extends never ? never
-              : `${ToCamel<string & Key>}StreamQuery`
-          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["streamQuery"]
+              : `${ToCamel<string & Key>}Query`
+          ]: StreamQueries<RT, QueryStreamHandler<typeof client[Key]>>["query"]
         }
     )
     return queries
@@ -725,7 +725,7 @@ export const makeClient = <RT_, RTHooks>(
             ? {
               ...client[key],
               request,
-              streamQuery: useStreamQuery(client[key] as any)
+              query: useStreamQuery(client[key] as any)
             }
             : requestType === "command" && isStream
             ? (() => {
@@ -746,8 +746,8 @@ export const makeClient = <RT_, RTHooks>(
               return {
                 ...client[key],
                 request,
-                streamQuery: useStreamQuery(client[key] as any),
-                streamFn: streamCmd.streamFn(client[key].id as any) as any,
+                query: useStreamQuery(client[key] as any),
+                fn: streamCmd.streamFn(client[key].id as any) as any,
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
                   const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
@@ -821,7 +821,7 @@ export const makeClient = <RT_, RTHooks>(
             : { mutate: MutationWithExtensions<RT | RTHooks, CommandHandler<typeof client[Key]>> })
           & (CommandStreamHandler<typeof client[Key]> extends never ? {}
             : {
-              streamFn: StreamFnStreamExtension<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
+              fn: StreamFnStreamExtension<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
               mutate: StreamMutation2WithExtensions<RT | RTHooks, CommandStreamHandler<typeof client[Key]>>
             })
           & { Input: typeof client[Key] extends RequestHandlerWithInput<infer I, any, any, any, any, any> ? I : never }

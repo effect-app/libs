@@ -203,7 +203,7 @@ it.live(
   "stream handler returning Effect.fail surfaces as failing stream on client",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const exit = yield* Stream.runCollect(client.StreamFailEffect.handler).pipe(Effect.exit)
+    const exit = yield* Stream.runCollect(client.StreamFailEffect.handler()).pipe(Effect.exit)
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>
@@ -219,7 +219,7 @@ it.live(
   "stream handler returning Stream.fail surfaces as failing stream on client",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const exit = yield* Stream.runCollect(client.StreamFailStream.handler).pipe(Effect.exit)
+    const exit = yield* Stream.runCollect(client.StreamFailStream.handler()).pipe(Effect.exit)
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>

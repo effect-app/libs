@@ -1,5 +1,4 @@
 import * as fs from "fs"
-import { normaliseModule } from "../normalise.js"
 
 type PresetFn<T = Record<string, unknown>> = (args: {
   meta: { filename: string; existingContent: string }
@@ -40,23 +39,24 @@ function getExportedModelNames(code: string): Array<string> {
   return result
 }
 
+function normaliseLines(s: string): string {
+  return s.split("\n").map((l) => l.trim()).filter(Boolean).join("\n")
+}
+
 export const model: PresetFn<{
   writeFullTypes?: boolean
-}> = ({ meta }) => {
+}> = ({ meta }, context) => {
   try {
-    const targetContent = fs.readFileSync(meta.filename).toString()
+    const targetContent = typeof context === "string" && context.length > 0
+      ? context
+      : fs.readFileSync(meta.filename).toString()
 
-    const processed: string[] = []
-
-    const sourcePath = meta.filename
-    if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
-      throw Error(`Source path is not a file: ${sourcePath}`)
-    }
+    const processed = new Set<string>()
 
     const them = []
     for (const modelName of getExportedModelNames(targetContent)) {
-      if (processed.includes(modelName)) continue
-      processed.push(modelName)
+      if (processed.has(modelName)) continue
+      processed.add(modelName)
 
       them.push([
         `export namespace ${modelName} {`,
@@ -71,11 +71,8 @@ export const model: PresetFn<{
     ]
       .join("\n")
 
-    // do not re-emit in a different style, or a loop will occur
-    if (
-      normaliseModule(meta.existingContent, meta.filename)
-        === normaliseModule(expectedContent, meta.filename)
-    ) {
+    // Fast path: whitespace-normalised comparison (avoids AST parse)
+    if (normaliseLines(meta.existingContent) === normaliseLines(expectedContent)) {
       return meta.existingContent
     }
     return expectedContent

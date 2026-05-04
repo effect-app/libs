@@ -56,32 +56,37 @@ const { Router, matchAll } = makeRouter(AppMiddleware)
 const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 const Req = TaggedRequestFor("Streamy")
 
-class StreamTicks extends Req.CommandStream<StreamTicks>()("StreamTicks", {}, {
+class StreamTicks extends Req.Command<StreamTicks>()("StreamTicks", {}, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number
 }) {}
 
-class StreamCountTo extends Req.CommandStream<StreamCountTo>()("StreamCountTo", {
+class StreamCountTo extends Req.Command<StreamCountTo>()("StreamCountTo", {
   to: S.Number
 }, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number
 }) {}
 
-class StreamRealtime extends Req.CommandStream<StreamRealtime>()("StreamRealtime", {}, {
+class StreamRealtime extends Req.Command<StreamRealtime>()("StreamRealtime", {}, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number
 }) {}
 
 class StreamBoom extends TaggedErrorClass<StreamBoom>()("StreamBoom", { reason: S.String }) {}
 
-class StreamFailEffect extends Req.CommandStream<StreamFailEffect>()("StreamFailEffect", {}, {
+class StreamFailEffect extends Req.Command<StreamFailEffect>()("StreamFailEffect", {}, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number,
   error: StreamBoom
 }) {}
 
-class StreamFailStream extends Req.CommandStream<StreamFailStream>()("StreamFailStream", {}, {
+class StreamFailStream extends Req.Command<StreamFailStream>()("StreamFailStream", {}, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number,
   error: StreamBoom

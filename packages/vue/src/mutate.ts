@@ -96,44 +96,27 @@ export interface MutationOptionsBase<A = unknown, B = A, E2 = never, R2 = never>
   select?: (result: A) => Effect.Effect<B, E2, R2>
 }
 
-export const asResult: {
-  <A, E, R>(
-    handler: Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<Exit.Exit<A, E>, never, R>]
-  <Args extends readonly any[], A, E, R>(
-    handler: (...args: Args) => Effect.Effect<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>]
-} = <Args extends readonly any[], A, E, R>(
-  handler: Effect.Effect<A, E, R> | ((...args: Args) => Effect.Effect<A, E, R>)
-) => {
+export const asResult = <Args extends readonly any[], A, E, R>(
+  handler: (...args: Args) => Effect.Effect<A, E, R>
+): readonly [
+  ComputedRef<AsyncResult.AsyncResult<A, E>>,
+  (...args: Args) => Effect.Effect<Exit.Exit<A, E>, never, R>
+] => {
   const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
 
-  const act = Effect.isEffect(handler)
-    ? Effect
+  const act = (...args: Args) =>
+    Effect
       .sync(() => {
         state.value = AsyncResult.initial(true)
       })
       .pipe(
         Effect.andThen(Effect.suspend(() =>
-          handler.pipe(
+          handler(...args).pipe(
             Effect.exit,
             Effect.tap((exit) => Effect.sync(() => (state.value = AsyncResult.fromExit(exit))))
           )
         ))
       )
-    : (...args: Args) =>
-      Effect
-        .sync(() => {
-          state.value = AsyncResult.initial(true)
-        })
-        .pipe(
-          Effect.andThen(Effect.suspend(() =>
-            handler(...args).pipe(
-              Effect.exit,
-              Effect.tap((exit) => Effect.sync(() => (state.value = AsyncResult.fromExit(exit))))
-            )
-          ))
-        )
 
   return tuple(computed(() => state.value), act) as any
 }
@@ -143,16 +126,9 @@ export const asResult: {
  * (keeping `waiting: true`) and is finalised (with `waiting: false`) once the
  * stream terminates successfully. Errors are surfaced as `AsyncResult.failure`.
  */
-export const asStreamResult: {
-  <A, E, R>(
-    handler: Stream.Stream<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, Effect.Effect<void, never, R>]
-  <Args extends readonly any[], A, E, R>(
-    handler: (...args: Args) => Stream.Stream<A, E, R>
-  ): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<void, never, R>]
-} = <Args extends readonly any[], A, E, R>(
-  handler: Stream.Stream<A, E, R> | ((...args: Args) => Stream.Stream<A, E, R>)
-) => {
+export const asStreamResult = <Args extends readonly any[], A, E, R>(
+  handler: (...args: Args) => Stream.Stream<A, E, R>
+): readonly [ComputedRef<AsyncResult.AsyncResult<A, E>>, (...args: Args) => Effect.Effect<void, never, R>] => {
   const state = shallowRef<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial())
 
   const runStream = (stream: Stream.Stream<A, E, R>): Effect.Effect<void, never, R> =>
@@ -187,9 +163,7 @@ export const asStreamResult: {
         )
       )
 
-  const act = Stream.isStream(handler)
-    ? runStream(handler)
-    : (...args: Args) => runStream(handler(...args))
+  const act = (...args: Args) => runStream(handler(...args))
 
   return tuple(computed(() => state.value), act) as any
 }

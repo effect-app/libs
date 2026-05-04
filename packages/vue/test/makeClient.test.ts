@@ -293,7 +293,6 @@ it.skip("works", () => {
   const g4 = client.helpers.doSomethingMutation.project(S.String)
   const g5 = g4(null as any)
   const g6 = g4.wrap(null as any)
-  // @ts-expect-error mutate no longer exposes fn, use client.DoSomething.fn
   const h = client.DoSomething.mutate.fn(null as any)
 
   // projection

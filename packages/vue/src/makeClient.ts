@@ -99,6 +99,9 @@ export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
    * see Command.wrap for details */
   wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  /** Defines a Command based on this call, taking the `id` of the mutation as the `id` of the Command.
+   * see Command.fn for details */
+  fn: Commander.CommanderFn<RT, Id, Id, undefined>
 }
 
 /**
@@ -164,6 +167,7 @@ export type StreamMutation2WithExtensions<RT, Req> = Req extends
     & {
       readonly id: Id
       readonly wrap: Commander.StreamerWrap<RT, Id, Id, undefined, I, A, E, R>
+      readonly streamFn: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
     }
   : never
 
@@ -627,8 +631,10 @@ export const makeClient = <RT_, RTHooks>(
         const makeProjectedMutation = (handler: any): any => {
           const mut: any = withDefaultInvalidation(mutation(handler), mergedInvalidation)
           const wrap = Command.wrap({ mutate: mut, id: client[key].id })
+          const fn = Command.fn(client[key].id)
           return Object.assign(mut, {
             wrap,
+            fn,
             project: (projectionSchema: any) => {
               const projected = {
                 ...handler,
@@ -723,7 +729,8 @@ export const makeClient = <RT_, RTHooks>(
                   const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
                     id: client[key].id,
-                    wrap: useCommand().streamWrap(sm2Handler, client[key].id as any)
+                    wrap: useCommand().streamWrap(sm2Handler, client[key].id as any),
+                    streamFn: useCommand().streamFn(client[key].id as any) as any
                   })
                 })()
               }
@@ -752,6 +759,7 @@ export const makeClient = <RT_, RTHooks>(
                         mutate,
                         id: client[key].id
                       }),
+                      fn: Command.fn(client[key].id),
                       project: (projectionSchema: any) => {
                         const projected = {
                           ...h,

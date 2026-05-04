@@ -12,12 +12,10 @@
 <script
   setup
   lang="ts"
-  generic="
-  From extends Record<PropertyKey, any>,
+  generic="From extends Record<PropertyKey, any>,
   To extends Record<PropertyKey, any>,
   K extends keyof OmegaFormState<From, To> = keyof OmegaFormState<From, To>,
-  Props = DefaultTypeProps
-"
+  Props = DefaultTypeProps"
 >
 /**
  * Form component that wraps TanStack Form's useForm hook

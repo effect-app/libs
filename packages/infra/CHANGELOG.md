@@ -1,5 +1,40 @@
 # @effect-app/infra
 
+## 4.0.0-beta.195
+
+### Patch Changes
+
+- 774a9b3: `MiddlewareMaker.makeMiddlewareBasic` now derives each middleware's effective error from both the static `error` field on the tag AND the `rcm` config entry referenced by `dynamic.key`, rather than relying on the static field alone.
+
+  Middlewares declared with `dynamic: RequestContextMap.get("foo")` (instead of an explicit static `error: ...`) end up with `tag.error = Schema.Never` at runtime — `RpcMiddleware.Tag` defaults the static error to `Never` when not provided. The composite `MiddlewareMaker.Tag(...).middleware(...)` walked `make[*].error` to build its own error union, collapsing to `Union<Never, ...> ≡ Never`.
+
+  `Rpc.exitSchema` walks `rpc.middlewares[*].error` when building the wire-level failure union for every rpc kind. Empty-union meant middleware-thrown errors (`NotLoggedInError`, `UnauthorizedError`, etc.) never reached the wire schema. Query/command happened to work because their wire `errorSchema = resource.error` already covered the merge from `makeRpcClient`. Stream rpcs have `errorSchema` force-set to `Schema.Never` by effect-rpc, so the resource-level merge never reached the wire — middleware errors decoded as "Expected never, got X".
+
+  Per middleware, the new logic pushes both the static `_.error` (if non-`Never`) and `rcm[_.dynamic.key].error` (if non-`Never`) into the composite's failure union.
+
+- Updated dependencies [774a9b3]
+  - effect-app@4.0.0-beta.195
+
+## 4.0.0-beta.194
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.194
+
+## 4.0.0-beta.193
+
+### Patch Changes
+
+- 9569911: Stream resources accept `Effect.fail(...)` (and `Effect<Stream>`) from controller handlers — previously only `Stream.fail(...)` / a returned `Stream` worked. The router now lifts an Effect result to a Stream via `Stream.unwrap`, so failures from an `Effect` propagate as a failing Stream on the client, matching `Stream.fail(...)` behavior. Also removes the need for manual `.pipe(Stream.unwrap)` on generator handlers that return a `Stream`.
+  - effect-app@4.0.0-beta.193
+
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- dba5779: namespaces
+  - effect-app@4.0.0-beta.192
+
 ## 4.0.0-beta.191
 
 ### Patch Changes

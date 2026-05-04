@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- 8c753cb: align with earlier updates
+
 ## 2.0.0-beta.12
 
 ### Patch Changes

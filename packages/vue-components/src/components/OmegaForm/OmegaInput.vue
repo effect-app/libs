@@ -34,11 +34,7 @@
 <script
   setup
   lang="ts"
-  generic="
-  From extends Record<PropertyKey, any>,
-  To extends Record<PropertyKey, any>,
-  Name extends DeepKeys<From>
-"
+  generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 /* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form Field generic interop and slot prop typing */
 import { type DeepKeys } from "@tanstack/vue-form"

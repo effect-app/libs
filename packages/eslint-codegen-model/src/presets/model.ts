@@ -21,7 +21,7 @@ function getExportedModelNames(code: string): Array<string> {
   const matches = Array.from(code.matchAll(classRe))
   for (const [index, match] of matches.entries()) {
     const name = match[2]!
-    const start = match.index! + match[1]!.length
+    const start = match.index + match[1]!.length
     // Take up to the next `export class` or 500 chars, whichever comes first,
     // then trim further to only the extends clause (before the first `{`).
     const nextClass = matches[index + 1]?.index
@@ -60,7 +60,7 @@ export const model: PresetFn<{
 
       them.push([
         `export namespace ${modelName} {`,
-        `  export interface Encoded extends S.Struct.Encoded<typeof ${modelName}["fields"]> {}`,
+        `  export interface Encoded extends S.StructNestedEncoded<typeof ${modelName}> {}`,
         "}"
       ])
     }

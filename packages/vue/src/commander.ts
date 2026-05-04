@@ -133,6 +133,19 @@ export const wrapEmit = <A, Event extends string>(
 (value: A) => new Promise<void>((resolve) => emit(event, value, resolve))
 
 export declare namespace Commander {
+  export type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
+  export type FnOptions<
+    Id extends string,
+    I18nKey extends string,
+    State extends IntlRecord | undefined
+  > = {
+    i18nCustomKey?: I18nKey
+    state?: ComputedRef<State> | (() => State)
+    blockKey?: (id: Id) => string | undefined
+    waitKey?: (id: Id) => string | undefined
+    allowed?: (id: Id, state: ComputedRef<State>) => boolean
+  }
+
   export type CommanderBase<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> =
     & Gen<RT, Id, I18nKey, State>
     & NonGen<RT, Id, I18nKey, State>

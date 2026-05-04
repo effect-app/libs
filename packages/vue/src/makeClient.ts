@@ -37,10 +37,14 @@ export interface CommandRequestExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
    * The Request function will be taken as the first member of the Command, the Command required input will be the Request input.
    * see Command.wrap for details */
-  wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderWrap<RT, Id, I18nKey, State, I, A, E, R>
   /** Defines a Command based on this call, taking the `id` of the call as the `id` of the Command.
    * see Command.fn for details */
-  fn: Commander.CommanderFn<RT, Id, Id, undefined>
+  fn: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderFn<RT, Id, I18nKey, State>
 }
 
 /** my other doc */
@@ -98,10 +102,14 @@ export interface MutationExtensions<RT, Id extends string, I, A, E, R> {
   /** Defines a Command based on this mutation, taking the `id` of the mutation as the `id` of the Command.
    * The Mutation function will be taken as the first member of the Command, the Command required input will be the Mutation input.
    * see Command.wrap for details */
-  wrap: Commander.CommanderWrap<RT, Id, Id, undefined, I, A, E, R>
+  wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderWrap<RT, Id, I18nKey, State, I, A, E, R>
   /** Defines a Command based on this call, taking the `id` of the mutation as the `id` of the Command.
    * see Command.fn for details */
-  fn: Commander.CommanderFn<RT, Id, Id, undefined>
+  fn: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.CommanderFn<RT, Id, I18nKey, State>
 }
 
 /**
@@ -166,8 +174,9 @@ export type StreamMutation2WithExtensions<RT, Req> = Req extends
     & ((input: I) => Stream.Stream<A, E, R>)
     & {
       readonly id: Id
-      readonly wrap: Commander.StreamerWrap<RT, Id, Id, undefined, I, A, E, R>
-      readonly streamFn: Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+      readonly wrap: <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+        options?: Commander.FnOptions<Id, I18nKey, State>
+      ) => Commander.StreamerWrap<RT, Id, I18nKey, State, I, A, E, R>
     }
   : never
 
@@ -581,11 +590,11 @@ export const makeClient = <RT_, RTHooks>(
         }
         const mut = client[key].handler
         const request = mut
-        const fn = Command.fn(client[key].id)
-        const wrap = Command.wrap({ mutate: request, id: client[key].id })
+        const fn = (options?: any) => Command.fn(client[key].id, options)
+        const wrap = (options?: any) => Command.wrap({ mutate: request, id: client[key].id }, options)
         ;(acc as any)[camelCase(key) + "Request"] = Object.assign(
           mut,
-          fn, // to get the i18n key etc.
+          Command.fn(client[key].id), // to get the i18n key etc.
           { wrap, fn, request }
         )
         return acc
@@ -630,11 +639,9 @@ export const makeClient = <RT_, RTHooks>(
         const mergedInvalidation = mergeInvalidation(fromRequest, invalidation?.[key])
         const makeProjectedMutation = (handler: any): any => {
           const mut: any = withDefaultInvalidation(mutation(handler), mergedInvalidation)
-          const wrap = Command.wrap({ mutate: mut, id: client[key].id })
-          const fn = Command.fn(client[key].id)
           return Object.assign(mut, {
-            wrap,
-            fn,
+            wrap: (options?: any) => Command.wrap({ mutate: mut, id: client[key].id }, options),
+            fn: (options?: any) => Command.fn(client[key].id, options),
             project: (projectionSchema: any) => {
               const projected = {
                 ...handler,
@@ -729,8 +736,7 @@ export const makeClient = <RT_, RTHooks>(
                   const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)
                   return Object.assign(sm2Act, {
                     id: client[key].id,
-                    wrap: useCommand().streamWrap(sm2Handler, client[key].id as any),
-                    streamFn: useCommand().streamFn(client[key].id as any) as any
+                    wrap: (options?: any) => useCommand().streamWrap(sm2Handler, client[key].id as any, options)
                   })
                 })()
               }
@@ -755,11 +761,12 @@ export const makeClient = <RT_, RTHooks>(
                   return Object.assign(
                     mutate,
                     {
-                      wrap: Command.wrap({
-                        mutate,
-                        id: client[key].id
-                      }),
-                      fn: Command.fn(client[key].id),
+                      wrap: (options?: any) =>
+                        Command.wrap({
+                          mutate,
+                          id: client[key].id
+                        }, options),
+                      fn: (options?: any) => Command.fn(client[key].id, options),
                       project: (projectionSchema: any) => {
                         const projected = {
                           ...h,
@@ -775,8 +782,8 @@ export const makeClient = <RT_, RTHooks>(
               ...client[key],
               ...fn, // to get the i18n key etc.
               request,
-              fn,
-              wrap: Command.wrap({ mutate: h_, id: client[key].id })
+              fn: (options?: any) => Command.fn(client[key].id, options),
+              wrap: (options?: any) => Command.wrap({ mutate: h_, id: client[key].id }, options)
             }
         )
         return acc

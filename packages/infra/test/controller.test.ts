@@ -350,7 +350,7 @@ const router = Router(Something)({
         }
       },
       GetSomething2: {
-        raw: Some.use(() => Effect.succeed("12"))
+        raw: () => Some.use(() => Effect.succeed("12"))
       }
     })
   }
@@ -415,7 +415,7 @@ const router2 = r2.Router(Something)({
         }
       },
       GetSomething2: {
-        raw: Some.use(() => Effect.succeed("12"))
+        raw: () => Some.use(() => Effect.succeed("12"))
       }
     })
   }

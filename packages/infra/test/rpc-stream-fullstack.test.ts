@@ -96,7 +96,7 @@ const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffec
 const router = Router(StreamyRsc)({
   *effect(match) {
     return match({
-      StreamTicks: Stream.fromIterable([10, 20, 30]),
+      StreamTicks: () => Stream.fromIterable([10, 20, 30]),
       StreamCountTo: ({ to }: { readonly to: number }) =>
         Effect
           .gen(function*() {
@@ -105,13 +105,14 @@ const router = Router(StreamyRsc)({
           .pipe(Stream.unwrap),
       // emits 3 values 100ms apart so the test can prove element-by-element
       // delivery rather than a single batched response
-      StreamRealtime: Stream.fromIterable([1, 2, 3]).pipe(
-        Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
-      ),
+      StreamRealtime: () =>
+        Stream.fromIterable([1, 2, 3]).pipe(
+          Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
+        ),
       // returning Effect.fail from a stream handler should surface as a failing
       // stream on the client (not a protocol error)
-      StreamFailEffect: Effect.fail(new StreamBoom({ reason: "from-effect" })),
-      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" }))
+      StreamFailEffect: () => Effect.fail(new StreamBoom({ reason: "from-effect" })),
+      StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" }))
     })
   }
 })

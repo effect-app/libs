@@ -305,27 +305,12 @@ const makeMiddlewareBasic = <Self>() =>
 >(
   id: Id,
   rcm: RequestContextMap,
-  generalErrors: ReadonlyArray<S.Top>,
   ...make: MiddlewareProviders
 ) => {
   // reverse middlewares and wrap one after the other
   const middleware = middlewareMaker(make)
 
-  // Errors come from three sources: individual middleware tags' static `error`
-  // (often `Schema.Never` because per-middleware errors get declared via
-  // `dynamic: RequestContextMap.get(...)`), the request-context-map config
-  // entries themselves (which carry the actual error schemas), and the
-  // `generalErrors` passed to `makeRpcClient` (typically shared with the
-  // resource-level error union). Including all of these in the composite
-  // middleware's `.error` makes them part of `Rpc.exitSchema`'s wire-level
-  // failure union — required for stream rpcs whose `errorSchema` is forced
-  // to `Never` by effect-rpc, so the resource-level merged error union never
-  // reaches the wire.
-  const isMeaningfulError = (e: any) => e !== undefined && e !== null && e !== S.Never
-  const middlewareFailures = make.flatMap((_) => isMeaningfulError(_.error) ? [_.error] : [])
-  const rcmFailures = Object.values(rcm).map((_) => _.error).filter(isMeaningfulError)
-  const generalFailures = generalErrors.filter(isMeaningfulError)
-  const failures = [...middlewareFailures, ...rcmFailures, ...generalFailures]
+  const failures = make.flatMap((_) => _.error ? [_.error] : [])
   const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
   const requires = make
     .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
@@ -383,16 +368,7 @@ export const Tag = <Self>() =>
 <
   const Id extends string,
   RequestContextMap extends RequestContextMapTagAny
->(
-  id: Id,
-  rcm: RequestContextMap,
-  generalErrors?: S.Top | ReadonlyArray<S.Top>
-): MiddlewaresBuilder<Self, Id, RequestContextMap["config"]> => {
-  const generalErrorList: ReadonlyArray<S.Top> = generalErrors === undefined
-    ? []
-    : Array.isArray(generalErrors)
-    ? generalErrors
-    : [generalErrors as S.Top]
+>(id: Id, rcm: RequestContextMap): MiddlewaresBuilder<Self, Id, RequestContextMap["config"]> => {
   const allMiddleware: MiddlewareMaker.Any[] = []
   const requestContext = Context.Service<"RequestContextConfig", GetContextConfig<RequestContextMap["config"]>>(
     "RequestContextConfig"
@@ -457,10 +433,7 @@ export const Tag = <Self>() =>
         // for sure, until all the dynamic middlewares are provided it's non sensical to call makeMiddlewareBasic
         ? it
         // actually, we don't know yet if MiddlewareR is never, but we can't easily check it at runtime
-        : Object.assign(
-          makeMiddlewareBasic<Self>()<Id, any, any>(id, rcm.config, generalErrorList, ...allMiddleware),
-          it
-        )
+        : Object.assign(makeMiddlewareBasic<Self>()<Id, any, any>(id, rcm.config, ...allMiddleware), it)
     }
   }
   return it as any

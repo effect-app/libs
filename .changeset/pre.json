@@ -236,6 +236,7 @@
     "stream-final-type",
     "stream-fn-enhancements",
     "stream-metadata-v1",
+    "stream-on-command-query",
     "stream-withdefaulttoast",
     "strong-dots-sin",
     "struct-pick-omit",

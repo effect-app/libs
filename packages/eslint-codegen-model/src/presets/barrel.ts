@@ -16,7 +16,7 @@ function toCamelCase(s: string): string {
   return words
     .map((word, i) => {
       const lower = word.toLowerCase()
-      return i === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
+      return i === 0 || lower.length === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
     })
     .join("")
 }
@@ -26,7 +26,7 @@ function toPascalCase(s: string): string {
   return words
     .map((word) => {
       const lower = word.toLowerCase()
-      return lower[0]!.toUpperCase() + lower.slice(1)
+      return lower.length === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
     })
     .join("")
 }

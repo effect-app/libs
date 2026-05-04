@@ -1,5 +1,12 @@
 # @effect-app/vue
 
+## 4.0.0-beta.194
+
+### Patch Changes
+
+- refactor(vue): remove 1s waiting toast delay in withDefaultToastStream
+  - effect-app@4.0.0-beta.194
+
 ## 4.0.0-beta.193
 
 ### Patch Changes

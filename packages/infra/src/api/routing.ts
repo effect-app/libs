@@ -110,35 +110,47 @@ type RpcRouteR<
 ] ? R
   : never
 
+type EffectMatch<
+  Resource extends Record<string, any>,
+  RequestContextMap extends Record<string, any>,
+  RT extends RequestType,
+  Key extends keyof Resource
+> = <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
+  f: (req: S.Schema.Type<Resource[Key]>) => Effect.Effect<A, E, R2>
+) => Handler<
+  Resource[Key],
+  RT,
+  Exclude<
+    Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
+    Scope.Scope
+  >
+>
+
+type StreamMatch<
+  Resource extends Record<string, any>,
+  RequestContextMap extends Record<string, any>,
+  RT extends RequestType,
+  Key extends keyof Resource
+> = <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
+  f: (req: S.Schema.Type<Resource[Key]>) => Stream.Stream<A, E, R2>
+) => Handler<
+  Resource[Key],
+  RT,
+  Exclude<
+    Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
+    Scope.Scope
+  >
+>
+
+// Stream resources only accept Stream / Effect<Stream> handlers; non-stream resources
+// only accept Effect handlers. Discriminated by the request module's `stream` flag.
 type Match<
   Resource extends Record<string, any>,
   RequestContextMap extends Record<string, any>,
   RT extends RequestType,
   Key extends keyof Resource
-> = {
-  // note: the defaults of = never prevent the whole router to error (??)
-  <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
-    f: (req: S.Schema.Type<Resource[Key]>) => Effect.Effect<A, E, R2>
-  ): Handler<
-    Resource[Key],
-    RT,
-    Exclude<
-      Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
-      Scope.Scope
-    >
-  >
-
-  <A extends GetSuccessShape<Resource[Key], RT>, R2 = never, E = never>(
-    f: (req: S.Schema.Type<Resource[Key]>) => Stream.Stream<A, E, R2>
-  ): Handler<
-    Resource[Key],
-    RT,
-    Exclude<
-      Exclude<R2, GetEffectContext<RequestContextMap, Resource[Key]["config"]>>,
-      Scope.Scope
-    >
-  >
-}
+> = Resource[Key] extends { stream: true } ? StreamMatch<Resource, RequestContextMap, RT, Key>
+  : EffectMatch<Resource, RequestContextMap, RT, Key>
 
 export type RouteMatcher<
   RequestContextMap extends Record<string, any>,
@@ -285,17 +297,18 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
       HandlerContext<Action>
     >
 
-    type Handlers<Action extends AnyRequestModule, RT extends RequestType> =
-      | HandlerWithInputGen<Action, RT>
-      | HandlerWithInputEff<Action, RT>
-      | HandlerWithInputStream<Action, RT>
+    // Stream resources only accept `(req) => Stream`; non-stream only Effect / Generator.
+    type Handlers<Action extends AnyRequestModule, RT extends RequestType> = Action extends { stream: true }
+      ? HandlerWithInputStream<Action, RT>
+      : HandlerWithInputGen<Action, RT> | HandlerWithInputEff<Action, RT>
 
     type HandlersDecoded<Action extends AnyRequestModule> = Handlers<Action, RequestTypes.DECODED>
 
-    type HandlersRaw<Action extends AnyRequestModule> =
-      | { raw: HandlerWithInputGen<Action, RequestTypes.RAW> }
-      | { raw: HandlerWithInputEff<Action, RequestTypes.RAW> }
-      | { raw: HandlerWithInputStream<Action, RequestTypes.RAW> }
+    type HandlersRaw<Action extends AnyRequestModule> = Action extends { stream: true }
+      ? { raw: HandlerWithInputStream<Action, RequestTypes.RAW> }
+      :
+        | { raw: HandlerWithInputGen<Action, RequestTypes.RAW> }
+        | { raw: HandlerWithInputEff<Action, RequestTypes.RAW> }
 
     type AnyHandlers<Action extends AnyRequestModule> = HandlersRaw<Action> | HandlersDecoded<Action>
 
@@ -429,18 +442,8 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                 } as any
                 : resource,
               (payload: any, headers: any) => {
-                let result: any = handler.handler(payload, headers)
-                // Stream resources accept handlers returning either Stream or Effect.
-                // Lift Effect to Stream so `Effect.fail(...)` and `Effect<Stream>` (e.g.
-                // from generator handlers) work the same as a returned Stream.
-                if (resource.stream && Effect.isEffect(result)) {
-                  result = Stream.unwrap(
-                    (result as Effect.Effect<unknown, unknown, unknown>).pipe(
-                      Effect.map((v) => Stream.isStream(v) ? v : Stream.succeed(v))
-                    )
-                  )
-                }
-                if (Stream.isStream(result)) {
+                const result: any = handler.handler(payload, headers)
+                if (resource.stream) {
                   // Wrap stream items as { _tag: "value", value } and append a final
                   // { _tag: "done", metadata } chunk carrying accumulated invalidation keys.
                   // V2: on failure, convert to { _tag: "error", error, metadata } chunk so

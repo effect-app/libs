@@ -80,13 +80,6 @@ class StreamRealtime extends Req.Command<StreamRealtime>()("StreamRealtime", {},
 
 class StreamBoom extends TaggedErrorClass<StreamBoom>()("StreamBoom", { reason: S.String }) {}
 
-class StreamFailEffect extends Req.Command<StreamFailEffect>()("StreamFailEffect", {}, {
-  stream: true,
-  allowAnonymous: true,
-  success: S.Number,
-  error: StreamBoom
-}) {}
-
 class StreamFailStream extends Req.Command<StreamFailStream>()("StreamFailStream", {}, {
   stream: true,
   allowAnonymous: true,
@@ -118,7 +111,6 @@ const StreamyRsc = {
   StreamTicks,
   StreamCountTo,
   StreamRealtime,
-  StreamFailEffect,
   StreamFailStream,
   StreamNoSuccess,
   StreamRequiresAuth,
@@ -146,9 +138,6 @@ const router = Router(StreamyRsc)({
         Stream.fromIterable([1, 2, 3]).pipe(
           Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
         ),
-      // returning Effect.fail from a stream handler should surface as a failing
-      // stream on the client (not a protocol error)
-      StreamFailEffect: () => Effect.fail(new StreamBoom({ reason: "from-effect" })),
       StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" })),
       StreamNoSuccess: () => Stream.empty,
       // handlers below are unreachable when middleware-auth fails; bodies exist
@@ -239,22 +228,6 @@ it.live(
     expect(delta2).toBeGreaterThan(50)
     // first element should not be withheld until the whole stream completes
     expect(arrivals[0]!.at).toBeLessThan(arrivals[2]!.at - 50)
-  }, Effect.provide(TestLayer)),
-  { timeout: 10_000 }
-)
-
-it.live(
-  "stream handler returning Effect.fail surfaces as failing stream on client",
-  Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const exit = yield* Stream.runCollect(client.StreamFailEffect.handler()).pipe(Effect.exit)
-    expect(Exit.isFailure(exit)).toBe(true)
-    if (Exit.isFailure(exit)) {
-      const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>
-      expect(failures.length).toBeGreaterThan(0)
-      expect(failures[0]!.error._tag).toBe("StreamBoom")
-      expect(failures[0]!.error.reason).toBe("from-effect")
-    }
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

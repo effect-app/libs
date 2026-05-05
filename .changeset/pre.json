@@ -45,6 +45,7 @@
     "cosmos-filter-seed",
     "cosmos-namespace-spans",
     "cosmos-namespace-support",
+    "cosmos-span-response-size",
     "crisp-seals-care",
     "crisp-trees-smash",
     "cuddly-laws-smell",

@@ -1,5 +1,15 @@
 # @effect-app/infra
 
+## 4.0.0-beta.199
+
+### Patch Changes
+
+- de9fb83: Annotate Cosmos read spans with response size, resource count, and request charge.
+
+  `Cosmos.queryRaw`, `Cosmos.all`, `Cosmos.filter`, and `Cosmos.find` now set `db.cosmos.request_charge`, `db.cosmos.response_bytes`, and (where applicable) `db.cosmos.resource_count` on the active span. Bytes are sourced from `diagnostics.clientSideRequestStatistics.totalResponsePayloadLengthInBytes` — no payload stringification.
+
+  - effect-app@4.0.0-beta.199
+
 ## 4.0.0-beta.198
 
 ### Patch Changes

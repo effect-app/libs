@@ -4,7 +4,7 @@ import * as S from "effect/Schema"
 import type { B } from "./schema.js"
 import type { NonEmptyStringBrand } from "./strings.js"
 
-export type EmailBrand = B.Brand<"Email"> & NonEmptyStringBrand
+export type EmailBrand = NonEmptyStringBrand & B.Brand<"Email">
 
 export type Email = string & EmailBrand
 

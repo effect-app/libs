@@ -90,7 +90,8 @@ type TaggedRequestForResult<
   Type extends "command" | "query",
   Stream extends boolean,
   Resources = never,
-  Final extends S.Top = never
+  Final extends S.Top = never,
+  Middleware = unknown
 > =
   & S.Opaque<Self, S.ExtendedSchemaNoEncoded, TaggedRequestSchema<Tag, Payload>, {}>
   & {
@@ -103,14 +104,17 @@ type TaggedRequestForResult<
     readonly moduleName: ModuleName
     readonly type: Type
     readonly stream: Stream
+    readonly middleware?: Middleware
     readonly "~invalidationResources"?: Resources
   }
   & ([Final] extends [never] ? {} : { readonly final: Final })
 
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
-  GeneralErrors extends S.Top = never
->(rcs: RequestContextMap, generalErrors?: GeneralErrors) => {
+  GeneralErrors extends S.Top = never,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Middleware = unknown
+>(rcs: RequestContextMap, generalErrors?: GeneralErrors, middleware?: Middleware) => {
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type ServiceMap = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
@@ -223,7 +227,8 @@ export const makeRpcClient = <
         Type,
         true,
         Resources,
-        [Final] extends [never] ? never : SchemaOrFields<Final>
+        [Final] extends [never] ? never : SchemaOrFields<Final>,
+        Middleware
       >
       <
         Tag extends string,
@@ -269,7 +274,8 @@ export const makeRpcClient = <
         Type,
         true,
         Resources,
-        [Final] extends [never] ? never : SchemaOrFields<Final>
+        [Final] extends [never] ? never : SchemaOrFields<Final>,
+        Middleware
       >
       // ─── stream: true without `success` overloads ────────────────────────────────────────────────
       <
@@ -314,7 +320,9 @@ export const makeRpcClient = <
         ModuleName,
         Type,
         true,
-        Resources
+        Resources,
+        never,
+        Middleware
       >
       <
         Tag extends string,
@@ -349,7 +357,9 @@ export const makeRpcClient = <
         ModuleName,
         Type,
         true,
-        Resources
+        Resources,
+        never,
+        Middleware
       >
       // ─── non-stream overloads ────────────────────────────────────────────────────────────────────
       <
@@ -397,7 +407,8 @@ export const makeRpcClient = <
         Type,
         false,
         Resources,
-        [Final] extends [never] ? never : SchemaOrFields<Final>
+        [Final] extends [never] ? never : SchemaOrFields<Final>,
+        Middleware
       >
       <
         Tag extends string,
@@ -447,7 +458,8 @@ export const makeRpcClient = <
         Type,
         false,
         Resources,
-        [Final] extends [never] ? never : SchemaOrFields<Final>
+        [Final] extends [never] ? never : SchemaOrFields<Final>,
+        Middleware
       >
       <
         Tag extends string,
@@ -490,7 +502,9 @@ export const makeRpcClient = <
         ModuleName,
         Type,
         false,
-        Resources
+        Resources,
+        never,
+        Middleware
       >
       <
         Tag extends string,
@@ -520,7 +534,9 @@ export const makeRpcClient = <
         ModuleName,
         Type,
         false,
-        Resources
+        Resources,
+        never,
+        Middleware
       >
       <Tag extends string, Payload extends S.Struct.Fields>(
         tag: Tag,
@@ -534,7 +550,10 @@ export const makeRpcClient = <
         Record<string, never>,
         ModuleName,
         Type,
-        false
+        false,
+        never,
+        never,
+        Middleware
       >
     } {
       return (<Tag extends string, Fields extends S.Struct.Fields, C extends ServiceMap>(
@@ -546,7 +565,13 @@ export const makeRpcClient = <
         const isStream = (config as any)?.stream === true
         const requestConfig = invalidatesQueries === undefined ? config : { ...config, invalidatesQueries }
         const cls = makeRequestClass(tag, fields, requestConfig)
-        Object.assign(cls, { id: `${moduleName}.${tag}`, moduleName, type, stream: isStream })
+        Object.assign(cls, {
+          id: `${moduleName}.${tag}`,
+          moduleName,
+          type,
+          stream: isStream,
+          ...(middleware !== undefined ? { middleware } : {})
+        })
         return cls
       }) as any
     }

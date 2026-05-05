@@ -201,7 +201,7 @@ export const middleware3 = MiddlewareMaker
   .middleware(Test)
   .middleware(BogusMiddleware)
 
-export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+export const { TaggedRequestFor } = makeRpcClient(RequestContextMap, undefined, middleware)
 const Req = TaggedRequestFor("Something")
 const Command = Req.Command
 const Query = Req.Query
@@ -286,13 +286,9 @@ export class SomethingService2 extends Context.Service<SomethingService2>()(
   static Default = Layer.effect(this, this.make)
 }
 
-export const { Router, matchAll } = makeRouter(
-  middleware
-)
+export const { Router, matchAll } = makeRouter()
 
-export const r2 = makeRouter(
-  Object.assign(middleware2, { Default: middleware2.layer.pipe(Layer.provide([...MiddlewaresLive])) })
-)
+export const r2 = makeRouter()
 
 const router = Router(Something)({
   dependencies: [

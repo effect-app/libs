@@ -46,6 +46,7 @@ export type Req = S.Top & {
   readonly moduleName: string
   readonly type: "command" | "query"
   readonly stream: boolean
+  readonly middleware?: unknown
 }
 
 class RequestName extends Context.Reference("RequestName", {
@@ -110,9 +111,9 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
   return filtered as unknown as Filtered
 }
 
-export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: ExtractModuleName<M> } => {
+export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: ExtractModuleName<M>; middleware?: unknown } => {
   const first = typedValuesOf(getFiltered(resource))[0]
-  if (first && "moduleName" in first) return { moduleName: first.moduleName }
+  if (first && "moduleName" in first) return { moduleName: first.moduleName, middleware: (first as any).middleware }
   throw new Error("No moduleName on requests!")
 }
 
@@ -181,9 +182,9 @@ const makeApiClientFactory = Effect
       requestLevelLayers = Layer.empty,
       options?: ClientForOptions
     ) {
-      const TheClient = makeRpcTag(resource, options?.middleware)
-
       const meta = getMeta(resource)
+
+      const TheClient = makeRpcTag(resource, options?.middleware ?? meta.middleware)
 
       // TODO: somehow we need a protocol per REQUEST kind of it seems ...
       // otherwise it locks up on the client, navigation remains empty...

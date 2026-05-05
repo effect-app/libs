@@ -192,6 +192,7 @@
     "repo-mutations-accept-empty-arrays",
     "repo-spans-itemtype",
     "repository-registry",
+    "require-middleware-layers",
     "resolver-cache-use-official",
     "router-no-meta",
     "rpc-stream-support",

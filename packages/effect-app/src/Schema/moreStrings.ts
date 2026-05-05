@@ -134,7 +134,8 @@ export interface StringIdBrand extends Simplify<B.Brand<"StringId"> & NonEmptySt
  */
 export type StringId = string & StringIdBrand
 
-const makeStringId = (): StringId => nanoid() as unknown as StringId
+const makeStringId = (s?: string): StringId =>
+  s !== undefined ? S.decodeSync(StringId)(s) : nanoid() as unknown as StringId
 const minLength = 6
 const maxLength = 50
 const size = 21
@@ -219,6 +220,7 @@ export const brandedStringId = <
   withDefaultMake(
     Object.assign(Object.create(StringId), StringId) as S.Codec<Id, string> & {
       withDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
+      make: () => Id
     } & WithDefaults<S.Codec<Id, string>>
   )
 

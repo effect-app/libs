@@ -211,11 +211,9 @@ type EnsureMiddlewareProvided<Live, MW> = [MW] extends [never] ? unknown
 
 // Safe wrappers that check the constraint before calling GetEffectContext/GetEffectError.
 // These avoid TypeScript constraint errors when the RC map type is deferred (generic).
-type SafeGetEffectContext<RCM, Config> = RCM extends Record<string, RpcContextMap.Any>
-  ? GetEffectContext<RCM, Config>
+type SafeGetEffectContext<RCM, Config> = RCM extends Record<string, RpcContextMap.Any> ? GetEffectContext<RCM, Config>
   : never
-type SafeGetEffectError<RCM, Config> = RCM extends Record<string, RpcContextMap.Any>
-  ? GetEffectError<RCM, Config>
+type SafeGetEffectError<RCM, Config> = RCM extends Record<string, RpcContextMap.Any> ? GetEffectError<RCM, Config>
   : never
 
 export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer<any, never, never>>(

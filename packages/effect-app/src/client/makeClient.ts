@@ -1,6 +1,6 @@
 import { SchemaTransformation } from "effect"
 import type * as Exit from "effect/Exit"
-import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "../rpc/RpcContextMap.js"
+import { type GetContextConfig, type RpcContextMap } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
 
@@ -15,15 +15,6 @@ export interface ClientMiddleware<RequestContextMap extends Record<string, RpcCo
   readonly provides?: unknown
   readonly requires?: unknown
 }
-
-/**
- * @internal
- * Adapts the wrapper shape `{ config: Record<string, RpcContextMap.Any> }` accepted
- * by `makeRpcClient` to the inner map expected by `ClientMiddleware`.
- */
-type RcsConfig<R extends RequestContextMapTagAny> = R["config"] extends Record<string, RpcContextMap.Any>
-  ? R["config"]
-  : Record<string, RpcContextMap.Any>
 
 const merge = (a: any, b: Array<any>) =>
   a !== undefined && b.length ? S.Union([a, ...b]) : a !== undefined ? a : b.length ? S.Union(b) : S.Never
@@ -131,10 +122,9 @@ type TaggedRequestForResult<
   & ([Final] extends [never] ? {} : { readonly final: Final })
 
 export const makeRpcClient = <
-  RequestContextMap extends RequestContextMapTagAny,
-  GeneralErrors extends S.Top = never,
-  Middleware extends ClientMiddleware<RcsConfig<RequestContextMap>> | undefined = undefined
->(rcs: RequestContextMap, generalErrors?: GeneralErrors, middleware?: Middleware) => {
+  Middleware extends ClientMiddleware<Record<string, RpcContextMap.Any>>,
+  GeneralErrors extends S.Top = never
+>(middleware: Middleware, generalErrors?: GeneralErrors) => {
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type ServiceMap = {
     success: S.Top | S.Struct.Fields // SchemaOrFields will make a Schema type out of Struct.Fields
@@ -143,7 +133,7 @@ export const makeRpcClient = <
     stream?: boolean // request metadata — stripped from stored config
   }
 
-  type RequestConfig = GetContextConfig<RequestContextMap["config"]>
+  type RequestConfig = GetContextConfig<Middleware["requestContextMap"]>
 
   // Errors raised by RPC middleware (e.g. `NotLoggedInError` from auth) used to
   // be merged into `resource.error` here so they would surface in the wire
@@ -155,10 +145,6 @@ export const makeRpcClient = <
   type ErrorResult<C> = C extends { error: infer E } ? MergeError<E>
     : [GeneralErrors] extends [never] ? typeof S.Never
     : GeneralErrors
-
-  // Suppress unused-warning for the rcm parameter — it's still load-bearing for
-  // the type-side `RequestConfig` definition above.
-  void rcs
 
   function makeRequestClass<Tag extends string, Fields extends S.Struct.Fields, C extends Partial<ServiceMap>>(
     tag: Tag,
@@ -590,7 +576,7 @@ export const makeRpcClient = <
           moduleName,
           type,
           stream: isStream,
-          ...(middleware !== undefined ? { middleware } : {})
+          middleware
         })
         return cls
       }) as any

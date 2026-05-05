@@ -11,7 +11,11 @@ export class RequestContextMap extends RpcContextMap.makeMap({
   test: RpcContextMap.make()(S.Never)
 }) {}
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const stubMiddleware = {
+  requestContextMap: RequestContextMap.config,
+  requestContext: undefined as never
+}
+const { TaggedRequestFor } = makeRpcClient(stubMiddleware)
 const TaggedRequest = TaggedRequestFor("Test").Query
 
 export class Stats extends TaggedRequest<Stats>()("Stats", {}, {

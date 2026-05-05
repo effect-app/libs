@@ -40,13 +40,15 @@ class AppMiddleware extends MiddlewareMaker
   .middleware(...DefaultGenericMiddlewares)
 {
   static Default = this.layer.pipe(
-    Layer.provide([
-      RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
-      AllowAnonymousLive,
-      TestLive,
-      SomeElseMiddlewareLive,
-      DefaultGenericMiddlewaresLive
-    ] as const)
+    Layer.provide(
+      [
+        RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
+        AllowAnonymousLive,
+        TestLive,
+        SomeElseMiddlewareLive,
+        DefaultGenericMiddlewaresLive
+      ] as const
+    )
   )
 }
 
@@ -60,7 +62,7 @@ const DynamicKey: Invalidation.InvalidationKey = ["dynamic", "key"]
 const ExtraKey: Invalidation.InvalidationKey = ["extra", "key"]
 const StreamKey: Invalidation.InvalidationKey = ["stream", "key"]
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap, undefined, AppMiddleware)
+const { TaggedRequestFor } = makeRpcClient(AppMiddleware)
 const Req = TaggedRequestFor("Inv")
 
 class CmdBoom extends TaggedErrorClass<CmdBoom>()("CmdBoom", { reason: S.String }) {}

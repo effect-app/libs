@@ -37,13 +37,15 @@ class AppMiddleware extends MiddlewareMaker
   .middleware(...DefaultGenericMiddlewares)
 {
   static Default = this.layer.pipe(
-    Layer.provide([
-      RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
-      AllowAnonymousLive,
-      TestLive,
-      SomeElseMiddlewareLive,
-      DefaultGenericMiddlewaresLive
-    ] as const)
+    Layer.provide(
+      [
+        RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
+        AllowAnonymousLive,
+        TestLive,
+        SomeElseMiddlewareLive,
+        DefaultGenericMiddlewaresLive
+      ] as const
+    )
   )
 }
 
@@ -53,7 +55,7 @@ const { Router, matchAll } = makeRouter(AppMiddleware.Default)
 // Resources — Stream with and without payload.
 // ---------------------------------------------------------------------------
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap, undefined, AppMiddleware)
+const { TaggedRequestFor } = makeRpcClient(AppMiddleware)
 const Req = TaggedRequestFor("Streamy")
 
 class StreamTicks extends Req.Command<StreamTicks>()("StreamTicks", {}, {

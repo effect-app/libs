@@ -111,7 +111,9 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
   return filtered as unknown as Filtered
 }
 
-export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: ExtractModuleName<M>; middleware?: unknown } => {
+export const getMeta = <M extends RequestsAny>(
+  resource: M
+): { moduleName: ExtractModuleName<M>; middleware?: unknown } => {
   const first = typedValuesOf(getFiltered(resource))[0]
   if (first && "moduleName" in first) return { moduleName: first.moduleName, middleware: (first as any).middleware }
   throw new Error("No moduleName on requests!")

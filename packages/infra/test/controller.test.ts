@@ -187,13 +187,6 @@ const middlewareQuater = MiddlewareMaker
 
 expectTypeOf(middleware["Service"]).toEqualTypeOf<typeof middlewareQuater["Service"]>()
 
-const middleware2 = MiddlewareMaker
-  .Tag()("middleware", RequestContextMap)
-  .middleware(MyContextProvider)
-  .middleware(RequireRoles, Test)
-  .middleware(AllowAnonymous)
-  .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
-
 export const middleware3 = MiddlewareMaker
   .Tag()("middleware", RequestContextMap)
   .middleware(...genericMiddlewares)
@@ -201,7 +194,7 @@ export const middleware3 = MiddlewareMaker
   .middleware(Test)
   .middleware(BogusMiddleware)
 
-export const { TaggedRequestFor } = makeRpcClient(RequestContextMap, undefined, middleware)
+export const { TaggedRequestFor } = makeRpcClient(middleware)
 const Req = TaggedRequestFor("Something")
 const Command = Req.Command
 const Query = Req.Query

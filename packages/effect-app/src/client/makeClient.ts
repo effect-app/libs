@@ -1,8 +1,29 @@
 import { SchemaTransformation } from "effect"
 import type * as Exit from "effect/Exit"
-import { type GetContextConfig, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
+import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
+
+/**
+ * Minimal structural shape for an rpc-client middleware tag.
+ * Captures only what `makeRpcClient` and routing/client factory consume from it
+ * (no `Default` layer required — that is provided to `makeRouter`).
+ */
+export interface ClientMiddleware<RequestContextMap extends Record<string, RpcContextMap.Any>> {
+  readonly requestContextMap: RequestContextMap
+  readonly requestContext: unknown
+  readonly provides?: unknown
+  readonly requires?: unknown
+}
+
+/**
+ * @internal
+ * Adapts the wrapper shape `{ config: Record<string, RpcContextMap.Any> }` accepted
+ * by `makeRpcClient` to the inner map expected by `ClientMiddleware`.
+ */
+type RcsConfig<R extends RequestContextMapTagAny> = R["config"] extends Record<string, RpcContextMap.Any>
+  ? R["config"]
+  : Record<string, RpcContextMap.Any>
 
 const merge = (a: any, b: Array<any>) =>
   a !== undefined && b.length ? S.Union([a, ...b]) : a !== undefined ? a : b.length ? S.Union(b) : S.Never
@@ -112,8 +133,7 @@ type TaggedRequestForResult<
 export const makeRpcClient = <
   RequestContextMap extends RequestContextMapTagAny,
   GeneralErrors extends S.Top = never,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Middleware = unknown
+  Middleware extends ClientMiddleware<RcsConfig<RequestContextMap>> | undefined = undefined
 >(rcs: RequestContextMap, generalErrors?: GeneralErrors, middleware?: Middleware) => {
   // Long way around Context/C extends etc to support actual jsdoc from passed in RequestConfig etc... (??)
   type ServiceMap = {

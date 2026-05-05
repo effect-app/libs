@@ -180,6 +180,34 @@ type RequestContextMapOf<MW> = MW extends {
   : Record<string, never>
 type LayerNormalize<L> = L extends Layer.Layer<any, infer E, infer R> ? Layer.Layer<never, E, R>
   : Layer.Layer<never, never, never>
+type LayerSuccess<L> = L extends Layer.Layer<infer A, any, any> ? A : never
+
+/**
+ * Middleware tags are typically passed to `makeRpcClient` as the class value, so
+ * the captured `MW` is a constructor type. Layers carry the *instance* type as
+ * their success channel. Bridge the two so the constraint compares like-with-like.
+ *
+ * Effect middleware classes declare `new(_: never): Shape` which the standard
+ * `T extends abstract new (...args: any) => infer I` form sometimes fails to
+ * narrow. Use the `prototype` member instead — it is always the instance type.
+ */
+type MWService<MW> = MW extends { readonly prototype: infer P } ? P : MW
+
+/**
+ * Type-level guard: emits a structural mismatch on `Resource` when the middleware
+ * service identifier extracted from the resource's request classes is not provided
+ * by the layer passed to `makeRouter`. When `MW` is `never` (no middleware on the
+ * resource) or already a subtype of the layer's success, this resolves to `unknown`
+ * and intersects harmlessly with `Resource`.
+ */
+type EnsureMiddlewareProvided<Live, MW> = [MW] extends [never] ? unknown
+  : [MWService<MW>] extends [LayerSuccess<Live>] ? unknown
+  : {
+    readonly __middlewareNotProvidedByRouterLayer: {
+      readonly expected: MWService<MW>
+      readonly providedByLayer: LayerSuccess<Live>
+    }
+  }
 
 // Safe wrappers that check the constraint before calling GetEffectContext/GetEffectError.
 // These avoid TypeScript constraint errors when the RC map type is deferred (generic).
@@ -205,7 +233,7 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
     const Resource extends Record<string, any>,
     MW = MiddlewareOf<Resource>
   >(
-    rsc: Resource,
+    rsc: Resource & EnsureMiddlewareProvided<Live, MW>,
     options?: { check?: Effect.Effect<boolean> }
   ) {
     // MW is a defaulted type parameter so TypeScript evaluates MiddlewareOf<Resource>

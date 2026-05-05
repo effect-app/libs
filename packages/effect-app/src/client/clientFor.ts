@@ -73,6 +73,17 @@ export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
 
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
+  /**
+   * Middleware tag to attach to every rpc on the client. Schema-only — the
+   * client never invokes the middleware (no Live impl required), but its
+   * declared `error` schema joins the rpc failure union via
+   * `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk. Required when
+   * middleware can throw errors that aren't part of the resource's declared
+   * error union (e.g. auth middleware throwing `NotLoggedInError`); without
+   * it the client decode would fail with a `SchemaError` for stream rpcs.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly middleware?: any
 }
 
 // $Project/$Configuration.Index

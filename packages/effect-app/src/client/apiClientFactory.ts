@@ -186,7 +186,7 @@ const makeApiClientFactory = Effect
     ) {
       const meta = getMeta(resource)
 
-      const TheClient = makeRpcTag(resource, options?.middleware ?? meta.middleware)
+      const TheClient = makeRpcTag(resource, meta.middleware)
 
       // TODO: somehow we need a protocol per REQUEST kind of it seems ...
       // otherwise it locks up on the client, navigation remains empty...

@@ -82,8 +82,6 @@ export interface ClientForOptions {
    * error union (e.g. auth middleware throwing `NotLoggedInError`); without
    * it the client decode would fail with a `SchemaError` for stream rpcs.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly middleware?: any
 }
 
 // $Project/$Configuration.Index

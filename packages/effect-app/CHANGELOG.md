@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.203
+
+### Patch Changes
+
+- 992d9fa: fix more branded types
+
 ## 4.0.0-beta.202
 
 ### Patch Changes

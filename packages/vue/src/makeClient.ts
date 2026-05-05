@@ -171,7 +171,9 @@ export type MutationWithExtensions<RT, Req> = Req extends
  */
 export type StreamFnStreamExtension<RT, Req> = Req extends
   RequestStreamHandlerWithInput<infer _I, infer _A, infer _E, infer _R, infer _Request, infer Id, infer _Final>
-  ? Commander.StreamGen<RT, Id, Id, undefined> & Commander.NonGenStream<RT, Id, Id, undefined>
+  ? <I18nKey extends string = Id, State extends Commander.IntlRecord | undefined = undefined>(
+    options?: Commander.FnOptions<Id, I18nKey, State>
+  ) => Commander.StreamGen<RT, Id, I18nKey, State> & Commander.NonGenStream<RT, Id, I18nKey, State>
   : never
 
 /**
@@ -747,7 +749,7 @@ export const makeClient = <RT_, RTHooks>(
                 ...client[key],
                 request,
                 query: useStreamQuery(client[key] as any),
-                fn: streamCmd.streamFn(client[key].id as any) as any,
+                fn: (options?: any) => streamCmd.streamFn(client[key].id as any, options),
                 mutate: (() => {
                   const sm2Act = useStreamMutation2()(client[key] as any, mergedInvalidation)
                   const sm2Handler = (input: any, _ctx: any) => (sm2Act as (i: any) => any)(input)

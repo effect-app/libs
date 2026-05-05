@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.205
+
+### Patch Changes
+
+- f313973: fix type make interface
+
 ## 4.0.0-beta.204
 
 ### Patch Changes

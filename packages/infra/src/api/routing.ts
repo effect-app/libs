@@ -12,7 +12,7 @@ import { typedKeysOf, typedValuesOf } from "effect-app/utils"
 import { type Yieldable } from "effect/Effect"
 import { Rpc, RpcGroup, type RpcSerialization, RpcServer } from "effect/unstable/rpc"
 import { type LayerUtils } from "./layerUtils.js"
-import { RequestType as RequestTypeAnnotation, type RouterMiddleware } from "./routing/middleware.js"
+import { RequestType as RequestTypeAnnotation } from "./routing/middleware.js"
 
 export * from "./routing/middleware.js"
 
@@ -168,37 +168,81 @@ export const skipOnProd = Effect
   })
   .pipe(Effect.orDie)
 
-export const makeRouter = <
-  Self,
-  RequestContextMap extends Record<string, RpcContextMap.Any>,
-  MakeMiddlewareE,
-  MakeMiddlewareR,
-  ContextProviderA,
-  ContextProviderE,
-  ContextProviderR,
-  RequestContextId
->(
-  middleware: RouterMiddleware<
-    Self,
-    RequestContextMap,
-    MakeMiddlewareE,
-    MakeMiddlewareR,
-    ContextProviderA,
-    ContextProviderE,
-    ContextProviderR,
-    RequestContextId
-  >
+// Type helpers to extract middleware information from a resource's request classes.
+type MiddlewareOf<M extends Record<string, any>> = Exclude<
+  { [K in keyof M]: M[K] extends { readonly middleware?: infer MW } ? NonNullable<MW> : never }[keyof M],
+  never
+>
+type ProvidesOf<MW> = MW extends { readonly provides: infer P } ? P : never
+type RequestContextMapOf<MW> = MW extends {
+  requestContextMap: infer RCM extends Record<string, RpcContextMap.Any>
+} ? RCM
+  : Record<string, never>
+type LayerNormalize<L> = L extends Layer.Layer<any, infer E, infer R> ? Layer.Layer<never, E, R>
+  : Layer.Layer<never, never, never>
+type LayerSuccess<L> = L extends Layer.Layer<infer A, any, any> ? A : never
+
+/**
+ * Middleware tags are typically passed to `makeRpcClient` as the class value, so
+ * the captured `MW` is a constructor type. Layers carry the *instance* type as
+ * their success channel. Bridge the two so the constraint compares like-with-like.
+ *
+ * Effect middleware classes declare `new(_: never): Shape` which the standard
+ * `T extends abstract new (...args: any) => infer I` form sometimes fails to
+ * narrow. Use the `prototype` member instead — it is always the instance type.
+ */
+type MWService<MW> = MW extends { readonly prototype: infer P } ? P : MW
+
+/**
+ * Type-level guard: emits a structural mismatch on `Resource` when the middleware
+ * service identifier extracted from the resource's request classes is not provided
+ * by the layer passed to `makeRouter`. When `MW` is `never` (no middleware on the
+ * resource) or already a subtype of the layer's success, this resolves to `unknown`
+ * and intersects harmlessly with `Resource`.
+ */
+type EnsureMiddlewareProvided<Live, MW> = [MW] extends [never] ? unknown
+  : [MWService<MW>] extends [LayerSuccess<Live>] ? unknown
+  : {
+    readonly __middlewareNotProvidedByRouterLayer: {
+      readonly expected: MWService<MW>
+      readonly providedByLayer: LayerSuccess<Live>
+    }
+  }
+
+// Safe wrappers that check the constraint before calling GetEffectContext/GetEffectError.
+// These avoid TypeScript constraint errors when the RC map type is deferred (generic).
+type SafeGetEffectContext<RCM, Config> = RCM extends Record<string, RpcContextMap.Any> ? GetEffectContext<RCM, Config>
+  : never
+type SafeGetEffectError<RCM, Config> = RCM extends Record<string, RpcContextMap.Any> ? GetEffectError<RCM, Config>
+  : never
+
+export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer<any, never, never>>(
+  middlewareLive?: Live
 ) => {
+  type ResourceMWDefault = LayerNormalize<Live>
+
   /**
-   * Create a Router for specified resource
-   * if `check` is provided, the router will only be created if the effect succeeds with true
+   * Create a Router for specified resource.
+   * Middleware schema/tag is read from the request classes (stored via `makeRpcClient`).
+   * The middleware **Live** layer is the one passed to `makeRouter`.
+   * If `check` is provided, the router will only be created if the effect succeeds with true.
    */
   function matchFor<
-    const Resource extends Record<string, any>
+    const Resource extends Record<string, any>,
+    MW = MiddlewareOf<Resource>
   >(
-    rsc: Resource,
+    rsc: Resource & EnsureMiddlewareProvided<Live, MW>,
     options?: { check?: Effect.Effect<boolean> }
   ) {
+    // MW is a defaulted type parameter so TypeScript evaluates MiddlewareOf<Resource>
+    // eagerly at each call site, producing a concrete type instead of a deferred conditional.
+    type ResourceRequestContextMap = RequestContextMapOf<MW>
+    type ResourceContextProviderA = ProvidesOf<MW>
+
+    type HandlerContext<Action extends AnyRequestModule> =
+      | SafeGetEffectContext<ResourceRequestContextMap, Action["config"]>
+      | ResourceContextProviderA
+
     type HandlerWithInputGen<
       Action extends AnyRequestModule,
       RT extends RequestType
@@ -211,7 +255,7 @@ export const makeRouter = <
         S.Schema.Type<GetFailure<Action>> | S.SchemaError,
         // the actual implementation of the handler may just require the dynamic context provided by the middleware
         // and the per request context provided by the context provider
-        GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
+        HandlerContext<Action>
       >,
       GetSuccessShape<Action, RT>,
       never
@@ -227,7 +271,7 @@ export const makeRouter = <
       S.Schema.Type<GetFailure<Action>> | S.SchemaError,
       // the actual implementation of the handler may just require the dynamic context provided by the middleware
       // and the per request context provided by the context provider
-      GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
+      HandlerContext<Action>
     >
 
     type HandlerWithInputStream<
@@ -238,7 +282,7 @@ export const makeRouter = <
     ) => Stream.Stream<
       GetSuccessShape<Action, RT>,
       S.Schema.Type<GetFailure<Action>> | S.SchemaError,
-      GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
+      HandlerContext<Action>
     >
 
     type Handlers<Action extends AnyRequestModule, RT extends RequestType> =
@@ -299,7 +343,7 @@ export const makeRouter = <
         })
         return prev
       },
-      {} as RouteMatcher<RequestContextMap, Resource>
+      {} as RouteMatcher<ResourceRequestContextMap, Resource>
     )
 
     const router3: <
@@ -328,8 +372,8 @@ export const makeRouter = <
                 Yieldable<any, any, any, infer R>
               > ? R
               : never,
-            | GetEffectContext<RequestContextMap, Resource[K]["config"]>
-            | ContextProviderA
+            | SafeGetEffectContext<ResourceRequestContextMap, Resource[K]["config"]>
+            | ResourceContextProviderA
           >,
           Scope.Scope
         >
@@ -369,6 +413,9 @@ export const makeRouter = <
             : make(router3) as any) as Effect.Effect<THandlers, MakeE, MakeR>
 
           const controllers = yield* finalMake
+
+          // Read the middleware from the resource's request classes at runtime
+          const mw = meta.middleware as any
 
           // return make.pipe(Effect.map((c) => controllers(c, dependencies)))
           const mapped = typedKeysOf(requestModules).reduce((acc, cur) => {
@@ -495,10 +542,10 @@ export const makeRouter = <
               ) => Effect.Effect<
                 Effect.Success<ReturnType<THandlers[K]["handler"]>>,
                 | Effect.Error<ReturnType<THandlers[K]["handler"]>>
-                | GetEffectError<RequestContextMap, Resource[K]["config"]>,
+                | SafeGetEffectError<ResourceRequestContextMap, Resource[K]["config"]>,
                 Exclude<
                   Effect.Services<ReturnType<THandlers[K]["handler"]>>,
-                  ContextProviderA | GetEffectContext<RequestContextMap, Resource[K]["config"]>
+                  ResourceContextProviderA | SafeGetEffectContext<ResourceRequestContextMap, Resource[K]["config"]>
                 >
               >
             ]
@@ -528,12 +575,12 @@ export const makeRouter = <
                     error: resource.error,
                     stream: isStream
                   }))
-                  .annotate(middleware.requestContext, resource.config ?? {})
+                  .annotate(mw.requestContext, resource.config ?? {})
                   .annotate(RequestTypeAnnotation, resource.type)
               })
             )
             .prefix(`${meta.moduleName}.`)
-            .middleware(middleware as any)
+            .middleware(mw)
 
           const rpc = rpcs
             .toLayer(Effect.gen(function*() {
@@ -561,7 +608,7 @@ export const makeRouter = <
       const routes = layer.pipe(
         Layer.provide([
           dependenciesL,
-          middleware.Default
+          (middlewareLive ?? Layer.empty) as Layer.Layer<any, any, any>
         ])
       )
 
@@ -603,9 +650,9 @@ export const makeRouter = <
           never,
           | MakeErrors<Make>
           | MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
+          | Layer.Error<ResourceMWDefault>,
           | MakeDepsIn<Make>
-          | Layer.Services<typeof middleware.Default>
+          | Layer.Services<ResourceMWDefault>
           | Exclude<
             MakeContext<Make>,
             MakeDepsOut<Make>
@@ -632,9 +679,9 @@ export const makeRouter = <
           never,
           | MakeErrors<Make>
           | MakeDepsE<Make>
-          | Layer.Error<typeof middleware.Default>,
+          | Layer.Error<ResourceMWDefault>,
           | MakeDepsIn<Make>
-          | Layer.Services<typeof middleware.Default>
+          | Layer.Services<ResourceMWDefault>
           | Exclude<
             MakeContext<Make>,
             MakeDepsOut<Make>

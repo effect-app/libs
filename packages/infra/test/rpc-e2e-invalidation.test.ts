@@ -40,17 +40,19 @@ class AppMiddleware extends MiddlewareMaker
   .middleware(...DefaultGenericMiddlewares)
 {
   static Default = this.layer.pipe(
-    Layer.provide([
-      RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
-      AllowAnonymousLive,
-      TestLive,
-      SomeElseMiddlewareLive,
-      DefaultGenericMiddlewaresLive
-    ])
+    Layer.provide(
+      [
+        RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
+        AllowAnonymousLive,
+        TestLive,
+        SomeElseMiddlewareLive,
+        DefaultGenericMiddlewaresLive
+      ] as const
+    )
   )
 }
 
-const { Router, matchAll } = makeRouter(AppMiddleware)
+const { Router, matchAll } = makeRouter(AppMiddleware.Default)
 
 // ---------------------------------------------------------------------------
 // Resources
@@ -60,7 +62,7 @@ const DynamicKey: Invalidation.InvalidationKey = ["dynamic", "key"]
 const ExtraKey: Invalidation.InvalidationKey = ["extra", "key"]
 const StreamKey: Invalidation.InvalidationKey = ["stream", "key"]
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const { TaggedRequestFor } = makeRpcClient(AppMiddleware)
 const Req = TaggedRequestFor("Inv")
 
 class CmdBoom extends TaggedErrorClass<CmdBoom>()("CmdBoom", { reason: S.String }) {}
@@ -171,7 +173,7 @@ const withCapture = <A, E, R>(eff: Effect.Effect<A, E, R>) =>
 it.live(
   "command with no invalidation keys: caller sees raw payload, no keys forwarded",
   Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty, { middleware: AppMiddleware })(InvRsc)
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoNothing.handler())
     expect(Exit.isSuccess(result)).toBe(true)
     expect(keys).toStrictEqual([])
@@ -182,7 +184,7 @@ it.live(
 it.live(
   "command with dynamic InvalidationSet.use: payload + key forwarded",
   Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty, { middleware: AppMiddleware })(InvRsc)
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoWithDynamicKey.handler())
     expect(Exit.isSuccess(result) && result.value).toBe("done")
     expect(keys).toStrictEqual([DynamicKey])
@@ -193,7 +195,7 @@ it.live(
 it.live(
   "command accumulating multiple dynamic keys: all keys forwarded in order",
   Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty, { middleware: AppMiddleware })(InvRsc)
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoWithBothKeys.handler())
     expect(Exit.isSuccess(result) && result.value).toBe(99)
     expect(keys).toStrictEqual([DynamicKey, ExtraKey])
@@ -204,7 +206,7 @@ it.live(
 it.live(
   "per-request isolation: each command call starts with a fresh InvalidationSet",
   Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty, { middleware: AppMiddleware })(InvRsc)
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const r1 = yield* withCapture(client.DoWithDynamicKey.handler())
     const r2 = yield* withCapture(client.DoWithDynamicKey.handler())
     // Each call must have exactly one key — no accumulation across calls
@@ -217,7 +219,7 @@ it.live(
 it.live(
   "command failure (V2): keys accumulated before fail still reach the client; original error re-thrown",
   Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty, { middleware: AppMiddleware })(InvRsc)
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const { result, keys } = yield* withCapture(client.DoAndFail.handler())
     expect(Exit.isFailure(result)).toBe(true)
     if (Exit.isFailure(result)) {
@@ -233,7 +235,7 @@ it.live(
 it.live(
   "stream: per-chunk metadata drains keys mid-stream",
   Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty, { middleware: AppMiddleware })(InvRsc)
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(InvRsc)
     const ref = yield* Ref.make<ReadonlyArray<Invalidation.InvalidationKey>>([])
     const svc = makeInvalidationKeysService(ref)
     const values = yield* Stream.runCollect(client.StreamWithKey.handler()).pipe(

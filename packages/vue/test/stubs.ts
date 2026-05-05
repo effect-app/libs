@@ -116,7 +116,11 @@ export const useExperimentalE = (
 }
 
 export class RequestContextMap extends RpcContextMap.makeMap({}) {}
-export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const stubMiddleware = {
+  requestContextMap: RequestContextMap.config,
+  requestContext: undefined as never
+}
+export const { TaggedRequestFor } = makeRpcClient(stubMiddleware)
 
 export const SomethingReq = TaggedRequestFor("Something")
 const SomethingQuery = SomethingReq.Query

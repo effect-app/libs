@@ -126,10 +126,15 @@ export const DevModeMiddlewareLive = Layer
  * RPC middleware that:
  * 1. Reads the `Invalidates` annotation and pre-populates `InvalidationSet` with static keys.
  * 2. Creates a request-scoped `InvalidationSet` backed by a `Ref` and provides it to the handler.
- * 3. For commands: wraps the result in `{ payload, metadata: { invalidateQueries } }` so that
- *    accumulated invalidation keys reach the client via the RPC response body.
- * 4. For commands (V2): also wraps failures in `CommandFailureWithMetaData` so clients can
- *    invalidate queries even when a command fails.
+ * 3. For commands: wraps the success value in `{ payload, metadata: { invalidateQueries } }` and
+ *    handler-thrown failures in `CommandFailureWithMetaData` so accumulated invalidation keys
+ *    reach the client.
+ *
+ * NOTE: `makeRouter` does NOT include this middleware in its default chain — the routing layer
+ * applies the equivalent wrap directly so middleware-thrown errors stay raw on the Cause and
+ * are decoded via the `rpc.middlewares[*].error` failure-union channel of `Rpc.exitSchema`.
+ * This middleware remains exported for callers that wire `Rpc.make(...).middleware(...)` by
+ * hand (e.g. focused tests that bypass the router).
  */
 export const InvalidationMiddlewareLive = Layer.succeed(
   InvalidationMiddleware,
@@ -149,8 +154,6 @@ export const InvalidationMiddlewareLive = Layer.succeed(
             Invalidation.makeInvalidationSet(keysRef)
           )
 
-          // Stream resources handle their own invalidation wrapping in routing.ts
-          // (per-chunk { _tag: "value"|"metadata"|"done" } envelope).
           if (!isCommand || isStream) return withSet
 
           return withSet.pipe(
@@ -159,8 +162,6 @@ export const InvalidationMiddlewareLive = Layer.succeed(
                 Effect.map((keys) => ({ payload: value, metadata: { invalidateQueries: keys } }) as any)
               )
             ),
-            // V2: wrap command failures with metadata so the client can invalidate
-            // queries even when the command fails.
             Effect.catch((err: any) =>
               Ref.get(keysRef).pipe(
                 Effect.flatMap((keys) =>

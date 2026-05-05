@@ -218,6 +218,11 @@ const makeApiClientFactory = Effect
 
       const filtered = getFiltered(resource)
 
+      // Unwrap `CommandResponseWithMetaData` (success) and `CommandFailureWithMetaData`
+      // (handler-thrown failure): forward accumulated invalidation keys to
+      // `InvalidationKeysFromServer` and yield the raw payload / re-fail with the raw
+      // error. Middleware-thrown failures arrive raw on the Cause already (no wrap to
+      // strip) — the `else` branch passes them through.
       const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
         eff.pipe(
           Effect.flatMap((result: any) =>
@@ -228,8 +233,6 @@ const makeApiClientFactory = Effect
               return result.payload
             })
           ),
-          // V2: unwrap CommandFailureWithMetaData failures — forward keys, re-fail with the
-          // original error so callers see the unmodified error type.
           Effect.catch((result: any) =>
             result?._tag === "CommandFailureWithMetaData"
               ? Effect.gen(function*() {

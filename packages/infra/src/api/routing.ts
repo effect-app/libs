@@ -445,11 +445,42 @@ export const makeRouter = <
                     )
                   )
                 }
-                const effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
+                let effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
                   Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {}, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
                 )
+
+                // Commands: provide a request-scoped `InvalidationSet` and wrap both
+                // success (`CommandResponseWithMetaData`) and handler-thrown failure
+                // (`CommandFailureWithMetaData`) so the client receives accumulated
+                // invalidation keys on either path. Middleware-thrown errors bypass the
+                // wrap (they fail the outer effect before reaching this `.catch`) and
+                // flow raw on the Cause; client decodes them via the rpc's
+                // `middlewares[*].error` failure-union channel.
+                if (resource.type === "command") {
+                  const keysRef = Ref.makeUnsafe<ReadonlyArray<Invalidation.InvalidationKey>>([])
+                  const invalidationSet = Invalidation.makeInvalidationSet(keysRef)
+                  effect = effect.pipe(
+                    Effect.provideService(Invalidation.InvalidationSet, invalidationSet),
+                    Effect.flatMap((value) =>
+                      Ref.get(keysRef).pipe(
+                        Effect.map((keys) => ({ payload: value, metadata: { invalidateQueries: keys } }) as any)
+                      )
+                    ),
+                    Effect.catch((err: any) =>
+                      Ref.get(keysRef).pipe(
+                        Effect.flatMap((keys) =>
+                          Effect.fail({
+                            _tag: "CommandFailureWithMetaData" as const,
+                            error: err,
+                            metadata: { invalidateQueries: keys }
+                          })
+                        )
+                      )
+                    )
+                  )
+                }
 
                 return applyRequestTypeInterruptibility(resource.type, effect)
               }

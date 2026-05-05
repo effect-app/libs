@@ -139,6 +139,7 @@
     "meta-codegen-no-export",
     "metal-mammals-smell",
     "middleware-error-from-dynamic-rcm",
+    "middleware-errors-via-rpc-tag",
     "mighty-hoops-help",
     "migrate-tsgolint",
     "modern-humans-chew",

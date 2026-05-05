@@ -7,7 +7,7 @@ import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
-import { Rpc, RpcClient, RpcGroup, RpcMiddleware, RpcSerialization } from "effect/unstable/rpc"
+import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
 import * as Config from "../Config.js"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
@@ -118,17 +118,19 @@ export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: Extra
 
 export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, const ModuleName extends string>(
   resource: M,
-  moduleName: ModuleName
+  moduleName: ModuleName,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  middleware?: any
 ) => {
   const filtered = getFiltered(resource)
   type newM = typeof filtered
-  const rpcs = RpcGroup
+  const baseRpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
         const r = _ as any
         const isStream = r.stream
         const isCommand = r.type === "command"
-        const rpc = (isCommand
+        return (isCommand
           ? isStream
             ? Invalidation.makeStreamRpc(r._tag, {
               payload: r,
@@ -138,32 +140,24 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
             })
             : Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
           : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error, stream: isStream })) as any
-
-        // Stream rpcs force `errorSchema = Never` in effect-rpc and bury the
-        // resource error union inside `StreamFailureChunk`. Middleware-thrown
-        // errors (e.g. `NotLoggedInError` from auth) reach the Cause un-wrapped
-        // and would fail client decode. Attach a synthetic schema-only middleware
-        // tag carrying the resource error union so `Rpc.exitSchema` includes it
-        // in the failure union via the `rpc.middlewares[*].error` channel.
-        if (isStream && r.error) {
-          const ErrorBag = RpcMiddleware.Service<any>()(
-            `${moduleName}.${r._tag}.ClientErrorBag`,
-            { error: r.error }
-          )
-          return rpc.middleware(ErrorBag as any)
-        }
-        return rpc
       })
     )
-    .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<
-      Rpc.Prefixed<RpcHandlers<newM>[keyof newM], `${ModuleName}.`>
-    >
+    .prefix(`${moduleName}.`)
+  // Attach the middleware tag (schema-only on the client — no Live invoked)
+  // so its declared `error` joins the rpc failure union via
+  // `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk. Required for stream
+  // rpcs whose top-level `errorSchema` is forced to `Never` by effect-rpc;
+  // without it, middleware-thrown errors fail client decode.
+  const rpcs = (middleware ? baseRpcs.middleware(middleware) : baseRpcs) as unknown as RpcGroup.RpcGroup<
+    Rpc.Prefixed<RpcHandlers<newM>[keyof newM], `${ModuleName}.`>
+  >
   return rpcs
 }
 
-const makeRpcTag = <M extends RequestsAny>(resource: M) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeRpcTag = <M extends RequestsAny>(resource: M, middleware?: any) => {
   const meta = getMeta(resource)
-  const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName)
+  const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName, middleware)
 
   // Use Object.assign instead of class extension to avoid TS2509 with complex generic return types.
   // The first type arg is `any` because this is a dynamically created tag — its identity is the string key.
@@ -187,7 +181,7 @@ const makeApiClientFactory = Effect
       requestLevelLayers = Layer.empty,
       options?: ClientForOptions
     ) {
-      const TheClient = makeRpcTag(resource)
+      const TheClient = makeRpcTag(resource, options?.middleware)
 
       const meta = getMeta(resource)
 
@@ -209,6 +203,11 @@ const makeApiClientFactory = Effect
 
       const filtered = getFiltered(resource)
 
+      // Unwrap `CommandResponseWithMetaData` (success) and `CommandFailureWithMetaData`
+      // (handler-thrown failure): forward accumulated invalidation keys to
+      // `InvalidationKeysFromServer` and yield the raw payload / re-fail with the raw
+      // error. Middleware-thrown failures arrive raw on the Cause already (no wrap to
+      // strip) — the `else` branch passes them through.
       const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
         eff.pipe(
           Effect.flatMap((result: any) =>
@@ -219,8 +218,6 @@ const makeApiClientFactory = Effect
               return result.payload
             })
           ),
-          // V2: unwrap CommandFailureWithMetaData failures — forward keys, re-fail with the
-          // original error so callers see the unmodified error type.
           Effect.catch((result: any) =>
             result?._tag === "CommandFailureWithMetaData"
               ? Effect.gen(function*() {

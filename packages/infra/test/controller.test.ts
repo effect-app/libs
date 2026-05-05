@@ -231,7 +231,7 @@ export class DoSomething extends Command<DoSomething>()("DoSomething", {
 
 export class GetSomething extends Query<GetSomething>()("GetSomething", {
   id: S.String
-}, { success: S.String }) {}
+}, { success: S.String, error: UnauthorizedError }) {}
 
 export class GetSomething2 extends Query<GetSomething2>()("GetSomething2", {
   id: S.String

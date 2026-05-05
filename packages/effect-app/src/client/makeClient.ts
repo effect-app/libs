@@ -1,6 +1,6 @@
 import { SchemaTransformation } from "effect"
 import type * as Exit from "effect/Exit"
-import { type GetContextConfig, type GetEffectError, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
+import { type GetContextConfig, type RequestContextMapTagAny } from "../rpc/RpcContextMap.js"
 import * as S from "../Schema.js"
 import { AST } from "../Schema.js"
 
@@ -121,13 +121,20 @@ export const makeRpcClient = <
 
   type RequestConfig = GetContextConfig<RequestContextMap["config"]>
 
+  // Errors raised by RPC middleware (e.g. `NotLoggedInError` from auth) used to
+  // be merged into `resource.error` here so they would surface in the wire
+  // failure schema. That merging is gone — the canonical source for middleware
+  // errors is now the middleware tag attached to the rpc on both server and
+  // client (see `ApiClientFactory.makeFor({ middleware })`). `Rpc.exitSchema`
+  // unions in `rpc.middlewares[*].error` automatically.
   type MergeError<E> = [GeneralErrors] extends [never] ? SchemaOrFields<E> : S.Union<[SchemaOrFields<E>, GeneralErrors]>
   type ErrorResult<C> = C extends { error: infer E } ? MergeError<E>
-    : [GeneralErrors] extends [never] ? GetEffectError<RequestContextMap["config"], C>
-    : MergeError<GetEffectError<RequestContextMap["config"], C>>
+    : [GeneralErrors] extends [never] ? typeof S.Never
+    : GeneralErrors
 
-  // TODO: filter errors based on config + take care of inversion
-  const errorSchemas = Object.values(rcs.config).map((_) => _.error)
+  // Suppress unused-warning for the rcm parameter — it's still load-bearing for
+  // the type-side `RequestConfig` definition above.
+  void rcs
 
   function makeRequestClass<Tag extends string, Fields extends S.Struct.Fields, C extends Partial<ServiceMap>>(
     tag: Tag,
@@ -136,7 +143,7 @@ export const makeRpcClient = <
   ) {
     const failureSchema = merge(
       config?.error ? S.isSchema(config.error) ? config.error : S.Struct(config.error) : undefined,
-      [...errorSchemas, generalErrors].filter(Boolean)
+      [generalErrors].filter(Boolean)
     )
     const successSchema = config?.success
       ? S.isSchema(config.success)

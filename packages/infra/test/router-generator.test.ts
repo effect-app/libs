@@ -58,7 +58,10 @@ class mw extends MiddlewareMaker
 const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
 const Req = TaggedRequestFor("GenRouter")
 
-class GetThing extends Req.Query<GetThing>()("GetThing", { id: S.String }, { success: S.String }) {}
+class GetThing extends Req.Query<GetThing>()("GetThing", { id: S.String }, {
+  success: S.String,
+  error: UnauthorizedError
+}) {}
 class DoThing extends Req.Command<DoThing>()("DoThing", { id: S.String }, { success: S.Void }) {}
 
 const Resource = { GetThing, DoThing }

@@ -178,9 +178,7 @@ type RequestContextMapOf<MW> = MW extends {
   requestContextMap: infer RCM extends Record<string, RpcContextMap.Any>
 } ? RCM
   : Record<string, never>
-type DefaultLayerOf<MW> = MW extends { Default: infer D }
-  ? D extends Layer.Layer<any, infer E, infer R> ? Layer.Layer<never, E, R>
-  : Layer.Layer<never, never, never>
+type LayerNormalize<L> = L extends Layer.Layer<any, infer E, infer R> ? Layer.Layer<never, E, R>
   : Layer.Layer<never, never, never>
 
 // Safe wrappers that check the constraint before calling GetEffectContext/GetEffectError.
@@ -192,10 +190,15 @@ type SafeGetEffectError<RCM, Config> = RCM extends Record<string, RpcContextMap.
   ? GetEffectError<RCM, Config>
   : never
 
-export const makeRouter = () => {
+export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer<any, never, never>>(
+  middlewareLive?: Live
+) => {
+  type ResourceMWDefault = LayerNormalize<Live>
+
   /**
    * Create a Router for specified resource.
-   * The middleware is read from the request classes (stored via `makeRpcClient`).
+   * Middleware schema/tag is read from the request classes (stored via `makeRpcClient`).
+   * The middleware **Live** layer is the one passed to `makeRouter`.
    * If `check` is provided, the router will only be created if the effect succeeds with true.
    */
   function matchFor<
@@ -209,7 +212,6 @@ export const makeRouter = () => {
     // eagerly at each call site, producing a concrete type instead of a deferred conditional.
     type ResourceRequestContextMap = RequestContextMapOf<MW>
     type ResourceContextProviderA = ProvidesOf<MW>
-    type ResourceMWDefault = DefaultLayerOf<MW>
 
     type HandlerContext<Action extends AnyRequestModule> =
       | SafeGetEffectContext<ResourceRequestContextMap, Action["config"]>
@@ -580,7 +582,7 @@ export const makeRouter = () => {
       const routes = layer.pipe(
         Layer.provide([
           dependenciesL,
-          (meta.middleware as any).Default
+          (middlewareLive ?? Layer.empty) as Layer.Layer<any, any, any>
         ])
       )
 

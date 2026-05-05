@@ -47,7 +47,7 @@ class AppMiddleware extends MiddlewareMaker
   )
 }
 
-const { Router, matchAll } = makeRouter()
+const { Router, matchAll } = makeRouter(AppMiddleware.Default)
 
 // ---------------------------------------------------------------------------
 // Resources — Stream with and without payload.

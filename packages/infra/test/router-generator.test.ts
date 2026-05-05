@@ -66,7 +66,7 @@ class DoThing extends Req.Command<DoThing>()("DoThing", { id: S.String }, { succ
 
 const Resource = { GetThing, DoThing }
 
-const { Router, matchAll } = makeRouter()
+const { Router, matchAll } = makeRouter(mw.Default)
 
 class ThingRepo extends Context.Service<ThingRepo>()("ThingRepo", {
   make: Effect.succeed({ get: (id: string) => Effect.succeed(id + "!") })

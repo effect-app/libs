@@ -286,9 +286,9 @@ export class SomethingService2 extends Context.Service<SomethingService2>()(
   static Default = Layer.effect(this, this.make)
 }
 
-export const { Router, matchAll } = makeRouter()
+export const { Router, matchAll } = makeRouter(middleware.Default)
 
-export const r2 = makeRouter()
+export const r2 = makeRouter(middleware.Default)
 
 const router = Router(Something)({
   dependencies: [

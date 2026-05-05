@@ -313,12 +313,10 @@ const router = Router(Something)({
     console.log({ repo, smth, smth2 })
 
     return match({
-      Eff: () =>
-        Effect
-          .gen(function*() {
-            const some = yield* Some
-            return yield* Effect.logInfo("Some", some)
-          }),
+      *Eff() {
+        const some = yield* Some
+        return yield* Effect.logInfo("Some", some)
+      },
 
       *Gen() {
         const some = yield* Some
@@ -350,7 +348,9 @@ const router = Router(Something)({
         }
       },
       GetSomething2: {
-        raw: () => Some.use(() => Effect.succeed("12"))
+        *raw() {
+          return yield* Some.use(() => Effect.succeed("12"))
+        }
       }
     })
   }
@@ -378,12 +378,10 @@ expectTypeOf({} as makeContext).toEqualTypeOf<
 const router2 = r2.Router(Something)({
   *effect(match) {
     return match({
-      Eff: () =>
-        Effect
-          .gen(function*() {
-            const some = yield* Some
-            return yield* Effect.logInfo("Some", some)
-          }),
+      *Eff() {
+        const some = yield* Some
+        return yield* Effect.logInfo("Some", some)
+      },
 
       *Gen() {
         const some = yield* Some
@@ -415,7 +413,9 @@ const router2 = r2.Router(Something)({
         }
       },
       GetSomething2: {
-        raw: () => Some.use(() => Effect.succeed("12"))
+        *raw() {
+          return yield* Some.use(() => Effect.succeed("12"))
+        }
       }
     })
   }

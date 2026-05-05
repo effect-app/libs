@@ -1,6 +1,5 @@
 import type * as B from "effect/Brand"
 import * as S from "effect/Schema"
-import type { Simplify } from "effect/Types"
 import { fromBrand, nominal } from "./brand.js"
 import { withDefaultMake } from "./ext.js"
 
@@ -16,7 +15,7 @@ export const NonEmptyString = S
     withDefaultMake
   )
 
-export interface NonEmptyString64kBrand extends Simplify<B.Brand<"NonEmptyString64k"> & NonEmptyStringBrand> {}
+export type NonEmptyString64kBrand = B.Brand<"NonEmptyString64k"> & NonEmptyStringBrand
 export type NonEmptyString64k = string & NonEmptyString64kBrand
 export const NonEmptyString64k = S
   .NonEmptyString
@@ -29,7 +28,7 @@ export const NonEmptyString64k = S
     withDefaultMake
   )
 
-export interface NonEmptyString2kBrand extends Simplify<B.Brand<"NonEmptyString2k"> & NonEmptyString64kBrand> {}
+export type NonEmptyString2kBrand = B.Brand<"NonEmptyString2k"> & NonEmptyString64kBrand
 export type NonEmptyString2k = string & NonEmptyString2kBrand
 export const NonEmptyString2k = S
   .NonEmptyString
@@ -42,7 +41,7 @@ export const NonEmptyString2k = S
     withDefaultMake
   )
 
-export interface NonEmptyString255Brand extends Simplify<B.Brand<"NonEmptyString255"> & NonEmptyString2kBrand> {}
+export type NonEmptyString255Brand = B.Brand<"NonEmptyString255"> & NonEmptyString2kBrand
 export type NonEmptyString255 = string & NonEmptyString255Brand
 export const NonEmptyString255 = S
   .NonEmptyString

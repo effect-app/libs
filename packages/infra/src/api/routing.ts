@@ -213,45 +213,19 @@ export const makeRouter = <
         // and the per request context provided by the context provider
         GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
       >,
-      GetSuccessShape<Action, RT>,
+      // stream requests: generator must return a Stream; non-stream: return the decoded/encoded success value
+      Action["stream"] extends true ? Stream.Stream<
+          GetSuccessShape<Action, RT>,
+          S.Schema.Type<GetFailure<Action>> | S.SchemaError,
+          GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
+        >
+        : GetSuccessShape<Action, RT>,
       never
     >
 
-    type HandlerWithInputEff<
-      Action extends AnyRequestModule,
-      RT extends RequestType
-    > = (
-      req: S.Schema.Type<Action>
-    ) => Effect.Effect<
-      GetSuccessShape<Action, RT>,
-      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
-      // the actual implementation of the handler may just require the dynamic context provided by the middleware
-      // and the per request context provided by the context provider
-      GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
-    >
+    type HandlersDecoded<Action extends AnyRequestModule> = HandlerWithInputGen<Action, RequestTypes.DECODED>
 
-    type HandlerWithInputStream<
-      Action extends AnyRequestModule,
-      RT extends RequestType
-    > = (
-      req: S.Schema.Type<Action>
-    ) => Stream.Stream<
-      GetSuccessShape<Action, RT>,
-      S.Schema.Type<GetFailure<Action>> | S.SchemaError,
-      GetEffectContext<RequestContextMap, Action["config"]> | ContextProviderA
-    >
-
-    type Handlers<Action extends AnyRequestModule, RT extends RequestType> =
-      | HandlerWithInputGen<Action, RT>
-      | HandlerWithInputEff<Action, RT>
-      | HandlerWithInputStream<Action, RT>
-
-    type HandlersDecoded<Action extends AnyRequestModule> = Handlers<Action, RequestTypes.DECODED>
-
-    type HandlersRaw<Action extends AnyRequestModule> =
-      | { raw: HandlerWithInputGen<Action, RequestTypes.RAW> }
-      | { raw: HandlerWithInputEff<Action, RequestTypes.RAW> }
-      | { raw: HandlerWithInputStream<Action, RequestTypes.RAW> }
+    type HandlersRaw<Action extends AnyRequestModule> = { raw: HandlerWithInputGen<Action, RequestTypes.RAW> }
 
     type AnyHandlers<Action extends AnyRequestModule> = HandlersRaw<Action> | HandlersDecoded<Action>
 
@@ -314,16 +288,19 @@ export const makeRouter = <
         Impl[K] extends { raw: any } ? RequestTypes.RAW : RequestTypes.DECODED,
         Exclude<
           Exclude<
-            // retrieves context R from the actual implementation of the handler
-            Impl[K] extends { raw: any }
-              ? Impl[K]["raw"] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
-              : Impl[K]["raw"] extends (...args: any[]) => Stream.Stream<any, any, infer R> ? R
+            // retrieves context R from the generator Yieldable AND from the returned Stream (for stream requests)
+            Impl[K] extends { raw: any } ? Impl[K]["raw"] extends (...args: any[]) => Generator<
+                Yieldable<any, any, any, infer R1>,
+                Stream.Stream<any, any, infer R2>
+              > ? R1 | R2
               : Impl[K]["raw"] extends (...args: any[]) => Generator<
                 Yieldable<any, any, any, infer R>
               > ? R
               : never
-              : Impl[K] extends (...args: any[]) => Effect.Effect<any, any, infer R> ? R
-              : Impl[K] extends (...args: any[]) => Stream.Stream<any, any, infer R> ? R
+              : Impl[K] extends (...args: any[]) => Generator<
+                Yieldable<any, any, any, infer R1>,
+                Stream.Stream<any, any, infer R2>
+              > ? R1 | R2
               : Impl[K] extends (...args: any[]) => Generator<
                 Yieldable<any, any, any, infer R>
               > ? R

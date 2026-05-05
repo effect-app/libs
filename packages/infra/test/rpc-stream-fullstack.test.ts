@@ -131,29 +131,41 @@ const StreamyRsc = {
 const router = Router(StreamyRsc)({
   *effect(match) {
     return match({
-      StreamTicks: () => Stream.fromIterable([10, 20, 30]),
-      StreamCountTo: ({ to }: { readonly to: number }) =>
-        Effect
-          .gen(function*() {
-            return Stream.range(1, to)
-          })
-          .pipe(Stream.unwrap),
+      *StreamTicks() {
+        return Stream.fromIterable([10, 20, 30])
+      },
+      *StreamCountTo({ to }) {
+        return Stream.range(1, to)
+      },
       // emits 3 values 100ms apart so the test can prove element-by-element
       // delivery rather than a single batched response
-      StreamRealtime: () =>
-        Stream.fromIterable([1, 2, 3]).pipe(
+      *StreamRealtime() {
+        return Stream.fromIterable([1, 2, 3]).pipe(
           Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
-        ),
+        )
+      },
       // returning Effect.fail from a stream handler should surface as a failing
       // stream on the client (not a protocol error)
-      StreamFailEffect: () => Effect.fail(new StreamBoom({ reason: "from-effect" })),
-      StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" })),
-      StreamNoSuccess: () => Stream.empty,
+      *StreamFailEffect() {
+        return yield* Effect.fail(new StreamBoom({ reason: "from-effect" }))
+      },
+      *StreamFailStream() {
+        return Stream.fail(new StreamBoom({ reason: "from-stream" }))
+      },
+      *StreamNoSuccess() {
+        return Stream.empty
+      },
       // handlers below are unreachable when middleware-auth fails; bodies exist
       // only so the resource type-checks
-      StreamRequiresAuth: () => Stream.fromIterable([1, 2, 3]),
-      CommandRequiresAuth: () => Effect.succeed(1),
-      QueryRequiresAuth: () => Effect.succeed(1)
+      *StreamRequiresAuth() {
+        return Stream.fromIterable([1, 2, 3])
+      },
+      *CommandRequiresAuth() {
+        return yield* Effect.succeed(1)
+      },
+      *QueryRequiresAuth() {
+        return yield* Effect.succeed(1)
+      }
     })
   }
 })

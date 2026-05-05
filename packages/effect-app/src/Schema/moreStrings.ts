@@ -2,7 +2,6 @@ import { Effect, pipe } from "effect"
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
 import * as S from "effect/Schema"
-import type { Simplify } from "effect/Types"
 import { customRandom, nanoid, urlAlphabet } from "nanoid"
 import validator from "validator"
 import { fromBrand, nominal } from "./brand.js"
@@ -15,7 +14,7 @@ const nonEmptyString = S.NonEmptyString
 /**
  * A string that is at least 1 character long and a maximum of 50.
  */
-export interface NonEmptyString50Brand extends Simplify<B.Brand<"NonEmptyString50"> & NonEmptyString64Brand> {}
+export type NonEmptyString50Brand = B.Brand<"NonEmptyString50"> & NonEmptyString64Brand
 
 /**
  * A string that is at least 1 character long and a maximum of 50.
@@ -37,7 +36,7 @@ export const NonEmptyString50 = nonEmptyString.pipe(
 /**
  * A string that is at least 1 character long and a maximum of 64.
  */
-export interface NonEmptyString64Brand extends Simplify<B.Brand<"NonEmptyString64"> & NonEmptyString80Brand> {}
+export type NonEmptyString64Brand = B.Brand<"NonEmptyString64"> & NonEmptyString80Brand
 
 /**
  * A string that is at least 1 character long and a maximum of 64.
@@ -59,7 +58,7 @@ export const NonEmptyString64 = nonEmptyString.pipe(
 /**
  * A string that is at least 1 character long and a maximum of 80.
  */
-export interface NonEmptyString80Brand extends Simplify<B.Brand<"NonEmptyString80"> & NonEmptyString100Brand> {}
+export type NonEmptyString80Brand = B.Brand<"NonEmptyString80"> & NonEmptyString100Brand
 
 /**
  * A string that is at least 1 character long and a maximum of 80.
@@ -82,7 +81,7 @@ export const NonEmptyString80 = nonEmptyString.pipe(
 /**
  * A string that is at least 1 character long and a maximum of 100.
  */
-export interface NonEmptyString100Brand extends Simplify<B.Brand<"NonEmptyString100"> & NonEmptyString255Brand> {}
+export type NonEmptyString100Brand = B.Brand<"NonEmptyString100"> & NonEmptyString255Brand
 
 /**
  * A string that is at least 1 character long and a maximum of 100.
@@ -104,7 +103,7 @@ export const NonEmptyString100 = nonEmptyString.pipe(
 /**
  * A string that is at least 3 character long and a maximum of 255.
  */
-export interface Min3String255Brand extends Simplify<B.Brand<"Min3String255"> & NonEmptyString255Brand> {}
+export type Min3String255Brand = B.Brand<"Min3String255"> & NonEmptyString255Brand
 
 /**
  * A string that is at least 3 character long and a maximum of 255.
@@ -127,7 +126,7 @@ export const Min3String255 = pipe(
 /**
  * A string that is at least 6 characters long and a maximum of 50.
  */
-export interface StringIdBrand extends Simplify<B.Brand<"StringId"> & NonEmptyString50Brand> {}
+export type StringIdBrand = B.Brand<"StringId"> & NonEmptyString50Brand
 
 /**
  * A string that is at least 6 characters long and a maximum of 50.
@@ -235,7 +234,7 @@ export interface PrefixedStringUtils<
   readonly withDefault: S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>
 }
 
-export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}
+export type UrlBrand = B.Brand<"Url"> & NonEmptyStringBrand
 
 export type Url = string & UrlBrand
 

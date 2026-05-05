@@ -1,14 +1,11 @@
 import { Effect } from "effect"
 import { extendM } from "effect-app/utils"
 import * as S from "effect/Schema"
-import type { Simplify } from "effect/Types"
 import { fromBrand, nominal } from "./brand.js"
 import { withDefaultMake } from "./ext.js"
 import { type B } from "./schema.js"
 
-export interface PositiveIntBrand
-  extends Simplify<B.Brand<"PositiveInt"> & NonNegativeIntBrand & PositiveNumberBrand>
-{}
+export type PositiveIntBrand = B.Brand<"PositiveInt"> & NonNegativeIntBrand & PositiveNumberBrand
 export const PositiveInt = extendM(
   S.Int.pipe(
     S.check(S.isGreaterThan(0)),
@@ -19,7 +16,7 @@ export const PositiveInt = extendM(
 )
 export type PositiveInt = number & PositiveIntBrand
 
-export interface NonNegativeIntBrand extends Simplify<B.Brand<"NonNegativeInt"> & IntBrand & NonNegativeNumberBrand> {}
+export type NonNegativeIntBrand = B.Brand<"NonNegativeInt"> & IntBrand & NonNegativeNumberBrand
 export const NonNegativeInt = extendM(
   S.Int.pipe(
     S.check(S.isGreaterThanOrEqualTo(0)),
@@ -33,14 +30,14 @@ export const NonNegativeInt = extendM(
 )
 export type NonNegativeInt = number & NonNegativeIntBrand
 
-export interface IntBrand extends Simplify<B.Brand<"Int">> {}
+export type IntBrand = B.Brand<"Int">
 export const Int = extendM(
   S.Int.pipe(fromBrand<Int>(nominal<Int>(), { identifier: "Int", jsonSchema: {} }), withDefaultMake),
   (s) => ({ withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => s(0)))) })
 )
 export type Int = number & IntBrand
 
-export interface PositiveNumberBrand extends Simplify<B.Brand<"PositiveNumber"> & NonNegativeNumberBrand> {}
+export type PositiveNumberBrand = B.Brand<"PositiveNumber"> & NonNegativeNumberBrand
 export const PositiveNumber = extendM(
   S.Finite.pipe(
     S.check(S.isGreaterThan(0)),
@@ -54,7 +51,7 @@ export const PositiveNumber = extendM(
 )
 export type PositiveNumber = number & PositiveNumberBrand
 
-export interface NonNegativeNumberBrand extends Simplify<B.Brand<"NonNegativeNumber">> {}
+export type NonNegativeNumberBrand = B.Brand<"NonNegativeNumber">
 export const NonNegativeNumber = extendM(
   S
     .Finite

@@ -101,24 +101,27 @@ const InvRsc = { DoNothing, DoWithDynamicKey, DoWithBothKeys, DoAndFail, StreamW
 const router = Router(InvRsc)({
   *effect(match) {
     return match({
-      DoNothing: () => Effect.void,
-      DoWithDynamicKey: Effect.fnUntraced(function*() {
+      *DoNothing() {
+        return yield* Effect.void
+      },
+      *DoWithDynamicKey() {
         yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
         return "done"
-      }),
-      DoWithBothKeys: Effect.fnUntraced(function*() {
+      },
+      *DoWithBothKeys() {
         yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
         yield* Invalidation.InvalidationSet.use((_) => _.add(ExtraKey))
         return 99
-      }),
-      DoAndFail: Effect.fnUntraced(function*() {
+      },
+      *DoAndFail() {
         yield* Invalidation.InvalidationSet.use((_) => _.add(DynamicKey))
         return yield* Effect.fail(new CmdBoom({ reason: "intentional failure" }))
-      }),
-      StreamWithKey: () =>
-        Stream.fromIterable([1, 2, 3]).pipe(
+      },
+      *StreamWithKey() {
+        return Stream.fromIterable([1, 2, 3]).pipe(
           Stream.tap(() => Invalidation.InvalidationSet.use((_) => _.add(StreamKey)))
         )
+      }
     })
   }
 })

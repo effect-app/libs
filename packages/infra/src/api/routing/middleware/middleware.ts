@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Cause, Config, Effect, Layer, Ref, Schema } from "effect"
-import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, InvalidationMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
-import { Invalidation, RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
+import { Cause, Config, Effect, Layer, Schema } from "effect"
+import { ConfigureInterruptibilityMiddleware, DevMode, DevModeMiddleware, LoggerMiddleware, RequestCacheMiddleware } from "effect-app/middleware"
+import { RpcContextMap, type RpcMiddleware } from "effect-app/rpc"
 import { pretty } from "effect-app/utils"
 import * as Array from "effect/Array"
 import * as Context from "effect/Context"
-import { type Rpc, RpcSchema } from "effect/unstable/rpc"
+import { type Rpc } from "effect/unstable/rpc"
 import { logError, reportError } from "../../../errorReporter.js"
 import { InfraLogger } from "../../../logger.js"
 import { WithNsTransaction } from "../../../Store/SQL.js"
@@ -122,68 +122,11 @@ export const DevModeMiddlewareLive = Layer
   )
   .pipe(Layer.provide(DevModeLive))
 
-/**
- * RPC middleware that:
- * 1. Reads the `Invalidates` annotation and pre-populates `InvalidationSet` with static keys.
- * 2. Creates a request-scoped `InvalidationSet` backed by a `Ref` and provides it to the handler.
- * 3. For commands: wraps the success value in `{ payload, metadata: { invalidateQueries } }` and
- *    handler-thrown failures in `CommandFailureWithMetaData` so accumulated invalidation keys
- *    reach the client.
- *
- * NOTE: `makeRouter` does NOT include this middleware in its default chain — the routing layer
- * applies the equivalent wrap directly so middleware-thrown errors stay raw on the Cause and
- * are decoded via the `rpc.middlewares[*].error` failure-union channel of `Rpc.exitSchema`.
- * This middleware remains exported for callers that wire `Rpc.make(...).middleware(...)` by
- * hand (e.g. focused tests that bypass the router).
- */
-export const InvalidationMiddlewareLive = Layer.succeed(
-  InvalidationMiddleware,
-  (effect, { rpc }) =>
-    Ref
-      .make<ReadonlyArray<Invalidation.InvalidationKey>>(
-        Context.get(rpc.annotations, Invalidation.Invalidates)
-      )
-      .pipe(
-        Effect.flatMap((keysRef): Effect.Effect<any, any, any> => {
-          const requestType = Context.get(rpc.annotations, RequestType)
-          const isCommand = requestType === "command"
-          const isStream = RpcSchema.isStreamSchema((rpc as any).successSchema)
-          const withSet = Effect.provideService(
-            effect,
-            Invalidation.InvalidationSet,
-            Invalidation.makeInvalidationSet(keysRef)
-          )
-
-          if (!isCommand || isStream) return withSet
-
-          return withSet.pipe(
-            Effect.flatMap((value) =>
-              Ref.get(keysRef).pipe(
-                Effect.map((keys) => ({ payload: value, metadata: { invalidateQueries: keys } }) as any)
-              )
-            ),
-            Effect.catch((err: any) =>
-              Ref.get(keysRef).pipe(
-                Effect.flatMap((keys) =>
-                  Effect.fail({
-                    _tag: "CommandFailureWithMetaData" as const,
-                    error: err,
-                    metadata: { invalidateQueries: keys }
-                  })
-                )
-              )
-            )
-          )
-        })
-      ) as any
-)
-
 export const DefaultGenericMiddlewaresLive = Layer.mergeAll(
   RequestCacheMiddlewareLive,
   ConfigureInterruptibilityMiddlewareLive,
   LoggerMiddlewareLive,
-  DevModeMiddlewareLive,
-  InvalidationMiddlewareLive
+  DevModeMiddlewareLive
 )
 
 /**

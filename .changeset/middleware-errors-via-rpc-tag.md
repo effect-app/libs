@@ -3,7 +3,7 @@
 "@effect-app/infra": patch
 ---
 
-Source middleware errors exclusively from the rpc middleware tag, and move the command wrap/unwrap out of `InvalidationMiddleware` into the routing layer (server) and `apiClientFactory` (client).
+Source middleware errors exclusively from the rpc middleware tag, and move command/stream invalidation wrap/unwrap entirely into the routing layer (server) and `apiClientFactory` (client). `InvalidationMiddleware` and `InvalidationMiddlewareLive` are removed.
 
 ### Resource error schemas
 
@@ -20,10 +20,10 @@ Middleware errors reach the client through the rpc's `middlewares[*].error` fail
 
 **Migration**: handlers that yield errors previously sourced from rcm (e.g. `yield* new UnauthorizedError()`) now require those errors to be declared explicitly on the resource — `Req.Query<T>()("...", fields, { success, error: UnauthorizedError })`. The handler error type no longer auto-includes the rcm union.
 
-### Command wrap/unwrap
+### Invalidation wrap/unwrap
 
-- `routing.ts` (server) provides a per-request `InvalidationSet` for commands, wraps the success value as `CommandResponseWithMetaData`, and converts handler-thrown failures into `CommandFailureWithMetaData` so accumulated invalidation keys reach the client on either path.
+- `routing.ts` (server) provides a per-request `InvalidationSet` for commands, wraps the success value as `CommandResponseWithMetaData`, and converts handler-thrown failures into `CommandFailureWithMetaData` so accumulated invalidation keys reach the client on either path. Stream wrap (per-chunk envelope + final `done` chunk) was already in routing and is unchanged.
 - `apiClientFactory.ts` (client) `unwrapCommand` strips both envelopes and forwards keys to `InvalidationKeysFromServer`.
-- `InvalidationMiddleware` is removed from `DefaultGenericMiddlewares` so the production routing path doesn't double-wrap. The middleware Live keeps its full wrap behavior so callers wiring `Rpc.make(...).middleware(InvalidationMiddleware)` by hand (e.g. focused tests bypassing the router) keep working unchanged.
+- `InvalidationMiddleware` (the tag) and `InvalidationMiddlewareLive` (the layer) are **removed**. The middleware was the previous home of the wrap; with the wrap moved to routing/apiClientFactory, the middleware became a thin pass-through and is no longer needed. `DefaultGenericMiddlewares` and `DefaultGenericMiddlewaresLive` shrink accordingly — no migration needed for callers that used the defaults; callers that referenced `InvalidationMiddleware` / `InvalidationMiddlewareLive` directly should drop those imports.
 
 Middleware-thrown errors are never wrapped: by definition the handler never ran, so there is nothing to invalidate. They flow raw on the Cause and the client decodes them via the middleware-tag failure-union channel described above.

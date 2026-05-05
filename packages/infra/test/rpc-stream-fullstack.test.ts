@@ -97,7 +97,32 @@ class StreamNoSuccess extends Req.Command<StreamNoSuccess>()("StreamNoSuccess", 
   allowAnonymous: true
 }) {}
 
-const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffect, StreamFailStream, StreamNoSuccess }
+// Defaults to allowAnonymous: false → AllowAnonymous middleware fails with NotLoggedInError
+// when the request lacks the `x-user` header.
+class StreamRequiresAuth extends Req.Command<StreamRequiresAuth>()("StreamRequiresAuth", {}, {
+  stream: true,
+  success: S.Number
+}) {}
+
+class CommandRequiresAuth extends Req.Command<CommandRequiresAuth>()("CommandRequiresAuth", {}, {
+  success: S.Number
+}) {}
+
+class QueryRequiresAuth extends Req.Query<QueryRequiresAuth>()("QueryRequiresAuth", {}, {
+  success: S.Number
+}) {}
+
+const StreamyRsc = {
+  StreamTicks,
+  StreamCountTo,
+  StreamRealtime,
+  StreamFailEffect,
+  StreamFailStream,
+  StreamNoSuccess,
+  StreamRequiresAuth,
+  CommandRequiresAuth,
+  QueryRequiresAuth
+}
 
 // ---------------------------------------------------------------------------
 // Controllers / router — Stream impls returned from the match callback.
@@ -123,7 +148,12 @@ const router = Router(StreamyRsc)({
       // stream on the client (not a protocol error)
       StreamFailEffect: () => Effect.fail(new StreamBoom({ reason: "from-effect" })),
       StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" })),
-      StreamNoSuccess: () => Stream.empty
+      StreamNoSuccess: () => Stream.empty,
+      // handlers below are unreachable when middleware-auth fails; bodies exist
+      // only so the resource type-checks
+      StreamRequiresAuth: () => Stream.fromIterable([1, 2, 3]),
+      CommandRequiresAuth: () => Effect.succeed(1),
+      QueryRequiresAuth: () => Effect.succeed(1)
     })
   }
 })
@@ -249,6 +279,47 @@ it.live(
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
     const exit = yield* Stream.runCollect(client.StreamNoSuccess.handler()).pipe(Effect.exit)
     expect(Exit.isSuccess(exit)).toBe(true)
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+const expectNotLoggedIn = (exit: Exit.Exit<unknown, unknown>) => {
+  expect(Exit.isFailure(exit)).toBe(true)
+  if (!Exit.isFailure(exit)) return
+  const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: any }>
+  expect(failures.length).toBeGreaterThan(0)
+  // The bug surfaces here as a SchemaError ("Expected never | { _tag: 'error', ... }")
+  // because the middleware-thrown NotLoggedInError doesn't match the
+  // wire StreamFailureChunk / CommandFailureWithMetaData wrapping.
+  expect(failures[0]!.error?._tag).toBe("NotLoggedInError")
+}
+
+it.live(
+  "stream resource: middleware-emitted NotLoggedInError surfaces cleanly on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamRequiresAuth.handler()).pipe(Effect.exit)
+    expectNotLoggedIn(exit)
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "command resource: middleware-emitted NotLoggedInError surfaces cleanly on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* client.CommandRequiresAuth.handler().pipe(Effect.exit)
+    expectNotLoggedIn(exit)
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "query resource: middleware-emitted NotLoggedInError surfaces cleanly on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* client.QueryRequiresAuth.handler().pipe(Effect.exit)
+    expectNotLoggedIn(exit)
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

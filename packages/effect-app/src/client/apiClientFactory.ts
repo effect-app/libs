@@ -7,7 +7,7 @@ import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
 import * as Struct from "effect/Struct"
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc"
+import { Rpc, RpcClient, RpcGroup, RpcMiddleware, RpcSerialization } from "effect/unstable/rpc"
 import * as Config from "../Config.js"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
@@ -128,7 +128,7 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
         const r = _ as any
         const isStream = r.stream
         const isCommand = r.type === "command"
-        return (isCommand
+        const rpc = (isCommand
           ? isStream
             ? Invalidation.makeStreamRpc(r._tag, {
               payload: r,
@@ -138,6 +138,21 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
             })
             : Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
           : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error, stream: isStream })) as any
+
+        // Stream rpcs force `errorSchema = Never` in effect-rpc and bury the
+        // resource error union inside `StreamFailureChunk`. Middleware-thrown
+        // errors (e.g. `NotLoggedInError` from auth) reach the Cause un-wrapped
+        // and would fail client decode. Attach a synthetic schema-only middleware
+        // tag carrying the resource error union so `Rpc.exitSchema` includes it
+        // in the failure union via the `rpc.middlewares[*].error` channel.
+        if (isStream && r.error) {
+          const ErrorBag = RpcMiddleware.Service<any>()(
+            `${moduleName}.${r._tag}.ClientErrorBag`,
+            { error: r.error }
+          )
+          return rpc.middleware(ErrorBag as any)
+        }
+        return rpc
       })
     )
     .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<

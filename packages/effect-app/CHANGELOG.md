@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.200
+
+### Patch Changes
+
+- 8f1cf6a: able to configure schema concurrency
+- 0cff7c1: workaround middleware error issue
+
 ## 4.0.0-beta.199
 
 ## 4.0.0-beta.198

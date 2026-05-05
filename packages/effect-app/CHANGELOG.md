@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.198
+
+### Patch Changes
+
+- 32dbc54: fix stream type when no success specified
+
 ## 4.0.0-beta.197
 
 ### Minor Changes

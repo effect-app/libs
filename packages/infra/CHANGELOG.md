@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.198
+
+### Patch Changes
+
+- 32dbc54: fix stream type when no success specified
+- Updated dependencies [32dbc54]
+  - effect-app@4.0.0-beta.198
+
 ## 4.0.0-beta.197
 
 ### Minor Changes

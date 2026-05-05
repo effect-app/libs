@@ -1,5 +1,13 @@
 # @effect-app/vue
 
+## 4.0.0-beta.198
+
+### Patch Changes
+
+- dd73a4a: fix fn on stream semantics
+- Updated dependencies [32dbc54]
+  - effect-app@4.0.0-beta.198
+
 ## 4.0.0-beta.197
 
 ### Minor Changes

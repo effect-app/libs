@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.204
+
+### Patch Changes
+
+- 0a0030f: fix missing overloads
+
 ## 4.0.0-beta.203
 
 ### Patch Changes

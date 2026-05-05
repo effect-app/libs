@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.202
+
+### Patch Changes
+
+- 1186b09: improve branded types, keep types through Rebuild
+
 ## 4.0.0-beta.201
 
 ### Patch Changes

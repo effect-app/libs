@@ -124,17 +124,6 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
 ) => {
   const filtered = getFiltered(resource)
   type newM = typeof filtered
-  // Middleware errors must also fit inside `CommandFailureWithMetaData.error` because
-  // `InvalidationMiddleware` (outermost) catches every command failure (handler or
-  // middleware) and wraps it. Union the middleware error schema into the wrap so
-  // the wire-decode accepts middleware-thrown errors too. For streams the wrap is
-  // skipped server-side and middleware errors flow raw at the Cause level — handled
-  // separately by attaching the middleware tag below.
-  const middlewareError = middleware?.error
-  const mergeMiddlewareError = (rscError: any) =>
-    middlewareError && middlewareError !== Schema.Never
-      ? Schema.Union([rscError, middlewareError])
-      : rscError
   const baseRpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
@@ -149,11 +138,7 @@ export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, con
               error: r.error,
               stream: true as const
             })
-            : Invalidation.makeCommandRpc(r._tag, {
-              payload: r,
-              success: r.success,
-              error: mergeMiddlewareError(r.error)
-            })
+            : Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
           : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error, stream: isStream })) as any
       })
     )

@@ -504,15 +504,6 @@ export const makeRouter = <
             ]
           }
 
-          // Middleware errors must also fit inside `CommandFailureWithMetaData.error`
-          // because `InvalidationMiddleware` (outermost) catches every command failure
-          // — handler or middleware — and wraps it. Union the middleware error schema
-          // into the wrap so wire-decode accepts middleware-thrown errors.
-          const middlewareError = (middleware as any)?.error
-          const mergeMiddlewareError = (rscError: any) =>
-            middlewareError && middlewareError !== S.Never
-              ? S.Union([rscError, middlewareError])
-              : rscError
           const rpcs = RpcGroup
             .make(
               ...typedValuesOf(mapped).map(([resource]) => {
@@ -529,7 +520,7 @@ export const makeRouter = <
                     : Invalidation.makeCommandRpc(resource._tag, {
                       payload: resource,
                       success: resource.success,
-                      error: mergeMiddlewareError(resource.error)
+                      error: resource.error
                     })
                   : Rpc.make(resource._tag, {
                     payload: resource,

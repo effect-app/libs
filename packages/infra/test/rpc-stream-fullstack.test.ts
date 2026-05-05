@@ -92,7 +92,12 @@ class StreamFailStream extends Req.Command<StreamFailStream>()("StreamFailStream
   error: StreamBoom
 }) {}
 
-const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffect, StreamFailStream }
+class StreamNoSuccess extends Req.Command<StreamNoSuccess>()("StreamNoSuccess", {}, {
+  stream: true,
+  allowAnonymous: true
+}) {}
+
+const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffect, StreamFailStream, StreamNoSuccess }
 
 // ---------------------------------------------------------------------------
 // Controllers / router — Stream impls returned from the match callback.
@@ -117,7 +122,8 @@ const router = Router(StreamyRsc)({
       // returning Effect.fail from a stream handler should surface as a failing
       // stream on the client (not a protocol error)
       StreamFailEffect: () => Effect.fail(new StreamBoom({ reason: "from-effect" })),
-      StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" }))
+      StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" })),
+      StreamNoSuccess: () => Stream.empty
     })
   }
 })
@@ -233,6 +239,16 @@ it.live(
       expect(failures[0]!.error._tag).toBe("StreamBoom")
       expect(failures[0]!.error.reason).toBe("from-stream")
     }
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "stream resource without `success` exposes handler as a Stream on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamNoSuccess.handler()).pipe(Effect.exit)
+    expect(Exit.isSuccess(exit)).toBe(true)
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

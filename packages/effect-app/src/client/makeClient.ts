@@ -264,6 +264,86 @@ export const makeRpcClient = <
         Resources,
         [Final] extends [never] ? never : SchemaOrFields<Final>
       >
+      // ─── stream: true without `success` overloads ────────────────────────────────────────────────
+      <
+        Tag extends string,
+        Payload extends S.Struct.Fields,
+        Error extends S.Top | S.Struct.Fields,
+        C extends RequestConfig & Record<string, any> & { success?: never } =
+          & RequestConfig
+          & Record<string, any>
+          & { success?: never }
+      >(
+        tag: Tag,
+        fields: Payload,
+        config:
+          & Omit<C, "invalidatesQueries">
+          & { stream: true; error: Error },
+        invalidatesQueries?: InvalidationCallback<
+          Resources,
+          InputFromPayload<Payload>,
+          void,
+          S.Schema.Type<ErrorResult<C & { error: Error }>>
+        >
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<C & { error: Error }>,
+        Omit<
+          & Omit<C, "invalidatesQueries">
+          & { error: Error }
+          & Partial<
+            InvalidationConfigForCommand<
+              Resources,
+              Payload,
+              typeof ForceVoid,
+              ErrorResult<C & { error: Error }>
+            >
+          >,
+          "success" | "error" | "stream"
+        >,
+        ModuleName,
+        Type,
+        true,
+        Resources
+      >
+      <
+        Tag extends string,
+        Payload extends S.Struct.Fields,
+        C extends RequestConfig & Record<string, any> & { success?: never; error?: never } =
+          & RequestConfig
+          & Record<string, any>
+          & { success?: never; error?: never }
+      >(
+        tag: Tag,
+        fields: Payload,
+        config:
+          & Omit<C, "invalidatesQueries">
+          & { stream: true },
+        invalidatesQueries?: InvalidationCallback<
+          Resources,
+          InputFromPayload<Payload>,
+          void,
+          S.Schema.Type<ErrorResult<C>>
+        >
+      ): TaggedRequestForResult<
+        Self,
+        Tag,
+        Payload,
+        typeof ForceVoid,
+        ErrorResult<C>,
+        Omit<
+          & Omit<C, "invalidatesQueries">
+          & Partial<InvalidationConfigForCommand<Resources, Payload, typeof ForceVoid, ErrorResult<C>>>,
+          "success" | "error" | "stream"
+        >,
+        ModuleName,
+        Type,
+        true,
+        Resources
+      >
       // ─── non-stream overloads ────────────────────────────────────────────────────────────────────
       <
         Tag extends string,

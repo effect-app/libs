@@ -46,7 +46,7 @@ export interface BrandedSchema<S extends S.Top, C extends B.Brand<any>> extends
     S["~type.make.in"],
     S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
+    C,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],

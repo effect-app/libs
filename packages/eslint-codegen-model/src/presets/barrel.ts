@@ -11,23 +11,26 @@ function last<T>(list: readonly T[]): T | undefined {
   return list[list.length - 1]
 }
 
+function splitWords(s: string): string[] {
+  return s
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[^a-zA-Z0-9]+/)
+    .filter((w) => w.length > 0)
+}
+
 function toCamelCase(s: string): string {
-  const words = s.match(/[a-zA-Z0-9]+/g) ?? []
-  return words
+  return splitWords(s)
     .map((word, i) => {
       const lower = word.toLowerCase()
-      return i === 0 || lower.length === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
+      return i === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
     })
     .join("")
 }
 
 function toPascalCase(s: string): string {
-  const words = s.match(/[a-zA-Z0-9]+/g) ?? []
-  return words
-    .map((word) => {
-      const lower = word.toLowerCase()
-      return lower.length === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
-    })
+  return splitWords(s)
+    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase())
     .join("")
 }
 

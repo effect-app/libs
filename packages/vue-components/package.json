@@ -20,13 +20,13 @@
   },
   "peerDependencies": {
     "@mdi/js": "^7.4.47",
-    "effect": "^4.0.0-beta.60",
-    "intl-messageformat": "^11.2.3",
+    "effect": "^4.0.0-beta.62",
+    "intl-messageformat": "^11.2.4",
     "mdi-js": "^1.0.1",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
-    "vue": "^3.5.33",
+    "vue": "^3.5.34",
     "vuetify": "^4.0.6"
   },
   "devDependencies": {
@@ -49,7 +49,7 @@
     "vitest": "^4.1.5",
     "vue-router": "^5.0.6",
     "vue-toastification": "^2.0.0-rc.5",
-    "vue-tsc": "^3.2.7",
+    "vue-tsc": "^3.2.8",
     "vuetify": "^4.0.6"
   },
   "files": [

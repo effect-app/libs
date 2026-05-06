@@ -37,12 +37,12 @@
   "peerDependencies": {
     "@azure/cosmos": "^4.9.3",
     "@azure/service-bus": "^7.9.5",
-    "@effect/vitest": "^4.0.0-beta.59",
+    "@effect/vitest": "^4.0.0-beta.62",
     "@sendgrid/helpers": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "10.51.0",
     "@sentry/opentelemetry": "10.51.0",
-    "effect": "^4.0.0-beta.60",
+    "effect": "^4.0.0-beta.62",
     "jwt-decode": "^4.0.0",
     "redis": "^3.1.2",
     "redlock": "^4.2.0"

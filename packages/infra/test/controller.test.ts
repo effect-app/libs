@@ -187,13 +187,6 @@ const middlewareQuater = MiddlewareMaker
 
 expectTypeOf(middleware["Service"]).toEqualTypeOf<typeof middlewareQuater["Service"]>()
 
-const middleware2 = MiddlewareMaker
-  .Tag()("middleware", RequestContextMap)
-  .middleware(MyContextProvider)
-  .middleware(RequireRoles, Test)
-  .middleware(AllowAnonymous)
-  .middleware(...DefaultGenericMiddlewares, BogusMiddleware, MyContextProvider2)
-
 export const middleware3 = MiddlewareMaker
   .Tag()("middleware", RequestContextMap)
   .middleware(...genericMiddlewares)
@@ -201,7 +194,7 @@ export const middleware3 = MiddlewareMaker
   .middleware(Test)
   .middleware(BogusMiddleware)
 
-export const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+export const { TaggedRequestFor } = makeRpcClient(middleware)
 const Req = TaggedRequestFor("Something")
 const Command = Req.Command
 const Query = Req.Query
@@ -231,7 +224,7 @@ export class DoSomething extends Command<DoSomething>()("DoSomething", {
 
 export class GetSomething extends Query<GetSomething>()("GetSomething", {
   id: S.String
-}, { success: S.String }) {}
+}, { success: S.String, error: UnauthorizedError }) {}
 
 export class GetSomething2 extends Query<GetSomething2>()("GetSomething2", {
   id: S.String
@@ -286,13 +279,9 @@ export class SomethingService2 extends Context.Service<SomethingService2>()(
   static Default = Layer.effect(this, this.make)
 }
 
-export const { Router, matchAll } = makeRouter(
-  middleware
-)
+export const { Router, matchAll } = makeRouter(middleware.Default)
 
-export const r2 = makeRouter(
-  Object.assign(middleware2, { Default: middleware2.layer.pipe(Layer.provide([...MiddlewaresLive])) })
-)
+export const r2 = makeRouter(middleware.Default)
 
 const router = Router(Something)({
   dependencies: [
@@ -350,7 +339,7 @@ const router = Router(Something)({
         }
       },
       GetSomething2: {
-        raw: Some.use(() => Effect.succeed("12"))
+        raw: () => Some.use(() => Effect.succeed("12"))
       }
     })
   }
@@ -415,7 +404,7 @@ const router2 = r2.Router(Something)({
         }
       },
       GetSomething2: {
-        raw: Some.use(() => Effect.succeed("12"))
+        raw: () => Some.use(() => Effect.succeed("12"))
       }
     })
   }

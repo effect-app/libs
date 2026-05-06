@@ -73,6 +73,15 @@ export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
 
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
+  /**
+   * Middleware tag to attach to every rpc on the client. Schema-only — the
+   * client never invokes the middleware (no Live impl required), but its
+   * declared `error` schema joins the rpc failure union via
+   * `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk. Required when
+   * middleware can throw errors that aren't part of the resource's declared
+   * error union (e.g. auth middleware throwing `NotLoggedInError`); without
+   * it the client decode would fail with a `SchemaError` for stream rpcs.
+   */
 }
 
 // $Project/$Configuration.Index
@@ -85,13 +94,6 @@ export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForO
     .join(".")
     .split(".")
 
-export interface RequestHandler<A, E, R, Request extends Req, Id extends string> {
-  handler: Effect.Effect<A, E, R>
-  id: Id
-  options?: ClientForOptions
-  Request: Request
-}
-
 export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
   handler: (i: I) => Effect.Effect<A, E, R>
   id: Id
@@ -99,20 +101,15 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
   Request: Request
 }
 
-export interface RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> {
-  handler: Stream.Stream<A, E, R>
-  id: Id
-  options?: ClientForOptions
-  Request: Request
-  /**
-   * Phantom type property (never set at runtime) that carries the `Final` type to
-   * `StreamMutationWithExtensions`. The tilde prefix follows the Effect convention for
-   * phantom/virtual properties and prevents accidental runtime access.
-   * Stream failures bubble through the execute effect's typed error channel `E`;
-   * the reactive `AsyncResult` ref also mirrors the failure for live progress UI.
-   */
-  readonly "~final"?: Final
-}
+/** Type alias: a no-input handler is simply `RequestHandlerWithInput<void, …>`. */
+export type RequestHandler<A, E, R, Request extends Req, Id extends string> = RequestHandlerWithInput<
+  void,
+  A,
+  E,
+  R,
+  Request,
+  Id
+>
 
 export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, Id extends string, Final = A> {
   handler: (i: I) => Stream.Stream<A, E, R>
@@ -129,9 +126,11 @@ export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, 
   readonly "~final"?: Final
 }
 
-// make sure this is exported or d.ts of apiClientFactory breaks?!
-type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
+/** Type alias: a no-input stream handler is simply `RequestStreamHandlerWithInput<void, …>`. */
+export type RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> =
+  RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
 
+// make sure this is exported or d.ts of apiClientFactory breaks?!
 export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
   [] ? void : Parameters<I["make"]>[0]
 
@@ -154,36 +153,21 @@ export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> =
 type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
   : S.Schema.Type<T["success"]>
 
-type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] extends "stream"
-  ? HasNoFields<T> extends true ? RequestStreamHandler<
-      S.Schema.Type<T["success"]>,
-      S.Schema.Type<T["error"]> | E,
-      R | ReqDecodingServices<T>,
-      T,
-      Id,
-      FinalTypeOf<T>
-    >
-  : RequestStreamHandlerWithInput<
-    RequestInput<T>,
+type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
+  ? RequestStreamHandlerWithInput<
+    HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | ReqDecodingServices<T>,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
     T,
     Id,
     FinalTypeOf<T>
   >
-  : HasNoFields<T> extends true ? RequestHandler<
-      S.Schema.Type<T["success"]>,
-      S.Schema.Type<T["error"]> | E,
-      R | ReqDecodingServices<T>,
-      T,
-      Id
-    >
   : RequestHandlerWithInput<
-    RequestInput<T>,
+    HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | ReqDecodingServices<T>,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
     T,
     Id
   >

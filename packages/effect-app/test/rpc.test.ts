@@ -11,7 +11,11 @@ export class RequestContextMap extends RpcContextMap.makeMap({
   test: RpcContextMap.make()(S.Never)
 }) {}
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const stubMiddleware = {
+  requestContextMap: RequestContextMap.config,
+  requestContext: undefined as never
+}
+const { TaggedRequestFor } = makeRpcClient(stubMiddleware)
 const TaggedRequest = TaggedRequestFor("Test").Query
 
 export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
@@ -47,7 +51,10 @@ test("ForceVoid decodes and encodes as void", () => {
     readonly newUsersLast24Hours: number
     readonly newUsersLastWeek: number
   }>()
-  expectTypeOf<typeof _statsError>().toEqualTypeOf<NotLoggedInError | UnauthorizedError>()
+  // Resource error carries only `config.error` (and optional `generalErrors`); rcm-derived
+  // middleware errors no longer leak into `resource.error` — they reach the wire via the
+  // middleware tag attached to the rpc group (`rpc.middlewares[*].error` failure-union).
+  expectTypeOf<typeof _statsError>().toEqualTypeOf<never>()
   expectTypeOf<typeof _statsRequestType>().toEqualTypeOf<"query">()
   expectTypeOf(statsFromMake).toEqualTypeOf<Stats>()
   expectTypeOf(statsFromMakeOption).toEqualTypeOf<Option.Option<Stats>>()

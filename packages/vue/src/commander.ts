@@ -133,6 +133,19 @@ export const wrapEmit = <A, Event extends string>(
 (value: A) => new Promise<void>((resolve) => emit(event, value, resolve))
 
 export declare namespace Commander {
+  export type IntlRecord = Record<string, PrimitiveType | FormatXMLElementFn<string, string>>
+  export type FnOptions<
+    Id extends string,
+    I18nKey extends string,
+    State extends IntlRecord | undefined
+  > = {
+    i18nCustomKey?: I18nKey
+    state?: ComputedRef<State> | (() => State)
+    blockKey?: (id: Id) => string | undefined
+    waitKey?: (id: Id) => string | undefined
+    allowed?: (id: Id, state: ComputedRef<State>) => boolean
+  }
+
   export type CommanderBase<RT, Id extends string, I18nKey extends string, State extends IntlRecord | undefined> =
     & Gen<RT, Id, I18nKey, State>
     & NonGen<RT, Id, I18nKey, State>
@@ -2230,6 +2243,7 @@ export const CommanderStatic = {
               options?.errorRenderer as ErrorRenderer<E, Args> | undefined
             ),
             stableToastId,
+            groupId: cc.id,
             ...options?.showSpanInfo === false ? { showSpanInfo: options.showSpanInfo } : {}
           })(_, ...args)
       )
@@ -2335,8 +2349,14 @@ export const CommanderStatic = {
         ? stableToastId
         : stableToastId ?? `wait-${Math.random().toString(36).slice(2)}`
 
+      const requestId: string = yield* Effect.currentSpan.pipe(
+        Effect.map((span) => span.traceId),
+        Effect.orElseSucceed(() => S.StringId.make())
+      )
+      const meta = { groupId: cc.id, requestId }
+
       if (waitingMsg !== null) {
-        yield* toast.info(waitingMsg, { id: toastId!, timeout: Infinity })
+        yield* toast.info(waitingMsg, { id: toastId!, timeout: Infinity, ...meta })
       }
 
       const failureHandler = defaultFailureMessageHandler<E, [], never, never>(
@@ -2359,7 +2379,7 @@ export const CommanderStatic = {
                 if (toastId !== undefined) {
                   const progressText = typeof p === "string" ? p : p.text
                   const msg = waitingMsg ? `${waitingMsg}\n${progressText}` : progressText
-                  yield* toast.info(msg, { id: toastId, timeout: Infinity })
+                  yield* toast.info(msg, { id: toastId, timeout: Infinity, ...meta })
                 }
               }
             }
@@ -2380,7 +2400,7 @@ export const CommanderStatic = {
             : ""
 
           const t = yield* failureHandler(Cause.findErrorOption(cause))
-          const opts = { timeout: baseTimeout * 2 }
+          const opts = { timeout: baseTimeout * 2, ...meta }
 
           if (typeof t === "object") {
             const message = t.message + spanInfo
@@ -2408,7 +2428,9 @@ export const CommanderStatic = {
 
           return toast.success(
             successMsg,
-            toastId !== undefined ? { id: toastId, timeout: baseTimeout } : { timeout: baseTimeout }
+            toastId !== undefined
+              ? { id: toastId, timeout: baseTimeout, ...meta }
+              : { timeout: baseTimeout, ...meta }
           )
         }))
       )

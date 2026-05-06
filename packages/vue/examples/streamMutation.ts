@@ -7,7 +7,7 @@
  *
  * When using `makeClient` / `clientFor`, stream-type requests are exposed as
  * `mutate` on the client object. Use `client.exportData.mutate` with `streamFn`
- * combinators, or use `client.exportData.streamFn` to define a full command.
+ * combinators, or use `client.exportData.fn` to define a full command.
  *
  * The example below shows the low-level `asStreamResult` API.
  */

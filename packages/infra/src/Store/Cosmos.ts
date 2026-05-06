@@ -26,6 +26,30 @@ class CosmosDbOperationError {
   constructor(readonly message: string, readonly raw?: unknown) {}
 } // TODO: Retry operation when running into RU limit.
 
+const respBytes = (
+  resp: { diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } } }
+) => resp.diagnostics?.clientSideRequestStatistics?.totalResponsePayloadLengthInBytes ?? 0
+
+const annotateFeed = (resp: {
+  resources: readonly unknown[]
+  requestCharge?: number
+  diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } }
+}) =>
+  Effect.annotateCurrentSpan({
+    "db.cosmos.request_charge": resp.requestCharge ?? 0,
+    "db.cosmos.resource_count": resp.resources.length,
+    "db.cosmos.response_bytes": respBytes(resp)
+  })
+
+const annotateItem = (resp: {
+  requestCharge?: number
+  diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } }
+}) =>
+  Effect.annotateCurrentSpan({
+    "db.cosmos.request_charge": resp.requestCharge ?? 0,
+    "db.cosmos.response_bytes": respBytes(resp)
+  })
+
 const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
   const { db } = yield* CosmosClient
   return {
@@ -318,17 +342,15 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               Effect.tap(({ q }) => logQuery(q)),
               Effect.flatMap(({ ns, q }) =>
                 Effect
-                  .promise(() =>
-                    container
-                      .items
-                      .query<Out>(q, { partitionKey: nsBasePartitionKey(ns) })
-                      .fetchAll()
-                      .then(({ resources }) =>
-                        resources.map(
-                          (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
-                        )
-                      )
-                  )
+                  .gen(function*() {
+                    const response = yield* Effect.promise(() =>
+                      container.items.query<Out>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                    )
+                    yield* annotateFeed(response)
+                    return response.resources.map(
+                      (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
+                    )
+                  })
                   .pipe(
                     Effect.withSpan("Cosmos.queryRaw [effect-app/infra/Store]", {
                       attributes: {
@@ -378,17 +400,13 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             Effect.tap(({ q }) => logQuery(q)),
             Effect.flatMap(({ ns, q }) =>
               Effect
-                .promise(() =>
-                  container
-                    .items
-                    .query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) })
-                    .fetchAll()
-                    .then(({ resources }) =>
-                      resources.map(
-                        (_) => ({ ...defaultValues, ...mapReverseId(_) })
-                      )
-                    )
-                )
+                .gen(function*() {
+                  const response = yield* Effect.promise(() =>
+                    container.items.query<PMCosmos>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                  )
+                  yield* annotateFeed(response)
+                  return response.resources.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
+                })
                 .pipe(
                   Effect.withSpan("Cosmos.all [effect-app/infra/Store]", {
                     attributes: {
@@ -433,29 +451,26 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               Effect
                 .flatMap(({ ns, q }) =>
                   Effect
-                    .promise(() =>
-                      f.select
-                        ? container
-                          .items
-                          .query<M>(q, { partitionKey: nsBasePartitionKey(ns) })
-                          .fetchAll()
-                          .then(({ resources }) =>
-                            resources.map((_) => ({
-                              ...pipe(
-                                defaultValues,
-                                Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])
-                              ),
-                              ...mapReverseId(_ as any)
-                            }))
-                          )
-                        : container
-                          .items
-                          .query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) })
-                          .fetchAll()
-                          .then(({ resources }) =>
-                            resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)
-                          )
-                    )
+                    .gen(function*() {
+                      if (f.select) {
+                        const response = yield* Effect.promise(() =>
+                          container.items.query<M>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                        )
+                        yield* annotateFeed(response)
+                        return response.resources.map((_) => ({
+                          ...pipe(
+                            defaultValues,
+                            Struct.pick(f.select!.filter((_) => typeof _ === "string") as never[])
+                          ),
+                          ...mapReverseId(_ as any)
+                        }))
+                      }
+                      const response = yield* Effect.promise(() =>
+                        container.items.query<{ f: M }>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                      )
+                      yield* annotateFeed(response)
+                      return response.resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)
+                    })
                     .pipe(
                       Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
                         attributes: {
@@ -471,16 +486,17 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         find: (id) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             Effect
-              .promise(() =>
-                container
-                  .item(id, nsPartitionValue(ns, { [idKey]: id } as Encoded))
-                  .read<Encoded>()
-                  .then(({ resource }) =>
-                    Option.fromNullishOr(resource).pipe(
-                      Option.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
-                    )
-                  )
-              )
+              .gen(function*() {
+                const response = yield* Effect.promise(() =>
+                  container
+                    .item(id, nsPartitionValue(ns, { [idKey]: id } as Encoded))
+                    .read<Encoded>()
+                )
+                yield* annotateItem(response)
+                return Option.fromNullishOr(response.resource).pipe(
+                  Option.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
+                )
+              })
               .pipe(Effect
                 .withSpan("Cosmos.find [effect-app/infra/Store]", {
                   attributes: {

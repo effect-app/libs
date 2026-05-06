@@ -176,7 +176,12 @@ export const makeInvalidationSet = (ref: Ref.Ref<ReadonlyArray<InvalidationKey>>
 
 /**
  * `Rpc.Custom` definition for command RPCs that wrap the success/error schemas
- * with `CommandResponseWithMetaData` / `CommandFailureWithMetaData`.
+ * with `CommandResponseWithMetaData` / `CommandFailureWithMetaData`. The wrap
+ * lets server forward accumulated invalidation keys on both success and
+ * handler-thrown failure paths. Middleware-thrown errors bypass the wrap
+ * (the handler never ran, so no metadata) and flow raw at the Cause level —
+ * the client decodes them via the `rpc.middlewares[*].error` failure-union
+ * channel of `Rpc.exitSchema`.
  */
 // eslint-disable-next-line import/namespace
 export interface CommandRpc extends Rpc.Custom {
@@ -188,8 +193,8 @@ export interface CommandRpc extends Rpc.Custom {
 
 /**
  * Custom Rpc constructor for command RPCs.
- * Wraps the success schema with `CommandResponseWithMetaData` and
- * the error schema with `CommandFailureWithMetaData`.
+ * Wraps the success schema with `CommandResponseWithMetaData` and the error
+ * schema with `CommandFailureWithMetaData`.
  */
 export const makeCommandRpc = Rpc.custom<CommandRpc>(({ defect, error, success }) => ({
   success: CommandResponseWithMetaData(success),

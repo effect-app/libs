@@ -55,15 +55,18 @@ class mw extends MiddlewareMaker
   )
 }
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const { TaggedRequestFor } = makeRpcClient(mw)
 const Req = TaggedRequestFor("GenRouter")
 
-class GetThing extends Req.Query<GetThing>()("GetThing", { id: S.String }, { success: S.String }) {}
+class GetThing extends Req.Query<GetThing>()("GetThing", { id: S.String }, {
+  success: S.String,
+  error: UnauthorizedError
+}) {}
 class DoThing extends Req.Command<DoThing>()("DoThing", { id: S.String }, { success: S.Void }) {}
 
 const Resource = { GetThing, DoThing }
 
-const { Router, matchAll } = makeRouter(mw)
+const { Router, matchAll } = makeRouter(mw.Default)
 
 class ThingRepo extends Context.Service<ThingRepo>()("ThingRepo", {
   make: Effect.succeed({ get: (id: string) => Effect.succeed(id + "!") })

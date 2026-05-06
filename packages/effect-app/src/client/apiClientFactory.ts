@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { flow } from "effect/Function"
+import { constant, flow } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
@@ -44,8 +44,9 @@ export type Req = S.Top & {
   config?: Record<string, any>
   readonly id: string
   readonly moduleName: string
-  readonly type: "command" | "query" | "stream"
-  readonly "~decodingServices"?: unknown
+  readonly type: "command" | "query"
+  readonly stream: boolean
+  readonly middleware?: unknown
 }
 
 class RequestName extends Context.Reference("RequestName", {
@@ -110,45 +111,56 @@ const getFiltered = <M extends RequestsAny>(resource: M) => {
   return filtered as unknown as Filtered
 }
 
-export const getMeta = <M extends RequestsAny>(resource: M): { moduleName: ExtractModuleName<M> } => {
+export const getMeta = <M extends RequestsAny>(
+  resource: M
+): { moduleName: ExtractModuleName<M>; middleware?: unknown } => {
   const first = typedValuesOf(getFiltered(resource))[0]
-  if (first && "moduleName" in first) return { moduleName: first.moduleName }
+  if (first && "moduleName" in first) return { moduleName: first.moduleName, middleware: (first as any).middleware }
   throw new Error("No moduleName on requests!")
 }
 
 export const makeRpcGroupFromRequestsAndModuleName = <M extends RequestsAny, const ModuleName extends string>(
   resource: M,
-  moduleName: ModuleName
+  moduleName: ModuleName,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  middleware?: any
 ) => {
   const filtered = getFiltered(resource)
   type newM = typeof filtered
-  const rpcs = RpcGroup
+  const baseRpcs = RpcGroup
     .make(
       ...typedValuesOf(filtered).map((_) => {
         const r = _ as any
-        const isStream = r.type === "stream"
+        const isStream = r.stream
         const isCommand = r.type === "command"
         return (isCommand
-          ? Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
-          : isStream
-          ? Invalidation.makeStreamRpc(r._tag, {
-            payload: r,
-            success: r.success,
-            error: r.error,
-            stream: true as const
-          })
-          : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error })) as any
+          ? isStream
+            ? Invalidation.makeStreamRpc(r._tag, {
+              payload: r,
+              success: r.success,
+              error: r.error,
+              stream: true as const
+            })
+            : Invalidation.makeCommandRpc(r._tag, { payload: r, success: r.success, error: r.error })
+          : Rpc.make(r._tag, { payload: r, success: r.success, error: r.error, stream: isStream })) as any
       })
     )
-    .prefix(`${moduleName}.`) as unknown as RpcGroup.RpcGroup<
-      Rpc.Prefixed<RpcHandlers<newM>[keyof newM], `${ModuleName}.`>
-    >
+    .prefix(`${moduleName}.`)
+  // Attach the middleware tag (schema-only on the client — no Live invoked)
+  // so its declared `error` joins the rpc failure union via
+  // `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk. Required for stream
+  // rpcs whose top-level `errorSchema` is forced to `Never` by effect-rpc;
+  // without it, middleware-thrown errors fail client decode.
+  const rpcs = (middleware ? baseRpcs.middleware(middleware) : baseRpcs) as unknown as RpcGroup.RpcGroup<
+    Rpc.Prefixed<RpcHandlers<newM>[keyof newM], `${ModuleName}.`>
+  >
   return rpcs
 }
 
-const makeRpcTag = <M extends RequestsAny>(resource: M) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeRpcTag = <M extends RequestsAny>(resource: M, middleware?: any) => {
   const meta = getMeta(resource)
-  const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName)
+  const rpcs = makeRpcGroupFromRequestsAndModuleName(resource, meta.moduleName, middleware)
 
   // Use Object.assign instead of class extension to avoid TS2509 with complex generic return types.
   // The first type arg is `any` because this is a dynamically created tag — its identity is the string key.
@@ -172,9 +184,9 @@ const makeApiClientFactory = Effect
       requestLevelLayers = Layer.empty,
       options?: ClientForOptions
     ) {
-      const TheClient = makeRpcTag(resource)
-
       const meta = getMeta(resource)
+
+      const TheClient = makeRpcTag(resource, meta.middleware)
 
       // TODO: somehow we need a protocol per REQUEST kind of it seems ...
       // otherwise it locks up on the client, navigation remains empty...
@@ -194,6 +206,11 @@ const makeApiClientFactory = Effect
 
       const filtered = getFiltered(resource)
 
+      // Unwrap `CommandResponseWithMetaData` (success) and `CommandFailureWithMetaData`
+      // (handler-thrown failure): forward accumulated invalidation keys to
+      // `InvalidationKeysFromServer` and yield the raw payload / re-fail with the raw
+      // error. Middleware-thrown failures arrive raw on the Cause already (no wrap to
+      // strip) — the `else` branch passes them through.
       const unwrapCommand = (eff: Effect.Effect<any, any, any>): Effect.Effect<any, any, any> =>
         eff.pipe(
           Effect.flatMap((result: any) =>
@@ -204,8 +221,6 @@ const makeApiClientFactory = Effect
               return result.payload
             })
           ),
-          // V2: unwrap CommandFailureWithMetaData failures — forward keys, re-fail with the
-          // original error so callers see the unmodified error type.
           Effect.catch((result: any) =>
             result?._tag === "CommandFailureWithMetaData"
               ? Effect.gen(function*() {
@@ -245,7 +260,7 @@ const makeApiClientFactory = Effect
             const fields = Struct.omit(Request.fields, ["_tag"] as const)
             const requestAttr = `${meta.moduleName}.${h._tag}`
             const isCommand = h.type === "command"
-            const isStream = h.type === "stream"
+            const isStream = h.stream
 
             const buildEffect = (input: any) =>
               mr.contextEffect.pipe(
@@ -314,7 +329,7 @@ const makeApiClientFactory = Effect
             // @ts-expect-error doc
             prev[cur] = Object.keys(fields).length === 0
               ? {
-                handler: isStream ? buildStream({}) : buildEffect({}),
+                handler: isStream ? constant(buildStream({})) : constant(buildEffect({})),
                 ...requestMeta
               }
               : {

@@ -37,57 +37,86 @@ class AppMiddleware extends MiddlewareMaker
   .middleware(...DefaultGenericMiddlewares)
 {
   static Default = this.layer.pipe(
-    Layer.provide([
-      RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
-      AllowAnonymousLive,
-      TestLive,
-      SomeElseMiddlewareLive,
-      DefaultGenericMiddlewaresLive
-    ])
+    Layer.provide(
+      [
+        RequireRolesLive.pipe(Layer.provide(SomeService.Default)),
+        AllowAnonymousLive,
+        TestLive,
+        SomeElseMiddlewareLive,
+        DefaultGenericMiddlewaresLive
+      ] as const
+    )
   )
 }
 
-const { Router, matchAll } = makeRouter(AppMiddleware)
+const { Router, matchAll } = makeRouter(AppMiddleware.Default)
 
 // ---------------------------------------------------------------------------
 // Resources — Stream with and without payload.
 // ---------------------------------------------------------------------------
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const { TaggedRequestFor } = makeRpcClient(AppMiddleware)
 const Req = TaggedRequestFor("Streamy")
 
-class StreamTicks extends Req.Stream<StreamTicks>()("StreamTicks", {}, {
+class StreamTicks extends Req.Command<StreamTicks>()("StreamTicks", {}, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number
 }) {}
 
-class StreamCountTo extends Req.Stream<StreamCountTo>()("StreamCountTo", {
+class StreamCountTo extends Req.Command<StreamCountTo>()("StreamCountTo", {
   to: S.Number
 }, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number
 }) {}
 
-class StreamRealtime extends Req.Stream<StreamRealtime>()("StreamRealtime", {}, {
+class StreamRealtime extends Req.Command<StreamRealtime>()("StreamRealtime", {}, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number
 }) {}
 
 class StreamBoom extends TaggedErrorClass<StreamBoom>()("StreamBoom", { reason: S.String }) {}
 
-class StreamFailEffect extends Req.Stream<StreamFailEffect>()("StreamFailEffect", {}, {
+class StreamFailStream extends Req.Command<StreamFailStream>()("StreamFailStream", {}, {
+  stream: true,
   allowAnonymous: true,
   success: S.Number,
   error: StreamBoom
 }) {}
 
-class StreamFailStream extends Req.Stream<StreamFailStream>()("StreamFailStream", {}, {
-  allowAnonymous: true,
-  success: S.Number,
-  error: StreamBoom
+class StreamNoSuccess extends Req.Command<StreamNoSuccess>()("StreamNoSuccess", {}, {
+  stream: true,
+  allowAnonymous: true
 }) {}
 
-const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffect, StreamFailStream }
+// Defaults to allowAnonymous: false → AllowAnonymous middleware fails with NotLoggedInError
+// when the request lacks the `x-user` header.
+class StreamRequiresAuth extends Req.Command<StreamRequiresAuth>()("StreamRequiresAuth", {}, {
+  stream: true,
+  success: S.Number
+}) {}
+
+class CommandRequiresAuth extends Req.Command<CommandRequiresAuth>()("CommandRequiresAuth", {}, {
+  success: S.Number
+}) {}
+
+class QueryRequiresAuth extends Req.Query<QueryRequiresAuth>()("QueryRequiresAuth", {}, {
+  success: S.Number
+}) {}
+
+const StreamyRsc = {
+  StreamTicks,
+  StreamCountTo,
+  StreamRealtime,
+  StreamFailStream,
+  StreamNoSuccess,
+  StreamRequiresAuth,
+  CommandRequiresAuth,
+  QueryRequiresAuth
+}
 
 // ---------------------------------------------------------------------------
 // Controllers / router — Stream impls returned from the match callback.
@@ -96,7 +125,7 @@ const StreamyRsc = { StreamTicks, StreamCountTo, StreamRealtime, StreamFailEffec
 const router = Router(StreamyRsc)({
   *effect(match) {
     return match({
-      StreamTicks: Stream.fromIterable([10, 20, 30]),
+      StreamTicks: () => Stream.fromIterable([10, 20, 30]),
       StreamCountTo: ({ to }: { readonly to: number }) =>
         Effect
           .gen(function*() {
@@ -105,13 +134,17 @@ const router = Router(StreamyRsc)({
           .pipe(Stream.unwrap),
       // emits 3 values 100ms apart so the test can prove element-by-element
       // delivery rather than a single batched response
-      StreamRealtime: Stream.fromIterable([1, 2, 3]).pipe(
-        Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
-      ),
-      // returning Effect.fail from a stream handler should surface as a failing
-      // stream on the client (not a protocol error)
-      StreamFailEffect: Effect.fail(new StreamBoom({ reason: "from-effect" })),
-      StreamFailStream: Stream.fail(new StreamBoom({ reason: "from-stream" }))
+      StreamRealtime: () =>
+        Stream.fromIterable([1, 2, 3]).pipe(
+          Stream.mapEffect((n) => Effect.sleep("100 millis").pipe(Effect.as(n)))
+        ),
+      StreamFailStream: () => Stream.fail(new StreamBoom({ reason: "from-stream" })),
+      StreamNoSuccess: () => Stream.empty,
+      // handlers below are unreachable when middleware-auth fails; bodies exist
+      // only so the resource type-checks
+      StreamRequiresAuth: () => Stream.fromIterable([1, 2, 3]),
+      CommandRequiresAuth: () => Effect.succeed(1),
+      QueryRequiresAuth: () => Effect.succeed(1)
     })
   }
 })
@@ -159,7 +192,7 @@ it.live(
   "stream resource without input: ApiClientFactory client emits all values",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const values = yield* Stream.runCollect(client.StreamTicks.handler)
+    const values = yield* Stream.runCollect(client.StreamTicks.handler())
     expect(values).toStrictEqual([10, 20, 30])
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
@@ -181,7 +214,7 @@ it.live(
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
     const start = Date.now()
     const arrivals = yield* Stream.runCollect(
-      client.StreamRealtime.handler.pipe(
+      client.StreamRealtime.handler().pipe(
         Stream.map((n) => ({ n, at: Date.now() - start }))
       )
     )
@@ -200,26 +233,10 @@ it.live(
 )
 
 it.live(
-  "stream handler returning Effect.fail surfaces as failing stream on client",
-  Effect.fnUntraced(function*() {
-    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const exit = yield* Stream.runCollect(client.StreamFailEffect.handler).pipe(Effect.exit)
-    expect(Exit.isFailure(exit)).toBe(true)
-    if (Exit.isFailure(exit)) {
-      const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>
-      expect(failures.length).toBeGreaterThan(0)
-      expect(failures[0]!.error._tag).toBe("StreamBoom")
-      expect(failures[0]!.error.reason).toBe("from-effect")
-    }
-  }, Effect.provide(TestLayer)),
-  { timeout: 10_000 }
-)
-
-it.live(
   "stream handler returning Stream.fail surfaces as failing stream on client",
   Effect.fnUntraced(function*() {
     const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
-    const exit = yield* Stream.runCollect(client.StreamFailStream.handler).pipe(Effect.exit)
+    const exit = yield* Stream.runCollect(client.StreamFailStream.handler()).pipe(Effect.exit)
     expect(Exit.isFailure(exit)).toBe(true)
     if (Exit.isFailure(exit)) {
       const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: StreamBoom }>
@@ -227,6 +244,57 @@ it.live(
       expect(failures[0]!.error._tag).toBe("StreamBoom")
       expect(failures[0]!.error.reason).toBe("from-stream")
     }
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "stream resource without `success` exposes handler as a Stream on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamNoSuccess.handler()).pipe(Effect.exit)
+    expect(Exit.isSuccess(exit)).toBe(true)
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+const expectNotLoggedIn = (exit: Exit.Exit<unknown, unknown>) => {
+  expect(Exit.isFailure(exit)).toBe(true)
+  if (!Exit.isFailure(exit)) return
+  const failures = (exit.cause as any).reasons as ReadonlyArray<{ _tag: "Fail"; error: any }>
+  expect(failures.length).toBeGreaterThan(0)
+  // The bug surfaces here as a SchemaError ("Expected never | { _tag: 'error', ... }")
+  // because the middleware-thrown NotLoggedInError doesn't match the
+  // wire StreamFailureChunk / CommandFailureWithMetaData wrapping.
+  expect(failures[0]!.error?._tag).toBe("NotLoggedInError")
+}
+
+it.live(
+  "stream resource: middleware-emitted NotLoggedInError surfaces cleanly on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* Stream.runCollect(client.StreamRequiresAuth.handler()).pipe(Effect.exit)
+    expectNotLoggedIn(exit)
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "command resource: middleware-emitted NotLoggedInError surfaces cleanly on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* client.CommandRequiresAuth.handler().pipe(Effect.exit)
+    expectNotLoggedIn(exit)
+  }, Effect.provide(TestLayer)),
+  { timeout: 10_000 }
+)
+
+it.live(
+  "query resource: middleware-emitted NotLoggedInError surfaces cleanly on the client",
+  Effect.fnUntraced(function*() {
+    const client = yield* ApiClientFactory.makeFor(Layer.empty)(StreamyRsc)
+    const exit = yield* client.QueryRequiresAuth.handler().pipe(Effect.exit)
+    expectNotLoggedIn(exit)
   }, Effect.provide(TestLayer)),
   { timeout: 10_000 }
 )

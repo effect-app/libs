@@ -1,10 +1,13 @@
 import { SchemaAST, type Tracer } from "effect"
 import * as S from "effect/Schema"
+import { type Simplify } from "effect/Struct"
+import type { RequiredKeys } from "effect/Types"
 import type { NonEmptyReadonlyArray } from "./Array.js"
 import { fakerArb } from "./faker.js"
 import { Email as EmailT, type Email as EmailType } from "./Schema/email.js"
 import { concurrencyUnbounded, withDefaultMake, withDefaultParseOptions } from "./Schema/ext.js"
 import { PhoneNumber as PhoneNumberT, type PhoneNumber as PhoneNumberType } from "./Schema/phoneNumber.js"
+import { type AST } from "./Schema/schema.js"
 import { copy, extendM, type StructuralCopyOrigin } from "./utils.js"
 
 export * from "effect/Schema"
@@ -41,18 +44,9 @@ export { Void as Void_ } from "effect/Schema"
 // Struct / NonEmptyArray / Record
 // ---------------------------------------------------------------------------
 
-type WithSchemaCopy<Self extends S.Top & { readonly Type: object }> = Self & {
-  readonly copy: StructuralCopyOrigin<Self["Type"]>
-}
-
-type OptionalMakeInput<Fields extends S.Struct.Fields> = {} extends S.Struct.MakeIn<Fields> ? {
-    make(input?: S.Struct.MakeIn<Fields>, options?: S.MakeOptions): S.Struct.Type<Fields>
-  }
-  : {}
-
 export function Struct<const Fields extends S.Struct.Fields>(
   fields: Fields
-): Struct<Fields> & OptionalMakeInput<Fields> {
+): Struct<Fields> {
   const result = S.Struct(fields).annotate(concurrencyUnbounded)
   const allowVoidMake = (schema: any): any => {
     // Normalize omitted input to an empty object so optional/default-only structs can be constructed with make().
@@ -107,27 +101,79 @@ export function Struct<const Fields extends S.Struct.Fields>(
   }
   ;(result as any).copy = copy
   allowVoidMake(result)
-  return result as Struct<Fields> & OptionalMakeInput<Fields>
+  return result as Struct<Fields>
 }
-export interface Struct<Fields extends S.Struct.Fields> extends WithSchemaCopy<S.Struct<Fields>> {
-  annotate(
-    annotations: S.Annotations.Bottom<S.Struct.Type<Fields>, S.Struct<Fields>["~type.parameters"]>
-  ): Struct<Fields>
-  annotateKey(annotations: S.Annotations.Key<S.Struct.Type<Fields>>): Struct<Fields>
-  mapFields<To extends S.Struct.Fields>(
+
+export interface Struct<Fields extends S.Struct.Fields> extends
+  S.Bottom<
+    Struct.Type<Fields>,
+    Struct.Encoded<Fields>,
+    Struct.DecodingServices<Fields>,
+    Struct.EncodingServices<Fields>,
+    AST.Objects,
+    // Rebuild is what's returned from annotate etc
+    Struct<Fields>,
+    Struct.MakeIn<Fields>,
+    Struct.Iso<Fields>
+  >
+{
+  /**
+   * The field definitions of this struct. Spread them into a new struct to
+   * reuse fields across schemas.
+   *
+   * **Example** (Reusing fields across structs)
+   *
+   * ```ts
+   * import { Schema } from "effect"
+   *
+   * const Timestamped = Schema.Struct({
+   *   createdAt: Schema.Date,
+   *   updatedAt: Schema.Date
+   * })
+   *
+   * const User = Schema.Struct({
+   *   ...Timestamped.fields,
+   *   name: Schema.String,
+   *   email: Schema.String
+   * })
+   * ```
+   */
+  readonly fields: Fields
+  /**
+   * Returns a new struct with the fields modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
+   *   that were attached to the original union. Defaults to `false`.
+   *
+   *   **Warning**: This is an unsafe operation. Since `mapFields`
+   *   transformations change the schema type, the original refinement functions
+   *   may no longer be valid or safe to apply to the transformed schema. Only
+   *   use this option if you have verified that your refinements remain correct
+   *   after the transformation.
+   */
+  mapFields<To extends Struct.Fields>(
     f: (fields: Fields) => To,
     options?: {
       readonly unsafePreserveChecks?: boolean | undefined
-    }
-  ): Struct<Readonly<To>>
+    } | undefined
+  ): Struct<Simplify<Readonly<To>>>
+
+  // added copy
+  readonly copy: StructuralCopyOrigin<Struct.Type<Fields>>
 }
+
 export declare namespace Struct {
   export type Fields = S.Struct.Fields
   export type Type<F extends S.Struct.Fields> = S.Struct.Type<F>
   export type Encoded<F extends S.Struct.Fields> = S.Struct.Encoded<F>
   export type DecodingServices<F extends S.Struct.Fields> = S.Struct.DecodingServices<F>
   export type EncodingServices<F extends S.Struct.Fields> = S.Struct.EncodingServices<F>
-  export type MakeIn<F extends S.Struct.Fields> = S.Struct.MakeIn<F>
+  // changed; all optional allows void
+  export type MakeIn<F extends S.Struct.Fields> = RequiredKeys<S.Struct.MakeIn<F>> extends never
+    ? void | S.Struct.MakeIn<F>
+    : S.Struct.MakeIn<F>
   export type Iso<F extends S.Struct.Fields> = S.Struct.Iso<F>
 }
 
@@ -151,11 +197,32 @@ export function TaggedStruct<const Tag extends SchemaAST.LiteralValue, const Fie
 ): TaggedStruct<Tag, Fields> {
   return Struct({ _tag: S.tag(value), ...fields }) as any
 }
-export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields> =
-  & WithSchemaCopy<
-    S.TaggedStruct<Tag, Fields>
+export interface TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends S.Struct.Fields>
+  extends Struct<{ readonly _tag: S.tag<Tag> } & Fields>
+{}
+export declare namespace TaggedStruct {
+  export type Fields = S.Struct.Fields
+  export type Type<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> = S.Struct.Type<
+    { readonly _tag: S.tag<Tag> } & F
   >
-  & OptionalMakeInput<Readonly<{ readonly _tag: S.tag<Tag> } & Fields>>
+  export type Encoded<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> = S.Struct.Encoded<
+    { readonly _tag: S.tag<Tag> } & F
+  >
+  export type DecodingServices<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> =
+    S.Struct.DecodingServices<
+      { readonly _tag: S.tag<Tag> } & F
+    >
+  export type EncodingServices<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> =
+    S.Struct.EncodingServices<
+      { readonly _tag: S.tag<Tag> } & F
+    >
+  export type MakeIn<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> = S.Struct.MakeIn<
+    { readonly _tag: S.tag<Tag> } & F
+  >
+  export type Iso<Tag extends SchemaAST.LiteralValue, F extends S.Struct.Fields> = S.Struct.Iso<
+    { readonly _tag: S.tag<Tag> } & F
+  >
+}
 
 export function Record<Key extends S.Record.Key, Value extends S.Top>(
   key: Key,

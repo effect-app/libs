@@ -1,6 +1,6 @@
 import { S } from "effect-app"
 import { describe, expect, it } from "vitest"
-import { generateMetaFromSchema } from "../../src/components/OmegaForm/OmegaFormStuff"
+import { generateMetaFromSchema } from "../../src/components/OmegaForm"
 
 describe("TaggedUnion required field handling", () => {
   it("should mark only _tag as non-required in nullable discriminated unions", () => {

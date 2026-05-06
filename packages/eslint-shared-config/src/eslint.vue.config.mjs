@@ -1,113 +1,79 @@
 import formatjs from "eslint-plugin-formatjs"
 import pluginVue from "eslint-plugin-vue"
-import { defineConfigWithVueTs, vueTsConfigs } from "@vue/eslint-config-typescript"
-import tseslint from "typescript-eslint"
+import globals from "globals"
+import vueParser from "vue-eslint-parser"
+import tsParser from "@typescript-eslint/parser"
 import { baseConfig } from "./eslint.base.config.mjs"
-import dprint from "@ben_12/eslint-plugin-dprint"
-import { fileURLToPath } from "node:url"
-import path from "node:path"
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const DEFAULT_DPRINT_CONFIG = path.join(__dirname, "dprint.json")
+import effectAppPlugin from "./plugin-effect-app.mjs"
 
 /**
+ * Vue ESLint config. Most type-aware TS rules are handled by `oxlint --type-aware`
+ * (powered by tsgolint). ESLint here is retained because oxlint cannot lint
+ * `.vue` files; it runs `eslint-plugin-vue` for template/SFC checks, `formatjs`
+ * for ICU messages, and the local `@effect-app/no-await-effect` type-aware rule
+ * (which has no tsgolint equivalent). `@typescript-eslint/parser` is used as a
+ * parser so vue-eslint-parser can read `<script lang="ts">` blocks and so the
+ * effect-app plugin can access TypeScript program services.
+ *
  * @param {string} dirName
  * @param {boolean} [forceTS=false]
  * @returns {import("eslint").Linter.FlatConfig[]}
  */
-export function vueConfig(dirName, forceTS = false, dprintConfigFile ) {
-
-  if (!dprintConfigFile) dprintConfigFile = DEFAULT_DPRINT_CONFIG
-  console.log("Using dprint config file:", dprintConfigFile)
-
+export function vueConfig(dirName, forceTS = false) {
+  // eslint-disable-next-line no-undef
   const enableTS = !!dirName && (forceTS || process.env["ESLINT_TS"])
 
   return [
     ...baseConfig(dirName, forceTS),
 
-    // ...ts.configs.recommended,
-    // this should set the vue parser as the parser plus some recommended rules
+    {
+      name: "browser-globals",
+      files: ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts", "**/*.vue"],
+      languageOptions: {
+        globals: {
+          ...globals.browser
+        }
+      }
+    },
+
     ...pluginVue.configs["flat/recommended"],
-    ...defineConfigWithVueTs(vueTsConfigs.base),
     {
       name: "vue",
       files: ["*.vue", "**/*.vue"],
       languageOptions: {
+        parser: vueParser,
         parserOptions: {
-          // set a custom parser to parse <script> tags
           parser: {
-            "<template>": tseslint.parser,
-            "ts": tseslint.parser,
-            "js": tseslint.parser,
+            "<template>": tsParser,
+            "ts": tsParser,
+            "js": tsParser
           },
           tsconfigRootDir: dirName,
+          extraFileExtensions: [".vue"],
           ...(enableTS && {
-            projectService: true,
-          }),
-          extraFileExtensions: [".vue"]
+            projectService: true
+          })
         }
       },
       rules: {
         "no-undef": "off",
+        "vue/html-indent": "off",
         "vue/multi-word-component-names": "warn",
         "vue/no-template-shadow": "warn",
         "vue/valid-v-slot": [
           "error",
           {
-            allowModifiers: true,
-          },
-        ]
+            allowModifiers: true
+          }
+        ],
+        ...(enableTS && {
+          "@effect-app/no-await-effect": "error"
+        })
       },
       plugins: {
-        formatjs, // this is for ICU messages, so I'd say we need it here
-      },
-    },
-
-    {
-      name: "augmented",
-      plugins: {
-        "@ben_12/dprint": dprint,
-      },
-      rules: {
-        ...dprint.configs["disable-typescript-conflict-rules"].rules,
-        "vue/html-indent": "off",
-        ...dprint.configs["typescript-recommended"].rules,
-        ...dprint.configs["malva-recommended"].rules,
-        ...dprint.configs["markup-recommended"].rules,
-        "@ben_12/dprint/markup": [
-          "error",
-          {
-            // Use dprint JSON configuration file (default: "dprint.json")
-            // It may be created using `dprint init` command
-            // See also https://dprint.dev/config/
-            configFile: dprintConfigFile,
-            config: {
-              // The markup_fmt configuration of dprint
-              // See also https://dprint.dev/plugins/markup_fmt/config/
-              "printWidth": 120,
-            },
-          },
-        ],
-        "@ben_12/dprint/typescript": [
-          "error",
-            {
-              configFile: dprintConfigFile,
-              config: {
-                indentWidth: 2,
-                semiColons: "asi",
-                quoteStyle: "alwaysDouble",
-                trailingCommas: "never",
-                "arrowFunction.useParentheses": "force",
-                "memberExpression.linePerExpression": true,
-                "binaryExpression.linePerExpression": true,
-                "importDeclaration.forceSingleLine": true,
-                "exportDeclaration.forceSingleLine": true,
-                "lineWidth": 120,
-              },
-            },
-        ],
-      },
-    },
+        formatjs,
+        "@effect-app": effectAppPlugin
+      }
+    }
   ]
 }

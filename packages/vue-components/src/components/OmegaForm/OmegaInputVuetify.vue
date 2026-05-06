@@ -1,7 +1,10 @@
 <template>
   <div
     class="omega-input"
-    @focusout="$emit('blur', $event)"
+    @focusout="(e) => {
+      $emit('blur', e)
+      field.handleBlur()
+    }"
     @focusin="$emit('focus', $event)"
   >
     <component
@@ -204,8 +207,8 @@
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
 import { type DeepKeys } from "@tanstack/vue-form"
-import { getInputType } from "../OmegaForm/OmegaFormStuff"
 import type { VuetifyInputProps } from "./InputProps"
+import { getInputType } from "./inputs"
 
 defineProps<VuetifyInputProps<From, Name>>()
 

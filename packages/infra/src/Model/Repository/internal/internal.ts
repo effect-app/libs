@@ -79,9 +79,9 @@ export function makeRepoInternal<
             Effect.map((_) => _ as unknown as Encoded[]),
             Effect.withSpan("encodeMany", { attributes: { itemType: name } }, { captureStackTrace: false })
           )
-          const decode = flow(S.decodeEffect(schema), provideRctx)
+          const decode = flow(S.decodeEffectConcurrently(schema), provideRctx)
           const decodeMany = flow(
-            S.decodeEffect(S.Array(schema)),
+            S.decodeEffectConcurrently(S.Array(schema)),
             provideRctx
           )
 
@@ -258,7 +258,9 @@ export function makeRepoInternal<
           const parseMany2 = Effect.fn("parseMany2", { attributes: { itemType: name } })(
             function*<A, R>(items: readonly PM[], schema: S.Codec<A, Encoded, R>) {
               const cm = yield* cms
-              return yield* S.decodeEffect(S.Array(schema))(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+              return yield* S.decodeEffectConcurrently(S.Array(schema))(items.map((_) => mapReverse(_, cm.set))).pipe(
+                Effect.orDie
+              )
             }
           )
           const filter = <U extends keyof Encoded = keyof Encoded>(args: FilterArgs<Encoded, U>) =>
@@ -292,14 +294,14 @@ export function makeRepoInternal<
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
-                  Effect.andThen(flow(S.decodeEffect(S.Array(a.schema ?? schema)), provideRctx))
+                  Effect.andThen(flow(S.decodeEffectConcurrently(S.Array(a.schema ?? schema)), provideRctx))
                 )
               : a.mode === "collect"
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies
                 .pipe(
                   Effect.flatMap(flow(
-                    S.decodeEffect(S.Array(a.schema)),
+                    S.decodeEffectConcurrently(S.Array(a.schema)),
                     Effect.map(Array.getSomes),
                     provideRctx
                   ))
@@ -374,14 +376,14 @@ export function makeRepoInternal<
               const rawData = rawResult.value as Encoded
               const jitMResult = mapFrom(rawData) // apply jitM
 
-              const decodeResult = yield* S.decodeEffect(schema)(jitMResult).pipe(
+              const decodeResult = yield* S.decodeEffectConcurrently(schema)(jitMResult).pipe(
                 Effect.result,
                 provideRctx
               )
 
               if (Result.isFailure(decodeResult)) {
                 errors.push(
-                  new ValidationError({
+                  ValidationError.make({
                     id,
                     rawData,
                     jitMResult,
@@ -391,7 +393,7 @@ export function makeRepoInternal<
               }
             }
 
-            return new ValidationResult({
+            return ValidationResult.make({
               total: NonNegativeInt(allIds.length),
               sampled: NonNegativeInt(sample.length),
               valid: NonNegativeInt(sample.length - errors.length),
@@ -411,7 +413,7 @@ export function makeRepoInternal<
             seedNamespace: (namespace: string) => store.seedNamespace(namespace),
             validateSample,
             queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {
-              const dec = S.decodeEffect(S.Array(schema))
+              const dec = S.decodeEffectConcurrently(S.Array(schema))
               return store.queryRaw(q).pipe(Effect.flatMap(dec))
             },
             query(q: any) {
@@ -422,9 +424,9 @@ export function makeRepoInternal<
              * @internal
              */
             mapped: <A, R>(schema: S.Codec<A, any, R>) => {
-              const dec = S.decodeEffect(schema)
+              const dec = S.decodeEffectConcurrently(schema)
               const encMany = S.encodeEffect(S.Array(S.toCodecJson(schema)))
-              const decMany = S.decodeEffect(S.Array(schema))
+              const decMany = S.decodeEffectConcurrently(S.Array(schema))
               return {
                 all: allE.pipe(
                   Effect.flatMap(decMany),

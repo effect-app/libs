@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils"
+import { flushPromises, mount } from "@vue/test-utils"
 import { S } from "effect-app"
 import { describe, it } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
@@ -69,6 +69,7 @@ describe("Empty string validation for nested NonEmptyString fields", () => {
     // Click submit with empty string
     await wrapper.find("[data-testid='submit']").trigger("click")
     await wrapper.vm.$nextTick()
+    await flushPromises()
 
     // Check for validation error
     expect(wrapper.text()).toContain("validation.empty")

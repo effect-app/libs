@@ -114,7 +114,8 @@ const struct = {
   v: S.UndefinedOr(S.NonEmptyString)
 }
 
-class ClassSchema extends S.ExtendedClass<ClassSchema, any>("ClassSchema")(struct) {}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Effect Schema Class generic param
+class ClassSchema extends S.Class<ClassSchema, any>("ClassSchema")(struct) {}
 const schema = S.Struct(struct)
 
 const Union = S.Union([

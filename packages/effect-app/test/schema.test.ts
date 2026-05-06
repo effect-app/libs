@@ -32,18 +32,110 @@ test("NonEmptyString255.Type uses the named brand alias", () => {
   expectTypeOf<A>().toEqualTypeOf<B>()
 })
 
+test("Opaque accepts an explicit Encoded type", () => {
+  interface User {
+    readonly id: string
+    readonly _tag: "User"
+  }
+
+  interface UserEncoded {
+    readonly id: string
+  }
+
+  const baseSchema = S.Struct({ id: S.String, name: S.String })
+  const _UserSchema = S.Opaque<User, UserEncoded>()(baseSchema)
+
+  expectTypeOf<S.Codec.Encoded<typeof _UserSchema>>().toEqualTypeOf<UserEncoded>()
+  expectTypeOf<S.Schema.Type<typeof _UserSchema>>().toEqualTypeOf<User>()
+  expectTypeOf<S.Codec.Encoded<typeof _UserSchema>>().not.toEqualTypeOf<S.Codec.Encoded<typeof baseSchema>>()
+})
+
+test("Opaque with one generic keeps the base encoded shape", () => {
+  interface User {
+    readonly id: string
+  }
+
+  const baseSchema = S.Struct({ id: S.String })
+  const _UserSchema = S.Opaque<User>()(baseSchema)
+
+  expectTypeOf<S.Codec.Encoded<typeof _UserSchema>>().toEqualTypeOf<{ readonly id: string }>()
+  expectTypeOf<S.Schema.Type<typeof _UserSchema>>().toEqualTypeOf<User>()
+})
+
+test("Opaque preserves optional Struct.make input", () => {
+  interface User {
+    readonly a?: string | undefined
+    readonly b?: number | undefined
+  }
+
+  const schema = S.Opaque<User>()(S.Struct({
+    a: S.optional(S.String),
+    b: S.optional(S.Number)
+  }))
+
+  const made = schema.make()
+  expect(made).toEqual({})
+  expectTypeOf(made).toEqualTypeOf<User>()
+})
+
+test("Opaque preserves optional TaggedStruct.make input", () => {
+  interface OnlyTag {
+    readonly _tag: "OnlyTag"
+  }
+
+  const schema = S.Opaque<OnlyTag>()(S.TaggedStruct("OnlyTag", {}))
+
+  const made = schema.make()
+  expect(made).toEqual({ _tag: "OnlyTag" })
+  expectTypeOf(made).toEqualTypeOf<OnlyTag>()
+})
+
 test("S.Literals([\"A\", \"B\"]).Default is typed as \"A\"", () => {
   const l = S.Literals(["A", "B"])
   expect(l.Default).toBe("A")
   expectTypeOf(l.Default).toEqualTypeOf<"A">()
 })
 
+test("Struct.make accepts void when all fields are optional", () => {
+  const schema = S.Struct({
+    a: S.optional(S.String),
+    b: S.optional(S.Number)
+  })
+
+  const made = schema.make()
+  expect(made).toEqual({})
+  expectTypeOf(made).toEqualTypeOf<{ readonly a?: string | undefined; readonly b?: number | undefined }>()
+})
+
+test("StructNestedEncoded resolves Struct and from.Encoded", () => {
+  const plain = S.Struct({ a: S.String, b: S.NullOr(S.String) })
+  const encodedKeys = plain.pipe(S.encodeKeys({ b: "b_encoded" }))
+
+  expectTypeOf<S.StructNestedEncoded<typeof plain>>().toEqualTypeOf<{
+    readonly a: string
+    readonly b: string | null
+  }>()
+
+  expectTypeOf<S.StructNestedEncoded<typeof encodedKeys>>().toEqualTypeOf<{
+    readonly a: string
+    readonly b_encoded: string | null
+  }>()
+})
+
+test("TaggedStruct.make accepts void when only constructor-default fields exist", () => {
+  const schema = S.TaggedStruct("OnlyTag", {})
+
+  const made = schema.make()
+  expect(made).toEqual({ _tag: "OnlyTag" })
+  expectTypeOf(made).toEqualTypeOf<{ readonly _tag: "OnlyTag" }>()
+})
+
 test("tagged union derives tag map and tags from v4 literal ast", () => {
-  const schema = S.TaggedUnion(
+  const schema = S.TaggedUnion([
     S.TaggedStruct("A", { a: S.String }),
     S.TaggedStruct("B", { b: S.Finite }),
     S.TaggedStruct("C", { c: S.Boolean })
-  )
+  ])
   const caseA = schema.cases["A"]
   const caseB = schema.cases["B"]
   const caseC = schema.cases["C"]
@@ -70,21 +162,21 @@ test("tagged union derives tag map and tags from v4 literal ast", () => {
 })
 
 test("TaggedUnion tags returns a Literals schema with correct literal values", () => {
-  const schema = S.TaggedUnion(
+  const schema = S.TaggedUnion([
     S.TaggedStruct("X", { x: S.String }),
     S.TaggedStruct("Y", { y: S.Finite })
-  )
+  ])
 
   expect(schema.tags.literals).toEqual(["X", "Y"])
   expectTypeOf(schema.tags.literals).toMatchTypeOf<readonly ["X", "Y"]>()
 })
 
 test("TaggedUnion tags.pick returns a subset of the tag literals", () => {
-  const schema = S.TaggedUnion(
+  const schema = S.TaggedUnion([
     S.TaggedStruct("A", { a: S.String }),
     S.TaggedStruct("B", { b: S.Finite }),
     S.TaggedStruct("C", { c: S.Boolean })
-  )
+  ])
 
   const subset = schema.tags.pick(["A", "C"])
   expect(subset.literals).toEqual(["A", "C"])
@@ -123,10 +215,10 @@ test("ExtendTaggedUnion adds tags to an existing Union", () => {
 })
 
 test("TaggedUnion match dispatches on _tag", () => {
-  const schema = S.TaggedUnion(
+  const schema = S.TaggedUnion([
     S.TaggedStruct("A", { a: S.String }),
     S.TaggedStruct("B", { b: S.Finite })
-  )
+  ])
   type T = S.Schema.Type<typeof schema>
 
   const matcher = schema.match({
@@ -138,9 +230,9 @@ test("TaggedUnion match dispatches on _tag", () => {
 })
 
 test("TaggedUnion with single member", () => {
-  const schema = S.TaggedUnion(
+  const schema = S.TaggedUnion([
     S.TaggedStruct("Only", { val: S.String })
-  )
+  ])
 
   expect(schema.tags.literals).toEqual(["Only"])
   expect(S.decodeSync(schema.tags)("Only")).toBe("Only")
@@ -149,11 +241,11 @@ test("TaggedUnion with single member", () => {
 })
 
 test("TaggedUnion tags type is narrowed to the exact tag literals", () => {
-  const schema = S.TaggedUnion(
+  const schema = S.TaggedUnion([
     S.TaggedStruct("Alpha", { a: S.String }),
     S.TaggedStruct("Beta", { b: S.Finite }),
     S.TaggedStruct("Gamma", { c: S.Boolean })
-  )
+  ])
 
   type Tags = S.Schema.Type<typeof schema.tags>
   expectTypeOf<Tags>().toEqualTypeOf<"Alpha" | "Beta" | "Gamma">()
@@ -167,7 +259,7 @@ test("TaggedUnion with encodeKeys renaming a non-tag key", () => {
     S.encodeKeys({ lastName: "last_name" })
   )
 
-  const schema = S.TaggedUnion(MemberA, MemberB)
+  const schema = S.TaggedUnion([MemberA, MemberB])
 
   expect(schema.tags.literals).toEqual(["A", "B"])
   expect(S.decodeSync(schema.tags)("A")).toBe("A")
@@ -195,7 +287,7 @@ test("TaggedUnion with TaggedClass members", () => {
   class Foo extends S.TaggedClass<Foo>()("Foo", { name: S.String }) {}
   class Bar extends S.TaggedClass<Bar>()("Bar", { count: S.Finite }) {}
 
-  const schema = S.TaggedUnion(Foo, Bar)
+  const schema = S.TaggedUnion([Foo, Bar])
 
   expect(schema.tags.literals).toEqual(["Foo", "Bar"])
   expect(S.decodeSync(schema.tags)("Foo")).toBe("Foo")
@@ -431,11 +523,11 @@ describe("JSON Schema", () => {
 })
 
 describe("generateGuards", () => {
-  const StateSchema = S.TaggedUnion(
+  const StateSchema = S.TaggedUnion([
     S.TaggedStruct("Active", { since: S.String }),
     S.TaggedStruct("Inactive", { reason: S.String }),
     S.TaggedStruct("Pending", { eta: S.Finite })
-  )
+  ])
 
   type State = S.Schema.Type<typeof StateSchema>
   type Entity = { readonly state: State; readonly name: string }
@@ -489,11 +581,11 @@ describe("generateGuards", () => {
 })
 
 describe("generateGuardsFor", () => {
-  const StateSchema = S.TaggedUnion(
+  const StateSchema = S.TaggedUnion([
     S.TaggedStruct("Active", { since: S.String }),
     S.TaggedStruct("Inactive", { reason: S.String }),
     S.TaggedStruct("Pending", { eta: S.Finite })
-  )
+  ])
 
   type State = S.Schema.Type<typeof StateSchema>
   type Entity = { readonly state: State; readonly name: string }

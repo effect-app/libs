@@ -1,138 +1,173 @@
 import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { InvalidStateError, LoginError, NotFoundError, NotLoggedInError, OptimisticConcurrencyException, ServiceUnavailableError, UnauthorizedError, ValidationError } from "effect-app/client/errors"
 import * as AppSchema from "effect-app/Schema"
-import { Class, ExtendedClass, ExtendedTaggedClass, TaggedClass } from "effect-app/Schema/Class"
+import { Class } from "effect-app/Schema/Class"
 import { flattenNestedAnyOf, flattenSimpleAllOf, specialJsonSchemaDocument } from "effect-app/Schema/SpecialJsonSchema"
 import { deduplicateOpenApiSchemas } from "effect-app/Schema/SpecialOpenApi"
 import * as S from "effect/Schema"
 import { describe, expect, it } from "vitest"
 
 describe("Class", () => {
-  it("encoding accepts plain objects matching the struct (Fields argument)", () => {
-    class A extends Class<A>("A")({ a: S.String }) {}
+  describe("strict", () => {
+    it("encoding doesnt accepts plain objects matching the struct (Fields argument)", () => {
+      class A extends Class<A>("A")({ a: S.String }) {}
 
-    // Encoding a class instance still works
-    expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
+      expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
+      expect(() => S.encodeUnknownSync(A)({ a: "world" })).toThrow()
+      expect(() => S.encodeUnknownSync(A)(null)).toThrow()
+    })
 
-    // Encoding a plain object matching the struct now succeeds
-    expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
+    it("encoding rejects plain objects matching the struct (Struct argument)", () => {
+      class A extends Class<A>("A")(S.Struct({ a: S.String })) {}
 
-    // Encoding null still fails
-    expect(() => S.encodeUnknownSync(A)(null)).toThrow()
+      expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
+      expect(() => S.encodeUnknownSync(A)({ a: "world" })).toThrow()
+      expect(() => S.encodeUnknownSync(A)(null)).toThrow()
+    })
+
+    it("decoding still works normally", () => {
+      class A extends Class<A>("A")({ a: S.String }) {}
+
+      const decoded = S.decodeUnknownSync(A)({ a: "hello" })
+      expect(decoded).toBeInstanceOf(A)
+      expect((decoded as A).a).toBe("hello")
+
+      expect(() => S.decodeUnknownSync(A)(null)).toThrow()
+      expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
+    })
+
+    it("S.is accepts class instances and not matching plain objects", () => {
+      class A extends Class<A>("A")({ a: S.String }) {}
+
+      expect(S.is(A)(new A({ a: "hello" }))).toBe(true)
+      expect(S.is(A)({ a: "world" })).toBe(false)
+      expect(S.is(A)({ a: 1 })).toBe(false)
+      expect(S.is(A)(null)).toBe(false)
+    })
+
+    it("rejects values that don't match the struct", () => {
+      class A extends Class<A>("A")({ a: S.String }) {}
+
+      expect(() => S.encodeUnknownSync(A)({ a: 123 })).toThrow()
+      expect(() => S.encodeUnknownSync(A)("not an object")).toThrow()
+    })
+
+    it("returns a class constructor — new and instanceof work", () => {
+      class A extends Class<A>("A")({ a: S.String }) {}
+
+      const instance = new A({ a: "hello" })
+      expect(instance).toBeInstanceOf(A)
+      expect(instance.a).toBe("hello")
+    })
+
+    it("preserves fields and identifier", () => {
+      class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+      expect(A.identifier).toBe("A")
+      expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
+    })
   })
 
-  it("encoding accepts plain objects matching the struct (Struct argument)", () => {
-    class A extends Class<A>("A")(S.Struct({ a: S.String })) {}
+  describe("non strict", () => {
+    it("encoding accepts plain objects matching the struct (Fields argument)", () => {
+      class A extends Class<A>("A")({ a: S.String }, undefined, { strict: false }) {}
 
-    expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
-    expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
-    expect(() => S.encodeUnknownSync(A)(null)).toThrow()
-  })
+      expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
+      expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
+      expect(() => S.encodeUnknownSync(A)(null)).toThrow()
+    })
 
-  it("decoding still works normally", () => {
-    class A extends Class<A>("A")({ a: S.String }) {}
+    it("encoding accepts plain objects matching the struct (Struct argument)", () => {
+      class A extends Class<A>("A")(S.Struct({ a: S.String }), undefined, { strict: false }) {}
 
-    const decoded = S.decodeUnknownSync(A)({ a: "hello" })
-    expect(decoded).toBeInstanceOf(A)
-    expect((decoded as A).a).toBe("hello")
+      expect(S.encodeUnknownSync(A)(new A({ a: "hello" }))).toStrictEqual({ a: "hello" })
+      expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
+      expect(() => S.encodeUnknownSync(A)(null)).toThrow()
+    })
 
-    expect(() => S.decodeUnknownSync(A)(null)).toThrow()
-    expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
-  })
+    it("S.is accepts class instances and matching plain objects", () => {
+      class A extends Class<A>("A")({ a: S.String }, undefined, { strict: false }) {}
 
-  it("rejects values that don't match the struct", () => {
-    class A extends Class<A>("A")({ a: S.String }) {}
-
-    expect(() => S.encodeUnknownSync(A)({ a: 123 })).toThrow()
-    expect(() => S.encodeUnknownSync(A)("not an object")).toThrow()
-  })
-
-  it("returns a class constructor — new and instanceof work", () => {
-    class A extends Class<A>("A")({ a: S.String }) {}
-
-    const instance = new A({ a: "hello" })
-    expect(instance).toBeInstanceOf(A)
-    expect(instance.a).toBe("hello")
-  })
-
-  it("preserves fields and identifier", () => {
-    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
-
-    expect(A.identifier).toBe("A")
-    expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
+      expect(S.is(A)(new A({ a: "hello" }))).toBe(true)
+      expect(S.is(A)({ a: "world" })).toBe(true)
+      expect(S.is(A)({ a: 1 })).toBe(false)
+      expect(S.is(A)(null)).toBe(false)
+    })
   })
 })
 
 describe("Class constructor", () => {
-  it("works as a base class — new, instanceof, encoding plain objects", () => {
-    class A extends Class<A>("A")({ a: S.String }) {}
+  describe("strict", () => {
+    it("works as a base class — new, instanceof, encoding plain objects", () => {
+      class A extends Class<A>("A")({ a: S.String }) {}
 
-    // Construction
-    const instance = new A({ a: "hello" })
-    expect(instance).toBeInstanceOf(A)
-    expect(instance.a).toBe("hello")
+      const instance = new A({ a: "hello" })
+      expect(instance).toBeInstanceOf(A)
+      expect(instance.a).toBe("hello")
 
-    // Encoding a class instance
-    expect(S.encodeUnknownSync(A)(instance)).toStrictEqual({ a: "hello" })
+      expect(S.encodeUnknownSync(A)(instance)).toStrictEqual({ a: "hello" })
+      expect(() => S.encodeUnknownSync(A)({ a: "world" })).toThrow()
+      expect(() => S.encodeUnknownSync(A)(null)).toThrow()
+      expect(() => S.encodeUnknownSync(A)({ a: 123 })).toThrow()
+    })
 
-    // Encoding a plain object
-    expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
+    it("decoding works normally", () => {
+      class A extends Class<A>("A")({ a: S.String }) {}
 
-    // Encoding invalid input fails
-    expect(() => S.encodeUnknownSync(A)(null)).toThrow()
-    expect(() => S.encodeUnknownSync(A)({ a: 123 })).toThrow()
+      const decoded = S.decodeUnknownSync(A)({ a: "hello" })
+      expect(decoded).toBeInstanceOf(A)
+      expect((decoded as A).a).toBe("hello")
+
+      expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
+    })
+
+    it("exposes fields, identifier", () => {
+      class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
+
+      expect(A.identifier).toBe("A")
+      expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
+    })
   })
 
-  it("decoding works normally", () => {
-    class A extends Class<A>("A")({ a: S.String }) {}
+  describe("non strict", () => {
+    it("works as a base class — new, instanceof, encoding plain objects", () => {
+      class A extends Class<A>("A")({ a: S.String }, undefined, { strict: false }) {}
 
-    const decoded = S.decodeUnknownSync(A)({ a: "hello" })
-    expect(decoded).toBeInstanceOf(A)
-    expect((decoded as A).a).toBe("hello")
+      const instance = new A({ a: "hello" })
+      expect(instance).toBeInstanceOf(A)
+      expect(instance.a).toBe("hello")
 
-    expect(() => S.decodeUnknownSync(A)({ a: 1 })).toThrow()
-  })
-
-  it("exposes fields, identifier", () => {
-    class A extends Class<A>("A")({ a: S.String, b: S.Number }) {}
-
-    expect(A.identifier).toBe("A")
-    expect(Object.keys(A.fields)).toStrictEqual(["a", "b"])
+      expect(S.encodeUnknownSync(A)(instance)).toStrictEqual({ a: "hello" })
+      expect(S.encodeUnknownSync(A)({ a: "world" })).toStrictEqual({ a: "world" })
+      expect(() => S.encodeUnknownSync(A)(null)).toThrow()
+      expect(() => S.encodeUnknownSync(A)({ a: 123 })).toThrow()
+    })
   })
 })
 
-describe("TaggedClass constructor", () => {
-  it("works as a base class with _tag — new, instanceof, encoding plain objects", () => {
-    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+describe("TaggedStruct constructor", () => {
+  it("works with _tag, make, and encoding plain objects", () => {
+    const Circle = AppSchema.TaggedStruct("Circle", { radius: S.Number })
 
-    // Construction
-    const instance = new Circle({ radius: 5 })
-    expect(instance).toBeInstanceOf(Circle)
-    expect(instance._tag).toBe("Circle")
-    expect(instance.radius).toBe(5)
+    const instance = Circle.make({ radius: 5 })
+    expect(instance).toEqual({ _tag: "Circle", radius: 5 })
 
-    // Encoding a class instance
     expect(S.encodeUnknownSync(Circle)(instance)).toStrictEqual({ _tag: "Circle", radius: 5 })
-
-    // Encoding a plain object
     expect(S.encodeUnknownSync(Circle)({ _tag: "Circle", radius: 10 })).toStrictEqual({ _tag: "Circle", radius: 10 })
 
-    // Encoding invalid input fails
     expect(() => S.encodeUnknownSync(Circle)(null)).toThrow()
     expect(() => S.encodeUnknownSync(Circle)({ _tag: "Circle", radius: "nope" })).toThrow()
   })
 
   it("decoding works normally", () => {
-    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+    const Circle = AppSchema.TaggedStruct("Circle", { radius: S.Number })
 
     const decoded = S.decodeUnknownSync(Circle)({ _tag: "Circle", radius: 5 })
-    expect(decoded).toBeInstanceOf(Circle)
-    expect((decoded as Circle).radius).toBe(5)
-    expect((decoded as Circle)._tag).toBe("Circle")
+    expect(decoded).toEqual({ _tag: "Circle", radius: 5 })
   })
 
   it("S.decodeSync(S.toType(X)) should report n length schema error", () => {
-    class X extends TaggedClass<X>()("X", { n: S.String.pipe(S.check(S.isMinLength(3))) }) {}
+    class X extends S.Opaque<X>()(S.TaggedStruct("X", { n: S.String.pipe(S.check(S.isMinLength(3))) })) {}
 
     try {
       S.decodeSync(S.toType(X))({ _tag: "X", n: "a" /* not length 3 */ })
@@ -146,10 +181,9 @@ describe("TaggedClass constructor", () => {
     }
   })
 
-  it("exposes fields, identifier", () => {
-    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+  it("exposes fields", () => {
+    const Circle = AppSchema.TaggedStruct("Circle", { radius: S.Number })
 
-    expect(Circle.identifier).toBe("Circle")
     expect(Object.keys(Circle.fields)).toContain("_tag")
     expect(Object.keys(Circle.fields)).toContain("radius")
   })
@@ -162,28 +196,24 @@ describe("strict declaration option", () => {
     expect(() => S.decodeSync(S.toType(X))({ n: "a" })).toThrow("Expected X")
   })
 
-  it("TaggedClass strict: true keeps class-level expected errors", () => {
-    class X extends TaggedClass<X>()("X", { n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
-      strict: true
-    }) {}
+  it("TaggedStruct preserves field-level expected errors", () => {
+    class X extends S.Opaque<X>()(AppSchema.TaggedStruct("X", { n: S.String.pipe(S.check(S.isMinLength(3))) })) {}
 
-    expect(() => S.decodeSync(S.toType(X))({ _tag: "X", n: "a" })).toThrow("Expected X")
+    expect(() => S.decodeSync(S.toType(X))({ _tag: "X", n: "a" })).toThrow()
   })
 
-  it("ExtendedClass strict: true keeps class-level expected errors", () => {
-    class X extends ExtendedClass<X, never>("X")({ n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
+  it("Class with encoded override strict: true keeps class-level expected errors", () => {
+    class X extends Class<X, never>("X")({ n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
       strict: true
     }) {}
 
     expect(() => S.decodeSync(S.toType(X))({ n: "a" })).toThrow("Expected X")
   })
 
-  it("ExtendedTaggedClass strict: true keeps class-level expected errors", () => {
-    class X extends ExtendedTaggedClass<X, never>()("X", { n: S.String.pipe(S.check(S.isMinLength(3))) }, undefined, {
-      strict: true
-    }) {}
+  it("TaggedStruct with opaque wrapper decodes tagged input", () => {
+    class X extends S.Opaque<X>()(AppSchema.TaggedStruct("X", { n: S.String.pipe(S.check(S.isMinLength(3))) })) {}
 
-    expect(() => S.decodeSync(S.toType(X))({ _tag: "X", n: "a" })).toThrow("Expected X")
+    expect(() => S.decodeSync(S.toType(X))({ _tag: "X", n: "a" })).toThrow()
   })
 })
 
@@ -217,24 +247,112 @@ describe("Class.copy", () => {
   })
 })
 
-describe("TaggedClass.copy", () => {
+describe("TaggedStruct (opaque).copy", () => {
   it("creates a new instance with updated fields", () => {
-    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+    const Circle = AppSchema.TaggedStruct("Circle", { radius: S.Number })
 
-    const instance = new Circle({ radius: 5 })
-    const copied: Circle = Circle.copy(instance, { radius: 10 })
-    expect(copied).toBeInstanceOf(Circle)
-    expect(copied._tag).toBe("Circle")
-    expect(copied.radius).toBe(10)
+    const instance = Circle.make({ radius: 5 })
+    const copied = Circle.copy(instance, { radius: 10 })
+    expect(copied).toEqual({ _tag: "Circle", radius: 10 })
   })
 
   it("accepts a function for updates", () => {
-    class Circle extends TaggedClass<Circle>()("Circle", { radius: S.Number }) {}
+    const Circle = AppSchema.TaggedStruct("Circle", { radius: S.Number })
 
-    const instance = new Circle({ radius: 5 })
-    const copied: Circle = Circle.copy(instance, (c) => ({ radius: c.radius * 2 }))
-    expect(copied).toBeInstanceOf(Circle)
-    expect(copied.radius).toBe(10)
+    const instance = Circle.make({ radius: 5 })
+    const copied = Circle.copy(instance, (c) => ({ radius: c.radius * 2 }))
+    expect(copied).toEqual({ _tag: "Circle", radius: 10 })
+  })
+})
+
+describe("Struct.copy", () => {
+  it("creates a new value with updated fields", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("accepts a function for updates", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, (a) => ({ b: a.b + 1 }))
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+  })
+
+  it("allows widening updates against the full struct type", () => {
+    const A = AppSchema.Struct({
+      name: S.String,
+      state: S.Union([
+        S.Struct({ _tag: S.tag("a"), a: S.String }),
+        S.Struct({ _tag: S.tag("b"), b: S.Number })
+      ])
+    })
+
+    const instance = A.make({ name: "x", state: { _tag: "a", a: "a" } })
+    const copied = A.copy(instance, { state: { _tag: "b", b: 1 } })
+
+    expect(copied).toEqual({ name: "x", state: { _tag: "b", b: 1 } })
+  })
+
+  it("copy function is preserved when using .annotate()", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number }).annotate({ title: "A" })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("copy function is preserved when using .annotateKey()", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number }).annotateKey({ title: "A" })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("copy function is preserved when using .mapFields()", () => {
+    const A = AppSchema.Struct({ a: S.String, b: S.Number }).mapFields((f) => ({ ...f }))
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+
+  it("copy function is preserved through chained calls", () => {
+    const A = AppSchema
+      .Struct({ a: S.String, b: S.Number })
+      .annotate({ title: "A" })
+      .annotateKey({ description: "test" })
+
+    const instance = A.make({ a: "hello", b: 1 })
+    const copied = A.copy(instance, { b: 2 })
+
+    expect(copied).toEqual({ a: "hello", b: 2 })
+    expect(copied).not.toBe(instance)
+  })
+})
+
+describe("TaggedStruct.copy", () => {
+  it("creates a new tagged value with updated fields", () => {
+    const Circle = AppSchema.TaggedStruct("Circle", { radius: S.Number })
+
+    const instance = Circle.make({ radius: 5 })
+    const copied = Circle.copy(instance, { radius: 10 })
+
+    expect(copied).toEqual({ _tag: "Circle", radius: 10 })
+    expect(copied).not.toBe(instance)
   })
 })
 
@@ -753,8 +871,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     const doc = specialJsonSchemaDocument(AppSchema.PositiveInt)
     expect(doc.definitions["PositiveInt"]).toStrictEqual({
       type: "integer",
-      exclusiveMinimum: 0,
-      title: "PositiveInt"
+      exclusiveMinimum: 0
     })
   })
 
@@ -763,8 +880,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     expect(doc.definitions["NonEmptyString255"]).toStrictEqual({
       type: "string",
       minLength: 1,
-      maxLength: 255,
-      title: "NonEmptyString255"
+      maxLength: 255
     })
   })
 
@@ -790,8 +906,7 @@ describe("Post-processing integration — real Effect Schema types", () => {
     expect(doc.definitions["NonEmptyString64k"]).toStrictEqual({
       type: "string",
       minLength: 1,
-      maxLength: 65536,
-      title: "NonEmptyString64k"
+      maxLength: 65536
     })
   })
 
@@ -799,14 +914,13 @@ describe("Post-processing integration — real Effect Schema types", () => {
     const doc = specialJsonSchemaDocument(AppSchema.NonNegativeInt)
     expect(doc.definitions["NonNegativeInt"]).toStrictEqual({
       type: "integer",
-      minimum: 0,
-      title: "NonNegativeInt"
+      minimum: 0
     })
   })
 
   it("NullOr union flattens nested anyOf members", () => {
-    const A = S.String.annotate({ identifier: "A", title: "A" })
-    const B = S.Boolean.annotate({ identifier: "B", title: "B" })
+    const A = S.String.annotate({ identifier: "A" })
+    const B = S.Boolean.annotate({ identifier: "B" })
     const schema = S.Struct({
       value: S.NullOr(S.Union([A, B]))
     })

@@ -49,13 +49,13 @@ const items = [
 const role = ref<"user" | "admin">("user")
 
 const updateMutation = Object.assign(
-  Effect.fn(function*(item: string, props: { name?: string; state?: number }) {
+  Effect.fn(function*(_item: string, _props: { name?: string; state?: number }) {
     yield* Effect.sleep(1000)
   }),
   { id: "update_thing" }
 )
 const removeMutation = Object.assign(
-  Effect.fn(function*(item: string) {
+  Effect.fn(function*(_item: string) {
     yield* Effect.sleep(1000)
   }),
   { id: "remove_thing" }

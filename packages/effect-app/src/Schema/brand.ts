@@ -35,13 +35,25 @@ type BrandAnnotations<C extends B.Brand<any>> =
       : {}
   )
 
-type BrandedSchema<Self extends S.Top, C extends B.Brand<any>> =
-  & Omit<S.brand<Self["Rebuild"], B.Brand.Keys<C>>, "Type" | "Iso" | "~type.make">
-  & {
-    readonly Type: C
-    readonly Iso: C
-    readonly "~type.make": C
-  }
+export interface BrandedSchema<S extends S.Top, C extends B.Brand<any>> extends
+  S.Bottom<
+    C,
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
+    S["ast"],
+    BrandedSchema<S, C>,
+    S["~type.make.in"],
+    S["Iso"],
+    S["~type.parameters"],
+    C,
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
+{}
 
 export const fromBrand = <C extends B.Brand<any>>(
   constructor: Constructor<C>,

@@ -279,16 +279,14 @@ export function buildWhereCosmosQuery3(
     query: `
     SELECT ${
       select
-        ? `${
-          select
-            .map((s) =>
-              typeof s === "string"
-                ? dottedToAccess(s === idKey ? "f.id" : `f.${s}`) // x["y"} vs x.y, helps with reserved keywords like "value"
-                : `ARRAY (SELECT ${s.subKeys.map((_) => dottedToAccess(`t.${_}`)).join(",")}
+        ? select
+          .map((s) =>
+            typeof s === "string"
+              ? dottedToAccess(s === idKey ? "f.id" : `f.${s}`) // x["y"} vs x.y, helps with reserved keywords like "value"
+              : `ARRAY (SELECT ${s.subKeys.map((_) => dottedToAccess(`t.${_}`)).join(",")}
                 FROM t in ${dottedToAccess(`f.${s.key}`)}) AS ${s.key}`
-            )
-            .join(", ")
-        }`
+          )
+          .join(", ")
         : "f"
     }
     FROM ${name} f

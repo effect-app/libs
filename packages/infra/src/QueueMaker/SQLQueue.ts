@@ -61,7 +61,7 @@ export const makeSQLQueue = Effect.fnUntraced(function*<
     versionColumn: "etag"
   })
 
-  const decodeDrain = S.decodeEffect(Drain)
+  const decodeDrain = S.decodeEffectConcurrently(Drain)
 
   const drain = Effect.gen(function*() {
     const limit = subMinutes(new Date(), 15)

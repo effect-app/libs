@@ -17,6 +17,7 @@
         :value="state.value"
         :class="inputProps.inputClass"
         @change="(e: any) => field.handleChange(e.target.value)"
+        @blur="field.handleBlur"
       >
     </div>
   </slot>
@@ -38,6 +39,7 @@ defineEmits<{
 }>()
 
 defineSlots<{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vue slot return type is unconstrained
   label?: (props: { required: boolean; id: string; label: string }) => any
 }>()
 

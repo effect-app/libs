@@ -33,6 +33,7 @@ setup((app) => {
   app.use(vuetify)
   // Register highlight.js
   app.use(VueHighlightJS)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vue-toastification CJS/ESM interop
   app.use("default" in Toast ? (Toast as any).default : Toast, {})
 })
 

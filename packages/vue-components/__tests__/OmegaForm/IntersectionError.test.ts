@@ -1,6 +1,6 @@
-import { mount } from "@vue/test-utils"
+import { flushPromises, mount } from "@vue/test-utils"
 import { S } from "effect-app"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 import { useOmegaForm } from "../../src/components/OmegaForm"
 import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 
@@ -55,12 +55,13 @@ describe("OmegaForm Intersection/Union", () => {
     myUnion: S.Union([AlphaSchema, BetaSchema])
   })
 
-  const wrapper = mount({
-    components: {
-      OmegaIntlProvider,
-      CustomInput: mockComponents.CustomInput
-    },
-    template: `
+  const createWrapper = () =>
+    mount({
+      components: {
+        OmegaIntlProvider,
+        CustomInput: mockComponents.CustomInput
+      },
+      template: `
       <OmegaIntlProvider>
         <component :is="form.Form" :subscribe="['values']">
           <template #default="{ subscribedValues: { values } }">
@@ -104,22 +105,28 @@ describe("OmegaForm Intersection/Union", () => {
         </component>
       </OmegaIntlProvider>
     `,
-    setup() {
-      let submittedValue: any = null
-      const form = useOmegaForm(MySchema, {
-        onSubmit: async ({ value }) => {
-          submittedValue = value
-        }
-      })
-      return { form, getSubmittedValue: () => submittedValue }
-    }
-  }, {
-    global: {
-      stubs: {
-        CustomInput: mockComponents.CustomInput,
-        OmegaErrorsInternal: mockComponents.OmegaErrors
+      setup() {
+        let submittedValue: any = null
+        const form = useOmegaForm(MySchema, {
+          onSubmit: async ({ value }) => {
+            submittedValue = value
+          }
+        })
+        return { form, getSubmittedValue: () => submittedValue }
       }
-    }
+    }, {
+      global: {
+        stubs: {
+          CustomInput: mockComponents.CustomInput,
+          OmegaErrorsInternal: mockComponents.OmegaErrors
+        }
+      }
+    })
+
+  let wrapper: ReturnType<typeof createWrapper>
+
+  beforeEach(() => {
+    wrapper = createWrapper()
   })
 
   it("handles discriminated union with conditional fields", async () => {
@@ -150,11 +157,11 @@ describe("OmegaForm Intersection/Union", () => {
 
     // Select "alpha" and submit without filling required field to trigger error
     await selectInput.setValue("alpha")
-    await wrapper.vm.$nextTick()
 
     const submitButton = wrapper.find("[data-testid='submit']")
     await submitButton.trigger("submit")
     await wrapper.vm.$nextTick()
+    await flushPromises()
 
     // Verify error exists for alpha field
     const errorDiv = wrapper.find(".mock-omega-errors")

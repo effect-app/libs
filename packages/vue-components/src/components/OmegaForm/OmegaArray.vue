@@ -12,9 +12,7 @@
         :is="form.Field"
         v-for="(_, i) of items"
         :key="`${name}[${Number(i)}]`"
-        :name="// eslint-disable-next-line
-          `${name}[${Number(i)}]` as DeepKeys<From>
-        "
+        :name="`${name}[${Number(i)}]` as DeepKeys<From>"
       >
         <template #default="{ field: subField, state: subState }">
           <slot
@@ -46,7 +44,7 @@
 >
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, onMounted, provide } from "vue"
-import { type OmegaArrayProps } from "./OmegaFormStuff"
+import { type OmegaArrayProps } from "./types"
 
 const props = defineProps<OmegaArrayProps<From, To, Name>>()
 

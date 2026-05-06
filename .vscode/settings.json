@@ -1,6 +1,6 @@
 {
   "files.exclude": {
-     "**/.git": false
+    "**/.git": false
   },
   "explorer.sortOrderLexicographicOptions": "upper",
   "typescript.preferences.includePackageJsonAutoImports": "on",
@@ -24,32 +24,34 @@
     }
   ],
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": [
-    "source.fixAll.eslint",
-    "source.addMissingImports"
-  ],
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "editor.formatOnSaveMode": "file",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "explicit",
+    "source.fixAll.eslint": "explicit",
+    "source.addMissingImports": "explicit"
+  },
+  "editor.defaultFormatter": "dprint.dprint",
   "[vue]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "[javascript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "[javascriptreact]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "[typescriptreact]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    "editor.defaultFormatter": "dprint.dprint"
   },
   "eslint.validate": [
     "javascript",
     "typescript",
     "vue"
   ],
-  "eslint.format.enable": true,
+  "eslint.format.enable": false,
   "csv-preview.separator": ";",
   "cSpell.words": [
     "codegen",

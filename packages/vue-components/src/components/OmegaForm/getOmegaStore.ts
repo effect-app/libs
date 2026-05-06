@@ -1,6 +1,6 @@
 import { useStore } from "@tanstack/vue-form"
 import { computed, type Ref } from "vue"
-import type { OmegaFormApi, OmegaFormState } from "./OmegaFormStuff"
+import type { OmegaFormApi, OmegaFormState } from "./types"
 
 export function getOmegaStore<
   To,

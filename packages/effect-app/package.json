@@ -1,12 +1,12 @@
 {
   "name": "effect-app",
-  "version": "4.0.0-beta.133",
+  "version": "4.0.0-beta.208",
   "license": "MIT",
   "type": "module",
   "dependencies": {
     "@tsconfig/strictest": "^2.0.8",
     "date-fns": "^4.1.0",
-    "nanoid": "^5.1.9",
+    "nanoid": "^5.1.11",
     "path-parser": "^6.1.0",
     "query-string": "^9.3.1",
     "ts-pattern": "^5.9.0",
@@ -19,13 +19,12 @@
     "@types/node": "25.6.0",
     "@types/uuid": "^11.0.0",
     "@types/validator": "^13.15.10",
-    "@effect-app/eslint-shared-config": "workspace:*",
     "fast-check": "~4.7.0",
-    "typescript": "npm:@typescript/native-preview@beta",
+    "typescript": "~6.0.3",
     "vitest": "^4.1.5"
   },
   "peerDependencies": {
-    "effect": "^4.0.0-beta.56"
+    "effect": "^4.0.0-beta.60"
   },
   "typesVersions": {
     "*": {
@@ -83,10 +82,6 @@
       "types": "./dist/NonEmptySet.d.ts",
       "default": "./dist/NonEmptySet.js"
     },
-    "./Operations": {
-      "types": "./dist/Operations.d.ts",
-      "default": "./dist/Operations.js"
-    },
     "./Option": {
       "types": "./dist/Option.d.ts",
       "default": "./dist/Option.js"
@@ -110,6 +105,10 @@
     "./Schema/Methods": {
       "types": "./dist/Schema/Methods.d.ts",
       "default": "./dist/Schema/Methods.js"
+    },
+    "./Schema/SchemaParser": {
+      "types": "./dist/Schema/SchemaParser.d.ts",
+      "default": "./dist/Schema/SchemaParser.js"
     },
     "./Schema/SpecialJsonSchema": {
       "types": "./dist/Schema/SpecialJsonSchema.d.ts",
@@ -191,6 +190,10 @@
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
     },
+    "./client/InvalidationKeys": {
+      "types": "./dist/client/InvalidationKeys.d.ts",
+      "default": "./dist/client/InvalidationKeys.js"
+    },
     "./client/apiClientFactory": {
       "types": "./dist/client/apiClientFactory.d.ts",
       "default": "./dist/client/apiClientFactory.js"
@@ -234,6 +237,10 @@
     "./rpc": {
       "types": "./dist/rpc.d.ts",
       "default": "./dist/rpc.js"
+    },
+    "./rpc/Invalidation": {
+      "types": "./dist/rpc/Invalidation.d.ts",
+      "default": "./dist/rpc/Invalidation.js"
     },
     "./rpc/MiddlewareMaker": {
       "types": "./dist/rpc/MiddlewareMaker.d.ts",
@@ -298,9 +305,8 @@
     "circular:src": "madge --circular --ts-config ./tsconfig.json --extensions ts ./src",
     "circular:dist": "madge --circular --extensions js ./dist",
     "compile": "NODE_OPTIONS=--max-old-space-size=6144 tsgo --noEmit",
-    "lint": "oxlint ./src && NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint ./src",
-    "lint:watch": "ESLINT_TS=1 esw -w --changed --clear --ext ts,tsx .",
-    "lint-fix": "oxlint --fix ./src && NODE_OPTIONS=--max-old-space-size=6144 ESLINT_TS=1 eslint --fix ./src",
+    "lint": "oxlint --type-aware ./src && pnpm exec dprint check --config ../../dprint.jsonc .",
+    "lint-fix": "oxlint --type-aware --fix ./src && pnpm exec dprint fmt --config ../../dprint.jsonc .",
     "test": "vitest",
     "test:run": "pnpm run test run --passWithNoTests",
     "testsuite": "pnpm lint && pnpm circular && pnpm run test:run",

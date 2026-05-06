@@ -1,5 +1,63 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 830e1ce: Optimize codegen barrel and model plugins:
+  - Drop `io-ts-extra`, `io-ts`, and `lodash` dependencies; replace with native JS helpers
+  - Add fast string comparison (skip AST parse) for barrel and model equality checks
+  - Avoid triple file reads in the CLI path: pass already-read source into `model` via context
+  - Eliminate double read in `run()`: pass source string into `updateFile`
+  - Extract shared logic (`blockRe`, helpers, `renderPreset`) into `src/shared/codegen-block.ts`
+  - Remove dead `fs.existsSync`/`fs.statSync` checks in `model` preset
+  - Use `Set` for O(1) dedup in `model` preset
+  - Move `last` helper to module scope in `barrel` preset
+  - Pre-compile all regex constants at module scope; use fresh `RegExp` copy per oxlint `Program` visit to avoid shared `lastIndex` mutations
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- 8c753cb: align with earlier updates
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- c1e73de:
+
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- 6fff09c: unify encoded function for when you use encodedKeys
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- 25008fb: Ignore commented-out exported classes when detecting model schemas for generated `Encoded` namespaces.
+- 77efa95: Detect `Schema.Opaque<Self, Encoded>()` model classes in the model preset while excluding `Context.Opaque` service tags.
+
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- 025de47: Fold the encoded-override support from `ExtendedClass` and `ExtendedTaggedClass` into `Class`, `TaggedClass`, `ErrorClass`, and `TaggedErrorClass`, and update model codegen to detect the new second-generic form.
+
 ## 2.0.0-beta.7
 
 ### Patch Changes

@@ -240,15 +240,15 @@ it("collect", () =>
       Effect.runPromise
     ))
 
-class Person extends S.ExtendedTaggedClass<Person, Person.Encoded>()("person", {
+class Person extends S.TaggedClass<Person, Person.Encoded>()("person", {
   id: S.String,
   surname: S.String
 }) {}
-class Animal extends S.ExtendedTaggedClass<Animal, Animal.Encoded>()("animal", {
+class Animal extends S.TaggedClass<Animal, Animal.Encoded>()("animal", {
   id: S.String,
   surname: S.String
 }) {}
-class Test extends S.ExtendedTaggedClass<Test, Test.Encoded>()("test", {
+class Test extends S.TaggedClass<Test, Test.Encoded>()("test", {
   id: S.String
 }) {}
 
@@ -1030,7 +1030,9 @@ it("find with transformed id", () =>
             decode: Effect.fnUntraced(function*(value) {
               const values = value.split("_")
               const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
-              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(
+                values.join("_")
+              )
               return new PreconfigurationId({ configuratorId, label })
             }),
             encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))
@@ -1086,7 +1088,9 @@ it("find with transformed id in tagged union", () =>
             decode: Effect.fnUntraced(function*(value) {
               const values = value.split("_")
               const label = yield* S.SchemaParser.decodeUnknownEffect(S.NonEmptyString50)(values.pop())
-              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(values.join("_"))
+              const configuratorId = yield* S.SchemaParser.decodeUnknownEffect(ConfiguratorId)(
+                values.join("_")
+              )
               return new PreconfigurationId({ configuratorId, label })
             }),
             encode: (id) => Effect.succeed(S.NonEmptyString255(`${id.configuratorId}_${id.label}`))

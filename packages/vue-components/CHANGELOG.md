@@ -1,5 +1,670 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.208
+
+### Patch Changes
+
+- Updated dependencies [0d7d197]
+  - @effect-app/vue@4.0.0-beta.208
+  - effect-app@4.0.0-beta.208
+
+## 4.0.0-beta.207
+
+### Patch Changes
+
+- Updated dependencies [8fffc3c]
+  - effect-app@4.0.0-beta.207
+  - @effect-app/vue@4.0.0-beta.207
+
+## 4.0.0-beta.206
+
+### Patch Changes
+
+- Updated dependencies [54bfc59]
+  - effect-app@4.0.0-beta.206
+  - @effect-app/vue@4.0.0-beta.206
+
+## 4.0.0-beta.205
+
+### Patch Changes
+
+- Updated dependencies [f313973]
+  - effect-app@4.0.0-beta.205
+  - @effect-app/vue@4.0.0-beta.205
+
+## 4.0.0-beta.204
+
+### Patch Changes
+
+- Updated dependencies [0a0030f]
+  - effect-app@4.0.0-beta.204
+  - @effect-app/vue@4.0.0-beta.204
+
+## 4.0.0-beta.203
+
+### Patch Changes
+
+- Updated dependencies [992d9fa]
+  - effect-app@4.0.0-beta.203
+  - @effect-app/vue@4.0.0-beta.203
+
+## 4.0.0-beta.202
+
+### Patch Changes
+
+- Updated dependencies [1186b09]
+  - effect-app@4.0.0-beta.202
+  - @effect-app/vue@4.0.0-beta.202
+
+## 4.0.0-beta.201
+
+### Patch Changes
+
+- Updated dependencies [d67d17a]
+  - effect-app@4.0.0-beta.201
+  - @effect-app/vue@4.0.0-beta.201
+
+## 4.0.0-beta.200
+
+### Patch Changes
+
+- Updated dependencies [8f1cf6a]
+- Updated dependencies [0cff7c1]
+  - effect-app@4.0.0-beta.200
+  - @effect-app/vue@4.0.0-beta.200
+
+## 4.0.0-beta.199
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.199
+- @effect-app/vue@4.0.0-beta.199
+
+## 4.0.0-beta.198
+
+### Patch Changes
+
+- Updated dependencies [32dbc54]
+- Updated dependencies [dd73a4a]
+  - effect-app@4.0.0-beta.198
+  - @effect-app/vue@4.0.0-beta.198
+
+## 4.0.0-beta.197
+
+### Patch Changes
+
+- Updated dependencies [3dc0d2a]
+  - effect-app@4.0.0-beta.197
+  - @effect-app/vue@4.0.0-beta.197
+
+## 4.0.0-beta.196
+
+### Patch Changes
+
+- Updated dependencies [c7fbd58]
+  - @effect-app/vue@4.0.0-beta.196
+  - effect-app@4.0.0-beta.196
+
+## 4.0.0-beta.195
+
+### Patch Changes
+
+- Updated dependencies [774a9b3]
+  - effect-app@4.0.0-beta.195
+  - @effect-app/vue@4.0.0-beta.195
+
+## 4.0.0-beta.194
+
+### Patch Changes
+
+- Updated dependencies
+  - @effect-app/vue@4.0.0-beta.194
+  - effect-app@4.0.0-beta.194
+
+## 4.0.0-beta.193
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.193
+- @effect-app/vue@4.0.0-beta.193
+
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.192
+- @effect-app/vue@4.0.0-beta.192
+
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- Updated dependencies [50ce7e6]
+- Updated dependencies [50ce7e6]
+  - @effect-app/vue@4.0.0-beta.191
+  - effect-app@4.0.0-beta.191
+
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- Updated dependencies [985176b]
+  - effect-app@4.0.0-beta.190
+  - @effect-app/vue@4.0.0-beta.190
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- Updated dependencies [d23e3f6]
+- Updated dependencies [f44800c]
+- Updated dependencies [ea32222]
+  - @effect-app/vue@4.0.0-beta.189
+  - effect-app@4.0.0-beta.189
+
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- Updated dependencies [ed1b8a9]
+- Updated dependencies [f16e766]
+- Updated dependencies [b2e438f]
+  - @effect-app/vue@4.0.0-beta.188
+  - effect-app@4.0.0-beta.188
+
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- Updated dependencies [0d4e0b8]
+  - effect-app@4.0.0-beta.187
+  - @effect-app/vue@4.0.0-beta.187
+
+## 4.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [89b7d2f]
+  - @effect-app/vue@4.0.0-beta.186
+  - effect-app@4.0.0-beta.186
+
+## 4.0.0-beta.185
+
+### Patch Changes
+
+- ddd9505: Rename stream mutation helpers: `mutateStream` → `mutateToResult`, `mutateStream2` → `mutate`.
+- Updated dependencies [ddd9505]
+  - @effect-app/vue@4.0.0-beta.185
+  - effect-app@4.0.0-beta.185
+
+## 4.0.0-beta.184
+
+### Patch Changes
+
+- d4bf24a: Add `Command.withDefaultToastStream` — a stream-aware combinator for `streamFn` that properly handles the full stream lifecycle (waiting/success/failure toasts). Unlike `withDefaultToast`, it waits for the stream to drain before showing the success toast and correctly handles stream errors.
+
+  Strongly type `CommandBase` with `RA`/`RE` type params for `result`, and update `CommandButton`'s `mapProgress` prop to be typed as `(result: AsyncResult<RA, RE>) => Progress | undefined`.
+
+- Updated dependencies [d4bf24a]
+  - @effect-app/vue@4.0.0-beta.184
+  - effect-app@4.0.0-beta.184
+
+## 4.0.0-beta.183
+
+### Minor Changes
+
+- 8ff0bf9: - `CommandButton`: add optional `:map-progress` prop to compute progress from `command.result` via a custom mapper function
+  - `CommandBase`: add optional `result` field exposing reactive `AsyncResult` state
+  - Export `Progress` type from `@effect-app/vue`
+  - `streamFn`: pipe operators now receive the initial `Effect<Stream>` (or `Stream`) value unchanged; `Stream.unwrap` is deferred until after all combinators, enabling use of `withDefaultToast` and other Effect-level combinators
+  - Add `makeStreamMutation2`: like `makeStreamMutation` but returns `Effect<Stream>` per invocation (with invalidation via `Stream.ensuring`), for use with `streamFn` combinators
+  - Expose `streamFn` on `XClient.Y` stream handlers and on the `Command` object
+  - Expose `mutateStream2` on `XClient.Y` stream handlers, with a `wrapStream` helper that calls `streamFn` with the handler and provided combinators
+
+### Patch Changes
+
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [8ff0bf9]
+- Updated dependencies [fc98fb7]
+  - @effect-app/vue@4.0.0-beta.183
+  - effect-app@4.0.0-beta.183
+
+## 4.0.0-beta.182
+
+### Minor Changes
+
+- b9586f8: Refine `mutateStream` shape and progress reporting.
+
+  - `mutateStream(options?)` now returns the `execute` callable directly, with `id`, `running?`, and `progress?` attached as properties. Tuple form `[ref, execute]` is gone — invoke the callable to run the stream, or pass it (or the factory) to `Command.fn` / `Command.wrap` / `Command.wrapStream`.
+  - `progress` formatter return type widened from `string | undefined` to `Progress | undefined`, where `Progress = string | { text: string; percentage: number }`.
+  - Stream failures now bubble through the execute effect's typed error channel `E` instead of being swallowed. The reactive `AsyncResult` ref still mirrors the failure for live progress UI.
+  - `CommandBase.progress?: Progress` replaces `progressText?: string`. `CommandButton` overrides the Vuetify `loader` slot when `progress` is set, rendering a `v-progress-circular` (bound to `model-value` when a `percentage` is supplied, otherwise `indeterminate`) alongside the formatted text.
+  - Factories and callables are branded with `_streamFactory` / `_streamCallable` so `Command.fn` / `Command.wrap` can disambiguate them from plain mutate functions.
+
+### Patch Changes
+
+- Updated dependencies [b9586f8]
+  - @effect-app/vue@4.0.0-beta.182
+  - effect-app@4.0.0-beta.182
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [583393f]
+- Updated dependencies [4bbeb19]
+  - effect-app@4.0.0-beta.181
+  - @effect-app/vue@4.0.0-beta.181
+
+## 4.0.0-beta.180
+
+### Patch Changes
+
+- Updated dependencies [7fa3045]
+  - effect-app@4.0.0-beta.180
+  - @effect-app/vue@4.0.0-beta.180
+
+## 4.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - @effect-app/vue@4.0.0-beta.179
+  - effect-app@4.0.0-beta.179
+
+## 4.0.0-beta.178
+
+### Patch Changes
+
+- Updated dependencies [07dd7b9]
+  - @effect-app/vue@4.0.0-beta.178
+  - effect-app@4.0.0-beta.178
+
+## 4.0.0-beta.177
+
+### Patch Changes
+
+- Updated dependencies [89d8b3a]
+  - effect-app@4.0.0-beta.177
+  - @effect-app/vue@4.0.0-beta.177
+
+## 4.0.0-beta.176
+
+### Patch Changes
+
+- pass options
+- Updated dependencies
+  - effect-app@4.0.0-beta.176
+  - @effect-app/vue@4.0.0-beta.176
+
+## 4.0.0-beta.175
+
+### Patch Changes
+
+- Updated dependencies [28777c1]
+- Updated dependencies [37089ea]
+  - @effect-app/vue@4.0.0-beta.175
+  - effect-app@4.0.0-beta.175
+
+## 4.0.0-beta.174
+
+### Patch Changes
+
+- Updated dependencies [1b38043]
+- Updated dependencies [821468d]
+- Updated dependencies [b241ae5]
+  - @effect-app/vue@4.0.0-beta.174
+  - effect-app@4.0.0-beta.174
+
+## 4.0.0-beta.173
+
+### Patch Changes
+
+- Updated dependencies [4149577]
+  - @effect-app/vue@4.0.0-beta.173
+  - effect-app@4.0.0-beta.173
+
+## 4.0.0-beta.172
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.172
+- @effect-app/vue@4.0.0-beta.172
+
+## 4.0.0-beta.171
+
+### Patch Changes
+
+- Updated dependencies [d71d976]
+  - effect-app@4.0.0-beta.171
+  - @effect-app/vue@4.0.0-beta.171
+
+## 4.0.0-beta.170
+
+### Patch Changes
+
+- Updated dependencies [8f09f77]
+  - effect-app@4.0.0-beta.170
+  - @effect-app/vue@4.0.0-beta.170
+
+## 4.0.0-beta.169
+
+### Patch Changes
+
+- Updated dependencies [8ae8b53]
+  - effect-app@4.0.0-beta.169
+  - @effect-app/vue@4.0.0-beta.169
+
+## 4.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [178480a]
+  - effect-app@4.0.0-beta.168
+  - @effect-app/vue@4.0.0-beta.168
+
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- Updated dependencies [140e192]
+  - effect-app@4.0.0-beta.167
+  - @effect-app/vue@4.0.0-beta.167
+
+## 4.0.0-beta.166
+
+### Patch Changes
+
+- Updated dependencies [dbcc53b]
+  - effect-app@4.0.0-beta.166
+  - @effect-app/vue@4.0.0-beta.166
+
+## 4.0.0-beta.165
+
+### Patch Changes
+
+- Updated dependencies [f88ea34]
+- Updated dependencies [66fd718]
+  - effect-app@4.0.0-beta.165
+  - @effect-app/vue@4.0.0-beta.165
+
+## 4.0.0-beta.164
+
+### Patch Changes
+
+- Updated dependencies [8cb3de4]
+  - effect-app@4.0.0-beta.164
+  - @effect-app/vue@4.0.0-beta.164
+
+## 4.0.0-beta.163
+
+### Patch Changes
+
+- Updated dependencies [b952f19]
+  - effect-app@4.0.0-beta.163
+  - @effect-app/vue@4.0.0-beta.163
+
+## 4.0.0-beta.162
+
+### Patch Changes
+
+- Updated dependencies [b52b424]
+  - effect-app@4.0.0-beta.162
+  - @effect-app/vue@4.0.0-beta.162
+
+## 4.0.0-beta.161
+
+### Patch Changes
+
+- Updated dependencies [aa5ef5c]
+  - @effect-app/vue@4.0.0-beta.161
+  - effect-app@4.0.0-beta.161
+
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- Updated dependencies [505bfa9]
+  - effect-app@4.0.0-beta.160
+  - @effect-app/vue@4.0.0-beta.160
+
+## 4.0.0-beta.159
+
+### Patch Changes
+
+- c1e73de:
+- 6eb0e52: Refactor `OmegaForm` into focused modules and switch validation to a form-level `onDynamic` validator with `revalidateLogic()` so cross-field checks re-validate on every input change. `OmegaFormStuff.ts` is gone, split into `meta/{types,checks,createMeta,walker,defaults,redacted}.ts`, `validation/localized.ts`, `errors.ts`, `hocs.ts`, `inputs.ts`, `submit.ts`, `persistency.ts`, and `types.ts`; `useOmegaForm.ts` is orchestration-only.
+
+  Restored localization parity for `S.Email` (matched via the refine's `identifier` annotation) and for `S.Literals` / `S.Array(S.Literals(...))` (via an AST pre-pass that stamps `validation.not_a_valid` so Effect's formatter — which bypasses both hooks for `AnyOf` issues — picks them up through `findMessage`).
+
+  Behavior tweaks worth noting: per-field standard-schema validators are removed in favor of one form-level dynamic validator; `OmegaInput`'s `:key="fieldKey"` re-mount is gone; the post-change `errorMap.onSubmit` reset is gone (relies on TanStack revalidation); JSON-schema-derived annotations are no longer merged into `FieldMeta`. Public exports are preserved.
+
+- Updated dependencies [c1e73de]
+  - effect-app@4.0.0-beta.159
+  - @effect-app/vue@4.0.0-beta.159
+
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [3c1f52d]
+- Updated dependencies [6ae3050]
+  - effect-app@4.0.0-beta.158
+  - @effect-app/vue@4.0.0-beta.158
+
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- Updated dependencies [6fff09c]
+  - effect-app@4.0.0-beta.157
+  - @effect-app/vue@4.0.0-beta.157
+
+## 4.0.0-beta.156
+
+### Patch Changes
+
+- Updated dependencies [4bc4a27]
+  - @effect-app/vue@4.0.0-beta.156
+  - effect-app@4.0.0-beta.156
+
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [2e4c018]
+- Updated dependencies [c215db8]
+  - @effect-app/vue@4.0.0-beta.155
+  - effect-app@4.0.0-beta.155
+
+## 4.0.0-beta.154
+
+### Patch Changes
+
+- 3200fa8: apply the remaining formatting and autofix cleanup across the vue packages
+- Updated dependencies [3200fa8]
+  - @effect-app/vue@4.0.0-beta.154
+  - effect-app@4.0.0-beta.154
+
+## 4.0.0-beta.153
+
+### Patch Changes
+
+- bfeaef0: fix forms
+  - effect-app@4.0.0-beta.153
+  - @effect-app/vue@4.0.0-beta.153
+
+## 4.0.0-beta.152
+
+### Patch Changes
+
+- 7fe9d97: omegaform: validate all fields on submit before delegating to tanstack handleSubmit, ensuring submit reveals all validation errors.
+  - effect-app@4.0.0-beta.152
+  - @effect-app/vue@4.0.0-beta.152
+
+## 4.0.0-beta.151
+
+### Patch Changes
+
+- e091134: OmegaForm now runs field validation in ordered composition: OmegaForm-generated field rules first, then original schema checks. This makes custom schema filters (for example `S.makeFilter` checks) show during `onChange`/`onBlur` while preserving existing OmegaForm validation behavior and messages.
+  - effect-app@4.0.0-beta.151
+  - @effect-app/vue@4.0.0-beta.151
+
+## 4.0.0-beta.150
+
+### Patch Changes
+
+- Updated dependencies [85a8275]
+  - effect-app@4.0.0-beta.150
+  - @effect-app/vue@4.0.0-beta.150
+
+## 4.0.0-beta.149
+
+### Patch Changes
+
+- Updated dependencies [f317c5e]
+  - effect-app@4.0.0-beta.149
+  - @effect-app/vue@4.0.0-beta.149
+
+## 4.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [199e9a5]
+  - effect-app@4.0.0-beta.148
+  - @effect-app/vue@4.0.0-beta.148
+
+## 4.0.0-beta.147
+
+### Patch Changes
+
+- Updated dependencies [47e3742]
+  - effect-app@4.0.0-beta.147
+  - @effect-app/vue@4.0.0-beta.147
+
+## 4.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [a4dff57]
+  - effect-app@4.0.0-beta.146
+  - @effect-app/vue@4.0.0-beta.146
+
+## 4.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [12abb55]
+  - effect-app@4.0.0-beta.145
+  - @effect-app/vue@4.0.0-beta.145
+
+## 4.0.0-beta.144
+
+### Patch Changes
+
+- Updated dependencies [11422f8]
+- Updated dependencies [d31253f]
+  - effect-app@4.0.0-beta.144
+  - @effect-app/vue@4.0.0-beta.144
+
+## 4.0.0-beta.143
+
+### Patch Changes
+
+- Updated dependencies [79eb019]
+  - effect-app@4.0.0-beta.143
+  - @effect-app/vue@4.0.0-beta.143
+
+## 4.0.0-beta.142
+
+### Patch Changes
+
+- Updated dependencies [3436d44]
+- Updated dependencies [025de47]
+  - effect-app@4.0.0-beta.142
+  - @effect-app/vue@4.0.0-beta.142
+
+## 4.0.0-beta.141
+
+### Patch Changes
+
+- Updated dependencies [7c25dbb]
+  - effect-app@4.0.0-beta.141
+  - @effect-app/vue@4.0.0-beta.141
+
+## 4.0.0-beta.140
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.140
+- @effect-app/vue@4.0.0-beta.140
+
+## 4.0.0-beta.139
+
+### Patch Changes
+
+- Updated dependencies [ba61aad]
+  - @effect-app/vue@4.0.0-beta.139
+  - effect-app@4.0.0-beta.139
+
+## 4.0.0-beta.138
+
+### Patch Changes
+
+- Updated dependencies [9be71e1]
+  - @effect-app/vue@4.0.0-beta.138
+  - effect-app@4.0.0-beta.138
+
+## 4.0.0-beta.137
+
+### Patch Changes
+
+- 13a048d: Handles blur in veutify
+  - effect-app@4.0.0-beta.137
+  - @effect-app/vue@4.0.0-beta.137
+
+## 4.0.0-beta.136
+
+### Patch Changes
+
+- a53cdcd: temp revert
+  - effect-app@4.0.0-beta.136
+  - @effect-app/vue@4.0.0-beta.136
+
+## 4.0.0-beta.135
+
+### Patch Changes
+
+- f8cff13: Uses onBlur instead of intrusive onChange
+- 61e93d8: bump
+- Updated dependencies [c7bbc41]
+  - effect-app@4.0.0-beta.135
+  - @effect-app/vue@4.0.0-beta.135
+
+## 4.0.0-beta.134
+
+### Patch Changes
+
+- Updated dependencies [9d3495e]
+- Updated dependencies [f353d48]
+  - effect-app@4.0.0-beta.134
+  - @effect-app/vue@4.0.0-beta.134
+
 ## 4.0.0-beta.133
 
 ### Patch Changes

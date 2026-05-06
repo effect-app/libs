@@ -3,9 +3,8 @@
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
 import { dual } from "effect/Function"
-import { isFunction, isObject } from "effect/Predicate"
+import { isFunction } from "effect/Predicate"
 import * as Result from "effect/Result"
-import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"
 
@@ -23,121 +22,6 @@ export const cloneTrait = Symbol.for("clone-trait")
 export interface Clone {
   [cloneTrait](this: this, that: any): this
 }
-
-function get<TObject extends object, TKey extends keyof TObject>(object: TObject, path: TKey | [TKey]): TObject[TKey]
-function get<TObject extends object, TKey extends keyof TObject>(
-  object: TObject | null | undefined,
-  path: TKey | [TKey]
-): TObject[TKey] | undefined
-function get<TObject extends object, TKey extends keyof TObject, TDefault>(
-  object: TObject | null | undefined,
-  path: TKey | [TKey],
-  defaultValue: TDefault
-): Exclude<TObject[TKey], undefined> | TDefault
-function get<TObject extends object, TKey1 extends keyof TObject, TKey2 extends keyof TObject[TKey1]>(
-  object: TObject,
-  path: [TKey1, TKey2]
-): TObject[TKey1][TKey2]
-function get<TObject extends object, TKey1 extends keyof TObject, TKey2 extends keyof TObject[TKey1]>(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2]
-): TObject[TKey1][TKey2] | undefined
-function get<TObject extends object, TKey1 extends keyof TObject, TKey2 extends keyof TObject[TKey1], TDefault>(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2],
-  defaultValue: TDefault
-): Exclude<TObject[TKey1][TKey2], undefined> | TDefault
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2]
->(object: TObject, path: [TKey1, TKey2, TKey3]): TObject[TKey1][TKey2][TKey3]
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2]
->(object: TObject | null | undefined, path: [TKey1, TKey2, TKey3]): TObject[TKey1][TKey2][TKey3] | undefined
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TDefault
->(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2, TKey3],
-  defaultValue: TDefault
-): Exclude<TObject[TKey1][TKey2][TKey3], undefined> | TDefault
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TKey4 extends keyof TObject[TKey1][TKey2][TKey3]
->(object: TObject, path: [TKey1, TKey2, TKey3, TKey4]): TObject[TKey1][TKey2][TKey3][TKey4]
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TKey4 extends keyof TObject[TKey1][TKey2][TKey3]
->(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2, TKey3, TKey4]
-): TObject[TKey1][TKey2][TKey3][TKey4] | undefined
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TKey4 extends keyof TObject[TKey1][TKey2][TKey3],
-  TDefault
->(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2, TKey3, TKey4],
-  defaultValue: TDefault
-): Exclude<TObject[TKey1][TKey2][TKey3][TKey4], undefined> | TDefault
-function get<T>(object: NumericDictionary<T>, path: number): T
-function get<T>(object: NumericDictionary<T> | null | undefined, path: number): T | undefined
-function get<T, TDefault>(
-  object: NumericDictionary<T> | null | undefined,
-  path: number,
-  defaultValue: TDefault
-): T | TDefault
-function get<TDefault>(object: null | undefined, path: PropertyPath, defaultValue: TDefault): TDefault
-function get(object: null | undefined, path: PropertyPath): undefined
-function get<TObject, TPath extends string>(
-  data: TObject,
-  path: TPath
-): string extends TPath ? any : GetFieldType<TObject, TPath>
-function get<TObject, TPath extends string, TDefault = GetFieldType<TObject, TPath>>(
-  data: TObject,
-  path: TPath,
-  defaultValue: TDefault
-): Exclude<GetFieldType<TObject, TPath>, null | undefined> | TDefault
-function get(object: any, path: PropertyPath, defaultValue?: any): any
-function get(obj: any, path: any, defaultValue = undefined) {
-  // https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore?tab=readme-ov-file#_get
-  const travel = (regexp: any) =>
-    String
-      .prototype
-      .split
-      .call(path, regexp)
-      .filter(Boolean)
-      .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj)
-  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/)
-  return result === undefined || result === obj ? defaultValue : result
-}
-
-// codegen:start {preset: barrel, include: ./utils/*.ts }
-export * from "./utils/effectify.js"
-export * from "./utils/extend.js"
-export * from "./utils/gen.js"
-export * from "./utils/logger.js"
-export * from "./utils/logLevel.js"
-// codegen:end
 
 export const unsafeRight = <E, A>(ei: Result.Result<A, E>) => {
   if (Result.isFailure(ei)) {
@@ -733,25 +617,58 @@ export const copy = dual<
   }
 >(2, <A>(self: A, f: Partial<A> | ((a: A) => Partial<A>)) => clone(self, { ...self, ...(isFunction(f) ? f(self) : f) }))
 
-type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
+export type CopyOriginU<U, Ctor extends new(...args: any[]) => any> =
   & {
     [K in keyof U & keyof InstanceType<Ctor>]?: U[K]
   }
   & {}
 
-type CopyOriginRet<A, U> =
+export type CopyOriginRet<A, U> =
   & {
     [K in keyof A | keyof U]: K extends keyof U ? U[K] : A[K & keyof A]
   }
   & {}
 
-type CopyOriginSelf<A, U> = Equals<{}, U> extends true
+export type CopyOriginSelf<A, U> = Equals<{}, U> extends true
   ? Equals<keyof {}, keyof U> extends true ? `updates argument is empty or contains only extra properties`
   : A
   : A
 
+export interface StructuralCopyOrigin<Self extends object> {
+  <A extends Self, U extends Partial<Self>>(
+    f: (a: A) =>
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+  <A extends Self, U extends Partial<Self>>(
+    updates:
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): (self: CopyOriginSelf<A, U>) => CopyOriginRet<A, U>
+  <A extends Self, U extends Partial<Self>>(
+    self: CopyOriginSelf<A, U>,
+    f: (a: A) =>
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): CopyOriginRet<A, U>
+  <A extends Self, U extends Partial<Self>>(
+    self: CopyOriginSelf<A, U>,
+    updates:
+      & {
+        [K in keyof U & keyof Self]?: U[K]
+      }
+      & {}
+  ): CopyOriginRet<A, U>
+}
+
 // just one input param: the convention is that the ctor takes an object
-// containing the properties of the class (I can't put object there as type because of contravariance)
+// containing the properties of the value (I can't put object there as type because of contravariance)
 /**
  * By design this does not return `Self` directly.
  *
@@ -886,8 +803,6 @@ export function setMoveElDropUndefined<T>(el: T, newIndex: number) {
     pipe([...arrInput], arMoveElDropUndefined(el, newIndex), Option.map((ar) => new Set(ar)))
 }
 
-export { get }
-
 type RemoveNonArray<T> = T extends readonly any[] ? T : never
 export function isNativeTuple<A>(a: A): a is RemoveNonArray<A> {
   return Array.isArray(a)
@@ -973,5 +888,5 @@ const genConstructor = (function*() {}).constructor
  * @category predicates
  * @since 3.11.0
  */
-export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any, any, any> =>
-  isObject(u) && u.constructor === genConstructor
+export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any> =>
+  isFunction(u) && u.constructor === genConstructor

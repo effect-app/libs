@@ -30,7 +30,7 @@
 import { useStore } from "@tanstack/vue-form"
 import { usePreventClose } from "./blockDialog"
 import { getOmegaStore } from "./getOmegaStore"
-import { type DefaultTypeProps, type OmegaFormApi, type OmegaFormState } from "./OmegaFormStuff"
+import { type DefaultTypeProps, type OmegaFormApi, type OmegaFormState } from "./types"
 import { type OmegaFormReturn } from "./useOmegaForm"
 
 type OmegaWrapperProps = {

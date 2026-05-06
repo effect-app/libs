@@ -24,11 +24,13 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
+/* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form / Vue attrs interop */
 import { type DeepKeys, useStore } from "@tanstack/vue-form"
 import { computed, type ComputedRef, getCurrentInstance, useAttrs, useId, useSlots } from "vue"
 import type { InputProps, OmegaFieldInternalApi } from "./InputProps"
-import type { FieldValidators, MetaRecord, NestedKeyOf, TypeOverride } from "./OmegaFormStuff"
+import type { MetaRecord, NestedKeyOf } from "./meta/types"
 import OmegaInputVuetify from "./OmegaInputVuetify.vue"
+import type { FieldValidators, TypeOverride } from "./types"
 
 defineOptions({
   inheritAttrs: false
@@ -84,7 +86,8 @@ const id = useId()
 
 const fieldApi = props.field
 
-const fieldState = useStore(fieldApi.store, (state) => state)
+// Subscribed for side-effect: keeps component reactive to fieldApi.store changes
+const _fieldState = useStore(fieldApi.store, (state) => state)
 
 // Get errors from form-level fieldMeta (persists across Field re-mounts)
 const formFieldMeta = useStore(fieldApi.form.store, (state) => state.fieldMeta)
@@ -119,7 +122,6 @@ const isFalsyButNotZero = (value: unknown): boolean => {
 // we remove value and errors when the field is empty and not required
 // convert nullish value to null or undefined based on schema
 const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) => {
-  let fieldDeleted = false
   if (isFalsyButNotZero(value) && props.meta?.type !== "boolean") {
     // Only convert to null/undefined if the field is actually nullable or optional
     if (props.meta?.nullableOrUndefined) {
@@ -136,20 +138,12 @@ const handleChange: OmegaFieldInternalApi<From, Name>["handleChange"] = (value) 
       // from `required: false`, which may also just mean "empty string
       // is valid" for unconstrained `S.String` fields.
       props.field.form.deleteField(props.field.name)
-      fieldDeleted = true
     } else {
       // Keep the actual value (e.g., empty string for S.String fields)
       props.field.handleChange(value)
     }
   } else {
     props.field.handleChange(value)
-  }
-
-  // whenever we change the field, regardless if we set it to null, we should reset onSubmit.
-  // not sure why this is not the case in tanstack form.
-  // Skip when the field was deleted — its meta no longer exists in the form store.
-  if (!fieldDeleted) {
-    props.field.setMeta((m) => ({ ...m, errorMap: { ...m.errorMap, onSubmit: undefined } }))
   }
 }
 

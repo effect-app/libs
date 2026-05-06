@@ -1,18 +1,14 @@
 <template>
   <component
     :is="form.Field"
-    :key="fieldKey"
     :name="name"
-    :validators="{
-      onChange: schema,
-      ...validators
-    }"
+    :validators="validators"
   >
     <template #default="{ field, state }">
       <OmegaInternalInput
         v-if="meta"
         v-bind="{ ...$attrs, ...$props, inputClass: computedClass }"
-        :field="field"
+        :field="field as any"
         :state="state"
         :register="form.registerField"
         :label="label ?? errori18n(propsName)"
@@ -40,12 +36,13 @@
   lang="ts"
   generic="From extends Record<PropertyKey, any>, To extends Record<PropertyKey, any>, Name extends DeepKeys<From>"
 >
+/* eslint-disable @typescript-eslint/no-explicit-any -- TanStack Form Field generic interop and slot prop typing */
 import { type DeepKeys } from "@tanstack/vue-form"
 import { computed, inject, type Ref, useAttrs } from "vue"
-import { useIntl } from "../../utils"
-import { type FieldMeta, generateInputStandardSchemaFromFieldMeta, type OmegaInputPropsBase } from "./OmegaFormStuff"
+import { useErrorLabel } from "./errors"
+import { type FieldMeta } from "./meta/types"
 import OmegaInternalInput from "./OmegaInternalInput.vue"
-import { useErrorLabel } from "./useOmegaForm"
+import { type OmegaInputPropsBase } from "./types"
 
 const props = defineProps<OmegaInputPropsBase<From, To, Name>>()
 
@@ -57,13 +54,10 @@ defineSlots<{
   default?: (props: any) => any
 }>()
 
-defineOptions({
-  inheritAttrs: false
-})
+defineOptions({ inheritAttrs: false })
 
 const attrs = useAttrs()
 
-// Compute the class to use based on inputClass prop
 const computedClass = computed(() => {
   if (props.inputClass === null) return undefined
   if (props.inputClass !== undefined) return props.inputClass
@@ -80,29 +74,6 @@ const meta = computed(() => {
     return getMetaFromArray.value(propsName.value)
   }
   return props.form.meta[propsName.value]
-})
-
-// Key to force Field re-mount when meta type changes (for TaggedUnion support)
-const fieldKey = computed(() => {
-  const m = meta.value
-  if (!m) return propsName.value
-  // Include type and key constraints in the key so Field re-mounts when validation rules change
-  // Cast to any since not all FieldMeta variants have these properties
-  const fm = m as any
-  return `${propsName.value}-${fm.type}-${fm.minLength ?? ""}-${fm.maxLength ?? ""}-${fm.minimum ?? ""}-${
-    fm.maximum ?? ""
-  }`
-})
-
-// Call useIntl during setup to avoid issues when computed re-evaluates
-const { trans } = useIntl()
-
-const schema = computed(() => {
-  if (!meta.value) {
-    console.log(props.name, Object.keys(props.form.meta), props.form.meta)
-    throw new Error("Meta is undefined")
-  }
-  return generateInputStandardSchemaFromFieldMeta(meta.value, trans)
 })
 
 const errori18n = useErrorLabel(props.form)

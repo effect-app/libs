@@ -21,7 +21,7 @@ export const getRequestContext = Effect
   })
   .pipe(
     Effect.map(({ locale, namespace, span }) =>
-      new RequestContext({
+      RequestContext.make({
         span: Tracer.externalSpan(span),
         locale,
         namespace,

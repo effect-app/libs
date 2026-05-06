@@ -1,0 +1,36 @@
+{
+  "typescript": {
+    "indentWidth": 2,
+    "semiColons": "asi",
+    "quoteStyle": "alwaysDouble",
+    "trailingCommas": "never",
+    "arrowFunction.useParentheses": "force",
+    "memberExpression.linePerExpression": true,
+    "binaryExpression.linePerExpression": true,
+    "importDeclaration.forceSingleLine": true,
+    "exportDeclaration.forceSingleLine": true,
+    "lineWidth": 120,
+  },
+  "json": {},
+  "markdown": {},
+  "toml": {},
+  "malva": {},
+  "markup": {
+    "printWidth": 120,
+  },
+  "yaml": {},
+  // excludes overwrites (not merges) when extended — consumers must repeat these plus their own entries.
+  "excludes": [
+    "**/node_modules",
+    "**/*-lock.json",
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.95.15.wasm",
+    "https://plugins.dprint.dev/json-0.21.3.wasm",
+    "https://plugins.dprint.dev/markdown-0.21.1.wasm",
+    "https://plugins.dprint.dev/toml-0.7.0.wasm",
+    "https://plugins.dprint.dev/g-plane/malva-v0.15.3.wasm",
+    "https://plugins.dprint.dev/g-plane/markup_fmt-v0.27.0.wasm",
+    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.6.0.wasm",
+  ],
+}

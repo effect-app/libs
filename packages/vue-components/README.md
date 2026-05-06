@@ -61,9 +61,9 @@ The doc app itself is a client app of the libary, therefore PrimeVue is imported
 module.exports = {
   vite: {
     resolve: {
-      dedupe: ['vue', /primevue\/.+/],
-    },
-  },
+      dedupe: ["vue", /primevue\/.+/]
+    }
+  }
 }
 ```
 
@@ -103,7 +103,7 @@ If you have your own special set of SVG icons, you may create a font file (`.wof
 The client app shall import `style.css`, usually in the entry file:
 
 ```js
-import 'my-lib/dist/style.css'
+import "my-lib/dist/style.css"
 ```
 
 ### Third-party dependencies
@@ -132,7 +132,7 @@ The dependency to be externalized may be declared as peer dependency in your lib
 If you don't expect the client app of your library also needing the same dependency, you may embed cherry-picked functions. For example, to embed the `fill` function of popular library [lodash](https://lodash.com), import the `fill` function like the following:
 
 ```js
-import fill from 'lodash/fill'
+import fill from "lodash/fill"
 ```
 
 Even with tree-shaking, the codes being brought into your library may still be large, as the function may have its own dependencies.
@@ -190,7 +190,7 @@ In [tsconfig.json](tsconfig.js), set the following to address [Issue #32](https:
 Vuetify 4 removed the aggressive global CSS reset that v3 included (universal `margin: 0; padding: 0`, list/heading/input resets, etc.). If your app relied on these defaults, opt in to the supplemental reset:
 
 ```ts
-import '@effect-app/vue-components/reset.css'
+import "@effect-app/vue-components/reset.css"
 ```
 
 ### 2. Nested union `_tag` handling
@@ -208,22 +208,26 @@ import '@effect-app/vue-components/reset.css'
 - **v4**: `defaultsValueFromSchema` detects `PropertySignatureTransformation` and extracts defaults, enabling `withDecodingDefault` as a new pattern for declaring field defaults directly on the schema.
 
 ### On Submit event
-The :on-submit event could be tricky in `<OmegaForm />` component. 
+
+The :on-submit event could be tricky in `<OmegaForm />` component.
 This is a prop that is basically a map of Tanstack Form `onSubmit` option and accept a function that return a Promise. If you want to use it as an event, you have to manage the state of loading yourself with `@submit` with a function returning `void`
 
 E.g.
 
 to use it as a Promise based Tanstack way:
+
 ```html
-  <OmegaForm :schema="schema" :on-submit="onSubmit" :subscribe="['values']">
+<OmegaForm :schema="schema" :on-submit="onSubmit" :subscribe="['values']">
 ```
 
 to use it as an event:
+
 ```html
 <OmegaForm :schema="schema" @submit="onSubmit" :is-loading="false" :subscribe="['values']">
 ```
 
 this will give you a type error instead, because `:is-loading` is only accepted in event mode
+
 ```html
-  <OmegaForm :schema="schema" :on-submit="onSubmit" :is-loading="false" :subscribe="['values']">
+<OmegaForm :schema="schema" :on-submit="onSubmit" :is-loading="false" :subscribe="['values']">
 ```

@@ -11,7 +11,6 @@ export const NonEmptyString = S
   .pipe(
     fromBrand<NonEmptyString>(nominal<NonEmptyString>(), {
       identifier: "NonEmptyString",
-      title: "NonEmptyString",
       jsonSchema: {}
     }),
     withDefaultMake
@@ -25,7 +24,6 @@ export const NonEmptyString64k = S
     S.check(S.isMaxLength(64 * 1024)),
     fromBrand<NonEmptyString64k>(nominal<NonEmptyString64k>(), {
       identifier: "NonEmptyString64k",
-      title: "NonEmptyString64k",
       jsonSchema: {}
     }),
     withDefaultMake
@@ -39,7 +37,6 @@ export const NonEmptyString2k = S
     S.check(S.isMaxLength(2 * 1024)),
     fromBrand<NonEmptyString2k>(nominal<NonEmptyString2k>(), {
       identifier: "NonEmptyString2k",
-      title: "NonEmptyString2k",
       jsonSchema: {}
     }),
     withDefaultMake
@@ -53,7 +50,6 @@ export const NonEmptyString255 = S
     S.check(S.isMaxLength(255)),
     fromBrand<NonEmptyString255>(nominal<NonEmptyString255>(), {
       identifier: "NonEmptyString255",
-      title: "NonEmptyString255",
       jsonSchema: {}
     }),
     withDefaultMake

@@ -29,7 +29,6 @@ export const NonEmptyString50 = nonEmptyString.pipe(
   S.check(S.isMaxLength(50)),
   fromBrand<NonEmptyString50>(nominal<NonEmptyString50>(), {
     identifier: "NonEmptyString50",
-    title: "NonEmptyString50",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -52,7 +51,6 @@ export const NonEmptyString64 = nonEmptyString.pipe(
   S.check(S.isMaxLength(64)),
   fromBrand<NonEmptyString64>(nominal<NonEmptyString64>(), {
     identifier: "NonEmptyString64",
-    title: "NonEmptyString64",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -76,7 +74,6 @@ export const NonEmptyString80 = nonEmptyString.pipe(
   S.check(S.isMaxLength(80)),
   fromBrand<NonEmptyString80>(nominal<NonEmptyString80>(), {
     identifier: "NonEmptyString80",
-    title: "NonEmptyString80",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -99,7 +96,6 @@ export const NonEmptyString100 = nonEmptyString.pipe(
   S.check(S.isMaxLength(100)),
   fromBrand<NonEmptyString100>(nominal<NonEmptyString100>(), {
     identifier: "NonEmptyString100",
-    title: "NonEmptyString100",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -123,7 +119,6 @@ export const Min3String255 = pipe(
   S.check(S.isMinLength(3), S.isMaxLength(255)),
   fromBrand<Min3String255>(nominal<Min3String255>(), {
     identifier: "Min3String255",
-    title: "Min3String255",
     jsonSchema: {}
   }),
   withDefaultMake
@@ -139,7 +134,8 @@ export interface StringIdBrand extends Simplify<B.Brand<"StringId"> & NonEmptySt
  */
 export type StringId = string & StringIdBrand
 
-const makeStringId = (): StringId => nanoid() as unknown as StringId
+const makeStringId = (s?: string): StringId =>
+  s !== undefined ? S.decodeSync(StringId)(s) : nanoid() as unknown as StringId
 const minLength = 6
 const maxLength = 50
 const size = 21
@@ -157,7 +153,6 @@ export const StringId = extendM(
     S.check(S.isMinLength(minLength), S.isMaxLength(maxLength)),
     fromBrand<StringId>(nominal<StringId>(), {
       identifier: "StringId",
-      title: "StringId",
       toArbitrary: () => (fc) => StringIdArb()(fc),
       jsonSchema: {}
     })
@@ -173,7 +168,7 @@ export const StringId = extendM(
 
 // const prefixedStringIdUnsafeThunk = (prefix: string) => () => prefixedStringIdUnsafe(prefix)
 
-export function prefixedStringId<Brand extends StringId>() {
+export function prefixedStringId<Type extends StringId>() {
   return <Prefix extends string, Separator extends string = "-">(
     prefix: Prefix,
     name: string,
@@ -181,27 +176,26 @@ export function prefixedStringId<Brand extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    const arb = (): S.LazyArbitrary<string & Brand> => (fc) =>
+    const arb = (): S.LazyArbitrary<Type> => (fc) =>
       StringIdArb()(fc).map(
-        (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
+        (x) => (pref + x.substring(0, 50 - pref.length)) as Type
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const s = StringId
       .pipe(
-        S.refine((x: string): x is string & Brand => x.startsWith(pref), {
-          identifier: name,
-          title: name
+        S.refine((x: string): x is Type => x.startsWith(pref), {
+          identifier: name
         }),
         S.annotate({
           toArbitrary: () => (fc) => arb()(fc)
         })
       )
     const schema = s.pipe(withDefaultMake)
-    const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Brand
+    const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Type
 
     return extendM(
       schema,
-      (ex): PrefixedStringUtils<Brand, Prefix, Separator> => ({
+      (ex): PrefixedStringUtils<Type, Prefix, Separator> => ({
         make,
         /**
          * Automatically adds the prefix.
@@ -212,7 +206,7 @@ export function prefixedStringId<Brand extends StringId>() {
          */
         prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
         prefix,
-        withDefault: schema.pipe(S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>(
+        withDefault: schema.pipe(S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(
           Effect.sync(make)
         ))
       })
@@ -221,25 +215,25 @@ export function prefixedStringId<Brand extends StringId>() {
 }
 
 export const brandedStringId = <
-  Brand extends StringIdBrand
+  Id
 >() =>
   withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as S.Codec<string & Brand, string> & {
-      make: () => string & Brand
-      withDefault: S.withConstructorDefault<S.Codec<string & Brand, string> & S.WithoutConstructorDefault>
-    } & WithDefaults<S.Codec<string & Brand, string>>
+    Object.assign(Object.create(StringId), StringId) as S.Codec<Id, string> & {
+      withDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
+      make: () => Id
+    } & WithDefaults<S.Codec<Id, string>>
   )
 
 export interface PrefixedStringUtils<
-  Brand extends StringId,
+  Type extends StringId,
   Prefix extends string,
   Separator extends string
 > {
-  readonly make: () => Brand
-  readonly unsafeFrom: (str: string) => Brand
-  prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Brand
+  readonly make: () => Type
+  readonly unsafeFrom: (str: string) => Type
+  prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Type
   readonly prefix: Prefix
-  readonly withDefault: S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>
+  readonly withDefault: S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>
 }
 
 export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}
@@ -259,7 +253,6 @@ export const Url = S
     }),
     S.refine(isUrl, {
       identifier: "Url",
-      title: "Url",
       jsonSchema: { format: "uri" }
     }),
     S.annotate({

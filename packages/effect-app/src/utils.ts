@@ -23,11 +23,6 @@ export interface Clone {
   [cloneTrait](this: this, that: any): this
 }
 
-/** Traverse an object by a dot-separated path string, e.g. `"a.b.c"`. */
-function get(obj: any, path: string): any {
-  return path.split(".").reduce((res: any, key: string) => (res != null ? res[key] : res), obj)
-}
-
 export const unsafeRight = <E, A>(ei: Result.Result<A, E>) => {
   if (Result.isFailure(ei)) {
     console.error(ei.failure)
@@ -807,8 +802,6 @@ export function setMoveElDropUndefined<T>(el: T, newIndex: number) {
   return (arrInput: ReadonlySet<T | undefined>): Option.Option<ReadonlySet<T>> =>
     pipe([...arrInput], arMoveElDropUndefined(el, newIndex), Option.map((ar) => new Set(ar)))
 }
-
-export { get }
 
 type RemoveNonArray<T> = T extends readonly any[] ? T : never
 export function isNativeTuple<A>(a: A): a is RemoveNonArray<A> {

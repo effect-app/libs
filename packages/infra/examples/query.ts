@@ -9,14 +9,14 @@ const num = S.Struct({ _tag: S.Literal("number"), value: S.Finite })
 const someUnion = S.Union(str, num)
 
 export class Something extends S.Opaque<Something>()(S.TaggedStruct("Something", {
-  id: S.StringId.withDefault,
+  id: S.StringId.withConstructorDefault,
   displayName: S.NonEmptyString255,
-  n: S.Date.withDefault,
+  n: S.Date.withConstructorDefault,
   union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
 })) {}
 
 export class SomethingElse extends S.Opaque<SomethingElse>()(S.TaggedStruct("SomethingElse", {
-  id: S.StringId.withDefault,
+  id: S.StringId.withConstructorDefault,
   banana: S.NonEmptyString255
 })) {}
 

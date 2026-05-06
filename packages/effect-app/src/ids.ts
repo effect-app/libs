@@ -18,7 +18,7 @@ export const RequestId = extendM(
     const make = StringId.make as () => NonEmptyString255
     return ({
       make,
-      withDefault: S.withConstructorDefault(Effect.sync(make))(s as typeof s & S.WithoutConstructorDefault)
+      withConstructorDefault: S.withConstructorDefault(Effect.sync(make))(s as typeof s & S.WithoutConstructorDefault)
     })
   }
 )

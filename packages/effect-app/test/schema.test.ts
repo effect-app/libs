@@ -18,11 +18,11 @@ test("literal default works", () => {
   const l = S.Literals(["a", "b"])
   expect(l.Default).toBe("a")
   expectTypeOf(l.Default).toEqualTypeOf<"a">()
-  const s = S.Struct({ l: l.withDefault })
+  const s = S.Struct({ l: l.withConstructorDefault })
   expect(s.make({}).l).toBe("a")
 
   const l2 = l.changeDefault("b")
-  const s2 = S.Struct({ l: l2.withDefault })
+  const s2 = S.Struct({ l: l2.withConstructorDefault })
   expect(s2.make({}).l).toBe("b")
 })
 
@@ -391,10 +391,10 @@ describe("ReadonlyMapFromArray", () => {
   })
 })
 
-describe("ReadonlySet (with withDefault)", () => {
-  test("make provides withDefault", () => {
+describe("ReadonlySet (with withConstructorDefault)", () => {
+  test("make provides withConstructorDefault", () => {
     const schema = S.ReadonlySet(S.NumberFromString)
-    const struct = S.Struct({ items: schema.withDefault })
+    const struct = S.Struct({ items: schema.withConstructorDefault })
     const made = struct.make({})
     expect(made.items).toEqual(new Set())
   })
@@ -406,10 +406,10 @@ describe("ReadonlySet (with withDefault)", () => {
   })
 })
 
-describe("ReadonlyMap (with withDefault)", () => {
-  test("make provides withDefault", () => {
+describe("ReadonlyMap (with withConstructorDefault)", () => {
+  test("make provides withConstructorDefault", () => {
     const schema = S.ReadonlyMap({ key: S.NumberFromString, value: S.String })
-    const struct = S.Struct({ items: schema.withDefault })
+    const struct = S.Struct({ items: schema.withConstructorDefault })
     const made = struct.make({})
     expect(made.items).toEqual(new Map())
   })

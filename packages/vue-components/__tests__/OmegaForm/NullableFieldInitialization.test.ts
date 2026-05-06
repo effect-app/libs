@@ -7,14 +7,14 @@ import OmegaIntlProvider from "../OmegaIntlProvider.vue"
 describe("Nullable field initialization", () => {
   it("should initialize nullable fields with null when missing from defaultValues", async () => {
     const schema = S.Struct({
-      aString: S.NullOr(S.NonEmptyString255).withDefault,
-      bString: S.NullOr(S.NonEmptyString255).withDefault,
+      aString: S.NullOr(S.NonEmptyString255).withConstructorDefault,
+      bString: S.NullOr(S.NonEmptyString255).withConstructorDefault,
       cStruct: S
         .NullOr(S.Struct({
-          dString: S.NullOr(S.NonEmptyString255).withDefault
+          dString: S.NullOr(S.NonEmptyString255).withConstructorDefault
         }))
-        .withDefault,
-      cLiteral: S.NullOr(S.Literal("test", "test2")).withDefault
+        .withConstructorDefault,
+      cLiteral: S.NullOr(S.Literal("test", "test2")).withConstructorDefault
     })
 
     let submittedValue: Record<string, unknown> | null = null
@@ -108,7 +108,7 @@ describe("Nullable field initialization", () => {
 
   it("should convert empty string to null for nullable fields", async () => {
     const schema = S.Struct({
-      aString: S.NullOr(S.NonEmptyString255).withDefault,
+      aString: S.NullOr(S.NonEmptyString255).withConstructorDefault,
       bString: S.NonEmptyString255
     })
 

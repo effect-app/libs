@@ -159,7 +159,7 @@ export const StringId = extendM(
   ),
   (s) => ({
     make: makeStringId,
-    withDefault: s.pipe(S.withConstructorDefault(Effect.sync(makeStringId)))
+    withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(makeStringId)))
   })
 )
   .pipe(withDefaultMake)
@@ -206,9 +206,11 @@ export function prefixedStringId<Type extends StringId>() {
          */
         prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
         prefix,
-        withDefault: schema.pipe(S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(
-          Effect.sync(make)
-        ))
+        withConstructorDefault: schema.pipe(
+          S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(
+            Effect.sync(make)
+          )
+        )
       })
     )
   }
@@ -219,7 +221,7 @@ export const brandedStringId = <
 >() =>
   withDefaultMake(
     Object.assign(Object.create(StringId), StringId) as S.Codec<Id, string> & {
-      withDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
+      withConstructorDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
       make: () => Id
     } & WithDefaults<S.Codec<Id, string>>
   )
@@ -233,7 +235,7 @@ export interface PrefixedStringUtils<
   readonly unsafeFrom: (str: string) => Type
   prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Type
   readonly prefix: Prefix
-  readonly withDefault: S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>
+  readonly withConstructorDefault: S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>
 }
 
 export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}

@@ -19,10 +19,10 @@ const num = S.Struct({ _tag: S.Literal("number"), value: S.Finite })
 const someUnion = S.Union([str, num])
 
 export class Something extends S.Class<Something>("Something")({
-  id: S.StringId.withDefault,
+  id: S.StringId.withConstructorDefault,
   displayName: S.NonEmptyString255,
-  name: S.NullOr(S.NonEmptyString255).withDefault,
-  n: S.Date.withDefault,
+  name: S.NullOr(S.NonEmptyString255).withConstructorDefault,
+  n: S.Date.withConstructorDefault,
   union: someUnion.pipe(S.withConstructorDefault(Effect.succeed({ _tag: "string" as const, value: "hi" })))
 }) {}
 export declare namespace Something {

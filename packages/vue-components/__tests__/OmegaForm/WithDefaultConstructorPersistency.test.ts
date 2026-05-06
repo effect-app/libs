@@ -14,10 +14,10 @@ describe("OmegaForm withConstructorDefault with persistency", () => {
     const AddSchema = S.Struct({
       first: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
       second: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
-      third: S.NullOr(S.String).withDefault,
+      third: S.NullOr(S.String).withConstructorDefault,
       fourth: S
         .Struct({
-          addForm: S.NullOr(S.String).withDefault,
+          addForm: S.NullOr(S.String).withConstructorDefault,
           b: S.PositiveNumber.pipe(S.withConstructorDefault(Effect.succeed(S.PositiveNumber(100)))),
           c: S.Struct({
             d: S.Finite.pipe(S.withConstructorDefault(Effect.succeed(10)))
@@ -91,7 +91,7 @@ describe("OmegaForm withConstructorDefault with persistency", () => {
     expect(values).toEqual({
       first: 1234, // Overridden by query string
       second: 100, // Default from withConstructorDefault
-      third: null, // Default from NullOr withDefault
+      third: null, // Default from NullOr withConstructorDefault
       fourth: {
         addForm: null,
         b: 100, // Default from withConstructorDefault

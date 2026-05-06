@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Array, Option } from "effect-app"
-import { assertUnreachable, get } from "effect-app/utils"
+import { assertUnreachable } from "effect-app/utils"
 import type { FilterR, FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import { get } from "./Memory.js"
 import type { Filter } from "./service.js"
 import { compare, greaterThan, greaterThanExclusive, lowerThan, lowerThanExclusive } from "./utils.js"
 

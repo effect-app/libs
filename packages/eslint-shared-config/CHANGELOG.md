@@ -1,5 +1,102 @@
 # @effect-app/eslint-shared-config
 
+## 0.6.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [830e1ce]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.14
+
+## 0.6.0-beta.22
+
+### Patch Changes
+
+- b3ea988: update dprint plugins
+  - @effect-app/eslint-codegen-model@2.0.0-beta.13
+
+## 0.6.0-beta.21
+
+### Patch Changes
+
+- dba5779: namespaces
+  - @effect-app/eslint-codegen-model@2.0.0-beta.13
+
+## 0.6.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [8c753cb]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.13
+
+## 0.6.0-beta.19
+
+### Minor Changes
+
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+
+### Patch Changes
+
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+- Updated dependencies [50ce7e6]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.12
+
+## 0.6.0-beta.18
+
+### Patch Changes
+
+- 16b1cf9: update oxlint rule
+  - @effect-app/eslint-codegen-model@2.0.0-beta.11
+
+## 0.6.0-beta.17
+
+### Patch Changes
+
+- c1e73de:
+- Updated dependencies [c1e73de]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.11
+
+## 0.6.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [6fff09c]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.10
+
+## 0.6.0-beta.15
+
+### Patch Changes
+
+- 16bbd9c: ship shared dprint config and wire oxlint and dprint into package lint scripts
+  - @effect-app/eslint-codegen-model@2.0.0-beta.9
+
+## 0.6.0-beta.14
+
+### Patch Changes
+
+- f58e58a: Add shared oxlintrc.json base config. Consumers extend via `"extends": ["./node_modules/@effect-app/eslint-shared-config/src/oxlintrc.json"]`. Note: oxlint does not merge `ignorePatterns` — repeat the base patterns and add project-specific ones.
+  - @effect-app/eslint-codegen-model@2.0.0-beta.9
+
+## 0.6.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [25008fb]
+- Updated dependencies [77efa95]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.9
+
+## 0.6.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [025de47]
+  - @effect-app/eslint-codegen-model@2.0.0-beta.8
+
 ## 0.6.0-beta.11
 
 ### Minor Changes

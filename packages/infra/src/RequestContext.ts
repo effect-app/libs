@@ -7,10 +7,10 @@ export type Locale = typeof Locale.Type
 
 export class LocaleRef extends Context.Reference("Locale", { defaultValue: (): Locale => "en" }) {}
 
-export class RequestContext extends S.ExtendedClass<
+export class RequestContext extends S.Opaque<
   RequestContext,
   RequestContext.Encoded
->("RequestContext")({
+>()(S.Struct({
   span: S.Struct({
     traceId: S.String,
     spanId: S.String,
@@ -22,7 +22,7 @@ export class RequestContext extends S.ExtendedClass<
   namespace: NonEmptyString255,
   /** @deprecated */
   userProfile: S.optional(S.Struct({ sub: UserProfileId })) //
-}) {
+})) {
   // static Tag = Context.Tag<RequestContext>()
 
   static toMonitoring(this: void, self: RequestContext) {
@@ -53,11 +53,9 @@ export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace">
 
 // codegen:start {preset: model}
 //
-/* eslint-disable */
 export namespace RequestContext {
-  export interface Encoded extends S.Struct.Encoded<typeof RequestContext["fields"]> {}
+  export interface Encoded extends S.StructNestedEncoded<typeof RequestContext> {}
 }
-/* eslint-enable */
 //
 // codegen:end
 //

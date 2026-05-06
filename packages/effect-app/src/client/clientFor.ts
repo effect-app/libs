@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as Record from "effect/Record"
-import type * as Request from "effect/Request"
+import type * as Stream from "effect/Stream"
 import type { Path } from "path-parser"
 import qs from "query-string"
 import type * as Effect from "../Effect.js"
@@ -71,22 +71,28 @@ export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
   : T extends unknown ? void
   : never
 
-type IsEmpty<T> = keyof T extends never ? true
-  : false
-
-// v4: Request.RequestTypeId, S.symbolSerializable, S.symbolWithResult removed — use keyof Request to filter internal props
-type Cruft = "_tag" | keyof Request.Request<any, any, any>
-
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
+  /**
+   * Middleware tag to attach to every rpc on the client. Schema-only — the
+   * client never invokes the middleware (no Live impl required), but its
+   * declared `error` schema joins the rpc failure union via
+   * `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk. Required when
+   * middleware can throw errors that aren't part of the resource's declared
+   * error union (e.g. auth middleware throwing `NotLoggedInError`); without
+   * it the client decode would fail with a `SchemaError` for stream rpcs.
+   */
 }
 
-export interface RequestHandler<A, E, R, Request extends Req, Id extends string> {
-  handler: Effect.Effect<A, E, R>
-  id: Id
-  options?: ClientForOptions
-  Request: Request
-}
+// $Project/$Configuration.Index
+// -> "$Project", "$Configuration", "Index"
+export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForOptions }) =>
+  id
+    .split("/")
+    .filter((segment: string) => !options || !options.skipQueryKey?.includes(segment))
+    .map((segment: string) => "$" + segment)
+    .join(".")
+    .split(".")
 
 export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id extends string> {
   handler: (i: I) => Effect.Effect<A, E, R>
@@ -95,24 +101,79 @@ export interface RequestHandlerWithInput<I, A, E, R, Request extends Req, Id ext
   Request: Request
 }
 
+/** Type alias: a no-input handler is simply `RequestHandlerWithInput<void, …>`. */
+export type RequestHandler<A, E, R, Request extends Req, Id extends string> = RequestHandlerWithInput<
+  void,
+  A,
+  E,
+  R,
+  Request,
+  Id
+>
+
+export interface RequestStreamHandlerWithInput<I, A, E, R, Request extends Req, Id extends string, Final = A> {
+  handler: (i: I) => Stream.Stream<A, E, R>
+  id: Id
+  options?: ClientForOptions
+  Request: Request
+  /**
+   * Phantom type property (never set at runtime) that carries the `Final` type to
+   * `StreamMutationWithExtensions`. The tilde prefix follows the Effect convention for
+   * phantom/virtual properties and prevents accidental runtime access.
+   * Stream failures bubble through the execute effect's typed error channel `E`;
+   * the reactive `AsyncResult` ref also mirrors the failure for live progress UI.
+   */
+  readonly "~final"?: Final
+}
+
+/** Type alias: a no-input stream handler is simply `RequestStreamHandlerWithInput<void, …>`. */
+export type RequestStreamHandler<A, E, R, Request extends Req, Id extends string, Final = A> =
+  RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
+
 // make sure this is exported or d.ts of apiClientFactory breaks?!
-type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
+export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
+  [] ? void : Parameters<I["make"]>[0]
+
+// Has no input only when the request schema declares no payload fields (the auto-added
+// `_tag` field is ignored). Any payload fields (even all-optional) produce a function handler.
+type HasNoFields<I> = I extends { readonly fields: infer F extends S.Struct.Fields }
+  ? [Exclude<keyof F, "_tag">] extends [never] ? true : false
+  : false
+
+type RequestInput<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]>[0]
+
+/**
+ * Caller-facing input type for a request. `void` when the request schema has no fields;
+ * otherwise `make`'s first param type.
+ */
+export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> = HasNoFields<I> extends true ? void
+  : RequestInput<I>
+
+/** Extracts the final-value type from a stream request. Defaults to the success type when no `final` schema is set. */
+type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
+  : S.Schema.Type<T["success"]>
+
+type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
+  ? RequestStreamHandlerWithInput<
+    HandlerInput<T>,
+    S.Schema.Type<T["success"]>,
+    S.Schema.Type<T["error"]> | E,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
+    T,
+    Id,
+    FinalTypeOf<T>
+  >
+  : RequestHandlerWithInput<
+    HandlerInput<T>,
+    S.Schema.Type<T["success"]>,
+    S.Schema.Type<T["error"]> | E,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
+    T,
+    Id
+  >
 
 export type RequestHandlers<R, E, M extends RequestsAny, ModuleName extends string> = {
-  [K in keyof M as M[K] extends Req ? K : never]: IsEmpty<Omit<S.Schema.Type<M[K]>, Cruft>> extends true
-    ? RequestHandler<
-      S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["error"]> | E,
-      R | ReqDecodingServices<M[K]>,
-      M[K],
-      `${ModuleName}.${K & string}`
-    >
-    : RequestHandlerWithInput<
-      Omit<S.Schema.Type<M[K]>, Cruft>,
-      S.Schema.Type<M[K]["success"]>,
-      S.Schema.Type<M[K]["error"]> | E,
-      R | ReqDecodingServices<M[K]>,
-      M[K],
-      `${ModuleName}.${K & string}`
-    >
+  [K in keyof M as M[K] extends Req ? K : never]: Extract<M[K], Req> extends infer T extends Req
+    ? RequestHandlerFor<R, E, T, `${ModuleName}.${K & string}`>
+    : never
 }

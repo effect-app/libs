@@ -5,9 +5,11 @@ import { type S } from "effect-app"
 import { setFaker } from "effect-app/faker"
 import * as FastCheck from "effect/testing/FastCheck"
 import { Random } from "fast-check"
-import * as rand from "pure-rand"
+import { congruential32 } from "pure-rand/generator/congruential32"
 
-const rnd = new Random(rand.congruential32(5))
+const seed = 5
+const rng = congruential32(seed)
+const rnd = new Random(rng)
 
 setFaker(faker)
 

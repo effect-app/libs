@@ -98,6 +98,7 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
         :name="field.name"
         style="border: 1px solid red"
         @change="(e) => field.handleChange(e.target.value)"
+        @blur="field.handleBlur"
       />
     </template>
   </form.Input>
@@ -117,6 +118,7 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
             :name="field.name"
             style="border: 1px solid red"
             @change="(e: any) => field.handleChange(e.target.value)"
+            @blur="field.handleBlur"
           >
         </template>
       </form.Input>
@@ -139,6 +141,7 @@ import { useOmegaForm, createUseFormWithCustomInput } from "@effect-app/vue-comp
       :name="field.name"
       :value="state.value"
       @change="(e) => field.handleChange(e.target.value)"
+      @blur="field.handleBlur"
     >
     <span v-if="inputProps.error">
       \{\{ inputProps.errorMessages.join(", ") \}\}

@@ -26,4 +26,4 @@ When adding a new story:
 2. Import the component and any dependencies
 3. Define the meta object with component information
 4. Create story objects that demonstrate different use cases
-5. Use proper TypeScript typing for all parameters 
+5. Use proper TypeScript typing for all parameters

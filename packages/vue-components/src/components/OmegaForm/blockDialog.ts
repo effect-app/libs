@@ -1,5 +1,6 @@
 import mitt from "mitt"
 import { inject, type InjectionKey, provide, type Ref } from "vue"
+import { useIntl } from "../../utils"
 import { onMountedWithCleanup } from "./onMountedWithCleanup"
 
 export type DialogClosing = { prevent?: boolean | Promise<boolean> }
@@ -19,11 +20,19 @@ export const usePreventClose = (mkIsDirty: () => Ref<boolean>) => {
   if (!bus) {
     return
   }
+  const { formatMessage, trans } = useIntl()
   const isDirty = mkIsDirty()
+  const defaultMessage = "There are unsaved changes. Are you sure you want to close?"
   onMountedWithCleanup(() => {
     const onDialogClosing = (evt: DialogClosing) => {
       if (isDirty.value) {
-        if (!confirm("Es sind ungespeicherte Änderungen vorhanden. Wirklich schließen?")) {
+        // Mirror the guard pattern in errors.ts: a custom `useIntl` mock may
+        // only provide `trans`, so fall back through trans → defaultMessage.
+        const message = formatMessage
+          ? formatMessage({ id: "form.unsaved_changes_confirm", defaultMessage })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- key may not be registered in the locale catalog
+          : trans?.("form.unsaved_changes_confirm" as any) ?? defaultMessage
+        if (!confirm(message)) {
           evt.prevent = true
         }
       }
@@ -46,11 +55,14 @@ export const useOnClose = (close: () => void) => {
     bus.emit("dialog-closing", evt)
     if (evt.prevent) {
       if (typeof evt.prevent === "object" && "then" in evt.prevent) {
-        evt.prevent.then((r) => {
-          if (r !== false) {
-            close()
-          }
-        })
+        evt
+          .prevent
+          .then((r) => {
+            if (r) {
+              close()
+            }
+          })
+          .catch(console.error)
       }
     } else {
       close()

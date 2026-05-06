@@ -3,7 +3,7 @@
 The extensions use V4 format of RPC middleware:
 
 - supports `requires` besides `provides`
-- `requires` and `provides`  should be set as second generic argument: `Tag<Self, Config>`.
+- `requires` and `provides` should be set as second generic argument: `Tag<Self, Config>`.
 - `wrap: true` is the default, there is no classic `provides: Tag`
 
 ## Features
@@ -34,7 +34,7 @@ NOTE: perhaps not as useful anymore if support for dynamic middleware gets integ
 
 ## Examples
 
-See  [tests](../../../infra/test/rpc-multi-middleware.test.ts)
+See [tests](../../../infra/test/rpc-multi-middleware.test.ts)
 
 ## Future
 

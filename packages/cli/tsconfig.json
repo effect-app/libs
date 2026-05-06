@@ -1,16 +1,16 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-        "lib": [
-            "esnext"
-        ],
-        "moduleResolution": "Node16",
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    },
-    "include": [
-        "./src/**/*.ts"
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "esnext"
     ],
-    "references": []
+    "moduleResolution": "Node16",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "include": [
+    "./src/**/*.ts"
+  ],
+  "references": []
 }

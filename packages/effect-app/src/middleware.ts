@@ -14,6 +14,12 @@ export class LoggerMiddleware extends RpcMiddleware.Tag<LoggerMiddleware>()("Log
 
 export class DevModeMiddleware extends RpcMiddleware.Tag<DevModeMiddleware>()("DevModeMiddleware") {}
 
+/**
+ * Generic middlewares attached by `makeRouter` to every request.
+ *
+ * Invalidation key wrap/unwrap is handled by the routing layer (server) and the
+ * api client factory (client) directly — there is no middleware tag for it.
+ */
 export const DefaultGenericMiddlewares = [
   RequestCacheMiddleware,
   ConfigureInterruptibilityMiddleware,

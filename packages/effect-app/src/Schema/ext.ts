@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
+import { Config, Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -23,6 +23,37 @@ export type NonEmptyArrayAsTuple<ValueSchema extends S.Top> = S.NonEmptyArray<Va
  */
 export const NonEmptyArray = <ValueSchema extends S.Top>(valueSchema: ValueSchema) =>
   S.Array(valueSchema).pipe(S.check(S.isMinLength(1)), S.decodeTo(S.toType(S.NonEmptyArray(valueSchema))))
+
+const concurrencySetting = Effect.runSync(
+  Config
+    .literal("unbounded", "SCHEMA_CONCURRENCY")
+    .pipe(Config.orElse(() => Config.number("SCHEMA_CONCURRENCY")), Config.option)
+    .asEffect()
+)
+
+export const DefaultParseOptions: SchemaAST.ParseOptions = {
+  concurrency: Option.getOrElse(concurrencySetting, () => "unbounded" as const)
+}
+
+/**
+ * Parse-options annotation used on schema constructors for decode paths where callers
+ * cannot currently pass parse options (notably some RPC / HttpApi integration paths).
+ *
+ * Keep this annotation in place so those framework-managed decodes still run with
+ * unbounded concurrency by default.
+ */
+export const concurrencyUnbounded = { parseOptions: DefaultParseOptions } as const
+
+type DecodeLike = (schema: any) => (input: any, options?: SchemaAST.ParseOptions) => any
+
+export const withDefaultParseOptions = <Decode extends DecodeLike>(
+  decode: Decode,
+  defaultParseOptions: SchemaAST.ParseOptions = DefaultParseOptions
+): Decode =>
+  ((schema: any) => {
+    const run = decode(schema)
+    return (input: any, options?: SchemaAST.ParseOptions) => run(input, { ...defaultParseOptions, ...options })
+  }) as Decode
 
 // TODO: v4 migration - Date is no longer by default encoded to string.
 
@@ -119,12 +150,9 @@ export const Literals = <const Literals extends NonEmptyReadonlyArray<AST.Litera
 /**
  * Like the default Schema `Array` but with `withDefault` => []
  */
-const co = { parseOptions: { concurrency: "unbounded" as const } }
-export { co as concurrencyUnbounded }
-
 export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
   return pipe(
-    S.Array(value).annotate(co),
+    S.Array(value).annotate(concurrencyUnbounded),
     (s) =>
       Object.assign(s, {
         withDefault: s.pipe(S.withConstructorDefault(Effect.sync(() => []))),
@@ -139,7 +167,7 @@ export function Array<ValueSchema extends S.Top>(value: ValueSchema) {
 export const ReadonlySetFromArray = <ValueSchema extends S.Top>(value: ValueSchema) => {
   const from = S
     .Array(value)
-    .annotate({ ...co, expected: "an array of unique items that will be decoded as a ReadonlySet" })
+    .annotate({ ...concurrencyUnbounded, expected: "an array of unique items that will be decoded as a ReadonlySet" })
   const to = S.instanceOf(Set) as S.instanceOf<ReadonlySet<S.Schema.Type<ValueSchema>>>
   const schema = from.pipe(
     S.decodeTo(
@@ -162,7 +190,10 @@ export const ReadonlyMapFromArray = <KeySchema extends S.Top, ValueSchema extend
 }) => {
   const from = S
     .Array(S.Tuple([pair.key, pair.value]))
-    .annotate({ ...co, expected: "an array of key-value tuples that will be decoded as a ReadonlyMap" })
+    .annotate({
+      ...concurrencyUnbounded,
+      expected: "an array of key-value tuples that will be decoded as a ReadonlyMap"
+    })
   const to = S.instanceOf(Map) as S.instanceOf<
     ReadonlyMap<S.Schema.Type<KeySchema>, S.Schema.Type<ValueSchema>>
   >

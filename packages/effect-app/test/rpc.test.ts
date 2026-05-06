@@ -1,3 +1,4 @@
+import { type Effect, type Option } from "effect"
 import { expect, test } from "vitest"
 import { makeRpcClient, NotLoggedInError, UnauthorizedError } from "../src/client.js"
 import { ForceVoid } from "../src/client/makeClient.js"
@@ -10,7 +11,11 @@ export class RequestContextMap extends RpcContextMap.makeMap({
   test: RpcContextMap.make()(S.Never)
 }) {}
 
-const { TaggedRequestFor } = makeRpcClient(RequestContextMap)
+const stubMiddleware = {
+  requestContextMap: RequestContextMap.config,
+  requestContext: undefined as never
+}
+const { TaggedRequestFor } = makeRpcClient(stubMiddleware)
 const TaggedRequest = TaggedRequestFor("Test").Query
 
 export class Stats extends TaggedRequest<Stats>()("Stats", {}, {
@@ -29,6 +34,10 @@ declare const _statsError: typeof Stats.error.Type
 declare const _statsRequestType: typeof Stats.type
 
 test("ForceVoid decodes and encodes as void", () => {
+  const statsFromMake = Stats.make({})
+  const statsFromMakeOption = Stats.makeOption({})
+  const statsFromMakeEffect = Stats.makeEffect({})
+
   expect(S.decodeUnknownSync(ForceVoid)(undefined)).toBe(undefined)
   expect(S.is(ForceVoid)(undefined)).toBe(true)
   expect(S.decodeUnknownSync(ForceVoid)("test")).toBe(undefined)
@@ -42,6 +51,12 @@ test("ForceVoid decodes and encodes as void", () => {
     readonly newUsersLast24Hours: number
     readonly newUsersLastWeek: number
   }>()
-  expectTypeOf<typeof _statsError>().toEqualTypeOf<NotLoggedInError | UnauthorizedError>()
+  // Resource error carries only `config.error` (and optional `generalErrors`); rcm-derived
+  // middleware errors no longer leak into `resource.error` — they reach the wire via the
+  // middleware tag attached to the rpc group (`rpc.middlewares[*].error` failure-union).
+  expectTypeOf<typeof _statsError>().toEqualTypeOf<never>()
   expectTypeOf<typeof _statsRequestType>().toEqualTypeOf<"query">()
+  expectTypeOf(statsFromMake).toEqualTypeOf<Stats>()
+  expectTypeOf(statsFromMakeOption).toEqualTypeOf<Option.Option<Stats>>()
+  expectTypeOf(statsFromMakeEffect).toEqualTypeOf<Effect.Effect<Stats, S.SchemaError>>()
 })

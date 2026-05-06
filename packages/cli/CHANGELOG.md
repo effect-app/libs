@@ -1,5 +1,40 @@
 # @effect-app/cli
 
+## 2.1.0-beta.20
+
+### Patch Changes
+
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+
+## 2.1.0-beta.19
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+## 2.1.0-beta.18
+
+### Patch Changes
+
+- c1e73de:
+
+## 2.1.0-beta.17
+
+### Patch Changes
+
+- 8434b5f: preserve trailing newline when writing package.json files
+
+## 2.1.0-beta.16
+
+### Patch Changes
+
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+
 ## 2.1.0-beta.15
 
 ### Patch Changes

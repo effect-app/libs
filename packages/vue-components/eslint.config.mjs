@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
-
 import { vueConfig } from "@effect-app/eslint-shared-config/eslint.vue.config"
 
 import path from "node:path"
@@ -12,17 +9,12 @@ const __dirname = path.dirname(__filename)
 export default [
   ...vueConfig(__dirname, false),
   {
-    ignores: [".output/**", "dist/**", "node_modules/**"],
+    ignores: [".output/**", "dist/**", "node_modules/**"]
   },
   {
     files: ["./**/*.vue"],
     rules: {
-      "vue/multi-word-component-names": "off",
-    },
-  },
-  {
-    rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
+      "vue/multi-word-component-names": "off"
     }
   }
 ]

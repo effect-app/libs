@@ -1,5 +1,653 @@
 # @effect-app/infra
 
+## 4.0.0-beta.208
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.208
+
+## 4.0.0-beta.207
+
+### Patch Changes
+
+- b0db40f: Router handlers are now discriminated by `Resource[K]["stream"]`:
+
+  - Stream resources (`stream: true`) accept only `(req) => Stream<...>` handlers.
+  - Non-stream resources accept only `(req) => Effect<...>` (or generator yielding `Yieldable`).
+
+  Mixing — e.g. returning `Effect.fail(...)` or `Effect<Stream<...>>` from a stream handler — no longer type-checks.
+
+  The runtime `Stream.unwrap` branch that lifted `Effect`/`Effect<Stream>` returns into a `Stream` is removed; handlers for stream resources must return a `Stream` directly. Migrate `Effect.gen(...).pipe(Stream.unwrap)` patterns by returning the `Stream` directly, and convert `Effect.fail(err)` in stream handlers to `Stream.fail(err)`.
+
+- Updated dependencies [8fffc3c]
+  - effect-app@4.0.0-beta.207
+
+## 4.0.0-beta.206
+
+### Patch Changes
+
+- 54bfc59: Require middleware to flow through `makeRpcClient` and the live layer through `makeRouter`.
+
+  ### `makeRpcClient(middleware, generalErrors?)`
+
+  Signature drops the `rcs` (request-context map wrapper) parameter. `rcs` was only load-bearing on the type side for `RequestConfig` inference; that information is now derived from `middleware.requestContextMap`. `middleware` is required — the previous "rcs + optional middleware" overload is gone.
+
+  **Migration**:
+
+  ```diff
+  -makeRpcClient(RequestContextMap, undefined, AppMiddleware)
+  +makeRpcClient(AppMiddleware)
+  ```
+
+  For tests/clients without a real middleware, build a minimal stub (`{ requestContextMap, requestContext }`) or pass any value satisfying `ClientMiddleware<RCM>`.
+
+  ### `makeRouter(middlewareLive)`
+
+  `makeRouter()` no longer infers the live middleware layer from `meta.middleware.Default`. The Live layer is now passed explicitly to `makeRouter`, and the request classes only carry the middleware tag (schema-only). This decouples the router from any assumption that the middleware tag exposes a `Default` static.
+
+  **Migration**:
+
+  ```diff
+  -export const { Router, matchAll } = makeRouter()
+  +export const { Router, matchAll } = makeRouter(AppMiddleware.Default)
+  ```
+
+- Updated dependencies [54bfc59]
+  - effect-app@4.0.0-beta.206
+
+## 4.0.0-beta.205
+
+### Patch Changes
+
+- Updated dependencies [f313973]
+  - effect-app@4.0.0-beta.205
+
+## 4.0.0-beta.204
+
+### Patch Changes
+
+- Updated dependencies [0a0030f]
+  - effect-app@4.0.0-beta.204
+
+## 4.0.0-beta.203
+
+### Patch Changes
+
+- Updated dependencies [992d9fa]
+  - effect-app@4.0.0-beta.203
+
+## 4.0.0-beta.202
+
+### Patch Changes
+
+- Updated dependencies [1186b09]
+  - effect-app@4.0.0-beta.202
+
+## 4.0.0-beta.201
+
+### Patch Changes
+
+- d67d17a: Source middleware errors exclusively from the rpc middleware tag, and move command/stream invalidation wrap/unwrap entirely into the routing layer (server) and `apiClientFactory` (client). `InvalidationMiddleware` and `InvalidationMiddlewareLive` are removed.
+
+  ### Resource error schemas
+
+  Three sites that used to fold `RequestContextMap[*].error` into a request's own error schema now stop doing so:
+
+  - `makeRpcClient` / `makeRequestClass` — `failureSchema` is just `config.error` (still merged with the optional `generalErrors` parameter, which is the only remaining error mix on both type and runtime levels).
+  - `MiddlewareMaker.rpc()` — `error: options.error` only; the previous union with `rcm.config[*].error` is gone.
+  - Routing and `apiClientFactory.makeRpcGroupFromRequestsAndModuleName` — `Invalidation.makeCommandRpc` is called with `error: resource.error` (no widening with the composite middleware error union).
+
+  Middleware errors reach the client through the rpc's `middlewares[*].error` failure-union channel of `Rpc.exitSchema`, exposed by attaching the middleware tag to the rpc on both sides:
+
+  - **Server**: `makeRouter(middleware)` attaches the live composite tag (existing behavior).
+  - **Client**: new `middleware` option on `ClientForOptions` / `ApiClientFactory.makeFor(layer, { middleware })` attaches the same tag schema-only (no Live invoked). Threaded through `makeRpcGroupFromRequestsAndModuleName` to `RpcGroup.middleware(tag)`. Without it, stream rpcs (whose top-level `errorSchema` is forced to `Never` by effect-rpc) hit `SchemaError: Expected never | { _tag: "error", ... }` decoding middleware-thrown errors that bypass the in-stream `Stream.catch` wrap.
+
+  **Migration**: handlers that yield errors previously sourced from rcm (e.g. `yield* new UnauthorizedError()`) now require those errors to be declared explicitly on the resource — `Req.Query<T>()("...", fields, { success, error: UnauthorizedError })`. The handler error type no longer auto-includes the rcm union.
+
+  ### Invalidation wrap/unwrap
+
+  - `routing.ts` (server) provides a per-request `InvalidationSet` for commands, wraps the success value as `CommandResponseWithMetaData`, and converts handler-thrown failures into `CommandFailureWithMetaData` so accumulated invalidation keys reach the client on either path. Stream wrap (per-chunk envelope + final `done` chunk) was already in routing and is unchanged.
+  - `apiClientFactory.ts` (client) `unwrapCommand` strips both envelopes and forwards keys to `InvalidationKeysFromServer`.
+  - `InvalidationMiddleware` (the tag) and `InvalidationMiddlewareLive` (the layer) are **removed**. The middleware was the previous home of the wrap; with the wrap moved to routing/apiClientFactory, the middleware became a thin pass-through and is no longer needed. `DefaultGenericMiddlewares` and `DefaultGenericMiddlewaresLive` shrink accordingly — no migration needed for callers that used the defaults; callers that referenced `InvalidationMiddleware` / `InvalidationMiddlewareLive` directly should drop those imports.
+
+  Middleware-thrown errors are never wrapped: by definition the handler never ran, so there is nothing to invalidate. They flow raw on the Cause and the client decodes them via the middleware-tag failure-union channel described above.
+
+- Updated dependencies [d67d17a]
+  - effect-app@4.0.0-beta.201
+
+## 4.0.0-beta.200
+
+### Patch Changes
+
+- 0cff7c1: workaround middleware error issue
+- Updated dependencies [8f1cf6a]
+- Updated dependencies [0cff7c1]
+  - effect-app@4.0.0-beta.200
+
+## 4.0.0-beta.199
+
+### Patch Changes
+
+- de9fb83: Annotate Cosmos read spans with response size, resource count, and request charge.
+
+  `Cosmos.queryRaw`, `Cosmos.all`, `Cosmos.filter`, and `Cosmos.find` now set `db.cosmos.request_charge`, `db.cosmos.response_bytes`, and (where applicable) `db.cosmos.resource_count` on the active span. Bytes are sourced from `diagnostics.clientSideRequestStatistics.totalResponsePayloadLengthInBytes` — no payload stringification.
+
+  - effect-app@4.0.0-beta.199
+
+## 4.0.0-beta.198
+
+### Patch Changes
+
+- 32dbc54: fix stream type when no success specified
+- Updated dependencies [32dbc54]
+  - effect-app@4.0.0-beta.198
+
+## 4.0.0-beta.197
+
+### Minor Changes
+
+- 3dc0d2a: Add streaming as a `stream: true` config option on `Query` / `Command` instead of a separate request type.
+
+  `TaggedRequestFor` now exposes only `Query` and `Command` factories — the standalone `Stream` factory is removed. To produce a Stream of `success` values, pass `stream: true` in the request config. The request `type` field stays `"command" | "query"`; a new `stream: boolean` field carries the streaming flag (stripped from the stored handler config).
+
+  ```ts
+  // Query that streams results
+  Req.Query<T>()("Tag", {}, { stream: true, success: ... })
+
+  // Command that streams results
+  Req.Command<T>()("Tag", {}, { stream: true, success: ... })
+  ```
+
+  Vue client mapping (per-handler properties mirror the non-stream API — `.query`, `.fn`, `.mutate`):
+
+  - `query` + `stream: true` → exposes `.query` (read-only streaming, tracked Vue Query). Helper map key: `${name}Query`.
+  - `command` + `stream: true` → exposes `.fn` and `.mutate` (mutating streaming).
+  - Plain `query` / `command` unchanged.
+
+  Server routing dispatches via the new `stream` flag (`makeStreamRpc` for streaming commands/queries, `makeCommandRpc` / `Rpc.make` otherwise).
+
+  Also lifts the `Struct` / `TaggedStruct` and `Opaque` definitions in `effect-app/Schema` to use `S.Bottom` / `S.Opaque` directly, exposing `fields`, `mapFields`, and a `MakeIn` that allows `void` when all fields are optional. `TaggedRequestFor` request classes now use `Opaque(TaggedStruct(...))` instead of `TaggedClass`, and decoding/encoding services are derived from `success` / `error` rather than stored on the request.
+
+  **Migration**: replace `Req.Stream` with `Req.Query` or `Req.Command` and add `stream: true` to the config — `Query` for read-only streams, `Command` for mutating streams.
+
+### Patch Changes
+
+- Updated dependencies [3dc0d2a]
+  - effect-app@4.0.0-beta.197
+
+## 4.0.0-beta.196
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.196
+
+## 4.0.0-beta.195
+
+### Patch Changes
+
+- 774a9b3: `MiddlewareMaker.makeMiddlewareBasic` now derives each middleware's effective error from both the static `error` field on the tag AND the `rcm` config entry referenced by `dynamic.key`, rather than relying on the static field alone.
+
+  Middlewares declared with `dynamic: RequestContextMap.get("foo")` (instead of an explicit static `error: ...`) end up with `tag.error = Schema.Never` at runtime — `RpcMiddleware.Tag` defaults the static error to `Never` when not provided. The composite `MiddlewareMaker.Tag(...).middleware(...)` walked `make[*].error` to build its own error union, collapsing to `Union<Never, ...> ≡ Never`.
+
+  `Rpc.exitSchema` walks `rpc.middlewares[*].error` when building the wire-level failure union for every rpc kind. Empty-union meant middleware-thrown errors (`NotLoggedInError`, `UnauthorizedError`, etc.) never reached the wire schema. Query/command happened to work because their wire `errorSchema = resource.error` already covered the merge from `makeRpcClient`. Stream rpcs have `errorSchema` force-set to `Schema.Never` by effect-rpc, so the resource-level merge never reached the wire — middleware errors decoded as "Expected never, got X".
+
+  Per middleware, the new logic pushes both the static `_.error` (if non-`Never`) and `rcm[_.dynamic.key].error` (if non-`Never`) into the composite's failure union.
+
+- Updated dependencies [774a9b3]
+  - effect-app@4.0.0-beta.195
+
+## 4.0.0-beta.194
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.194
+
+## 4.0.0-beta.193
+
+### Patch Changes
+
+- 9569911: Stream resources accept `Effect.fail(...)` (and `Effect<Stream>`) from controller handlers — previously only `Stream.fail(...)` / a returned `Stream` worked. The router now lifts an Effect result to a Stream via `Stream.unwrap`, so failures from an `Effect` propagate as a failing Stream on the client, matching `Stream.fail(...)` behavior. Also removes the need for manual `.pipe(Stream.unwrap)` on generator handlers that return a `Stream`.
+  - effect-app@4.0.0-beta.193
+
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- dba5779: namespaces
+  - effect-app@4.0.0-beta.192
+
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- Updated dependencies [50ce7e6]
+  - effect-app@4.0.0-beta.191
+
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- Updated dependencies [985176b]
+  - effect-app@4.0.0-beta.190
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- ea32222: Update to effect 4.0.0-beta.60 and use native `Rpc.custom` constructors (`makeCommandRpc`, `makeStreamRpc`) for metadata-wrapped RPC schemas instead of manually wrapping/unwrapping schemas inline.
+- Updated dependencies [ea32222]
+  - effect-app@4.0.0-beta.189
+
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- b2e438f: Remove Operations service and repo
+- Updated dependencies [b2e438f]
+  - effect-app@4.0.0-beta.188
+
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- Updated dependencies [0d4e0b8]
+  - effect-app@4.0.0-beta.187
+
+## 4.0.0-beta.186
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.186
+
+## 4.0.0-beta.185
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.185
+
+## 4.0.0-beta.184
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.184
+
+## 4.0.0-beta.183
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.183
+
+## 4.0.0-beta.182
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.182
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [583393f]
+  - effect-app@4.0.0-beta.181
+
+## 4.0.0-beta.180
+
+### Minor Changes
+
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+### Patch Changes
+
+- Updated dependencies [7fa3045]
+  - effect-app@4.0.0-beta.180
+
+## 4.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - effect-app@4.0.0-beta.179
+
+## 4.0.0-beta.178
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.178
+
+## 4.0.0-beta.177
+
+### Minor Changes
+
+- 89d8b3a: Add Effect RPC `Stream` support to the wrapper.
+
+  - New `Stream` request constructor on `TaggedRequestFor` parallel to `Query`/`Command`. Emits resources with `type: "stream"`.
+  - Server router (`@effect-app/infra` `routing.ts`) accepts stream resources whose handlers return a `Stream.Stream<A, E, R>` (or a function from input to one). Forwards `stream: true` to `Rpc.make` so `RpcSchema.Stream` wrapping is applied. Streams bypass `applyRequestTypeInterruptibility` and the `Effect.withSpan` wrapping (the RPC server adds its own span).
+  - Client (`apiClientFactory.ts`) detects stream resources, forwards `stream: true` when constructing `RpcGroup`, and exposes the per-request `handler` as a `Stream.Stream` (via `Stream.unwrap` over the `ManagedRuntime` context) instead of an `Effect`. `Invalidation.CommandResponseWithMetaData` continues to apply only to commands.
+  - New `RequestStreamHandler` / `RequestStreamHandlerWithInput` shapes in `clientFor.ts`; `RequestHandlers` dispatches on `type: "stream"`.
+
+### Patch Changes
+
+- Updated dependencies [89d8b3a]
+  - effect-app@4.0.0-beta.177
+
+## 4.0.0-beta.176
+
+### Patch Changes
+
+- pass options
+- Updated dependencies
+  - effect-app@4.0.0-beta.176
+
+## 4.0.0-beta.175
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.175
+
+## 4.0.0-beta.174
+
+### Minor Changes
+
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+### Patch Changes
+
+- Updated dependencies [821468d]
+  - effect-app@4.0.0-beta.174
+
+## 4.0.0-beta.173
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.173
+
+## 4.0.0-beta.172
+
+### Patch Changes
+
+- improve sentry
+  - effect-app@4.0.0-beta.172
+
+## 4.0.0-beta.171
+
+### Patch Changes
+
+- Updated dependencies [d71d976]
+  - effect-app@4.0.0-beta.171
+
+## 4.0.0-beta.170
+
+### Patch Changes
+
+- Updated dependencies [8f09f77]
+  - effect-app@4.0.0-beta.170
+
+## 4.0.0-beta.169
+
+### Patch Changes
+
+- Updated dependencies [8ae8b53]
+  - effect-app@4.0.0-beta.169
+
+## 4.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [178480a]
+  - effect-app@4.0.0-beta.168
+
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- Updated dependencies [140e192]
+  - effect-app@4.0.0-beta.167
+
+## 4.0.0-beta.166
+
+### Patch Changes
+
+- Updated dependencies [dbcc53b]
+  - effect-app@4.0.0-beta.166
+
+## 4.0.0-beta.165
+
+### Patch Changes
+
+- Updated dependencies [f88ea34]
+  - effect-app@4.0.0-beta.165
+
+## 4.0.0-beta.164
+
+### Patch Changes
+
+- Updated dependencies [8cb3de4]
+  - effect-app@4.0.0-beta.164
+
+## 4.0.0-beta.163
+
+### Patch Changes
+
+- Updated dependencies [b952f19]
+  - effect-app@4.0.0-beta.163
+
+## 4.0.0-beta.162
+
+### Patch Changes
+
+- Updated dependencies [b52b424]
+  - effect-app@4.0.0-beta.162
+
+## 4.0.0-beta.161
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.161
+
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- Updated dependencies [505bfa9]
+  - effect-app@4.0.0-beta.160
+
+## 4.0.0-beta.159
+
+### Patch Changes
+
+- c1e73de:
+- Updated dependencies [c1e73de]
+  - effect-app@4.0.0-beta.159
+
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [3c1f52d]
+- Updated dependencies [6ae3050]
+  - effect-app@4.0.0-beta.158
+
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- 6fff09c: unify encoded function for when you use encodedKeys
+- Updated dependencies [6fff09c]
+  - effect-app@4.0.0-beta.157
+
+## 4.0.0-beta.156
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.156
+
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [c215db8]
+  - effect-app@4.0.0-beta.155
+
+## 4.0.0-beta.154
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.154
+
+## 4.0.0-beta.153
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.153
+
+## 4.0.0-beta.152
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.152
+
+## 4.0.0-beta.151
+
+### Patch Changes
+
+- 925214b: update packages
+  - effect-app@4.0.0-beta.151
+
+## 4.0.0-beta.150
+
+### Patch Changes
+
+- Updated dependencies [85a8275]
+  - effect-app@4.0.0-beta.150
+
+## 4.0.0-beta.149
+
+### Patch Changes
+
+- Updated dependencies [f317c5e]
+  - effect-app@4.0.0-beta.149
+
+## 4.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [199e9a5]
+  - effect-app@4.0.0-beta.148
+
+## 4.0.0-beta.147
+
+### Patch Changes
+
+- Updated dependencies [47e3742]
+  - effect-app@4.0.0-beta.147
+
+## 4.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [a4dff57]
+  - effect-app@4.0.0-beta.146
+
+## 4.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [12abb55]
+  - effect-app@4.0.0-beta.145
+
+## 4.0.0-beta.144
+
+### Patch Changes
+
+- d31253f: Refactor eligible schema classes and tagged classes to Opaque schemas, and migrate constructor call sites to use `.make` for those models.
+- Updated dependencies [11422f8]
+- Updated dependencies [d31253f]
+  - effect-app@4.0.0-beta.144
+
+## 4.0.0-beta.143
+
+### Patch Changes
+
+- Updated dependencies [79eb019]
+  - effect-app@4.0.0-beta.143
+
+## 4.0.0-beta.142
+
+### Patch Changes
+
+- Updated dependencies [3436d44]
+- Updated dependencies [025de47]
+  - effect-app@4.0.0-beta.142
+
+## 4.0.0-beta.141
+
+### Patch Changes
+
+- Updated dependencies [7c25dbb]
+  - effect-app@4.0.0-beta.141
+
+## 4.0.0-beta.140
+
+### Patch Changes
+
+- 1576688: Add configurable `fakeMailAddress` to `SendgridConfig`. Supports `{i}` placeholder for unique addresses, e.g. `"test+{i}@example.com"`.
+  - effect-app@4.0.0-beta.140
+
+## 4.0.0-beta.139
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.139
+
+## 4.0.0-beta.138
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.138
+
+## 4.0.0-beta.137
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.137
+
+## 4.0.0-beta.136
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.136
+
 ## 4.0.0-beta.135
 
 ### Patch Changes

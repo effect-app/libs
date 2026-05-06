@@ -1,9 +1,10 @@
 <script
   setup
   lang="ts"
-  generic="I = never"
+  generic="I = never, RA = unknown, RE = unknown"
 >
-import type { CommandBase } from "@effect-app/vue"
+import type { CommandBase, Progress } from "@effect-app/vue"
+import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { computed } from "vue"
 import type { VBtn } from "vuetify/components"
 
@@ -14,11 +15,11 @@ const props = defineProps<
   & (
     | {
       input: NoInfer<I>
-      command: CommandBase<I>
+      command: CommandBase<I, any, RA, RE>
       empty?: boolean
     }
     | {
-      command: CommandBase
+      command: CommandBase<any, any, RA, RE>
       input?: undefined
       empty?: boolean
     }
@@ -26,11 +27,31 @@ const props = defineProps<
   & {
     disabled?: ButtonProps["disabled"]
     title?: string // why isn't it part of VBtnProps??
+    mapProgress?: (result: AsyncResult.AsyncResult<RA, RE>) => Progress | undefined
   }
   & ButtonProps
 >()
 
 const isDisabled = computed(() => props.command.blocked || props.disabled)
+
+const resolvedProgress = computed(() => {
+  if (props.mapProgress) {
+    const result = props.command.result
+    return result !== undefined ? props.mapProgress(result) : undefined
+  }
+  return props.command.progress
+})
+
+const progressText = computed(() => {
+  const p = resolvedProgress.value
+  if (p === undefined) return undefined
+  return typeof p === "string" ? p : p.text
+})
+
+const progressPercentage = computed(() => {
+  const p = resolvedProgress.value
+  return typeof p === "object" && p !== null ? p.percentage : undefined
+})
 
 const handleClick = () => {
   // Block execution if button is disabled
@@ -41,7 +62,9 @@ const handleClick = () => {
   const input = ("input" in props && props.input
     ? props.input
     : undefined) as unknown as I
-  ;(props.command.handle as any)(input)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- command.handle has a generic signature mismatched by erased input type
+  const handle = props.command.handle as any
+  handle(input)
 }
 </script>
 <script lang="ts">
@@ -60,6 +83,18 @@ export default {
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
   >
+    <template
+      v-if="progressText !== undefined"
+      #loader
+    >
+      <v-progress-circular
+        :indeterminate="progressPercentage === undefined"
+        :model-value="progressPercentage"
+        size="20"
+        width="2"
+      />
+      <span class="ml-2">{{ progressText }}</span>
+    </template>
     <slot
       :loading="command.waiting"
       :disabled="isDisabled"
@@ -77,5 +112,18 @@ export default {
     :title="title ?? command.action"
     :class="{ 'v-btn--disabled': isDisabled }"
     @click="handleClick"
-  />
+  >
+    <template
+      v-if="progressText !== undefined"
+      #loader
+    >
+      <v-progress-circular
+        :indeterminate="progressPercentage === undefined"
+        :model-value="progressPercentage"
+        size="20"
+        width="2"
+      />
+      <span class="ml-2">{{ progressText }}</span>
+    </template>
+  </v-btn>
 </template>

@@ -7,7 +7,6 @@ import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
 import * as Context from "../Context.js"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
-import { typedValuesOf } from "../utils.js"
 import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "./RpcContextMap.js"
 import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
@@ -310,7 +309,26 @@ const makeMiddlewareBasic = <Self>() =>
   // reverse middlewares and wrap one after the other
   const middleware = middlewareMaker(make)
 
-  const failures = make.flatMap((_) => _.error ? [_.error] : [])
+  // Per-middleware error: union of the static `error` on the tag (if any) AND
+  // the rcm config entry pointed at by the middleware's `dynamic.key` (if any).
+  // Reason: middlewares declared with `dynamic: RequestContextMap.get("foo")`
+  // don't set a static `error` field — at runtime their `.error` defaults to
+  // `Schema.Never`. Without pulling from rcm, the composite middleware's
+  // `.error` collapses to `Never`, and `Rpc.exitSchema` (which walks
+  // `rpc.middlewares[*].error` to build the wire failure union) can't decode
+  // the actual middleware-thrown error type. Critical for stream rpcs whose
+  // top-level `errorSchema` is force-set to `Never` by effect-rpc.
+  const isMeaningfulError = (e: S.Top | undefined): e is S.Top => e !== undefined && e !== null && e !== S.Never
+  const rcmRecord = rcm as Record<string, RpcContextMap.Any>
+  const failures: Array<S.Top> = make.flatMap((_) => {
+    const out: Array<S.Top> = []
+    if (isMeaningfulError(_.error)) out.push(_.error)
+    const key = _.dynamic?.key as string | undefined
+    if (key && rcmRecord[key] && isMeaningfulError(rcmRecord[key].error)) {
+      out.push(rcmRecord[key].error)
+    }
+    return out
+  })
   const provides = make.flatMap((_) => !_.provides ? [] : Array.isArray(_.provides) ? _.provides : [_.provides])
   const requires = make
     .flatMap((_) => !_.requires ? [] : Array.isArray(_.requires) ? _.requires : [_.requires])
@@ -346,10 +364,11 @@ const makeMiddlewareBasic = <Self>() =>
     .effect(
       MiddlewareMaker,
       middleware as Effect.Effect<
-        any,
-        Effect.Error<typeof middleware>,
-        Effect.Services<typeof middleware>
+        any
       >
+      // todo; they dont change the type..
+      //  Effect.Error<typeof middleware>,
+      //  Effect.Services<typeof middleware>
     )
 
   // add to the tag a default implementation
@@ -404,19 +423,16 @@ export const Tag = <Self>() =>
     {
       const config = options?.config ?? {} as Config
 
-      // based on the config, we must enhance (union) or set failures.
-      // TODO: we should only include errors that are relevant based on the middleware config.ks
-      const error = options?.error
-      const errors = typedValuesOf(rcm.config).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
-      const allErrors = error ? [error, ...errors] : errors
-      const [firstError, ...restErrors] = allErrors
-      const newError = firstError ? S.Union([firstError, ...restErrors]) : S.Never
-
+      // The rpc's `error` schema carries ONLY the request's own declared errors.
+      // Middleware errors (rcm-derived) reach the wire via the middleware tag
+      // attached to the rpc group later (`RpcGroup.middleware(...)` at the
+      // routing/client level), and are unioned into the failure schema by
+      // `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk.
       // @ts-expect-error — TypeScript can't prove Simplify<T> ≡ { [K in keyof T]: T[K] } for unresolved generics (primaryKey)
       const rpc = Rpc.make(tag, {
         ...options?.payload !== undefined ? { payload: options.payload } : {},
         ...options?.success !== undefined ? { success: options.success } : {},
-        error: newError,
+        ...options?.error !== undefined ? { error: options.error } : {},
         ...options?.stream !== undefined ? { stream: options.stream } : {},
         ...options?.primaryKey !== undefined ? { primaryKey: options.primaryKey } : {}
       }) as any

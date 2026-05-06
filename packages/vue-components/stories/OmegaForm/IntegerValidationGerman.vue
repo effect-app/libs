@@ -8,8 +8,8 @@
       <li>Geben Sie <code>59</code> ein → Sollte akzeptiert werden ✓</li>
     </ul>
 
-    <form.Form :subscribe="['values', 'errors']">
-      <template #default="{ subscribedValues: { values, errors } }">
+    <form.Form :subscribe="['values']">
+      <template #default="{ subscribedValues: { values } }">
         <div style="margin-bottom: 20px">
           <form.Input
             name="lange"
@@ -54,14 +54,6 @@
           <pre>{{ JSON.stringify(values, null, 2) }}</pre>
         </div>
 
-        <div
-          v-if="errors && Object.keys(errors).length > 0"
-          style="margin-top: 20px; padding: 10px; background: #ffebee; border-radius: 4px; border-left: 4px solid #f44336"
-        >
-          <strong>Fehler:</strong>
-          <pre>{{ JSON.stringify(errors, null, 2) }}</pre>
-        </div>
-
         <form.Errors />
       </template>
     </form.Form>
@@ -84,6 +76,7 @@ const form = useOmegaForm(PackageSchema, {
   onSubmit: ({ value }) => {
     console.log("Form submitted with values:", value)
     alert(`Packen erfolgreich!\n${JSON.stringify(value, null, 2)}`)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- onSubmit return-type interop
     return undefined as any
   }
 })

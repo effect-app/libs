@@ -34,7 +34,7 @@ watch(() => props.state, (newTag, oldTag) => {
   if (newTag !== oldTag) {
     props.form.reset(values.value)
     setTimeout(() => {
-      props.field.validate("change")
+      void props.field.validate("change")
     }, 0)
   }
 }, { immediate: true })

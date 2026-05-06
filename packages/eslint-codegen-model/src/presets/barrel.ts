@@ -1,10 +1,35 @@
-import generate from "@babel/generator"
-import { parse } from "@babel/parser"
-import type { Preset } from "eslint-plugin-codegen"
-import * as glob from "glob"
-import { match } from "io-ts-extra"
-import * as lodash from "lodash"
+import glob from "glob"
 import * as path from "path"
+import { normaliseModuleForBarrel } from "../normalise.js"
+
+type PresetFn<T = Record<string, unknown>> = (args: {
+  meta: { filename: string; existingContent: string }
+  options: T
+}, context?: unknown) => string
+
+function last<T>(list: readonly T[]): T | undefined {
+  return list[list.length - 1]
+}
+
+function toCamelCase(s: string): string {
+  const words = s.match(/[a-zA-Z0-9]+/g) ?? []
+  return words
+    .map((word, i) => {
+      const lower = word.toLowerCase()
+      return i === 0 || lower.length === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
+    })
+    .join("")
+}
+
+function toPascalCase(s: string): string {
+  const words = s.match(/[a-zA-Z0-9]+/g) ?? []
+  return words
+    .map((word) => {
+      const lower = word.toLowerCase()
+      return lower.length === 0 ? lower : lower[0]!.toUpperCase() + lower.slice(1)
+    })
+    .join("")
+}
 
 /**
  * Bundle several modules into a single convenient one.
@@ -30,7 +55,7 @@ import * as path from "path"
  * to `{name: someName, keys: path}` the relative file paths will be used as keys. Otherwise the file paths
  * will be camel-cased to make them valid js identifiers.
  */
-export const barrel: Preset<{
+export const barrel: PresetFn<{
   include?: string
   exclude?: string | string[]
   import?: "default" | "star"
@@ -57,106 +82,113 @@ export const barrel: Preset<{
         ? [".js", ".mjs", ".ts", ".tsx"].includes(path.extname(file))
         : true
     )
-    .map((f) => f.replace(/\.\w+$/, "").replace(/\/$/, ""))
+    .map((f) => {
+      const isDir = f.endsWith("/")
+      const cleaned = f.replace(/\.\w+$/, "").replace(/\/$/, "")
+      return isDir ? `${cleaned}/index` : cleaned
+    })
 
-  function last<T>(list: readonly T[]) {
-    return list[list.length - 1]
+  let expectedContent: string
+
+  if (opts.import === undefined) {
+    const exportOpt = opts.export
+    if (
+      typeof exportOpt === "object"
+      && exportOpt !== null
+      && "as" in exportOpt
+      && exportOpt.as === "PascalCase"
+    ) {
+      expectedContent = relativeFiles
+        .map(
+          (f) =>
+            `export * as ${toPascalCase(last(f.split("/"))!)}${
+              "postfix" in exportOpt ? exportOpt.postfix : ""
+            } from "${f}.js"`
+        )
+        .join("\n")
+    } else {
+      expectedContent = relativeFiles.map((f) => `export * from "${f}.js"`).join("\n")
+    }
+  } else {
+    const importPrefix = opts.import === "default" ? "" : "* as "
+    const rawIdentifiers = relativeFiles.map((f) => ({
+      file: f,
+      identifier: toCamelCase(modulegen ? last(f.split("/"))! : f)
+        .replace(/^([^a-z])/, "_$1")
+        .replace(/([\^/])Index$/, "$1")
+    }))
+
+    const grouped = rawIdentifiers.reduce<Record<string, Array<{ file: string; identifier: string }>>>(
+      (acc, info) => {
+        ;(acc[info.identifier] ??= []).push(info)
+        return acc
+      },
+      {}
+    )
+    const withIdentifiers = Object.values(grouped).flatMap((group) =>
+      group.length === 1
+        ? group
+        : group.map((info, i) => ({ ...info, identifier: `${info.identifier}_${i + 1}` }))
+    )
+
+    const imports = withIdentifiers
+      .map((i) => `import ${importPrefix}${i.identifier} from "${i.file}.js"`)
+      .join("\n")
+
+    const exportOpt = opts.export
+    const exportProps = modulegen
+      ? []
+      : typeof exportOpt === "object"
+          && exportOpt !== null
+          && "keys" in exportOpt
+          && (exportOpt as { name: string; keys: "path" | "camelCase" }).keys === "path"
+        ? withIdentifiers.map((i) => `${JSON.stringify(i.file)}: ${i.identifier}`)
+        : withIdentifiers.map((i) => i.identifier)
+
+    let exportPrefix: string
+    if (exportOpt === undefined) {
+      exportPrefix = "export"
+    } else if (exportOpt === "default") {
+      exportPrefix = "export default"
+    } else if (typeof exportOpt === "object" && "name" in exportOpt && exportOpt.name === "default") {
+      exportPrefix = "export default"
+    } else if (typeof exportOpt === "string") {
+      exportPrefix = `export const ${exportOpt} =`
+    } else if (typeof exportOpt === "object" && "name" in exportOpt) {
+      exportPrefix = `export const ${exportOpt.name} =`
+    } else {
+      exportPrefix = ""
+    }
+
+    const exports = exportProps.join(",\n ")
+
+    const moduleGen = withIdentifiers
+      .map((i) => {
+        const up = `${i.identifier[0]!.toUpperCase()}${i.identifier.slice(1)}`
+        return `export interface ${up} extends Id<typeof ${i.identifier}> {}
+export const ${up}: ${up} = ${i.identifier}`
+      })
+      .join("\n")
+
+    const exportss = modulegen ? "" : `\n${exportPrefix} {\n ${exports}\n}`
+    expectedContent = `${imports}\n${exportss}\n${
+      modulegen && moduleGen
+        ? "type Id<T> = T\n/* eslint-disable @typescript-eslint/no-empty-object-type */\n\n" + moduleGen
+        : ""
+    }`
   }
 
-  const expectedContent = match(opts.import)
-    .case(undefined, () =>
-      match(opts.export)
-        .case({ as: "PascalCase" as const }, (v) =>
-          lodash
-            .chain(relativeFiles)
-            .map(
-              (f) =>
-                `export * as ${
-                  lodash
-                    .startCase(lodash.camelCase(last(f.split("/"))))
-                    .replace(/ /g, "") // why?
-                    .replace(/\//, "")
-                }${"postfix" in v ? v.postfix : ""} from "${f}.js"`
-            )
-            .value()
-            .join("\n"))
-        .default(() => {
-          return relativeFiles.map((f) => `export * from "${f}.js"`).join("\n")
-        })
-        .get())
-    .case(String, (s) => {
-      const importPrefix = s === "default" ? "" : "* as "
-      const withIdentifiers = lodash
-        .chain(relativeFiles)
-        .map((f) => ({
-          file: f,
-          identifier: lodash
-            .camelCase(modulegen ? last(f.split("/")) : f)
-            .replace(/^([^a-z])/, "_$1")
-            .replace(/([\^/])Index$/, "$1")
-        }))
-        .groupBy((info) => info.identifier)
-        .values()
-        .flatMap((group) =>
-          group.length === 1
-            ? group
-            : group.map((info, i) => ({
-              ...info,
-              identifier: `${info.identifier}_${i + 1}`
-            }))
-        )
-        .value()
+  // Fast path: exact match after trimming (avoids AST parse)
+  if (expectedContent.trim() === meta.existingContent.trim()) {
+    return meta.existingContent
+  }
 
-      const imports = withIdentifiers
-        .map((i) => `import ${importPrefix}${i.identifier} from "${i.file}.js"`)
-        .join("\n")
-      const exportProps = modulegen ? [] : match(opts.export)
-        .case({ name: String, keys: "path" }, () =>
-          withIdentifiers.map(
-            (i) => `${JSON.stringify(i.file)}: ${i.identifier}`
-          ))
-        .default(() => withIdentifiers.map((i) => i.identifier))
-        .get()
-
-      const exportPrefix = match(opts.export)
-        .case(undefined, () => "export")
-        .case("default", () => "export default")
-        .case({ name: "default" }, () => "export default")
-        .case(String, (name) => `export const ${name} =`)
-        .case({ name: String }, ({ name }) => `export const ${name} =`)
-        .default(() => "")
-        .get()
-
-      const exports = exportProps.join(",\n ")
-
-      const moduleGen = withIdentifiers
-        .map((i) => {
-          const up = `${i.identifier[0]!.toUpperCase()}${i.identifier.slice(1)}`
-          return `export interface ${up} extends Id<typeof ${i.identifier}> {}
-export const ${up}: ${up} = ${i.identifier}`
-        })
-        .join("\n")
-
-      const exportss = modulegen ? "" : `\n${exportPrefix} {\n ${exports}\n}`
-      return `${imports}\n${exportss}\n${
-        modulegen && moduleGen
-          ? "type Id<T> = T\n/* eslint-disable @typescript-eslint/no-empty-object-type */\n\n" + moduleGen
-          : ""
-      }`
-    })
-    .get()
-
-  // ignore stylistic differences. babel generate deals with most
-  const normalise = (str: string) =>
-    generate(
-      parse(str, { sourceType: "module", plugins: ["typescript"] }) as any
-    )
-      .code
-      .replace(/'/g, `"`)
-      .replace(/\/index/g, "")
-
+  // Slow path: AST-based comparison (handles /index equivalence etc.)
   try {
-    if (normalise(expectedContent) === normalise(meta.existingContent)) {
+    if (
+      normaliseModuleForBarrel(expectedContent, meta.filename)
+        === normaliseModuleForBarrel(meta.existingContent, meta.filename)
+    ) {
       return meta.existingContent
     }
   } catch {}

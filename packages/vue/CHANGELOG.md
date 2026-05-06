@@ -1,5 +1,741 @@
 # @effect-app/vue
 
+## 4.0.0-beta.208
+
+### Minor Changes
+
+- 0d7d197: Add optional `groupId` and `requestId` to toast options.
+
+  - `ToastOpts` / `ToastOptsInternal` now accept `groupId?: string` and `requestId?: string`; values pass through the toast wrapper unchanged.
+  - `WithToast` / `withToast` accept `groupId` and auto-derive `requestId` once per invocation (current Effect span `traceId`, fallback `S.StringId.make()`); both are attached to every emitted toast (waiting/success/warning/error).
+  - `Command.withDefaultToast` and `Command.withDefaultToastStream` set `groupId: cc.id` automatically; the stream variant also computes `requestId` once and threads it through progress, success, and failure toasts.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.208
+
+## 4.0.0-beta.207
+
+### Patch Changes
+
+- Updated dependencies [8fffc3c]
+  - effect-app@4.0.0-beta.207
+
+## 4.0.0-beta.206
+
+### Patch Changes
+
+- Updated dependencies [54bfc59]
+  - effect-app@4.0.0-beta.206
+
+## 4.0.0-beta.205
+
+### Patch Changes
+
+- Updated dependencies [f313973]
+  - effect-app@4.0.0-beta.205
+
+## 4.0.0-beta.204
+
+### Patch Changes
+
+- Updated dependencies [0a0030f]
+  - effect-app@4.0.0-beta.204
+
+## 4.0.0-beta.203
+
+### Patch Changes
+
+- Updated dependencies [992d9fa]
+  - effect-app@4.0.0-beta.203
+
+## 4.0.0-beta.202
+
+### Patch Changes
+
+- Updated dependencies [1186b09]
+  - effect-app@4.0.0-beta.202
+
+## 4.0.0-beta.201
+
+### Patch Changes
+
+- Updated dependencies [d67d17a]
+  - effect-app@4.0.0-beta.201
+
+## 4.0.0-beta.200
+
+### Patch Changes
+
+- Updated dependencies [8f1cf6a]
+- Updated dependencies [0cff7c1]
+  - effect-app@4.0.0-beta.200
+
+## 4.0.0-beta.199
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.199
+
+## 4.0.0-beta.198
+
+### Patch Changes
+
+- dd73a4a: fix fn on stream semantics
+- Updated dependencies [32dbc54]
+  - effect-app@4.0.0-beta.198
+
+## 4.0.0-beta.197
+
+### Minor Changes
+
+- 3dc0d2a: Add streaming as a `stream: true` config option on `Query` / `Command` instead of a separate request type.
+
+  `TaggedRequestFor` now exposes only `Query` and `Command` factories — the standalone `Stream` factory is removed. To produce a Stream of `success` values, pass `stream: true` in the request config. The request `type` field stays `"command" | "query"`; a new `stream: boolean` field carries the streaming flag (stripped from the stored handler config).
+
+  ```ts
+  // Query that streams results
+  Req.Query<T>()("Tag", {}, { stream: true, success: ... })
+
+  // Command that streams results
+  Req.Command<T>()("Tag", {}, { stream: true, success: ... })
+  ```
+
+  Vue client mapping (per-handler properties mirror the non-stream API — `.query`, `.fn`, `.mutate`):
+
+  - `query` + `stream: true` → exposes `.query` (read-only streaming, tracked Vue Query). Helper map key: `${name}Query`.
+  - `command` + `stream: true` → exposes `.fn` and `.mutate` (mutating streaming).
+  - Plain `query` / `command` unchanged.
+
+  Server routing dispatches via the new `stream` flag (`makeStreamRpc` for streaming commands/queries, `makeCommandRpc` / `Rpc.make` otherwise).
+
+  Also lifts the `Struct` / `TaggedStruct` and `Opaque` definitions in `effect-app/Schema` to use `S.Bottom` / `S.Opaque` directly, exposing `fields`, `mapFields`, and a `MakeIn` that allows `void` when all fields are optional. `TaggedRequestFor` request classes now use `Opaque(TaggedStruct(...))` instead of `TaggedClass`, and decoding/encoding services are derived from `success` / `error` rather than stored on the request.
+
+  **Migration**: replace `Req.Stream` with `Req.Query` or `Req.Command` and add `stream: true` to the config — `Query` for read-only streams, `Command` for mutating streams.
+
+### Patch Changes
+
+- Updated dependencies [3dc0d2a]
+  - effect-app@4.0.0-beta.197
+
+## 4.0.0-beta.196
+
+### Patch Changes
+
+- c7fbd58: `handle`, `mutate`, and `request` are now always functions, never a raw Effect or Stream. For no-input handlers the first argument is omitted (`handle()`, `request()`, `mutate()`).
+  - effect-app@4.0.0-beta.196
+
+## 4.0.0-beta.195
+
+### Patch Changes
+
+- Updated dependencies [774a9b3]
+  - effect-app@4.0.0-beta.195
+
+## 4.0.0-beta.194
+
+### Patch Changes
+
+- refactor(vue): remove 1s waiting toast delay in withDefaultToastStream
+  - effect-app@4.0.0-beta.194
+
+## 4.0.0-beta.193
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.193
+
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.192
+
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- 50ce7e6: Cleanup after tsgolint + oxlint-codegen-plugin migration:
+  - Wire `@effect-app/eslint-codegen-model/oxlint` via `jsPlugins` object form (`{ name: "codegen", specifier: ... }`) so the `codegen/codegen` rule key resolves.
+  - Drop `eslint-plugin-codegen` dep, patch, and `augmentedConfig` helper — codegen now runs through oxlint.
+  - Break cyclic workspace dep between `eslint-codegen-model` and `eslint-shared-config`; remove dead `eslint.config.mjs` from `eslint-codegen-model`.
+  - Switch `@effect-app/vue` to oxlint-only (no `.vue` files in `src`); drop its ESLint config and `eslint-shared-config` devDep.
+  - Restore `@typescript-eslint` plugin and rules in shared `baseConfig` so inline `eslint-disable @typescript-eslint/...` directives resolve in `@effect-app/vue-components` (the only remaining ESLint consumer, for `.vue` files).
+  - Add `globals.browser` to `vueConfig` so browser globals (`window`, `console`, `URL`, etc.) resolve.
+- 50ce7e6: Replace typescript-eslint with oxlint-tsgolint for type-aware lint. Drop ESLint entirely from non-vue packages (cli, effect-app, infra) — they now use only `oxlint --type-aware`. Vue packages keep ESLint to run `@effect-app/no-await-effect` (no tsgolint equivalent) via `@typescript-eslint/parser` + `vue-eslint-parser`.
+- Updated dependencies [50ce7e6]
+  - effect-app@4.0.0-beta.191
+
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- 985176b: Align request handler input typing with the request's `make` signature. Handlers are now classified as no-input only when the request schema declares no payload fields; any payload (even fully-optional) yields a function handler whose input matches `make`'s first parameter. Adds `HandlerInput<I>` and threads it through `CommandFromRequest`.
+- Updated dependencies [985176b]
+  - effect-app@4.0.0-beta.190
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- d23e3f6: Delay the in-progress (waiting) toast by 1 second in `withToast` and `withDefaultToastStream`. Fast operations that produce a success/failure (or, for streams, a progress event or terminal state) within the delay window never show a waiting toast at all. Any subsequent waiting/progress/success/failure toast aborts the pending delayed toast so it never flashes after the terminal state.
+- f44800c: In-progress toasts (`withToast` waiting toast and `withDefaultToastStream` waiting/progress toasts) now persist indefinitely (`timeout: Infinity`) until replaced by the success/failure toast or dismissed. Previously they used the underlying toast adapter's default duration and could disappear before the operation finished.
+- Updated dependencies [ea32222]
+  - effect-app@4.0.0-beta.189
+
+## 4.0.0-beta.188
+
+### Minor Changes
+
+- f16e766: Remove legacy `mutateToResult` stream mutation factory, `wrapStream` command builder, and standard command progress reporting (`running`/`progress` from the old stream factory path). Keep only the `mutate` path for use with `streamFn` combinators. Remove obsolete types (`StreamMutationWithExtensions`, `StreamCommandWithExtensions`, `StreamFnExtension`, `MutateStreamCallOptions`) and the internal `makeStreamMutation` function. Rename `mutate.wrapStream` shorthand to `mutate.wrap` to match the non-stream convention.
+
+### Patch Changes
+
+- ed1b8a9: `mutate.wrap` on stream handlers now works the same as on command/query handlers: it can be called without arguments or with only combinators, with the underlying stream handler pre-baked in.
+- b2e438f: Remove Operations service and repo
+- Updated dependencies [b2e438f]
+  - effect-app@4.0.0-beta.188
+
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- 0d4e0b8: Fix `isGeneratorFunction` using `isObject` instead of `isFunction`: generator functions have `typeof === "function"`, not `"object"`, so the check always returned `false`. This caused `Command.streamFn` generator-form handlers to silently pass a raw `Generator` object rather than an `Effect<Stream>`, meaning the mutation was never executed.
+- Updated dependencies [0d4e0b8]
+  - effect-app@4.0.0-beta.187
+
+## 4.0.0-beta.186
+
+### Patch Changes
+
+- 89b7d2f: `Command.withDefaultToastStream`: add `progress` option to update the waiting toast with progress text on each stream element
+  - effect-app@4.0.0-beta.186
+
+## 4.0.0-beta.185
+
+### Patch Changes
+
+- ddd9505: Rename stream mutation helpers: `mutateStream` → `mutateToResult`, `mutateStream2` → `mutate`.
+  - effect-app@4.0.0-beta.185
+
+## 4.0.0-beta.184
+
+### Minor Changes
+
+- d4bf24a: Add `Command.withDefaultToastStream` — a stream-aware combinator for `streamFn` that properly handles the full stream lifecycle (waiting/success/failure toasts). Unlike `withDefaultToast`, it waits for the stream to drain before showing the success toast and correctly handles stream errors.
+
+  Strongly type `CommandBase` with `RA`/`RE` type params for `result`, and update `CommandButton`'s `mapProgress` prop to be typed as `(result: AsyncResult<RA, RE>) => Progress | undefined`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.184
+
+## 4.0.0-beta.183
+
+### Minor Changes
+
+- 8ff0bf9: Add `Command.streamFn` — a stream-backed variant of `Command.fn`.
+
+  The body generator (or plain function) returns a `Stream` instead of an `Effect`. The command's `waiting` state stays `true` while the stream is running and updates the reactive `result` ref for every emitted value.
+
+  Three handler shapes are accepted:
+
+  1. **Generator returning a Stream** (primary):
+     ```ts
+     Command.streamFn("exportData")(function* (arg, ctx) {
+       const token = yield* getAuthToken;
+       return Stream.fromEffect(startExport(token, arg.id)).pipe(
+         Stream.flatMap((job) => pollProgress(job.id))
+       );
+     });
+     ```
+  2. Function returning a `Stream` directly.
+  3. Function returning `Effect<Stream>` (unwrapped automatically).
+
+- 8ff0bf9: - `CommandButton`: add optional `:map-progress` prop to compute progress from `command.result` via a custom mapper function
+  - `CommandBase`: add optional `result` field exposing reactive `AsyncResult` state
+  - Export `Progress` type from `@effect-app/vue`
+  - `streamFn`: pipe operators now receive the initial `Effect<Stream>` (or `Stream`) value unchanged; `Stream.unwrap` is deferred until after all combinators, enabling use of `withDefaultToast` and other Effect-level combinators
+  - Add `makeStreamMutation2`: like `makeStreamMutation` but returns `Effect<Stream>` per invocation (with invalidation via `Stream.ensuring`), for use with `streamFn` combinators
+  - Expose `streamFn` on `XClient.Y` stream handlers and on the `Command` object
+  - Expose `mutateStream2` on `XClient.Y` stream handlers, with a `wrapStream` helper that calls `streamFn` with the handler and provided combinators
+- fc98fb7: Add `streamQuery` support for stream-type Rpc handlers. When an Rpc is of type `"stream"`, the client now exposes a `.streamQuery` property (and `...StreamQuery` in helpers) that uses `streamedQuery` from `@tanstack/query-core` to accumulate chunks reactively as an `AsyncResult<A[], E>`.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.183
+
+## 4.0.0-beta.182
+
+### Minor Changes
+
+- b9586f8: Refine `mutateStream` shape and progress reporting.
+
+  - `mutateStream(options?)` now returns the `execute` callable directly, with `id`, `running?`, and `progress?` attached as properties. Tuple form `[ref, execute]` is gone — invoke the callable to run the stream, or pass it (or the factory) to `Command.fn` / `Command.wrap` / `Command.wrapStream`.
+  - `progress` formatter return type widened from `string | undefined` to `Progress | undefined`, where `Progress = string | { text: string; percentage: number }`.
+  - Stream failures now bubble through the execute effect's typed error channel `E` instead of being swallowed. The reactive `AsyncResult` ref still mirrors the failure for live progress UI.
+  - `CommandBase.progress?: Progress` replaces `progressText?: string`. `CommandButton` overrides the Vuetify `loader` slot when `progress` is set, rendering a `v-progress-circular` (bound to `model-value` when a `percentage` is supplied, otherwise `indeterminate`) alongside the formatted text.
+  - Factories and callables are branded with `_streamFactory` / `_streamCallable` so `Command.fn` / `Command.wrap` can disambiguate them from plain mutate functions.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.182
+
+## 4.0.0-beta.181
+
+### Minor Changes
+
+- 4bbeb19: Add `wrapStream` support to `Command` with separate `result` and `running` props.
+
+  **Key design:**
+
+  - `result` is always the command's own execution outcome (from `asResult`)
+  - `running` holds the stream's live `AsyncResult` ref for progress tracking
+
+  **New behaviour:**
+
+  - `CommanderImpl.wrapStream(mutation)` returns a callable like `wrap` — `wrapStream(mutation)()` gives `CommandOut`.
+  - Accepts either `{ id, mutateStream: [...] }` or the augmented tuple directly (when `.id` is attached).
+  - `Command.wrap` now accepts `{ mutateStream, id }` and the augmented tuple — both delegate to `wrapStream`.
+  - `FnOptions.progress` — pass a `ComputedRef<AsyncResult>` to any `fn`-created command; surfaces as `running`.
+  - `StreamMutationWithExtensions` now includes `.id` on the tuple.
+  - Stream client entries expose `wrapStream` (callable), `fn`, and `mutateStream` (with `.id`).
+  - Stream mutation helpers also carry `.fn` and `.id`.
+
+  ```ts
+  // Via client entry:
+  const exportCmd = Command.wrapStream(client.myExport)();
+  // exportCmd.result = own execution result; exportCmd.running = live stream AsyncResult
+
+  // Via mutateStream tuple (id is attached):
+  const exportCmd = Command.wrapStream(client.myExport.mutateStream)();
+
+  // wrap also accepts the tuple:
+  const exportCmd = Command.wrap(client.myExport.mutateStream)();
+
+  // fn with external progress:
+  const cmd = Command.fn({
+    id: "myExport",
+    progress: client.myExport.mutateStream[0],
+  })(function* (arg) {
+    yield* client.myExport.mutateStream[1](arg);
+  });
+  // cmd.running === the stream AsyncResult ref
+  ```
+
+### Patch Changes
+
+- 583393f: Default the stream `mutateStream` execute resolved value to the request's success type when no `final` schema is declared.
+
+  Previously the type defaulted to `void`, but the runtime already resolves with the last emitted value. Types now match runtime behaviour: `execute` returns `Final` if a `final` schema is set, otherwise the success type.
+
+- Updated dependencies [583393f]
+  - effect-app@4.0.0-beta.181
+
+## 4.0.0-beta.180
+
+### Minor Changes
+
+- 7fa3045: V1/V2/V3: stream and command requests carry invalidation metadata
+
+  **V1** – stream final response includes metadata
+
+  - `Invalidation.StreamResponseChunk` wraps each stream item as `{ _tag: "value", value }` and appends `{ _tag: "done", metadata }` at the end carrying all accumulated invalidation keys.
+
+  **V2** – invalidation keys included in failures
+
+  - `Invalidation.CommandFailureWithMetaData` and `Invalidation.StreamFailureChunk` carry keys accumulated up to the point of failure, so clients can invalidate queries even when a command or stream errors.
+  - `InvalidationMiddlewareLive` wraps command failures; `routing.ts` wraps stream failures.
+  - `apiClientFactory.ts` unwraps both on the client side, forwarding keys before re-failing with the original error.
+
+  **V3** – mid-stream metadata chunks
+
+  - `Invalidation.StreamResponseChunk` now also includes `{ _tag: "metadata", metadata }` for mid-stream invalidation.
+  - After each emitted value, the server drains accumulated keys and emits a "metadata" chunk if any keys were collected since the last drain (bucket reset via `InvalidationSet.drain`).
+  - `apiClientFactory.ts` processes "metadata" chunks the same as "done" chunks, forwarding keys to `InvalidationKeysFromServer` immediately.
+  - `makeInvalidationKeysService` accepts an optional `onAdded` callback that fires after each key addition, enabling `mutate.ts` to trigger query invalidation mid-stream without waiting for the stream to complete.
+
+### Patch Changes
+
+- Updated dependencies [7fa3045]
+  - effect-app@4.0.0-beta.180
+
+## 4.0.0-beta.179
+
+### Minor Changes
+
+- 828d264: Stream requests now support an optional `final` schema that models the final success type of the stream. When declared, `mutateStream`'s execute effect resolves with the last emitted value typed as `Final` instead of `void`.
+
+  ```ts
+  class MyStream extends SomethingStream<MyStream>()(
+    "MyStream",
+    { id: S.String },
+    {
+      success: S.Union([OperationProgress, ExportComplete]),
+      final: ExportComplete, // execute now resolves with ExportComplete
+    }
+  ) {}
+  ```
+
+### Patch Changes
+
+- Updated dependencies [828d264]
+  - effect-app@4.0.0-beta.179
+
+## 4.0.0-beta.178
+
+### Minor Changes
+
+- 07dd7b9: Add `asStreamResult` utility and stream-based mutation example.
+
+  `asStreamResult` mirrors `asResult` but accepts a `Stream<A, E, R>` (or a factory function that returns one). The reactive ref is updated with each emitted value (`waiting: true`) and finalised once the stream ends (`waiting: false`). Errors surface as `AsyncResult.failure`.
+
+  The included example (`examples/streamMutation.ts`) shows how to model a long-running export operation that streams `OperationProgress | ExportComplete` events into a readonly Vue ref.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.178
+
+## 4.0.0-beta.177
+
+### Patch Changes
+
+- Updated dependencies [89d8b3a]
+  - effect-app@4.0.0-beta.177
+
+## 4.0.0-beta.176
+
+### Patch Changes
+
+- pass options
+- Updated dependencies
+  - effect-app@4.0.0-beta.176
+
+## 4.0.0-beta.175
+
+### Minor Changes
+
+- 28777c1: Add `select` option to `MutationOptionsBase` for a second cache invalidation after long-running operations.
+
+  When `select` is provided, cache invalidation fires twice:
+
+  1. Immediately when the mutation completes (existing behaviour).
+  2. Again after the `select` effect finishes — useful for polling or waiting for a background job before refreshing data.
+
+  ```ts
+  useMutation(startExportCommand, {
+    select: (result) => pollUntilDone(result.jobId),
+  });
+  ```
+
+### Patch Changes
+
+- 37089ea: Consolidate multiple `invalidateQueries` calls into a single call per group using a `predicate`, reducing the number of TanStack Query invalidation calls in the common case from N to 1.
+  - effect-app@4.0.0-beta.175
+
+## 4.0.0-beta.174
+
+### Minor Changes
+
+- 821468d: Add server-driven cache invalidation via RPC response headers.
+
+  - `effect-app/rpc`: new `Invalidation` module with `InvalidationKey` / `InvalidationKeys` schemas, `Invalidates` annotation (for declaring static invalidation on Rpc definitions), `InvalidationSet` reference (request-scoped accumulator), and `makeInvalidationSet` helper.
+  - `effect-app/middleware`: new `InvalidationMiddleware` RPC middleware tag; included in `DefaultGenericMiddlewares`.
+  - `effect-app/client`: new `InvalidationKeys` module with `InvalidationKeysFromServer` reference and `makeInvalidationKeysService` helper; `apiClientFactory` now taps HTTP responses to read the `x-invalidate` header and forward keys to `InvalidationKeysFromServer`.
+  - `@effect-app/infra`: new `InvalidationMiddlewareLive` RPC middleware implementation that owns the full lifecycle — creates a request-scoped `InvalidationSet` (backed by a `Ref`), pre-populates it from the `Invalidates` annotation, provides it to the handler, and after the handler completes registers an HTTP pre-response handler (via `appendPreResponseHandlerUnsafe`) to write the accumulated keys as an `x-invalidate` response header. No separate HTTP middleware is needed.
+  - `@effect-app/vue`: `invalidateQueries` / `useMutation` now reads server-provided invalidation keys from `InvalidationKeysFromServer` after each mutation and applies them alongside the client-side invalidation.
+
+### Patch Changes
+
+- 1b38043: Fix lint: use typescript ~6.0.3 instead of native-preview for ESLint compatibility; keep tsgo for compilation
+- b241ae5: Merge client and server-driven cache invalidation keys into a single `Effect.forEach` pass so server keys always run regardless of whether client targets are empty or custom invalidation options are used.
+- Updated dependencies [821468d]
+  - effect-app@4.0.0-beta.174
+
+## 4.0.0-beta.173
+
+### Patch Changes
+
+- 4149577: fix queryresources
+  - effect-app@4.0.0-beta.173
+
+## 4.0.0-beta.172
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.172
+
+## 4.0.0-beta.171
+
+### Patch Changes
+
+- d71d976: fix
+- Updated dependencies [d71d976]
+  - effect-app@4.0.0-beta.171
+
+## 4.0.0-beta.170
+
+### Patch Changes
+
+- 8f09f77: fix
+- Updated dependencies [8f09f77]
+  - effect-app@4.0.0-beta.170
+
+## 4.0.0-beta.169
+
+### Patch Changes
+
+- 8ae8b53: input mess
+- Updated dependencies [8ae8b53]
+  - effect-app@4.0.0-beta.169
+
+## 4.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [178480a]
+  - effect-app@4.0.0-beta.168
+
+## 4.0.0-beta.167
+
+### Patch Changes
+
+- 140e192: Relax invalidation resource value constraints to allow arbitrary values while preserving query-only filtering in invalidation handling.
+- Updated dependencies [140e192]
+  - effect-app@4.0.0-beta.167
+
+## 4.0.0-beta.166
+
+### Patch Changes
+
+- dbcc53b: Refactor command invalidation typing: declare resources via `Command<Self, Resources>()`, pass `invalidatesQueries` as the optional 4th argument, and enforce exact `clientFor` invalidation resources when required.
+- Updated dependencies [dbcc53b]
+  - effect-app@4.0.0-beta.166
+
+## 4.0.0-beta.165
+
+### Patch Changes
+
+- f88ea34: Move `makeQueryKey` into `effect-app/client` and update Vue source and tests to import it from the shared client module. Vue still re-exports `makeQueryKey` from `src/lib` for compatibility.
+- 66fd718: Require `clientFor` invalidation resources when any command in the client configures them.
+- Updated dependencies [f88ea34]
+  - effect-app@4.0.0-beta.165
+
+## 4.0.0-beta.164
+
+### Minor Changes
+
+- 8cb3de4: Add command invalidation helpers that preserve query-only resource types and pass mutation input and `Exit` results into invalidation callbacks. Update Vue `clientFor` to merge request-level invalidation config with call-site invalidation and require matching invalidation resources.
+
+### Patch Changes
+
+- Updated dependencies [8cb3de4]
+  - effect-app@4.0.0-beta.164
+
+## 4.0.0-beta.163
+
+### Patch Changes
+
+- b952f19: bye cruft
+- Updated dependencies [b952f19]
+  - effect-app@4.0.0-beta.163
+
+## 4.0.0-beta.162
+
+### Patch Changes
+
+- Updated dependencies [b52b424]
+  - effect-app@4.0.0-beta.162
+
+## 4.0.0-beta.161
+
+### Patch Changes
+
+- aa5ef5c: Improve `deepToRaw` to support any root input type, correctly unwrap refs/computed values, and preserve collection/date shapes (`Array`, `Map`, `Set`, `Date`) while deeply removing Vue reactivity wrappers.
+  - effect-app@4.0.0-beta.161
+
+## 4.0.0-beta.160
+
+### Patch Changes
+
+- 505bfa9: Add concurrent decode helper APIs and migrate decode callsites to use them.
+
+  - Add `withDefaultParseOptions` and keep `DefaultParseOptions` centralized.
+  - Export `decodeEffectConcurrently` and `decodeUnknownEffectConcurrently` from Schema and SchemaParser modules.
+  - Update repository, queue, client, form, and CLI decode paths to use concurrent decode helpers.
+  - Keep schema constructors free of hardcoded parse concurrency overrides.
+
+- Updated dependencies [505bfa9]
+  - effect-app@4.0.0-beta.160
+
+## 4.0.0-beta.159
+
+### Patch Changes
+
+- c1e73de:
+- Updated dependencies [c1e73de]
+  - effect-app@4.0.0-beta.159
+
+## 4.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [3c1f52d]
+- Updated dependencies [6ae3050]
+  - effect-app@4.0.0-beta.158
+
+## 4.0.0-beta.157
+
+### Patch Changes
+
+- Updated dependencies [6fff09c]
+  - effect-app@4.0.0-beta.157
+
+## 4.0.0-beta.156
+
+### Patch Changes
+
+- 4bc4a27: Constrain `project` schema to require matching `Encoded` type with original success schema
+  - effect-app@4.0.0-beta.156
+
+## 4.0.0-beta.155
+
+### Patch Changes
+
+- 2e4c018: feat: add client projection
+- Updated dependencies [c215db8]
+  - effect-app@4.0.0-beta.155
+
+## 4.0.0-beta.154
+
+### Patch Changes
+
+- 3200fa8: apply the remaining formatting and autofix cleanup across the vue packages
+  - effect-app@4.0.0-beta.154
+
+## 4.0.0-beta.153
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.153
+
+## 4.0.0-beta.152
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.152
+
+## 4.0.0-beta.151
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.151
+
+## 4.0.0-beta.150
+
+### Patch Changes
+
+- Updated dependencies [85a8275]
+  - effect-app@4.0.0-beta.150
+
+## 4.0.0-beta.149
+
+### Patch Changes
+
+- Updated dependencies [f317c5e]
+  - effect-app@4.0.0-beta.149
+
+## 4.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [199e9a5]
+  - effect-app@4.0.0-beta.148
+
+## 4.0.0-beta.147
+
+### Patch Changes
+
+- Updated dependencies [47e3742]
+  - effect-app@4.0.0-beta.147
+
+## 4.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [a4dff57]
+  - effect-app@4.0.0-beta.146
+
+## 4.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [12abb55]
+  - effect-app@4.0.0-beta.145
+
+## 4.0.0-beta.144
+
+### Patch Changes
+
+- 11422f8: Update request helper typing and runtime invocation to rely on schema `.make` instead of class constructors, avoiding `new`-based assumptions for request schemas.
+- Updated dependencies [11422f8]
+- Updated dependencies [d31253f]
+  - effect-app@4.0.0-beta.144
+
+## 4.0.0-beta.143
+
+### Patch Changes
+
+- Updated dependencies [79eb019]
+  - effect-app@4.0.0-beta.143
+
+## 4.0.0-beta.142
+
+### Patch Changes
+
+- Updated dependencies [3436d44]
+- Updated dependencies [025de47]
+  - effect-app@4.0.0-beta.142
+
+## 4.0.0-beta.141
+
+### Patch Changes
+
+- Updated dependencies [7c25dbb]
+  - effect-app@4.0.0-beta.141
+
+## 4.0.0-beta.140
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.140
+
+## 4.0.0-beta.139
+
+### Patch Changes
+
+- ba61aad: raw dog
+  - effect-app@4.0.0-beta.139
+
+## 4.0.0-beta.138
+
+### Patch Changes
+
+- 9be71e1: fix: double guard
+  - effect-app@4.0.0-beta.138
+
+## 4.0.0-beta.137
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.137
+
+## 4.0.0-beta.136
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.136
+
 ## 4.0.0-beta.135
 
 ### Patch Changes

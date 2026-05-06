@@ -30,6 +30,7 @@ const scan = Effect.fn(function*(data: string) {
     alert("Form submitted!") // not called when errors due to shortcircuit
   }
 })
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic Exit type for demo
 const latestResult = ref<Exit.Exit<any, any>>()
 const onScan = (data: string) =>
   Effect.runPromise(scan(data).pipe(Effect.exit, Effect.tap((exit) => Effect.sync(() => latestResult.value = exit))))

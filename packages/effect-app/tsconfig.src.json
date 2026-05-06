@@ -1,31 +1,31 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-        "lib": [
-            "esnext"
-        ],
-        "tsBuildInfoFile": "./dist/.tsbuildinfo",
-        "esModuleInterop": true,
-        "rootDir": "./src",
-        // keep in here, cause madge can't detect it from extended tsconfig
-        "moduleResolution": "Node16",
-        "outDir": "./dist"
-    },
-    "include": [
-        "./src/**/*.ts"
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "esnext"
     ],
-    "exclude": [
-        "./dist",
-        "*.test.ts",
-        "node_modules",
-        "build",
-        "lib",
-        "dist",
-        "**/*.d.ts.map",
-        ".git",
-        ".data",
-        "**/.*",
-        "**/*.tmp"
-    ],
-    "references": []
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "esModuleInterop": true,
+    "rootDir": "./src",
+    // keep in here, cause madge can't detect it from extended tsconfig
+    "moduleResolution": "Node16",
+    "outDir": "./dist"
+  },
+  "include": [
+    "./src/**/*.ts"
+  ],
+  "exclude": [
+    "./dist",
+    "*.test.ts",
+    "node_modules",
+    "build",
+    "lib",
+    "dist",
+    "**/*.d.ts.map",
+    ".git",
+    ".data",
+    "**/.*",
+    "**/*.tmp"
+  ],
+  "references": []
 }

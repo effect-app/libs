@@ -1,9 +1,9 @@
 import { type Pausable, useIntervalFn, type UseIntervalFnOptions } from "@vueuse/core"
-import { Cause, type Effect, pipe } from "effect-app"
-import { type Req } from "effect-app/client"
-import type { ClientForOptions, RequestHandler, RequestHandlerWithInput } from "effect-app/client/clientFor"
+import { Cause, type Effect } from "effect-app"
+import type { Req } from "effect-app/client"
+import type { RequestHandlerWithInput } from "effect-app/client/clientFor"
 import { isHttpClientError } from "effect/unstable/http/HttpClientError"
-import type { MaybeRefOrGetter } from "vue"
+import { isProxy, isReactive, isRef, type MaybeRefOrGetter, toRaw } from "vue"
 import { reportError } from "./errorReporter.js"
 
 export * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
@@ -31,15 +31,7 @@ const determineLevel = (cause: Cause.Cause<unknown>) => {
 export const reportRuntimeError = (cause: Cause.Cause<unknown>, extras?: Record<string, unknown>) =>
   reportRuntimeError_(cause, extras, determineLevel(cause))
 
-// $Project/$Configuration.Index
-// -> "$Project", "$Configuration", "Index"
-export const makeQueryKey = ({ id, options }: { id: string; options?: ClientForOptions }) =>
-  pipe(
-    id.split("/"),
-    (split) => split.filter((_) => !options || !options?.skipQueryKey?.includes(_)).map((_) => "$" + _)
-  )
-    .join(".")
-    .split(".")
+export { makeQueryKey } from "effect-app/client"
 
 export function pauseWhileProcessing(
   iv: Pausable,
@@ -75,13 +67,48 @@ export const mapHandler: {
     self: RequestHandlerWithInput<I, A, E, R, Request, Name>,
     map: (handler: (i: I) => Effect.Effect<A, E, R>) => (i: I) => Effect.Effect<A2, E2, R2>
   ): RequestHandlerWithInput<I, A2, E2, R2, Request, Name>
-  <E, A, R, E2, A2, R2, Request extends Req, Name extends string>(
-    self: RequestHandler<A, E, R, Request, Name>,
-    map: (handler: Effect.Effect<A, E, R>) => Effect.Effect<A2, E2, R2>
-  ): RequestHandler<A2, E2, R2, Request, Name>
 } = (self: any, map: any): any => ({
   ...self,
-  handler: typeof self.handler === "function"
-    ? (i: any) => map(self.handler as (i: any) => Effect.Effect<any, any, any>)(i)
-    : map(self.handler)
+  handler: (i: any) => map(self.handler as (i: any) => Effect.Effect<any, any, any>)(i)
 })
+
+export function deepToRaw<T>(sourceObj: T): T {
+  const objectIterator = (input: any): any => {
+    if (isRef(input)) {
+      return objectIterator(input.value)
+    }
+
+    const rawInput = isReactive(input) || isProxy(input)
+      ? toRaw(input)
+      : input
+
+    if (Array.isArray(rawInput)) {
+      return rawInput.map((item) => objectIterator(item))
+    }
+
+    if (rawInput instanceof Map) {
+      return new Map(
+        Array.from(rawInput.entries(), ([key, value]) => [objectIterator(key), objectIterator(value)])
+      )
+    }
+
+    if (rawInput instanceof Set) {
+      return new Set(Array.from(rawInput.values(), (value) => objectIterator(value)))
+    }
+
+    if (rawInput instanceof Date) {
+      return new Date(rawInput)
+    }
+
+    if (rawInput && typeof rawInput === "object") {
+      return Object.keys(rawInput).reduce((acc, key) => {
+        acc[key] = objectIterator(rawInput[key])
+        return acc
+      }, {} as Record<string, unknown>)
+    }
+
+    return rawInput
+  }
+
+  return objectIterator(sourceObj)
+}

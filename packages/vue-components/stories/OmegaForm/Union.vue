@@ -1,6 +1,6 @@
 <template>
   <form.Form :subscribe="['values']">
-    <template #default="{ subscribedValues: { values } }">
+    <template #default="{ subscribedValues: { values: subscribedValues } }">
       <form.Input
         label="title"
         name="title"
@@ -15,7 +15,7 @@
         ]"
       />
       <form.Input
-        v-if="values.union._tag === 'A'"
+        v-if="subscribedValues.union._tag === 'A'"
         label="union a value"
         name="union.a"
       />

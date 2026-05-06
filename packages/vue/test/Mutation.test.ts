@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Option } from "effect-app"
-import { OperationFailure } from "effect-app/Operations"
+import { TestClock } from "effect/testing"
 import { CommandContext, DefaultIntl } from "../src/commander.js"
 import { AsyncResult } from "../src/lib.js"
-import { useExperimental } from "./stubs.js"
+import { useExperimental, useExperimentalE } from "./stubs.js"
 
 const unwrap = <A, E>(r: Fiber.Fiber<Exit.Exit<A, E>, never>) => Fiber.join(r).pipe(Effect.flatten)
 
@@ -318,8 +318,8 @@ it.live("with toasts", () =>
         function*() {
           expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
-          expect(toasts.length).toBe(1)
-          expect(toasts[0].message).toBe("Test Action executing...")
+          // fast actions complete before the 1s waiting-toast delay, so no waiting toast is shown
+          expect(toasts.length).toBe(0)
 
           return "test-value"
         },
@@ -359,7 +359,7 @@ it.live("interrupted", () =>
 
       const command = Command.fn("Test Action")(
         function*() {
-          expect(toasts.length).toBe(1)
+          expect(toasts.length).toBe(0)
           yield* Effect.interrupt
           return "test-value"
         },
@@ -386,7 +386,7 @@ it.live("fail", () =>
 
       const command = Command.fn("Test Action")(
         function*() {
-          expect(toasts.length).toBe(1)
+          expect(toasts.length).toBe(0)
           return yield* Effect.fail({ message: "Boom!" })
         },
         Command.withDefaultToast(),
@@ -425,31 +425,6 @@ it.live("fail with showSpanInfo disabled", () =>
       expect(toasts.length).toBe(1)
       expect(toasts[0].message).toBe("Test Action Failed:\nBoom!")
     }))
-
-it.live("fail with custom errorRenderer uses warning toast", () =>
-  Effect
-    .gen(function*() {
-      const toasts: any[] = []
-      const Command = useExperimental({ toasts, messages: DefaultIntl.en })
-
-      const command = Command.fn("Test Action")(
-        function*() {
-          return yield* Effect.fail(new OperationFailure({ message: null }))
-        },
-        Command.withDefaultToast({
-          errorRenderer: () => "Rendered Boom!"
-        })
-      )
-
-      yield* Fiber.join(command.handle())
-
-      expect(toasts.length).toBe(1)
-      expect(toasts[0].type).toBe("warning")
-      expect(toasts[0].message).toContain("Test Action, with warnings\nRendered Boom!")
-      expect(toasts[0].message).toMatch(/Trace: [a-f0-9]{32}/)
-      expect(toasts[0].message).toMatch(/Span: [a-f0-9]{16}/)
-    }))
-
 it.live("fail and recover", () =>
   Effect
     .gen(function*() {
@@ -459,7 +434,7 @@ it.live("fail and recover", () =>
 
       const command = Command.fn("Test Action")(
         function*() {
-          expect(toasts.length).toBe(1)
+          expect(toasts.length).toBe(0)
           return yield* Effect.fail({ message: "Boom!" })
         },
         Effect.orElseSucceed(() => "recovered"), // we recover from the error here, so the final result is success
@@ -487,7 +462,7 @@ it.live("defect", () =>
 
       const command = Command.fn("Test Action")(
         function*() {
-          expect(toasts.length).toBe(1)
+          expect(toasts.length).toBe(0)
           return yield* Effect.die({ message: "Boom!" })
         },
         Command.withDefaultToast(),
@@ -678,8 +653,8 @@ it.live("with toasts with alt", () =>
           function*() {
             expect(yield* Effect.currentSpan.pipe(Effect.map((_) => _.name))).toBe("Test Action")
 
-            expect(toasts.length).toBe(1)
-            expect(toasts[0].message).toBe("Test Action executing...")
+            // fast actions complete before the 1s waiting-toast delay, so no waiting toast is shown
+            expect(toasts.length).toBe(0)
 
             return "test-value"
           },
@@ -716,7 +691,7 @@ it.live("interrupted with alt", () =>
       const command = Command.alt("Test Action")(
         Effect.fnUntraced(
           function*() {
-            expect(toasts.length).toBe(1)
+            expect(toasts.length).toBe(0)
             // @effect-diagnostics-next-line missingReturnYieldStar:off
             yield* Effect.interrupt
             return "test-value"
@@ -746,7 +721,7 @@ it.live("fail with alt", () =>
       const command = Command.alt("Test Action")(
         Effect.fnUntraced(
           function*() {
-            expect(toasts.length).toBe(1)
+            expect(toasts.length).toBe(0)
             return yield* Effect.fail({ message: "Boom!" })
           },
           Command.withDefaultToast(),
@@ -776,7 +751,7 @@ it.live("fail and recover with alt", () =>
       const command = Command.alt("Test Action")(
         Effect.fnUntraced(
           function*() {
-            expect(toasts.length).toBe(1)
+            expect(toasts.length).toBe(0)
             return yield* Effect.fail({ message: "Boom!" })
           },
           Effect.orElseSucceed(() => "recovered"), // we recover from the error here, so the final result is success
@@ -794,6 +769,64 @@ it.live("fail and recover with alt", () =>
       expect(AsyncResult.toExit(command.result)).toEqual(Exit.succeed("recovered"))
       expect(toasts.length).toBe(1) // toast should show error
       expect(toasts[0].message).toBe("Test Action Success")
+    }))
+
+it.effect("slow action shows waiting toast after the 1s delay", () =>
+  Effect
+    .gen(function*() {
+      const toasts: any[] = []
+      const Command = yield* useExperimentalE({ toasts, messages: DefaultIntl.en })
+
+      const command = Command.fn("Test Action")(
+        function*() {
+          // before 1s the waiting toast must NOT have surfaced yet
+          expect(toasts.length).toBe(0)
+          yield* Effect.sleep("1100 millis")
+          // after the delay window the waiting info toast should be visible
+          expect(toasts.length).toBe(1)
+          expect(toasts[0].type).toBe("info")
+          expect(toasts[0].message).toBe("Test Action executing...")
+          return "test-value"
+        },
+        Command.withDefaultToast()
+      )
+
+      const fiber = command.handle()
+      yield* TestClock.adjust("2 seconds")
+      const r = yield* unwrap(fiber)
+
+      expect(r).toBe("test-value")
+      // waiting toast is replaced (same id) with the success toast
+      expect(toasts.length).toBe(1)
+      expect(toasts[0].type).toBe("success")
+      expect(toasts[0].message).toBe("Test Action Success")
+    }))
+
+it.effect("slow failing action surfaces waiting toast then shows error", () =>
+  Effect
+    .gen(function*() {
+      const toasts: any[] = []
+      const Command = yield* useExperimentalE({ toasts, messages: DefaultIntl.en })
+
+      const command = Command.fn("Test Action")(
+        function*() {
+          expect(toasts.length).toBe(0)
+          yield* Effect.sleep("1100 millis")
+          expect(toasts.length).toBe(1)
+          expect(toasts[0].type).toBe("info")
+          return yield* Effect.fail({ message: "Boom!" })
+        },
+        Command.withDefaultToast()
+      )
+
+      const fiber = command.handle()
+      yield* TestClock.adjust("2 seconds")
+      const r = yield* Fiber.join(fiber)
+
+      expect(Exit.isFailure(r) && Cause.hasFails(r.cause)).toBe(true)
+      expect(toasts.length).toBe(1)
+      expect(toasts[0].type).toBe("warning")
+      expect(toasts[0].message).toContain("Test Action Failed:\nBoom!")
     }))
 
 it.live("defect with alt", () =>

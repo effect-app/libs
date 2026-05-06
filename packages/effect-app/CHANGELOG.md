@@ -1,5 +1,12 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.209
+
+### Patch Changes
+
+- c991be1: update packages
+- 3bae238: Remove lodash type imports from utils.ts, replacing with native TypeScript equivalents.
+
 ## 4.0.0-beta.208
 
 ## 4.0.0-beta.207

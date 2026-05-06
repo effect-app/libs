@@ -73,6 +73,15 @@ export type ExtractEResponse<T> = T extends S.Codec<any> ? S.Codec.Encoded<T>
 
 export interface ClientForOptions {
   readonly skipQueryKey?: readonly string[]
+  /**
+   * Middleware tag to attach to every rpc on the client. Schema-only — the
+   * client never invokes the middleware (no Live impl required), but its
+   * declared `error` schema joins the rpc failure union via
+   * `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk. Required when
+   * middleware can throw errors that aren't part of the resource's declared
+   * error union (e.g. auth middleware throwing `NotLoggedInError`); without
+   * it the client decode would fail with a `SchemaError` for stream rpcs.
+   */
 }
 
 // $Project/$Configuration.Index
@@ -122,8 +131,6 @@ export type RequestStreamHandler<A, E, R, Request extends Req, Id extends string
   RequestStreamHandlerWithInput<void, A, E, R, Request, Id, Final>
 
 // make sure this is exported or d.ts of apiClientFactory breaks?!
-type ReqDecodingServices<M> = M extends { readonly "~decodingServices": infer DS } ? DS : never
-
 export type RequestInputFromMake<I extends { readonly make: (...args: any[]) => any }> = Parameters<I["make"]> extends
   [] ? void : Parameters<I["make"]>[0]
 
@@ -146,12 +153,12 @@ export type HandlerInput<I extends { readonly make: (...args: any[]) => any }> =
 type FinalTypeOf<T extends Req> = T extends { readonly final: infer F extends S.Top } ? S.Schema.Type<F>
   : S.Schema.Type<T["success"]>
 
-type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] extends "stream"
+type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["stream"] extends true
   ? RequestStreamHandlerWithInput<
     HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | ReqDecodingServices<T>,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
     T,
     Id,
     FinalTypeOf<T>
@@ -160,7 +167,7 @@ type RequestHandlerFor<R, E, T extends Req, Id extends string> = T["type"] exten
     HandlerInput<T>,
     S.Schema.Type<T["success"]>,
     S.Schema.Type<T["error"]> | E,
-    R | ReqDecodingServices<T>,
+    R | S.Codec.DecodingServices<T["success"]> | S.Codec.DecodingServices<T["error"]>,
     T,
     Id
   >

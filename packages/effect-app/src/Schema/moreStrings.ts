@@ -134,7 +134,8 @@ export interface StringIdBrand extends Simplify<B.Brand<"StringId"> & NonEmptySt
  */
 export type StringId = string & StringIdBrand
 
-const makeStringId = (): StringId => nanoid() as unknown as StringId
+const makeStringId = (s?: string): StringId =>
+  s !== undefined ? S.decodeSync(StringId)(s) : nanoid() as unknown as StringId
 const minLength = 6
 const maxLength = 50
 const size = 21
@@ -167,7 +168,7 @@ export const StringId = extendM(
 
 // const prefixedStringIdUnsafeThunk = (prefix: string) => () => prefixedStringIdUnsafe(prefix)
 
-export function prefixedStringId<Brand extends StringId>() {
+export function prefixedStringId<Type extends StringId>() {
   return <Prefix extends string, Separator extends string = "-">(
     prefix: Prefix,
     name: string,
@@ -175,14 +176,14 @@ export function prefixedStringId<Brand extends StringId>() {
   ) => {
     type FullPrefix = `${Prefix}${Separator}`
     const pref = `${prefix}${separator ?? "-"}` as FullPrefix
-    const arb = (): S.LazyArbitrary<string & Brand> => (fc) =>
+    const arb = (): S.LazyArbitrary<Type> => (fc) =>
       StringIdArb()(fc).map(
-        (x) => (pref + x.substring(0, 50 - pref.length)) as Brand
+        (x) => (pref + x.substring(0, 50 - pref.length)) as Type
       )
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const s = StringId
       .pipe(
-        S.refine((x: string): x is string & Brand => x.startsWith(pref), {
+        S.refine((x: string): x is Type => x.startsWith(pref), {
           identifier: name
         }),
         S.annotate({
@@ -190,11 +191,11 @@ export function prefixedStringId<Brand extends StringId>() {
         })
       )
     const schema = s.pipe(withDefaultMake)
-    const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Brand
+    const make = () => (pref + StringId.make().substring(0, 50 - pref.length)) as Type
 
     return extendM(
       schema,
-      (ex): PrefixedStringUtils<Brand, Prefix, Separator> => ({
+      (ex): PrefixedStringUtils<Type, Prefix, Separator> => ({
         make,
         /**
          * Automatically adds the prefix.
@@ -205,7 +206,7 @@ export function prefixedStringId<Brand extends StringId>() {
          */
         prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
         prefix,
-        withDefault: schema.pipe(S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>(
+        withDefault: schema.pipe(S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(
           Effect.sync(make)
         ))
       })
@@ -214,25 +215,25 @@ export function prefixedStringId<Brand extends StringId>() {
 }
 
 export const brandedStringId = <
-  Brand extends StringIdBrand
+  Id
 >() =>
   withDefaultMake(
-    Object.assign(Object.create(StringId), StringId) as S.Codec<string & Brand, string> & {
-      make: () => string & Brand
-      withDefault: S.withConstructorDefault<S.Codec<string & Brand, string> & S.WithoutConstructorDefault>
-    } & WithDefaults<S.Codec<string & Brand, string>>
+    Object.assign(Object.create(StringId), StringId) as S.Codec<Id, string> & {
+      withDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
+      make: () => Id
+    } & WithDefaults<S.Codec<Id, string>>
   )
 
 export interface PrefixedStringUtils<
-  Brand extends StringId,
+  Type extends StringId,
   Prefix extends string,
   Separator extends string
 > {
-  readonly make: () => Brand
-  readonly unsafeFrom: (str: string) => Brand
-  prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Brand
+  readonly make: () => Type
+  readonly unsafeFrom: (str: string) => Type
+  prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Type
   readonly prefix: Prefix
-  readonly withDefault: S.withConstructorDefault<S.Codec<Brand, string> & S.WithoutConstructorDefault>
+  readonly withDefault: S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>
 }
 
 export interface UrlBrand extends Simplify<B.Brand<"Url"> & NonEmptyStringBrand> {}

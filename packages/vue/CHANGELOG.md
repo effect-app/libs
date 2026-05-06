@@ -1,5 +1,123 @@
 # @effect-app/vue
 
+## 4.0.0-beta.208
+
+### Minor Changes
+
+- 0d7d197: Add optional `groupId` and `requestId` to toast options.
+
+  - `ToastOpts` / `ToastOptsInternal` now accept `groupId?: string` and `requestId?: string`; values pass through the toast wrapper unchanged.
+  - `WithToast` / `withToast` accept `groupId` and auto-derive `requestId` once per invocation (current Effect span `traceId`, fallback `S.StringId.make()`); both are attached to every emitted toast (waiting/success/warning/error).
+  - `Command.withDefaultToast` and `Command.withDefaultToastStream` set `groupId: cc.id` automatically; the stream variant also computes `requestId` once and threads it through progress, success, and failure toasts.
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.208
+
+## 4.0.0-beta.207
+
+### Patch Changes
+
+- Updated dependencies [8fffc3c]
+  - effect-app@4.0.0-beta.207
+
+## 4.0.0-beta.206
+
+### Patch Changes
+
+- Updated dependencies [54bfc59]
+  - effect-app@4.0.0-beta.206
+
+## 4.0.0-beta.205
+
+### Patch Changes
+
+- Updated dependencies [f313973]
+  - effect-app@4.0.0-beta.205
+
+## 4.0.0-beta.204
+
+### Patch Changes
+
+- Updated dependencies [0a0030f]
+  - effect-app@4.0.0-beta.204
+
+## 4.0.0-beta.203
+
+### Patch Changes
+
+- Updated dependencies [992d9fa]
+  - effect-app@4.0.0-beta.203
+
+## 4.0.0-beta.202
+
+### Patch Changes
+
+- Updated dependencies [1186b09]
+  - effect-app@4.0.0-beta.202
+
+## 4.0.0-beta.201
+
+### Patch Changes
+
+- Updated dependencies [d67d17a]
+  - effect-app@4.0.0-beta.201
+
+## 4.0.0-beta.200
+
+### Patch Changes
+
+- Updated dependencies [8f1cf6a]
+- Updated dependencies [0cff7c1]
+  - effect-app@4.0.0-beta.200
+
+## 4.0.0-beta.199
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.199
+
+## 4.0.0-beta.198
+
+### Patch Changes
+
+- dd73a4a: fix fn on stream semantics
+- Updated dependencies [32dbc54]
+  - effect-app@4.0.0-beta.198
+
+## 4.0.0-beta.197
+
+### Minor Changes
+
+- 3dc0d2a: Add streaming as a `stream: true` config option on `Query` / `Command` instead of a separate request type.
+
+  `TaggedRequestFor` now exposes only `Query` and `Command` factories — the standalone `Stream` factory is removed. To produce a Stream of `success` values, pass `stream: true` in the request config. The request `type` field stays `"command" | "query"`; a new `stream: boolean` field carries the streaming flag (stripped from the stored handler config).
+
+  ```ts
+  // Query that streams results
+  Req.Query<T>()("Tag", {}, { stream: true, success: ... })
+
+  // Command that streams results
+  Req.Command<T>()("Tag", {}, { stream: true, success: ... })
+  ```
+
+  Vue client mapping (per-handler properties mirror the non-stream API — `.query`, `.fn`, `.mutate`):
+
+  - `query` + `stream: true` → exposes `.query` (read-only streaming, tracked Vue Query). Helper map key: `${name}Query`.
+  - `command` + `stream: true` → exposes `.fn` and `.mutate` (mutating streaming).
+  - Plain `query` / `command` unchanged.
+
+  Server routing dispatches via the new `stream` flag (`makeStreamRpc` for streaming commands/queries, `makeCommandRpc` / `Rpc.make` otherwise).
+
+  Also lifts the `Struct` / `TaggedStruct` and `Opaque` definitions in `effect-app/Schema` to use `S.Bottom` / `S.Opaque` directly, exposing `fields`, `mapFields`, and a `MakeIn` that allows `void` when all fields are optional. `TaggedRequestFor` request classes now use `Opaque(TaggedStruct(...))` instead of `TaggedClass`, and decoding/encoding services are derived from `success` / `error` rather than stored on the request.
+
+  **Migration**: replace `Req.Stream` with `Req.Query` or `Req.Command` and add `stream: true` to the config — `Query` for read-only streams, `Command` for mutating streams.
+
+### Patch Changes
+
+- Updated dependencies [3dc0d2a]
+  - effect-app@4.0.0-beta.197
+
 ## 4.0.0-beta.196
 
 ### Patch Changes

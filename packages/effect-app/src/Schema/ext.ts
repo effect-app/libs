@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
+import { Config, Effect, Function, Option, pipe, type SchemaAST, SchemaIssue, SchemaTransformation } from "effect"
 import * as S from "effect/Schema"
 import { isDateValid } from "effect/Schema"
 import { type NonEmptyReadonlyArray } from "../Array.js"
@@ -15,7 +15,17 @@ type ProvidedCodec<Self extends S.Top, R> = S.Codec<
   Exclude<Self["EncodingServices"], R>
 >
 
-export const DefaultParseOptions: SchemaAST.ParseOptions = { concurrency: "unbounded" }
+const concurrencySetting = Effect.runSync(
+  Config
+    .literal("unbounded", "SCHEMA_CONCURRENCY")
+    .pipe(Config.orElse(() => Config.number("SCHEMA_CONCURRENCY")), Config.option)
+    .asEffect()
+)
+
+export const DefaultParseOptions: SchemaAST.ParseOptions = {
+  concurrency: Option.getOrElse(concurrencySetting, () => "unbounded" as const)
+}
+
 /**
  * Parse-options annotation used on schema constructors for decode paths where callers
  * cannot currently pass parse options (notably some RPC / HttpApi integration paths).

@@ -2,12 +2,16 @@
 
 import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
-import { get } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { makeUpdateETag } from "./utils.js"
+
+/** Traverse an object by a dot-separated path string, e.g. `"a.b.c"`. */
+export function get(obj: any, path: string): any {
+  return path.split(".").reduce((res: any, key: string) => (res != null ? res[key] : res), obj)
+}
 
 export function memFilter<T extends FieldValues, U extends keyof T = never>(f: FilterArgs<T, U>) {
   type M = U extends undefined ? T : Pick<T, U>

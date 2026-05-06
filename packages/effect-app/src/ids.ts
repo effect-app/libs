@@ -25,5 +25,5 @@ export const RequestId = extendM(
   .pipe(withDefaultMake)
 
 export interface UserProfileIdBrand extends Simplify<B.Brand<"UserProfileId"> & StringIdBrand> {}
-export type UserProfileId = StringId & UserProfileIdBrand
+export type UserProfileId = string & UserProfileIdBrand
 export const UserProfileId = brandedStringId<UserProfileId>()

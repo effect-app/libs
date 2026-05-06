@@ -7,7 +7,6 @@ import { type HandlersFrom } from "effect/unstable/rpc/RpcGroup"
 import * as Context from "../Context.js"
 import { PreludeLogger } from "../logger.js"
 import { type TypeTestId } from "../TypeTest.js"
-import { typedValuesOf } from "../utils.js"
 import { type GetContextConfig, type RequestContextMapTagAny, type RpcContextMap } from "./RpcContextMap.js"
 import { type AddMiddleware, type AnyDynamic, type RpcDynamic, type RpcMiddlewareV4, type TagClassAny } from "./RpcMiddleware.js"
 import * as RpcMiddlewareX from "./RpcMiddleware.js"
@@ -424,19 +423,16 @@ export const Tag = <Self>() =>
     {
       const config = options?.config ?? {} as Config
 
-      // based on the config, we must enhance (union) or set failures.
-      // TODO: we should only include errors that are relevant based on the middleware config.ks
-      const error = options?.error
-      const errors = typedValuesOf(rcm.config).map((_) => _.error).filter((_) => _ && _ !== S.Never) // TODO: only the errors relevant based on config
-      const allErrors = error ? [error, ...errors] : errors
-      const [firstError, ...restErrors] = allErrors
-      const newError = firstError ? S.Union([firstError, ...restErrors]) : S.Never
-
+      // The rpc's `error` schema carries ONLY the request's own declared errors.
+      // Middleware errors (rcm-derived) reach the wire via the middleware tag
+      // attached to the rpc group later (`RpcGroup.middleware(...)` at the
+      // routing/client level), and are unioned into the failure schema by
+      // `Rpc.exitSchema`'s `rpc.middlewares[*].error` walk.
       // @ts-expect-error — TypeScript can't prove Simplify<T> ≡ { [K in keyof T]: T[K] } for unresolved generics (primaryKey)
       const rpc = Rpc.make(tag, {
         ...options?.payload !== undefined ? { payload: options.payload } : {},
         ...options?.success !== undefined ? { success: options.success } : {},
-        error: newError,
+        ...options?.error !== undefined ? { error: options.error } : {},
         ...options?.stream !== undefined ? { stream: options.stream } : {},
         ...options?.primaryKey !== undefined ? { primaryKey: options.primaryKey } : {}
       }) as any

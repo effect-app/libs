@@ -5,7 +5,6 @@ import { Cause, Effect, Exit, Fiber, Option, Record } from "effect"
 import { dual } from "effect/Function"
 import { isFunction } from "effect/Predicate"
 import * as Result from "effect/Result"
-import type { GetFieldType, NumericDictionary, PropertyPath } from "lodash"
 import { identity, pipe } from "./Function.js"
 import type { DeepMutable, Equals, Mutable } from "./Types.js"
 
@@ -23,121 +22,6 @@ export const cloneTrait = Symbol.for("clone-trait")
 export interface Clone {
   [cloneTrait](this: this, that: any): this
 }
-
-function get<TObject extends object, TKey extends keyof TObject>(object: TObject, path: TKey | [TKey]): TObject[TKey]
-function get<TObject extends object, TKey extends keyof TObject>(
-  object: TObject | null | undefined,
-  path: TKey | [TKey]
-): TObject[TKey] | undefined
-function get<TObject extends object, TKey extends keyof TObject, TDefault>(
-  object: TObject | null | undefined,
-  path: TKey | [TKey],
-  defaultValue: TDefault
-): Exclude<TObject[TKey], undefined> | TDefault
-function get<TObject extends object, TKey1 extends keyof TObject, TKey2 extends keyof TObject[TKey1]>(
-  object: TObject,
-  path: [TKey1, TKey2]
-): TObject[TKey1][TKey2]
-function get<TObject extends object, TKey1 extends keyof TObject, TKey2 extends keyof TObject[TKey1]>(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2]
-): TObject[TKey1][TKey2] | undefined
-function get<TObject extends object, TKey1 extends keyof TObject, TKey2 extends keyof TObject[TKey1], TDefault>(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2],
-  defaultValue: TDefault
-): Exclude<TObject[TKey1][TKey2], undefined> | TDefault
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2]
->(object: TObject, path: [TKey1, TKey2, TKey3]): TObject[TKey1][TKey2][TKey3]
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2]
->(object: TObject | null | undefined, path: [TKey1, TKey2, TKey3]): TObject[TKey1][TKey2][TKey3] | undefined
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TDefault
->(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2, TKey3],
-  defaultValue: TDefault
-): Exclude<TObject[TKey1][TKey2][TKey3], undefined> | TDefault
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TKey4 extends keyof TObject[TKey1][TKey2][TKey3]
->(object: TObject, path: [TKey1, TKey2, TKey3, TKey4]): TObject[TKey1][TKey2][TKey3][TKey4]
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TKey4 extends keyof TObject[TKey1][TKey2][TKey3]
->(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2, TKey3, TKey4]
-): TObject[TKey1][TKey2][TKey3][TKey4] | undefined
-function get<
-  TObject extends object,
-  TKey1 extends keyof TObject,
-  TKey2 extends keyof TObject[TKey1],
-  TKey3 extends keyof TObject[TKey1][TKey2],
-  TKey4 extends keyof TObject[TKey1][TKey2][TKey3],
-  TDefault
->(
-  object: TObject | null | undefined,
-  path: [TKey1, TKey2, TKey3, TKey4],
-  defaultValue: TDefault
-): Exclude<TObject[TKey1][TKey2][TKey3][TKey4], undefined> | TDefault
-function get<T>(object: NumericDictionary<T>, path: number): T
-function get<T>(object: NumericDictionary<T> | null | undefined, path: number): T | undefined
-function get<T, TDefault>(
-  object: NumericDictionary<T> | null | undefined,
-  path: number,
-  defaultValue: TDefault
-): T | TDefault
-function get<TDefault>(object: null | undefined, path: PropertyPath, defaultValue: TDefault): TDefault
-function get(object: null | undefined, path: PropertyPath): undefined
-function get<TObject, TPath extends string>(
-  data: TObject,
-  path: TPath
-): string extends TPath ? any : GetFieldType<TObject, TPath>
-function get<TObject, TPath extends string, TDefault = GetFieldType<TObject, TPath>>(
-  data: TObject,
-  path: TPath,
-  defaultValue: TDefault
-): Exclude<GetFieldType<TObject, TPath>, null | undefined> | TDefault
-function get(object: any, path: PropertyPath, defaultValue?: any): any
-function get(obj: any, path: any, defaultValue?: any) {
-  // https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore?tab=readme-ov-file#_get
-  const travel = (regexp: any) =>
-    String
-      .prototype
-      .split
-      .call(path, regexp)
-      .filter(Boolean)
-      .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj)
-  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/)
-  return result === undefined || result === obj ? defaultValue : result
-}
-
-// codegen:start {preset: barrel, include: ./utils/*.ts }
-export * from "./utils/effectify.js"
-export * from "./utils/extend.js"
-export * from "./utils/gen.js"
-export * from "./utils/logger.js"
-export * from "./utils/logLevel.js"
-// codegen:end
 
 export const unsafeRight = <E, A>(ei: Result.Result<A, E>) => {
   if (Result.isFailure(ei)) {
@@ -918,8 +802,6 @@ export function setMoveElDropUndefined<T>(el: T, newIndex: number) {
   return (arrInput: ReadonlySet<T | undefined>): Option.Option<ReadonlySet<T>> =>
     pipe([...arrInput], arMoveElDropUndefined(el, newIndex), Option.map((ar) => new Set(ar)))
 }
-
-export { get }
 
 type RemoveNonArray<T> = T extends readonly any[] ? T : never
 export function isNativeTuple<A>(a: A): a is RemoveNonArray<A> {

@@ -1,5 +1,11 @@
 # @effect-app/eslint-codegen-model
 
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- f04327a: Fix `toCamelCase`/`toPascalCase` in barrel preset to preserve case boundaries. Mixed-case input like `AnCamelCase` was collapsed to `Ancamelcase` because the word splitter only matched contiguous alphanumerics. Now splits on case transitions (matching prior `lodash.camelCase` + `startCase` behavior).
+
 ## 2.0.0-beta.15
 
 ### Patch Changes

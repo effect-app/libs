@@ -80,6 +80,7 @@
     "fix-json-schema-annotations",
     "fix-jsonschema-postprocess",
     "fix-onedsl-r-inference",
+    "fix-pascalcase-barrel",
     "fix-project-encodekeys-selection",
     "fix-repo-transformed-id-union",
     "fix-repo-transformed-id",

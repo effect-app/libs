@@ -2,8 +2,8 @@ import { Context, Effect, Option } from "effect-app"
 import { accessEffectFn } from "effect-app/Context"
 
 export type ToastId = string | number
-export type ToastOpts = { id?: ToastId; timeout?: number }
-export type ToastOptsInternal = { id?: ToastId | null; timeout?: number }
+export type ToastOpts = { id?: ToastId; timeout?: number; groupId?: string; requestId?: string }
+export type ToastOptsInternal = { id?: ToastId | null; timeout?: number; groupId?: string; requestId?: string }
 
 export type UseToast = () => {
   error: (this: void, message: string, options?: ToastOpts) => ToastId

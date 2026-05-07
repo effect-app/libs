@@ -76,7 +76,7 @@ export function makeRepoInternal<
           const encodeMany = flow(
             S.encodeEffect(S.Array(schema)),
             provideRctx,
-            Effect.withSpan("encodeMany", { attributes: { itemType: name } }, { captureStackTrace: false })
+            Effect.withSpan("encodeMany", { attributes: { "app.entity": name } }, { captureStackTrace: false })
           )
           const decode = flow(S.decodeEffectConcurrently(schema), provideRctx)
           const decodeMany = flow(
@@ -140,7 +140,7 @@ export function makeRepoInternal<
               Effect.map((_: Record<string, unknown>) => _[idKey as string] as Encoded[IdKey])
             )
           const findEId = Effect.fnUntraced(function*(id: Encoded[IdKey]) {
-            yield* Effect.annotateCurrentSpan({ itemId: id })
+            yield* Effect.annotateCurrentSpan({ "app.entity.id": id })
 
             return yield* Effect.flatMap(
               store.find(id),
@@ -153,7 +153,7 @@ export function makeRepoInternal<
           })
           // TODO: select the particular field, instead of as struct
           const findE = Effect.fnUntraced(function*(id: T[IdKey]) {
-            yield* Effect.annotateCurrentSpan({ itemId: id })
+            yield* Effect.annotateCurrentSpan({ "app.entity.id": id })
 
             return yield* pipe(
               encodeId({ [idKey]: id } as any),
@@ -163,8 +163,8 @@ export function makeRepoInternal<
             )
           })
 
-          const find = Effect.fn("find", { attributes: { itemType: name } })(function*(id: T[IdKey]) {
-            yield* Effect.annotateCurrentSpan({ itemId: id })
+          const find = Effect.fn("find", { attributes: { "app.entity": name } })(function*(id: T[IdKey]) {
+            yield* Effect.annotateCurrentSpan({ "app.entity.id": id })
 
             return yield* flatMapOption(findE(id), (_) => Effect.orDie(decode(_)))
           })
@@ -190,11 +190,14 @@ export function makeRepoInternal<
                 Effect.andThen(saveAllE)
               )
 
-          const saveAndPublish = Effect.fn("saveAndPublish", { attributes: { itemType: name } })(
+          const saveAndPublish = Effect.fn("saveAndPublish", { attributes: { "app.entity": name } })(
             function*(items: Iterable<T>, events: Iterable<Evt> = []) {
               const it = Chunk.fromIterable(items)
               const evts = [...events]
-              yield* Effect.annotateCurrentSpan({ itemIds: Chunk.map(it, (_) => _[idKey]), events: evts.length })
+              yield* Effect.annotateCurrentSpan({
+                "app.entity.ids": Chunk.map(it, (_) => _[idKey]),
+                "app.event.count": evts.length
+              })
               return yield* saveAll(it)
                 .pipe(
                   Effect.andThen(Effect.sync(() => toNonEmptyArray(evts))),
@@ -206,12 +209,15 @@ export function makeRepoInternal<
             }
           )
 
-          const removeAndPublish = Effect.fn("removeAndPublish", { attributes: { itemType: name } })(
+          const removeAndPublish = Effect.fn("removeAndPublish", { attributes: { "app.entity": name } })(
             function*(a: Iterable<T>, events: Iterable<Evt> = []) {
               const { set } = yield* cms
               const it = [...a]
               const evts = [...events]
-              yield* Effect.annotateCurrentSpan({ itemIds: it.map((_) => _[idKey]), eventCount: evts.length })
+              yield* Effect.annotateCurrentSpan({
+                "app.entity.ids": it.map((_) => _[idKey]),
+                "app.event.count": evts.length
+              })
               const items = yield* encodeMany(it).pipe(Effect.orDie)
               if (Array.isReadonlyArrayNonEmpty(items)) {
                 yield* store.batchRemove(
@@ -231,7 +237,7 @@ export function makeRepoInternal<
             }
           )
 
-          const removeById = Effect.fn("removeById", { attributes: { itemType: name } })(
+          const removeById = Effect.fn("removeById", { attributes: { "app.entity": name } })(
             function*(idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>) {
               const ids = globalThis.Array.isArray(idOrIds)
                 ? idOrIds as readonly T[IdKey][]
@@ -241,7 +247,7 @@ export function makeRepoInternal<
               }
               const { set } = yield* cms
               const eids = yield* Effect.forEach(ids, (_) => encodeIdOnly(_ as any)).pipe(Effect.orDie)
-              yield* Effect.annotateCurrentSpan({ itemIds: eids })
+              yield* Effect.annotateCurrentSpan({ "app.entity.ids": eids })
               yield* store.batchRemove(eids)
               for (const id of eids) {
                 set(id, undefined)
@@ -250,11 +256,13 @@ export function makeRepoInternal<
             }
           )
 
-          const parseMany = Effect.fn("parseMany", { attributes: { itemType: name } })(function*(items: readonly PM[]) {
-            const cm = yield* cms
-            return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
-          })
-          const parseMany2 = Effect.fn("parseMany2", { attributes: { itemType: name } })(
+          const parseMany = Effect.fn("parseMany", { attributes: { "app.entity": name } })(
+            function*(items: readonly PM[]) {
+              const cm = yield* cms
+              return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
+            }
+          )
+          const parseMany2 = Effect.fn("parseMany2", { attributes: { "app.entity": name } })(
             function*<A, R>(items: readonly PM[], schema: S.Codec<A, Encoded, R>) {
               const cm = yield* cms
               return yield* S.decodeEffectConcurrently(S.Array(schema))(items.map((_) => mapReverse(_, cm.set))).pipe(
@@ -332,73 +340,76 @@ export function makeRepoInternal<
                   .map(eff, (_) => NonNegativeInt(_.length))
                   .pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e)))
                 : eff,
-              Effect.withSpan("Repository.query [effect-app/infra]", {
+              Effect.withSpan(`query ${name}`, {
+                kind: "client",
                 attributes: {
-                  itemType: name,
-                  "repository.model_name": name,
-                  query: { ...a, schema: a.schema ? "__SCHEMA__" : a.schema, filter: a.filter }
+                  "app.entity": name,
+                  "db.operation.name": "query",
+                  "db.collection.name": name
                 }
               }, { captureStackTrace: false })
             )
           }) as any
 
-          const validateSample = Effect.fn("validateSample", { attributes: { itemType: name } })(function*(options?: {
-            percentage?: number
-            maxItems?: number
-          }) {
-            const percentage = options?.percentage ?? 0.1 // default 10%
-            const maxItems = options?.maxItems
+          const validateSample = Effect.fn("validateSample", { attributes: { "app.entity": name } })(
+            function*(options?: {
+              percentage?: number
+              maxItems?: number
+            }) {
+              const percentage = options?.percentage ?? 0.1 // default 10%
+              const maxItems = options?.maxItems
 
-            // 1. get all IDs with projection (bypasses main schema decode)
-            const allIds = yield* store.filter({
-              t: null as unknown as Encoded,
-              select: [idKey as keyof Encoded]
-            })
+              // 1. get all IDs with projection (bypasses main schema decode)
+              const allIds = yield* store.filter({
+                t: null as unknown as Encoded,
+                select: [idKey as keyof Encoded]
+              })
 
-            // 2. random subset
-            const shuffled = [...allIds].sort(() => Math.random() - 0.5)
-            const sampleSize = Math.min(
-              maxItems ?? Infinity,
-              Math.ceil(allIds.length * percentage)
-            )
-            const sample = shuffled.slice(0, sampleSize)
-
-            // 3. validate each item
-            const errors: ValidationError[] = []
-
-            for (const item of sample) {
-              const id = item[idKey]
-              const rawResult = yield* store.find(id)
-
-              if (Option.isNone(rawResult)) continue
-
-              const rawData = rawResult.value as Encoded
-              const jitMResult = mapFrom(rawData) // apply jitM
-
-              const decodeResult = yield* S.decodeEffectConcurrently(schema)(jitMResult).pipe(
-                Effect.result,
-                provideRctx
+              // 2. random subset
+              const shuffled = [...allIds].sort(() => Math.random() - 0.5)
+              const sampleSize = Math.min(
+                maxItems ?? Infinity,
+                Math.ceil(allIds.length * percentage)
               )
+              const sample = shuffled.slice(0, sampleSize)
 
-              if (Result.isFailure(decodeResult)) {
-                errors.push(
-                  ValidationError.make({
-                    id,
-                    rawData,
-                    jitMResult,
-                    error: decodeResult.failure
-                  })
+              // 3. validate each item
+              const errors: ValidationError[] = []
+
+              for (const item of sample) {
+                const id = item[idKey]
+                const rawResult = yield* store.find(id)
+
+                if (Option.isNone(rawResult)) continue
+
+                const rawData = rawResult.value as Encoded
+                const jitMResult = mapFrom(rawData) // apply jitM
+
+                const decodeResult = yield* S.decodeEffectConcurrently(schema)(jitMResult).pipe(
+                  Effect.result,
+                  provideRctx
                 )
-              }
-            }
 
-            return ValidationResult.make({
-              total: NonNegativeInt(allIds.length),
-              sampled: NonNegativeInt(sample.length),
-              valid: NonNegativeInt(sample.length - errors.length),
-              errors
-            })
-          })
+                if (Result.isFailure(decodeResult)) {
+                  errors.push(
+                    ValidationError.make({
+                      id,
+                      rawData,
+                      jitMResult,
+                      error: decodeResult.failure
+                    })
+                  )
+                }
+              }
+
+              return ValidationResult.make({
+                total: NonNegativeInt(allIds.length),
+                sampled: NonNegativeInt(sample.length),
+                valid: NonNegativeInt(sample.length - errors.length),
+                errors
+              })
+            }
+          )
 
           const r = {
             changeFeed,
@@ -450,7 +461,7 @@ export function makeRepoInternal<
                 // },
                 save: (...xes: any[]) =>
                   Effect.flatMap(encMany(xes), (_) => saveAllE(_)).pipe(
-                    Effect.withSpan("mapped.save", { attributes: { itemType: name } }, { captureStackTrace: false })
+                    Effect.withSpan("mapped.save", { attributes: { "app.entity": name } }, { captureStackTrace: false })
                   )
               }
             }
@@ -522,7 +533,7 @@ export function makeStore<Encoded extends FieldValues>() {
               .pipe(
                 Effect.flatMap(Effect.forEach(encodeToEncoded())),
                 setupRequestContextFromCurrent("Repository.makeInitial [effect-app/infra]", {
-                  attributes: { "repository.model_name": name }
+                  attributes: { "app.entity": name }
                 })
               )
             : undefined,

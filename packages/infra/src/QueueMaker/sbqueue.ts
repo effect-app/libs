@@ -5,6 +5,7 @@ import { pretty } from "effect-app/utils"
 import { Receiver, Sender } from "../adapters/ServiceBus.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
+import { messagingSpanArgs } from "../otel.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause, reportQueueError } from "./errors.js"
 import { QueueMeta } from "./service.js"
 
@@ -52,21 +53,26 @@ export function makeServiceBusQueue<
               Effect.orDie,
               // we silenceAndReportError here, so that the error is reported, and moves into the Exit.
               silenceAndReportError,
-              (_) =>
-                setupRequestContextWithCustomSpan(
+              (_) => {
+                const args = messagingSpanArgs({
+                  operation: "process",
+                  system: "servicebus",
+                  destination: receiver.name,
+                  messageId: body.id,
+                  conversationId: sessionId,
+                  extra: { "messaging.message.type": body._tag }
+                }, "consumer")
+                return setupRequestContextWithCustomSpan(
                   _,
                   meta,
-                  `queue.drain: ${receiver.name}${sessionId ? `#${sessionId}` : ""}.${body._tag}`,
+                  args.name,
                   {
                     captureStackTrace: false,
-                    kind: "consumer",
-                    attributes: {
-                      "queue.name": receiver.name,
-                      "queue.sessionId": sessionId,
-                      "queue.input": body
-                    }
+                    kind: args.kind,
+                    attributes: args.attributes
                   }
                 )
+              }
             )
           if (meta.span) {
             effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
@@ -84,10 +90,18 @@ export function makeServiceBusQueue<
           .pipe(Effect.andThen(Effect.never))
       },
 
-      publish: Effect.fn("queue.publish: " + sender.name, {
-        kind: "producer"
+      publish: Effect.fn(`publish ${sender.name}`, {
+        kind: "producer",
+        attributes: {
+          "messaging.system": "servicebus",
+          "messaging.operation.name": "publish",
+          "messaging.destination.name": sender.name
+        }
       })(function*(...messages: NonEmptyReadonlyArray<Evt>) {
-        yield* Effect.annotateCurrentSpan({ "message_tags": messages.map((_) => _._tag) })
+        yield* Effect.annotateCurrentSpan({
+          "messaging.batch.message_count": messages.length,
+          "messaging.message.types": messages.map((_) => _._tag)
+        })
         const requestContext = yield* getRequestContext
         const msgs = yield* Effect.forEach(messages, (m) =>
           encodePublish({ body: m, meta: requestContext }).pipe(

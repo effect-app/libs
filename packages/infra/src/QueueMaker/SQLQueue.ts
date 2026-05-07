@@ -138,7 +138,7 @@ export const makeSQLQueue = Effect.fnUntraced(function*<
                 destination: queueDrainName,
                 messageId: body.id,
                 conversationId: sessionId,
-                extra: { "messaging.message.type": body._tag }
+                extra: { "messaging.message.type": body._tag, "messaging.message.body": body }
               }, "consumer")
               return setupRequestContextWithCustomSpan(
                 _,

@@ -60,7 +60,7 @@ export function makeServiceBusQueue<
                   destination: receiver.name,
                   messageId: body.id,
                   conversationId: sessionId,
-                  extra: { "messaging.message.type": body._tag }
+                  extra: { "messaging.message.type": body._tag, "messaging.message.body": body }
                 }, "consumer")
                 return setupRequestContextWithCustomSpan(
                   _,

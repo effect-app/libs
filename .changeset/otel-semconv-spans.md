@@ -26,7 +26,7 @@ Attribute key migration:
 | `queue.name` | `messaging.destination.name` |
 | `queue.sessionId` | `messaging.message.conversation_id` |
 | `queue.type` | `messaging.system` |
-| `queue.input` (full body — dropped) | `messaging.message.id` + `messaging.message.type` |
+| `queue.input` (full body) | `messaging.message.body` (+ `messaging.message.id`, `messaging.message.type`) |
 | `message_tags` | `messaging.message.types` + `messaging.batch.message_count` |
 
 New attributes added:

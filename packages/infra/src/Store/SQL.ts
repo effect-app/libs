@@ -7,6 +7,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import { type DbSystem, withDbSpan } from "../otel.js"
 import { storeId } from "./Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.js"
@@ -50,7 +51,7 @@ const parseSelectRow = (
   return result
 }
 
-function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
+function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: string) {
   return Effect.fnUntraced(function*({ prefix }: StorageConfig) {
     const sql = yield* SqlClient.SqlClient
     return {
@@ -175,25 +176,28 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
           seedNamespace: (ns) => seedNamespace(ns),
 
           all: resolveNamespace.pipe(
-            Effect.flatMap((ns) =>
-              exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`, [ns])
+            Effect.flatMap((ns) => {
+              const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = ?`
+              return exec(sqlText, [ns])
                 .pipe(
                   Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
-                  Effect.withSpan("SQL.all [effect-app/infra/Store]", {
-                    attributes: {
-                      "repository.table_name": tableName,
-                      "repository.model_name": name,
-                      "repository.namespace": ns
-                    }
-                  }, { captureStackTrace: false })
+                  withDbSpan({
+                    operation: "all",
+                    system,
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlText
+                  })
                 )
-            )
+            })
           ),
 
           find: (id) =>
             resolveNamespace.pipe(
-              Effect.flatMap((ns) =>
-                exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = ? AND _namespace = ?`, [id, ns])
+              Effect.flatMap((ns) => {
+                const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = ? AND _namespace = ?`
+                return exec(sqlText, [id, ns])
                   .pipe(
                     Effect.map((rows) => {
                       const row = (rows as any[])[0]
@@ -201,11 +205,17 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                         ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
                         : Option.none()
                     }),
-                    Effect.withSpan("SQL.find [effect-app/infra/Store]", {
-                      attributes: { "repository.table_name": tableName, "repository.model_name": name, id }
-                    }, { captureStackTrace: false })
+                    withDbSpan({
+                      operation: "find",
+                      system,
+                      collection: tableName,
+                      namespace: ns,
+                      entity: name,
+                      query: sqlText,
+                      extra: { "app.entity.id": id }
+                    })
                   )
-              )
+              })
             ),
 
           filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
@@ -260,6 +270,7 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                     .pipe(
                       Effect
                         .tap((q) => logQuery(q)),
+                      Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
                       Effect.flatMap((q) =>
                         exec(q.sql, q.params).pipe(
                           Effect.map((rows) => {
@@ -279,9 +290,13 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
                           })
                         )
                       ),
-                      Effect.withSpan("SQL.filter [effect-app/infra/Store]", {
-                        attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                      }, { captureStackTrace: false })
+                      withDbSpan({
+                        operation: "filter",
+                        system,
+                        collection: tableName,
+                        namespace: ns,
+                        entity: name
+                      })
                     )
                 ))
           },
@@ -289,52 +304,71 @@ function makeSQLStoreInt(dialect: SQLDialect, jsonColumnType: string) {
           set: (e) =>
             resolveNamespace.pipe(Effect.flatMap((ns) =>
               setInternal(e, ns).pipe(
-                Effect.withSpan("SQL.set [effect-app/infra/Store]", {
-                  attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "set",
+                  system,
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  extra: { "app.entity.id": e[idKey] }
+                })
               )
             )),
 
           batchSet: (items) =>
             resolveNamespace.pipe(Effect.flatMap((ns) =>
               bulkSetInternal(items, ns).pipe(
-                Effect.withSpan("SQL.batchSet [effect-app/infra/Store]", {
-                  attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "batchSet",
+                  system,
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
               )
             )),
 
           bulkSet: (items) =>
             resolveNamespace.pipe(Effect.flatMap((ns) =>
               bulkSetInternal(items, ns).pipe(
-                Effect.withSpan("SQL.bulkSet [effect-app/infra/Store]", {
-                  attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "bulkSet",
+                  system,
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
               )
             )),
 
           batchRemove: (ids) => {
             const placeholders = ids.map(() => "?").join(", ")
-            return resolveNamespace.pipe(Effect.flatMap((ns) =>
-              exec(
-                `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ?`,
-                [...ids, ns]
-              )
+            return resolveNamespace.pipe(Effect.flatMap((ns) => {
+              const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ?`
+              return exec(sqlText, [...ids, ns])
                 .pipe(
                   Effect.asVoid,
-                  Effect.withSpan("SQL.batchRemove [effect-app/infra/Store]", {
-                    attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                  }, { captureStackTrace: false })
+                  withDbSpan({
+                    operation: "batchRemove",
+                    system,
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlText
+                  })
                 )
-            ))
+            }))
           },
 
           queryRaw: (query) =>
             s.all.pipe(
               Effect.map(query.memory),
-              Effect.withSpan("SQL.queryRaw [effect-app/infra/Store]", {
-                attributes: { "repository.table_name": tableName, "repository.model_name": name }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "queryRaw",
+                system,
+                collection: tableName,
+                entity: name
+              })
             )
         }
 
@@ -487,24 +521,27 @@ function makeSQLiteStorePerNs(
       const s: Store<IdKey, Encoded> = {
         seedNamespace: (ns) => seedNamespace(ns),
 
-        all: resolveNamespace.pipe(Effect.flatMap((ns) =>
-          exec(ns, `SELECT id, _etag, data FROM "${tableName}"`)
+        all: resolveNamespace.pipe(Effect.flatMap((ns) => {
+          const sqlText = `SELECT id, _etag, data FROM "${tableName}"`
+          return exec(ns, sqlText)
             .pipe(
               Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
-              Effect.withSpan("SQLite.all [effect-app/infra/Store]", {
-                attributes: {
-                  "repository.table_name": tableName,
-                  "repository.model_name": name,
-                  "repository.namespace": ns
-                }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "all",
+                system: "sqlite",
+                collection: tableName,
+                namespace: ns,
+                entity: name,
+                query: sqlText
+              })
             )
-        )),
+        })),
 
         find: (id) =>
           resolveNamespace.pipe(
-            Effect.flatMap((ns) =>
-              exec(ns, `SELECT id, _etag, data FROM "${tableName}" WHERE id = ?`, [id])
+            Effect.flatMap((ns) => {
+              const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = ?`
+              return exec(ns, sqlText, [id])
                 .pipe(
                   Effect.map((rows) => {
                     const row = (rows as any[])[0]
@@ -512,11 +549,17 @@ function makeSQLiteStorePerNs(
                       ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
                       : Option.none()
                   }),
-                  Effect.withSpan("SQLite.find [effect-app/infra/Store]", {
-                    attributes: { "repository.table_name": tableName, "repository.model_name": name, id }
-                  }, { captureStackTrace: false })
+                  withDbSpan({
+                    operation: "find",
+                    system: "sqlite",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlText,
+                    extra: { "app.entity.id": id }
+                  })
                 )
-            )
+            })
           ),
 
         filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
@@ -550,6 +593,7 @@ function makeSQLiteStorePerNs(
                   .pipe(
                     Effect
                       .tap((q) => logQuery(q)),
+                    Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
                     Effect.flatMap((q) =>
                       exec(ns, q.sql, q.params).pipe(
                         Effect.map((rows) => {
@@ -569,9 +613,13 @@ function makeSQLiteStorePerNs(
                         })
                       )
                     ),
-                    Effect.withSpan("SQLite.filter [effect-app/infra/Store]", {
-                      attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                    }, { captureStackTrace: false })
+                    withDbSpan({
+                      operation: "filter",
+                      system: "sqlite",
+                      collection: tableName,
+                      namespace: ns,
+                      entity: name
+                    })
                   )
               ))
         },
@@ -579,53 +627,71 @@ function makeSQLiteStorePerNs(
         set: (e) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             setInternal(e, ns).pipe(
-              Effect.withSpan("SQLite.set [effect-app/infra/Store]", {
-                attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "set",
+                system: "sqlite",
+                collection: tableName,
+                namespace: ns,
+                entity: name,
+                extra: { "app.entity.id": e[idKey] }
+              })
             )
           )),
 
         batchSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              Effect.withSpan("SQLite.batchSet [effect-app/infra/Store]", {
-                attributes: { "repository.table_name": tableName, "repository.model_name": name }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "batchSet",
+                system: "sqlite",
+                collection: tableName,
+                namespace: ns,
+                entity: name
+              })
             )
           )),
 
         bulkSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              Effect.withSpan("SQLite.bulkSet [effect-app/infra/Store]", {
-                attributes: { "repository.table_name": tableName, "repository.model_name": name }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "bulkSet",
+                system: "sqlite",
+                collection: tableName,
+                namespace: ns,
+                entity: name
+              })
             )
           )),
 
         batchRemove: (ids) => {
           const placeholders = ids.map(() => "?").join(", ")
-          return resolveNamespace.pipe(Effect.flatMap((ns) =>
-            exec(
-              ns,
-              `DELETE FROM "${tableName}" WHERE id IN (${placeholders})`,
-              [...ids]
-            )
+          return resolveNamespace.pipe(Effect.flatMap((ns) => {
+            const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders})`
+            return exec(ns, sqlText, [...ids])
               .pipe(
                 Effect.asVoid,
-                Effect.withSpan("SQLite.batchRemove [effect-app/infra/Store]", {
-                  attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "batchRemove",
+                  system: "sqlite",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  query: sqlText
+                })
               )
-          ))
+          }))
         },
 
         queryRaw: (query) =>
           s.all.pipe(
             Effect.map(query.memory),
-            Effect.withSpan("SQLite.queryRaw [effect-app/infra/Store]", {
-              attributes: { "repository.table_name": tableName, "repository.model_name": name }
-            }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "queryRaw",
+              system: "sqlite",
+              collection: tableName,
+              entity: name
+            })
           )
       }
 
@@ -664,5 +730,5 @@ export function SQLiteStoreLayer(
     )
   }
   return StoreMaker
-    .toLayer(makeSQLStoreInt(sqliteDialect, "JSON")(cfg))
+    .toLayer(makeSQLStoreInt("sqlite", sqliteDialect, "JSON")(cfg))
 }

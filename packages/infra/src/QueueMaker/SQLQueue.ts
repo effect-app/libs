@@ -8,6 +8,7 @@ import { pretty } from "effect-app/utils"
 import { SqlClient } from "effect/unstable/sql"
 import { SQLModel } from "../adapters/SQL.js"
 import { InfraLogger } from "../logger.js"
+import { messagingSpanArgs } from "../otel.js"
 
 export const QueueId = S.Finite.pipe(S.brand("QueueId"))
 export type QueueId = typeof QueueId.Type
@@ -101,10 +102,20 @@ export const makeSQLQueue = Effect.fnUntraced(function*<
     })
   }
   const queue = {
-    publish: Effect.fn("queue.publish: " + queueName, { kind: "producer" })(function*(
+    publish: Effect.fn(`publish ${queueName}`, {
+      kind: "producer",
+      attributes: {
+        "messaging.system": "sql",
+        "messaging.operation.name": "publish",
+        "messaging.destination.name": queueName
+      }
+    })(function*(
       ...messages: NonEmptyReadonlyArray<Evt>
     ) {
-      yield* Effect.annotateCurrentSpan({ "message_tags": messages.map((_) => _._tag) })
+      yield* Effect.annotateCurrentSpan({
+        "messaging.batch.message_count": messages.length,
+        "messaging.message.types": messages.map((_) => _._tag)
+      })
       const requestContext = yield* getRequestContext
       yield* Effect.forEach(messages, (m) => q.offer(m, requestContext), { discard: true })
     }),
@@ -120,21 +131,26 @@ export const makeSQLQueue = Effect.fnUntraced(function*<
             Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
             Effect.andThen(handleEvent(body)),
             silenceAndReportError,
-            (_) =>
-              setupRequestContextWithCustomSpan(
+            (_) => {
+              const args = messagingSpanArgs({
+                operation: "process",
+                system: "sql",
+                destination: queueDrainName,
+                messageId: body.id,
+                conversationId: sessionId,
+                extra: { "messaging.message.type": body._tag, "messaging.message.body": body }
+              }, "consumer")
+              return setupRequestContextWithCustomSpan(
                 _,
                 meta,
-                `queue.drain: ${queueDrainName}.${body._tag}`,
+                args.name,
                 {
                   captureStackTrace: false,
-                  kind: "consumer",
-                  attributes: {
-                    "queue.name": queueDrainName,
-                    "queue.sessionId": sessionId,
-                    "queue.input": body
-                  }
+                  kind: args.kind,
+                  attributes: args.attributes
                 }
               )
+            }
           )
         if (meta.span) {
           effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
@@ -142,8 +158,14 @@ export const makeSQLQueue = Effect.fnUntraced(function*<
         return yield* effect
       })
 
-      return Effect.fn(`queue.drain: ${queueDrainName}`, {
-        attributes: { "queue.type": "sql", "queue.name": queueDrainName, "queue.sessionId": sessionId }
+      return Effect.fn(`receive ${queueDrainName}`, {
+        kind: "consumer",
+        attributes: {
+          "messaging.system": "sql",
+          "messaging.operation.name": "receive",
+          "messaging.destination.name": queueDrainName,
+          ...(sessionId !== undefined && { "messaging.message.conversation_id": sessionId })
+        }
       })(function*() {
         const x = yield* q.take
         yield* processMessage(x).pipe(

@@ -8,6 +8,7 @@ import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import { type RawQuery } from "../Model/query.js"
+import { annotateCosmosResponse, withDbSpan } from "../otel.js"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.js"
 import { storeId } from "./Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -35,19 +36,21 @@ const annotateFeed = (resp: {
   requestCharge?: number
   diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } }
 }) =>
-  Effect.annotateCurrentSpan({
-    "db.cosmos.request_charge": resp.requestCharge ?? 0,
-    "db.cosmos.resource_count": resp.resources.length,
-    "db.cosmos.response_bytes": respBytes(resp)
+  annotateCosmosResponse({
+    requestCharge: resp.requestCharge,
+    returnedRows: resp.resources.length,
+    responseBytes: respBytes(resp)
   })
 
 const annotateItem = (resp: {
   requestCharge?: number
+  statusCode?: number
   diagnostics?: { clientSideRequestStatistics?: { totalResponsePayloadLengthInBytes?: number } }
 }) =>
-  Effect.annotateCurrentSpan({
-    "db.cosmos.request_charge": resp.requestCharge ?? 0,
-    "db.cosmos.response_bytes": respBytes(resp)
+  annotateCosmosResponse({
+    requestCharge: resp.requestCharge,
+    statusCode: resp.statusCode,
+    responseBytes: respBytes(resp)
   })
 
 const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
@@ -137,7 +140,13 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               )
             }),
             Effect.withLogSpan(`Cosmos.seedCheck ${name} in ${ns} [effect-app/infra/Store]`),
-            Effect.withSpan("Cosmos.seed [effect-app/infra/Store]", { attributes: { name, namespace: ns } })
+            withDbSpan({
+              operation: "seed",
+              system: "cosmosdb",
+              collection: containerId,
+              namespace: ns,
+              entity: name
+            })
           )
       }
       const seedNamespace = Effect.fn("seedNamespace")(function*(ns: string) {
@@ -251,9 +260,13 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             return batchResult.flat() as unknown as NonEmptyReadonlyArray<Encoded>
           })
           .pipe(
-            Effect.withSpan("Cosmos.bulkSet [effect-app/infra/Store]", {
-              attributes: { "repository.container_id": containerId, "repository.model_name": name, namespace: ns }
-            }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "bulkSet",
+              system: "cosmosdb",
+              collection: containerId,
+              namespace: ns,
+              entity: name
+            })
           )
 
       const bulkSet = (items: NonEmptyReadonlyArray<PM>) =>
@@ -321,14 +334,13 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     })) as unknown as NonEmptyReadonlyArray<Encoded>
                   })))
               })
-              .pipe(Effect
-                .withSpan("Cosmos.batchSet [effect-app/infra/Store]", {
-                  attributes: {
-                    "repository.container_id": containerId,
-                    "repository.model_name": name,
-                    namespace: ns
-                  }
-                }, { captureStackTrace: false }))
+              .pipe(withDbSpan({
+                operation: "batchSet",
+                system: "cosmosdb",
+                collection: containerId,
+                namespace: ns,
+                entity: name
+              }))
           ))
       }
 
@@ -352,13 +364,14 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     )
                   })
                   .pipe(
-                    Effect.withSpan("Cosmos.queryRaw [effect-app/infra/Store]", {
-                      attributes: {
-                        "repository.container_id": containerId,
-                        "repository.model_name": name,
-                        namespace: ns
-                      }
-                    }, { captureStackTrace: false })
+                    withDbSpan({
+                      operation: "queryRaw",
+                      system: "cosmosdb",
+                      collection: containerId,
+                      namespace: ns,
+                      entity: name,
+                      query: q.query
+                    })
                   )
               )
             ),
@@ -379,13 +392,13 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                 )
               )
               .pipe(
-                Effect.withSpan("Cosmos.batchRemove [effect-app/infra/Store]", {
-                  attributes: {
-                    "repository.container_id": containerId,
-                    "repository.model_name": name,
-                    namespace: ns
-                  }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "batchRemove",
+                  system: "cosmosdb",
+                  collection: containerId,
+                  namespace: ns,
+                  entity: name
+                })
               )
           )),
         all: Effect
@@ -408,13 +421,14 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   return response.resources.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
                 })
                 .pipe(
-                  Effect.withSpan("Cosmos.all [effect-app/infra/Store]", {
-                    attributes: {
-                      "repository.container_id": containerId,
-                      "repository.model_name": name,
-                      namespace: ns
-                    }
-                  }, { captureStackTrace: false })
+                  withDbSpan({
+                    operation: "all",
+                    system: "cosmosdb",
+                    collection: containerId,
+                    namespace: ns,
+                    entity: name,
+                    query: q.query
+                  })
                 )
             )
           ),
@@ -472,13 +486,14 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                       return response.resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)
                     })
                     .pipe(
-                      Effect.withSpan("Cosmos.filter [effect-app/infra/Store]", {
-                        attributes: {
-                          "repository.container_id": containerId,
-                          "repository.model_name": name,
-                          namespace: ns
-                        }
-                      }, { captureStackTrace: false })
+                      withDbSpan({
+                        operation: "filter",
+                        system: "cosmosdb",
+                        collection: containerId,
+                        namespace: ns,
+                        entity: name,
+                        query: q.query
+                      })
                     )
                 )
             )
@@ -497,16 +512,17 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   Option.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
                 )
               })
-              .pipe(Effect
-                .withSpan("Cosmos.find [effect-app/infra/Store]", {
-                  attributes: {
-                    "repository.container_id": containerId,
-                    "repository.model_name": name,
-                    partitionValue: nsPartitionValue(ns, { [idKey]: id } as Encoded),
-                    namespace: ns,
-                    id
-                  }
-                }, { captureStackTrace: false }))
+              .pipe(withDbSpan({
+                operation: "find",
+                system: "cosmosdb",
+                collection: containerId,
+                namespace: ns,
+                entity: name,
+                extra: {
+                  "azure.cosmosdb.operation.partition_key": nsPartitionValue(ns, { [idKey]: id } as Encoded),
+                  "app.entity.id": id
+                }
+              }))
           )),
         set: (e) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
@@ -556,15 +572,14 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                       _etag: x.etag
                     }))
                   }),
-                Effect
-                  .withSpan("Cosmos.set [effect-app/infra/Store]", {
-                    attributes: {
-                      "repository.container_id": containerId,
-                      "repository.model_name": name,
-                      namespace: ns,
-                      id: e[idKey]
-                    }
-                  }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "set",
+                  system: "cosmosdb",
+                  collection: containerId,
+                  namespace: ns,
+                  entity: name,
+                  extra: { "app.entity.id": e[idKey] }
+                })
               )
           )),
         batchSet,

@@ -5,6 +5,7 @@ import fs from "fs"
 
 import { Console, Effect, flow, Semaphore } from "effect-app"
 import type { FieldValues } from "../Model/filter/types.js"
+import { withDbSpan } from "../otel.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
 import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 
@@ -26,42 +27,75 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
       }
     }
     const file = dir + "/" + prefix + name + ".json"
+    const fileExtra = { "disk.file.path": file }
     const fsStore = {
       get: fu
         .readTextFile(file)
         .pipe(
-          Effect.withSpan("Disk.read.readFile [effect-app/infra/Store]", {}, { captureStackTrace: false }),
+          withDbSpan({
+            operation: "read.readFile",
+            system: "disk",
+            collection: name,
+            namespace,
+            entity: name,
+            extra: fileExtra
+          }),
           Effect.flatMap((x) =>
             Effect.sync(() => JSON.parse(x) as PM[]).pipe(
-              Effect.withSpan("Disk.read.parse [effect-app/infra/Store]", {}, { captureStackTrace: false })
+              withDbSpan({
+                operation: "read.parse",
+                system: "disk",
+                collection: name,
+                namespace,
+                entity: name,
+                extra: fileExtra
+              })
             )
           ),
           Effect.orDie,
-          Effect.withSpan("Disk.read [effect-app/infra/Store]", {
-            attributes: { "disk.file": file }
-          }, { captureStackTrace: false })
+          withDbSpan({
+            operation: "read",
+            system: "disk",
+            collection: name,
+            namespace,
+            entity: name,
+            extra: fileExtra
+          })
         ),
       setRaw: (v: Iterable<PM>) =>
         Effect
           .sync(() => JSON.stringify([...v], undefined, 2))
           .pipe(
-            Effect.withSpan("Disk.stringify [effect-app/infra/Store]", {
-              attributes: { "disk.file": file }
-            }, { captureStackTrace: false }),
+            withDbSpan({
+              operation: "stringify",
+              system: "disk",
+              collection: name,
+              namespace,
+              entity: name,
+              extra: fileExtra
+            }),
             Effect
               .flatMap(
                 (json) =>
                   fu
                     .writeTextFile(file, json)
-                    .pipe(Effect
-                      .withSpan("Disk.write.writeFile [effect-app/infra/Store]", {
-                        attributes: { "disk.file_size": json.length }
-                      }, { captureStackTrace: false }))
+                    .pipe(withDbSpan({
+                      operation: "write.writeFile",
+                      system: "disk",
+                      collection: name,
+                      namespace,
+                      entity: name,
+                      extra: { ...fileExtra, "disk.file.size": json.length }
+                    }))
               ),
-            Effect
-              .withSpan("Disk.write [effect-app/infra/Store]", {
-                attributes: { "disk.file": file }
-              }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "write",
+              system: "disk",
+              collection: name,
+              namespace,
+              entity: name,
+              extra: fileExtra
+            })
           )
     }
 

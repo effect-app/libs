@@ -6,6 +6,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../../errors.js"
 import { InfraLogger } from "../../logger.js"
 import type { FieldValues } from "../../Model/filter/types.js"
+import { withDbSpan } from "../../otel.js"
 import { storeId } from "../Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
 import { makeETag } from "../utils.js"
@@ -161,25 +162,28 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         seedNamespace: (ns) => seedNamespace(ns),
 
         all: resolveNamespace.pipe(
-          Effect.flatMap((ns) =>
-            exec(`SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`, [ns])
+          Effect.flatMap((ns) => {
+            const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE _namespace = $1`
+            return exec(sqlText, [ns])
               .pipe(
                 Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
-                Effect.withSpan("PgSQL.all [effect-app/infra/Store]", {
-                  attributes: {
-                    "repository.table_name": tableName,
-                    "repository.model_name": name,
-                    "repository.namespace": ns
-                  }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "all",
+                  system: "postgresql",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  query: sqlText
+                })
               )
-          )
+          })
         ),
 
         find: (id) =>
           resolveNamespace.pipe(Effect
-            .flatMap((ns) =>
-              exec(`SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`, [id, ns])
+            .flatMap((ns) => {
+              const sqlText = `SELECT id, _etag, data FROM "${tableName}" WHERE id = $1 AND _namespace = $2`
+              return exec(sqlText, [id, ns])
                 .pipe(
                   Effect.map((rows) => {
                     const row = (rows as any[])[0]
@@ -187,11 +191,17 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                       ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
                       : Option.none()
                   }),
-                  Effect.withSpan("PgSQL.find [effect-app/infra/Store]", {
-                    attributes: { "repository.table_name": tableName, "repository.model_name": name, id }
-                  }, { captureStackTrace: false })
+                  withDbSpan({
+                    operation: "find",
+                    system: "postgresql",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlText,
+                    extra: { "app.entity.id": id }
+                  })
                 )
-            )),
+            })),
 
         filter: <U extends keyof Encoded = never>(f: FilterArgs<Encoded, U>) => {
           const filter = f
@@ -225,6 +235,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               })
               .pipe(
                 Effect.tap((q) => logQuery(q)),
+                Effect.tap((q) => Effect.annotateCurrentSpan({ "db.query.text": q.sql })),
                 Effect.flatMap((q) =>
                   exec(q.sql, q.params).pipe(
                     Effect.map((rows) => {
@@ -244,9 +255,13 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     })
                   )
                 ),
-                Effect.withSpan("PgSQL.filter [effect-app/infra/Store]", {
-                  attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "filter",
+                  system: "postgresql",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name
+                })
               )
           ))
         },
@@ -254,53 +269,72 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         set: (e) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             setInternal(e, ns).pipe(
-              Effect.withSpan("PgSQL.set [effect-app/infra/Store]", {
-                attributes: { "repository.table_name": tableName, "repository.model_name": name, id: e[idKey] }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "set",
+                system: "postgresql",
+                collection: tableName,
+                namespace: ns,
+                entity: name,
+                extra: { "app.entity.id": e[idKey] }
+              })
             )
           )),
 
         batchSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              Effect.withSpan("PgSQL.batchSet [effect-app/infra/Store]", {
-                attributes: { "repository.table_name": tableName, "repository.model_name": name }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "batchSet",
+                system: "postgresql",
+                collection: tableName,
+                namespace: ns,
+                entity: name
+              })
             )
           )),
 
         bulkSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              Effect.withSpan("PgSQL.bulkSet [effect-app/infra/Store]", {
-                attributes: { "repository.table_name": tableName, "repository.model_name": name }
-              }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "bulkSet",
+                system: "postgresql",
+                collection: tableName,
+                namespace: ns,
+                entity: name
+              })
             )
           )),
 
         batchRemove: (ids) => {
           const placeholders = ids.map((_, i) => `$${i + 1}`).join(", ")
           const nsPlaceholder = `$${ids.length + 1}`
-          return resolveNamespace.pipe(Effect.flatMap((ns) =>
-            exec(
-              `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`,
-              [...ids, ns]
-            )
+          return resolveNamespace.pipe(Effect.flatMap((ns) => {
+            const sqlText = `DELETE FROM "${tableName}" WHERE id IN (${placeholders}) AND _namespace = ${nsPlaceholder}`
+            return exec(sqlText, [...ids, ns])
               .pipe(
                 Effect.asVoid,
-                Effect.withSpan("PgSQL.batchRemove [effect-app/infra/Store]", {
-                  attributes: { "repository.table_name": tableName, "repository.model_name": name }
-                }, { captureStackTrace: false })
+                withDbSpan({
+                  operation: "batchRemove",
+                  system: "postgresql",
+                  collection: tableName,
+                  namespace: ns,
+                  entity: name,
+                  query: sqlText
+                })
               )
-          ))
+          }))
         },
 
         queryRaw: (query) =>
           s.all.pipe(
             Effect.map(query.memory),
-            Effect.withSpan("PgSQL.queryRaw [effect-app/infra/Store]", {
-              attributes: { "repository.table_name": tableName, "repository.model_name": name }
-            }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "queryRaw",
+              system: "postgresql",
+              collection: tableName,
+              entity: name
+            })
           )
       }
 

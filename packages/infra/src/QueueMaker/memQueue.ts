@@ -5,6 +5,7 @@ import * as Q from "effect/Queue"
 import { MemQueue } from "../adapters/memQueue.js"
 import { getRequestContext, setupRequestContextWithCustomSpan } from "../api/setupRequest.js"
 import { InfraLogger } from "../logger.js"
+import { messagingSpanArgs } from "../otel.js"
 import { reportNonInterruptedFailure, reportNonInterruptedFailureCause } from "./errors.js"
 import { QueueMeta } from "./service.js"
 
@@ -32,10 +33,20 @@ export const makeMemQueue = Effect.fnUntraced(function*<
   const parseDrain = flow(S.decodeUnknownEffectConcurrently(drainWJson), Effect.orDie)
 
   const queue = {
-    publish: Effect.fn("queue.publish: " + queueName, { kind: "producer" })(function*(
+    publish: Effect.fn(`publish ${queueName}`, {
+      kind: "producer",
+      attributes: {
+        "messaging.system": "memory",
+        "messaging.operation.name": "publish",
+        "messaging.destination.name": queueName
+      }
+    })(function*(
       ...messages: NonEmptyReadonlyArray<Evt>
     ) {
-      yield* Effect.annotateCurrentSpan({ "message_tags": messages.map((_) => _._tag) })
+      yield* Effect.annotateCurrentSpan({
+        "messaging.batch.message_count": messages.length,
+        "messaging.message.types": messages.map((_) => _._tag)
+      })
       const requestContext = yield* getRequestContext
       // we JSON encode, because that is what the wire also does, and it reveals holes in e.g unknown encoders (Date->String)
       yield* Effect.forEach(
@@ -63,29 +74,40 @@ export const makeMemQueue = Effect.fnUntraced(function*<
             Effect.annotateLogs({ body: pretty(body), meta: pretty(meta) }),
             Effect.andThen(handleEvent(body)),
             silenceAndReportError,
-            (_) =>
-              setupRequestContextWithCustomSpan(
+            (_) => {
+              const args = messagingSpanArgs({
+                operation: "process",
+                system: "memory",
+                destination: queueDrainName,
+                messageId: body.id,
+                conversationId: sessionId,
+                extra: { "messaging.message.type": body._tag, "messaging.message.body": body }
+              }, "consumer")
+              return setupRequestContextWithCustomSpan(
                 _,
                 meta,
-                `queue.drain: ${queueDrainName}.${body._tag}`,
+                args.name,
                 {
                   captureStackTrace: false,
-                  kind: "consumer",
-                  attributes: {
-                    "queue.name": queueDrainName,
-                    "queue.sessionId": sessionId,
-                    "queue.input": body
-                  }
+                  kind: args.kind,
+                  attributes: args.attributes
                 }
               )
+            }
           )
         if (meta.span) {
           effect = Effect.withParentSpan(effect, Tracer.externalSpan(meta.span))
         }
         return yield* effect
       })
-      return Effect.fn(`queue.drain: ${queueDrainName}`, {
-        attributes: { "queue.type": "mem", "queue.name": queueDrainName, "queue.sessionId": sessionId }
+      return Effect.fn(`receive ${queueDrainName}`, {
+        kind: "consumer",
+        attributes: {
+          "messaging.system": "memory",
+          "messaging.operation.name": "receive",
+          "messaging.destination.name": queueDrainName,
+          ...(sessionId !== undefined && { "messaging.message.conversation_id": sessionId })
+        }
       })(function*() {
         const x = yield* Q.take(qDrain)
         const exit = yield* processMessage(x).pipe(

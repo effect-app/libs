@@ -4,6 +4,7 @@ import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order
 import { NonEmptyString255 } from "effect-app/Schema"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import { withDbSpan } from "../otel.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { makeUpdateETag } from "./utils.js"
@@ -162,38 +163,48 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           .pipe(
             // Effect.tap(() => logQuery(query, defaultValues)),
             Effect.map(query.memory),
-            Effect.withSpan("Memory.queryRaw [effect-app/infra/Store]", {
-              attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-            }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "queryRaw",
+              system: "memory",
+              collection: modelName,
+              namespace,
+              entity: modelName
+            })
           ),
 
-      all: all.pipe(Effect.withSpan("Memory.all [effect-app/infra/Store]", {
-        attributes: {
-          modelName,
-          namespace
-        }
-      }, { captureStackTrace: false })),
+      all: all.pipe(withDbSpan({
+        operation: "all",
+        system: "memory",
+        collection: modelName,
+        namespace,
+        entity: modelName
+      })),
       find: (id) =>
         Ref
           .get(store)
           .pipe(
             Effect.map((_) => Option.fromNullishOr(_.get(id))),
-            Effect
-              .withSpan("Memory.find [effect-app/infra/Store]", {
-                attributes: {
-                  modelName,
-                  namespace
-                }
-              }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "find",
+              system: "memory",
+              collection: modelName,
+              namespace,
+              entity: modelName,
+              extra: { "app.entity.id": id as unknown }
+            })
           ),
       filter: (f) =>
         all
           .pipe(
             Effect.tap(() => logQuery(f, defaultValues)),
             Effect.map(memFilter(f)),
-            Effect.withSpan("Memory.filter [effect-app/infra/Store]", {
-              attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-            }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "filter",
+              system: "memory",
+              collection: modelName,
+              namespace,
+              entity: modelName
+            })
           ),
       set: (e) =>
         s
@@ -208,10 +219,14 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
                 )
               ),
             withPermit,
-            Effect
-              .withSpan("Memory.set [effect-app/infra/Store]", {
-                attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-              }, { captureStackTrace: false })
+            withDbSpan({
+              operation: "set",
+              system: "memory",
+              collection: modelName,
+              namespace,
+              entity: modelName,
+              extra: { "app.entity.id": e[idKey] as unknown }
+            })
           ),
       batchRemove: (items: NonEmptyReadonlyArray<Encoded[IdKey]>) =>
         pipe(
@@ -222,10 +237,13 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               Effect.filterOrFail((_) => _.length <= 100, () => "BatchRemove: a batch may not exceed 100 items"),
               Effect.orDie,
               Effect.andThen(batchRemove),
-              Effect
-                .withSpan("Memory.batchRemove [effect-app/infra/Store]", {
-                  attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-                }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "batchRemove",
+                system: "memory",
+                collection: modelName,
+                namespace,
+                entity: modelName
+              })
             )
         ),
       batchSet: (items: readonly [PM, ...PM[]]) =>
@@ -237,18 +255,25 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               Effect.filterOrFail((_) => _.length <= 100, () => "BatchSet: a batch may not exceed 100 items"),
               Effect.orDie,
               Effect.andThen(batchSet),
-              Effect
-                .withSpan("Memory.batchSet [effect-app/infra/Store]", {
-                  attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-                }, { captureStackTrace: false })
+              withDbSpan({
+                operation: "batchSet",
+                system: "memory",
+                collection: modelName,
+                namespace,
+                entity: modelName
+              })
             )
         ),
       bulkSet: flow(
         batchSet,
         (_) =>
-          _.pipe(Effect.withSpan("Memory.bulkSet [effect-app/infra/Store]", {
-            attributes: { "repository.model_name": modelName, "repository.namespace": namespace }
-          }, { captureStackTrace: false }))
+          _.pipe(withDbSpan({
+            operation: "bulkSet",
+            system: "memory",
+            collection: modelName,
+            namespace,
+            entity: modelName
+          }))
       )
     }
     return s

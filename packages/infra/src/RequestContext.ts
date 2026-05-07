@@ -34,16 +34,16 @@ export class RequestContext extends S.Opaque<
 }
 
 export const spanAttributes = (ctx: Pick<RequestContext, "locale" | "namespace"> & Partial<RequestContext>) => ({
-  "request.name": ctx.name,
-  "request.locale": ctx.locale,
-  "request.namespace": ctx.namespace,
-  ...ctx.sourceId ? { "request.source.id": ctx.sourceId } : {},
+  "code.function.name": ctx.name,
+  "app.locale": ctx.locale,
+  "app.tenant.id": ctx.namespace,
+  ...ctx.sourceId ? { "client.id": ctx.sourceId } : {},
   ...(ctx.userProfile?.sub
     ? {
-      "request.user.sub": ctx
+      "user.id": ctx
         .userProfile
         .sub,
-      "request.user.roles": "roles" in ctx
+      "user.roles": "roles" in ctx
           .userProfile
         ? ctx.userProfile.roles
         : undefined

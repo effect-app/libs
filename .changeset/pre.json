@@ -166,6 +166,7 @@
     "omegaform-decodeto-meta-from-encoded",
     "omegaform-module-split",
     "optimize-codegen-barrel-model",
+    "otel-semconv-spans",
     "per-namespace-seeding",
     "petite-tables-cover",
     "polite-chefs-drum",

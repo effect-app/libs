@@ -6,7 +6,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../../errors.js"
 import { InfraLogger } from "../../logger.js"
 import type { FieldValues } from "../../Model/filter/types.js"
-import { withDbSpan } from "../../otel.js"
+import { annotateDb } from "../../otel.js"
 import { storeId } from "../Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
 import { makeETag } from "../utils.js"
@@ -167,7 +167,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             return exec(sqlText, [ns])
               .pipe(
                 Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
-                withDbSpan({
+                annotateDb({
                   operation: "all",
                   system: "postgresql",
                   collection: tableName,
@@ -191,7 +191,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                       ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
                       : Option.none()
                   }),
-                  withDbSpan({
+                  annotateDb({
                     operation: "find",
                     system: "postgresql",
                     collection: tableName,
@@ -255,7 +255,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     })
                   )
                 ),
-                withDbSpan({
+                annotateDb({
                   operation: "filter",
                   system: "postgresql",
                   collection: tableName,
@@ -269,7 +269,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         set: (e) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             setInternal(e, ns).pipe(
-              withDbSpan({
+              annotateDb({
                 operation: "set",
                 system: "postgresql",
                 collection: tableName,
@@ -283,7 +283,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         batchSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              withDbSpan({
+              annotateDb({
                 operation: "batchSet",
                 system: "postgresql",
                 collection: tableName,
@@ -296,7 +296,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         bulkSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              withDbSpan({
+              annotateDb({
                 operation: "bulkSet",
                 system: "postgresql",
                 collection: tableName,
@@ -314,7 +314,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             return exec(sqlText, [...ids, ns])
               .pipe(
                 Effect.asVoid,
-                withDbSpan({
+                annotateDb({
                   operation: "batchRemove",
                   system: "postgresql",
                   collection: tableName,
@@ -329,7 +329,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         queryRaw: (query) =>
           s.all.pipe(
             Effect.map(query.memory),
-            withDbSpan({
+            annotateDb({
               operation: "queryRaw",
               system: "postgresql",
               collection: tableName,

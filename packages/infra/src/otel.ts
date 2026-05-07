@@ -59,6 +59,17 @@ export const withDbSpan = (a: DbSpanOptions) =>
     { captureStackTrace: false }
   )
 
+/**
+ * Annotate the current span with OTel-semconv database attributes.
+ *
+ * Use when the caller already owns the span (e.g. a repository) and the
+ * adapter should only contribute db.* semconv attrs without opening a child.
+ * Annotates before running so attrs persist even on failure.
+ * No-op if there is no current span.
+ */
+export const annotateDb = (a: DbSpanOptions) => <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Effect.flatMap(Effect.annotateCurrentSpan(dbAttributes(a)), () => self)
+
 /** Annotate the current span with response metrics from a DB call. */
 export const annotateDbResponse = (m: {
   readonly returnedRows?: number | undefined

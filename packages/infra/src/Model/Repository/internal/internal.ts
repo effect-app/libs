@@ -103,7 +103,13 @@ export function makeRepoInternal<
               allE,
               (_) => decodeMany(_).pipe(Effect.orDie)
             )
-            .pipe(Effect.map((_) => _ as T[]))
+            .pipe(
+              Effect.map((_) => _ as T[]),
+              Effect.withSpan("Repository.all", {
+                kind: "client",
+                attributes: { "app.entity": name }
+              }, { captureStackTrace: false })
+            )
 
           const fieldsSchema = schema as unknown as { fields: any }
           // assumes the id field never needs a service...
@@ -163,9 +169,11 @@ export function makeRepoInternal<
             )
           })
 
-          const find = Effect.fn("find", { attributes: { "app.entity": name } })(function*(id: T[IdKey]) {
+          const find = Effect.fn("Repository.find", {
+            kind: "client",
+            attributes: { "app.entity": name }
+          })(function*(id: T[IdKey]) {
             yield* Effect.annotateCurrentSpan({ "app.entity.id": id })
-
             return yield* flatMapOption(findE(id), (_) => Effect.orDie(decode(_)))
           })
 
@@ -190,7 +198,7 @@ export function makeRepoInternal<
                 Effect.andThen(saveAllE)
               )
 
-          const saveAndPublish = Effect.fn("saveAndPublish", { attributes: { "app.entity": name } })(
+          const saveAndPublish = Effect.fn("Repository.saveAndPublish", { attributes: { "app.entity": name } })(
             function*(items: Iterable<T>, events: Iterable<Evt> = []) {
               const it = Chunk.fromIterable(items)
               const evts = [...events]
@@ -209,7 +217,7 @@ export function makeRepoInternal<
             }
           )
 
-          const removeAndPublish = Effect.fn("removeAndPublish", { attributes: { "app.entity": name } })(
+          const removeAndPublish = Effect.fn("Repository.removeAndPublish", { attributes: { "app.entity": name } })(
             function*(a: Iterable<T>, events: Iterable<Evt> = []) {
               const { set } = yield* cms
               const it = [...a]
@@ -237,7 +245,7 @@ export function makeRepoInternal<
             }
           )
 
-          const removeById = Effect.fn("removeById", { attributes: { "app.entity": name } })(
+          const removeById = Effect.fn("Repository.removeById", { attributes: { "app.entity": name } })(
             function*(idOrIds: T[IdKey] | ReadonlyArray<T[IdKey]>) {
               const ids = globalThis.Array.isArray(idOrIds)
                 ? idOrIds as readonly T[IdKey][]
@@ -262,12 +270,22 @@ export function makeRepoInternal<
               return yield* decodeMany(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
             }
           )
+          const decodeManyCache = new WeakMap<
+            S.Codec<any, any, any>,
+            (i: readonly any[]) => Effect.Effect<any, any, any>
+          >()
+          const getDecodeMany = (s: S.Codec<any, Encoded, any>) => {
+            let dec = decodeManyCache.get(s)
+            if (!dec) {
+              dec = S.decodeEffectConcurrently(S.Array(s))
+              decodeManyCache.set(s, dec)
+            }
+            return dec
+          }
           const parseMany2 = Effect.fn("parseMany2", { attributes: { "app.entity": name } })(
             function*<A, R>(items: readonly PM[], schema: S.Codec<A, Encoded, R>) {
               const cm = yield* cms
-              return yield* S.decodeEffectConcurrently(S.Array(schema))(items.map((_) => mapReverse(_, cm.set))).pipe(
-                Effect.orDie
-              )
+              return yield* getDecodeMany(schema)(items.map((_) => mapReverse(_, cm.set))).pipe(Effect.orDie)
             }
           )
           const filter = <U extends keyof Encoded = keyof Encoded>(args: FilterArgs<Encoded, U>) =>
@@ -340,18 +358,21 @@ export function makeRepoInternal<
                   .map(eff, (_) => NonNegativeInt(_.length))
                   .pipe(Effect.catchTag("SchemaError", (e) => Effect.die(e)))
                 : eff,
-              Effect.withSpan(`query ${name}`, {
+              Effect.tap((r) =>
+                Effect.annotateCurrentSpan({
+                  "app.query.ttype": a.ttype,
+                  "app.query.mode": a.mode,
+                  "db.response.returned_rows": Array.isArray(r) ? r.length : 1
+                })
+              ),
+              Effect.withSpan("Repository.query", {
                 kind: "client",
-                attributes: {
-                  "app.entity": name,
-                  "db.operation.name": "query",
-                  "db.collection.name": name
-                }
+                attributes: { "app.entity": name }
               }, { captureStackTrace: false })
             )
           }) as any
 
-          const validateSample = Effect.fn("validateSample", { attributes: { "app.entity": name } })(
+          const validateSample = Effect.fn("Repository.validateSample", { attributes: { "app.entity": name } })(
             function*(options?: {
               percentage?: number
               maxItems?: number
@@ -360,10 +381,15 @@ export function makeRepoInternal<
               const maxItems = options?.maxItems
 
               // 1. get all IDs with projection (bypasses main schema decode)
-              const allIds = yield* store.filter({
-                t: null as unknown as Encoded,
-                select: [idKey as keyof Encoded]
-              })
+              const allIds = yield* store
+                .filter({
+                  t: null as unknown as Encoded,
+                  select: [idKey as keyof Encoded]
+                })
+                .pipe(Effect.withSpan("Repository.filter", {
+                  kind: "client",
+                  attributes: { "app.entity": name }
+                }, { captureStackTrace: false }))
 
               // 2. random subset
               const shuffled = [...allIds].sort(() => Math.random() - 0.5)
@@ -378,7 +404,12 @@ export function makeRepoInternal<
 
               for (const item of sample) {
                 const id = item[idKey]
-                const rawResult = yield* store.find(id)
+                const rawResult = yield* store.find(id).pipe(
+                  Effect.withSpan("Repository.find", {
+                    kind: "client",
+                    attributes: { "app.entity": name, "app.entity.id": id }
+                  }, { captureStackTrace: false })
+                )
 
                 if (Option.isNone(rawResult)) continue
 
@@ -424,7 +455,13 @@ export function makeRepoInternal<
             validateSample,
             queryRaw<A, Out, QR>(schema: S.Codec<A, Out, QR>, q: Q.RawQuery<Encoded, Out>) {
               const dec = S.decodeEffectConcurrently(S.Array(schema))
-              return store.queryRaw(q).pipe(Effect.flatMap(dec))
+              return store.queryRaw(q).pipe(
+                Effect.flatMap(dec),
+                Effect.withSpan("Repository.queryRaw", {
+                  kind: "client",
+                  attributes: { "app.entity": name }
+                }, { captureStackTrace: false })
+              )
             },
             query(q: any) {
               // eslint-disable-next-line prefer-rest-params
@@ -437,12 +474,20 @@ export function makeRepoInternal<
               const dec = S.decodeEffectConcurrently(schema)
               const encMany = S.encodeEffect(S.Array(schema))
               const decMany = S.decodeEffectConcurrently(S.Array(schema))
+              const spanAttrs = { kind: "client" as const, attributes: { "app.entity": name } }
               return {
                 all: allE.pipe(
                   Effect.flatMap(decMany),
-                  Effect.map((_) => _ as any[])
+                  Effect.map((_) => _ as any[]),
+                  Effect.withSpan("Repository.mapped.all", spanAttrs, { captureStackTrace: false })
                 ),
-                find: (id: T[IdKey]) => flatMapOption(findE(id), dec),
+                find: (id: T[IdKey]) =>
+                  flatMapOption(findE(id), dec).pipe(
+                    Effect.withSpan("Repository.mapped.find", {
+                      ...spanAttrs,
+                      attributes: { ...spanAttrs.attributes, "app.entity.id": id }
+                    }, { captureStackTrace: false })
+                  ),
                 // query: (q: any) => {
                 //   const a = Q.toFilter(q)
 
@@ -461,7 +506,7 @@ export function makeRepoInternal<
                 // },
                 save: (...xes: any[]) =>
                   Effect.flatMap(encMany(xes), (_) => saveAllE(_)).pipe(
-                    Effect.withSpan("mapped.save", { attributes: { "app.entity": name } }, { captureStackTrace: false })
+                    Effect.withSpan("Repository.mapped.save", spanAttrs, { captureStackTrace: false })
                   )
               }
             }

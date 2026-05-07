@@ -496,7 +496,17 @@ export const makeRouter = <Live extends Layer.Layer<any, any, any> = Layer.Layer
                   )
                 }
                 let effect = (result as Effect.Effect<unknown, unknown, unknown>).pipe(
-                  Effect.withSpan(`Request.${meta.moduleName}.${resource._tag}`, {}, {
+                  Effect.withSpan(`${meta.moduleName}/${resource._tag}`, {
+                    kind: "server",
+                    attributes: {
+                      "rpc.system": "effect-app",
+                      "rpc.service": meta.moduleName,
+                      "rpc.method": resource._tag,
+                      "code.function.name": resource._tag,
+                      "code.namespace": meta.moduleName,
+                      "app.rpc.type": resource.type
+                    }
+                  }, {
                     captureStackTrace: () => handler.stack // capturing the handler stack is the main reason why we are doing the span here
                   })
                 )

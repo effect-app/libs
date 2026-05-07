@@ -59,8 +59,8 @@ export const LoggerMiddlewareLive = Layer
       return (effect, { headers, payload, rpc }) =>
         Effect
           .annotateCurrentSpan({
-            "request.name": rpc._tag,
-            "requestInput": typeof payload === "object" && payload !== null
+            "rpc.method": rpc._tag,
+            "rpc.request.payload": typeof payload === "object" && payload !== null
               ? Object.entries(payload).reduce((prev, [key, value]: [string, unknown]) => {
                 prev[key] = key === "password"
                   ? "<redacted>"

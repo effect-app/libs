@@ -24,6 +24,7 @@ import * as VariantSchema from "effect/unstable/schema/VariantSchema"
 import { SqlClient } from "effect/unstable/sql/SqlClient"
 import * as SqlResolver from "effect/unstable/sql/SqlResolver"
 import * as SqlSchema from "effect/unstable/sql/SqlSchema"
+import { type DbSystem, withDbSpan } from "../../otel.js"
 
 const {
   Class,
@@ -596,6 +597,7 @@ export const makeRepository = <
   readonly spanPrefix: string
   readonly idColumn: Id
   readonly versionColumn?: string | undefined
+  readonly dbSystem?: DbSystem | undefined
 }): Effect.Effect<
   {
     readonly insert: (
@@ -629,6 +631,15 @@ export const makeRepository = <
     const idSchema = Model.fields[options.idColumn] as Schema.Top
     const idColumn = options.idColumn as string
     const versionColumn = options.versionColumn
+    const system: DbSystem = options.dbSystem ?? "other_sql"
+    const opSpan = (operation: string, idValue?: unknown) =>
+      withDbSpan({
+        operation,
+        system,
+        collection: options.tableName,
+        entity: options.spanPrefix,
+        ...(idValue !== undefined && { extra: { "app.entity.id": idValue } })
+      })
 
     const insertSchema = SqlSchema.findOne({
       Request: Model.insert,
@@ -650,9 +661,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
     ): Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["insert"]["EncodingServices"]> =>
       insertSchema(insert).pipe(
         Effect.catchTag("NoSuchElementError", Effect.die),
-        Effect.withSpan(`${options.spanPrefix}.insert`, {}, {
-          captureStackTrace: false
-        })
+        opSpan("insert")
       ) as any
 
     const insertVoidSchema = SqlSchema.void({
@@ -663,9 +672,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       insert: S["insert"]["Type"]
     ): Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]> =>
       insertVoidSchema(insert).pipe(
-        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {}, {
-          captureStackTrace: false
-        })
+        opSpan("insertVoid")
       ) as any
 
     const updateSchema = SqlSchema.findOne({
@@ -712,11 +719,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
     ): Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"] | S["update"]["EncodingServices"]> =>
       updateSchema(update).pipe(
         Effect.catchTag("NoSuchElementError", Effect.die),
-        Effect.withSpan(`${options.spanPrefix}.update`, {
-          attributes: { id: (update as any)[idColumn] }
-        }, {
-          captureStackTrace: false
-        })
+        opSpan("update", (update as any)[idColumn])
       ) as any
 
     const updateVoidSchema = SqlSchema.void({
@@ -735,11 +738,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       update: S["update"]["Type"]
     ): Effect.Effect<void, Schema.SchemaError, S["update"]["EncodingServices"]> =>
       updateVoidSchema(update).pipe(
-        Effect.withSpan(`${options.spanPrefix}.updateVoid`, {
-          attributes: { id: (update as any)[idColumn] }
-        }, {
-          captureStackTrace: false
-        })
+        opSpan("updateVoid", (update as any)[idColumn])
       ) as any
 
     const findByIdSchema = SqlSchema.findOneOption({
@@ -755,9 +754,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     > =>
       findByIdSchema(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.findById`, { attributes: { id } }, {
-          captureStackTrace: false
-        })
+        opSpan("findById", id)
       ) as any
 
     const deleteSchema = SqlSchema.void({
@@ -768,11 +765,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
       id: S["fields"][Id]["Type"]
     ): Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]> =>
       deleteSchema(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.delete`, {
-          attributes: { id }
-        }, {
-          captureStackTrace: false
-        })
+        opSpan("delete", id)
       ) as any
 
     return { insert, insertVoid, update, updateVoid, findById, delete: delete_ } as const
@@ -795,6 +788,7 @@ export const makeDataLoaders = <
     readonly idColumn: Id
     readonly window: Input
     readonly maxBatchSize?: number | undefined
+    readonly dbSystem?: DbSystem | undefined
   }
 ): Effect.Effect<
   {
@@ -827,6 +821,15 @@ export const makeDataLoaders = <
     const idSchema = Model.fields[options.idColumn] as Schema.Top
     const idColumn = options.idColumn as string
     const setMaxBatchSize = options.maxBatchSize ? RequestResolver.batchN(options.maxBatchSize) : identity
+    const system: DbSystem = options.dbSystem ?? "other_sql"
+    const opSpan = (operation: string, idValue?: unknown) =>
+      withDbSpan({
+        operation,
+        system,
+        collection: options.tableName,
+        entity: options.spanPrefix,
+        ...(idValue !== undefined && { extra: { "app.entity.id": idValue } })
+      })
 
     const insertResolver = SqlResolver
       .ordered({
@@ -860,9 +863,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
     > =>
       insertExecute(insert).pipe(
         Effect.catchTag("ResultLengthMismatch", Effect.die),
-        Effect.withSpan(`${options.spanPrefix}.insert`, {}, {
-          captureStackTrace: false
-        })
+        opSpan("insert")
       ) as any
 
     const insertVoidResolver = SqlResolver
@@ -880,9 +881,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       insert: S["insert"]["Type"]
     ): Effect.Effect<void, Schema.SchemaError, S["insert"]["EncodingServices"]> =>
       insertVoidExecute(insert).pipe(
-        Effect.withSpan(`${options.spanPrefix}.insertVoid`, {}, {
-          captureStackTrace: false
-        })
+        opSpan("insertVoid")
       ) as any
 
     const findByIdResolver = SqlResolver
@@ -908,9 +907,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       S["DecodingServices"] | S["fields"][Id]["EncodingServices"]
     > =>
       findByIdExecute(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.findById`, { attributes: { id } }, {
-          captureStackTrace: false
-        })
+        opSpan("findById", id)
       ) as any
 
     const deleteResolver = SqlResolver
@@ -928,9 +925,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = LAST_INSERT_ID(
       id: S["fields"][Id]["Type"]
     ): Effect.Effect<void, Schema.SchemaError, S["fields"][Id]["EncodingServices"]> =>
       deleteExecute(id).pipe(
-        Effect.withSpan(`${options.spanPrefix}.delete`, { attributes: { id } }, {
-          captureStackTrace: false
-        })
+        opSpan("delete", id)
       ) as any
 
     return { insert, insertVoid, findById, delete: delete_ } as const

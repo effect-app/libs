@@ -28,6 +28,15 @@ Attribute key migration:
 | `queue.type` | `messaging.system` |
 | `queue.input` (full body) | `messaging.message.body` (+ `messaging.message.id`, `messaging.message.type`) |
 | `message_tags` | `messaging.message.types` + `messaging.batch.message_count` |
+| `request.name` | `code.function.name` (from `spanAttributes`) / `rpc.method` (middleware) |
+| `request.locale` | `app.locale` |
+| `request.namespace` | `app.tenant.id` |
+| `request.source.id` | `client.id` |
+| `request.user.sub` / `.roles` | `user.id` / `user.roles` |
+| `requestInput` | `rpc.request.payload` |
+| `connectionId` | `network.connection.id` |
+| Span `Request.<module>.<method>` | Span `<module>/<method>` + `rpc.system`/`rpc.service`/`rpc.method` (kind: server) |
+| `<spanPrefix>.<op>` (SQL/Model) | OTel db span via `withDbSpan`, with `dbSystem?` option |
 
 New attributes added:
 

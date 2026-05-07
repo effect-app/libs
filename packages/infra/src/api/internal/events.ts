@@ -24,7 +24,7 @@ export const makeSSE = <A extends { id: any }, SI, SRD, SRE>(
         Effect
           .gen(function*() {
             const ns = yield* storeId
-            yield* Effect.annotateCurrentSpan({ connectionId: id.toString() })
+            yield* Effect.annotateCurrentSpan({ "network.connection.id": id.toString() })
             yield* Effect.logInfo("$ start listening to events, id: " + id.toString() + ", ns: " + ns)
             yield* Effect.addFinalizer(() =>
               Effect.logInfo("$ end listening to events, id: " + id.toString() + ", ns: " + ns)

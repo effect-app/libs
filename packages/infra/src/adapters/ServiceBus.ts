@@ -3,18 +3,17 @@ import { type OperationOptionsBase, type ProcessErrorArgs, ServiceBusClient, typ
 import { Cause, Context, Effect, Exit, FiberSet, Layer, type Scope } from "effect-app"
 import { InfraLogger } from "../logger.js"
 
-const withSpanAndLog = (name: string) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
+const logged = (name: string) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.logInfo(name).pipe(
     Effect.andThen(self),
     Effect.tap(Effect.logInfo(name + " done")),
-    Effect.withLogSpan(name),
-    Effect.withSpan(name)
+    Effect.withLogSpan(name)
   )
 
 function makeClient(url: string) {
   return Effect.acquireRelease(
-    Effect.sync(() => new ServiceBusClient(url)).pipe(withSpanAndLog("ServiceBus.client.create")),
-    (client) => Effect.promise(() => client.close()).pipe(withSpanAndLog("ServiceBus.client.close"))
+    Effect.sync(() => new ServiceBusClient(url)).pipe(logged("ServiceBus.client.create")),
+    (client) => Effect.promise(() => client.close()).pipe(logged("ServiceBus.client.close"))
   )
 }
 
@@ -29,9 +28,9 @@ const makeSender_ = Effect.fnUntraced(function*(queueName: string) {
 
   return yield* Effect.acquireRelease(
     Effect.sync(() => serviceBusClient.createSender(queueName)).pipe(
-      withSpanAndLog(`ServiceBus.sender.create ${queueName}`)
+      logged(`ServiceBus.sender.create ${queueName}`)
     ),
-    (sender) => Effect.promise(() => sender.close()).pipe(withSpanAndLog(`ServiceBus.sender.close ${queueName}`))
+    (sender) => Effect.promise(() => sender.close()).pipe(logged(`ServiceBus.sender.close ${queueName}`))
   )
 })
 
@@ -73,20 +72,24 @@ const makeReceiver = Effect.fnUntraced(function*(name: string) {
 
   const makeReceiver = Effect.fnUntraced(
     function*(queueName: string, waitTillEmpty: Effect.Effect<void>, sessionId?: string) {
+      const annotate = sessionId !== undefined
+        ? Effect.annotateLogs({ "messaging.session.id": sessionId })
+        : <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => self
       return yield* Effect.acquireRelease(
         (sessionId
           ? Effect.promise(() => serviceBusClient.acceptSession(queueName, sessionId))
           : Effect.sync(() => serviceBusClient.createReceiver(queueName)))
-          .pipe(withSpanAndLog(`ServiceBus.receiver.create ${queueName}.${sessionId}`)),
+          .pipe(logged(`ServiceBus.receiver.create ${queueName}`), annotate),
         (r) =>
           waitTillEmpty.pipe(
-            withSpanAndLog(`ServiceBus.receiver.waitTillEmpty ${queueName}.${sessionId}`),
+            logged(`ServiceBus.receiver.waitTillEmpty ${queueName}`),
             Effect.andThen(
               Effect.promise(() => r.close()).pipe(
-                withSpanAndLog(`ServiceBus.receiver.close ${queueName}.${sessionId}`)
+                logged(`ServiceBus.receiver.close ${queueName}`)
               )
             ),
-            withSpanAndLog(`ServiceBus.receiver.release ${queueName}.${sessionId}`)
+            logged(`ServiceBus.receiver.release ${queueName}`),
+            annotate
           )
       )
     }
@@ -131,6 +134,9 @@ const makeReceiver = Effect.fnUntraced(function*(name: string) {
             })
         )
 
+      const annotate = sessionId !== undefined
+        ? Effect.annotateLogs({ "messaging.session.id": sessionId })
+        : <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => self
       yield* Effect.acquireRelease(
         Effect
           .sync(() => {
@@ -141,18 +147,20 @@ const makeReceiver = Effect.fnUntraced(function*(name: string) {
                     hndlr
                       .processError(err)
                       .pipe(
-                        Effect.catchCause((cause) => Effect.logError(`ServiceBus Error ${sessionId}`, cause))
+                        Effect.catchCause((cause) => Effect.logError("ServiceBus Error", cause)),
+                        annotate
                       )
                   ),
-                processMessage: (msg) => runEffect(hndlr.processMessage(msg))
+                processMessage: (msg) => runEffect(hndlr.processMessage(msg).pipe(annotate))
                 // DO NOT CATCH ERRORS here as they should return to the queue!
               })
             return { close: Effect.promise(() => s.close()) }
           })
-          .pipe(withSpanAndLog(`ServiceBus.subscription.create ${sessionId}`)),
+          .pipe(logged("ServiceBus.subscription.create"), annotate),
         (subscription) =>
           subscription.close.pipe(
-            withSpanAndLog(`ServiceBus.subscription.close ${sessionId}`)
+            logged("ServiceBus.subscription.close"),
+            annotate
           )
       ) as Effect.Effect<void, never, Scope.Scope> // wth is going on here
     })

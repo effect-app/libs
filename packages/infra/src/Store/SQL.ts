@@ -7,7 +7,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
-import { type DbSystem, withDbSpan } from "../otel.js"
+import { annotateDb, type DbSystem } from "../otel.js"
 import { storeId } from "./Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { buildWhereSQLQuery, logQuery, type SQLDialect, sqliteDialect } from "./SQL/query.js"
@@ -181,7 +181,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               return exec(sqlText, [ns])
                 .pipe(
                   Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
-                  withDbSpan({
+                  annotateDb({
                     operation: "all",
                     system,
                     collection: tableName,
@@ -205,7 +205,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                         ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
                         : Option.none()
                     }),
-                    withDbSpan({
+                    annotateDb({
                       operation: "find",
                       system,
                       collection: tableName,
@@ -290,7 +290,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                           })
                         )
                       ),
-                      withDbSpan({
+                      annotateDb({
                         operation: "filter",
                         system,
                         collection: tableName,
@@ -304,7 +304,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           set: (e) =>
             resolveNamespace.pipe(Effect.flatMap((ns) =>
               setInternal(e, ns).pipe(
-                withDbSpan({
+                annotateDb({
                   operation: "set",
                   system,
                   collection: tableName,
@@ -318,7 +318,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           batchSet: (items) =>
             resolveNamespace.pipe(Effect.flatMap((ns) =>
               bulkSetInternal(items, ns).pipe(
-                withDbSpan({
+                annotateDb({
                   operation: "batchSet",
                   system,
                   collection: tableName,
@@ -331,7 +331,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           bulkSet: (items) =>
             resolveNamespace.pipe(Effect.flatMap((ns) =>
               bulkSetInternal(items, ns).pipe(
-                withDbSpan({
+                annotateDb({
                   operation: "bulkSet",
                   system,
                   collection: tableName,
@@ -348,7 +348,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
               return exec(sqlText, [...ids, ns])
                 .pipe(
                   Effect.asVoid,
-                  withDbSpan({
+                  annotateDb({
                     operation: "batchRemove",
                     system,
                     collection: tableName,
@@ -363,7 +363,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           queryRaw: (query) =>
             s.all.pipe(
               Effect.map(query.memory),
-              withDbSpan({
+              annotateDb({
                 operation: "queryRaw",
                 system,
                 collection: tableName,
@@ -526,7 +526,7 @@ function makeSQLiteStorePerNs(
           return exec(ns, sqlText)
             .pipe(
               Effect.map((rows) => (rows as any[]).map((r) => parseRow<Encoded>(r, idKey, defaultValues))),
-              withDbSpan({
+              annotateDb({
                 operation: "all",
                 system: "sqlite",
                 collection: tableName,
@@ -549,7 +549,7 @@ function makeSQLiteStorePerNs(
                       ? Option.some(parseRow<Encoded>(row, idKey, defaultValues))
                       : Option.none()
                   }),
-                  withDbSpan({
+                  annotateDb({
                     operation: "find",
                     system: "sqlite",
                     collection: tableName,
@@ -613,7 +613,7 @@ function makeSQLiteStorePerNs(
                         })
                       )
                     ),
-                    withDbSpan({
+                    annotateDb({
                       operation: "filter",
                       system: "sqlite",
                       collection: tableName,
@@ -627,7 +627,7 @@ function makeSQLiteStorePerNs(
         set: (e) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             setInternal(e, ns).pipe(
-              withDbSpan({
+              annotateDb({
                 operation: "set",
                 system: "sqlite",
                 collection: tableName,
@@ -641,7 +641,7 @@ function makeSQLiteStorePerNs(
         batchSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              withDbSpan({
+              annotateDb({
                 operation: "batchSet",
                 system: "sqlite",
                 collection: tableName,
@@ -654,7 +654,7 @@ function makeSQLiteStorePerNs(
         bulkSet: (items) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             bulkSetInternal(items, ns).pipe(
-              withDbSpan({
+              annotateDb({
                 operation: "bulkSet",
                 system: "sqlite",
                 collection: tableName,
@@ -671,7 +671,7 @@ function makeSQLiteStorePerNs(
             return exec(ns, sqlText, [...ids])
               .pipe(
                 Effect.asVoid,
-                withDbSpan({
+                annotateDb({
                   operation: "batchRemove",
                   system: "sqlite",
                   collection: tableName,
@@ -686,7 +686,7 @@ function makeSQLiteStorePerNs(
         queryRaw: (query) =>
           s.all.pipe(
             Effect.map(query.memory),
-            withDbSpan({
+            annotateDb({
               operation: "queryRaw",
               system: "sqlite",
               collection: tableName,

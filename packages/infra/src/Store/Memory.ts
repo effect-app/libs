@@ -4,7 +4,7 @@ import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order
 import { NonEmptyString255 } from "effect-app/Schema"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
-import { withDbSpan } from "../otel.js"
+import { annotateDb } from "../otel.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
 import { makeUpdateETag } from "./utils.js"
@@ -163,7 +163,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           .pipe(
             // Effect.tap(() => logQuery(query, defaultValues)),
             Effect.map(query.memory),
-            withDbSpan({
+            annotateDb({
               operation: "queryRaw",
               system: "memory",
               collection: modelName,
@@ -172,7 +172,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
             })
           ),
 
-      all: all.pipe(withDbSpan({
+      all: all.pipe(annotateDb({
         operation: "all",
         system: "memory",
         collection: modelName,
@@ -184,7 +184,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           .get(store)
           .pipe(
             Effect.map((_) => Option.fromNullishOr(_.get(id))),
-            withDbSpan({
+            annotateDb({
               operation: "find",
               system: "memory",
               collection: modelName,
@@ -198,7 +198,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
           .pipe(
             Effect.tap(() => logQuery(f, defaultValues)),
             Effect.map(memFilter(f)),
-            withDbSpan({
+            annotateDb({
               operation: "filter",
               system: "memory",
               collection: modelName,
@@ -219,7 +219,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
                 )
               ),
             withPermit,
-            withDbSpan({
+            annotateDb({
               operation: "set",
               system: "memory",
               collection: modelName,
@@ -237,7 +237,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               Effect.filterOrFail((_) => _.length <= 100, () => "BatchRemove: a batch may not exceed 100 items"),
               Effect.orDie,
               Effect.andThen(batchRemove),
-              withDbSpan({
+              annotateDb({
                 operation: "batchRemove",
                 system: "memory",
                 collection: modelName,
@@ -255,7 +255,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
               Effect.filterOrFail((_) => _.length <= 100, () => "BatchSet: a batch may not exceed 100 items"),
               Effect.orDie,
               Effect.andThen(batchSet),
-              withDbSpan({
+              annotateDb({
                 operation: "batchSet",
                 system: "memory",
                 collection: modelName,
@@ -267,7 +267,7 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
       bulkSet: flow(
         batchSet,
         (_) =>
-          _.pipe(withDbSpan({
+          _.pipe(annotateDb({
             operation: "bulkSet",
             system: "memory",
             collection: modelName,

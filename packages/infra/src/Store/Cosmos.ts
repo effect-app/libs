@@ -8,7 +8,7 @@ import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import { type RawQuery } from "../Model/query.js"
-import { annotateCosmosResponse, withDbSpan } from "../otel.js"
+import { annotateCosmosResponse, annotateDb } from "../otel.js"
 import { buildWhereCosmosQuery3, logQuery } from "./Cosmos/query.js"
 import { storeId } from "./Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -140,7 +140,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               )
             }),
             Effect.withLogSpan(`Cosmos.seedCheck ${name} in ${ns} [effect-app/infra/Store]`),
-            withDbSpan({
+            annotateDb({
               operation: "seed",
               system: "cosmosdb",
               collection: containerId,
@@ -260,7 +260,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
             return batchResult.flat() as unknown as NonEmptyReadonlyArray<Encoded>
           })
           .pipe(
-            withDbSpan({
+            annotateDb({
               operation: "bulkSet",
               system: "cosmosdb",
               collection: containerId,
@@ -334,7 +334,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     })) as unknown as NonEmptyReadonlyArray<Encoded>
                   })))
               })
-              .pipe(withDbSpan({
+              .pipe(annotateDb({
                 operation: "batchSet",
                 system: "cosmosdb",
                 collection: containerId,
@@ -364,7 +364,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                     )
                   })
                   .pipe(
-                    withDbSpan({
+                    annotateDb({
                       operation: "queryRaw",
                       system: "cosmosdb",
                       collection: containerId,
@@ -392,7 +392,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                 )
               )
               .pipe(
-                withDbSpan({
+                annotateDb({
                   operation: "batchRemove",
                   system: "cosmosdb",
                   collection: containerId,
@@ -421,7 +421,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   return response.resources.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
                 })
                 .pipe(
-                  withDbSpan({
+                  annotateDb({
                     operation: "all",
                     system: "cosmosdb",
                     collection: containerId,
@@ -486,7 +486,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                       return response.resources.map(({ f }) => ({ ...defaultValues, ...mapReverseId(f as any) }) as any)
                     })
                     .pipe(
-                      withDbSpan({
+                      annotateDb({
                         operation: "filter",
                         system: "cosmosdb",
                         collection: containerId,
@@ -512,7 +512,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   Option.map((_) => ({ ...defaultValues, ...mapReverseId(_) }))
                 )
               })
-              .pipe(withDbSpan({
+              .pipe(annotateDb({
                 operation: "find",
                 system: "cosmosdb",
                 collection: containerId,
@@ -572,7 +572,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                       _etag: x.etag
                     }))
                   }),
-                withDbSpan({
+                annotateDb({
                   operation: "set",
                   system: "cosmosdb",
                   collection: containerId,

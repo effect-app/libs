@@ -5,7 +5,7 @@ import fs from "fs"
 
 import { Console, Effect, flow, Semaphore } from "effect-app"
 import type { FieldValues } from "../Model/filter/types.js"
-import { withDbSpan } from "../otel.js"
+import { annotateDb } from "../otel.js"
 import { makeMemoryStoreInt, storeId } from "./Memory.js"
 import { type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
 
@@ -32,7 +32,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
       get: fu
         .readTextFile(file)
         .pipe(
-          withDbSpan({
+          annotateDb({
             operation: "read.readFile",
             system: "disk",
             collection: name,
@@ -42,7 +42,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
           }),
           Effect.flatMap((x) =>
             Effect.sync(() => JSON.parse(x) as PM[]).pipe(
-              withDbSpan({
+              annotateDb({
                 operation: "read.parse",
                 system: "disk",
                 collection: name,
@@ -53,7 +53,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
             )
           ),
           Effect.orDie,
-          withDbSpan({
+          annotateDb({
             operation: "read",
             system: "disk",
             collection: name,
@@ -66,7 +66,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
         Effect
           .sync(() => JSON.stringify([...v], undefined, 2))
           .pipe(
-            withDbSpan({
+            annotateDb({
               operation: "stringify",
               system: "disk",
               collection: name,
@@ -79,7 +79,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
                 (json) =>
                   fu
                     .writeTextFile(file, json)
-                    .pipe(withDbSpan({
+                    .pipe(annotateDb({
                       operation: "write.writeFile",
                       system: "disk",
                       collection: name,
@@ -88,7 +88,7 @@ function makeDiskStoreInt<IdKey extends keyof Encoded, Encoded extends FieldValu
                       extra: { ...fileExtra, "disk.file.size": json.length }
                     }))
               ),
-            withDbSpan({
+            annotateDb({
               operation: "write",
               system: "disk",
               collection: name,

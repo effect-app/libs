@@ -371,6 +371,10 @@
       "types": "./dist/logger/shared.d.ts",
       "default": "./dist/logger/shared.js"
     },
+    "./otel": {
+      "types": "./dist/otel.d.ts",
+      "default": "./dist/otel.js"
+    },
     "./rateLimit": {
       "types": "./dist/rateLimit.d.ts",
       "default": "./dist/rateLimit.js"

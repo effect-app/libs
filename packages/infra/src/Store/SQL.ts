@@ -364,11 +364,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
             resolveNamespace.pipe(
               Effect.flatMap((ns): Effect.Effect<readonly Out[]> => {
-                const sqlRaw = query.sqlite?.({ name, tableName, namespace: ns }) ?? query.pg?.({
-                  name,
-                  tableName,
-                  namespace: ns
-                })
+                const sqlRaw = system === "sqlite"
+                  ? query.sqlite?.({ name, tableName, namespace: ns })
+                  : query.pg?.({ name, tableName, namespace: ns })
                 if (sqlRaw) {
                   return exec(sqlRaw.query, sqlRaw.parameters).pipe(
                     Effect.map((rows): readonly Out[] =>
@@ -402,7 +400,11 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                   )
                 }
                 return Effect.die(
-                  new Error("Repository.queryRaw requires `sqlite`, `pg`, or `memory` for SQL store")
+                  new Error(
+                    `Repository.queryRaw requires \`${
+                      system === "sqlite" ? "sqlite" : "pg"
+                    }\` or \`memory\` for SQL store`
+                  )
                 )
               })
             )
@@ -722,11 +724,7 @@ function makeSQLiteStorePerNs(
         queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
           resolveNamespace.pipe(
             Effect.flatMap((ns): Effect.Effect<readonly Out[]> => {
-              const sqlRaw = query.sqlite?.({ name, tableName, namespace: ns }) ?? query.pg?.({
-                name,
-                tableName,
-                namespace: ns
-              })
+              const sqlRaw = query.sqlite?.({ name, tableName, namespace: ns })
               if (sqlRaw) {
                 return exec(ns, sqlRaw.query, sqlRaw.parameters).pipe(
                   Effect.map((rows): readonly Out[] =>
@@ -760,7 +758,7 @@ function makeSQLiteStorePerNs(
                 )
               }
               return Effect.die(
-                new Error("Repository.queryRaw requires `sqlite`, `pg`, or `memory` for SQLite store")
+                new Error("Repository.queryRaw requires `sqlite` or `memory` for SQLite store")
               )
             })
           )

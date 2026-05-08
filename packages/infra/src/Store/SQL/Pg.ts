@@ -330,11 +330,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
           resolveNamespace.pipe(
             Effect.flatMap((ns): Effect.Effect<readonly Out[]> => {
-              const sqlRaw = query.pg?.({ name, tableName, namespace: ns }) ?? query.sqlite?.({
-                name,
-                tableName,
-                namespace: ns
-              })
+              const sqlRaw = query.pg?.({ name, tableName, namespace: ns })
               if (sqlRaw) {
                 return exec(sqlRaw.query, sqlRaw.parameters).pipe(
                   Effect.map((rows): readonly Out[] =>
@@ -365,7 +361,7 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                 )
               }
               return Effect.die(
-                new Error("Repository.queryRaw requires `pg`, `sqlite`, or `memory` for PostgreSQL store")
+                new Error("Repository.queryRaw requires `pg` or `memory` for PostgreSQL store")
               )
             })
           )

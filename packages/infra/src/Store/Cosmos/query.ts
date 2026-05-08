@@ -4,7 +4,7 @@ import { Array, Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
-import type { ComputedProjectionIrExpression } from "../../Model/query.js"
+import type { ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 import type { SupportedValues } from "../service.js"
 
@@ -295,6 +295,23 @@ export function buildWhereCosmosQuery3(
     const relationPath = computed.path
     const relationAlias = relationPath
     const relationSource = dottedToAccess(`f.${relationPath}`)
+    const compileExpr = (expression: ComputedProjectionMathIrExpression): string => {
+      switch (expression._tag) {
+        case "field":
+          return dottedToAccess(`${relationAlias}.${expression.field}`)
+        case "mul":
+          return `(${compileExpr(expression.left)} * ${compileExpr(expression.right)})`
+        default:
+          return assertUnreachable(expression)
+      }
+    }
+    const factorExpr = (unitExpr: string, toBase: string, factors: Readonly<Record<string, number>>) => {
+      const entries = Object.entries(factors).filter(([, factor]) => Number.isFinite(factor))
+      return entries.reduceRight<string>(
+        (acc, [unit, factor]) => `IIF(${unitExpr} = ${JSON.stringify(unit)}, ${factor}, ${acc})`,
+        `IIF(${unitExpr} = ${JSON.stringify(toBase)}, 1, 0)`
+      )
+    }
     const where = computed.filter.length > 0
       ? ` WHERE ${print(computed.filter, relationPath, false)}`
       : ""
@@ -318,6 +335,21 @@ export function buildWhereCosmosQuery3(
       case "relation-sum": {
         const fieldRef = dottedToAccess(`${relationAlias}.${computed.field}`)
         return `(SELECT VALUE SUM(${fieldRef}) FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+      }
+      case "relation-sum-expr": {
+        const expression = compileExpr(computed.expression)
+        return `(SELECT VALUE SUM(${expression}) FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+      }
+      case "relation-sum-expr-by": {
+        const unitRef = dottedToAccess(`${relationAlias}.${computed.unit}`)
+        const expression = compileExpr(computed.expression)
+        return `ARRAY(SELECT VALUE { "unit": ${unitRef}, "total": SUM(${expression}) } FROM ${relationAlias} IN ${relationSource}${where} GROUP BY ${unitRef}) AS ${key}`
+      }
+      case "relation-sum-expr-normalized": {
+        const unitRef = dottedToAccess(`${relationAlias}.${computed.unit}`)
+        const expression = compileExpr(computed.expression)
+        const factor = factorExpr(unitRef, computed.toBase, computed.factors)
+        return `(SELECT VALUE SUM((${expression}) * (${factor})) FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
       }
       case "relation-collect": {
         const fieldRef = dottedToAccess(`${relationAlias}.${computed.field}`)

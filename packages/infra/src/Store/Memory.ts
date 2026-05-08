@@ -6,7 +6,7 @@ import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
-import type { ComputedProjectionIrExpression } from "../Model/query.js"
+import type { ComputedProjectionIrExpression, ComputedProjectionMathIrExpression } from "../Model/query.js"
 import { annotateDb } from "../otel.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -37,7 +37,11 @@ const emptyValueFor = (tag: ComputedProjectionIrExpression["_tag"]) => {
     case "relation-count":
     case "relation-distinct-count":
     case "relation-sum":
+    case "relation-sum-expr":
+    case "relation-sum-expr-normalized":
       return 0
+    case "relation-sum-expr-by":
+      return [] as unknown[]
     case "relation-any":
       return false
     case "relation-every":
@@ -63,6 +67,18 @@ const computeProjectionValue = (
   const matches = filter.length === 0
     ? (_value: unknown) => true
     : (value: unknown) => codeFilter3_(filter, value)
+  const evalExpr = (value: unknown, expression: ComputedProjectionMathIrExpression): number => {
+    switch (expression._tag) {
+      case "field": {
+        const v = get(value, expression.field)
+        return typeof v === "number" ? v : Number(v) || 0
+      }
+      case "mul":
+        return evalExpr(value, expression.left) * evalExpr(value, expression.right)
+      default:
+        return assertUnreachable(expression)
+    }
+  }
   switch (computed._tag) {
     case "relation-count":
       return relation.reduce<number>((acc, value) => matches(value) ? acc + 1 : acc, 0)
@@ -82,6 +98,29 @@ const computeProjectionValue = (
         if (!matches(value)) return acc
         const v = get(value, computed.field)
         return acc + (typeof v === "number" ? v : Number(v) || 0)
+      }, 0)
+    case "relation-sum-expr":
+      return relation.reduce<number>((acc, value) => {
+        if (!matches(value)) return acc
+        return acc + evalExpr(value, computed.expression)
+      }, 0)
+    case "relation-sum-expr-by": {
+      const totals = new Map<unknown, number>()
+      for (const value of relation) {
+        if (!matches(value)) continue
+        const unit = get(value, computed.unit)
+        const current = totals.get(unit) ?? 0
+        totals.set(unit, current + evalExpr(value, computed.expression))
+      }
+      return [...totals.entries()].map(([unit, total]) => ({ unit, total }))
+    }
+    case "relation-sum-expr-normalized":
+      return relation.reduce<number>((acc, value) => {
+        if (!matches(value)) return acc
+        const unit = get(value, computed.unit)
+        const factor = unit === computed.toBase ? 1 : computed.factors[String(unit)]
+        if (factor === undefined || !Number.isFinite(factor)) return acc
+        return acc + evalExpr(value, computed.expression) * factor
       }, 0)
     case "relation-collect": {
       const out: unknown[] = []

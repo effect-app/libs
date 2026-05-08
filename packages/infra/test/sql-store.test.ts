@@ -345,6 +345,90 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.sql).toContain(`AS "totalWeight"`)
   })
 
+  it("computed relation-sum-expr projection (sqlite)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalWeighted",
+        computed: {
+          _tag: "relation-sum-expr",
+          path: "items",
+          expression: {
+            _tag: "mul",
+            left: { _tag: "field", field: "weight" },
+            right: { _tag: "field", field: "tradeUnit.amount" }
+          },
+          filter: []
+        }
+      }]
+    )
+    expect(result.sql).toContain(
+      `COALESCE(SUM((CAST(json_extract(_items.value, '$.weight') AS REAL) * CAST(json_extract(_items.value, '$.tradeUnit.amount') AS REAL))), 0)`
+    )
+    expect(result.sql).toContain(`AS "totalWeighted"`)
+  })
+
+  it("computed relation-sum-expr-by projection (sqlite)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalsByUnit",
+        computed: {
+          _tag: "relation-sum-expr-by",
+          path: "items",
+          expression: {
+            _tag: "mul",
+            left: { _tag: "field", field: "weight" },
+            right: { _tag: "field", field: "tradeUnit.amount" }
+          },
+          unit: "tradeUnit.unit",
+          filter: []
+        }
+      }]
+    )
+    expect(result.sql).toContain(`json_group_array(json_object('unit', __unit, 'total', __total))`)
+    expect(result.sql).toContain(`GROUP BY json_extract(_items.value, '$.tradeUnit.unit')`)
+    expect(result.sql).toContain(`AS "totalsByUnit"`)
+  })
+
+  it("computed relation-sum-expr-normalized projection (sqlite)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalKg",
+        computed: {
+          _tag: "relation-sum-expr-normalized",
+          path: "items",
+          expression: {
+            _tag: "mul",
+            left: { _tag: "field", field: "weight" },
+            right: { _tag: "field", field: "tradeUnit.amount" }
+          },
+          unit: "tradeUnit.unit",
+          toBase: "kg",
+          factors: { g: 0.001 },
+          filter: []
+        }
+      }]
+    )
+    expect(result.sql).toContain(
+      `CASE json_extract(_items.value, '$.tradeUnit.unit') WHEN 'kg' THEN 1 WHEN 'g' THEN 0.001 ELSE NULL END`
+    )
+    expect(result.sql).toContain(`AS "totalKg"`)
+  })
+
   it("computed relation-collect (non-distinct) projection (sqlite)", () => {
     const result = buildWhereSQLQuery(
       sqliteDialect,
@@ -513,6 +597,88 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
     )
     expect(result.sql).toContain(`COALESCE(SUM((_items->>'weight')::numeric), 0)`)
     expect(result.sql).toContain(`AS "totalWeight"`)
+  })
+
+  it("computed relation-sum-expr (pg)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalWeighted",
+        computed: {
+          _tag: "relation-sum-expr",
+          path: "items",
+          expression: {
+            _tag: "mul",
+            left: { _tag: "field", field: "weight" },
+            right: { _tag: "field", field: "tradeUnit.amount" }
+          },
+          filter: []
+        }
+      }]
+    )
+    expect(result.sql).toContain(
+      `COALESCE(SUM(((_items->>'weight')::numeric * (_items->'tradeUnit'->>'amount')::numeric)), 0)`
+    )
+    expect(result.sql).toContain(`AS "totalWeighted"`)
+  })
+
+  it("computed relation-sum-expr-by (pg)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalsByUnit",
+        computed: {
+          _tag: "relation-sum-expr-by",
+          path: "items",
+          expression: {
+            _tag: "mul",
+            left: { _tag: "field", field: "weight" },
+            right: { _tag: "field", field: "tradeUnit.amount" }
+          },
+          unit: "tradeUnit.unit",
+          filter: []
+        }
+      }]
+    )
+    expect(result.sql).toContain(`jsonb_agg(jsonb_build_object('unit', __unit, 'total', __total))`)
+    expect(result.sql).toContain(`GROUP BY _items->'tradeUnit'->>'unit'`)
+    expect(result.sql).toContain(`AS "totalsByUnit"`)
+  })
+
+  it("computed relation-sum-expr-normalized (pg)", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "totalKg",
+        computed: {
+          _tag: "relation-sum-expr-normalized",
+          path: "items",
+          expression: {
+            _tag: "mul",
+            left: { _tag: "field", field: "weight" },
+            right: { _tag: "field", field: "tradeUnit.amount" }
+          },
+          unit: "tradeUnit.unit",
+          toBase: "kg",
+          factors: { g: 0.001 },
+          filter: []
+        }
+      }]
+    )
+    expect(result.sql).toContain(`CASE _items->'tradeUnit'->>'unit' WHEN 'kg' THEN 1 WHEN 'g' THEN 0.001 ELSE NULL END`)
+    expect(result.sql).toContain(`AS "totalKg"`)
   })
 
   it("computed relation-collect (pg jsonb_agg)", () => {

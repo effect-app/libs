@@ -100,6 +100,17 @@ export type QueryProjection<
 
 export type ComputedProjectionOperation = (q: Query<any>) => QueryWhere<any, any, any>
 
+export type ComputedProjectionMathExpression =
+  | {
+    readonly _tag: "field"
+    readonly field: string
+  }
+  | {
+    readonly _tag: "mul"
+    readonly left: ComputedProjectionMathExpression
+    readonly right: ComputedProjectionMathExpression
+  }
+
 export type ComputedProjectionExpression =
   | {
     readonly _tag: "relation-count"
@@ -126,6 +137,28 @@ export type ComputedProjectionExpression =
     readonly _tag: "relation-sum"
     readonly path: string
     readonly field: string
+    readonly operation?: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "relation-sum-expr"
+    readonly path: string
+    readonly expression: ComputedProjectionMathExpression
+    readonly operation?: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "relation-sum-expr-by"
+    readonly path: string
+    readonly expression: ComputedProjectionMathExpression
+    readonly unit: string
+    readonly operation?: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "relation-sum-expr-normalized"
+    readonly path: string
+    readonly expression: ComputedProjectionMathExpression
+    readonly unit: string
+    readonly toBase: string
+    readonly factors: Readonly<Record<string, number>>
     readonly operation?: ComputedProjectionOperation
   }
   | {
@@ -482,6 +515,64 @@ export const relation = <TFieldValues extends FieldValues>(
         path: path as string,
         field
       },
+  sumExpr: (
+    expression: ComputedProjectionMathExpression,
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-sum-expr",
+        path: path as string,
+        expression,
+        operation
+      }
+      : {
+        _tag: "relation-sum-expr",
+        path: path as string,
+        expression
+      },
+  sumExprBy: (
+    expression: ComputedProjectionMathExpression,
+    options: { unit: string },
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-sum-expr-by",
+        path: path as string,
+        expression,
+        unit: options.unit,
+        operation
+      }
+      : {
+        _tag: "relation-sum-expr-by",
+        path: path as string,
+        expression,
+        unit: options.unit
+      },
+  sumExprNormalized: (
+    expression: ComputedProjectionMathExpression,
+    options: { unit: string; toBase: string; factors: Readonly<Record<string, number>> },
+    operation?: ComputedProjectionOperation
+  ): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-sum-expr-normalized",
+        path: path as string,
+        expression,
+        unit: options.unit,
+        toBase: options.toBase,
+        factors: options.factors,
+        operation
+      }
+      : {
+        _tag: "relation-sum-expr-normalized",
+        path: path as string,
+        expression,
+        unit: options.unit,
+        toBase: options.toBase,
+        factors: options.factors
+      },
   collect: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
     operation
       ? {
@@ -513,6 +604,14 @@ export const relation = <TFieldValues extends FieldValues>(
         distinct: true
       }
 })
+
+export const expr = {
+  field: (field: string): ComputedProjectionMathExpression => ({ _tag: "field", field }),
+  mul: (
+    left: ComputedProjectionMathExpression,
+    right: ComputedProjectionMathExpression
+  ): ComputedProjectionMathExpression => ({ _tag: "mul", left, right })
+} as const
 
 export const computed = <T extends ComputedProjectionMap>(value: T): T => value
 

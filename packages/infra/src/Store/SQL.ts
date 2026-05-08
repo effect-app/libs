@@ -7,6 +7,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import type { RawQuery } from "../Model/query.js"
 import { annotateDb, type DbSystem } from "../otel.js"
 import { storeId } from "./Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -360,9 +361,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
             }))
           },
 
-          queryRaw: (query) =>
+          queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
             resolveNamespace.pipe(
-              Effect.flatMap((ns) => {
+              Effect.flatMap((ns): Effect.Effect<readonly Out[]> => {
                 const sqlRaw = query.sqlite?.({ name, tableName, namespace: ns }) ?? query.pg?.({
                   name,
                   tableName,
@@ -370,7 +371,14 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                 })
                 if (sqlRaw) {
                   return exec(sqlRaw.query, sqlRaw.parameters).pipe(
-                    Effect.map((rows) => (rows as any[]).map((row) => ({ ...defaultValues, ...parseSelectRow(row, idKey })))),
+                    Effect.map((rows): readonly Out[] =>
+                      (rows as readonly Record<string, unknown>[]).map((row) =>
+                        ({
+                          ...defaultValues,
+                          ...parseSelectRow(row, idKey)
+                        }) as Out
+                      )
+                    ),
                     annotateDb({
                       operation: "queryRaw",
                       system,
@@ -711,9 +719,9 @@ function makeSQLiteStorePerNs(
           }))
         },
 
-        queryRaw: (query) =>
+        queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
           resolveNamespace.pipe(
-            Effect.flatMap((ns) => {
+            Effect.flatMap((ns): Effect.Effect<readonly Out[]> => {
               const sqlRaw = query.sqlite?.({ name, tableName, namespace: ns }) ?? query.pg?.({
                 name,
                 tableName,
@@ -721,7 +729,14 @@ function makeSQLiteStorePerNs(
               })
               if (sqlRaw) {
                 return exec(ns, sqlRaw.query, sqlRaw.parameters).pipe(
-                  Effect.map((rows) => (rows as any[]).map((row) => ({ ...defaultValues, ...parseSelectRow(row, idKey })))),
+                  Effect.map((rows): readonly Out[] =>
+                    (rows as readonly Record<string, unknown>[]).map((row) =>
+                      ({
+                        ...defaultValues,
+                        ...parseSelectRow(row, idKey)
+                      }) as Out
+                    )
+                  ),
                   annotateDb({
                     operation: "queryRaw",
                     system: "sqlite",

@@ -6,6 +6,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../../errors.js"
 import { InfraLogger } from "../../logger.js"
 import type { FieldValues } from "../../Model/filter/types.js"
+import type { RawQuery } from "../../Model/query.js"
 import { annotateDb } from "../../otel.js"
 import { storeId } from "../Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
@@ -326,9 +327,9 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           }))
         },
 
-        queryRaw: (query) =>
+        queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
           resolveNamespace.pipe(
-            Effect.flatMap((ns) => {
+            Effect.flatMap((ns): Effect.Effect<readonly Out[]> => {
               const sqlRaw = query.pg?.({ name, tableName, namespace: ns }) ?? query.sqlite?.({
                 name,
                 tableName,
@@ -336,8 +337,10 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
               })
               if (sqlRaw) {
                 return exec(sqlRaw.query, sqlRaw.parameters).pipe(
-                  Effect.map((rows) =>
-                    (rows as any[]).map((row) => parseSelectRow(row as Record<string, unknown>, idKey, defaultValues as any))
+                  Effect.map((rows): readonly Out[] =>
+                    (rows as readonly Record<string, unknown>[]).map((row) =>
+                      parseSelectRow(row, idKey, defaultValues as Record<string, unknown>) as Out
+                    )
                   ),
                   annotateDb({
                     operation: "queryRaw",

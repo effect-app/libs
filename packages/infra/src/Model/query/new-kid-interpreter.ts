@@ -187,7 +187,7 @@ export const toFilter = <
   TFieldValuesRefined extends TFieldValues = TFieldValues
 >(
   q: QAll<TFieldValues, TFieldValuesRefined, A, R>,
-  baseSchema?: S.Schema<any>
+  baseSchema?: S.Schema<unknown>
 ) => {
   // TODO: Native interpreter for each db adapter, instead of the intermediate "new-kid" format
   const a = interpret(q)
@@ -249,9 +249,10 @@ export const toFilter = <
     const encodedKeys = encoded.propertySignatures.map((_) => _.name as string)
     return schemaKeys.filter((key) => !encodedKeys.includes(key))
   })()
+  const missingComputedKeys = nonEncodedSchemaKeys.filter((key) => !(computed && key in computed))
 
-  if (!computed && Array.isArrayNonEmpty(nonEncodedSchemaKeys)) {
-    throw new Error(`Missing computed projections for schema keys: ${nonEncodedSchemaKeys.join(", ")}`)
+  if (Array.isArrayNonEmpty(missingComputedKeys)) {
+    throw new Error(`Missing computed projections for schema keys: ${missingComputedKeys.join(", ")}`)
   }
 
   if (computed) {
@@ -259,12 +260,6 @@ export const toFilter = <
     const extraComputedKeys = computedKeys.filter((key) => !schemaKeys.includes(key))
     if (Array.isArrayNonEmpty(extraComputedKeys)) {
       throw new Error(`Computed projection keys must exist in projection schema: ${extraComputedKeys.join(", ")}`)
-    }
-    if (Array.isArrayNonEmpty(nonEncodedSchemaKeys)) {
-      const missingComputedKeys = nonEncodedSchemaKeys.filter((key) => !(key in computed))
-      if (Array.isArrayNonEmpty(missingComputedKeys)) {
-        throw new Error(`Missing computed projections for schema keys: ${missingComputedKeys.join(", ")}`)
-      }
     }
     select = select.filter((_) => {
       const key = getSelectKey(_)

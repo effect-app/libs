@@ -365,12 +365,13 @@ describe("computed projections", () => {
         pickedCount: S.NonNegativeInt,
         hasPicked: S.Boolean
       })
+      const pickedFilter = where("value", "gt", 20)
       const items = yield* repo.query(
         projectComputed(
           output,
           computed({
-            pickedCount: relation<S.Codec.Encoded<typeof Something>>("items").count(where("value", "gt", 20)),
-            hasPicked: relation<S.Codec.Encoded<typeof Something>>("items").any(where("value", "gt", 20))
+            pickedCount: relation<S.Codec.Encoded<typeof Something>>("items").count(pickedFilter),
+            hasPicked: relation<S.Codec.Encoded<typeof Something>>("items").any(pickedFilter)
           })
         )
       )

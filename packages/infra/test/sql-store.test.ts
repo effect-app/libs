@@ -241,13 +241,13 @@ describe("SQL query builder (SQLite dialect)", () => {
         computed: {
           _tag: "relation-count",
           path: "items",
-          filter: [{ t: "where", path: "items.-1.value", op: "gt", value: 20 as any }]
+          filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
         }
       }]
     )
     expect(result.sql).toContain(`SELECT COUNT(1) FROM json_each(data, '$.items') AS _items`)
     expect(result.sql).toContain(`AS "pickedCount"`)
-    expect(result.params).toContain(20)
+    expect(result.params).toContain("%picked%")
   })
 
   it("computed relation any projection (sqlite bool encoding)", () => {
@@ -262,7 +262,7 @@ describe("SQL query builder (SQLite dialect)", () => {
         computed: {
           _tag: "relation-any",
           path: "items",
-          filter: [{ t: "where", path: "items.-1.value", op: "gt", value: 20 as any }]
+          filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
         }
       }]
     )
@@ -345,7 +345,7 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
         computed: {
           _tag: "relation-any",
           path: "items",
-          filter: [{ t: "where", path: "items.-1.value", op: "gt", value: 20 as any }]
+          filter: [{ t: "where", path: "items.-1.description", op: "contains", value: "picked" }]
         }
       }]
     )

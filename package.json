@@ -1,7 +1,9 @@
 {
   "private": true,
   "pnpm": {
-    "onlyBuiltDependencies": ["better-sqlite3"],
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ],
     "patchedDependencies": {
       "ts-plugin-sort-import-suggestions": "patches/ts-plugin-sort-import-suggestions.patch",
       "@tanstack/query-core": "patches/@tanstack__query-core.patch",
@@ -67,10 +69,10 @@
     "@tsconfig/strictest": "^2.0.8",
     "@types/lodash": "^4.17.24",
     "@types/node": "25.6.0",
-    "@typescript/native-preview": "beta",
     "@typescript-eslint/eslint-plugin": "8.59.2",
     "@typescript-eslint/parser": "8.59.2",
     "@typescript-eslint/scope-manager": "8.59.2",
+    "@typescript/native-preview": "beta",
     "@vue/eslint-config-typescript": "^14.7.0",
     "concurrently": "^9.2.1",
     "dprint": "^0.54.0",

@@ -1,5 +1,12 @@
 # @effect-app/infra
 
+## 4.0.0-beta.216
+
+### Patch Changes
+
+- f28fce5: fix sqlite
+  - effect-app@4.0.0-beta.216
+
 ## 4.0.0-beta.215
 
 ### Patch Changes

@@ -6,6 +6,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../../errors.js"
 import { InfraLogger } from "../../logger.js"
 import type { FieldValues } from "../../Model/filter/types.js"
+import type { RawQuery } from "../../Model/query.js"
 import { annotateDb } from "../../otel.js"
 import { storeId } from "../Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
@@ -326,14 +327,42 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           }))
         },
 
-        queryRaw: (query) =>
-          s.all.pipe(
-            Effect.map(query.memory),
-            annotateDb({
-              operation: "queryRaw",
-              system: "postgresql",
-              collection: tableName,
-              entity: name
+        queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
+          resolveNamespace.pipe(
+            Effect.flatMap((ns): Effect.Effect<readonly Out[]> => {
+              const sqlRaw = query.pg?.({ name, tableName, namespace: ns })
+              if (sqlRaw) {
+                return exec(sqlRaw.query, sqlRaw.parameters).pipe(
+                  Effect.map((rows): readonly Out[] =>
+                    (rows as readonly Record<string, unknown>[]).map((row) =>
+                      parseSelectRow(row, idKey, defaultValues as Record<string, unknown>) as Out
+                    )
+                  ),
+                  annotateDb({
+                    operation: "queryRaw",
+                    system: "postgresql",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlRaw.query
+                  })
+                )
+              }
+              if (query.memory) {
+                return s.all.pipe(
+                  Effect.map(query.memory),
+                  annotateDb({
+                    operation: "queryRaw",
+                    system: "postgresql",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name
+                  })
+                )
+              }
+              return Effect.die(
+                new Error("Repository.queryRaw requires `pg` or `memory` for PostgreSQL store")
+              )
             })
           )
       }

@@ -299,6 +299,35 @@ export const count: {
   ): QueryProjection<ExtractFieldValuesRefined<Q>, NonNegativeInt, never, "count", ExtractExclusiveness<Q>>
 } = (current) => new Count({ current })
 
+/**
+ * Attach a projection schema to a query.
+ *
+ * The `select` clause sent to the store is derived from the schema's encoded
+ * AST property names (top-level + per-array sub-keys), so a projection always
+ * narrows what is read from the store. The repository augments that select
+ * with `id` and `_etag` for change tracking. See {@link toFilter} and the
+ * dispatch in `Repository/internal/internal.ts`.
+ *
+ * Modes — pick based on shape of the decoded value and on whether the
+ * persistence-model (PM) reverse-mapping is needed:
+ *
+ * - `"transform"` (default when `mode` omitted): goes through the repo's
+ *   `parseMany`/`parseMany2` pipeline. The raw row is reverse-mapped via the
+ *   etag/PM cache (re-injecting `_etag` and any PM-shape state) before
+ *   decoding. Decode failures `orDie` (error channel = `never`). Use when
+ *   the schema operates on the full PM shape (e.g. full-entity reads that
+ *   must preserve etag tracking).
+ *
+ * - `"project"`: decodes the raw encoded row directly with the supplied
+ *   schema. No PM reverse-mapping, no etag cache merge. Decode failures
+ *   surface as `S.SchemaError`. Use for slim DTOs / aggregations that do not
+ *   need etag tracking and whose schema input is a plain subset of `Encoded`.
+ *
+ * - `"collect"`: like `"project"`, but the schema yields `Option<A>` and
+ *   `None` values are dropped post-decode (`Array.getSomes`). Use to filter
+ *   rows during decode (e.g. discriminated-union narrowing where some rows
+ *   should not appear in the result).
+ */
 export const project: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,

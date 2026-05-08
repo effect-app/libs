@@ -315,6 +315,10 @@ export function makeRepoInternal<
             ): Effect.Effect<readonly A[], never, Exclude<R, RCtx>>
           } = (<A, R, EncodedRefined extends Encoded = Encoded>(q: Q.QAll<Encoded, EncodedRefined, A, R>) => {
             const a = Q.toFilter(q)
+            // Mode dispatch — see `Q.project` JSDoc for the contract:
+            //   project  : decode raw encoded rows with schema; no PM reverse-mapping; SchemaError surfaces.
+            //   collect  : same as project, but schema yields Option and None rows are dropped.
+            //   transform: PM reverse-map (re-inject _etag/PM state from cms cache) then decode; orDie.
             const eff = a.mode === "project"
               ? filter(a)
                 // TODO: mapFrom but need to support per field and dependencies

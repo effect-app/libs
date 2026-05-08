@@ -1,3 +1,4 @@
+import { SqliteClient } from "@effect/sql-sqlite-node"
 import { describe, expect, it } from "@effect/vitest"
 import { Array, Config, Context, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S, Struct } from "effect-app"
 import { LogLevels } from "effect-app/utils"
@@ -5,7 +6,6 @@ import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
 import { and, computed, or, project, projectComputed, relation, where, whereEvery, whereSome } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
 import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
-import { SqliteClient } from "@effect/sql-sqlite-node"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
 import { MemoryStoreLive } from "../src/Store/Memory.js"
 import { SQLiteStoreLayer } from "../src/Store/SQL.js"
@@ -596,11 +596,9 @@ describe("scanner-style AllPickList computed projections", () => {
     })
     .pipe(setupRequestContextFromCurrent())
 
-  it("works well in Memory", () =>
-    test.pipe(Effect.provide(OrderRepo.Test), rt.runPromise))
+  it("works well in Memory", () => test.pipe(Effect.provide(OrderRepo.Test), rt.runPromise))
 
-  it("works well in SQLite", () =>
-    test.pipe(Effect.provide(OrderRepo.TestSqlite), rt.runPromise))
+  it("works well in SQLite", () => test.pipe(Effect.provide(OrderRepo.TestSqlite), rt.runPromise))
 })
 
 // Same but mimics the FULL controller projection: includes `items` array
@@ -647,11 +645,9 @@ describe("scanner-style AllPickList — items + computed combined", () => {
     })
     .pipe(setupRequestContextFromCurrent())
 
-  it("works well in Memory", () =>
-    test.pipe(Effect.provide(OrderRepo.Test), rt.runPromise))
+  it("works well in Memory", () => test.pipe(Effect.provide(OrderRepo.Test), rt.runPromise))
 
-  it("works well in SQLite", () =>
-    test.pipe(Effect.provide(OrderRepo.TestSqlite), rt.runPromise))
+  it("works well in SQLite", () => test.pipe(Effect.provide(OrderRepo.TestSqlite), rt.runPromise))
 })
 
 describe("removeByIds", () => {

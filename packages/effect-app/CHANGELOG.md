@@ -1,5 +1,11 @@
 # @effect-app/prelude
 
+## 4.0.0-beta.217
+
+### Patch Changes
+
+- 0e824ef: add missing Brand
+
 ## 4.0.0-beta.216
 
 ## 4.0.0-beta.215

@@ -1,5 +1,13 @@
 # @effect-app/infra
 
+## 4.0.0-beta.217
+
+### Patch Changes
+
+- e3ceaba: Add computed projection expression sums with grouped and normalized variants for projectComputed relation aggregations.
+- Updated dependencies [0e824ef]
+  - effect-app@4.0.0-beta.217
+
 ## 4.0.0-beta.216
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @effect-app/infra
 
+## 4.0.0-beta.218
+
+### Minor Changes
+
+- 95995d5: Add `collectFields`/`collectDistinctFields` to `relation()` DSL for collecting values from multiple fields of relation items into a single flattened array.
+
+  Example: given `T = { a: boolean, items: { x: string, y: string, z: number }[] }[]`, you can now collect all distinct `x` and `y` values into a single `string[]`:
+
+  ```ts
+  relation("items").collectDistinctFields(["x", "y"]);
+  ```
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.218
+
 ## 4.0.0-beta.217
 
 ### Patch Changes

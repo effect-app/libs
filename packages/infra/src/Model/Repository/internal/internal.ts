@@ -314,7 +314,7 @@ export function makeRepoInternal<
               q: Q.QAll<NoInfer<Encoded>, NoInfer<EncodedRefined>, A, R>
             ): Effect.Effect<readonly A[], never, Exclude<R, RCtx>>
           } = (<A, R, EncodedRefined extends Encoded = Encoded>(q: Q.QAll<Encoded, EncodedRefined, A, R>) => {
-            const a = Q.toFilter(q)
+            const a = Q.toFilter(q, schema)
             // Mode dispatch — see `Q.project` JSDoc for the contract:
             //   project  : decode raw encoded rows with schema; no PM reverse-mapping; SchemaError surfaces.
             //   collect  : same as project, but schema yields Option and None rows are dropped.

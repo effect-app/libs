@@ -6,7 +6,7 @@ import type { OptimisticConcurrencyException } from "../errors.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import type { FieldPath } from "../Model/filter/types/path/index.js"
-import { type RawQuery } from "../Model/query.js"
+import type { ComputedProjectionIrExpression, RawQuery } from "../Model/query.js"
 
 export interface StoreConfig<E> {
   partitionValue: (e?: E) => string
@@ -61,7 +61,14 @@ export interface O<TFieldValues extends FieldValues> {
 export interface FilterArgs<Encoded extends FieldValues, U extends keyof Encoded = never> {
   t: Encoded
   filter?: Filter | undefined
-  select?: NonEmptyReadonlyArray<U | { key: string; subKeys: readonly string[] }> | undefined
+  select?:
+    | NonEmptyReadonlyArray<
+      U | { key: string; subKeys: readonly string[] } | {
+        key: string
+        computed: ComputedProjectionIrExpression
+      }
+    >
+    | undefined
   order?: NonEmptyReadonlyArray<O<NoInfer<Encoded>>>
   limit?: number | undefined
   skip?: number | undefined

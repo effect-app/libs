@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest"
 import { Array, Config, Context, Effect, flow, Layer, ManagedRuntime, Redacted, References, Result, S } from "effect-app"
 import { LogLevels } from "effect-app/utils"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import { and, or, project, where, whereEvery, whereSome } from "../src/Model/query.js"
+import { and, computed, or, project, projectComputed, relation, where, whereEvery, whereSome } from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository/makeRepo.js"
 import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { CosmosStoreLayer } from "../src/Store/Cosmos.js"
@@ -344,6 +344,41 @@ describe("multi-level", () => {
       )
 
       expect(itemsCheckWithEvery).toStrictEqual([])
+    })
+    .pipe(setupRequestContextFromCurrent())
+
+  it.skipIf(!process.env["STORAGE_URL"])("works well in CosmosDB", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.TestCosmos), rt.runPromise))
+
+  it("works well in Memory", () =>
+    test
+      .pipe(Effect.provide(SomethingRepo.Test), rt.runPromise))
+})
+
+describe("computed projections", () => {
+  const test = Effect
+    .gen(function*() {
+      const repo = yield* SomethingRepo
+      const output = S.Struct({
+        id: S.String,
+        pickedCount: S.NonNegativeInt,
+        hasPicked: S.Boolean
+      })
+      const pickedFilter = where("value", "gt", 20)
+      const items = yield* repo.query(
+        projectComputed(
+          output,
+          computed({
+            pickedCount: relation<S.Codec.Encoded<typeof Something>>("items").count(pickedFilter),
+            hasPicked: relation<S.Codec.Encoded<typeof Something>>("items").any(pickedFilter)
+          })
+        )
+      )
+      expect(items).toStrictEqual([
+        { id: "1", pickedCount: 0, hasPicked: false },
+        { id: "2", pickedCount: 2, hasPicked: true }
+      ])
     })
     .pipe(setupRequestContextFromCurrent())
 

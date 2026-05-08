@@ -6,6 +6,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../../errors.js"
 import { InfraLogger } from "../../logger.js"
 import type { FieldValues } from "../../Model/filter/types.js"
+import type { ComputedProjectionIrExpression } from "../../Model/query.js"
 import { annotateDb } from "../../otel.js"
 import { storeId } from "../Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "../service.js"
@@ -217,7 +218,15 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   tableName,
                   defaultValues,
                   f.select as
-                    | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
+                    | NonEmptyReadonlyArray<
+                      string | {
+                        key: string
+                        subKeys: readonly string[]
+                      } | {
+                        key: string
+                        computed: ComputedProjectionIrExpression
+                      }
+                    >
                     | undefined,
                   f.order,
                   f.skip,

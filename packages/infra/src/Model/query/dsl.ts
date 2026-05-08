@@ -97,6 +97,22 @@ export type QueryProjection<
   R,
   TType
 >
+
+export type ComputedProjectionOperation = (q: Query<any>) => QueryWhere<any, any, any>
+
+export type ComputedProjectionExpression =
+  | {
+    readonly _tag: "relation-count"
+    readonly path: string
+    readonly operation?: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "relation-any"
+    readonly path: string
+    readonly operation?: ComputedProjectionOperation
+  }
+
+export type ComputedProjectionMap = Readonly<Record<string, ComputedProjectionExpression>>
 export type Q<TFieldValues extends FieldValues> =
   | Initial<TFieldValues>
   | Where<TFieldValues>
@@ -211,6 +227,7 @@ export class Project<A, TFieldValues extends FieldValues, R, TType extends "one"
     current: Query<TFieldValues> | QueryWhere<any, TFieldValues> | QueryEnd<TFieldValues, TType>
     schema: S.Codec<A, TFieldValues, R>
     mode: "collect" | "project" | "transform"
+    computed?: ComputedProjectionMap
   }>
   implements QueryProjection<TFieldValues, A, R>
 {
@@ -384,6 +401,66 @@ export const project: {
     current: Q
   ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
 } = (schema: any, mode = "transform") => (current: any) => new Project({ current, schema, mode } as any)
+
+export const relation = <TFieldValues extends FieldValues>(
+  path: FieldPath<TFieldValues>
+) => ({
+  count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-count",
+        path: path as string,
+        operation
+      }
+      : {
+        _tag: "relation-count",
+        path: path as string
+      },
+  any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-any",
+        path: path as string,
+        operation
+      }
+      : {
+        _tag: "relation-any",
+        path: path as string
+      }
+})
+
+export const computed = <T extends ComputedProjectionMap>(value: T): T => value
+
+export const projectComputed: {
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<Option.Option<A>, I, R>,
+    computedProjection: ComputedProjectionMap,
+    mode: "collect"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+
+  <
+    Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
+    I extends Record<string, unknown>,
+    A = ExtractFieldValuesRefined<Q>,
+    R = never,
+    E extends boolean = ExtractExclusiveness<Q>
+  >(
+    schema: S.Codec<A, I, R>,
+    computedProjection: ComputedProjectionMap,
+    mode?: "project"
+  ): (
+    current: Q
+  ) => QueryProjection<ExtractFieldValuesRefined<Q>, A, R, ExtractTType<Q>, E>
+} = (schema: any, computedProjection: ComputedProjectionMap, mode = "project") => (current: any) =>
+  new Project({ current, schema, mode, computed: computedProjection } as any)
 
 type GetArV<T> = T extends readonly (infer R)[] ? R : never
 

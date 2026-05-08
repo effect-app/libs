@@ -6,7 +6,24 @@ import { Context, Effect, flow, Layer, Option, pipe, S, Struct } from "effect-ap
 import { inspect } from "util"
 import { expect, expectTypeOf, it } from "vitest"
 import { setupRequestContextFromCurrent } from "../src/api/setupRequest.js"
-import { and, count, make, one, or, order, page, project, type QueryEnd, type QueryProjection, type QueryWhere, toFilter, where } from "../src/Model/query.js"
+import {
+  and,
+  computed,
+  count,
+  make,
+  one,
+  or,
+  order,
+  page,
+  project,
+  projectComputed,
+  relation,
+  type QueryEnd,
+  type QueryProjection,
+  type QueryWhere,
+  toFilter,
+  where
+} from "../src/Model/query.js"
 import { makeRepo } from "../src/Model/Repository.js"
 import { RepositoryRegistryLive } from "../src/Model/Repository/Registry.js"
 import { memFilter, MemoryStoreLive } from "../src/Store/Memory.js"
@@ -574,6 +591,71 @@ it(
       })
       .pipe(Effect.provide(TestStoreLive), setupRequestContextFromCurrent(), Effect.runPromise)
 )
+
+it("projectComputed sets computed IR and forces project mode", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({
+      state: S.Struct({
+        _tag: S.String
+      })
+    }))
+  })
+  const query = make<S.Schema.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({
+        pickedCount: S.NonNegativeInt
+      }),
+      computed({
+        pickedCount: relation<S.Schema.Encoded<typeof baseSchema>>("items").count(where("state._tag", "Picked"))
+      })
+    )
+  )
+  const interpreted = toFilter(query, baseSchema)
+  expect(interpreted.mode).toBe("project")
+  expect(interpreted.select).toEqual([
+    {
+      key: "pickedCount",
+      computed: {
+        _tag: "relation-count",
+        path: "items",
+        filter: [{ t: "where", path: "items.-1.state._tag", op: "eq", value: "Picked" }]
+      }
+    }
+  ])
+  expect(interpreted.computed?.pickedCount._tag).toBe("relation-count")
+  expect(interpreted.computed?.pickedCount.path).toBe("items")
+  expect(interpreted.computed?.pickedCount.filter).toEqual([
+    { t: "where", path: "items.-1.state._tag", op: "eq", value: "Picked" }
+  ])
+})
+
+it("projectComputed validates extra computed keys", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({ value: S.Number }))
+  })
+  const query = make<S.Schema.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({ id: S.String }),
+      computed({
+        pickedCount: relation<S.Schema.Encoded<typeof baseSchema>>("items").count()
+      })
+    )
+  )
+  expect(() => toFilter(query, baseSchema)).toThrowError("Computed projection keys must exist in projection schema")
+})
+
+it("projection schema with computed fields fails without computed map", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({ value: S.Number }))
+  })
+  const query = make<S.Schema.Encoded<typeof baseSchema>>().pipe(
+    project(S.Struct({ pickedCount: S.NonNegativeInt }), "project")
+  )
+  expect(() => toFilter(query, baseSchema)).toThrowError("Missing computed projections for schema keys")
+})
 
 it(
   "doesn't mess when refining fields",

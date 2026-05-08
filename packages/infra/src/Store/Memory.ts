@@ -3,6 +3,7 @@
 import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
 import { InfraLogger } from "../logger.js"
+import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
 import { annotateDb } from "../otel.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
@@ -14,6 +15,42 @@ export function get(obj: any, path: string): any {
   return path.split(".").reduce((res: any, key: string) => (res != null ? res[key] : res), obj)
 }
 
+const stripRelationFilterPaths = (state: readonly FilterResult[], relationPath: string): readonly FilterResult[] => {
+  const prefix = `${relationPath}.-1.`
+  return state.map((entry) =>
+    "path" in entry
+      ? {
+        ...entry,
+        path: entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : entry.path
+      }
+      : {
+        ...entry,
+        result: stripRelationFilterPaths(entry.result, relationPath)
+      }
+  )
+}
+
+const computeProjectionValue = (
+  row: FieldValues,
+  computed: {
+    readonly _tag: "relation-count" | "relation-any"
+    readonly path: string
+    readonly filter: readonly FilterResult[]
+  }
+) => {
+  const relation = get(row, computed.path)
+  if (!Array.isArray(relation)) {
+    return computed._tag === "relation-count" ? 0 : false
+  }
+  const filter = stripRelationFilterPaths(computed.filter, computed.path)
+  switch (computed._tag) {
+    case "relation-count":
+      return relation.reduce((acc, value) => codeFilter3_(filter, value) ? acc + 1 : acc, 0)
+    case "relation-any":
+      return Array.isArrayNonEmpty(relation) && relation.some((value) => codeFilter3_(filter, value))
+  }
+}
+
 export function memFilter<T extends FieldValues, U extends keyof T = never>(f: FilterArgs<T, U>) {
   type M = U extends undefined ? T : Pick<T, U>
   return ((c: T[]): M[] => {
@@ -21,15 +58,25 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
       const sel = f.select
       if (!sel) return r as M[]
       return r.map((i) => {
-        const [keys, subKeys] = pipe(
+        const [keys, entries] = pipe(
           sel,
-          Array.partition((r) =>
-            typeof r === "string" ? Result.fail(String(r)) : Result.succeed(r as { key: string; subKeys: string[] })
-          )
+          Array.partition((entry) => typeof entry === "string" ? Result.fail(String(entry)) : Result.succeed(entry))
         )
+        const subKeys = entries.filter((entry): entry is { key: string; subKeys: readonly string[] } => "subKeys" in entry)
+        const computedKeys = entries.filter((entry): entry is {
+          key: string
+          computed: {
+            readonly _tag: "relation-count" | "relation-any"
+            readonly path: string
+            readonly filter: readonly FilterResult[]
+          }
+        } => "computed" in entry)
         const n = Struct.pick(i, keys)
         subKeys.forEach((subKey) => {
           n[subKey.key] = i[subKey.key]!.map(Struct.pick(subKey.subKeys as never[]))
+        })
+        computedKeys.forEach((entry) => {
+          n[entry.key] = computeProjectionValue(i, entry.computed)
         })
         return n as M
       })

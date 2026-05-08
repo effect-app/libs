@@ -4,6 +4,7 @@ import { Array, Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult, Ops } from "../../Model/filter/filterApi.js"
+import type { ComputedProjectionIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 import type { SupportedValues } from "../service.js"
 
@@ -40,12 +41,18 @@ export function buildWhereCosmosQuery3(
   filter: readonly FilterResult[],
   name: string,
   defaultValues: Record<string, unknown>,
-  select?: NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>,
+  select?: NonEmptyReadonlyArray<string | {
+    key: string
+    subKeys: readonly string[]
+  } | {
+    key: string
+    computed: ComputedProjectionIrExpression
+  }>,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number
 ) {
-  const statement = (x: FilterR, i: number, values: any[]) => {
+  const statement = (x: FilterR, i: number) => {
     if (x.path === idKey) {
       x = { ...x, path: "id" }
     }
@@ -60,8 +67,6 @@ export function buildWhereCosmosQuery3(
 
     const v = "@v" + i
 
-    const realValue = values[i]
-
     switch (x.op) {
       case "in":
         return `ARRAY_CONTAINS(${v}, ${k})`
@@ -74,14 +79,14 @@ export function buildWhereCosmosQuery3(
         return `(NOT ARRAY_CONTAINS(${k}, ${v}))`
 
       case "includes-any":
-        return `ARRAY_CONTAINS_ANY(${k}, ${(realValue as any[]).map((_, i) => `${v}__${i}`).join(", ")})`
+        return `ARRAY_CONTAINS_ANY(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")})`
       case "notIncludes-any":
-        return `(NOT ARRAY_CONTAINS_ANY(${k}, ${(realValue as any[]).map((_, i) => `${v}__${i}`).join(", ")}))`
+        return `(NOT ARRAY_CONTAINS_ANY(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")}))`
 
       case "includes-all":
-        return `ARRAY_CONTAINS_ALL(${k}, ${(realValue as any[]).map((_, i) => `${v}__${i}`).join(", ")})`
+        return `ARRAY_CONTAINS_ALL(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")})`
       case "notIncludes-all":
-        return `(NOT ARRAY_CONTAINS_ALL(${k}, ${(realValue as any[]).map((_, i) => `${v}__${i}`).join(", ")}))`
+        return `(NOT ARRAY_CONTAINS_ALL(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")}))`
 
       case "contains":
         return `CONTAINS(${k}, ${v}, true)`
@@ -165,7 +170,7 @@ export function buildWhereCosmosQuery3(
         : _
       : _
 
-  const print = (state: readonly FilterResult[], values: any[], isRelation: string | null, every: boolean) => {
+  const print = (state: readonly FilterResult[], isRelation: string | null, every: boolean) => {
     let s = ""
     let l = 0
     const printN = (n: number) => {
@@ -174,13 +179,13 @@ export function buildWhereCosmosQuery3(
     for (const e of state) {
       switch (e.t) {
         case "where":
-          s += statement(e, i++, values)
+          s += statement(e, i++)
           break
         case "or":
-          s += ` OR ${statement(e, i++, values)}`
+          s += ` OR ${statement(e, i++)}`
           break
         case "and":
-          s += ` AND ${statement(e, i++, values)}`
+          s += ` AND ${statement(e, i++)}`
           break
         case "or-scope": {
           ++l
@@ -189,7 +194,7 @@ export function buildWhereCosmosQuery3(
           if (rel) {
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
-              ? ` OR (\n${printN(l + 1)}${print(e.result, values, rel, every)}\n${printN(l)})`
+              ? ` OR (\n${printN(l + 1)}${print(e.result, rel, every)}\n${printN(l)})`
               : ` OR (\n${printN(l + 1)}${
                 every ? "NOT " : ""
               }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
@@ -197,13 +202,12 @@ export function buildWhereCosmosQuery3(
                   e
                     .result
                     .map(flip(every)),
-                  values,
                   rel,
                   every
                 )
               }))`
           } else {
-            s += ` OR (\n${printN(l + 1)}${print(e.result, values, null, every)}\n${printN(l)})`
+            s += ` OR (\n${printN(l + 1)}${print(e.result, null, every)}\n${printN(l)})`
           }
           --l
           break
@@ -215,14 +219,14 @@ export function buildWhereCosmosQuery3(
           if (rel) {
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
-              ? ` AND (\n${printN(l + 1)}${print(e.result, values, rel, every)}\n${printN(l)})`
+              ? ` AND (\n${printN(l + 1)}${print(e.result, rel, every)}\n${printN(l)})`
               : ` AND (\n${printN(l + 1)}${
                 every ? "NOT " : ""
               }EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result.map(flip(every)), values, rel, every)
+                print(e.result.map(flip(every)), rel, every)
               }))`
           } else {
-            s += ` AND (\n${printN(l + 1)}${print(e.result, values, null, every)}\n${printN(l)})`
+            s += ` AND (\n${printN(l + 1)}${print(e.result, null, every)}\n${printN(l)})`
           }
           --l
           break
@@ -234,12 +238,12 @@ export function buildWhereCosmosQuery3(
           if (rel) {
             const rel = (e.result[0]! as { path: string }).path.split(".-1.")[0]
             s += isRelation
-              ? `(\n${printN(l + 1)}${print(e.result, values, rel, every)}\n${printN(l)})`
+              ? `(\n${printN(l + 1)}${print(e.result, rel, every)}\n${printN(l)})`
               : `(\n${printN(l + 1)}${every ? "NOT " : ""}EXISTS(SELECT VALUE ${rel} FROM ${rel} IN f.${rel} WHERE ${
-                print(e.result.map(flip(every)), values, rel, every)
+                print(e.result.map(flip(every)), rel, every)
               }))`
           } else {
-            s += `(\n${printN(l + 1)}${print(e.result, values, null, every)}\n${printN(l)})`
+            s += `(\n${printN(l + 1)}${print(e.result, null, every)}\n${printN(l)})`
           }
           // ;--l
           break
@@ -272,7 +276,25 @@ export function buildWhereCosmosQuery3(
           ? getValues(_.result)
           : [_]
       )
-  const values = getValues(filter)
+  const computedFilters = select
+    ? select.flatMap((_) => typeof _ === "object" && "computed" in _ ? getValues(_.computed.filter) : [])
+    : []
+  const values = [...computedFilters, ...getValues(filter)]
+
+  const computedSelectExpr = (key: string, computed: ComputedProjectionIrExpression) => {
+    const relationPath = computed.path
+    const relationAlias = relationPath
+    const relationSource = dottedToAccess(`f.${relationPath}`)
+    const where = computed.filter.length > 0
+      ? ` WHERE ${print(computed.filter, relationPath, false)}`
+      : ""
+    switch (computed._tag) {
+      case "relation-count":
+        return `(SELECT VALUE COUNT(1) FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+      case "relation-any":
+        return `EXISTS(SELECT VALUE ${relationAlias} FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+    }
+  }
   // with joins, you should use DISTINCT
   // or you can end up with duplicates
   return {
@@ -283,6 +305,8 @@ export function buildWhereCosmosQuery3(
           .map((s) =>
             typeof s === "string"
               ? dottedToAccess(s === idKey ? "f.id" : `f.${s}`) // x["y"} vs x.y, helps with reserved keywords like "value"
+              : "computed" in s
+              ? computedSelectExpr(s.key, s.computed)
               : `ARRAY (SELECT ${s.subKeys.map((_) => dottedToAccess(`t.${_}`)).join(",")}
                 FROM t in ${dottedToAccess(`f.${s.key}`)}) AS ${s.key}`
           )
@@ -291,7 +315,7 @@ export function buildWhereCosmosQuery3(
     }
     FROM ${name} f
 
-    ${filter.length ? `WHERE (${print(filter, values.map((_) => _.value), null, false)})` : ""}
+    ${filter.length ? `WHERE (${print(filter, null, false)})` : ""}
     ${order ? `ORDER BY ${order.map((_) => `${dottedToAccess(`f.${_.key}`)} ${_.direction}`).join(", ")}` : ""}
     ${skip !== undefined || limit !== undefined ? `OFFSET ${skip ?? 0} LIMIT ${limit ?? 999999}` : ""}`,
     parameters: values

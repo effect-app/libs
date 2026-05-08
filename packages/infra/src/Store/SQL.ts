@@ -7,6 +7,7 @@ import { SqlClient } from "effect/unstable/sql"
 import { OptimisticConcurrencyException } from "../errors.js"
 import { InfraLogger } from "../logger.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import type { ComputedProjectionIrExpression } from "../Model/query.js"
 import { annotateDb, type DbSystem } from "../otel.js"
 import { storeId } from "./Memory.js"
 import { type FilterArgs, type PersistenceModelType, type StorageConfig, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -236,7 +237,13 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                         defaultValues,
                         f
                           .select as
-                            | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
+                            | NonEmptyReadonlyArray<string | {
+                              key: string
+                              subKeys: readonly string[]
+                            } | {
+                              key: string
+                              computed: ComputedProjectionIrExpression
+                            }>
                             | undefined,
                         f
                           .order,
@@ -580,7 +587,13 @@ function makeSQLiteStorePerNs(
                       defaultValues,
                       f
                         .select as
-                          | NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>
+                          | NonEmptyReadonlyArray<string | {
+                            key: string
+                            subKeys: readonly string[]
+                          } | {
+                            key: string
+                            computed: ComputedProjectionIrExpression
+                          }>
                           | undefined,
                       f
                         .order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,

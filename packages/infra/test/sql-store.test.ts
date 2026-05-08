@@ -228,6 +228,47 @@ describe("SQL query builder (SQLite dialect)", () => {
     expect(result.sql).toContain("LIMIT")
     expect(result.sql).toContain("OFFSET")
   })
+
+  it("computed relation count projection", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "pickedCount",
+        computed: {
+          _tag: "relation-count",
+          path: "items",
+          filter: [{ t: "where", path: "items.-1.value", op: "gt", value: 20 as any }]
+        }
+      }]
+    )
+    expect(result.sql).toContain(`SELECT COUNT(1) FROM json_each(data, '$.items') AS _items`)
+    expect(result.sql).toContain(`AS "pickedCount"`)
+    expect(result.params).toContain(20)
+  })
+
+  it("computed relation any projection (sqlite bool encoding)", () => {
+    const result = buildWhereSQLQuery(
+      sqliteDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "hasPicked",
+        computed: {
+          _tag: "relation-any",
+          path: "items",
+          filter: [{ t: "where", path: "items.-1.value", op: "gt", value: 20 as any }]
+        }
+      }]
+    )
+    expect(result.sql).toContain("CASE WHEN EXISTS(")
+    expect(result.sql).toContain(`AS "hasPicked"`)
+  })
 })
 
 describe("SQL query builder (PostgreSQL dialect)", () => {
@@ -290,6 +331,26 @@ describe("SQL query builder (PostgreSQL dialect)", () => {
       {}
     )
     expect(result.sql).toContain("data->'address'->>'city'")
+  })
+
+  it("computed relation any projection", () => {
+    const result = buildWhereSQLQuery(
+      pgDialect,
+      "id",
+      [],
+      "users",
+      {},
+      [{
+        key: "hasPicked",
+        computed: {
+          _tag: "relation-any",
+          path: "items",
+          filter: [{ t: "where", path: "items.-1.value", op: "gt", value: 20 as any }]
+        }
+      }]
+    )
+    expect(result.sql).toContain("EXISTS(SELECT 1 FROM jsonb_array_elements(data->'items') AS _items")
+    expect(result.sql).toContain(`AS "hasPicked"`)
   })
 })
 

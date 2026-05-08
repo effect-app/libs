@@ -3,6 +3,7 @@ import { Effect, type NonEmptyReadonlyArray } from "effect-app"
 import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../../logger.js"
 import type { FilterR, FilterResult } from "../../Model/filter/filterApi.js"
+import type { ComputedProjectionIrExpression } from "../../Model/query.js"
 import { isRelationCheck } from "../codeFilter.js"
 
 export interface SQLDialect {
@@ -153,7 +154,13 @@ export function buildWhereSQLQuery(
   filter: readonly FilterResult[],
   tableName: string,
   defaultValues: Record<string, unknown>,
-  select?: NonEmptyReadonlyArray<string | { key: string; subKeys: readonly string[] }>,
+  select?: NonEmptyReadonlyArray<string | {
+    key: string
+    subKeys: readonly string[]
+  } | {
+    key: string
+    computed: ComputedProjectionIrExpression
+  }>,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number
@@ -378,6 +385,26 @@ export function buildWhereSQLQuery(
     return s
   }
 
+  const computedSelectExpr = (key: string, computed: ComputedProjectionIrExpression): string => {
+    const relationPath = dottedToJsonPath(computed.path)
+    const relationAlias = `_${computed.path}`
+    const relationFrom = dialect.jsonEachFrom(relationPath, relationAlias)
+    const where = computed.filter.length > 0
+      ? ` WHERE ${print(computed.filter, computed.path, false)}`
+      : ""
+    switch (computed._tag) {
+      case "relation-count":
+        return `(SELECT COUNT(1) FROM ${relationFrom}${where}) AS "${key}"`
+      case "relation-any": {
+        const existsExpr = `EXISTS(SELECT 1 FROM ${relationFrom}${where})`
+        if (dialect.jsonColumnType === "JSON") {
+          return `CASE WHEN ${existsExpr} THEN 'true' ELSE 'false' END AS "${key}"`
+        }
+        return `${existsExpr} AS "${key}"`
+      }
+    }
+  }
+
   const getSelectExpr = (): string => {
     if (!select) return "id, _etag, data"
     const fields = select.map((s) => {
@@ -385,6 +412,9 @@ export function buildWhereSQLQuery(
         if (s === idKey || s === "id") return `id`
         if (s === "_etag") return `_etag`
         return `${dialect.jsonExtractJson(s)} AS "${s}"`
+      }
+      if ("computed" in s) {
+        return computedSelectExpr(s.key, s.computed)
       }
       return `${dialect.jsonExtractJson(s.key)} AS "${s.key}"`
     })

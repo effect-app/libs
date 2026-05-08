@@ -2,9 +2,11 @@
 
 import { Array, Context, Effect, flow, type NonEmptyReadonlyArray, Option, Order, pipe, Ref, Result, Semaphore, Struct } from "effect-app"
 import { NonEmptyString255 } from "effect-app/Schema"
+import { assertUnreachable } from "effect-app/utils"
 import { InfraLogger } from "../logger.js"
 import type { FilterResult } from "../Model/filter/filterApi.js"
 import type { FieldValues } from "../Model/filter/types.js"
+import type { ComputedProjectionIrExpression } from "../Model/query.js"
 import { annotateDb } from "../otel.js"
 import { codeFilter, codeFilter3_ } from "./codeFilter.js"
 import { type FilterArgs, type PersistenceModelType, type Store, type StoreConfig, StoreMaker } from "./service.js"
@@ -30,24 +32,69 @@ const stripRelationFilterPaths = (state: readonly FilterResult[], relationPath: 
   )
 }
 
+const emptyValueFor = (tag: ComputedProjectionIrExpression["_tag"]) => {
+  switch (tag) {
+    case "relation-count":
+    case "relation-distinct-count":
+    case "relation-sum":
+      return 0
+    case "relation-any":
+      return false
+    case "relation-every":
+      return true
+    case "relation-collect":
+      return [] as unknown[]
+    default:
+      return assertUnreachable(tag)
+  }
+}
+
 const computeProjectionValue = (
   row: FieldValues,
-  computed: {
-    readonly _tag: "relation-count" | "relation-any"
-    readonly path: string
-    readonly filter: readonly FilterResult[]
-  }
+  computed: ComputedProjectionIrExpression
 ) => {
   const relation = get(row, computed.path)
   if (!Array.isArray(relation)) {
-    return computed._tag === "relation-count" ? 0 : false
+    return emptyValueFor(computed._tag)
   }
   const filter = stripRelationFilterPaths(computed.filter, computed.path)
+  const matches = (value: unknown) => codeFilter3_(filter, value)
   switch (computed._tag) {
     case "relation-count":
-      return relation.reduce<number>((acc, value) => codeFilter3_(filter, value) ? acc + 1 : acc, 0)
+      return relation.reduce<number>((acc, value) => matches(value) ? acc + 1 : acc, 0)
     case "relation-any":
-      return relation.some((value) => codeFilter3_(filter, value))
+      return relation.some(matches)
+    case "relation-every":
+      return relation.every(matches)
+    case "relation-distinct-count": {
+      const seen = new Set<unknown>()
+      for (const value of relation) {
+        if (matches(value)) seen.add(get(value, computed.field))
+      }
+      return seen.size
+    }
+    case "relation-sum":
+      return relation.reduce<number>((acc, value) => {
+        if (!matches(value)) return acc
+        const v = get(value, computed.field)
+        return acc + (typeof v === "number" ? v : Number(v) || 0)
+      }, 0)
+    case "relation-collect": {
+      const out: unknown[] = []
+      const seen = computed.distinct ? new Set<unknown>() : undefined
+      for (const value of relation) {
+        if (!matches(value)) continue
+        const v = get(value, computed.field)
+        if (seen) {
+          if (seen.has(v)) continue
+          seen.add(v)
+        }
+        out.push(v)
+      }
+      return out
+    }
+    default:
+      return assertUnreachable(computed)
   }
 }
 
@@ -67,11 +114,7 @@ export function memFilter<T extends FieldValues, U extends keyof T = never>(f: F
         )
         const computedKeys = entries.filter((entry): entry is {
           key: string
-          computed: {
-            readonly _tag: "relation-count" | "relation-any"
-            readonly path: string
-            readonly filter: readonly FilterResult[]
-          }
+          computed: ComputedProjectionIrExpression
         } => typeof entry === "object" && entry !== null && "computed" in entry)
         const n = Struct.pick(i, keys)
         subKeys.forEach((subKey) => {

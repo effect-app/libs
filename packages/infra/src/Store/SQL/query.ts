@@ -391,18 +391,48 @@ export function buildWhereSQLQuery(
     const relationPath = dottedToJsonPath(computed.path)
     const relationAlias = `_${computed.path}`
     const relationFrom = dialect.jsonEachFrom(relationPath, relationAlias)
-    const where = computed.filter.length > 0
-      ? ` WHERE ${print(computed.filter, computed.path, false)}`
-      : ""
+    const whereClause = () =>
+      computed.filter.length > 0
+        ? ` WHERE ${print(computed.filter, computed.path, false)}`
+        : ""
+    const boolExpr = (sqlExpr: string) =>
+      dialect.jsonColumnType === "JSON"
+        ? `CASE WHEN ${sqlExpr} THEN 'true' ELSE 'false' END AS "${key}"`
+        : `${sqlExpr} AS "${key}"`
     switch (computed._tag) {
       case "relation-count":
-        return `(SELECT COUNT(1) FROM ${relationFrom}${where}) AS "${key}"`
-      case "relation-any": {
-        const existsExpr = `EXISTS(SELECT 1 FROM ${relationFrom}${where})`
+        return `(SELECT COUNT(1) FROM ${relationFrom}${whereClause()}) AS "${key}"`
+      case "relation-any":
+        return boolExpr(`EXISTS(SELECT 1 FROM ${relationFrom}${whereClause()})`)
+      case "relation-every":
+        // ∀x.P(x) ≡ ¬∃x.¬P(x). When no filter, no element exists that violates ⊤ → true.
+        return boolExpr(
+          computed.filter.length === 0
+            ? `1=1`
+            : `NOT EXISTS(SELECT 1 FROM ${relationFrom} WHERE NOT (${print(computed.filter, computed.path, false)}))`
+        )
+      case "relation-distinct-count": {
+        const fieldExtract = dialect.jsonExtractElement(relationAlias, computed.field)
+        return `(SELECT COUNT(DISTINCT ${fieldExtract}) FROM ${relationFrom}${whereClause()}) AS "${key}"`
+      }
+      case "relation-sum": {
+        const fieldExtract = dialect.jsonExtractElement(relationAlias, computed.field)
+        const cast = dialect.jsonColumnType === "JSON"
+          ? `CAST(${fieldExtract} AS REAL)`
+          : `(${fieldExtract})::numeric`
+        return `(SELECT COALESCE(SUM(${cast}), 0) FROM ${relationFrom}${whereClause()}) AS "${key}"`
+      }
+      case "relation-collect": {
+        const fieldExtract = dialect.jsonExtractElement(relationAlias, computed.field)
         if (dialect.jsonColumnType === "JSON") {
-          return `CASE WHEN ${existsExpr} THEN 'true' ELSE 'false' END AS "${key}"`
+          // sqlite: json_group_array does not accept DISTINCT; emulate via inner DISTINCT subquery
+          if (computed.distinct) {
+            return `(SELECT COALESCE(json_group_array(__v), json_array()) FROM (SELECT DISTINCT ${fieldExtract} AS __v FROM ${relationFrom}${whereClause()})) AS "${key}"`
+          }
+          return `(SELECT COALESCE(json_group_array(${fieldExtract}), json_array()) FROM ${relationFrom}${whereClause()}) AS "${key}"`
         }
-        return `${existsExpr} AS "${key}"`
+        const aggArg = computed.distinct ? `DISTINCT ${fieldExtract}` : fieldExtract
+        return `(SELECT COALESCE(jsonb_agg(${aggArg}), '[]'::jsonb) FROM ${relationFrom}${whereClause()}) AS "${key}"`
       }
       default:
         return assertUnreachable(computed)

@@ -640,6 +640,96 @@ it("projection schema with computed fields fails without computed map", () => {
   expect(() => toFilter(query, baseSchema)).toThrowError("Missing computed projections for schema keys")
 })
 
+it("projectComputed.every emits relation-every IR", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({ state: S.Struct({ _tag: S.String }) }))
+  })
+  const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({ allPicked: S.Boolean }),
+      computed({
+        allPicked: relation<S.Codec.Encoded<typeof baseSchema>>("items").every(where("state._tag", "Picked"))
+      })
+    )
+  )
+  const interpreted = toFilter(query, baseSchema)
+  expect(interpreted.computed?.["allPicked"]?._tag).toBe("relation-every")
+  expect(interpreted.computed?.["allPicked"]?.path).toBe("items")
+  expect(interpreted.computed?.["allPicked"]?.filter).toEqual([
+    { t: "where", path: "items.-1.state._tag", op: "eq", value: "Picked" }
+  ])
+})
+
+it("projectComputed.distinctCount emits relation-distinct-count IR with field", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({ rowId: S.String, state: S.Struct({ _tag: S.String }) }))
+  })
+  const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({ positionCount: S.NonNegativeInt }),
+      computed({
+        positionCount: relation<S.Codec.Encoded<typeof baseSchema>>("items").distinctCount(
+          "rowId",
+          where("state._tag", "neq", "cancelled")
+        )
+      })
+    )
+  )
+  const interpreted = toFilter(query, baseSchema)
+  const ir = interpreted.computed?.["positionCount"]
+  expect(ir?._tag).toBe("relation-distinct-count")
+  expect((ir as { field: string } | undefined)?.field).toBe("rowId")
+  expect(ir?.filter).toEqual([
+    { t: "where", path: "items.-1.state._tag", op: "neq", value: "cancelled" }
+  ])
+})
+
+it("projectComputed.sum emits relation-sum IR with field", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({ weight: S.Number }))
+  })
+  const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({ totalWeight: S.Number }),
+      computed({ totalWeight: relation<S.Codec.Encoded<typeof baseSchema>>("items").sum("weight") })
+    )
+  )
+  const interpreted = toFilter(query, baseSchema)
+  const ir = interpreted.computed?.["totalWeight"]
+  expect(ir?._tag).toBe("relation-sum")
+  expect((ir as { field: string } | undefined)?.field).toBe("weight")
+  expect(ir?.filter).toEqual([])
+})
+
+it("projectComputed.collect / collectDistinct emit relation-collect IR", () => {
+  const baseSchema = S.Struct({
+    id: S.String,
+    items: S.Array(S.Struct({ articleId: S.String }))
+  })
+  const query = make<S.Codec.Encoded<typeof baseSchema>>().pipe(
+    projectComputed(
+      S.Struct({
+        all: S.Array(S.String),
+        distinct: S.Array(S.String)
+      }),
+      computed({
+        all: relation<S.Codec.Encoded<typeof baseSchema>>("items").collect("articleId"),
+        distinct: relation<S.Codec.Encoded<typeof baseSchema>>("items").collectDistinct("articleId")
+      })
+    )
+  )
+  const interpreted = toFilter(query, baseSchema)
+  const all = interpreted.computed?.["all"]
+  const distinct = interpreted.computed?.["distinct"]
+  expect(all?._tag).toBe("relation-collect")
+  expect((all as { distinct: boolean } | undefined)?.distinct).toBe(false)
+  expect(distinct?._tag).toBe("relation-collect")
+  expect((distinct as { distinct: boolean } | undefined)?.distinct).toBe(true)
+})
+
 it(
   "doesn't mess when refining fields",
   () =>

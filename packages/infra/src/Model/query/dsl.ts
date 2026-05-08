@@ -111,6 +111,30 @@ export type ComputedProjectionExpression =
     readonly path: string
     readonly operation?: ComputedProjectionOperation
   }
+  | {
+    readonly _tag: "relation-every"
+    readonly path: string
+    readonly operation: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "relation-distinct-count"
+    readonly path: string
+    readonly field: string
+    readonly operation?: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "relation-sum"
+    readonly path: string
+    readonly field: string
+    readonly operation?: ComputedProjectionOperation
+  }
+  | {
+    readonly _tag: "relation-collect"
+    readonly path: string
+    readonly field: string
+    readonly distinct: boolean
+    readonly operation?: ComputedProjectionOperation
+  }
 
 export type ComputedProjectionMap = Readonly<Record<string, ComputedProjectionExpression>>
 export type Q<TFieldValues extends FieldValues> =
@@ -426,6 +450,67 @@ export const relation = <TFieldValues extends FieldValues>(
       : {
         _tag: "relation-any",
         path: path as string
+      },
+  every: (operation: ComputedProjectionOperation): ComputedProjectionExpression => ({
+    _tag: "relation-every",
+    path: path as string,
+    operation
+  }),
+  distinctCount: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-distinct-count",
+        path: path as string,
+        field,
+        operation
+      }
+      : {
+        _tag: "relation-distinct-count",
+        path: path as string,
+        field
+      },
+  sum: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-sum",
+        path: path as string,
+        field,
+        operation
+      }
+      : {
+        _tag: "relation-sum",
+        path: path as string,
+        field
+      },
+  collect: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-collect",
+        path: path as string,
+        field,
+        distinct: false,
+        operation
+      }
+      : {
+        _tag: "relation-collect",
+        path: path as string,
+        field,
+        distinct: false
+      },
+  collectDistinct: (field: string, operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
+    operation
+      ? {
+        _tag: "relation-collect",
+        path: path as string,
+        field,
+        distinct: true,
+        operation
+      }
+      : {
+        _tag: "relation-collect",
+        path: path as string,
+        field,
+        distinct: true
       }
 })
 

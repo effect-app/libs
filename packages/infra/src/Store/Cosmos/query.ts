@@ -303,6 +303,29 @@ export function buildWhereCosmosQuery3(
         return `(SELECT VALUE COUNT(1) FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
       case "relation-any":
         return `EXISTS(SELECT VALUE ${relationAlias} FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+      case "relation-every": {
+        // ∀x.P(x) ≡ ¬∃x.¬P(x). Cosmos has no NOT(...) on EXISTS subqueries directly,
+        // but we can flip via NOT EXISTS(... WHERE NOT (filter)).
+        if (computed.filter.length === 0) return `true AS ${key}`
+        return `NOT EXISTS(SELECT VALUE ${relationAlias} FROM ${relationAlias} IN ${relationSource} WHERE NOT (${
+          print(computed.filter, relationPath, false)
+        })) AS ${key}`
+      }
+      case "relation-distinct-count": {
+        const fieldRef = dottedToAccess(`${relationAlias}.${computed.field}`)
+        return `(SELECT VALUE COUNT(1) FROM (SELECT DISTINCT VALUE ${fieldRef} FROM ${relationAlias} IN ${relationSource}${where})) AS ${key}`
+      }
+      case "relation-sum": {
+        const fieldRef = dottedToAccess(`${relationAlias}.${computed.field}`)
+        return `(SELECT VALUE SUM(${fieldRef}) FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+      }
+      case "relation-collect": {
+        const fieldRef = dottedToAccess(`${relationAlias}.${computed.field}`)
+        if (computed.distinct) {
+          return `ARRAY(SELECT DISTINCT VALUE ${fieldRef} FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+        }
+        return `ARRAY(SELECT VALUE ${fieldRef} FROM ${relationAlias} IN ${relationSource}${where}) AS ${key}`
+      }
     }
   }
   // with joins, you should use DISTINCT

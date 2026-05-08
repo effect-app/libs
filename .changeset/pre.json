@@ -193,6 +193,7 @@
     "remove-tagged-request",
     "remove-withDefaultConstructor",
     "rename-mutate-stream",
+    "rename-withdefault-to-withconstructordefault",
     "replace-proxify-with-accessors",
     "repo-mutations-accept-empty-arrays",
     "repo-span-topology",

@@ -362,7 +362,7 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                       )
                       yield* annotateFeed(response)
                       return response.resources.map(
-                        (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
+                        (_) => ({ ...defaultValues, ...mapReverseId(_ as PMCosmos) }) as Out
                       )
                     })
                     .pipe(

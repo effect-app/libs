@@ -1,11 +1,13 @@
 export * from "./query/dsl.js"
 export * from "./query/new-kid-interpreter.js"
 
+type CosmosRawQueryValue = string | boolean | number | null
+
 export interface CosmosRawQuery {
   query: string
   parameters: {
     name: string
-    value: any
+    value: CosmosRawQueryValue | readonly CosmosRawQueryValue[]
   }[]
 }
 

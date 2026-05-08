@@ -361,13 +361,41 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
           },
 
           queryRaw: (query) =>
-            s.all.pipe(
-              Effect.map(query.memory),
-              annotateDb({
-                operation: "queryRaw",
-                system,
-                collection: tableName,
-                entity: name
+            resolveNamespace.pipe(
+              Effect.flatMap((ns) => {
+                const sqlRaw = query.sqlite?.({ name, tableName, namespace: ns }) ?? query.pg?.({
+                  name,
+                  tableName,
+                  namespace: ns
+                })
+                if (sqlRaw) {
+                  return exec(sqlRaw.query, sqlRaw.parameters).pipe(
+                    Effect.map((rows) => (rows as any[]).map((row) => ({ ...defaultValues, ...parseSelectRow(row, idKey })))),
+                    annotateDb({
+                      operation: "queryRaw",
+                      system,
+                      collection: tableName,
+                      namespace: ns,
+                      entity: name,
+                      query: sqlRaw.query
+                    })
+                  )
+                }
+                if (query.memory) {
+                  return s.all.pipe(
+                    Effect.map(query.memory),
+                    annotateDb({
+                      operation: "queryRaw",
+                      system,
+                      collection: tableName,
+                      namespace: ns,
+                      entity: name
+                    })
+                  )
+                }
+                return Effect.die(
+                  new Error("Repository.queryRaw requires `sqlite`, `pg`, or `memory` for SQL store")
+                )
               })
             )
         }
@@ -684,13 +712,41 @@ function makeSQLiteStorePerNs(
         },
 
         queryRaw: (query) =>
-          s.all.pipe(
-            Effect.map(query.memory),
-            annotateDb({
-              operation: "queryRaw",
-              system: "sqlite",
-              collection: tableName,
-              entity: name
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) => {
+              const sqlRaw = query.sqlite?.({ name, tableName, namespace: ns }) ?? query.pg?.({
+                name,
+                tableName,
+                namespace: ns
+              })
+              if (sqlRaw) {
+                return exec(ns, sqlRaw.query, sqlRaw.parameters).pipe(
+                  Effect.map((rows) => (rows as any[]).map((row) => ({ ...defaultValues, ...parseSelectRow(row, idKey })))),
+                  annotateDb({
+                    operation: "queryRaw",
+                    system: "sqlite",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlRaw.query
+                  })
+                )
+              }
+              if (query.memory) {
+                return s.all.pipe(
+                  Effect.map(query.memory),
+                  annotateDb({
+                    operation: "queryRaw",
+                    system: "sqlite",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name
+                  })
+                )
+              }
+              return Effect.die(
+                new Error("Repository.queryRaw requires `sqlite`, `pg`, or `memory` for SQLite store")
+              )
             })
           )
       }

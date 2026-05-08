@@ -159,18 +159,20 @@ export function makeMemoryStoreInt<IdKey extends keyof Encoded, Encoded extends 
       seedNamespace: () => Effect.void,
 
       queryRaw: (query) =>
-        all
-          .pipe(
-            // Effect.tap(() => logQuery(query, defaultValues)),
-            Effect.map(query.memory),
-            annotateDb({
-              operation: "queryRaw",
-              system: "memory",
-              collection: modelName,
-              namespace,
-              entity: modelName
-            })
-          ),
+        query.memory
+          ? all
+            .pipe(
+              // Effect.tap(() => logQuery(query, defaultValues)),
+              Effect.map(query.memory),
+              annotateDb({
+                operation: "queryRaw",
+                system: "memory",
+                collection: modelName,
+                namespace,
+                entity: modelName
+              })
+            )
+          : Effect.die(new Error("Repository.queryRaw requires `memory` for Memory store")),
 
       all: all.pipe(annotateDb({
         operation: "all",

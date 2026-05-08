@@ -344,37 +344,55 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
           ))
       }
 
-      const s: Store<IdKey, Encoded> = {
-        seedNamespace: (ns) => seedNamespace(ns),
+        const s: Store<IdKey, Encoded> = {
+          seedNamespace: (ns) => seedNamespace(ns),
 
-        queryRaw: <Out>(query: RawQuery<Encoded, Out>) =>
-          Effect
-            .all({ q: Effect.sync(() => query.cosmos({ name })), ns: resolveNamespace })
-            .pipe(
-              Effect.tap(({ q }) => logQuery(q)),
-              Effect.flatMap(({ ns, q }) =>
-                Effect
-                  .gen(function*() {
-                    const response = yield* Effect.promise(() =>
-                      container.items.query<Out>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
-                    )
-                    yield* annotateFeed(response)
-                    return response.resources.map(
-                      (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
-                    )
-                  })
-                  .pipe(
-                    annotateDb({
-                      operation: "queryRaw",
-                      system: "cosmosdb",
-                      collection: containerId,
-                      namespace: ns,
-                      entity: name,
-                      query: q.query
-                    })
+          queryRaw: <Out>(query: RawQuery<Encoded, Out>) => {
+            if (query.cosmos) {
+              const cosmosQuery = query.cosmos
+              return Effect
+                .all({ q: Effect.sync(() => cosmosQuery({ name })), ns: resolveNamespace })
+                .pipe(
+                  Effect.tap(({ q }) => logQuery(q)),
+                  Effect.flatMap(({ ns, q }) =>
+                    Effect
+                      .gen(function*() {
+                        const response = yield* Effect.promise(() =>
+                          container.items.query<Out>(q, { partitionKey: nsBasePartitionKey(ns) }).fetchAll()
+                        )
+                        yield* annotateFeed(response)
+                        return response.resources.map(
+                          (_) => ({ ...defaultValues, ...mapReverseId(_ as any) }) as Out
+                        )
+                      })
+                      .pipe(
+                        annotateDb({
+                          operation: "queryRaw",
+                          system: "cosmosdb",
+                          collection: containerId,
+                          namespace: ns,
+                          entity: name,
+                          query: q.query
+                        })
+                      )
                   )
+                )
+            }
+            if (query.memory) {
+              return s.all.pipe(
+                Effect.map(query.memory),
+                annotateDb({
+                  operation: "queryRaw",
+                  system: "cosmosdb",
+                  collection: containerId,
+                  entity: name
+                })
               )
-            ),
+            }
+            return Effect.die(
+              new Error("Repository.queryRaw requires `cosmos` or `memory` for Cosmos store")
+            )
+          },
         batchRemove: (ids, partitionKey?: string) =>
           resolveNamespace.pipe(Effect.flatMap((ns) =>
             Effect

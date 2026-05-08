@@ -327,13 +327,43 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
         },
 
         queryRaw: (query) =>
-          s.all.pipe(
-            Effect.map(query.memory),
-            annotateDb({
-              operation: "queryRaw",
-              system: "postgresql",
-              collection: tableName,
-              entity: name
+          resolveNamespace.pipe(
+            Effect.flatMap((ns) => {
+              const sqlRaw = query.pg?.({ name, tableName, namespace: ns }) ?? query.sqlite?.({
+                name,
+                tableName,
+                namespace: ns
+              })
+              if (sqlRaw) {
+                return exec(sqlRaw.query, sqlRaw.parameters).pipe(
+                  Effect.map((rows) =>
+                    (rows as any[]).map((row) => parseSelectRow(row as Record<string, unknown>, idKey, defaultValues as any))
+                  ),
+                  annotateDb({
+                    operation: "queryRaw",
+                    system: "postgresql",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name,
+                    query: sqlRaw.query
+                  })
+                )
+              }
+              if (query.memory) {
+                return s.all.pipe(
+                  Effect.map(query.memory),
+                  annotateDb({
+                    operation: "queryRaw",
+                    system: "postgresql",
+                    collection: tableName,
+                    namespace: ns,
+                    entity: name
+                  })
+                )
+              }
+              return Effect.die(
+                new Error("Repository.queryRaw requires `pg`, `sqlite`, or `memory` for PostgreSQL store")
+              )
             })
           )
       }

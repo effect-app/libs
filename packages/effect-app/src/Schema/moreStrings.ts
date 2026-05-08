@@ -1,3 +1,13 @@
+/**
+ * Branded string ID schemas with `.withConstructorDefault` extensions.
+ *
+ * Each `.withConstructorDefault` here is **only** applied when the field is
+ * omitted during construction (`.make(...)`). It is **not** applied during
+ * decode and therefore cannot be used to JIT-migrate database fields.
+ *
+ * For persisted data, prefer an explicit, preferably versioned migration
+ * over decode-time fallbacks. See `./ext.ts` for the full policy note.
+ */
 import { Effect, pipe } from "effect"
 import type { Refinement } from "effect-app/Function"
 import { extendM } from "effect-app/utils"
@@ -146,6 +156,9 @@ const StringIdArb = (): S.LazyArbitrary<StringId> => (fc) =>
     .map((_) => customRandom(urlAlphabet, size, (size) => _.subarray(0, size))() as StringId)
 /**
  * A string that is at least 6 characters long and a maximum of 50.
+ *
+ * `.withConstructorDefault` => fresh `nanoid()` (construction-only; not
+ * applied during decode — see file-level note).
  */
 export const StringId = extendM(
   pipe(
@@ -159,6 +172,12 @@ export const StringId = extendM(
   ),
   (s) => ({
     make: makeStringId,
+    /**
+     * Construction-only default: fresh `nanoid()`-shaped `StringId`. Applied
+     * only when the field is omitted from `.make(...)` input. NOT applied
+     * during decode — cannot be used to JIT-migrate database fields. See
+     * file-level note.
+     */
     withConstructorDefault: s.pipe(S.withConstructorDefault(Effect.sync(makeStringId)))
   })
 )
@@ -168,6 +187,14 @@ export const StringId = extendM(
 
 // const prefixedStringIdUnsafeThunk = (prefix: string) => () => prefixedStringIdUnsafe(prefix)
 
+/**
+ * Build a `StringId` schema whose values are required to start with a fixed
+ * `prefix` (joined with `separator`, default `-`).
+ *
+ * The returned schema exposes `.withConstructorDefault` that mints a fresh
+ * prefixed id. Construction-only — not applied during decode; see file-level
+ * note.
+ */
 export function prefixedStringId<Type extends StringId>() {
   return <Prefix extends string, Separator extends string = "-">(
     prefix: Prefix,
@@ -206,6 +233,12 @@ export function prefixedStringId<Type extends StringId>() {
          */
         prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => ex(str),
         prefix,
+        /**
+         * Construction-only default: fresh prefixed id. Applied only when
+         * the field is omitted from `.make(...)` input. NOT applied during
+         * decode — cannot be used to JIT-migrate database fields. See
+         * file-level note.
+         */
         withConstructorDefault: schema.pipe(
           S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>(
             Effect.sync(make)
@@ -216,11 +249,23 @@ export function prefixedStringId<Type extends StringId>() {
   }
 }
 
+/**
+ * Build a branded `StringId` schema for the given branded `Id` type.
+ *
+ * Exposes `.withConstructorDefault` that mints a fresh `nanoid()`-shaped id.
+ * Construction-only — not applied during decode; see file-level note.
+ */
 export const brandedStringId = <
   Id
 >() =>
   withDefaultMake(
     Object.assign(Object.create(StringId), StringId) as S.Codec<Id, string> & {
+      /**
+       * Construction-only default: fresh `nanoid()`-shaped id. Applied only
+       * when the field is omitted from `.make(...)` input. NOT applied
+       * during decode — cannot be used to JIT-migrate database fields. See
+       * file-level note.
+       */
       withConstructorDefault: S.withConstructorDefault<S.Codec<Id, string> & S.WithoutConstructorDefault>
       make: () => Id
     } & WithDefaults<S.Codec<Id, string>>
@@ -235,6 +280,11 @@ export interface PrefixedStringUtils<
   readonly unsafeFrom: (str: string) => Type
   prefixSafe: <REST extends string>(str: `${Prefix}${Separator}${REST}`) => Type
   readonly prefix: Prefix
+  /**
+   * Construction-only default: fresh prefixed id. Applied only when the
+   * field is omitted from `.make(...)` input. NOT applied during decode —
+   * cannot be used to JIT-migrate database fields. See file-level note.
+   */
   readonly withConstructorDefault: S.withConstructorDefault<S.Codec<Type, string> & S.WithoutConstructorDefault>
 }
 

@@ -218,13 +218,15 @@ const makePgStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   tableName,
                   defaultValues,
                   f.select as
-                    | NonEmptyReadonlyArray<string | {
-                      key: string
-                      subKeys: readonly string[]
-                    } | {
-                      key: string
-                      computed: ComputedProjectionIrExpression
-                    }>
+                    | NonEmptyReadonlyArray<
+                      string | {
+                        key: string
+                        subKeys: readonly string[]
+                      } | {
+                        key: string
+                        computed: ComputedProjectionIrExpression
+                      }
+                    >
                     | undefined,
                   f.order,
                   f.skip,

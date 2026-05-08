@@ -237,13 +237,15 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                         defaultValues,
                         f
                           .select as
-                            | NonEmptyReadonlyArray<string | {
-                              key: string
-                              subKeys: readonly string[]
-                            } | {
-                              key: string
-                              computed: ComputedProjectionIrExpression
-                            }>
+                            | NonEmptyReadonlyArray<
+                              string | {
+                                key: string
+                                subKeys: readonly string[]
+                              } | {
+                                key: string
+                                computed: ComputedProjectionIrExpression
+                              }
+                            >
                             | undefined,
                         f
                           .order,
@@ -587,13 +589,15 @@ function makeSQLiteStorePerNs(
                       defaultValues,
                       f
                         .select as
-                          | NonEmptyReadonlyArray<string | {
-                            key: string
-                            subKeys: readonly string[]
-                          } | {
-                            key: string
-                            computed: ComputedProjectionIrExpression
-                          }>
+                          | NonEmptyReadonlyArray<
+                            string | {
+                              key: string
+                              subKeys: readonly string[]
+                            } | {
+                              key: string
+                              computed: ComputedProjectionIrExpression
+                            }
+                          >
                           | undefined,
                       f
                         .order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,

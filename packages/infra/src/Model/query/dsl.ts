@@ -405,16 +405,28 @@ export const project: {
 export const relation = <TFieldValues extends FieldValues>(
   path: FieldPath<TFieldValues>
 ) => ({
-  count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression => ({
-    _tag: "relation-count",
-    path: path as string,
+  count: (operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
     operation
-  }),
-  any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression => ({
-    _tag: "relation-any",
-    path: path as string,
+      ? {
+        _tag: "relation-count",
+        path: path as string,
+        operation
+      }
+      : {
+        _tag: "relation-count",
+        path: path as string
+      },
+  any: (operation?: ComputedProjectionOperation): ComputedProjectionExpression =>
     operation
-  })
+      ? {
+        _tag: "relation-any",
+        path: path as string,
+        operation
+      }
+      : {
+        _tag: "relation-any",
+        path: path as string
+      }
 })
 
 export const computed = <T extends ComputedProjectionMap>(value: T): T => value
@@ -422,18 +434,12 @@ export const computed = <T extends ComputedProjectionMap>(value: T): T => value
 export const projectComputed: {
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I,
+    I extends Record<string, unknown>,
     A = ExtractFieldValuesRefined<Q>,
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Codec<
-      Option.Option<A>,
-      {
-        [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
-      },
-      R
-    >,
+    schema: S.Codec<Option.Option<A>, I, R>,
     computedProjection: ComputedProjectionMap,
     mode: "collect"
   ): (
@@ -442,18 +448,12 @@ export const projectComputed: {
 
   <
     Q extends Query<any> | QueryWhere<any, any, any> | QueryEnd<any, "one" | "many", any>,
-    I,
+    I extends Record<string, unknown>,
     A = ExtractFieldValuesRefined<Q>,
     R = never,
     E extends boolean = ExtractExclusiveness<Q>
   >(
-    schema: S.Codec<
-      A,
-      {
-        [K in keyof I]: K extends keyof ExtractFieldValuesRefined<Q> ? I[K] : never
-      },
-      R
-    >,
+    schema: S.Codec<A, I, R>,
     computedProjection: ComputedProjectionMap,
     mode?: "project"
   ): (

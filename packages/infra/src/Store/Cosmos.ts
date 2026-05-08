@@ -451,13 +451,15 @@ const makeCosmosStore = Effect.fnUntraced(function*({ prefix }: StorageConfig) {
                   name,
                   defaultValues,
                   f.select as
-                    | NonEmptyReadonlyArray<string | {
-                      key: string
-                      subKeys: readonly string[]
-                    } | {
-                      key: string
-                      computed: ComputedProjectionIrExpression
-                    }>
+                    | NonEmptyReadonlyArray<
+                      string | {
+                        key: string
+                        subKeys: readonly string[]
+                      } | {
+                        key: string
+                        computed: ComputedProjectionIrExpression
+                      }
+                    >
                     | undefined,
                   f.order as NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }> | undefined,
                   skip,

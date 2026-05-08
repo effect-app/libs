@@ -154,13 +154,15 @@ export function buildWhereSQLQuery(
   filter: readonly FilterResult[],
   tableName: string,
   defaultValues: Record<string, unknown>,
-  select?: NonEmptyReadonlyArray<string | {
-    key: string
-    subKeys: readonly string[]
-  } | {
-    key: string
-    computed: ComputedProjectionIrExpression
-  }>,
+  select?: NonEmptyReadonlyArray<
+    string | {
+      key: string
+      subKeys: readonly string[]
+    } | {
+      key: string
+      computed: ComputedProjectionIrExpression
+    }
+  >,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number

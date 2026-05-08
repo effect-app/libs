@@ -6,7 +6,7 @@ import { dropUndefinedT } from "effect-app/utils"
 import type { FilterResult } from "../filter/filterApi.js"
 import type { FieldValues } from "../filter/types.js"
 import type { FieldPath } from "../filter/types/path/eager.js"
-import { make, type ComputedProjectionExpression, type Q, type QAll } from "../query/dsl.js"
+import { make, type Q, type QAll } from "../query/dsl.js"
 
 export type ComputedProjectionIrExpression =
   | {
@@ -160,7 +160,7 @@ const interpret = <
         data.computed = v.computed
           ? Object.fromEntries(
             Object.entries(v.computed).map(([key, expression]) => {
-              const e = expression as ComputedProjectionExpression
+              const e = expression
               const filter = e.operation ? interpret(e.operation(make())).filter.map(applyPath(e.path)) : []
               return [key, { _tag: e._tag, path: e.path, filter } as const]
             })
@@ -187,7 +187,7 @@ export const toFilter = <
   TFieldValuesRefined extends TFieldValues = TFieldValues
 >(
   q: QAll<TFieldValues, TFieldValuesRefined, A, R>,
-  baseSchema?: S.Schema<any, TFieldValues>
+  baseSchema?: S.Schema<any>
 ) => {
   // TODO: Native interpreter for each db adapter, instead of the intermediate "new-kid" format
   const a = interpret(q)
@@ -228,26 +228,46 @@ export const toFilter = <
     }
   }
   const computed = a.computed
+  const getSelectKey = (_: (typeof select)[number]) => {
+    if (typeof _ === "string") {
+      return _
+    }
+    if (typeof _ === "object" && _ !== null && "key" in _) {
+      return _.key
+    }
+    return String(_)
+  }
+  const schemaKeys = select.map(getSelectKey)
+  const nonEncodedSchemaKeys = (() => {
+    if (!baseSchema) {
+      return [] as string[]
+    }
+    const encoded = walkTransformation(SchemaAST.toEncoded(baseSchema.ast))
+    if (!S.AST.isObjects(encoded)) {
+      return [] as string[]
+    }
+    const encodedKeys = encoded.propertySignatures.map((_) => _.name as string)
+    return schemaKeys.filter((key) => !encodedKeys.includes(key))
+  })()
+
+  if (!computed && Array.isArrayNonEmpty(nonEncodedSchemaKeys)) {
+    throw new Error(`Missing computed projections for schema keys: ${nonEncodedSchemaKeys.join(", ")}`)
+  }
+
   if (computed) {
-    const schemaKeys = select.map((_) => typeof _ === "string" ? _ : _.key)
     const computedKeys = Object.keys(computed)
     const extraComputedKeys = computedKeys.filter((key) => !schemaKeys.includes(key))
     if (Array.isArrayNonEmpty(extraComputedKeys)) {
       throw new Error(`Computed projection keys must exist in projection schema: ${extraComputedKeys.join(", ")}`)
     }
-    if (baseSchema) {
-      const encoded = walkTransformation(SchemaAST.toEncoded(baseSchema.ast))
-      if (S.AST.isObjects(encoded)) {
-        const encodedKeys = encoded.propertySignatures.map((_) => _.name as string)
-        const nonEncodedSchemaKeys = schemaKeys.filter((key) => !encodedKeys.includes(key))
-        const missingComputedKeys = nonEncodedSchemaKeys.filter((key) => !(key in computed))
-        if (Array.isArrayNonEmpty(missingComputedKeys)) {
-          throw new Error(`Missing computed projections for schema keys: ${missingComputedKeys.join(", ")}`)
-        }
+    if (Array.isArrayNonEmpty(nonEncodedSchemaKeys)) {
+      const missingComputedKeys = nonEncodedSchemaKeys.filter((key) => !(key in computed))
+      if (Array.isArrayNonEmpty(missingComputedKeys)) {
+        throw new Error(`Missing computed projections for schema keys: ${missingComputedKeys.join(", ")}`)
       }
     }
     select = select.filter((_) => {
-      const key = typeof _ === "string" ? _ : _.key
+      const key = getSelectKey(_)
       return !(key in computed)
     })
     select.push(...Object.entries(computed).map(([key, expression]) => ({ key, computed: expression })))

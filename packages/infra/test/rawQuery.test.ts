@@ -369,8 +369,8 @@ describe("computed projections", () => {
         projectComputed(
           output,
           computed({
-            pickedCount: relation<S.Schema.Encoded<typeof Something>>("items").count(where("value", "gt", 20)),
-            hasPicked: relation<S.Schema.Encoded<typeof Something>>("items").any(where("value", "gt", 20))
+            pickedCount: relation<S.Codec.Encoded<typeof Something>>("items").count(where("value", "gt", 20)),
+            hasPicked: relation<S.Codec.Encoded<typeof Something>>("items").any(where("value", "gt", 20))
           })
         )
       )

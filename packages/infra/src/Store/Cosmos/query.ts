@@ -41,13 +41,15 @@ export function buildWhereCosmosQuery3(
   filter: readonly FilterResult[],
   name: string,
   defaultValues: Record<string, unknown>,
-  select?: NonEmptyReadonlyArray<string | {
-    key: string
-    subKeys: readonly string[]
-  } | {
-    key: string
-    computed: ComputedProjectionIrExpression
-  }>,
+  select?: NonEmptyReadonlyArray<
+    string | {
+      key: string
+      subKeys: readonly string[]
+    } | {
+      key: string
+      computed: ComputedProjectionIrExpression
+    }
+  >,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
   limit?: number
@@ -79,14 +81,22 @@ export function buildWhereCosmosQuery3(
         return `(NOT ARRAY_CONTAINS(${k}, ${v}))`
 
       case "includes-any":
-        return `ARRAY_CONTAINS_ANY(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")})`
+        return `ARRAY_CONTAINS_ANY(${k}, ${
+          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+        })`
       case "notIncludes-any":
-        return `(NOT ARRAY_CONTAINS_ANY(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")}))`
+        return `(NOT ARRAY_CONTAINS_ANY(${k}, ${
+          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+        }))`
 
       case "includes-all":
-        return `ARRAY_CONTAINS_ALL(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")})`
+        return `ARRAY_CONTAINS_ALL(${k}, ${
+          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+        })`
       case "notIncludes-all":
-        return `(NOT ARRAY_CONTAINS_ALL(${k}, ${(x.value as any[]).map((_, i) => `${v}__${i}`).join(", ")}))`
+        return `(NOT ARRAY_CONTAINS_ALL(${k}, ${
+          (x.value as unknown as readonly unknown[]).map((_, i) => `${v}__${i}`).join(", ")
+        }))`
 
       case "contains":
         return `CONTAINS(${k}, ${v}, true)`

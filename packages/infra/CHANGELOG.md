@@ -1,5 +1,19 @@
 # @effect-app/infra
 
+## 4.0.0-beta.216
+
+### Patch Changes
+
+- f28fce5: fix sqlite
+  - effect-app@4.0.0-beta.216
+
+## 4.0.0-beta.215
+
+### Patch Changes
+
+- 24f5dd0: fix memory computation
+  - effect-app@4.0.0-beta.215
+
 ## 4.0.0-beta.214
 
 ### Minor Changes

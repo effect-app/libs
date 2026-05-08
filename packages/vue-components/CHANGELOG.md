@@ -1,5 +1,19 @@
 # @effect-app/vue-components
 
+## 4.0.0-beta.216
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.216
+- @effect-app/vue@4.0.0-beta.216
+
+## 4.0.0-beta.215
+
+### Patch Changes
+
+- effect-app@4.0.0-beta.215
+- @effect-app/vue@4.0.0-beta.215
+
 ## 4.0.0-beta.214
 
 ### Patch Changes

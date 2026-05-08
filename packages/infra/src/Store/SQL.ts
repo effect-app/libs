@@ -229,7 +229,7 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                 .flatMap((ns) =>
                   Effect
                     .sync(() => {
-                      const q = buildWhereSQLQuery(
+                      return buildWhereSQLQuery(
                         dialect,
                         idKey,
                         filter ? [{ t: "where-scope", result: filter, relation: "some" }] : [],
@@ -252,29 +252,9 @@ function makeSQLStoreInt(system: DbSystem, dialect: SQLDialect, jsonColumnType: 
                         f
                           .skip,
                         f
-                          .limit
+                          .limit,
+                        ns
                       )
-                      const hasWhere = q
-                        .sql
-                        .includes("WHERE")
-                      const nsSql = hasWhere
-                        ? q
-                          .sql
-                          .replace("WHERE", `WHERE _namespace = ? AND`)
-                        : q
-                          .sql
-                          .replace(
-                            `FROM "${tableName}"`,
-                            `FROM "${tableName}" WHERE _namespace = ?`
-                          )
-                      return {
-                        sql: nsSql,
-                        params: [
-                          ns,
-                          ...q
-                            .params
-                        ]
-                      }
                     })
                     .pipe(
                       Effect

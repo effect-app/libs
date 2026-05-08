@@ -167,7 +167,8 @@ export function buildWhereSQLQuery(
   >,
   order?: NonEmptyReadonlyArray<{ key: string; direction: "ASC" | "DESC" }>,
   skip?: number,
-  limit?: number
+  limit?: number,
+  namespace?: string
 ) {
   const params: unknown[] = []
   let paramIndex = 1
@@ -489,8 +490,22 @@ export function buildWhereSQLQuery(
     return fields.join(", ")
   }
 
-  const whereClause = filter.length
-    ? `WHERE ${print([{ t: "where-scope", result: filter, relation: "some" }], null, false)}`
+  // Order matters: projection params must be emitted BEFORE user-filter
+  // params so positional `?` placeholders in SQLite match `params[]` order.
+  const selectExpr = getSelectExpr()
+
+  const namespaceClause = namespace !== undefined
+    ? `_namespace = ${addParam(namespace)}`
+    : ""
+  const userWhere = filter.length
+    ? print([{ t: "where-scope", result: filter, relation: "some" }], null, false)
+    : ""
+  const whereClause = namespaceClause && userWhere
+    ? `WHERE ${namespaceClause} AND ${userWhere}`
+    : namespaceClause
+    ? `WHERE ${namespaceClause}`
+    : userWhere
+    ? `WHERE ${userWhere}`
     : ""
 
   const orderClause = order
@@ -501,7 +516,7 @@ export function buildWhereSQLQuery(
     ? `LIMIT ${addParam(limit ?? 999999)} OFFSET ${addParam(skip ?? 0)}`
     : ""
 
-  const sql = `SELECT ${getSelectExpr()} FROM "${tableName}" ${whereClause} ${orderClause} ${limitClause}`.trim()
+  const sql = `SELECT ${selectExpr} FROM "${tableName}" ${whereClause} ${orderClause} ${limitClause}`.trim()
 
   return { sql, params }
 }

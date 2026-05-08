@@ -62,7 +62,11 @@ const computeProjectionValue = (
     return emptyValueFor(computed._tag)
   }
   const filter = stripRelationFilterPaths(computed.filter, computed.path)
-  const matches = (value: unknown) => codeFilter3_(filter, value)
+  // empty filter = unconditional match (codeFilter3_ uses eval on a built
+  // string and chokes on `( )`, so short-circuit before invoking it).
+  const matches = filter.length === 0
+    ? (_value: unknown) => true
+    : (value: unknown) => codeFilter3_(filter, value)
   const evalExpr = (value: unknown, expression: ComputedProjectionMathIrExpression): number => {
     switch (expression._tag) {
       case "field": {
